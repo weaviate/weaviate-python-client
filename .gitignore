@@ -1,0 +1,4 @@
+.idea
+build
+dist
+Weaviate_client.egg-info
