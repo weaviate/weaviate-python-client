@@ -37,9 +37,9 @@ class Connection:
         try:
             request = requests.get(self.url + "/.well-known/openid-configuration", headers={"content-type": "application/json"}, timeout=(30, 45))
         except urllib.error.HTTPError as error:
-            raise Errors.AuthenticationFailedException("Cant connect to weaviate")
+            raise errors.AuthenticationFailedException("Cant connect to weaviate")
         if request.status_code != 200:
-            raise Errors.AuthenticationFailedException("Cant authenticate http status not ok")
+            raise errors.AuthenticationFailedException("Cant authenticate http status not ok")
 
         # Set the client ID
         client_id = request.json()['clientId']
@@ -48,15 +48,15 @@ class Connection:
         try:
             request_third_part = requests.get(request.json()['href'], headers={"content-type": "application/json"}, timeout=(30, 45))
         except urllib.error.HTTPError as error:
-            raise Errors.AuthenticationFailedException(
+            raise errors.AuthenticationFailedException(
                 "Can't connect to the third party authentication service. Validate that it's running")
         if request_third_part.status_code != 200:
-            raise Errors.AuthenticationFailedException(
+            raise errors.AuthenticationFailedException(
                 "Status not OK in connection to the third party authentication service")
 
         # Validate third part auth info
         if 'client_credentials' not in request_third_part.json()['grant_types_supported']:
-            raise Errors.AuthenticationFailedException(
+            raise errors.AuthenticationFailedException(
                 "The grant_types supported by the thirdparty authentication service are insufficient. Please add 'client_credentials'")
 
         # Set the body
@@ -70,7 +70,7 @@ class Connection:
         try:
             request = requests.post(request_third_part.json()['token_endpoint'], request_body, timeout=(30, 45))
         except urllib.error.HTTPError as error:
-            raise Errors.AuthenticationFailedException(
+            raise errors.AuthenticationFailedException(
                 "Unable to get a OAuth token from server. Are the credentials and URLs correct?")
 
         # sleep to process

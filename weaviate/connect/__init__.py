@@ -6,4 +6,4 @@ REST_METHOD_POST = 2
 
 from weaviate.connect.util import get_epoch_time
 from weaviate.connect.connection import Connection
-from weaviate import Errors
+from weaviate import errors
