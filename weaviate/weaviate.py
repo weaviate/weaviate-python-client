@@ -1,5 +1,5 @@
 from .connect import connection
-from .errors import *
+from .exceptions import *
 
 
 class Weaviate:
