@@ -1,4 +1,4 @@
-from .connect import connection
+from .connect import *
 from .exceptions import *
 
 
@@ -24,7 +24,7 @@ class Weaviate:
             weaviate_obj["id"] = uuid
 
         try:
-            response = self.connection.run_rest("/things", connection.REST_METHOD_POST, weaviate_obj)
+            response = self.connection.run_rest("/things", REST_METHOD_POST, weaviate_obj)
         except ConnectionError as conn_err:
             print("Connection error, thing was not added to weaviate: " + str(conn_err))
             raise ConnectionError
@@ -63,7 +63,7 @@ class Weaviate:
         }
 
         try:
-            response = self.connection.run_rest("/things/"+uuid, connection.REST_METHOD_PUT, weaviate_obj)
+            response = self.connection.run_rest("/things/"+uuid, REST_METHOD_PUT, weaviate_obj)
         except ConnectionError as conn_err:
             print("Connection error, thing was not updated: " + str(conn_err))
             raise ConnectionError
@@ -89,10 +89,10 @@ class Weaviate:
     def add_property_reference_to_thing(self, thing_uuid, property_name, property_beacons):
         path = "/things/" + thing_uuid + "/references/" + property_name
         try:
-            response = self.connection.run_rest(path, connection.REST_METHOD_POST, property_beacons)
+            response = self.connection.run_rest(path, REST_METHOD_POST, property_beacons)
         except ConnectionError as conn_err:
             print("Connection error, reference was not added to weaviate: " + str(conn_err))
-            raise ConnectionError
+            raise
 
         if response.status_code == 200:
             return
@@ -116,13 +116,17 @@ class Weaviate:
     def get_c11y_vector(self, word):
         path = "/c11y/words/" + word
         try:
-            response = self.connection.run_rest(path, connection.REST_METHOD_GET)
-        except:
-            print("Connection error, reference was not added to weaviate: " + str(conn_err))
-            raise ConnectionError
-        if response.status_code == 200:
-            return response.json()
+            response = self.connection.run_rest(path, REST_METHOD_GET)
+        except AttributeError:
+
+            raise
+        except Exception as e:
+            print("(TODO add specific catch for this exception) Connection error, reference was not added to weaviate: " + str(e))
+            raise
         else:
-            print("WARNING: STATUS CODE WAS NOT 200 but " + str(response.status_code) + " with: " + str(
-                response.json()))
-            raise UnexpectedStatusCodeException
+            if response.status_code == 200:
+                return response.json()
+            else:
+                print("WARNING: STATUS CODE WAS NOT 200 but " + str(response.status_code) + " with: " + str(
+                    response.json()))
+                raise UnexpectedStatusCodeException

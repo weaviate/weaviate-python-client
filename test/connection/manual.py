@@ -1,4 +1,5 @@
 import weaviate
 
-weaviate.Weaviate("http://localhost:8080")
+w = weaviate.Weaviate("http://localhost:8080")
 
+x = w.get_c11y_vector("Test")
