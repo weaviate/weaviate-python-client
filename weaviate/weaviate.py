@@ -113,6 +113,8 @@ class Weaviate:
     # Batchloading references
     # Takes four lists that describe references.
     def add_references_in_batch(self, from_thing_class_names, from_thing_ids, from_thing_properties, to_thing_ids):
+        # TODO maybe batch object instead of lists thats kind of unhandy
+        #  the batch object just has a add tring, id, ... and then can be passed here
         if not isinstance(from_thing_class_names, list) or not isinstance(from_thing_ids, list) or \
                 not isinstance(from_thing_properties, list) or not isinstance(to_thing_ids, list):
             raise ValueError('Argument must be a list')
