@@ -78,7 +78,6 @@ class Weaviate:
 
             raise UnexpectedStatusCodeException
 
-
     # Add a property reference to a thing
     # thing_uuid the thing that should have the reference as part of its properties
     # the name of the property within the thing
@@ -87,7 +86,9 @@ class Weaviate:
     #                     ...
     #                 }]
     def add_property_reference_to_thing(self, thing_uuid, property_name, property_beacons):
+
         path = "/things/" + thing_uuid + "/references/" + property_name
+
         try:
             response = self.connection.run_rest(path, REST_METHOD_POST, property_beacons)
         except ConnectionError as conn_err:
@@ -109,6 +110,47 @@ class Weaviate:
                 response.json()))
             raise UnexpectedStatusCodeException
 
+    # Batchloading references
+    # Takes four lists that describe references.
+    def add_references_in_batch(self, from_thing_class_names, from_thing_ids, from_thing_properties, to_thing_ids):
+        if not isinstance(from_thing_class_names, list) or not isinstance(from_thing_ids, list) or \
+                not isinstance(from_thing_properties, list) or not isinstance(to_thing_ids, list):
+            raise ValueError('Argument must be a list')
+
+        batch_size = len(from_thing_class_names)
+
+        if len(from_thing_ids) != batch_size or len(from_thing_properties) != batch_size or len(to_thing_ids) != batch_size:
+            raise ValueError('All lists must be the same length')
+
+        batch_body= [None]*batch_size
+        for i in range(batch_size):
+            batch_body[i] = {
+                "from": "weaviate://localhost/things/"+from_thing_class_names[i]+"/"+from_thing_ids[i]+"/"+from_thing_properties[i],
+                "to": "weaviate://localhost/things/"+to_thing_ids[i]
+            }
+
+        path = "/batching/references"
+
+        try:
+            response = self.connection.run_rest(path, REST_METHOD_POST, batch_body)
+        except ConnectionError as conn_err:
+            print("Connection error, reference was not added to weaviate: " + str(conn_err))
+            raise
+
+        if response.status_code == 200:
+            return
+        elif response.status_code == 401:
+            raise UnauthorizedRequest401Exception
+        elif response.status_code == 403:
+            raise ForbiddenRequest403Exception
+        elif response.status_code == 422:
+            raise SemanticError422Exception
+        elif response.status_code == 500:
+            raise ServerError500Exception(response.json())
+        else:
+            print("WARNING: STATUS CODE WAS NOT 200 but " + str(response.status_code) + " with: " + str(
+                response.json()))
+            raise UnexpectedStatusCodeException
 
     # Retrieves the vector representation of the given word
     # The word can be CamelCased for a compound vector
