@@ -19,7 +19,7 @@ class Connection:
         try:
             request = requests.get(self.url + "/.well-known/openid-configuration",
                                    headers={"content-type": "application/json"}, timeout=(30, 45))
-        except urllib.error.HTTPError as error:
+        except Exception as error:
             pass
         else:
             if request.status_code == 200:

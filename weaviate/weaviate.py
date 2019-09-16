@@ -1,6 +1,5 @@
 from .connect import *
 from .exceptions import *
-from .batch import ReferenceBatchRequest
 
 
 class Weaviate:
