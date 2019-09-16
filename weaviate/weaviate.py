@@ -1,5 +1,6 @@
 from .connect import *
 from .exceptions import *
+from .batch import ReferenceBatchRequest
 
 
 class Weaviate:
@@ -112,29 +113,14 @@ class Weaviate:
 
     # Batchloading references
     # Takes four lists that describe references.
-    def add_references_in_batch(self, from_thing_class_names, from_thing_ids, from_thing_properties, to_thing_ids):
-        # TODO maybe batch object instead of lists thats kind of unhandy
-        #  the batch object just has a add tring, id, ... and then can be passed here
-        if not isinstance(from_thing_class_names, list) or not isinstance(from_thing_ids, list) or \
-                not isinstance(from_thing_properties, list) or not isinstance(to_thing_ids, list):
-            raise ValueError('Argument must be a list')
-
-        batch_size = len(from_thing_class_names)
-
-        if len(from_thing_ids) != batch_size or len(from_thing_properties) != batch_size or len(to_thing_ids) != batch_size:
-            raise ValueError('All lists must be the same length')
-
-        batch_body= [None]*batch_size
-        for i in range(batch_size):
-            batch_body[i] = {
-                "from": "weaviate://localhost/things/"+from_thing_class_names[i]+"/"+from_thing_ids[i]+"/"+from_thing_properties[i],
-                "to": "weaviate://localhost/things/"+to_thing_ids[i]
-            }
+    def add_references_in_batch(self, reference_batch_request):
+        if reference_batch_request.get_batch_size() == 0:
+            return  # No data in batch
 
         path = "/batching/references"
 
         try:
-            response = self.connection.run_rest(path, REST_METHOD_POST, batch_body)
+            response = self.connection.run_rest(path, REST_METHOD_POST, reference_batch_request.get_request_body())
         except ConnectionError as conn_err:
             print("Connection error, reference was not added to weaviate: " + str(conn_err))
             raise

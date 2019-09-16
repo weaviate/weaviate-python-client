@@ -115,7 +115,7 @@ class Connection:
                 response = None
         except ConnectionError as conn_err:
             if retries > 0:
-                time.sleep(0.125)
+                time.sleep(0.128)
                 self.run_rest(path, weaviate_object, rest_method, retries - 1)
                 return
             else:
