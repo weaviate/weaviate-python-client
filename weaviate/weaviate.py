@@ -1,9 +1,9 @@
 import json
 import os
+import validators
 
 from .connect import *
 from .exceptions import *
-import validators
 
 SCHEMA_CLASS_TYPE_THINGS = "things"
 SCHEMA_CLASS_TYPE_ACTIONS = "actions"
@@ -215,27 +215,12 @@ class Weaviate:
             # Schema is already a dict
             loaded_schema = schema
 
-        self.__create_class(SCHEMA_CLASS_TYPE_THINGS, loaded_schema[SCHEMA_CLASS_TYPE_THINGS])
-        self.__create_class(SCHEMA_CLASS_TYPE_ACTIONS, loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS])
+        # TODO validate schema
 
-
-
-
-        # # Add properties to things (needs to run after CreateConceptClasses()!)
-        # self.helpers.Info(Messages().Get(116) + "things")
-        # self.helpers.AddPropsToConceptClasses("things", things["classes"], deleteIfFound)
-        #
-        # # Add properties to actions (needs to run after CreateConceptClasses()!)
-        # self.helpers.Info(Messages().Get(116) + "actions")
-        # self.helpers.AddPropsToConceptClasses("actions", actions["classes"], deleteIfFound)
-        #
-        # # Validate Things & Actions
-        # self.helpers.Info(Messages().Get(117))
-        # if self.helpers.ValidateConceptClasses(things["classes"], actions["classes"]) is True:
-        #     self.helpers.Info(Messages().Get(118))
-        #     exit(0)
-        # else:
-        #     self.helpers.Error(Messages().Get(204))
+        self.__create_class(SCHEMA_CLASS_TYPE_THINGS, loaded_schema[SCHEMA_CLASS_TYPE_THINGS]["classes"])
+        self.__create_class(SCHEMA_CLASS_TYPE_ACTIONS, loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS]["classes"])
+        self.__create_properties(SCHEMA_CLASS_TYPE_THINGS, loaded_schema[SCHEMA_CLASS_TYPE_THINGS]["classes"])
+        self.__create_properties(SCHEMA_CLASS_TYPE_ACTIONS, loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS]["classes"])
 
 
     # Create all the classes in the list
@@ -270,43 +255,13 @@ class Weaviate:
                     "name": property["name"]
                 }
 
-                # check if the dataTypes are set correctly (with multiple crefs, only crefs)
-                # if len(prperty["dataType"]) > 1:
-                #     # check if they are all crefs
-                #     correctlyFormatted = True
-                #     for datatype in prperty["dataType"]:
-                #         if datatype[0] != datatype[0].capitalize():
-                #             correctlyFormatted = False
-                #     if correctlyFormatted is False:
-                #         self.Error("There is an incorrect dataType for the Thing with class: " + \
-                #                    self.ValidateAndGet(prperty, "name", "root dataType: " + schema_class_type))
-                #
-                # # add the dataType(s)
-                # for datatype in prperty["dataType"]:
-                #     propertyObject["dataType"].append(datatype)
-                #
-                # # add the Keywords
-                # if "keywords" in propertyObject:
-                #     self.ValidateAndGet(prperty, "keywords", "keywords of the root " \
-                #                         + schema_class_type + " => " + prperty["name"])
-                #     for keyword in prperty["keywords"]:
-                #         propertyObject["keywords"].append({
-                #             "keyword": self.ValidateAndGet(keyword, "keyword", "keyword" + schema_class_type),
-                #             "weight": self.ValidateAndGet(keyword, "weight", "weight: " + schema_class_type)
-                #         })
-                #
-                # # Delete if deleteIfFound is set
-                # if deleteIfFound == True:
-                #     self.Info("Delete: " + self.ValidateAndGet(prperty, "name", "name of " + schema_class_type))
-                #     self.weaviate.Delete("/schema/" + schema_class_type + "/" + \
-                #                          self.ValidateAndGet(schema_class, "class", "classname of " + schema_class_type) + \
-                #         "/properties/" + \
-                #                          self.ValidateAndGet(prperty, "name", "name of " + schema_class_type))
-                #
-                # # Update the class with the schema
-                # status, result = self.weaviate.Post("/schema/" + schema_class_type + "/" + \
-                #                                     self.ValidateAndGet(schema_class, "class", "classname of " + schema_class_type) + \
-                # "/properties", propertyObject)
-                #
-                # if status != 200:
-                #     self.Error(str(result))
+                # add the dataType(s)
+                for datatype in property["dataType"]:
+                    schema_property["dataType"].append(datatype)
+
+                # add keywords
+                if "keywords" in property:
+                    schema_property["keywords"] = property["keywords"]
+
+                path = "/schema/"+schema_class_type+"/"+schema_class["class"]+"/properties"
+                self.connection.run_rest(path, REST_METHOD_POST, schema_property)
