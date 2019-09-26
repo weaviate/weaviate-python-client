@@ -1,6 +1,12 @@
+import json
+import os
+
 from .connect import *
 from .exceptions import *
+import validators
 
+SCHEMA_CLASS_TYPE_THINGS = "things"
+SCHEMA_CLASS_TYPE_ACTIONS = "actions"
 
 class Weaviate:
 
@@ -27,7 +33,7 @@ class Weaviate:
             response = self.connection.run_rest("/things", REST_METHOD_POST, weaviate_obj)
         except ConnectionError as conn_err:
             print("Connection error, thing was not added to weaviate: " + str(conn_err))
-            raise ConnectionError
+            raise
 
         if response.status_code == 200:
             return response.json()["id"]
@@ -139,6 +145,25 @@ class Weaviate:
                 response.json()))
             raise UnexpectedStatusCodeException
 
+    # Returns true if a thing exists in weaviate
+    def thing_exists(self, uuid_thing):
+        if not isinstance(uuid_thing, str):
+            uuid_thing = str(uuid_thing)
+        try:
+            response = self.connection.run_rest("/things/"+uuid_thing, REST_METHOD_GET)
+        except ConnectionError as conn_err:
+            print("Connection error not sure if thing exists")
+            raise
+
+        if response.status_code == 200:
+            return True
+        elif response.status_code == 404:
+            return False
+        else:
+            print("WARNING: STATUS CODE WAS NOT 200 but " + str(response.status_code) + " with: " + str(
+                response.json()))
+            raise UnexpectedStatusCodeException
+
     # Retrieves the vector representation of the given word
     # The word can be CamelCased for a compound vector
     # Returns the vector or throws and error, the vector might be empty if the c11y does not contain it
@@ -159,3 +184,129 @@ class Weaviate:
                 print("WARNING: STATUS CODE WAS NOT 200 but " + str(response.status_code) + " with: " + str(
                     response.json()))
                 raise UnexpectedStatusCodeException
+
+    # Create the schema at the weaviate instance
+    # schema can either be the path to a json file, a url of a json file or a dict
+    # throws exceptions:
+    # - ValueError if input is wrong
+    # - IOError if file could not be read
+    def create_schema(self, schema):
+        loaded_schema = None
+
+        # check if things files is url
+        if schema == None:
+            raise ValueError("Schema is None")
+        if validators.url(schema):
+            # TODO
+            print("DOWNLOADING SCHEMA NOT YET IMPLEMENTED")
+            return
+
+        if isinstance(schema, str):
+            # Schema is file
+            if not os.path.isfile(schema):
+                raise ValueError("No schema file found at location")
+            try:
+                with open(schema, 'r') as file:
+                    loaded_schema = json.load(file)
+            except IOError:
+                raise
+
+        if isinstance(schema, dict):
+            # Schema is already a dict
+            loaded_schema = schema
+
+        self.__create_class(SCHEMA_CLASS_TYPE_THINGS, loaded_schema[SCHEMA_CLASS_TYPE_THINGS])
+        self.__create_class(SCHEMA_CLASS_TYPE_ACTIONS, loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS])
+
+
+
+
+        # # Add properties to things (needs to run after CreateConceptClasses()!)
+        # self.helpers.Info(Messages().Get(116) + "things")
+        # self.helpers.AddPropsToConceptClasses("things", things["classes"], deleteIfFound)
+        #
+        # # Add properties to actions (needs to run after CreateConceptClasses()!)
+        # self.helpers.Info(Messages().Get(116) + "actions")
+        # self.helpers.AddPropsToConceptClasses("actions", actions["classes"], deleteIfFound)
+        #
+        # # Validate Things & Actions
+        # self.helpers.Info(Messages().Get(117))
+        # if self.helpers.ValidateConceptClasses(things["classes"], actions["classes"]) is True:
+        #     self.helpers.Info(Messages().Get(118))
+        #     exit(0)
+        # else:
+        #     self.helpers.Error(Messages().Get(204))
+
+
+    # Create all the classes in the list
+    # This function does not create properties,
+    # to avoid references to classes that do not yet exist
+    # Takes:
+    # - schema_class_type which can be found as constants in this file
+    # - schema_classes_list a list of classes as it is found in a schema json description
+    def __create_class(self, schema_class_type, schema_classes_list):
+
+        for weaviate_class in schema_classes_list:
+
+            schema_class = {
+                "class": weaviate_class['class'],
+                "description": weaviate_class['description'],
+                "properties": [],
+                "keywords": []
+            }
+
+            # Add the item
+            self.connection.run_rest("/schema/"+schema_class_type, REST_METHOD_POST, schema_class)
+
+    def __create_properties(self, schema_class_type, schema_classes_list):
+        for schema_class in schema_classes_list:
+            for property in schema_class["properties"]:
+
+                # create the property object
+                schema_property = {
+                    "dataType": [],
+                    "cardinality": property["cardinality"],
+                    "description": property["description"],
+                    "name": property["name"]
+                }
+
+                # check if the dataTypes are set correctly (with multiple crefs, only crefs)
+                # if len(prperty["dataType"]) > 1:
+                #     # check if they are all crefs
+                #     correctlyFormatted = True
+                #     for datatype in prperty["dataType"]:
+                #         if datatype[0] != datatype[0].capitalize():
+                #             correctlyFormatted = False
+                #     if correctlyFormatted is False:
+                #         self.Error("There is an incorrect dataType for the Thing with class: " + \
+                #                    self.ValidateAndGet(prperty, "name", "root dataType: " + schema_class_type))
+                #
+                # # add the dataType(s)
+                # for datatype in prperty["dataType"]:
+                #     propertyObject["dataType"].append(datatype)
+                #
+                # # add the Keywords
+                # if "keywords" in propertyObject:
+                #     self.ValidateAndGet(prperty, "keywords", "keywords of the root " \
+                #                         + schema_class_type + " => " + prperty["name"])
+                #     for keyword in prperty["keywords"]:
+                #         propertyObject["keywords"].append({
+                #             "keyword": self.ValidateAndGet(keyword, "keyword", "keyword" + schema_class_type),
+                #             "weight": self.ValidateAndGet(keyword, "weight", "weight: " + schema_class_type)
+                #         })
+                #
+                # # Delete if deleteIfFound is set
+                # if deleteIfFound == True:
+                #     self.Info("Delete: " + self.ValidateAndGet(prperty, "name", "name of " + schema_class_type))
+                #     self.weaviate.Delete("/schema/" + schema_class_type + "/" + \
+                #                          self.ValidateAndGet(schema_class, "class", "classname of " + schema_class_type) + \
+                #         "/properties/" + \
+                #                          self.ValidateAndGet(prperty, "name", "name of " + schema_class_type))
+                #
+                # # Update the class with the schema
+                # status, result = self.weaviate.Post("/schema/" + schema_class_type + "/" + \
+                #                                     self.ValidateAndGet(schema_class, "class", "classname of " + schema_class_type) + \
+                # "/properties", propertyObject)
+                #
+                # if status != 200:
+                #     self.Error(str(result))
