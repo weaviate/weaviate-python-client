@@ -181,8 +181,8 @@ class Weaviate:
             if response.status_code == 200:
                 return response.json()
             else:
-                print("WARNING: STATUS CODE WAS NOT 200 but " + str(response.status_code) + " with: " + str(
-                    response.json()))
+                #print("WARNING: STATUS CODE WAS NOT 200 but " + str(response.status_code) + " with: " + str(
+                #    response.json()))
                 raise UnexpectedStatusCodeException
 
     # Create the schema at the weaviate instance
@@ -217,10 +217,10 @@ class Weaviate:
 
         # TODO validate schema
 
-        self.__create_class(SCHEMA_CLASS_TYPE_THINGS, loaded_schema[SCHEMA_CLASS_TYPE_THINGS]["classes"])
-        self.__create_class(SCHEMA_CLASS_TYPE_ACTIONS, loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS]["classes"])
-        self.__create_properties(SCHEMA_CLASS_TYPE_THINGS, loaded_schema[SCHEMA_CLASS_TYPE_THINGS]["classes"])
-        self.__create_properties(SCHEMA_CLASS_TYPE_ACTIONS, loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS]["classes"])
+        self._create_class(SCHEMA_CLASS_TYPE_THINGS, loaded_schema[SCHEMA_CLASS_TYPE_THINGS]["classes"])
+        self._create_class(SCHEMA_CLASS_TYPE_ACTIONS, loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS]["classes"])
+        self._create_properties(SCHEMA_CLASS_TYPE_THINGS, loaded_schema[SCHEMA_CLASS_TYPE_THINGS]["classes"])
+        self._create_properties(SCHEMA_CLASS_TYPE_ACTIONS, loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS]["classes"])
 
 
     # Create all the classes in the list
@@ -229,7 +229,7 @@ class Weaviate:
     # Takes:
     # - schema_class_type which can be found as constants in this file
     # - schema_classes_list a list of classes as it is found in a schema json description
-    def __create_class(self, schema_class_type, schema_classes_list):
+    def _create_class(self, schema_class_type, schema_classes_list):
 
         for weaviate_class in schema_classes_list:
 
@@ -243,7 +243,7 @@ class Weaviate:
             # Add the item
             self.connection.run_rest("/schema/"+schema_class_type, REST_METHOD_POST, schema_class)
 
-    def __create_properties(self, schema_class_type, schema_classes_list):
+    def _create_properties(self, schema_class_type, schema_classes_list):
         for schema_class in schema_classes_list:
             for property in schema_class["properties"]:
 
@@ -265,3 +265,59 @@ class Weaviate:
 
                 path = "/schema/"+schema_class_type+"/"+schema_class["class"]+"/properties"
                 self.connection.run_rest(path, REST_METHOD_POST, schema_property)
+
+    # Starts a knn classification based on the given parameters
+    # Returns a dict with the answer from weaviate
+    def start_knn_classification(self, schema_class_name, k, based_on_properties, classify_properties):
+        if not isinstance(schema_class_name, str):
+            raise ValueError("Schema class name must be of type string")
+        if not isinstance(k, int):
+            raise ValueError("K must be of type integer")
+        if isinstance(based_on_properties, str):
+            based_on_properties = [based_on_properties]
+        if isinstance(classify_properties, str):
+            classify_properties = [classify_properties]
+        if not isinstance(based_on_properties, list):
+            raise ValueError("Based on properties must be of type string or list of strings")
+        if not isinstance(classify_properties, list):
+            raise ValueError("Classify properties must be of type string or list of strings")
+
+        payload = {
+            "class": schema_class_name,
+            "k": k,
+            "basedOnProperties": based_on_properties,
+            "classifyProperties": classify_properties
+        }
+
+        response = self.connection.run_rest("/classifications", REST_METHOD_POST, payload)
+
+        if response.status_code == 201:
+            return response.json()
+        else:
+            print("WARNING: STATUS CODE WAS NOT 201 but " + str(response.status_code) + " with: " + str(
+                response.json()))
+            raise UnexpectedStatusCodeException
+
+    # Polls the current state of the given classification
+    # Returns a dict containing the weaviate answer
+    def get_knn_classification_status(self, classification_uuid):
+        if not validators.uuid(classification_uuid):
+            raise ValueError("Given UUID does not have a proper form")
+
+        response = self.connection.run_rest("/classifications/"+classification_uuid, REST_METHOD_GET)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print("WARNING: STATUS CODE WAS NOT 200 but " + str(response.status_code) + " with: " + str(
+                response.json()))
+            raise UnexpectedStatusCodeException
+
+    # Returns true if the classification has finished
+    def is_classification_complete(self, classification_uuid):
+        response = self.get_knn_classification_status(classification_uuid)
+        if response["status"] == "completed":
+            return True
+        return False
+
+    # # Queries the instance with a
+    # def query(self, gql):

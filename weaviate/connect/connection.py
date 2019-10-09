@@ -24,15 +24,15 @@ class Connection:
         else:
             if request.status_code == 200:
                 self.is_authentication_required = True
-                self.__refresh_authentication()
+                self._refresh_authentication()
 
     # Requests a new bearer
-    def __refresh_authentication(self):
+    def _refresh_authentication(self):
         if (self.auth_expires - 2) < get_epoch_time():  # -2 for some lagtime
-            self.__auth_get_bearer()
+            self._auth_get_bearer()
 
 
-    def __auth_get_bearer(self):
+    def _auth_get_bearer(self):
 
         # collect data for the request
         try:
@@ -80,13 +80,13 @@ class Connection:
         self.auth_bearer = request.json()['access_token']
         self.auth_expires = int(get_epoch_time() + request.json()['expires_in'] - 2)
 
-    def __get_request_header(self):
+    def _get_request_header(self):
         """Returns the correct headers for a request"""
 
         header = {"content-type": "application/json"}
 
         if self.is_authentication_required:
-            self.__refresh_authentication()
+            self._refresh_authentication()
             header["Authorization"] = "Bearer " + self.auth_bearer
 
         return header
@@ -103,13 +103,13 @@ class Connection:
         try:
             if rest_method == REST_METHOD_GET:
                 response = requests.get(url=request_url,
-                                        headers=self.__get_request_header(), timeout=(2, 20))
+                                        headers=self._get_request_header(), timeout=(2, 20))
             elif rest_method == REST_METHOD_PUT:
                 response = requests.put(url=request_url, json=weaviate_object,
-                                        headers=self.__get_request_header(), timeout=(2, 20))
+                                        headers=self._get_request_header(), timeout=(2, 20))
             elif rest_method == REST_METHOD_POST:
                 response = requests.post(url=request_url, json=weaviate_object,
-                                         headers=self.__get_request_header(), timeout=(2, 20))
+                                         headers=self._get_request_header(), timeout=(2, 20))
             else:
                 print("Not yet implemented rest method called")
                 response = None
