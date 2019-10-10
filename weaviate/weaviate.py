@@ -1,5 +1,7 @@
 import json
 import os
+import requests
+
 import validators
 
 from .connect import *
@@ -19,7 +21,6 @@ class Weaviate:
         if not validators.url(url):
             raise ValueError("URL has no propper form: "+url)
         self.connection = connection.Connection(url=url, auth_client_secret=auth_client_secret)
-
 
     # Takes a dict describing the thing and adds it to weaviate
     # The thing is associated with the class given in class_name
@@ -201,24 +202,33 @@ class Weaviate:
         # check if things files is url
         if schema == None:
             raise ValueError("Schema is None")
-        if validators.url(schema):
-            # TODO
-            print("DOWNLOADING SCHEMA NOT YET IMPLEMENTED")
-            return
-
-        if isinstance(schema, str):
-            # Schema is file
-            if not os.path.isfile(schema):
-                raise ValueError("No schema file found at location")
-            try:
-                with open(schema, 'r') as file:
-                    loaded_schema = json.load(file)
-            except IOError:
-                raise
 
         if isinstance(schema, dict):
             # Schema is already a dict
             loaded_schema = schema
+        elif isinstance(schema, str):
+
+            if validators.url(schema):
+                # Schema is URL
+                f = requests.get(schema)
+                if f.status_code == 200:
+                    loaded_schema = f.json()
+                else:
+                    raise ValueError("Could not download file")
+
+            elif not os.path.isfile(schema):
+                # Schema is neither file nor URL
+                raise ValueError("No schema file found at location")
+            else:
+                # Schema is file
+                try:
+                    with open(schema, 'r') as file:
+                        loaded_schema = json.load(file)
+                except IOError:
+                    raise
+        else:
+            raise ValueError("Schema is not of a supported type. Supported types are url or file path as string or schema as dict.")
+
 
         # TODO validate schema
 

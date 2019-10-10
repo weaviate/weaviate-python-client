@@ -28,15 +28,15 @@ class TestWeaviate(unittest.TestCase):
         try:
             w = weaviate.Weaviate("http://localhost:8080")
         except Exception as e:
-            self.fail("Unexpected exception: "+ str(e))
+            self.fail("Unexpected exception: " + str(e))
         try:
             w = weaviate.Weaviate("http://localhost:8080", "xyz")
         except Exception as e:
-            self.fail("Unexpected exception: "+ str(e))
+            self.fail("Unexpected exception: " + str(e))
         try:
             w = weaviate.Weaviate("http://test.domain/path:8080", "xyz")
         except Exception as e:
-            self.fail("Unexpected exception: "+ str(e))
+            self.fail("Unexpected exception: " + str(e))
 
 
 
