@@ -1,0 +1,83 @@
+{
+  "actions": {
+    "classes": [],
+    "type": "action"
+  },
+  "things": {
+    "@context": "",
+    "version": "0.2.0",
+    "type": "thing",
+    "name": "company",
+    "maintainer": "yourfriends@weaviate.com",
+    "classes": [
+      {
+        "class": "Company",
+        "description": "A business that acts in the market",
+        "keywords": [],
+        "properties": [
+          {
+            "name": "name",
+            "description": "The name under which the company is known",
+            "dataType": [
+              "text"
+            ],
+            "cardinality": "atMostOne",
+            "keywords": []
+          },
+          {
+            "name": "legalBody",
+            "description": "The legal body under which the company maintains its business",
+            "dataType": [
+              "text"
+            ],
+            "cardinality": "atMostOne",
+            "keywords": []
+          },
+          {
+            "name": "hasEmployee",
+            "description": "The employees of the company",
+            "dataType": [
+              "Employee"
+            ],
+            "cardinality": "many",
+            "keywords": []
+          }
+        ]
+      },
+      {
+        "class": "Employee",
+        "description": "An employee of the company",
+        "keywords": [],
+        "properties": [
+          {
+            "name": "name",
+            "description": "The name of the employee",
+            "dataType": [
+              "text"
+            ],
+            "cardinality": "atMostOne",
+            "keywords": []
+          },
+          {
+            "name": "job",
+            "description": "the job description of the employee",
+            "dataType": [
+              "text"
+            ],
+            "cardinality": "atMostOne",
+            "keywords": []
+          },
+          {
+            "name": "yearsInTheCompany",
+            "description": "The number of years this employee has worked in the company",
+            "dataType": [
+              "int"
+            ],
+            "cardinality": "atMostOne",
+            "keywords": []
+          }
+        ]
+      }
+    ]
+  }
+}
