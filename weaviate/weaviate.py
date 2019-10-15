@@ -222,7 +222,7 @@ class Weaviate:
 
         # check if things files is url
         if schema == None:
-            raise ValueError("Schema is None")
+            raise TypeError("Schema is None")
 
         if isinstance(schema, dict):
             # Schema is already a dict
@@ -248,15 +248,18 @@ class Weaviate:
                 except IOError:
                     raise
         else:
-            raise ValueError("Schema is not of a supported type. Supported types are url or file path as string or schema as dict.")
+            raise TypeError("Schema is not of a supported type. Supported types are url or file path as string or schema as dict.")
 
+        # TODO validate the schema e.g. small parser?
 
-        # TODO validate schema
-
-        self._create_class(SCHEMA_CLASS_TYPE_THINGS, loaded_schema[SCHEMA_CLASS_TYPE_THINGS]["classes"])
-        self._create_class(SCHEMA_CLASS_TYPE_ACTIONS, loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS]["classes"])
-        self._create_properties(SCHEMA_CLASS_TYPE_THINGS, loaded_schema[SCHEMA_CLASS_TYPE_THINGS]["classes"])
-        self._create_properties(SCHEMA_CLASS_TYPE_ACTIONS, loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS]["classes"])
+        if SCHEMA_CLASS_TYPE_THINGS in loaded_schema:
+            self._create_class(SCHEMA_CLASS_TYPE_THINGS, loaded_schema[SCHEMA_CLASS_TYPE_THINGS]["classes"])
+        if SCHEMA_CLASS_TYPE_ACTIONS in loaded_schema:
+            self._create_class(SCHEMA_CLASS_TYPE_ACTIONS, loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS]["classes"])
+        if SCHEMA_CLASS_TYPE_THINGS in loaded_schema:
+            self._create_properties(SCHEMA_CLASS_TYPE_THINGS, loaded_schema[SCHEMA_CLASS_TYPE_THINGS]["classes"])
+        if SCHEMA_CLASS_TYPE_ACTIONS in loaded_schema:
+            self._create_properties(SCHEMA_CLASS_TYPE_ACTIONS, loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS]["classes"])
 
 
     # Create all the classes in the list
