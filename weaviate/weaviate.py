@@ -153,13 +153,7 @@ class Weaviate:
 
     # Returns true if a thing exists in weaviate
     def thing_exists(self, uuid_thing):
-        if not isinstance(uuid_thing, str):
-            uuid_thing = str(uuid_thing)
-        try:
-            response = self.connection.run_rest("/things/"+uuid_thing, REST_METHOD_GET)
-        except ConnectionError as conn_err:
-            print("Connection error not sure if thing exists")
-            raise
+        response = self._get_thing_response(uuid_thing)
 
         if response.status_code == 200:
             return True
@@ -169,6 +163,33 @@ class Weaviate:
             print("WARNING: STATUS CODE WAS NOT 200 but " + str(response.status_code) + " with: " + str(
                 response.json()))
             raise UnexpectedStatusCodeException
+
+    # Gets a thing as dict
+    def get_thing(self, uuid_thing, meta=False):
+        response = self._get_thing_response(uuid_thing, meta)
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 404:
+            return None
+        else:
+            print("WARNING: STATUS CODE WAS NOT 200 but " + str(response.status_code) + " with: " + str(
+                response.json()))
+            raise UnexpectedStatusCodeException
+
+    # Returns the response object
+    def _get_thing_response(self, uuid_thing, meta=False):
+        params = {}
+        if meta:
+            params['meta'] = True
+        if not isinstance(uuid_thing, str):
+            uuid_thing = str(uuid_thing)
+        try:
+            response = self.connection.run_rest("/things/"+uuid_thing, REST_METHOD_GET, params=params)
+        except ConnectionError as conn_err:
+            print("Connection error not sure if thing exists")
+            raise
+        else:
+            return response
 
     # Retrieves the vector representation of the given word
     # The word can be CamelCased for a compound vector
@@ -256,7 +277,9 @@ class Weaviate:
             }
 
             # Add the item
-            self.connection.run_rest("/schema/"+schema_class_type, REST_METHOD_POST, schema_class)
+            response = self.connection.run_rest("/schema/"+schema_class_type, REST_METHOD_POST, schema_class)
+            if response.status_code != 200:
+                raise UnexpectedStatusCodeException(response.json())
 
     def _create_properties(self, schema_class_type, schema_classes_list):
         for schema_class in schema_classes_list:
@@ -279,7 +302,9 @@ class Weaviate:
                     schema_property["keywords"] = property["keywords"]
 
                 path = "/schema/"+schema_class_type+"/"+schema_class["class"]+"/properties"
-                self.connection.run_rest(path, REST_METHOD_POST, schema_property)
+                response = self.connection.run_rest(path, REST_METHOD_POST, schema_property)
+                if response.status_code != 200:
+                    raise UnexpectedStatusCodeException(response.json())
 
     # Starts a knn classification based on the given parameters
     # Returns a dict with the answer from weaviate

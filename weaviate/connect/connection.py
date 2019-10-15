@@ -97,13 +97,13 @@ class Connection:
     # The rest_method is defined through a constant given in the package
     # The retries define how often the request is retried in case of exceptions, until it ultimately fails
     # Returns the response of the request
-    def run_rest(self, path, rest_method, weaviate_object=None, retries=3):
+    def run_rest(self, path, rest_method, weaviate_object=None, retries=3, params={}):
 
         request_url = self.url+path
         try:
             if rest_method == REST_METHOD_GET:
                 response = requests.get(url=request_url,
-                                        headers=self._get_request_header(), timeout=(2, 20))
+                                        headers=self._get_request_header(), timeout=(2, 20), params=params)
             elif rest_method == REST_METHOD_PUT:
                 response = requests.put(url=request_url, json=weaviate_object,
                                         headers=self._get_request_header(), timeout=(2, 20))
