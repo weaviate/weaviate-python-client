@@ -3,6 +3,7 @@ import weaviate
 from unittest.mock import Mock
 from unittest.mock import patch
 import copy
+import os
 
 company_test_schema = {
   "actions": {
@@ -102,7 +103,7 @@ def add_run_rest_to_mock(mock, return_json=None, status_code=200):
 
     return mock
 
-class MyTestCase(unittest.TestCase):
+class TestSchema(unittest.TestCase):
     def test_create_schema_invalid_input(self):
         w = weaviate.Weaviate("http://localhost:8080")
         try:
@@ -130,7 +131,9 @@ class MyTestCase(unittest.TestCase):
         add_run_rest_to_mock(connection_mock_file)
         w.connection = connection_mock_file  # Replace connection with mock
 
-        w.create_schema("./schema_company.json")  # Load from file
+        current_dir = os.path.dirname(__file__)
+        schema_json_file = os.path.join(current_dir, "schema_company.json")
+        w.create_schema(schema_json_file)  # Load from file
         connection_mock_file.run_rest.assert_called()  # See if mock has been called
 
         # Load dict
