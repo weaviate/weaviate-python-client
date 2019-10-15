@@ -6,12 +6,12 @@ class TestWeaviate(unittest.TestCase):
         try:
             w = weaviate.Weaviate(None)
             self.fail("No exception when no valid url given")
-        except ValueError:
+        except TypeError:
             pass  # Exception expected
         try:
             w = weaviate.Weaviate(42)
             self.fail("No exception when no valid url given")
-        except ValueError:
+        except TypeError:
             pass  # Exception expected
         try:
             w = weaviate.Weaviate("")

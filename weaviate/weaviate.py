@@ -15,9 +15,9 @@ class Weaviate:
     # New weaviate client
     def __init__(self, url, auth_client_secret=""):
         if url is None:
-            raise ValueError("URL is expected to be string but is None")
+            raise TypeError("URL is expected to be string but is None")
         if not isinstance(url, str):
-            raise ValueError("URL is expected to be string but is "+str(type(url)))
+            raise TypeError("URL is expected to be string but is "+str(type(url)))
         if not validators.url(url):
             raise ValueError("URL has no propper form: "+url)
         self.connection = connection.Connection(url=url, auth_client_secret=auth_client_secret)

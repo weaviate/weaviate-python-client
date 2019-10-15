@@ -2,6 +2,7 @@ import unittest
 import weaviate
 from unittest.mock import Mock
 from unittest.mock import patch
+import copy
 
 company_test_schema = {
   "actions": {
@@ -121,42 +122,24 @@ class MyTestCase(unittest.TestCase):
             pass # Expected value error
             # Load from URL
 
-        # with patch('weaviate.weaviate.requests') as requests_mock:
-        #     connection_mock_url = Mock()  # Mock weaviate.connection
-        #     w.connection = connection_mock_url
-        #
-        #     return_value_mock = Mock()  # Mock get request response
-        #     requests_mock.get.return_value = return_value_mock
-        #
-        #     return_value_mock.status_code.return_value = 404
-        #     return_value_mock.json.return_value = "ERROR"
-        #
-        #     try:
-        #         w.create_schema("http://semi.technology/notaschema")
-        #         self.fail("Unparseable file should fail")
-        #     except ValueError:
-        #         pass  # Expected exception
-
     def test_create_schema_load_file(self):
         w = weaviate.Weaviate("http://localhost:8080")
 
         # Load from file
-        with patch('weaviate.weaviate.requests') as requests_mock:
-            connection_mock_file = Mock()  # Mock calling weaviate
-            add_run_rest_to_mock(connection_mock_file)
-            w.connection = connection_mock_file  # Replace connection with mock
+        connection_mock_file = Mock()  # Mock calling weaviate
+        add_run_rest_to_mock(connection_mock_file)
+        w.connection = connection_mock_file  # Replace connection with mock
 
-            w.create_schema("./schema_company.json")  # Load from file
-            connection_mock_file.run_rest.assert_called()  # See if mock has been called
+        w.create_schema("./schema_company.json")  # Load from file
+        connection_mock_file.run_rest.assert_called()  # See if mock has been called
 
         # Load dict
-        with patch('weaviate.weaviate.requests') as requests_mock:
-            connection_mock_dict = Mock()  # Replace mock
-            add_run_rest_to_mock(connection_mock_dict)
+        connection_mock_dict = Mock()  # Replace mock
+        add_run_rest_to_mock(connection_mock_dict)
 
-            w.connection = connection_mock_dict
-            w.create_schema(company_test_schema)
-            connection_mock_dict.run_rest.assert_called()
+        w.connection = connection_mock_dict
+        w.create_schema(company_test_schema)
+        connection_mock_dict.run_rest.assert_called()
 
         # Load from URL
         with patch('weaviate.weaviate.requests') as requests_mock:
@@ -178,15 +161,27 @@ class MyTestCase(unittest.TestCase):
         # Test schema missing actions/schema
         with patch('weaviate.weaviate.requests') as requests_mock:
             # Mock run_rest
-            w.connection = add_run_rest_to_mock(Mock())
-            schema = company_test_schema
+            connection_mock = Mock()
+            w.connection = add_run_rest_to_mock(connection_mock)
+            schema = copy.deepcopy(company_test_schema)
             # Remove actions
             del schema[weaviate.weaviate.SCHEMA_CLASS_TYPE_ACTIONS]
             w.create_schema(company_test_schema)
 
-            schema = company_test_schema
+            schema = copy.deepcopy(company_test_schema)
             del schema[weaviate.weaviate.SCHEMA_CLASS_TYPE_THINGS]
             w.create_schema(company_test_schema)
+            connection_mock.run_rest.assert_called()
+
+    def test_run_rest_failed(self):
+        w = weaviate.Weaviate("http://localhost:8080")
+        connection_mock = Mock()
+        w.connection = add_run_rest_to_mock(connection_mock, return_json={"Test error"}, status_code=500)
+
+        try:
+            w.create_schema(company_test_schema)
+        except weaviate.UnexpectedStatusCodeException:
+            pass  # Expected exception
 
 
 if __name__ == '__main__':
