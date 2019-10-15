@@ -13,3 +13,4 @@ jobs:
       script:
         - python -m unittest test.weaviate_instance
         - python -m unittest test.schema
+        - python -m unittest test.add_thing

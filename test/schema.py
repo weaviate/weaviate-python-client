@@ -4,6 +4,7 @@ from unittest.mock import Mock
 from unittest.mock import patch
 import copy
 import os
+from test.testing_util import add_run_rest_to_mock
 
 company_test_schema = {
   "actions": {
@@ -89,19 +90,6 @@ company_test_schema = {
   }
 }
 
-#Adds the run_rest method to a mock using the given options
-def add_run_rest_to_mock(mock, return_json=None, status_code=200):
-    # Create mock
-    return_value_mock = Mock()
-    # set the json
-    return_value_mock.json.return_value = return_json
-    # Set status code
-    return_value_mock.configure_mock(status_code=status_code)
-
-    # Add the return value to the given mock
-    mock.run_rest.return_value = return_value_mock  # set return object to mock object
-
-    return mock
 
 class TestSchema(unittest.TestCase):
     def test_create_schema_invalid_input(self):

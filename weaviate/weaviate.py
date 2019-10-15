@@ -1,7 +1,7 @@
 import json
 import os
 import requests
-
+import sys
 import validators
 
 from .connect import *
@@ -26,25 +26,34 @@ class Weaviate:
     # The thing is associated with the class given in class_name
     # If an uuid is given the thing will be created under this uuid
     # Returns the id of the created thing if successful
+    # Raises TypeError, ValueError, ThingAlreadyExistsException, UnexpectedStatusCodeException
     def create_thing(self, thing, class_name, uuid=None):
+        if not isinstance(thing, dict):
+            raise TypeError("Expected thing to be of type dict instead it was: "+str(type(thing)))
+        if not isinstance(class_name, str):
+            raise TypeError("Expected class_name of type str but was: "+str(type))
 
         weaviate_obj = {
             "class": class_name,
             "schema": thing
         }
         if uuid is not None:
+            if not isinstance(uuid, str):
+                raise TypeError("Expected uuid to be of type str but was: "+str(type(uuid)))
+            if not validators.uuid(uuid):
+                raise ValueError("Given uuid does not have a valid form")
+
             weaviate_obj["id"] = uuid
 
         try:
             response = self.connection.run_rest("/things", REST_METHOD_POST, weaviate_obj)
         except ConnectionError as conn_err:
-            print("Connection error, thing was not added to weaviate: " + str(conn_err))
-            raise
+            raise type(conn_err)(str(conn_err) + ' Connection error, thing was not added to weaviate.').with_traceback(sys.exc_info()[2])
 
         if response.status_code == 200:
             return response.json()["id"]
 
-        else: #TODO catch all status codes
+        else:
             thing_does_already_exist = False
             try:
                 if 'already exists' in response.json()['error'][0]['message']:
@@ -52,17 +61,12 @@ class Weaviate:
             except KeyError:
                 pass
             except Exception as e:
-                print('Unexepected exception: ' + str(e))
-                raise Exception
+                raise type(e)(str(e) + ' Unexpected exception.').with_traceback(sys.exc_info()[2])
 
             if thing_does_already_exist:
                 raise ThingAlreadyExistsException
 
-            print("WARNING: STATUS CODE WAS NOT 200 but " + str(response.status_code) + " with: " + str(
-                response.json()))
-
-
-            raise UnexpectedStatusCodeException
+            raise UnexpectedStatusCodeException(response.json())
 
     # Updates an already existing thing
     # thing contains a dict describing the new values
@@ -77,18 +81,14 @@ class Weaviate:
         try:
             response = self.connection.run_rest("/things/"+uuid, REST_METHOD_PUT, weaviate_obj)
         except ConnectionError as conn_err:
-            print("Connection error, thing was not updated: " + str(conn_err))
-            raise ConnectionError
+            raise type(conn_err)(str(conn_err) + ' Connection error, thing was not updated.').with_traceback(
+            sys.exc_info()[2])
 
         if response.status_code == 200:
             return
 
-        else: #TODO catch all status codes
-
-            print("WARNING: STATUS CODE WAS NOT 200 but " + str(response.status_code) + " with: " + str(
-                response.json()))
-
-            raise UnexpectedStatusCodeException
+        else:
+            raise UnexpectedStatusCodeException(response.json())
 
     # Add a property reference to a thing
     # thing_uuid the thing that should have the reference as part of its properties
@@ -104,8 +104,9 @@ class Weaviate:
         try:
             response = self.connection.run_rest(path, REST_METHOD_POST, property_beacons)
         except ConnectionError as conn_err:
-            print("Connection error, reference was not added to weaviate: " + str(conn_err))
-            raise
+            raise type(conn_err)(
+                str(conn_err) + ' Connection error, reference was not added to weaviate.').with_traceback(
+                sys.exc_info()[2])
 
         if response.status_code == 200:
             return
@@ -118,9 +119,7 @@ class Weaviate:
         elif response.status_code == 500:
             raise ServerError500Exception(response.json())
         else:
-            print("WARNING: STATUS CODE WAS NOT 200 but " + str(response.status_code) + " with: " + str(
-                response.json()))
-            raise UnexpectedStatusCodeException
+            raise UnexpectedStatusCodeException(response.json())
 
     # Batchloading references
     # Takes four lists that describe references.
@@ -133,8 +132,8 @@ class Weaviate:
         try:
             response = self.connection.run_rest(path, REST_METHOD_POST, reference_batch_request.get_request_body())
         except ConnectionError as conn_err:
-            print("Connection error, reference was not added to weaviate: " + str(conn_err))
-            raise
+            raise type(conn_err)(str(conn_err) + ' Connection error, reference was not added to weaviate.').with_traceback(
+                sys.exc_info()[2])
 
         if response.status_code == 200:
             return
@@ -147,9 +146,7 @@ class Weaviate:
         elif response.status_code == 500:
             raise ServerError500Exception(response.json())
         else:
-            print("WARNING: STATUS CODE WAS NOT 200 but " + str(response.status_code) + " with: " + str(
-                response.json()))
-            raise UnexpectedStatusCodeException
+            raise UnexpectedStatusCodeException(json())
 
     # Returns true if a thing exists in weaviate
     def thing_exists(self, uuid_thing):
@@ -160,9 +157,7 @@ class Weaviate:
         elif response.status_code == 404:
             return False
         else:
-            print("WARNING: STATUS CODE WAS NOT 200 but " + str(response.status_code) + " with: " + str(
-                response.json()))
-            raise UnexpectedStatusCodeException
+            raise UnexpectedStatusCodeException(response.json())
 
     # Gets a thing as dict
     def get_thing(self, uuid_thing, meta=False):
@@ -172,9 +167,7 @@ class Weaviate:
         elif response.status_code == 404:
             return None
         else:
-            print("WARNING: STATUS CODE WAS NOT 200 but " + str(response.status_code) + " with: " + str(
-                response.json()))
-            raise UnexpectedStatusCodeException
+            raise UnexpectedStatusCodeException(response.json())
 
     # Returns the response object
     def _get_thing_response(self, uuid_thing, meta=False):
@@ -186,8 +179,7 @@ class Weaviate:
         try:
             response = self.connection.run_rest("/things/"+uuid_thing, REST_METHOD_GET, params=params)
         except ConnectionError as conn_err:
-            print("Connection error not sure if thing exists")
-            raise
+            raise type(conn_err)(str(conn_err) + ' Connection error not sure if thing exists').with_traceback(sys.exc_info()[2])
         else:
             return response
 
@@ -202,15 +194,14 @@ class Weaviate:
 
             raise
         except Exception as e:
-            print("(TODO add specific catch for this exception) Connection error, reference was not added to weaviate: " + str(e))
-            raise
+            raise type(e)(
+                str(e) + ' Unexpected exception.').with_traceback(
+                sys.exc_info()[2])
         else:
             if response.status_code == 200:
                 return response.json()
             else:
-                #print("WARNING: STATUS CODE WAS NOT 200 but " + str(response.status_code) + " with: " + str(
-                #    response.json()))
-                raise UnexpectedStatusCodeException
+                raise UnexpectedStatusCodeException(response.json())
 
     # Create the schema at the weaviate instance
     # schema can either be the path to a json file, a url of a json file or a dict
@@ -337,9 +328,7 @@ class Weaviate:
         if response.status_code == 201:
             return response.json()
         else:
-            print("WARNING: STATUS CODE WAS NOT 201 but " + str(response.status_code) + " with: " + str(
-                response.json()))
-            raise UnexpectedStatusCodeException
+            raise UnexpectedStatusCodeException(response.json())
 
     # Polls the current state of the given classification
     # Returns a dict containing the weaviate answer
@@ -351,9 +340,7 @@ class Weaviate:
         if response.status_code == 200:
             return response.json()
         else:
-            print("WARNING: STATUS CODE WAS NOT 200 but " + str(response.status_code) + " with: " + str(
-                response.json()))
-            raise UnexpectedStatusCodeException
+            raise UnexpectedStatusCodeException(response.json())
 
     # Returns true if the classification has finished
     def is_classification_complete(self, classification_uuid):
@@ -361,6 +348,3 @@ class Weaviate:
         if response["status"] == "completed":
             return True
         return False
-
-    # # Queries the instance with a
-    # def query(self, gql):
