@@ -11,9 +11,17 @@ SCHEMA_CLASS_TYPE_THINGS = "things"
 SCHEMA_CLASS_TYPE_ACTIONS = "actions"
 
 class Weaviate:
+    """ A python native weaviate client
+    """
 
-    # New weaviate client
     def __init__(self, url, auth_client_secret=""):
+        """ New weaviate client
+
+        :param url: To the weaviate instance
+        :type url: str
+        :param auth_client_secret: Authentification client secret
+        :type auth_client_secret: str
+        """
         if url is None:
             raise TypeError("URL is expected to be string but is None")
         if not isinstance(url, str):
@@ -22,12 +30,18 @@ class Weaviate:
             raise ValueError("URL has no propper form: "+url)
         self.connection = connection.Connection(url=url, auth_client_secret=auth_client_secret)
 
-    # Takes a dict describing the thing and adds it to weaviate
-    # The thing is associated with the class given in class_name
-    # If an uuid is given the thing will be created under this uuid
-    # Returns the id of the created thing if successful
-    # Raises TypeError, ValueError, ThingAlreadyExistsException, UnexpectedStatusCodeException
     def create_thing(self, thing, class_name, uuid=None):
+        """ Takes a dict describing the thing and adds it to weaviate
+
+        :param thing: Thing to be added
+        :type thing: dict
+        :param class_name: Associated with the thing given
+        :type class_name: str
+        :param uuid: Thing will be created under this uuid if it is provided
+        :type uuid: str
+        :return: Returns the id of the created thing if successful
+        :raises: TypeError, ValueError, ThingAlreadyExistsException, UnexpectedStatusCodeException
+        """
         if not isinstance(thing, dict):
             raise TypeError("Expected thing to be of type dict instead it was: "+str(type(thing)))
         if not isinstance(class_name, str):
@@ -67,6 +81,22 @@ class Weaviate:
                 raise ThingAlreadyExistsException
 
             raise UnexpectedStatusCodeException(response.json())
+
+    def create_things_in_batch(self, things_batch_request):
+        """ Creates multiple things at once in weaviate
+
+        :param things_batch_request: The batch of things that should be added
+        :type things_batch_request: ThingsBatchRequest
+        :return:
+        """
+
+        path = "/batching/things"
+
+        try:
+            response = self.connection.run_rest(path, REST_METHOD_POST, things_batch_request.get_request_body())
+        except ConnectionError as conn_err:
+            raise type(conn_err)(str(conn_err) + ' Connection error, batch was not added to weaviate.').with_traceback(
+                sys.exc_info()[2])
 
     # Updates an already existing thing
     # thing contains a dict describing the new values
@@ -349,10 +379,11 @@ class Weaviate:
             return True
         return False
 
-    # Pings weaviate
-    # Returns true if weaviate could be reached
-    # False in case of error
     def is_reachable(self):
+        """ Ping weaviate
+
+        :return: True if weaviate could be reached False otherwise
+        """
         try:
             response = self.connection.run_rest("/meta", REST_METHOD_GET)
         except ConnectionError:

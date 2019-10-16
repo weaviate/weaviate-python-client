@@ -1,0 +1,31 @@
+{
+  "actions": {
+    "classes": [],
+    "type": "action"
+  },
+  "things": {
+    "@context": "",
+    "version": "0.2.0",
+    "type": "thing",
+    "name": "people",
+    "maintainer": "yourfriends@weaviate.com",
+    "classes": [
+      {
+        "class": "Person",
+        "description": "A person such as humans or personality known through culture",
+        "keywords": [],
+        "properties": [
+          {
+            "name": "name",
+            "description": "The name of this person",
+            "dataType": [
+              "text"
+            ],
+            "cardinality": "atMostOne",
+            "keywords": []
+          }
+        ]
+      }
+    ]
+  }
+}

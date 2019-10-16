@@ -1,4 +1,4 @@
-
+import validators
 
 class ReferenceBatchRequest:
 
@@ -31,3 +31,54 @@ class ReferenceBatchRequest:
                 "to": "weaviate://localhost/things/" + self.to_thing_ids[i]
             }
         return batch_body
+
+
+class ThingsBatchRequest:
+    """
+    Collect things for one batch request to weaviate.
+    Caution this batch will not be validated through weaviate.
+    """
+
+    def __init__(self):
+        self.things = []
+
+    def add_thing(self, thing, class_name, uuid=None):
+        """ Add a thing to this batch
+
+        :param thing: that should be added as part of the batch
+        :type thing: dict
+        :param class_name: class of the thing
+        :type class_name: str
+        :param uuid: if given the thing will be added under this uuid
+        :type uuid: str
+        :raises TypeError, ValueError
+        """
+        if not isinstance(thing, dict):
+            raise TypeError
+        if not isinstance(class_name, str):
+            raise TypeError
+
+        batch_item = {
+            "class": class_name,
+            "schema": thing
+        }
+        if uuid is not None:
+            if not isinstance(uuid, str):
+                raise TypeError
+            if not validators.uuid(uuid):
+                raise ValueError
+            batch_item["id"] = uuid
+
+        self.things.append(batch_item)
+
+    def get_request_body(self):
+        """ Get the request body as it is needed for weaviate
+
+        :return: the request body as a dict
+        """
+        return {
+            "fields": [
+                "ALL"
+            ],
+            "things": self.things
+        }

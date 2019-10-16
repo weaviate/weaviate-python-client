@@ -1,7 +1,14 @@
 from unittest.mock import Mock
+import os
 
-#Adds the run_rest method to a mock using the given options
 def add_run_rest_to_mock(mock, return_json=None, status_code=200):
+    """Adds the run_rest method to a mock using the given options
+
+    :param mock: the mock to add the method to (this is call by reference so this object will be edited)
+    :param return_json: the json it should return
+    :param status_code: the code it should return
+    :return: returns the same mock as given. The object is not copied so the usage of the return value is not necessary
+    """
     # Create mock
     return_value_mock = Mock()
     # set the json
@@ -15,4 +22,8 @@ def add_run_rest_to_mock(mock, return_json=None, status_code=200):
     return mock
 
 def run_rest_raise_connection_error(path, rest_method, weaviate_object=None, retries=3, params={}):
+    """ A mock that no mather the input will throw an ConnectionError
+
+    :raises ConnectionError
+    """
     raise ConnectionError
