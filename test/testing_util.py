@@ -13,3 +13,6 @@ def add_run_rest_to_mock(mock, return_json=None, status_code=200):
     mock.run_rest.return_value = return_value_mock  # set return object to mock object
 
     return mock
+
+def run_rest_raise_connection_error(path, rest_method, weaviate_object=None, retries=3, params={}):
+    raise ConnectionError

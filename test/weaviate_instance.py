@@ -1,5 +1,7 @@
 import unittest
 import weaviate
+from test.testing_util import *
+from unittest.mock import Mock
 
 class TestWeaviate(unittest.TestCase):
     def test_create_weaviate_object_wrong_url(self):
@@ -38,9 +40,19 @@ class TestWeaviate(unittest.TestCase):
         except Exception as e:
             self.fail("Unexpected exception: " + str(e))
 
+    def test_is_reachable(self):
+        w = weaviate.Weaviate("http://localhost:8080")
+        connection_mock = Mock()
+        # Request to weaviate returns 200
+        w.connection = add_run_rest_to_mock(connection_mock)
+        self.assertTrue(w.is_reachable())  # Should be true
 
-
-
+        # Test exception in connect
+        w = weaviate.Weaviate("http://localhost:8080")
+        connection_mock = Mock()
+        connection_mock.run_rest.side_effect = run_rest_raise_connection_error
+        w.connection = connection_mock
+        self.assertFalse(w.is_reachable())
 
 
 

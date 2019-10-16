@@ -1,6 +1,7 @@
 import unittest
 import weaviate
 from unittest.mock import Mock
+from test.testing_util import run_rest_raise_connection_error
 
 class TestAddThings(unittest.TestCase):
     def test_create_thing_flawed_input(self):
@@ -42,5 +43,3 @@ class TestAddThings(unittest.TestCase):
             pass
 
 
-def run_rest_raise_connection_error(x, y, z):
-    raise ConnectionError

@@ -348,3 +348,15 @@ class Weaviate:
         if response["status"] == "completed":
             return True
         return False
+
+    # Pings weaviate
+    # Returns true if weaviate could be reached
+    # False in case of error
+    def is_reachable(self):
+        try:
+            response = self.connection.run_rest("/meta", REST_METHOD_GET)
+        except ConnectionError:
+            return False
+        if response.status_code == 200:
+            return True
+        return False
