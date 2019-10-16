@@ -13,7 +13,7 @@ schema_json_file = os.path.join(os.path.dirname(__file__), "people_schema.json")
 w.create_schema(schema_json_file)
 
 print("Create a batch with data")
-batch = weaviate.batch.ThingsBatchRequest
+batch = weaviate.batch.ThingsBatchRequest()
 batch.add_thing({"name": "Marie Curie"}, "Person")
 batch.add_thing({"name": "John Rawls"}, "Person")
 
