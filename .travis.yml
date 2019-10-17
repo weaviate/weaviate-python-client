@@ -13,6 +13,7 @@ jobs:
         - python -m unittest test.weaviate_instance
         - python -m unittest test.schema
         - python -m unittest test.add_thing
+        - python -m unittest test.add_thing_batch
 
     - stage: "Integration test"
       language: python

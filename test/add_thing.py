@@ -3,6 +3,7 @@ import weaviate
 from unittest.mock import Mock
 from test.testing_util import run_rest_raise_connection_error
 
+
 class TestAddThings(unittest.TestCase):
     def test_create_thing_flawed_input(self):
         w = weaviate.Weaviate("http://localhost:8080")
@@ -42,4 +43,19 @@ class TestAddThings(unittest.TestCase):
         except ConnectionError as e:
             pass
 
+    def test_generate_local_things_beacon(self):
+        try:
+            weaviate.generate_local_things_beacon(None)
+            self.fail("TypeError expected should be str")
+        except TypeError:
+            pass
+        try:
+            weaviate.generate_local_things_beacon("Leeroy Jenkins")
+            self.fail("Value error expected should be uuid")
+        except ValueError:
+            pass
+
+        beacon = weaviate.generate_local_things_beacon("fcf33178-1b5d-5174-b2e7-04a2129dd35a")
+        self.assertTrue("beacon" in beacon)
+        self.assertEqual(beacon["beacon"], "weaviate://localhost/things/fcf33178-1b5d-5174-b2e7-04a2129dd35a")
 
