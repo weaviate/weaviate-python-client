@@ -98,6 +98,8 @@ class Connection:
     # The retries define how often the request is retried in case of exceptions, until it ultimately fails
     # Returns the response of the request
     def run_rest(self, path, rest_method, weaviate_object=None, retries=3, params={}):
+        # TODO urlencode params??w
+
 
         request_url = self.url+path
         try:
