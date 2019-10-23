@@ -133,7 +133,7 @@ class TestSchema(unittest.TestCase):
         connection_mock_dict.run_rest.assert_called()
 
         # Load from URL
-        with patch('weaviate.weaviate.requests') as requests_mock:
+        with patch('weaviate.client.requests') as requests_mock:
             connection_mock_url = Mock()  # Mock weaviate.connection
             w.connection = connection_mock_url
             add_run_rest_to_mock(connection_mock_url)
@@ -150,19 +150,18 @@ class TestSchema(unittest.TestCase):
             connection_mock_url.run_rest.assert_called()
 
         # Test schema missing actions/schema
-        with patch('weaviate.weaviate.requests') as requests_mock:
-            # Mock run_rest
-            connection_mock = Mock()
-            w.connection = add_run_rest_to_mock(connection_mock)
-            schema = copy.deepcopy(company_test_schema)
-            # Remove actions
-            del schema[weaviate.client.SCHEMA_CLASS_TYPE_ACTIONS]
-            w.create_schema(company_test_schema)
+        # Mock run_rest
+        connection_mock = Mock()
+        w.connection = add_run_rest_to_mock(connection_mock)
+        schema = copy.deepcopy(company_test_schema)
+        # Remove actions
+        del schema[weaviate.client.SCHEMA_CLASS_TYPE_ACTIONS]
+        w.create_schema(company_test_schema)
 
-            schema = copy.deepcopy(company_test_schema)
-            del schema[weaviate.client.SCHEMA_CLASS_TYPE_THINGS]
-            w.create_schema(company_test_schema)
-            connection_mock.run_rest.assert_called()
+        schema = copy.deepcopy(company_test_schema)
+        del schema[weaviate.client.SCHEMA_CLASS_TYPE_THINGS]
+        w.create_schema(company_test_schema)
+        connection_mock.run_rest.assert_called()
 
     def test_run_rest_failed(self):
         w = weaviate.Client("http://localhost:8080")
