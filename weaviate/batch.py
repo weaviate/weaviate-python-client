@@ -1,5 +1,6 @@
 import validators
 
+
 class ReferenceBatchRequest:
 
     def __init__(self):

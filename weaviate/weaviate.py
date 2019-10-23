@@ -161,9 +161,19 @@ class Weaviate:
         else:
             raise UnexpectedStatusCodeException(response.json())
 
-    # Batchloading references
-    # Takes four lists that describe references.
     def add_references_in_batch(self, reference_batch_request):
+        """ Batch loading references
+        Loading batch references is faster by ignoring some validations.
+        Loading inconsistent data may ends up in an invalid graph.
+        If the consistency of the references is not guaranied use
+        add_property_reference_to_thing to have additional validation instead.
+
+        :param reference_batch_request: contains all the references that should be added in one batch
+        :type reference_batch_request: weaviate.batch.ReferenceBatchRequest
+        :return: None
+        :raises: ConnectionError, UnauthorizedRequest401Exception, ForbiddenRequest403Exception
+        """
+
         if reference_batch_request.get_batch_size() == 0:
             return  # No data in batch
 
