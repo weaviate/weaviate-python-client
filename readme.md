@@ -17,7 +17,7 @@ pip install .
 ## Usage
 
 ```python
-from weaviate import Weaviate
+from weaviate import Client
 
 weaviate_instance = Weaviate("http://localhost:8080")
 city = {"name": "Amsterdam"}

@@ -1,4 +1,4 @@
-from .weaviate import Weaviate
+from .client import Client
 from .batch import ReferenceBatchRequest
 from .batch import ThingsBatchRequest
 from .exceptions import *

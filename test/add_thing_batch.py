@@ -64,7 +64,7 @@ class TestAddThings(unittest.TestCase):
 
     def test_add_thing_batch(self):
         # test adding a normal batch
-        w = weaviate.Weaviate("http://localhost:8080")
+        w = weaviate.Client("http://localhost:8080")
         connection_mock = Mock()
         add_run_rest_to_mock(connection_mock)
         w.connection = connection_mock
@@ -93,7 +93,7 @@ class TestAddThings(unittest.TestCase):
 
     def test_add_things_batch(self):
         # test adding a normal batch
-        w = weaviate.Weaviate("http://localhost:8080")
+        w = weaviate.Client("http://localhost:8080")
         connection_mock = Mock()
         add_run_rest_to_mock(connection_mock)
         w.connection = connection_mock
@@ -124,7 +124,7 @@ class TestAddThings(unittest.TestCase):
             self.assertTrue(t["schema"] in schemas)
 
     def test_add_things_connection_error(self):
-        w = weaviate.Weaviate("http://semi.testing.eu:8080")
+        w = weaviate.Client("http://semi.testing.eu:8080")
         connection_mock = Mock()  # Mock calling weaviate
         connection_mock.run_rest.side_effect = run_rest_raise_connection_error
         w.connection = connection_mock

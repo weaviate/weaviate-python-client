@@ -93,7 +93,7 @@ company_test_schema = {
 
 class TestSchema(unittest.TestCase):
     def test_create_schema_invalid_input(self):
-        w = weaviate.Weaviate("http://localhost:8080")
+        w = weaviate.Client("http://localhost:8080")
         try:
             w.create_schema(None)
             self.fail("No exception when no valid schema given")
@@ -112,7 +112,7 @@ class TestSchema(unittest.TestCase):
             # Load from URL
 
     def test_create_schema_load_file(self):
-        w = weaviate.Weaviate("http://localhost:8080")
+        w = weaviate.Client("http://localhost:8080")
 
         # Load from file
         connection_mock_file = Mock()  # Mock calling weaviate
@@ -156,16 +156,16 @@ class TestSchema(unittest.TestCase):
             w.connection = add_run_rest_to_mock(connection_mock)
             schema = copy.deepcopy(company_test_schema)
             # Remove actions
-            del schema[weaviate.weaviate.SCHEMA_CLASS_TYPE_ACTIONS]
+            del schema[weaviate.client.SCHEMA_CLASS_TYPE_ACTIONS]
             w.create_schema(company_test_schema)
 
             schema = copy.deepcopy(company_test_schema)
-            del schema[weaviate.weaviate.SCHEMA_CLASS_TYPE_THINGS]
+            del schema[weaviate.client.SCHEMA_CLASS_TYPE_THINGS]
             w.create_schema(company_test_schema)
             connection_mock.run_rest.assert_called()
 
     def test_run_rest_failed(self):
-        w = weaviate.Weaviate("http://localhost:8080")
+        w = weaviate.Client("http://localhost:8080")
         connection_mock = Mock()
         w.connection = add_run_rest_to_mock(connection_mock, return_json={"Test error"}, status_code=500)
 

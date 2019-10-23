@@ -10,7 +10,8 @@ from .exceptions import *
 SCHEMA_CLASS_TYPE_THINGS = "things"
 SCHEMA_CLASS_TYPE_ACTIONS = "actions"
 
-class Weaviate:
+
+class Client:
     """ A python native weaviate client
     """
 

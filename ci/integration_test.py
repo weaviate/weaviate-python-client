@@ -2,7 +2,7 @@ import weaviate
 import os
 
 print("Weaviate should be running at local host 8080")
-w = weaviate.Weaviate("http://localhost:8080")
+w = weaviate.Client("http://localhost:8080")
 
 print("Checking if weaviate is reachable")
 if not w.is_reachable():

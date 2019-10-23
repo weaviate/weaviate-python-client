@@ -6,7 +6,7 @@ from test.testing_util import run_rest_raise_connection_error
 
 class TestAddThings(unittest.TestCase):
     def test_create_thing_flawed_input(self):
-        w = weaviate.Weaviate("http://localhost:8080")
+        w = weaviate.Client("http://localhost:8080")
         try:
             w.create_thing(None, "Class")
             self.fail("Thing was not given but accepted anyways")
@@ -34,7 +34,7 @@ class TestAddThings(unittest.TestCase):
             pass
 
     def test_create_thing_connection_error(self):
-        w = weaviate.Weaviate("http://semi.testing.eu:8080")
+        w = weaviate.Client("http://semi.testing.eu:8080")
         connection_mock = Mock()  # Mock calling weaviate
         connection_mock.run_rest.side_effect = run_rest_raise_connection_error
         w.connection = connection_mock
