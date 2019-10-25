@@ -51,7 +51,13 @@ class Client:
         :param uuid: Thing will be created under this uuid if it is provided
         :type uuid: str
         :return: Returns the id of the created thing if successful
-        :raises: TypeError, ValueError, ThingAlreadyExistsException, UnexpectedStatusCodeException
+        :raises:
+            TypeError: if argument is of wrong type
+            ValueError: if argument contains an invalid value
+            ThingAlreadyExistsException: if an thing with the given uuid already exists within weaviate
+            UnexpectedStatusCodeException: if creating the thing in weavate failed with a different reason,
+            more information is given in the exception
+            ConnectionError: if the network connection to weaviate fails
         """
         if not isinstance(thing, dict):
             raise TypeError("Expected thing to be of type dict instead it was: "+str(type(thing)))
@@ -73,7 +79,8 @@ class Client:
         try:
             response = self.connection.run_rest("/things", REST_METHOD_POST, weaviate_obj)
         except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err) + ' Connection error, thing was not added to weaviate.').with_traceback(sys.exc_info()[2])
+            raise type(conn_err)(str(conn_err) + ' Connection error, thing was not added to weaviate.').with_traceback(
+                sys.exc_info()[2])
 
         if response.status_code == 200:
             return response.json()["id"]
@@ -86,19 +93,24 @@ class Client:
             except KeyError:
                 pass
             except Exception as e:
-                raise type(e)(str(e) + ' Unexpected exception.').with_traceback(sys.exc_info()[2])
+                raise type(e)(str(e)
+                              + ' Unexpected exception please report this excetpion in an issue.').with_traceback(
+                    sys.exc_info()[2])
 
             if thing_does_already_exist:
-                raise ThingAlreadyExistsException
+                raise ThingAlreadyExistsException(str(uuid))
 
-            raise UnexpectedStatusCodeException(response.json())
+            raise UnexpectedStatusCodeException("Creating thing", response)
 
     def create_things_in_batch(self, things_batch_request):
         """ Creates multiple things at once in weaviate
 
         :param things_batch_request: The batch of things that should be added
         :type things_batch_request: ThingsBatchRequest
-        :return:
+        :return: None if successful
+        :raises:
+            ConnectionError: if the network connection to weaviate fails
+            UnexpectedStatusCodeException: if weaviate reports a none OK status
         """
 
         path = "/batching/things"
@@ -109,37 +121,65 @@ class Client:
             raise type(conn_err)(str(conn_err) + ' Connection error, batch was not added to weaviate.').with_traceback(
                 sys.exc_info()[2])
 
-    # Updates an already existing thing
-    # thing contains a dict describing the new values
+        if response.status_code == 200:
+            return
+
+        else:
+            raise UnexpectedStatusCodeException("Create thing in batch", response)
+
     def update_thing(self, thing, class_name, uuid):
+        """ Updates an already existing thing
+
+        :param thing: describes the new values.
+        It may be an URL or path to a json or a python dict describing the new values.
+        :type thing: str, dict
+        :param class_name: Name of the class of the thing that should be updated
+        :type class_name: str
+        :param uuid: Of the thing
+        :type uuid: str
+        :return: None if successful
+        :raises:
+            ConnectionError: if the network connection to weaviate fails
+            UnexpectedStatusCodeException: if weaviate reports a none OK status
+        """
+
+        parsed_thing = self._get_dict_from_object(thing)
 
         weaviate_obj = {
             "id": uuid,
             "class": class_name,
-            "schema": thing
+            "schema": parsed_thing
         }
 
         try:
             response = self.connection.run_rest("/things/"+uuid, REST_METHOD_PUT, weaviate_obj)
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err) + ' Connection error, thing was not updated.').with_traceback(
-            sys.exc_info()[2])
+                sys.exc_info()[2])
 
         if response.status_code == 200:
             return
 
         else:
-            raise UnexpectedStatusCodeException(response.json())
+            raise UnexpectedStatusCodeException("Update thing", response)
 
-    # Add a property reference to a thing
-    # thing_uuid the thing that should have the reference as part of its properties
-    # the name of the property within the thing
-    # The beacon dict takes the form: [{
-    #                     "beacon": "weaviate://localhost/things/uuid",
-    #                     ...
-    #                 }]
     def add_property_reference_to_thing(self, thing_uuid, property_name, property_beacons):
+        """ Allows to link two objects unidirectionally
 
+        :param thing_uuid: the thing that should have the reference as part of its properties
+        :param property_name: the name of the property within the thing
+        :param property_beacons: A beacon of form:
+        [{
+            "beacon": "weaviate://localhost/things/uuid",
+            ...
+        }]
+        see generate_local_things_beacon to generate a beacon for the local weaviate instance
+        :return: None if successful
+        :raises:
+            ConnectionError: if the network connection to weaviate fails
+            UnexpectedStatusCodeException: if weaviate reports a none OK status
+
+        """
         path = "/things/" + thing_uuid + "/references/" + property_name
 
         try:
@@ -151,16 +191,8 @@ class Client:
 
         if response.status_code == 200:
             return
-        elif response.status_code == 401:
-            raise UnauthorizedRequest401Exception
-        elif response.status_code == 403:
-            raise ForbiddenRequest403Exception
-        elif response.status_code == 422:
-            raise SemanticError422Exception
-        elif response.status_code == 500:
-            raise ServerError500Exception(response.json())
         else:
-            raise UnexpectedStatusCodeException(response.json())
+            raise UnexpectedStatusCodeException("Add property reference to thing", response)
 
     def add_references_in_batch(self, reference_batch_request):
         """ Batch loading references
@@ -172,7 +204,9 @@ class Client:
         :param reference_batch_request: contains all the references that should be added in one batch
         :type reference_batch_request: weaviate.batch.ReferenceBatchRequest
         :return: None
-        :raises: ConnectionError, UnauthorizedRequest401Exception, ForbiddenRequest403Exception
+        :raises:
+            ConnectionError: if the network connection to weaviate fails
+            UnexpectedStatusCodeException: if weaviate reports a none OK status
         """
 
         if reference_batch_request.get_batch_size() == 0:
@@ -183,45 +217,74 @@ class Client:
         try:
             response = self.connection.run_rest(path, REST_METHOD_POST, reference_batch_request.get_request_body())
         except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err) + ' Connection error, reference was not added to weaviate.').with_traceback(
+            raise type(conn_err)(str(conn_err)
+                                 + ' Connection error, reference was not added to weaviate.').with_traceback(
                 sys.exc_info()[2])
 
         if response.status_code == 200:
             return
-        elif response.status_code == 401:
-            raise UnauthorizedRequest401Exception
-        elif response.status_code == 403:
-            raise ForbiddenRequest403Exception
-        elif response.status_code == 422:
-            raise SemanticError422Exception
-        elif response.status_code == 500:
-            raise ServerError500Exception(response.json())
         else:
-            raise UnexpectedStatusCodeException(json())
+            raise UnexpectedStatusCodeException("Add references in batch", response)
 
-    # Returns true if a thing exists in weaviate
     def thing_exists(self, uuid_thing):
-        response = self._get_thing_response(uuid_thing)
+        """
+
+        :param uuid_thing: the uuid of the thing that may or may not exist within weaviate
+        :type uuid_thing: str
+        :return: true if thing exists
+        :raises:
+            ConnectionError: if the network connection to weaviate fails
+            UnexpectedStatusCodeException: if weaviate reports a none OK status
+        """
+        try:
+            response = self._get_thing_response(uuid_thing)
+        except ConnectionError:
+            raise  # Just pass the same error back
 
         if response.status_code == 200:
             return True
         elif response.status_code == 404:
             return False
         else:
-            raise UnexpectedStatusCodeException(response.json())
+            raise UnexpectedStatusCodeException("Thing exists", response)
 
-    # Gets a thing as dict
     def get_thing(self, uuid_thing, meta=False):
-        response = self._get_thing_response(uuid_thing, meta)
+        """ Gets a thing as dict
+
+        :param uuid_thing: the identifier of the thing that should be retrieved
+        :type uuid_thing: str
+        :param meta: if True the result includes meta data
+        :type meta: bool
+        :return:
+            dict in case the thing exists
+            None in case the thing does not exist
+        :raises
+            ConnectionError: if the network connection to weaviate fails
+            UnexpectedStatusCodeException: if weaviate reports a none OK status
+        """
+        try:
+            response = self._get_thing_response(uuid_thing, meta)
+        except ConnectionError:
+            raise
+
         if response.status_code == 200:
             return response.json()
         elif response.status_code == 404:
             return None
         else:
-            raise UnexpectedStatusCodeException(response.json())
+            raise UnexpectedStatusCodeException("Get thing", response)
 
-    # Returns the response object
     def _get_thing_response(self, uuid_thing, meta=False):
+        """ Retrieves a thing from weaviate
+
+        :param uuid_thing: the identifier of the thing that should be retrieved
+        :type uuid_thing: str
+        :param meta: if True the result includes meta data
+        :type meta: bool
+        :return: response object
+        :raises
+            ConnectionError: if the network connection to weaviate fails
+        """
         params = {}
         if meta:
             params['meta'] = True
@@ -230,67 +293,61 @@ class Client:
         try:
             response = self.connection.run_rest("/things/"+uuid_thing, REST_METHOD_GET, params=params)
         except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err) + ' Connection error not sure if thing exists').with_traceback(sys.exc_info()[2])
+            raise type(conn_err)(str(conn_err) + ' Connection error not sure if thing exists').with_traceback(
+                sys.exc_info()[2])
         else:
             return response
 
-    # Retrieves the vector representation of the given word
-    # The word can be CamelCased for a compound vector
-    # Returns the vector or throws and error, the vector might be empty if the c11y does not contain it
     def get_c11y_vector(self, word):
+        """ Retrieves the vector representation of the given word
+
+        :param word: for which the vector should be retrieved. May be CamelCase for word combinations
+        :type word: str
+        :return: the vector or vectors of the given word.
+            The vector might be empty if the c11y does not contain it
+        :raises
+            AttributeError:
+            ConnectionError: if the network connection to weaviate fails
+            UnexpectedStatusCodeException: if weaviate reports a none OK status
+        """
+
         path = "/c11y/words/" + word
         try:
             response = self.connection.run_rest(path, REST_METHOD_GET)
+        except ConnectionError as conn_err:
+            raise type(conn_err)(str(conn_err)
+                                 + ' Connection error, c11y vector was not retrieved.').with_traceback(
+                sys.exc_info()[2])
         except AttributeError:
-
             raise
         except Exception as e:
             raise type(e)(
-                str(e) + ' Unexpected exception.').with_traceback(
+                str(e) + ' Unexpected exception please report this excetpion in an issue.').with_traceback(
                 sys.exc_info()[2])
         else:
             if response.status_code == 200:
                 return response.json()
             else:
-                raise UnexpectedStatusCodeException(response.json())
+                raise UnexpectedStatusCodeException("C11y vector", response)
 
-    # Create the schema at the weaviate instance
-    # schema can either be the path to a json file, a url of a json file or a dict
-    # throws exceptions:
-    # - ValueError if input is wrong
-    # - IOError if file could not be read
     def create_schema(self, schema):
-        loaded_schema = None
+        """ Create the schema at the weaviate instance
 
-        # check if things files is url
-        if schema == None:
-            raise TypeError("Schema is None")
-
-        if isinstance(schema, dict):
-            # Schema is already a dict
-            loaded_schema = schema
-        elif isinstance(schema, str):
-
-            if validators.url(schema):
-                # Schema is URL
-                f = requests.get(schema)
-                if f.status_code == 200:
-                    loaded_schema = f.json()
-                else:
-                    raise ValueError("Could not download file")
-
-            elif not os.path.isfile(schema):
-                # Schema is neither file nor URL
-                raise ValueError("No schema file found at location")
-            else:
-                # Schema is file
-                try:
-                    with open(schema, 'r') as file:
-                        loaded_schema = json.load(file)
-                except IOError:
-                    raise
-        else:
-            raise TypeError("Schema is not of a supported type. Supported types are url or file path as string or schema as dict.")
+        :param schema: can either be the path to a json file, a url of a json file or a python native dict
+        :type schema: str, dict
+        :return:
+        :raises:
+            TypeError: if the schema is neither a string nor a dict
+            ValueError: if schema can not be converted into a weaviate schema
+            ConnectionError: if the network connection to weaviate fails
+            UnexpectedStatusCodeException: if weaviate reports a none OK status
+        """
+        try:
+            loaded_schema = self._get_dict_from_object(schema)
+        except ConnectionError:
+            raise
+        except UnexpectedStatusCodeException:
+            raise
 
         # TODO validate the schema e.g. small parser?
 
@@ -303,14 +360,19 @@ class Client:
         if SCHEMA_CLASS_TYPE_ACTIONS in loaded_schema:
             self._create_properties(SCHEMA_CLASS_TYPE_ACTIONS, loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS]["classes"])
 
-
-    # Create all the classes in the list
-    # This function does not create properties,
-    # to avoid references to classes that do not yet exist
-    # Takes:
-    # - schema_class_type which can be found as constants in this file
-    # - schema_classes_list a list of classes as it is found in a schema json description
     def _create_class(self, schema_class_type, schema_classes_list):
+        """ Create all the classes in the list
+        This function does not create properties,
+        to avoid references to classes that do not yet exist
+
+        :param schema_class_type: can be found as constants in this file e.g. SCHEMA_CLASS_TYPE_THINGS
+        :param schema_classes_list: classes as they are found in a schema json description
+        :type schema_classes_list: list
+        :return: None if successful
+        :raises
+            ConnectionError: if the network connection to weaviate fails
+            UnexpectedStatusCodeException: if weaviate reports a none OK status
+        """
 
         for weaviate_class in schema_classes_list:
 
@@ -322,50 +384,88 @@ class Client:
             }
 
             # Add the item
-            response = self.connection.run_rest("/schema/"+schema_class_type, REST_METHOD_POST, schema_class)
+            try:
+                response = self.connection.run_rest("/schema/"+schema_class_type, REST_METHOD_POST, schema_class)
+            except ConnectionError as conn_err:
+                raise type(conn_err)(str(conn_err)
+                                     + ' Connection error, class may not have been created properly.').with_traceback(
+                    sys.exc_info()[2])
             if response.status_code != 200:
-                raise UnexpectedStatusCodeException(response.json())
+                raise UnexpectedStatusCodeException("Create class", response)
 
     def _create_properties(self, schema_class_type, schema_classes_list):
+        """ Create all the properties in the list.
+        Make sure that all necessary classes have been created first.
+        See _create_class
+
+        :param schema_class_type: can be found as constants in this file e.g. SCHEMA_CLASS_TYPE_THINGS
+        :param schema_classes_list: classes as they are found in a schema json description
+        :type schema_classes_list: list
+        :return: None if successful
+        :raises
+            ConnectionError: if the network connection to weaviate fails
+            UnexpectedStatusCodeException: if weaviate reports a none OK status
+        """
         for schema_class in schema_classes_list:
-            for property in schema_class["properties"]:
+            for property_ in schema_class["properties"]:
 
                 # create the property object
                 schema_property = {
                     "dataType": [],
-                    "cardinality": property["cardinality"],
-                    "description": property["description"],
-                    "name": property["name"]
+                    "cardinality": property_["cardinality"],
+                    "description": property_["description"],
+                    "name": property_["name"]
                 }
 
                 # add the dataType(s)
-                for datatype in property["dataType"]:
+                for datatype in property_["dataType"]:
                     schema_property["dataType"].append(datatype)
 
                 # add keywords
-                if "keywords" in property:
-                    schema_property["keywords"] = property["keywords"]
+                if "keywords" in property_:
+                    schema_property["keywords"] = property_["keywords"]
 
                 path = "/schema/"+schema_class_type+"/"+schema_class["class"]+"/properties"
-                response = self.connection.run_rest(path, REST_METHOD_POST, schema_property)
+                try:
+                    response = self.connection.run_rest(path, REST_METHOD_POST, schema_property)
+                except ConnectionError as conn_err:
+                    raise type(conn_err)(str(conn_err)
+                                         + ' Connection error, property may not have been created properly.'
+                                         ).with_traceback(
+                        sys.exc_info()[2])
                 if response.status_code != 200:
-                    raise UnexpectedStatusCodeException(response.json())
+                    raise UnexpectedStatusCodeException("Add properties to classes", response)
 
-    # Starts a knn classification based on the given parameters
-    # Returns a dict with the answer from weaviate
     def start_knn_classification(self, schema_class_name, k, based_on_properties, classify_properties):
+        """ Starts a knn classification based on the given parameters
+
+        :param schema_class_name: Class on which the classification is executed
+        :type schema_class_name: str
+        :param k: the number of nearest neighbours that are taken into account for the classification
+        :type k: int
+        :param based_on_properties: The property or the properties that are used to for the classification.
+        This field is compared to the other fields and serves as the decision base.
+        :type based_on_properties:  str, list of str
+        :param classify_properties: The property or the properties that are labeled (the classes).
+        :type classify_properties: str, list of str
+        :return: dict with the status of the classification
+        :raises
+            TypeError: if argument is of wrong type
+            ConnectionError: if the network connection to weaviate fails
+            UnexpectedStatusCodeException: if weaviate reports a none OK status
+        """
         if not isinstance(schema_class_name, str):
-            raise ValueError("Schema class name must be of type string")
+            raise TypeError("Schema class name must be of type string")
         if not isinstance(k, int):
-            raise ValueError("K must be of type integer")
+            raise TypeError("K must be of type integer")
         if isinstance(based_on_properties, str):
             based_on_properties = [based_on_properties]
         if isinstance(classify_properties, str):
             classify_properties = [classify_properties]
         if not isinstance(based_on_properties, list):
-            raise ValueError("Based on properties must be of type string or list of strings")
+            raise TypeError("Based on properties must be of type string or list of strings")
         if not isinstance(classify_properties, list):
-            raise ValueError("Classify properties must be of type string or list of strings")
+            raise TypeError("Classify properties must be of type string or list of strings")
 
         payload = {
             "class": schema_class_name,
@@ -374,28 +474,56 @@ class Client:
             "classifyProperties": classify_properties
         }
 
-        response = self.connection.run_rest("/classifications", REST_METHOD_POST, payload)
+        try:
+            response = self.connection.run_rest("/classifications", REST_METHOD_POST, payload)
+        except ConnectionError as conn_err:
+            raise type(conn_err)(str(conn_err)
+                                 + ' Connection error, classification may not started.'
+                                 ).with_traceback(
+                sys.exc_info()[2])
 
         if response.status_code == 201:
             return response.json()
         else:
-            raise UnexpectedStatusCodeException(response.json())
+            raise UnexpectedStatusCodeException("Start classification", response)
 
-    # Polls the current state of the given classification
-    # Returns a dict containing the weaviate answer
     def get_knn_classification_status(self, classification_uuid):
+        """ Polls the current state of the given classification
+
+        :param classification_uuid: identifier of the classification
+        :type classification_uuid: str
+        :return: a dict containing the weaviate answer
+        :raises
+            ValueError: if not a proper uuid
+            ConnectionError: if the network connection to weaviate fails
+            UnexpectedStatusCodeException: if weaviate reports a none OK status
+        """
+
         if not validators.uuid(classification_uuid):
             raise ValueError("Given UUID does not have a proper form")
 
-        response = self.connection.run_rest("/classifications/"+classification_uuid, REST_METHOD_GET)
+        try:
+            response = self.connection.run_rest("/classifications/"+classification_uuid, REST_METHOD_GET)
+        except ConnectionError as conn_err:
+            raise type(conn_err)(str(conn_err)
+                                 + ' Connection error, classification status could not be retrieved.'
+                                 ).with_traceback(
+                sys.exc_info()[2])
         if response.status_code == 200:
             return response.json()
         else:
-            raise UnexpectedStatusCodeException(response.json())
+            raise UnexpectedStatusCodeException("Get classification status", response)
 
-    # Returns true if the classification has finished
     def is_classification_complete(self, classification_uuid):
-        response = self.get_knn_classification_status(classification_uuid)
+        """
+
+        :param classification_uuid: identifier of the classification
+        :return: true if given classification has finished
+        """
+        try:
+            response = self.get_knn_classification_status(classification_uuid)
+        except ConnectionError:
+            return False
         if response["status"] == "completed":
             return True
         return False
@@ -412,3 +540,48 @@ class Client:
         if response.status_code == 200:
             return True
         return False
+
+
+def _get_dict_from_object(object_):
+    """ Takes an object that should describe a dict
+    e.g. a schema or a thing and tries to retrieve the dict.
+    Object m
+
+    :param object_: May describe a dict in form of a json in form of an URL, File or python native dict
+    :type object_: string, dict
+    :return: dict
+    :raises
+        TypeError: if neither a string nor a dict
+        ValueError: if no dict can be retrieved from object
+    """
+
+    # check if things files is url
+    if object_ is None:
+        raise TypeError("argument is None")
+
+    if isinstance(object_, dict):
+        # Object is already a dict
+        return object_
+    elif isinstance(object_, str):
+
+        if validators.url(object_):
+            # Object is URL
+            f = requests.get(object_)
+            if f.status_code == 200:
+                return f.json()
+            else:
+                raise ValueError("Could not download file " + object_)
+
+        elif not os.path.isfile(object_):
+            # Object is neither file nor URL
+            raise ValueError("No file found at location " + object_)
+        else:
+            # Object is file
+            try:
+                with open(object_, 'r') as file:
+                    return json.load(file)
+            except IOError:
+                raise
+    else:
+        raise TypeError(
+            "Argument is not of the supported types. Supported types are url or file path as string or schema as dict.")
