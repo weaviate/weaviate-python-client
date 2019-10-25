@@ -143,7 +143,7 @@ class Client:
             UnexpectedStatusCodeException: if weaviate reports a none OK status
         """
 
-        parsed_thing = self._get_dict_from_object(thing)
+        parsed_thing = _get_dict_from_object(thing)
 
         weaviate_obj = {
             "id": uuid,
@@ -343,7 +343,7 @@ class Client:
             UnexpectedStatusCodeException: if weaviate reports a none OK status
         """
         try:
-            loaded_schema = self._get_dict_from_object(schema)
+            loaded_schema = _get_dict_from_object(schema)
         except ConnectionError:
             raise
         except UnexpectedStatusCodeException:
