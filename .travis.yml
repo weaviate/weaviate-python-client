@@ -31,9 +31,9 @@ jobs:
       script:
         - python ci/integration_test.py
 
-    - stage: "Build documentation"
-      notifications:
-        email:
-          on_success: change
-      script:
-        -
+#    - stage: "Build documentation"
+#      notifications:
+#        email:
+#          on_success: change
+#      script:
+#        - make -C documentation html
