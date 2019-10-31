@@ -16,9 +16,9 @@ class Client:
     def __init__(self, url, auth_client_secret=""):
         """ New weaviate client
 
-        :param url: To the weaviate instance
+        :param url: To the weaviate instance.
         :type url: str
-        :param auth_client_secret: Authentification client secret
+        :param auth_client_secret: Authentification client secret.
         :type auth_client_secret: str
         """
         if url is None:
@@ -42,20 +42,20 @@ class Client:
     def create_thing(self, thing, class_name, uuid=None):
         """ Takes a dict describing the thing and adds it to weaviate
 
-        :param thing: Thing to be added
+        :param thing: Thing to be added.
         :type thing: dict
-        :param class_name: Associated with the thing given
+        :param class_name: Associated with the thing given.
         :type class_name: str
-        :param uuid: Thing will be created under this uuid if it is provided
+        :param uuid: Thing will be created under this uuid if it is provided.
         :type uuid: str
-        :return: Returns the id of the created thing if successful
+        :return: Returns the UUID of the created thing if successful.
         :raises:
-            TypeError: if argument is of wrong type
-            ValueError: if argument contains an invalid value
-            ThingAlreadyExistsException: if an thing with the given uuid already exists within weaviate
+            TypeError: if argument is of wrong type.
+            ValueError: if argument contains an invalid value.
+            ThingAlreadyExistsException: if an thing with the given uuid already exists within weaviate.
             UnexpectedStatusCodeException: if creating the thing in weavate failed with a different reason,
-            more information is given in the exception
-            ConnectionError: if the network connection to weaviate fails
+            more information is given in the exception.
+            ConnectionError: if the network connection to weaviate fails.
         """
         if not isinstance(thing, dict):
             raise TypeError("Expected thing to be of type dict instead it was: "+str(type(thing)))
@@ -103,12 +103,12 @@ class Client:
     def create_things_in_batch(self, things_batch_request):
         """ Creates multiple things at once in weaviate
 
-        :param things_batch_request: The batch of things that should be added
+        :param things_batch_request: The batch of things that should be added.
         :type things_batch_request: ThingsBatchRequest
-        :return: None if successful
+        :return: None if successful.
         :raises:
-            ConnectionError: if the network connection to weaviate fails
-            UnexpectedStatusCodeException: if weaviate reports a none OK status
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
         """
 
         path = "/batching/things"
@@ -125,20 +125,20 @@ class Client:
         else:
             raise UnexpectedStatusCodeException("Create thing in batch", response)
 
-    def update_thing(self, thing, class_name, uuid):
-        """ Updates an already existing thing
+    def put_thing(self, thing, class_name, uuid):
+        """ Replaces an already existing thing with the given thing. Does not keep unset values.
 
         :param thing: describes the new values.
-        It may be an URL or path to a json or a python dict describing the new values.
+                      It may be an URL or path to a json or a python dict describing the new values.
         :type thing: str, dict
-        :param class_name: Name of the class of the thing that should be updated
+        :param class_name: Name of the class of the thing that should be updated.
         :type class_name: str
-        :param uuid: Of the thing
+        :param uuid: Of the thing.
         :type uuid: str
-        :return: None if successful
+        :return: None if successful.
         :raises:
-            ConnectionError: if the network connection to weaviate fails
-            UnexpectedStatusCodeException: if weaviate reports a none OK status
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
         """
 
         parsed_thing = _get_dict_from_object(thing)
@@ -162,18 +162,18 @@ class Client:
             raise UnexpectedStatusCodeException("Update thing", response)
 
     def add_reference_to_thing(self, from_thing_uuid, from_property_name, to_thing_uuid, to_weaviate="localhost"):
-        """ Allows to link two objects unidirectionally
+        """ Allows to link two objects unidirectionally.
 
-        :param from_thing_uuid: the thing that should have the reference as part of its properties
-        :type from_thing_uuid: str in the form of a UUID
-        :param from_property_name: the name of the property within the thing
+        :param from_thing_uuid: the thing that should have the reference as part of its properties.
+        :type from_thing_uuid: str in the form of an UUID
+        :param from_property_name: the name of the property within the thing.
         :type from_property_name: str
-        :param to_thing_uuid: the UUID of the thing that should be referenced
-        :type to_thing_uuid: str in the form of a UUID
-        :return: None if successful
+        :param to_thing_uuid: the UUID of the thing that should be referenced.
+        :type to_thing_uuid: str in the form of an UUID
+        :return: None if successful.
         :raises:
-            ConnectionError: if the network connection to weaviate fails
-            UnexpectedStatusCodeException: if weaviate reports a none OK status
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
 
         """
 
@@ -201,14 +201,14 @@ class Client:
         Loading batch references is faster by ignoring some validations.
         Loading inconsistent data may ends up in an invalid graph.
         If the consistency of the references is not guaranied use
-        add_property_reference_to_thing to have additional validation instead.
+        add_reference_to_thing to have additional validation instead.
 
-        :param reference_batch_request: contains all the references that should be added in one batch
+        :param reference_batch_request: contains all the references that should be added in one batch.
         :type reference_batch_request: weaviate.batch.ReferenceBatchRequest
         :return: None
         :raises:
-            ConnectionError: if the network connection to weaviate fails
-            UnexpectedStatusCodeException: if weaviate reports a none OK status
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
         """
 
         if reference_batch_request.get_batch_size() == 0:
@@ -231,12 +231,12 @@ class Client:
     def thing_exists(self, uuid_thing):
         """
 
-        :param uuid_thing: the uuid of the thing that may or may not exist within weaviate
+        :param uuid_thing: the uuid of the thing that may or may not exist within weaviate.
         :type uuid_thing: str
-        :return: true if thing exists
+        :return: true if thing exists.
         :raises:
-            ConnectionError: if the network connection to weaviate fails
-            UnexpectedStatusCodeException: if weaviate reports a none OK status
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
         """
         try:
             response = self._get_thing_response(uuid_thing)
@@ -251,18 +251,18 @@ class Client:
             raise UnexpectedStatusCodeException("Thing exists", response)
 
     def get_thing(self, uuid_thing, meta=False):
-        """ Gets a thing as dict
+        """ Gets a thing as dict.
 
-        :param uuid_thing: the identifier of the thing that should be retrieved
+        :param uuid_thing: the identifier of the thing that should be retrieved.
         :type uuid_thing: str
-        :param meta: if True the result includes meta data
+        :param meta: if True the result includes meta data.
         :type meta: bool
         :return:
-            dict in case the thing exists
-            None in case the thing does not exist
-        :raises
-            ConnectionError: if the network connection to weaviate fails
-            UnexpectedStatusCodeException: if weaviate reports a none OK status
+            dict in case the thing exists.
+            None in case the thing does not exist.
+        :raises:
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
         """
         try:
             response = self._get_thing_response(uuid_thing, meta)
@@ -277,15 +277,15 @@ class Client:
             raise UnexpectedStatusCodeException("Get thing", response)
 
     def _get_thing_response(self, uuid_thing, meta=False):
-        """ Retrieves a thing from weaviate
+        """ Retrieves a thing from weaviate.
 
-        :param uuid_thing: the identifier of the thing that should be retrieved
+        :param uuid_thing: the identifier of the thing that should be retrieved.
         :type uuid_thing: str
-        :param meta: if True the result includes meta data
+        :param meta: if True the result includes meta data.
         :type meta: bool
-        :return: response object
-        :raises
-            ConnectionError: if the network connection to weaviate fails
+        :return: response object.
+        :raises:
+            ConnectionError: if the network connection to weaviate fails.
         """
         params = {}
         if meta:
@@ -301,16 +301,16 @@ class Client:
             return response
 
     def get_c11y_vector(self, word):
-        """ Retrieves the vector representation of the given word
+        """ Retrieves the vector representation of the given word.
 
-        :param word: for which the vector should be retrieved. May be CamelCase for word combinations
+        :param word: for which the vector should be retrieved. May be CamelCase for word combinations.
         :type word: str
         :return: the vector or vectors of the given word.
-            The vector might be empty if the c11y does not contain it
-        :raises
+            The vector might be empty if the c11y does not contain it.
+        :raises:
             AttributeError:
-            ConnectionError: if the network connection to weaviate fails
-            UnexpectedStatusCodeException: if weaviate reports a none OK status
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
         """
 
         path = "/c11y/words/" + word
@@ -333,16 +333,16 @@ class Client:
                 raise UnexpectedStatusCodeException("C11y vector", response)
 
     def create_schema(self, schema):
-        """ Create the schema at the weaviate instance
+        """ Create the schema at the weaviate instance.
 
-        :param schema: can either be the path to a json file, a url of a json file or a python native dict
+        :param schema: can either be the path to a json file, a url of a json file or a python native dict.
         :type schema: str, dict
-        :return:
+        :return: None if successful.
         :raises:
-            TypeError: if the schema is neither a string nor a dict
-            ValueError: if schema can not be converted into a weaviate schema
-            ConnectionError: if the network connection to weaviate fails
-            UnexpectedStatusCodeException: if weaviate reports a none OK status
+            TypeError: if the schema is neither a string nor a dict.
+            ValueError: if schema can not be converted into a weaviate schema.
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
         """
         try:
             loaded_schema = _get_dict_from_object(schema)
@@ -363,17 +363,18 @@ class Client:
             self._create_properties(SCHEMA_CLASS_TYPE_ACTIONS, loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS]["classes"])
 
     def _create_class(self, schema_class_type, schema_classes_list):
-        """ Create all the classes in the list
+        """ Create all the classes in the list.
         This function does not create properties,
-        to avoid references to classes that do not yet exist
+        to avoid references to classes that do not yet exist.
 
-        :param schema_class_type: can be found as constants in this file e.g. SCHEMA_CLASS_TYPE_THINGS
-        :param schema_classes_list: classes as they are found in a schema json description
+        :param schema_class_type: can be found as constants e.g. SCHEMA_CLASS_TYPE_THINGS.
+        :type schema_class_type: SCHEMA_CLASS_TYPE_THINGS or SCHEMA_CLASS_TYPE_ACTIONS
+        :param schema_classes_list: classes as they are found in a schema json description.
         :type schema_classes_list: list
-        :return: None if successful
+        :return: None if successful.
         :raises
-            ConnectionError: if the network connection to weaviate fails
-            UnexpectedStatusCodeException: if weaviate reports a none OK status
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
         """
 
         for weaviate_class in schema_classes_list:
@@ -400,13 +401,14 @@ class Client:
         Make sure that all necessary classes have been created first.
         See _create_class
 
-        :param schema_class_type: can be found as constants in this file e.g. SCHEMA_CLASS_TYPE_THINGS
-        :param schema_classes_list: classes as they are found in a schema json description
+        :param schema_class_type: can be found as constants e.g. SCHEMA_CLASS_TYPE_THINGS.
+        :type schema_class_type: SCHEMA_CLASS_TYPE_THINGS or SCHEMA_CLASS_TYPE_ACTIONS
+        :param schema_classes_list: classes as they are found in a schema json description.
         :type schema_classes_list: list
-        :return: None if successful
+        :return: None if successful.
         :raises
-            ConnectionError: if the network connection to weaviate fails
-            UnexpectedStatusCodeException: if weaviate reports a none OK status
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
         """
         for schema_class in schema_classes_list:
             for property_ in schema_class["properties"]:
@@ -439,22 +441,22 @@ class Client:
                     raise UnexpectedStatusCodeException("Add properties to classes", response)
 
     def start_knn_classification(self, schema_class_name, k, based_on_properties, classify_properties):
-        """ Starts a knn classification based on the given parameters
+        """ Starts a knn classification based on the given parameters.
 
-        :param schema_class_name: Class on which the classification is executed
+        :param schema_class_name: Class on which the classification is executed.
         :type schema_class_name: str
-        :param k: the number of nearest neighbours that are taken into account for the classification
+        :param k: the number of nearest neighbours that are taken into account for the classification.
         :type k: int
         :param based_on_properties: The property or the properties that are used to for the classification.
-        This field is compared to the other fields and serves as the decision base.
+                                    This field is compared to the other fields and serves as the decision base.
         :type based_on_properties:  str, list of str
         :param classify_properties: The property or the properties that are labeled (the classes).
         :type classify_properties: str, list of str
-        :return: dict with the status of the classification
-        :raises
-            TypeError: if argument is of wrong type
-            ConnectionError: if the network connection to weaviate fails
-            UnexpectedStatusCodeException: if weaviate reports a none OK status
+        :return: dict with the status of the classification.
+        :raises:
+            TypeError: if argument is of wrong type.
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
         """
         if not isinstance(schema_class_name, str):
             raise TypeError("Schema class name must be of type string")
@@ -492,13 +494,13 @@ class Client:
     def get_knn_classification_status(self, classification_uuid):
         """ Polls the current state of the given classification
 
-        :param classification_uuid: identifier of the classification
+        :param classification_uuid: identifier of the classification.
         :type classification_uuid: str
-        :return: a dict containing the weaviate answer
-        :raises
-            ValueError: if not a proper uuid
-            ConnectionError: if the network connection to weaviate fails
-            UnexpectedStatusCodeException: if weaviate reports a none OK status
+        :return: a dict containing the weaviate answer.
+        :raises:
+            ValueError: if not a proper uuid.
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
         """
 
         if not validators.uuid(classification_uuid):
@@ -517,10 +519,10 @@ class Client:
             raise UnexpectedStatusCodeException("Get classification status", response)
 
     def is_classification_complete(self, classification_uuid):
-        """
+        """ Checks if a previously started classification job has completed.
 
-        :param classification_uuid: identifier of the classification
-        :return: true if given classification has finished
+        :param classification_uuid: identifier of the classification.
+        :return: true if given classification has finished.
         """
         try:
             response = self.get_knn_classification_status(classification_uuid)
@@ -533,7 +535,7 @@ class Client:
     def is_reachable(self):
         """ Ping weaviate
 
-        :return: True if weaviate could be reached False otherwise
+        :return: True if weaviate could be reached False otherwise.
         """
         try:
             response = self.connection.run_rest("/meta", REST_METHOD_GET)

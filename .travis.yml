@@ -30,3 +30,10 @@ jobs:
         - /bin/bash ci/start_weaviate.bash
       script:
         - python ci/integration_test.py
+
+    - stage: "Build documentation"
+      notifications:
+        email:
+          on_success: change
+      script:
+        -

@@ -2,6 +2,10 @@ import validators
 
 
 class ReferenceBatchRequest:
+    """
+    Collect references to add them in one request to weaviate.
+    Caution this request will miss some validations to be faster.
+    """
 
     def __init__(self):
         self.from_thing_class_names = []
@@ -10,10 +14,24 @@ class ReferenceBatchRequest:
         self.to_thing_ids = []
 
     def add_reference(self, from_thing_class_name, from_thing_uuid, from_property_name, to_thing_uuid):
+        """ Add one reference to this batch
+
+        :param from_thing_class_name: The name of the class that should reference another thing.
+        :type from_thing_class_name: str
+        :param from_thing_uuid: The UUID of the thing that should reference another thing.
+        :type from_thing_uuid: str in form of UUID
+        :param from_property_name: The name of the property that contains the reference.
+        :type from_property_name: str
+        :param to_thing_uuid: The UUID of the thing that is actually referenced.
+        :type to_thing_uuid: str
+        :return: None if successful
+        :raises:
+            TypeError: If arguments are not string.
+        """
 
         if not isinstance(from_thing_class_name, str) or not isinstance(from_thing_uuid, str) or \
                 not isinstance(from_property_name, str) or not isinstance(to_thing_uuid, str):
-            raise ValueError('All arguments must be of type string')
+            raise TypeError('All arguments must be of type string')
 
         self.from_thing_class_names.append(from_thing_class_name)
         self.from_thing_ids.append(from_thing_uuid)
@@ -46,13 +64,13 @@ class ThingsBatchRequest:
     def add_thing(self, thing, class_name, uuid=None):
         """ Add a thing to this batch
 
-        :param thing: that should be added as part of the batch
+        :param thing: that should be added as part of the batch.
         :type thing: dict
-        :param class_name: class of the thing
+        :param class_name: class of the thing.
         :type class_name: str
-        :param uuid: if given the thing will be added under this uuid
+        :param uuid: if given the thing will be added under this uuid.
         :type uuid: str
-        :raises TypeError, ValueError
+        :raises: TypeError, ValueError
         """
         if not isinstance(thing, dict):
             raise TypeError
