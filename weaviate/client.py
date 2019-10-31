@@ -1,11 +1,9 @@
-import json
-import os
-import requests
 import sys
 import validators
 
 from .connect import *
 from .exceptions import *
+from .util import _get_dict_from_object
 
 SCHEMA_CLASS_TYPE_THINGS = "things"
 SCHEMA_CLASS_TYPE_ACTIONS = "actions"
@@ -163,27 +161,31 @@ class Client:
         else:
             raise UnexpectedStatusCodeException("Update thing", response)
 
-    def add_property_reference_to_thing(self, thing_uuid, property_name, property_beacons):
+    def add_reference_to_thing(self, from_thing_uuid, from_property_name, to_thing_uuid, to_weaviate="localhost"):
         """ Allows to link two objects unidirectionally
 
-        :param thing_uuid: the thing that should have the reference as part of its properties
-        :param property_name: the name of the property within the thing
-        :param property_beacons: A beacon of form:
-        [{
-            "beacon": "weaviate://localhost/things/uuid",
-            ...
-        }]
-        see generate_local_things_beacon to generate a beacon for the local weaviate instance
+        :param from_thing_uuid: the thing that should have the reference as part of its properties
+        :type from_thing_uuid: str in the form of a UUID
+        :param from_property_name: the name of the property within the thing
+        :type from_property_name: str
+        :param to_thing_uuid: the UUID of the thing that should be referenced
+        :type to_thing_uuid: str in the form of a UUID
         :return: None if successful
         :raises:
             ConnectionError: if the network connection to weaviate fails
             UnexpectedStatusCodeException: if weaviate reports a none OK status
 
         """
-        path = "/things/" + thing_uuid + "/references/" + property_name
+
+        # Create the beacon
+        beacon = {
+            "beacon": "weaviate://"+to_weaviate+"/things/"+to_thing_uuid
+        }
+
+        path = "/things/" + from_thing_uuid + "/references/" + from_property_name
 
         try:
-            response = self.connection.run_rest(path, REST_METHOD_POST, property_beacons)
+            response = self.connection.run_rest(path, REST_METHOD_POST, beacon)
         except ConnectionError as conn_err:
             raise type(conn_err)(
                 str(conn_err) + ' Connection error, reference was not added to weaviate.').with_traceback(
@@ -540,48 +542,3 @@ class Client:
         if response.status_code == 200:
             return True
         return False
-
-
-def _get_dict_from_object(object_):
-    """ Takes an object that should describe a dict
-    e.g. a schema or a thing and tries to retrieve the dict.
-    Object m
-
-    :param object_: May describe a dict in form of a json in form of an URL, File or python native dict
-    :type object_: string, dict
-    :return: dict
-    :raises
-        TypeError: if neither a string nor a dict
-        ValueError: if no dict can be retrieved from object
-    """
-
-    # check if things files is url
-    if object_ is None:
-        raise TypeError("argument is None")
-
-    if isinstance(object_, dict):
-        # Object is already a dict
-        return object_
-    elif isinstance(object_, str):
-
-        if validators.url(object_):
-            # Object is URL
-            f = requests.get(object_)
-            if f.status_code == 200:
-                return f.json()
-            else:
-                raise ValueError("Could not download file " + object_)
-
-        elif not os.path.isfile(object_):
-            # Object is neither file nor URL
-            raise ValueError("No file found at location " + object_)
-        else:
-            # Object is file
-            try:
-                with open(object_, 'r') as file:
-                    return json.load(file)
-            except IOError:
-                raise
-    else:
-        raise TypeError(
-            "Argument is not of the supported types. Supported types are url or file path as string or schema as dict.")

@@ -25,6 +25,30 @@
             "keywords": []
           }
         ]
+      },
+      {
+        "class": "Group",
+        "description": "A set of persons who are associated with each other over some common properties",
+        "keywords": [],
+        "properties": [
+          {
+            "name": "name",
+            "description": "The name under which this group is known",
+            "dataType": [
+              "text"
+            ],
+            "cardinality": "atMostOne",
+            "keywords": []
+          },
+          {
+            "name": "members",
+            "description": "The persons that are part of this group",
+            "dataType": [
+              "Person"
+            ],
+            "cardinality": "many"
+          }
+        ]
       }
     ]
   }

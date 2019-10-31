@@ -9,15 +9,15 @@ class ReferenceBatchRequest:
         self.from_thing_properties = []
         self.to_thing_ids = []
 
-    def add_reference(self, from_thing_class_name, from_thing_uuid, from_thing_property, to_thing_uuid):
+    def add_reference(self, from_thing_class_name, from_thing_uuid, from_property_name, to_thing_uuid):
 
         if not isinstance(from_thing_class_name, str) or not isinstance(from_thing_uuid, str) or \
-                not isinstance(from_thing_property, str) or not isinstance(to_thing_uuid, str):
+                not isinstance(from_property_name, str) or not isinstance(to_thing_uuid, str):
             raise ValueError('All arguments must be of type string')
 
         self.from_thing_class_names.append(from_thing_class_name)
         self.from_thing_ids.append(from_thing_uuid)
-        self.from_thing_properties.append(from_thing_property)
+        self.from_thing_properties.append(from_property_name)
         self.to_thing_ids.append(to_thing_uuid)
 
     def get_batch_size(self):
