@@ -1,4 +1,3 @@
-# import weaviate
 import os
 from queries import *
 

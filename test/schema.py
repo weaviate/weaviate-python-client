@@ -111,8 +111,30 @@ class TestSchema(unittest.TestCase):
             pass # Expected value error
             # Load from URL
 
+    # @patch('weaviate.client._get_dict_from_object')
+    # def mock_get_dict_from_object(self, object_):
+    #     return company_test_schema
+
+
     def test_create_schema_load_file(self):
         w = weaviate.Client("http://localhost:8080")
+
+        # Load from URL
+        with patch('weaviate.client._get_dict_from_object') as mock_util:
+            # Mock weaviate.client._get_dict_from_object the function where
+            # it is looked up see https://docs.python.org/3/library/unittest.mock.html#where-to-patch
+            # for more information
+
+            connection_mock_url = Mock()  # Mock weaviate.connection
+            w.connection = connection_mock_url
+            add_run_rest_to_mock(connection_mock_url)
+
+            mock_util.return_value = company_test_schema
+
+            w.create_schema("http://semi.technology/schema")
+            mock_util.assert_called()
+            connection_mock_url.run_rest.assert_called()
+
 
         # Load from file
         connection_mock_file = Mock()  # Mock calling weaviate
@@ -131,23 +153,6 @@ class TestSchema(unittest.TestCase):
         w.connection = connection_mock_dict
         w.create_schema(company_test_schema)
         connection_mock_dict.run_rest.assert_called()
-
-        # Load from URL
-        with patch('weaviate.client.requests') as requests_mock:
-            connection_mock_url = Mock()  # Mock weaviate.connection
-            w.connection = connection_mock_url
-            add_run_rest_to_mock(connection_mock_url)
-
-            # Mock get request response
-            return_value_get_method = Mock()
-            return_value_get_method.configure_mock(status_code=200)
-            return_value_get_method.json.return_value = company_test_schema
-            requests_mock.get.return_value = return_value_get_method
-
-            w.create_schema("http://semi.technology/schema")
-            requests_mock.get.assert_called()
-            return_value_get_method.json.assert_called()
-            connection_mock_url.run_rest.assert_called()
 
         # Test schema missing actions/schema
         # Mock run_rest
