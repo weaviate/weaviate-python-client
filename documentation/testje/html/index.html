@@ -1,0 +1,460 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Welcome to weaviate-python-client’s documentation! &#8212; weaviate-python-client 0.0.1 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-weaviate.client">
+<span id="welcome-to-weaviate-python-client-s-documentation"></span><h1>Welcome to weaviate-python-client’s documentation!<a class="headerlink" href="#module-weaviate.client" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="weaviate.client.Client">
+<em class="property">class </em><code class="sig-prename descclassname">weaviate.client.</code><code class="sig-name descname">Client</code><span class="sig-paren">(</span><em class="sig-param">url</em>, <em class="sig-param">auth_client_secret=''</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client" title="Permalink to this definition">¶</a></dt>
+<dd><p>A python native weaviate client</p>
+<dl class="method">
+<dt id="weaviate.client.Client.add_reference_to_thing">
+<code class="sig-name descname">add_reference_to_thing</code><span class="sig-paren">(</span><em class="sig-param">from_thing_uuid</em>, <em class="sig-param">from_property_name</em>, <em class="sig-param">to_thing_uuid</em>, <em class="sig-param">to_weaviate='localhost'</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.add_reference_to_thing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Allows to link two objects unidirectionally.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>from_thing_uuid</strong> (<em>str in the form of an UUID</em>) – the thing that should have the reference as part of its properties.</p></li>
+<li><p><strong>from_property_name</strong> (<em>str</em>) – the name of the property within the thing.</p></li>
+<li><p><strong>to_thing_uuid</strong> (<em>str in the form of an UUID</em>) – the UUID of the thing that should be referenced.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None if successful.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>ConnectionError: if the network connection to weaviate fails.
+UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="weaviate.client.Client.add_references_in_batch">
+<code class="sig-name descname">add_references_in_batch</code><span class="sig-paren">(</span><em class="sig-param">reference_batch_request</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.add_references_in_batch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Batch loading references
+Loading batch references is faster by ignoring some validations.
+Loading inconsistent data may ends up in an invalid graph.
+If the consistency of the references is not guaranied use
+add_reference_to_thing to have additional validation instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>reference_batch_request</strong> (<a class="reference internal" href="#weaviate.batch.ReferenceBatchRequest" title="weaviate.batch.ReferenceBatchRequest"><em>weaviate.batch.ReferenceBatchRequest</em></a>) – contains all the references that should be added in one batch.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>ConnectionError: if the network connection to weaviate fails.
+UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="weaviate.client.Client.create_schema">
+<code class="sig-name descname">create_schema</code><span class="sig-paren">(</span><em class="sig-param">schema</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.create_schema" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create the schema at the weaviate instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>schema</strong> (<em>str</em><em>, </em><em>dict</em>) – can either be the path to a json file, a url of a json file or a python native dict.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None if successful.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>TypeError: if the schema is neither a string nor a dict.
+ValueError: if schema can not be converted into a weaviate schema.
+ConnectionError: if the network connection to weaviate fails.
+UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="weaviate.client.Client.create_thing">
+<code class="sig-name descname">create_thing</code><span class="sig-paren">(</span><em class="sig-param">thing</em>, <em class="sig-param">class_name</em>, <em class="sig-param">uuid=None</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.create_thing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a dict describing the thing and adds it to weaviate</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>thing</strong> (<em>dict</em>) – Thing to be added.</p></li>
+<li><p><strong>class_name</strong> (<em>str</em>) – Associated with the thing given.</p></li>
+<li><p><strong>uuid</strong> (<em>str</em>) – Thing will be created under this uuid if it is provided.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Returns the UUID of the created thing if successful.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>TypeError: if argument is of wrong type.
+ValueError: if argument contains an invalid value.
+ThingAlreadyExistsException: if an thing with the given uuid already exists within weaviate.
+UnexpectedStatusCodeException: if creating the thing in weavate failed with a different reason,
+more information is given in the exception.
+ConnectionError: if the network connection to weaviate fails.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="weaviate.client.Client.create_things_in_batch">
+<code class="sig-name descname">create_things_in_batch</code><span class="sig-paren">(</span><em class="sig-param">things_batch_request</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.create_things_in_batch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates multiple things at once in weaviate</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>things_batch_request</strong> (<a class="reference internal" href="#weaviate.batch.ThingsBatchRequest" title="weaviate.batch.ThingsBatchRequest"><em>ThingsBatchRequest</em></a>) – The batch of things that should be added.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None if successful.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>ConnectionError: if the network connection to weaviate fails.
+UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="weaviate.client.Client.get_c11y_vector">
+<code class="sig-name descname">get_c11y_vector</code><span class="sig-paren">(</span><em class="sig-param">word</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.get_c11y_vector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieves the vector representation of the given word.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>word</strong> (<em>str</em>) – for which the vector should be retrieved. May be CamelCase for word combinations.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the vector or vectors of the given word.
+The vector might be empty if the c11y does not contain it.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>AttributeError:
+ConnectionError: if the network connection to weaviate fails.
+UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="weaviate.client.Client.get_knn_classification_status">
+<code class="sig-name descname">get_knn_classification_status</code><span class="sig-paren">(</span><em class="sig-param">classification_uuid</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.get_knn_classification_status" title="Permalink to this definition">¶</a></dt>
+<dd><p>Polls the current state of the given classification</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>classification_uuid</strong> (<em>str</em>) – identifier of the classification.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a dict containing the weaviate answer.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>ValueError: if not a proper uuid.
+ConnectionError: if the network connection to weaviate fails.
+UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="weaviate.client.Client.get_thing">
+<code class="sig-name descname">get_thing</code><span class="sig-paren">(</span><em class="sig-param">uuid_thing</em>, <em class="sig-param">meta=False</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.get_thing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets a thing as dict.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>uuid_thing</strong> (<em>str</em>) – the identifier of the thing that should be retrieved.</p></li>
+<li><p><strong>meta</strong> (<em>bool</em>) – if True the result includes meta data.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>dict in case the thing exists.
+None in case the thing does not exist.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>ConnectionError: if the network connection to weaviate fails.
+UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="weaviate.client.Client.is_classification_complete">
+<code class="sig-name descname">is_classification_complete</code><span class="sig-paren">(</span><em class="sig-param">classification_uuid</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.is_classification_complete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks if a previously started classification job has completed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>classification_uuid</strong> – identifier of the classification.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>true if given classification has finished.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="weaviate.client.Client.is_reachable">
+<code class="sig-name descname">is_reachable</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.is_reachable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ping weaviate</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if weaviate could be reached False otherwise.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="weaviate.client.Client.put_thing">
+<code class="sig-name descname">put_thing</code><span class="sig-paren">(</span><em class="sig-param">thing</em>, <em class="sig-param">class_name</em>, <em class="sig-param">uuid</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.put_thing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replaces an already existing thing with the given thing. Does not keep unset values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>thing</strong> (<em>str</em><em>, </em><em>dict</em>) – describes the new values.
+It may be an URL or path to a json or a python dict describing the new values.</p></li>
+<li><p><strong>class_name</strong> (<em>str</em>) – Name of the class of the thing that should be updated.</p></li>
+<li><p><strong>uuid</strong> (<em>str</em>) – Of the thing.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None if successful.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>ConnectionError: if the network connection to weaviate fails.
+UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="weaviate.client.Client.start_knn_classification">
+<code class="sig-name descname">start_knn_classification</code><span class="sig-paren">(</span><em class="sig-param">schema_class_name</em>, <em class="sig-param">k</em>, <em class="sig-param">based_on_properties</em>, <em class="sig-param">classify_properties</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.start_knn_classification" title="Permalink to this definition">¶</a></dt>
+<dd><p>Starts a knn classification based on the given parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>schema_class_name</strong> (<em>str</em>) – Class on which the classification is executed.</p></li>
+<li><p><strong>k</strong> (<em>int</em>) – the number of nearest neighbours that are taken into account for the classification.</p></li>
+<li><p><strong>based_on_properties</strong> (<em>str</em><em>, </em><em>list of str</em>) – The property or the properties that are used to for the classification.
+This field is compared to the other fields and serves as the decision base.</p></li>
+<li><p><strong>classify_properties</strong> (<em>str</em><em>, </em><em>list of str</em>) – The property or the properties that are labeled (the classes).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>dict with the status of the classification.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>TypeError: if argument is of wrong type.
+ConnectionError: if the network connection to weaviate fails.
+UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="weaviate.client.Client.thing_exists">
+<code class="sig-name descname">thing_exists</code><span class="sig-paren">(</span><em class="sig-param">uuid_thing</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.thing_exists" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>uuid_thing</strong> (<em>str</em>) – the uuid of the thing that may or may not exist within weaviate.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>true if thing exists.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>ConnectionError: if the network connection to weaviate fails.
+UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-weaviate.batch"></span><dl class="class">
+<dt id="weaviate.batch.ReferenceBatchRequest">
+<em class="property">class </em><code class="sig-prename descclassname">weaviate.batch.</code><code class="sig-name descname">ReferenceBatchRequest</code><a class="headerlink" href="#weaviate.batch.ReferenceBatchRequest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Collect references to add them in one request to weaviate.
+Caution this request will miss some validations to be faster.</p>
+<dl class="method">
+<dt id="weaviate.batch.ReferenceBatchRequest.add_reference">
+<code class="sig-name descname">add_reference</code><span class="sig-paren">(</span><em class="sig-param">from_thing_class_name</em>, <em class="sig-param">from_thing_uuid</em>, <em class="sig-param">from_property_name</em>, <em class="sig-param">to_thing_uuid</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.batch.ReferenceBatchRequest.add_reference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add one reference to this batch</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>from_thing_class_name</strong> (<em>str</em>) – The name of the class that should reference another thing.</p></li>
+<li><p><strong>from_thing_uuid</strong> (<em>str in form of UUID</em>) – The UUID of the thing that should reference another thing.</p></li>
+<li><p><strong>from_property_name</strong> (<em>str</em>) – The name of the property that contains the reference.</p></li>
+<li><p><strong>to_thing_uuid</strong> (<em>str</em>) – The UUID of the thing that is actually referenced.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None if successful</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>TypeError: If arguments are not string.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="weaviate.batch.ThingsBatchRequest">
+<em class="property">class </em><code class="sig-prename descclassname">weaviate.batch.</code><code class="sig-name descname">ThingsBatchRequest</code><a class="headerlink" href="#weaviate.batch.ThingsBatchRequest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Collect things for one batch request to weaviate.
+Caution this batch will not be validated through weaviate.</p>
+<dl class="method">
+<dt id="weaviate.batch.ThingsBatchRequest.add_thing">
+<code class="sig-name descname">add_thing</code><span class="sig-paren">(</span><em class="sig-param">thing</em>, <em class="sig-param">class_name</em>, <em class="sig-param">uuid=None</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.batch.ThingsBatchRequest.add_thing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a thing to this batch</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>thing</strong> (<em>dict</em>) – that should be added as part of the batch.</p></li>
+<li><p><strong>class_name</strong> (<em>str</em>) – class of the thing.</p></li>
+<li><p><strong>uuid</strong> (<em>str</em>) – if given the thing will be added under this uuid.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p>TypeError, ValueError</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="weaviate.batch.ThingsBatchRequest.get_request_body">
+<code class="sig-name descname">get_request_body</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.batch.ThingsBatchRequest.get_request_body" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the request body as it is needed for weaviate</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the request body as a dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-weaviate.util"></span><dl class="function">
+<dt id="weaviate.util.generate_local_things_beacon">
+<code class="sig-prename descclassname">weaviate.util.</code><code class="sig-name descname">generate_local_things_beacon</code><span class="sig-paren">(</span><em class="sig-param">to_thing_uuid</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.util.generate_local_things_beacon" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Generates a beacon to the given thing.</dt><dd><p>This may be helpful when adding cross references to objects.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>to_thing_uuid</strong> (<em>str</em>) – The uuid of the object that will be referenced</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the beacon in form of a dict</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>ValueError, TypeError</p>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="toctree-wrapper compound">
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">weaviate-python-client</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, SeMI Technologies.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
