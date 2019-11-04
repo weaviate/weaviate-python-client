@@ -36,6 +36,27 @@ client.add_reference_to_thing("2db436b5-0557-5016-9c5f-531412adf9c6", "members",
 
 *Note: Weaviate might needs a second to update its index after a new thing has been created.*
 
+Look at the data using the simple query:
+```graphql
+{
+  Get {
+    Things {
+      Group {
+        name
+        uuid
+        Members {
+          ... on Person {
+            name
+            uuid
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+
 ## Build Status
 
 [![Build Status](https://travis-ci.com/semi-technologies/weaviate-python-client.svg?token=1qdvi3hJanQcWdqEstmy&branch=master)](https://travis-ci.com/semi-technologies/weaviate-python-client)
