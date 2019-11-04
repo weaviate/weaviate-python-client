@@ -7,6 +7,9 @@ jobs:
       notifications:
         email:
           on_success: change
+      branches:
+        only:
+          - master
       install:
         - pip install -r requirements.txt
       script:
@@ -22,6 +25,9 @@ jobs:
       notifications:
         email:
           on_success: change
+      branches:
+        only:
+          - master
       env:
         - WEAVIATE_RELEASE_VERSION="0.20.3"
       install:
@@ -31,9 +37,17 @@ jobs:
       script:
         - python ci/integration_test.py
 
-#    - stage: "Build documentation"
-#      notifications:
-#        email:
-#          on_success: change
-#      script:
-#        - make -C documentation html
+    - stage: "Build documentation"
+      notifications:
+        email:
+          on_success: change
+      branches:
+        only:
+          # Set the documentation only to master and push all the documentation updates to documentation branch
+          - master
+      script:
+        - git checkout documentation
+        - make -C documentation html
+        - git add documentation
+        - git commit -m "Autogenerating documentation 🤖"
+        - git push origin documentation
