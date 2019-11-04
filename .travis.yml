@@ -45,9 +45,7 @@ jobs:
         only:
           # Set the documentation only to master and push all the documentation updates to documentation branch
           - master
+      install:
+        - pip install sphinx
       script:
-        - git checkout documentation
-        - make -C documentation html
-        - git add documentation
-        - git commit -m "Autogenerating documentation 🤖"
-        - git push origin documentation
+        - /bin/bash ci/generate_doc.bash
