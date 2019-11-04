@@ -37,18 +37,18 @@ jobs:
       script:
         - python ci/integration_test.py
 
-    - stage: "Build documentation"
-      language: python
-      python:
-        - "3.7"
-      notifications:
-        email:
-          on_success: change
-      branches:
-        only:
-          # Set the documentation only to master and push all the documentation updates to documentation branch
-          - master
-      install:
-        - pip install sphinx
-      script:
-        - /bin/bash ci/generate_doc.bash
+#    - stage: "Build documentation"
+#      language: python
+#      python:
+#        - "3.7"
+#      notifications:
+#        email:
+#          on_success: change
+#      branches:
+#        only:
+#          # Set the documentation only to master and push all the documentation updates to documentation branch
+#          - master
+#      install:
+#        - pip install sphinx
+#      script:
+#        - /bin/bash ci/generate_doc.bash
