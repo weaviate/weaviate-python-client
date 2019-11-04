@@ -56,6 +56,9 @@ Look at the data using the simple query:
 }
 ```
 
+Please find the [full client documentation here](https://semi-technologies.github.io/weaviate-python-client/html/index.html).
+
+
 
 ## Build Status
 
