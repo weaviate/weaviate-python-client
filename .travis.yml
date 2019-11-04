@@ -38,6 +38,9 @@ jobs:
         - python ci/integration_test.py
 
     - stage: "Build documentation"
+      language: python
+      python:
+        - "3.7"
       notifications:
         email:
           on_success: change
