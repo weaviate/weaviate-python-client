@@ -548,3 +548,21 @@ class Client:
         if response.status_code == 200 or response.status_code == 401:
             return True
         return False
+
+    def get_schema(self):
+        """ Get the schema in weaviate
+
+        :return: a dict containing the schema.
+                 If no schema classes are present yet then the classes arrys are empty
+        """
+        try:
+            response = self.connection.run_rest("/schema", REST_METHOD_GET)
+        except ConnectionError as conn_err:
+            raise type(conn_err)(str(conn_err)
+                                 + ' Connection error, schema could not be retrieved.'
+                                 ).with_traceback(
+                sys.exc_info()[2])
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise UnexpectedStatusCodeException("Get schema", response)
