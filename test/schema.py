@@ -90,6 +90,56 @@ company_test_schema = {
   }
 }
 
+# A test schema as it was returned from a real weaviate instance
+persons_return_test_schema = {
+    "actions": {
+        "classes": [],
+        "type": "action"
+    },
+    "things": {
+        "classes": [
+            {
+                "class": "Person",
+                "description": "A person such as humans or personality known through culture",
+                "properties": [
+                    {
+                        "cardinality": "atMostOne",
+                        "dataType": [
+                            "text"
+                        ],
+                        "description": "The name of this person",
+                        "name": "name"
+                    }
+                ]
+            },
+            {
+                "class": "Group",
+                "description": "A set of persons who are associated with each other over some common properties",
+                "properties": [
+                    {
+                        "cardinality": "atMostOne",
+                        "dataType": [
+                            "text"
+                        ],
+                        "description": "The name under which this group is known",
+                        "name": "name"
+                    },
+                    {
+                        "cardinality": "many",
+                        "dataType": [
+                            "Person"
+                        ],
+                        "description": "The persons that are part of this group",
+                        "name": "members"
+                    }
+                ]
+            }
+        ],
+        "type": "thing"
+    }
+}
+
+
 
 class TestSchema(unittest.TestCase):
     def test_create_schema_invalid_input(self):
@@ -177,6 +227,18 @@ class TestSchema(unittest.TestCase):
             w.create_schema(company_test_schema)
         except weaviate.UnexpectedStatusCodeException:
             pass  # Expected exception
+
+    def test_get_schema(self):
+        w = weaviate.Client("http://localhost:8080")
+
+        connection_mock_file = Mock()  # Mock calling weaviate
+        add_run_rest_to_mock(connection_mock_file, persons_return_test_schema)
+        w.connection = connection_mock_file  # Replace connection with mock
+
+        schema = w.get_schema()
+        connection_mock_file.run_rest.assert_called()  # See if mock has been called
+        self.assertTrue("things" in schema)
+        self.assertEqual(len(schema["things"]["classes"]), 2)
 
 
 if __name__ == '__main__':
