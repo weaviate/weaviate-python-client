@@ -4,6 +4,7 @@ import validators
 from .connect import *
 from .exceptions import *
 from .util import _get_dict_from_object
+from requests.exceptions import ConnectionError
 
 SCHEMA_CLASS_TYPE_THINGS = "things"
 SCHEMA_CLASS_TYPE_ACTIONS = "actions"

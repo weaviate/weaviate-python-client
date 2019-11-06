@@ -4,6 +4,7 @@ import urllib
 from weaviate.connect import *
 from weaviate.exceptions import *
 from weaviate.connect.constants import *
+from requests.exceptions import ConnectionError
 
 WEAVIATE_REST_API_VERSION_PATH = "/v1"
 
@@ -91,13 +92,23 @@ class Connection:
 
         return header
 
-    # Make a request to weaviate
-    # path must be a valid weaviate sub-path e.g. /meta or /things
-    # The weaviate_object must must have the form of a dict
-    # The rest_method is defined through a constant given in the package
-    # The retries define how often the request is retried in case of exceptions, until it ultimately fails
-    # Returns the response of the request
-    def run_rest(self, path, rest_method, weaviate_object=None, retries=3, params={}):
+    def run_rest(self, path, rest_method, weaviate_object=None, retries=2, params={}):
+        """ Make a request to weaviate
+
+        :param path: must be a valid weaviate sub-path e.g. /meta or /things without version.
+        :type path: str
+        :param rest_method: is defined through a constant given in the package e.g. REST_METHOD_GET.
+        :type rest_method: enum constant
+        :param weaviate_object: if set this object is used as payload.
+        :type weaviate_object: dict
+        :param retries: define how often the request is retried in case of exceptions, until it ultimately fails.
+        :type retries: int
+        :param params: additional request prameter.
+        :type params: dict
+        :return: the response if request was successful.
+        :raises:
+            ConnectionError: If weaviate could not be reached.
+        """
         # TODO urlencode params??w
 
 
@@ -105,22 +116,18 @@ class Connection:
         try:
             if rest_method == REST_METHOD_GET:
                 response = requests.get(url=request_url,
-                                        headers=self._get_request_header(), timeout=(2, 20), params=params)
+                                        headers=self._get_request_header(), timeout=(retries, 20), params=params)
             elif rest_method == REST_METHOD_PUT:
                 response = requests.put(url=request_url, json=weaviate_object,
-                                        headers=self._get_request_header(), timeout=(2, 20))
+                                        headers=self._get_request_header(), timeout=(retries, 20))
             elif rest_method == REST_METHOD_POST:
                 response = requests.post(url=request_url, json=weaviate_object,
-                                         headers=self._get_request_header(), timeout=(2, 20))
+                                         headers=self._get_request_header(), timeout=(retries, 20))
             else:
                 print("Not yet implemented rest method called")
                 response = None
-        except ConnectionError as conn_err:
-            if retries > 0:
-                time.sleep(0.128)
-                self.run_rest(path, weaviate_object, rest_method, retries - 1)
-                return
-            else:
-                raise ConnectionError
+        except ConnectionError:
+            raise
+
         else:
             return response
