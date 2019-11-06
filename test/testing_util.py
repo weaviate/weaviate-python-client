@@ -1,5 +1,6 @@
 from unittest.mock import Mock
-import os
+from requests.exceptions import ConnectionError
+
 
 def add_run_rest_to_mock(mock, return_json=None, status_code=200):
     """Adds the run_rest method to a mock using the given options
@@ -20,6 +21,7 @@ def add_run_rest_to_mock(mock, return_json=None, status_code=200):
     mock.run_rest.return_value = return_value_mock  # set return object to mock object
 
     return mock
+
 
 def run_rest_raise_connection_error(path, rest_method, weaviate_object=None, retries=3, params={}):
     """ A mock that no mather the input will throw an ConnectionError
