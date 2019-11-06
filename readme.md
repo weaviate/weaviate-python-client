@@ -21,6 +21,7 @@ import weaviate
 client = weaviate.Client("http://localhost:8080")
 client.create_schema("https://raw.githubusercontent.com/semi-technologies/weaviate-python-client/master/documentation/getting_started/people_schema.json")
 ```
+A schema can be provided as an URL, file or a dict.
 Now lets create some things.
 ```python
 client.create_thing({"name": "John von Neumann"}, "Person", "b36268d4-a6b5-5274-985f-45f13ce0c642")
