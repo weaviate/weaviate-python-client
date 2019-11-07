@@ -71,12 +71,17 @@ class Connection:
         # try the request
         try:
             request = requests.post(request_third_part.json()['token_endpoint'], request_body, timeout=(30, 45))
-        except urllib.error.HTTPError as error:
+        except urllib.error.HTTPError:
             raise AuthenticationFailedException(
                 "Unable to get a OAuth token from server. Are the credentials and URLs correct?")
 
         # sleep to process
         time.sleep(0.125)
+
+        if request.status_code == 401:
+            raise AuthenticationFailedException(
+                "Authtentication access denied are the credentials correct?"
+            )
 
         self.auth_bearer = request.json()['access_token']
         self.auth_expires = int(get_epoch_time() + request.json()['expires_in'] - 2)

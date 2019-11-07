@@ -542,12 +542,13 @@ class Client:
         """
         try:
             response = self.connection.run_rest("/meta", REST_METHOD_GET)
+            if response.status_code == 200 or response.status_code == 401:
+                response = self.connection.run_rest("/things", REST_METHOD_GET, params={"limit":1})
+                if response.status_code == 200 or response.status_code == 401:
+                    return True
+            return False
         except ConnectionError:
             return False
-        # 401 is unauthorized
-        if response.status_code == 200 or response.status_code == 401:
-            return True
-        return False
 
     def get_schema(self):
         """ Get the schema in weaviate
