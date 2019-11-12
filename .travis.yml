@@ -3,8 +3,8 @@ jobs:
     - stage: "Unit tests"
       language: python
       python:
-        - "3.7"
         - "3.6"
+        - "3.7"
       notifications:
         email:
           on_success: change
@@ -23,8 +23,8 @@ jobs:
     - stage: "Integration test"
       language: python
       python:
-        - "3.7"
         - "3.6"
+        - "3.7"
       notifications:
         email:
           on_success: change
