@@ -5,6 +5,8 @@ jobs:
       python:
         - "3.6"
         - "3.7"
+      virtualenv:
+        system_site_packages: true
       notifications:
         email:
           on_success: change
@@ -25,6 +27,8 @@ jobs:
       python:
         - "3.6"
         - "3.7"
+      virtualenv:
+        system_site_packages: true
       notifications:
         email:
           on_success: change
