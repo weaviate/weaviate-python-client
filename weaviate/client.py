@@ -171,6 +171,8 @@ class Client:
         :type from_property_name: str
         :param to_thing_uuid: the UUID of the thing that should be referenced.
         :type to_thing_uuid: str in the form of an UUID
+        :param to_weaviate: specifies the weaviate instance on which the cross referenced thing is loacated
+        :type to_weaviate: str
         :return: None if successful.
         :raises:
             ConnectionError: if the network connection to weaviate fails.
