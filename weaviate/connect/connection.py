@@ -116,18 +116,22 @@ class Connection:
         """
         # TODO urlencode params??w
 
-
         request_url = self.url+path
+        timeout_config = (retries, 20)
+
         try:
             if rest_method == REST_METHOD_GET:
                 response = requests.get(url=request_url,
-                                        headers=self._get_request_header(), timeout=(retries, 20), params=params)
+                                        headers=self._get_request_header(), timeout=timeout_config, params=params)
             elif rest_method == REST_METHOD_PUT:
                 response = requests.put(url=request_url, json=weaviate_object,
-                                        headers=self._get_request_header(), timeout=(retries, 20))
+                                        headers=self._get_request_header(), timeout=timeout_config)
             elif rest_method == REST_METHOD_POST:
                 response = requests.post(url=request_url, json=weaviate_object,
-                                         headers=self._get_request_header(), timeout=(retries, 20))
+                                         headers=self._get_request_header(), timeout=timeout_config)
+            elif rest_method == REST_METHOD_PATCH:
+                response = requests.patch(url=request_url, json=weaviate_object,
+                                          headers=self._get_request_header(), timeout=timeout_config)
             else:
                 print("Not yet implemented rest method called")
                 response = None

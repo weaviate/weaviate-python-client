@@ -4,6 +4,7 @@ from unittest.mock import Mock
 from test.testing_util import run_rest_raise_connection_error
 from requests.exceptions import ConnectionError
 
+
 class TestAddThings(unittest.TestCase):
     def test_create_thing_flawed_input(self):
         w = weaviate.Client("http://localhost:8080")

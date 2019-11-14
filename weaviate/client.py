@@ -126,10 +126,58 @@ class Client:
         else:
             raise UnexpectedStatusCodeException("Create thing in batch", response)
 
+    def patch_thing(self, thing, class_name, uuid):
+        """ Merges the given thing with the already existing thing in weaviate.
+        Overwrites all given fields.
+
+        :param thing: The thing states the fields that should be updated.
+                      Fields not stated by thing will not be changed.
+                      Fields that are None will not be changed (may change in the future to deleted).
+        :type thing: dict, url, file
+        :param class_name: The name of the class of thing.
+        :type class_name: str
+        :param uuid: The ID of the thing that should be changed.
+        :type uuid: str
+        :return: None if successful
+        :raises:
+            ConnectionError: If the network connection to weaviate fails.
+            UnexpectedStatusCodeException: If weaviate reports a none successful status.
+        """
+
+        try:
+            thing_object = _get_dict_from_object(thing)
+        except:
+            raise  # Keep exception boiling back to user
+
+        if not isinstance(class_name, str):
+            raise TypeError("Class must be type str")
+        if not isinstance(uuid, str):
+            raise TypeError("UUID must be type str")
+        if not validators.uuid(uuid):
+            raise ValueError("Not a proper UUID")
+
+        payload = {
+            "id": uuid,
+            "class": class_name,
+            "schema": thing
+        }
+
+        try:
+            response = self.connection.run_rest("/things/"+uuid, REST_METHOD_PATCH, payload)
+        except ConnectionError as conn_err:
+            raise type(conn_err)(str(conn_err) + ' Connection error, thing was not patched.').with_traceback(
+                sys.exc_info()[2])
+
+        if response.status_code == 204:
+            return None  # success
+        else:
+            raise UnexpectedStatusCodeException("PATCH merge of thing not successful", response)
+        return None
+
     def put_thing(self, thing, class_name, uuid):
         """ Replaces an already existing thing with the given thing. Does not keep unset values.
 
-        :param thing: describes the new values.
+        :param thing: Describes the new values.
                       It may be an URL or path to a json or a python dict describing the new values.
         :type thing: str, dict
         :param class_name: Name of the class of the thing that should be updated.
@@ -138,8 +186,8 @@ class Client:
         :type uuid: str
         :return: None if successful.
         :raises:
-            ConnectionError: if the network connection to weaviate fails.
-            UnexpectedStatusCodeException: if weaviate reports a none OK status.
+            ConnectionError: If the network connection to weaviate fails.
+            UnexpectedStatusCodeException: If weaviate reports a none OK status.
         """
 
         parsed_thing = _get_dict_from_object(thing)

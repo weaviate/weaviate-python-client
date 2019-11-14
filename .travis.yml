@@ -14,11 +14,13 @@ jobs:
       install:
         - pip install -r requirements.txt
       script:
-        - python -m unittest test.client
-        - python -m unittest test.schema
         - python -m unittest test.add_thing
         - python -m unittest test.add_thing_batch
+        - python -m unittest test.client
         - python -m unittest test.is_reachable
+        - python -m unittest test.patch_thing
+        - python -m unittest test.schema
+
 
     - stage: "Integration test"
       language: python
