@@ -139,6 +139,66 @@ persons_return_test_schema = {
     }
 }
 
+# Schema containing explicit index
+person_index_false_schema = {
+  "actions": {
+    "classes": [],
+    "type": "action"
+  },
+  "things": {
+    "@context": "",
+    "version": "0.2.0",
+    "type": "thing",
+    "name": "people",
+    "maintainer": "yourfriends@weaviate.com",
+    "classes": [
+      {
+        "class": "Person",
+        "description": "A person such as humans or personality known through culture",
+        "keywords": [],
+        "properties": [
+          {
+            "name": "name",
+            "description": "The name of this person",
+            "dataType": [
+              "text"
+            ],
+            "cardinality": "atMostOne",
+            "keywords": [],
+            "index": False
+          }
+        ]
+      },
+      {
+        "class": "Group",
+        "description": "A set of persons who are associated with each other over some common properties",
+        "keywords": [],
+        "properties": [
+          {
+            "name": "name",
+            "description": "The name under which this group is known",
+            "dataType": [
+              "text"
+            ],
+            "cardinality": "atMostOne",
+            "keywords": [],
+            "index": True
+          },
+          {
+            "name": "members",
+            "description": "The persons that are part of this group",
+            "dataType": [
+              "Person"
+            ],
+            "cardinality": "many"
+          }
+        ]
+      }
+    ]
+  }
+}
+
+
 
 
 class TestSchema(unittest.TestCase):
@@ -261,6 +321,17 @@ class TestSchema(unittest.TestCase):
         w.connection = connection_mock_file  # Replace connection with mock
 
         self.assertFalse(w.contains_schema())
+
+    def test_create_schema_with_explicit_index(self):
+        w = weaviate.Client("http://localhost:8080")
+
+        connection_mock_dict = Mock()  # Replace mock
+        add_run_rest_to_mock(connection_mock_dict)
+
+        w.connection = connection_mock_dict
+        w.create_schema(person_index_false_schema)
+        connection_mock_dict.run_rest.assert_called()
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -473,6 +473,9 @@ class Client:
                     "name": property_["name"]
                 }
 
+                if "index" in property_:
+                    schema_property["index"] = property_["index"]
+
                 # add the dataType(s)
                 for datatype in property_["dataType"]:
                     schema_property["dataType"].append(datatype)
