@@ -8,5 +8,6 @@
 5. Commit the most current version to GitHub if this has not been done yet.
 6. Make sure you gave the commit of the current version a proper tag:\
 `git tag -a '<your tag>' -m '<some message for the tag>' && git push --tags`\
-Finally publish:\
+7. Finally publish:\
 `twine upload dist/*`\
+8. After publishing change the version in `setup.py` to the next developement number.
