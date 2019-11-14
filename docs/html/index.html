@@ -46,6 +46,7 @@
 <li><p><strong>from_thing_uuid</strong> (<em>str in the form of an UUID</em>) – the thing that should have the reference as part of its properties.</p></li>
 <li><p><strong>from_property_name</strong> (<em>str</em>) – the name of the property within the thing.</p></li>
 <li><p><strong>to_thing_uuid</strong> (<em>str in the form of an UUID</em>) – the UUID of the thing that should be referenced.</p></li>
+<li><p><strong>to_weaviate</strong> (<em>str</em>) – specifies the weaviate instance on which the cross referenced thing is loacated</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -184,6 +185,18 @@ UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="weaviate.client.Client.get_schema">
+<code class="sig-name descname">get_schema</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.get_schema" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the schema in weaviate</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>a dict containing the schema.
+If no schema classes are present yet then the classes arrys are empty</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="weaviate.client.Client.get_thing">
 <code class="sig-name descname">get_thing</code><span class="sig-paren">(</span><em class="sig-param">uuid_thing</em>, <em class="sig-param">meta=False</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.get_thing" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets a thing as dict.</p>
@@ -231,13 +244,38 @@ UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="weaviate.client.Client.patch_thing">
+<code class="sig-name descname">patch_thing</code><span class="sig-paren">(</span><em class="sig-param">thing</em>, <em class="sig-param">class_name</em>, <em class="sig-param">uuid</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.patch_thing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Merges the given thing with the already existing thing in weaviate.
+Overwrites all given fields.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>thing</strong> (<em>dict</em><em>, </em><em>url</em><em>, </em><em>file</em>) – The thing states the fields that should be updated.
+Fields not stated by thing will not be changed.
+Fields that are None will not be changed (may change in the future to deleted).</p></li>
+<li><p><strong>class_name</strong> (<em>str</em>) – The name of the class of thing.</p></li>
+<li><p><strong>uuid</strong> (<em>str</em>) – The ID of the thing that should be changed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None if successful</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>ConnectionError: If the network connection to weaviate fails.
+UnexpectedStatusCodeException: If weaviate reports a none successful status.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="weaviate.client.Client.put_thing">
 <code class="sig-name descname">put_thing</code><span class="sig-paren">(</span><em class="sig-param">thing</em>, <em class="sig-param">class_name</em>, <em class="sig-param">uuid</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.put_thing" title="Permalink to this definition">¶</a></dt>
 <dd><p>Replaces an already existing thing with the given thing. Does not keep unset values.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>thing</strong> (<em>str</em><em>, </em><em>dict</em>) – describes the new values.
+<li><p><strong>thing</strong> (<em>str</em><em>, </em><em>dict</em>) – Describes the new values.
 It may be an URL or path to a json or a python dict describing the new values.</p></li>
 <li><p><strong>class_name</strong> (<em>str</em>) – Name of the class of the thing that should be updated.</p></li>
 <li><p><strong>uuid</strong> (<em>str</em>) – Of the thing.</p></li>
@@ -247,8 +285,8 @@ It may be an URL or path to a json or a python dict describing the new values.</
 <dd class="field-even"><p>None if successful.</p>
 </dd>
 <dt class="field-odd">Raises</dt>
-<dd class="field-odd"><p>ConnectionError: if the network connection to weaviate fails.
-UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
+<dd class="field-odd"><p>ConnectionError: If the network connection to weaviate fails.
+UnexpectedStatusCodeException: If weaviate reports a none OK status.</p>
 </dd>
 </dl>
 </dd></dl>

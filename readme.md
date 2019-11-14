@@ -64,5 +64,3 @@ Please find the [full client documentation here](https://semi-technologies.githu
 ## Build Status
 
 [![Build Status](https://travis-ci.com/semi-technologies/weaviate-python-client.svg?token=1qdvi3hJanQcWdqEstmy&branch=master)](https://travis-ci.com/semi-technologies/weaviate-python-client)
-
-
