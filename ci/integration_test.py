@@ -7,16 +7,28 @@ w = weaviate.Client("http://localhost:8080")
 
 print("Checking if weaviate is reachable")
 if not w.is_reachable():
+    print("Weaviate not reachable")
+    exit(1)
+
+if w.contains_schema():
+    print("No schema should be present")
     exit(1)
 
 print("Load a schema")
 schema_json_file = os.path.join(os.path.dirname(__file__), "people_schema.json")
 w.create_schema(schema_json_file)
 
+if not w.contains_schema():
+    print("Weaviate does not contain loaded schema")
+    exit(1)
+
 print("Create a batch with data")
 batch = weaviate.batch.ThingsBatchRequest()
-batch.add_thing({"name": "Marie Curie"}, "Person")
+
 batch.add_thing({"name": "John Rawls"}, "Person")
+batch.add_thing({"name": "Emanuel Kant"}, "Person")
+batch.add_thing({"name": "Plato"}, "Person")
+
 
 print("Load batch")
 w.create_things_in_batch(batch)
@@ -28,6 +40,12 @@ w.create_thing({"name": "John von Neumann"}, "Person", "b36268d4-a6b5-5274-985f-
 w.create_thing({"name": "Tim Berners-Lee"}, "Person", "d1e90d26-d82e-5ef8-84f6-ca67119c7998")
 
 w.create_thing({"name": "Legends"}, "Group", "2db436b5-0557-5016-9c5f-531412adf9c6")
+w.create_thing({"name": "Chemists"}, "Group", "577887c1-4c6b-5594-aa62-f0c17883d9bf")
+
+chemists = [None]*3
+chemists[0] = w.create_thing({"name": "Marie Curie"}, "Person")
+chemists[1] = w.create_thing({"name": "Fritz Haber"}, "Person")
+chemists[2] = w.create_thing({"name": "Walter White"}, "Person")
 
 time.sleep(1.1)  # Let weaviate refresh its index with the newly loaded things
 
@@ -35,7 +53,13 @@ print("Add reference to thing")
 w.add_reference_to_thing("2db436b5-0557-5016-9c5f-531412adf9c6", "members", "b36268d4-a6b5-5274-985f-45f13ce0c642")
 w.add_reference_to_thing("2db436b5-0557-5016-9c5f-531412adf9c6", "members", "1c9cd584-88fe-5010-83d0-017cb3fcb446")
 
-print("SKIP Add reference to thing in batch (not supported atm.)")
+print("Add reference to thing in batch")
+reference_batch = weaviate.batch.ReferenceBatchRequest()
+
+for chemist in chemists:
+    reference_batch.add_reference("Group", "577887c1-4c6b-5594-aa62-f0c17883d9bf", "members", chemist)
+
+w.add_references_in_batch(reference_batch)
 
 time.sleep(1.1)  # Let weaviate refresh its index with the newly updated things
 
@@ -44,6 +68,14 @@ legends = query_data(gql_get_group_legends)
 for member in legends["Group"][0]["Members"]:
     if not member["name"] in ["John von Neumann", "Alan Turing"]:
         print("Adding references to things failed")
+        exit(1)
+
+group_chemists = query_data(gql_get_group_chemists)
+for member in group_chemists["Group"][0]["Members"]:
+    if not member["name"] in ["Marie Curie", "Fritz Haber", "Walter White"]:
+        print("Adding references to things failed")
+        exit(1)
+    if len(group_chemists["Group"][0]["Members"]) != 3:
         exit(1)
 
 print("Integration test successfully completed")

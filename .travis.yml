@@ -34,7 +34,7 @@ jobs:
         only:
           - master
       env:
-        - WEAVIATE_RELEASE_VERSION="0.20.3"
+        - WEAVIATE_RELEASE_VERSION="0.21.0"
       install:
         - pip install -r requirements.txt
         - pip install .

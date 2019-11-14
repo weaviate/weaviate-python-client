@@ -28,3 +28,26 @@ gql_get_group_legends = """
   }
 }
 """
+
+gql_get_group_chemists = """
+{
+  Get {
+    Things {
+      Group (where: {
+        path: ["name"]
+        operator: Equal
+        valueString: "Chemists"
+      }) {
+        name
+        uuid
+        Members {
+          ... on Person {
+            name
+            uuid
+          }
+        }
+      }
+    }
+  }
+}
+"""
