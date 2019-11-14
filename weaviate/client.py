@@ -172,7 +172,6 @@ class Client:
             return None  # success
         else:
             raise UnexpectedStatusCodeException("PATCH merge of thing not successful", response)
-        return None
 
     def put_thing(self, thing, class_name, uuid):
         """ Replaces an already existing thing with the given thing. Does not keep unset values.
