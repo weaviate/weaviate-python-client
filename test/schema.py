@@ -241,5 +241,26 @@ class TestSchema(unittest.TestCase):
         self.assertEqual(len(schema["things"]["classes"]), 2)
 
 
+    def test_contains_schema(self):
+        # If a schema is present it should return true otherwise false
+        # 1. test schema is present:
+        w = weaviate.Client("http://localhost:8080")
+
+        connection_mock_file = Mock()  # Mock calling weaviate
+        add_run_rest_to_mock(connection_mock_file, persons_return_test_schema)
+        w.connection = connection_mock_file  # Replace connection with mock
+
+        self.assertTrue(w.contains_schema())
+
+        # 2. test no schema is present:
+        w = weaviate.Client("http://localhost:8080")
+
+        connection_mock_file = Mock()  # Mock calling weaviate
+        empty_schema = {"actions":{"classes":[],"type":"action"},"things":{"classes":[],"type":"thing"}}
+        add_run_rest_to_mock(connection_mock_file, empty_schema)
+        w.connection = connection_mock_file  # Replace connection with mock
+
+        self.assertFalse(w.contains_schema())
+
 if __name__ == '__main__':
     unittest.main()

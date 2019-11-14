@@ -603,7 +603,9 @@ class Client:
         """ Get the schema in weaviate
 
         :return: a dict containing the schema.
-                 If no schema classes are present yet then the classes arrys are empty
+                 The schema may be empty. To see if a schema has already been loaded use contains_schema.
+        :raises:
+            ConnectionError: In case of network issues.
         """
         try:
             response = self.connection.run_rest("/schema", REST_METHOD_GET)
@@ -616,3 +618,19 @@ class Client:
             return response.json()
         else:
             raise UnexpectedStatusCodeException("Get schema", response)
+
+    def contains_schema(self):
+        """ To check if weaviate already contains a schema.
+
+        :return: True if a schema is present otherwise False
+        :raises:
+            ConnectionError: In case of network issues.
+        """
+
+        schema = self.get_schema()
+
+        if len(schema["things"]["classes"]) > 0 or len(schema["actions"]["classes"]) > 0:
+            return True
+
+        return False
+
