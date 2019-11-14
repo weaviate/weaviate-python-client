@@ -82,6 +82,20 @@ UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="weaviate.client.Client.contains_schema">
+<code class="sig-name descname">contains_schema</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.contains_schema" title="Permalink to this definition">¶</a></dt>
+<dd><p>To check if weaviate already contains a schema.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if a schema is present otherwise False</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p>ConnectionError: In case of network issues.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="weaviate.client.Client.create_schema">
 <code class="sig-name descname">create_schema</code><span class="sig-paren">(</span><em class="sig-param">schema</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.create_schema" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create the schema at the weaviate instance.</p>
@@ -191,7 +205,10 @@ UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>a dict containing the schema.
-If no schema classes are present yet then the classes arrys are empty</p>
+The schema may be empty. To see if a schema has already been loaded use contains_schema.</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p>ConnectionError: In case of network issues.</p>
 </dd>
 </dl>
 </dd></dl>
