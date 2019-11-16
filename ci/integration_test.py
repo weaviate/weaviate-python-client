@@ -8,11 +8,11 @@ w = weaviate.Client("http://localhost:8080")
 print("Checking if weaviate is reachable")
 if not w.is_reachable():
     print("Weaviate not reachable")
-    exit(1)
+    exit(2)
 
 if w.contains_schema():
     print("No schema should be present")
-    exit(1)
+    exit(3)
 
 print("Load a schema")
 schema_json_file = os.path.join(os.path.dirname(__file__), "people_schema.json")
@@ -20,7 +20,7 @@ w.create_schema(schema_json_file)
 
 if not w.contains_schema():
     print("Weaviate does not contain loaded schema")
-    exit(1)
+    exit(4)
 
 print("Create a batch with data")
 batch = weaviate.batch.ThingsBatchRequest()
@@ -68,15 +68,22 @@ legends = query_data(gql_get_group_legends)
 for member in legends["Group"][0]["Members"]:
     if not member["name"] in ["John von Neumann", "Alan Turing"]:
         print("Adding references to things failed")
-        exit(1)
+        exit(5)
 
 group_chemists = query_data(gql_get_group_chemists)
 for member in group_chemists["Group"][0]["Members"]:
     if not member["name"] in ["Marie Curie", "Fritz Haber", "Walter White"]:
         print("Adding references to things failed")
-        exit(1)
+        exit(6)
     if len(group_chemists["Group"][0]["Members"]) != 3:
-        exit(1)
+        exit(7)
+
+print("Test Delete")
+w.delete_thing(chemists[2])  # Delete Walter White not a real chemist just a legend
+time.sleep(1.1)
+if w.get_thing(chemists[2]) is not None:
+    print("Thing was not correctly deleted")
+    exit(8)
 
 print("Integration test successfully completed")
 exit(0)

@@ -1,13 +1,13 @@
 1. To publish a new documentation needs to be build:\
-`make -C documentation html`\
+`make -C documentation html`
 2. Make sure you set the right version in the `setup.py`
 3. Then build the new package:\
-`python setup.py bdist_wheel`\
+`python setup.py bdist_wheel`
 4. And check it:\
-`twine check dist/*`\
+`twine check dist/*`
 5. Commit the most current version to GitHub if this has not been done yet.
 6. Make sure you gave the commit of the current version a proper tag:\
-`git tag -a '<your tag>' -m '<some message for the tag>' && git push --tags`\
+`git tag -a '<your tag>' -m '<some message for the tag>' && git push --tags`
 7. Finally publish:\
-`twine upload dist/*`\
+`twine upload dist/*`
 8. After publishing change the version in `setup.py` to the next developement number.

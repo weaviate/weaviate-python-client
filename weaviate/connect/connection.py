@@ -132,6 +132,9 @@ class Connection:
             elif rest_method == REST_METHOD_PATCH:
                 response = requests.patch(url=request_url, json=weaviate_object,
                                           headers=self._get_request_header(), timeout=timeout_config)
+            elif rest_method == REST_METHOD_DELETE:
+                response = requests.delete(url=request_url, json=weaviate_object,
+                                          headers=self._get_request_header(), timeout=timeout_config)
             else:
                 print("Not yet implemented rest method called")
                 response = None

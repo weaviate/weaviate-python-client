@@ -637,3 +637,22 @@ class Client:
 
         return False
 
+    def delete_thing(self, uuid):
+
+        if not isinstance(uuid, str):
+            raise TypeError("UUID must be type str")
+        if not validators.uuid(uuid):
+            raise ValueError("UUID does not have proper form")
+
+        try:
+            response = self.connection.run_rest("/things/"+uuid, REST_METHOD_DELETE)
+        except ConnectionError as conn_err:
+            raise type(conn_err)(str(conn_err)
+                                 + ' Connection error, thing could not be deleted.'
+                                 ).with_traceback(
+                sys.exc_info()[2])
+
+        if response.status_code == 204:
+            return  # Successfully deleted
+        else:
+            raise UnexpectedStatusCodeException("Delete thing", response)

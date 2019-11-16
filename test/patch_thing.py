@@ -2,8 +2,6 @@ import unittest
 import weaviate
 from unittest.mock import Mock
 from test.testing_util import add_run_rest_to_mock
-from test.testing_util import run_rest_raise_connection_error
-from requests.exceptions import ConnectionError
 
 
 

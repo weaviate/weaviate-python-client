@@ -1,6 +1,5 @@
 import unittest
 import weaviate
-from unittest.mock import Mock
 from weaviate.connect import REST_METHOD_POST
 from test.testing_util import *
 
