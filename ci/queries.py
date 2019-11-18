@@ -51,3 +51,27 @@ gql_get_group_chemists = """
   }
 }
 """
+
+def get_query_for_group(name):
+    return ("""
+    {
+      Get {
+        Things {
+          Group (where: {
+            path: ["name"]
+            operator: Equal
+            valueString: "%s"
+          }) {
+            name
+            uuid
+            Members {
+              ... on Person {
+                name
+                uuid
+              }
+            }
+          }
+        }
+      }
+    }
+    """ % name)

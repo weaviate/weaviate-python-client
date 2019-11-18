@@ -173,42 +173,6 @@ class Client:
         else:
             raise UnexpectedStatusCodeException("PATCH merge of thing not successful", response)
 
-    def put_thing(self, thing, class_name, uuid):
-        """ Replaces an already existing thing with the given thing. Does not keep unset values.
-
-        :param thing: Describes the new values.
-                      It may be an URL or path to a json or a python dict describing the new values.
-        :type thing: str, dict
-        :param class_name: Name of the class of the thing that should be updated.
-        :type class_name: str
-        :param uuid: Of the thing.
-        :type uuid: str
-        :return: None if successful.
-        :raises:
-            ConnectionError: If the network connection to weaviate fails.
-            UnexpectedStatusCodeException: If weaviate reports a none OK status.
-        """
-
-        parsed_thing = _get_dict_from_object(thing)
-
-        weaviate_obj = {
-            "id": uuid,
-            "class": class_name,
-            "schema": parsed_thing
-        }
-
-        try:
-            response = self.connection.run_rest("/things/"+uuid, REST_METHOD_PUT, weaviate_obj)
-        except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err) + ' Connection error, thing was not updated.').with_traceback(
-                sys.exc_info()[2])
-
-        if response.status_code == 200:
-            return
-
-        else:
-            raise UnexpectedStatusCodeException("Update thing", response)
-
     def add_reference_to_thing(self, from_thing_uuid, from_property_name, to_thing_uuid, to_weaviate="localhost"):
         """ Allows to link two objects unidirectionally.
 
@@ -247,6 +211,42 @@ class Client:
             return
         else:
             raise UnexpectedStatusCodeException("Add property reference to thing", response)
+
+    def put_thing(self, thing, class_name, uuid):
+        """ Replaces an already existing thing with the given thing. Does not keep unset values.
+
+        :param thing: Describes the new values.
+                      It may be an URL or path to a json or a python dict describing the new values.
+        :type thing: str, dict
+        :param class_name: Name of the class of the thing that should be updated.
+        :type class_name: str
+        :param uuid: Of the thing.
+        :type uuid: str
+        :return: None if successful.
+        :raises:
+            ConnectionError: If the network connection to weaviate fails.
+            UnexpectedStatusCodeException: If weaviate reports a none OK status.
+        """
+
+        parsed_thing = _get_dict_from_object(thing)
+
+        weaviate_obj = {
+            "id": uuid,
+            "class": class_name,
+            "schema": parsed_thing
+        }
+
+        try:
+            response = self.connection.run_rest("/things/"+uuid, REST_METHOD_PUT, weaviate_obj)
+        except ConnectionError as conn_err:
+            raise type(conn_err)(str(conn_err) + ' Connection error, thing was not updated.').with_traceback(
+                sys.exc_info()[2])
+
+        if response.status_code == 200:
+            return
+
+        else:
+            raise UnexpectedStatusCodeException("Update thing", response)
 
     def add_references_in_batch(self, reference_batch_request):
         """ Batch loading references
@@ -656,3 +656,32 @@ class Client:
             return  # Successfully deleted
         else:
             raise UnexpectedStatusCodeException("Delete thing", response)
+
+    def delete_reference_from_thing(self, from_thing_uuid, from_property_name, to_thing_uuid, to_weaviate="localhost"):
+        if not isinstance(from_thing_uuid, str) or not isinstance(to_thing_uuid, str):
+            raise TypeError("UUID must be of type str")
+        if not validators.uuid(from_thing_uuid) or not validators.uuid(to_thing_uuid):
+            raise ValueError("UUID has no proper form")
+        if not isinstance(from_property_name, str):
+            raise TypeError("Property name must be type str")
+        if not isinstance(to_weaviate, str):
+            raise TypeError("To weaviate must be type str")
+
+        beacon = {
+            "beacon": "weaviate://" + to_weaviate + "/things/" + to_thing_uuid
+        }
+
+        path = "/things/" + from_thing_uuid + "/references/" + from_property_name
+
+        try:
+            response = self.connection.run_rest(path, REST_METHOD_DELETE, beacon)
+        except ConnectionError as conn_err:
+            raise type(conn_err)(str(conn_err)
+                                 + ' Connection error, thing could not be deleted.'
+                                 ).with_traceback(
+                sys.exc_info()[2])
+
+        if response.status_code == 204:
+            return  # Successfully deleted
+        else:
+            raise UnexpectedStatusCodeException("Delete property from thing", response)

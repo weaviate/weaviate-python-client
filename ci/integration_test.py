@@ -53,6 +53,8 @@ print("Add reference to thing")
 w.add_reference_to_thing("2db436b5-0557-5016-9c5f-531412adf9c6", "members", "b36268d4-a6b5-5274-985f-45f13ce0c642")
 w.add_reference_to_thing("2db436b5-0557-5016-9c5f-531412adf9c6", "members", "1c9cd584-88fe-5010-83d0-017cb3fcb446")
 
+
+
 print("Add reference to thing in batch")
 reference_batch = weaviate.batch.ReferenceBatchRequest()
 
@@ -75,8 +77,8 @@ for member in group_chemists["Group"][0]["Members"]:
     if not member["name"] in ["Marie Curie", "Fritz Haber", "Walter White"]:
         print("Adding references to things failed")
         exit(6)
-    if len(group_chemists["Group"][0]["Members"]) != 3:
-        exit(7)
+if len(group_chemists["Group"][0]["Members"]) != 3:
+    exit(7)
 
 print("Test Delete")
 w.delete_thing(chemists[2])  # Delete Walter White not a real chemist just a legend
@@ -84,6 +86,29 @@ time.sleep(1.1)
 if w.get_thing(chemists[2]) is not None:
     print("Thing was not correctly deleted")
     exit(8)
+
+# Test delete reference
+prime_ministers_group = w.create_thing({"name": "Prime Ministers"}, "Group")
+prime_ministers = []
+prime_minister_names = ["Wim Kok", "Dries van Agt", "Piet de Jong", "Mark Rutte"]
+for name in prime_minister_names:
+    prime_ministers.append(w.create_thing({"name": name}, "Person"))
+time.sleep(1.1)
+for prime_minister in prime_ministers:
+    w.add_reference_to_thing(prime_ministers_group, "members", prime_minister)
+time.sleep(1.1)
+w.delete_reference_from_thing(prime_ministers_group, "members", prime_ministers[0])
+time.sleep(1.1)
+group_prime_ministers = query_data(get_query_for_group("Prime Ministers"))
+
+if len(group_prime_ministers["Group"][0]["Members"]) != 3:
+    print("Reference not correctly deleted")
+    exit(9)
+
+
+# len(group_prime_ministers["Group"][0]["Members"][0]) != 3:
+#     print("Reference not deleted correctly")
+#     exit(9)
 
 print("Integration test successfully completed")
 exit(0)

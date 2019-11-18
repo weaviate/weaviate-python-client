@@ -17,7 +17,7 @@ jobs:
         - python -m unittest test.add_thing
         - python -m unittest test.add_thing_batch
         - python -m unittest test.client
-        - python -m unittest test.delete_thing
+        - python -m unittest test.deletew
         - python -m unittest test.is_reachable
         - python -m unittest test.patch_thing
         - python -m unittest test.schema
