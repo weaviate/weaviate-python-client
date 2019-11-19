@@ -14,10 +14,19 @@ class UnexpectedStatusCodeException(Exception):
         """
 
         # Set error message
-        super().__init__(message+"\t"+str(response.json()))
+
+        try:
+            body = response.json()
+        except:
+            body = None
+
+        if body is None:
+            super().__init__(message)
+        else:
+            super().__init__(message+"\t"+str(body))
 
         self.status_code = response.status_code
-        self.json = response.json()
+        self.json = body
 
 
 class ThingAlreadyExistsException(Exception):
