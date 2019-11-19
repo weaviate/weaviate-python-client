@@ -101,7 +101,7 @@ w.delete_reference_from_thing(prime_ministers_group, "members", prime_ministers[
 time.sleep(1.2)
 group_prime_ministers = query_data(get_query_for_group("Prime Ministers"))
 
-if len(group_prime_ministers["Group"][0]["Members"]) != 3:
+if len(group_prime_ministers["Group"][0]["Members"]) != 2:
     print("Reference not correctly deleted")
     exit(9)
 
