@@ -88,22 +88,22 @@ if w.get_thing(chemists[2]) is not None:
     exit(8)
 
 # Test delete reference
-prime_ministers_group = w.create_thing({"name": "Prime Ministers"}, "Group")
-prime_ministers = []
-prime_minister_names = ["Wim Kok", "Dries van Agt", "Piet de Jong"]
-for name in prime_minister_names:
-    prime_ministers.append(w.create_thing({"name": name}, "Person"))
-time.sleep(1.2)
-for prime_minister in prime_ministers:
-    w.add_reference_to_thing(prime_ministers_group, "members", prime_minister)
-time.sleep(1.2)
-w.delete_reference_from_thing(prime_ministers_group, "members", prime_ministers[0])
-time.sleep(1.2)
-group_prime_ministers = query_data(get_query_for_group("Prime Ministers"))
-
-if len(group_prime_ministers["Group"][0]["Members"]) != 2:
-    print("Reference not correctly deleted")
-    exit(9)
+# prime_ministers_group = w.create_thing({"name": "Prime Ministers"}, "Group")
+# prime_ministers = []
+# prime_minister_names = ["Wim Kok", "Dries van Agt", "Piet de Jong"]
+# for name in prime_minister_names:
+#     prime_ministers.append(w.create_thing({"name": name}, "Person"))
+# time.sleep(1.2)
+# for prime_minister in prime_ministers:
+#     w.add_reference_to_thing(prime_ministers_group, "members", prime_minister)
+# time.sleep(1.2)
+# w.delete_reference_from_thing(prime_ministers_group, "members", prime_ministers[0])
+# time.sleep(1.2)
+# group_prime_ministers = query_data(get_query_for_group("Prime Ministers"))
+#
+# if len(group_prime_ministers["Group"][0]["Members"]) != 2:
+#     print("Reference not correctly deleted")
+#     exit(9)
 
 
 # len(group_prime_ministers["Group"][0]["Members"][0]) != 3:
