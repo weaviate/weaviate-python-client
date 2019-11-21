@@ -33,6 +33,42 @@ class TestAddThings(unittest.TestCase):
         self.assertTrue(id_found)  # Check if id was in thing
 
 
+    def test_create_batch_request_with_changing_object(self):
+        # Create a batch and fill it with some data
+        batch = weaviate.ThingsBatchRequest()
+
+        # Change the thing to ensure call by reference does
+        # not add the same thing over and over again
+        class_name = "Philosopher"
+        thing = {"name": "Socrates"}
+        batch.add_thing(thing, class_name)
+        thing["name"] = "Platon"
+        batch.add_thing(thing, class_name, "d087b7c6-a115-5c89-8cb2-f25bdeb9bf92")
+        thing["name"] = "Marie Curie"
+        class_name = "Chemist"
+        batch.add_thing(thing, class_name)
+        request_body = batch.get_request_body()
+
+        # Check if the request body is right
+        self.assertEqual(len(request_body["things"]), 3, "Not all things are in request body")
+        # Are all classes present
+        request_body_classes = [request_body["things"][0]["class"], request_body["things"][1]["class"], request_body["things"][2]["class"]]
+        self.assertTrue("Philosopher" in request_body_classes)
+        self.assertTrue("Chemist" in request_body_classes)
+        # Are all names present
+        request_body_schema_names = [request_body["things"][0]["schema"]["name"], request_body["things"][1]["schema"]["name"], request_body["things"][2]["schema"]["name"]]
+        self.assertTrue("Socrates" in request_body_schema_names)
+        self.assertTrue("Platon" in request_body_schema_names)
+        self.assertTrue("Marie Curie" in request_body_schema_names)
+        # Did the id get added properly?
+        id_found = False
+        for thing in request_body["things"]:
+            if "id" in thing:
+                self.assertEqual(thing["id"], "d087b7c6-a115-5c89-8cb2-f25bdeb9bf92")  # Check if id is correct
+                id_found = True
+        self.assertTrue(id_found)  # Check if id was in thing
+
+
     def test_create_batch_flawed_input(self):
         batch = weaviate.ThingsBatchRequest()
         try:

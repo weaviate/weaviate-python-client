@@ -1,5 +1,5 @@
 import validators
-
+import copy
 
 class ReferenceBatchRequest:
     """
@@ -79,7 +79,7 @@ class ThingsBatchRequest:
 
         batch_item = {
             "class": class_name,
-            "schema": thing
+            "schema": copy.deepcopy(thing)
         }
         if uuid is not None:
             if not isinstance(uuid, str):
