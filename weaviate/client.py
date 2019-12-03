@@ -638,6 +638,17 @@ class Client:
         return False
 
     def delete_thing(self, uuid):
+        """
+
+        :param uuid: ID of the thing that should be removed from the graph.
+        :type uuid: str
+        :return: None if successful
+        :raises:
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
+            TypeError: If parameter has the wrong type.
+            ValueError: If uuid is not properly formed.
+        """
 
         if not isinstance(uuid, str):
             raise TypeError("UUID must be type str")
@@ -658,6 +669,24 @@ class Client:
             raise UnexpectedStatusCodeException("Delete thing", response)
 
     def delete_reference_from_thing(self, from_thing_uuid, from_property_name, to_thing_uuid, to_weaviate="localhost"):
+        """ Remove a reference to another thing. Equal to removing one direction of an edge from the graph.
+
+        :param from_thing_uuid: Id of the thing that references another thing.
+        :type from_thing_uuid: str in form uuid
+        :param from_property_name: The property from which the reference should be deleted.
+        :type from_property_name:  str
+        :param to_thing_uuid: The referenced thing.
+        :type to_thing_uuid: str in form uuid
+        :param to_weaviate: The other weaviate instance, localhost by default.
+        :type to_weaviate: str
+        :return: None if successful
+        :raises:
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
+            TypeError: If parameter has the wrong type.
+            ValueError: If uuid is not properly formed.
+        """
+
         if not isinstance(from_thing_uuid, str) or not isinstance(to_thing_uuid, str):
             raise TypeError("UUID must be of type str")
         if not validators.uuid(from_thing_uuid) or not validators.uuid(to_thing_uuid):
@@ -685,3 +714,44 @@ class Client:
             return  # Successfully deleted
         else:
             raise UnexpectedStatusCodeException("Delete property from thing", response)
+
+    def extend_c11y(self, concept, definition, weight=1.0):
+        """ Extend the c11y with new concepts
+
+        :param concept: The new concept that should be added, e.g. an abbreviation.
+        :type concept: str
+        :param definition: The definition of the new concept.
+        :type definition: str
+        :param weight: The weight of the new definition compared to the old one.
+        :type weight: float
+        :return: None if successful
+        """
+
+        if not isinstance(concept, str):
+            raise TypeError("Concept must be string")
+        if not isinstance(definition, str):
+            raise TypeError("Definition must be string")
+        if not isinstance(weight, float):
+            raise TypeError("Weight must be float")
+
+        if weight > 1.0 or weight < 0.0:
+            raise ValueError("Weight out of limits 0.0 <= weight <= 1.0")
+
+        extension = {
+            "concept": concept,
+            "definition": definition,
+            "weight": weight
+        }
+
+        try:
+            response = self.connection.run_rest("/c11y/extensions/", REST_METHOD_POST, extension)
+        except ConnectionError as conn_err:
+            raise type(conn_err)(str(conn_err)
+                                 + ' Connection error, c11y could not be extended.'
+                                 ).with_traceback(
+                sys.exc_info()[2])
+
+        if response.status_code == 200:
+            return  # Successfully extended
+        else:
+            raise UnexpectedStatusCodeException("Extend c11y", response)

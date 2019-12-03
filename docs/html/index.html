@@ -160,6 +160,68 @@ UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="weaviate.client.Client.delete_reference_from_thing">
+<code class="sig-name descname">delete_reference_from_thing</code><span class="sig-paren">(</span><em class="sig-param">from_thing_uuid</em>, <em class="sig-param">from_property_name</em>, <em class="sig-param">to_thing_uuid</em>, <em class="sig-param">to_weaviate='localhost'</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.delete_reference_from_thing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a reference to another thing. Equal to removing one direction of an edge from the graph.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>from_thing_uuid</strong> (<em>str in form uuid</em>) – Id of the thing that references another thing.</p></li>
+<li><p><strong>from_property_name</strong> (<em>str</em>) – The property from which the reference should be deleted.</p></li>
+<li><p><strong>to_thing_uuid</strong> (<em>str in form uuid</em>) – The referenced thing.</p></li>
+<li><p><strong>to_weaviate</strong> (<em>str</em>) – The other weaviate instance, localhost by default.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None if successful</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>ConnectionError: if the network connection to weaviate fails.
+UnexpectedStatusCodeException: if weaviate reports a none OK status.
+TypeError: If parameter has the wrong type.
+ValueError: If uuid is not properly formed.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="weaviate.client.Client.delete_thing">
+<code class="sig-name descname">delete_thing</code><span class="sig-paren">(</span><em class="sig-param">uuid</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.delete_thing" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>uuid</strong> (<em>str</em>) – ID of the thing that should be removed from the graph.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None if successful</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>ConnectionError: if the network connection to weaviate fails.
+UnexpectedStatusCodeException: if weaviate reports a none OK status.
+TypeError: If parameter has the wrong type.
+ValueError: If uuid is not properly formed.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="weaviate.client.Client.extend_c11y">
+<code class="sig-name descname">extend_c11y</code><span class="sig-paren">(</span><em class="sig-param">concept</em>, <em class="sig-param">definition</em>, <em class="sig-param">weight=1.0</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.extend_c11y" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extend the c11y with new concepts</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>concept</strong> (<em>str</em>) – The new concept that should be added, e.g. an abbreviation.</p></li>
+<li><p><strong>definition</strong> (<em>str</em>) – The definition of the new concept.</p></li>
+<li><p><strong>weight</strong> (<em>float</em>) – The weight of the new definition compared to the old one.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None if successful</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="weaviate.client.Client.get_c11y_vector">
 <code class="sig-name descname">get_c11y_vector</code><span class="sig-paren">(</span><em class="sig-param">word</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.get_c11y_vector" title="Permalink to this definition">¶</a></dt>
 <dd><p>Retrieves the vector representation of the given word.</p>
@@ -500,7 +562,7 @@ Caution this batch will not be validated through weaviate.</p>
       &copy;2019, SeMI Technologies.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.2.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
