@@ -92,13 +92,11 @@ class TestClassification(unittest.TestCase):
     def test_add_filter(self):
         w = weaviate.Client("http://localhost:8080")
         unfiltered_config = w.classification.get_contextual_config("Class", "basedOn", "other")
-        filter = """
-        {
-            operator: Equal
-            path: ["kind"]
-            valueString: "string"
+        filter = {
+            "operator": "Equal",
+            "path": ["kind"],
+            "valueString": "string"
         }
-        """
 
         new_config = w.classification.add_filter_to_config(weaviate.TRAINING_SET_WHERE_FILTER, filter, unfiltered_config)
 

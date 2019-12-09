@@ -33,18 +33,18 @@ class Classification:
         """ Create a new config based on the provided with the added filter.
 
         :param filter_type: May be any of the filter type constants such as
-                            SOURCE_WHERE_FILTER, TRAINING_SET_WHERE or TARGET_WHERE
+                            SOURCE_WHERE_FILTER, TRAINING_SET_WHERE or TARGET_WHERE.
         :type filter_type: int in form of constant (enum)
-        :param filter: The gql filter to be used
-        :type filter: str
+        :param filter: The gql filter to be used.
+        :type filter: dict
         :param config: The config on which the filter should be applied.
         :param config: dict
         :return: A new copy of the config including the filter.
         """
         if not isinstance(filter_type, int):
             raise TypeError("Please choose a constant e.g. weaviate.TRAINING_SET_WHERE_FILTER")
-        if not isinstance(filter, str):
-            raise TypeError("Filter must be a string containing a GQL filter")
+        if not isinstance(filter, dict):
+            raise TypeError("Filter must be a dict containing a GQL filter")
         if not isinstance(config, dict):
             raise TypeError("Not a valid config")
 
@@ -173,7 +173,7 @@ class Classification:
         :return: true if given classification has finished.
         """
         try:
-            response = self.get_knn_classification_status(classification_uuid)
+            response = self.get_classification_status(classification_uuid)
         except ConnectionError:
             return False
         if response["status"] == "completed":
