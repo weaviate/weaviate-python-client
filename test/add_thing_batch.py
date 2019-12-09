@@ -102,7 +102,7 @@ class TestAddThings(unittest.TestCase):
         w = weaviate.Client("http://localhost:8080")
         connection_mock = Mock()
         add_run_rest_to_mock(connection_mock)
-        w.connection = connection_mock
+        w._connection = connection_mock
 
         batch = weaviate.ThingsBatchRequest()
         batch.add_thing({"name": "John Rawls"}, "Philosopher", "3fa85f64-5717-4562-b3fc-2c963f66afa6")
@@ -131,7 +131,7 @@ class TestAddThings(unittest.TestCase):
         w = weaviate.Client("http://localhost:8080")
         connection_mock = Mock()
         add_run_rest_to_mock(connection_mock)
-        w.connection = connection_mock
+        w._connection = connection_mock
 
         # Add some data to the batch
         batch = weaviate.ThingsBatchRequest()
@@ -162,7 +162,7 @@ class TestAddThings(unittest.TestCase):
         w = weaviate.Client("http://semi.testing.eu:8080")
         connection_mock = Mock()  # Mock calling weaviate
         connection_mock.run_rest.side_effect = run_rest_raise_connection_error
-        w.connection = connection_mock
+        w._connection = connection_mock
 
         batch = weaviate.ThingsBatchRequest()
         try:

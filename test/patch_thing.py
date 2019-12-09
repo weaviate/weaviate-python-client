@@ -33,7 +33,7 @@ class TestPatchThing(unittest.TestCase):
         # Run a successful request
         w = weaviate.Client("http://localhost:8080")
         connection_mock = Mock()
-        w.connection = add_run_rest_to_mock(connection_mock, status_code=204)
+        w._connection = add_run_rest_to_mock(connection_mock, status_code=204)
 
         x = w.patch_thing({"A": "B"}, "Class", "ae6d51d6-b4ea-5a03-a808-6aae990bdebf")
 
@@ -42,7 +42,7 @@ class TestPatchThing(unittest.TestCase):
 
         # Run a request with unexpected status code
         connection_mock = Mock()
-        w.connection = add_run_rest_to_mock(connection_mock, status_code=404)
+        w._connection = add_run_rest_to_mock(connection_mock, status_code=404)
 
         try:
             w.patch_thing({"A": "B"}, "Class", "ae6d51d6-b4ea-5a03-a808-6aae990bdebf")

@@ -3,16 +3,21 @@ from .exceptions import UnexpectedStatusCodeException
 from .connect import REST_METHOD_POST, REST_METHOD_GET
 import sys
 import validators
+import copy
 
+SOURCE_WHERE_FILTER = 0
+TRAINING_SET_WHERE_FILTER = 1
+TARGET_WHERE_FILTER = 2
 
 class Classification:
 
     def __init__(self, connection):
-        self.connection = connection
+        self._connection = connection
 
     def start(self, config):
+
         try:
-            response = self.connection.run_rest("/classifications", REST_METHOD_POST, config)
+            response = self._connection.run_rest("/classifications", REST_METHOD_POST, config)
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err)
                                  + ' Connection error, classification may not started.'
@@ -23,6 +28,37 @@ class Classification:
             return response.json()
         else:
             raise UnexpectedStatusCodeException("Start classification", response)
+
+    def add_filter_to_config(self, filter_type, filter, config):
+        """ Create a new config based on the provided with the added filter.
+
+        :param filter_type: May be any of the filter type constants such as
+                            SOURCE_WHERE_FILTER, TRAINING_SET_WHERE or TARGET_WHERE
+        :type filter_type: int in form of constant (enum)
+        :param filter: The gql filter to be used
+        :type filter: str
+        :param config: The config on which the filter should be applied.
+        :param config: dict
+        :return: A new copy of the config including the filter.
+        """
+        if not isinstance(filter_type, int):
+            raise TypeError("Please choose a constant e.g. weaviate.TRAINING_SET_WHERE_FILTER")
+        if not isinstance(filter, str):
+            raise TypeError("Filter must be a string containing a GQL filter")
+        if not isinstance(config, dict):
+            raise TypeError("Not a valid config")
+
+        new_config = copy.deepcopy(config)
+        if filter_type == SOURCE_WHERE_FILTER:
+            new_config["sourceWhere"] = filter
+        elif filter_type == TRAINING_SET_WHERE_FILTER:
+            new_config["trainingSetWhere"] = filter
+        elif filter_type == TARGET_WHERE_FILTER:
+            new_config["targetWhere"] = filter
+        else:
+            raise ValueError("No valid filter set use constants e.g. weaviate.TRAINING_SET_WHERE_FILTER")
+
+        return new_config
 
     def get_knn_config(self, schema_class_name, k, based_on_properties, classify_properties):
         """ Create a configuration to be used for a knn classification
@@ -103,7 +139,6 @@ class Classification:
 
         return config
 
-
     def get_classification_status(self, classification_uuid):
         """ Polls the current state of the given classification
 
@@ -120,7 +155,7 @@ class Classification:
             raise ValueError("Given UUID does not have a proper form")
 
         try:
-            response = self.connection.run_rest("/classifications/"+classification_uuid, REST_METHOD_GET)
+            response = self._connection.run_rest("/classifications/" + classification_uuid, REST_METHOD_GET)
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err)
                                  + ' Connection error, classification status could not be retrieved.'

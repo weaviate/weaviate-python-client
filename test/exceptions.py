@@ -15,7 +15,7 @@ class TestExceptions(unittest.TestCase):
             "error": "Error message"
         }
 
-        w.connection = add_run_rest_to_mock(connection_mock, status_code=404, return_json=error)
+        w._connection = add_run_rest_to_mock(connection_mock, status_code=404, return_json=error)
 
         try:
             w.delete_thing("b36268d4-a6b5-5274-985f-45f13ce0c642")
@@ -29,7 +29,7 @@ class TestExceptions(unittest.TestCase):
 
         connection_mock = Mock()
 
-        w.connection = add_run_rest_to_mock(connection_mock, status_code=404)
+        w._connection = add_run_rest_to_mock(connection_mock, status_code=404)
 
         try:
             w.delete_thing("b36268d4-a6b5-5274-985f-45f13ce0c642")

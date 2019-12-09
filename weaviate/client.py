@@ -39,8 +39,8 @@ class Client:
             if not validators.ip_address.ipv4(ip):
                 raise ValueError("URL has no propper form: " + url)
 
-        self.connection = connection.Connection(url=url, auth_client_secret=auth_client_secret)
-        self.classification = Classification(self.connection)
+        self._connection = connection.Connection(url=url, auth_client_secret=auth_client_secret)
+        self.classification = Classification(self._connection)
 
     def create_thing(self, thing, class_name, uuid=None):
         """ Takes a dict describing the thing and adds it to weaviate
@@ -78,7 +78,7 @@ class Client:
             weaviate_obj["id"] = uuid
 
         try:
-            response = self.connection.run_rest("/things", REST_METHOD_POST, weaviate_obj)
+            response = self._connection.run_rest("/things", REST_METHOD_POST, weaviate_obj)
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err) + ' Connection error, thing was not added to weaviate.').with_traceback(
                 sys.exc_info()[2])
@@ -117,7 +117,7 @@ class Client:
         path = "/batching/things"
 
         try:
-            response = self.connection.run_rest(path, REST_METHOD_POST, things_batch_request.get_request_body())
+            response = self._connection.run_rest(path, REST_METHOD_POST, things_batch_request.get_request_body())
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err) + ' Connection error, batch was not added to weaviate.').with_traceback(
                 sys.exc_info()[2])
@@ -165,7 +165,7 @@ class Client:
         }
 
         try:
-            response = self.connection.run_rest("/things/"+uuid, REST_METHOD_PATCH, payload)
+            response = self._connection.run_rest("/things/" + uuid, REST_METHOD_PATCH, payload)
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err) + ' Connection error, thing was not patched.').with_traceback(
                 sys.exc_info()[2])
@@ -203,7 +203,7 @@ class Client:
         path = "/things/" + from_thing_uuid + "/references/" + from_property_name
 
         try:
-            response = self.connection.run_rest(path, REST_METHOD_POST, beacon)
+            response = self._connection.run_rest(path, REST_METHOD_POST, beacon)
         except ConnectionError as conn_err:
             raise type(conn_err)(
                 str(conn_err) + ' Connection error, reference was not added to weaviate.').with_traceback(
@@ -239,7 +239,7 @@ class Client:
         }
 
         try:
-            response = self.connection.run_rest("/things/"+uuid, REST_METHOD_PUT, weaviate_obj)
+            response = self._connection.run_rest("/things/" + uuid, REST_METHOD_PUT, weaviate_obj)
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err) + ' Connection error, thing was not updated.').with_traceback(
                 sys.exc_info()[2])
@@ -271,7 +271,7 @@ class Client:
         path = "/batching/references"
 
         try:
-            response = self.connection.run_rest(path, REST_METHOD_POST, reference_batch_request.get_request_body())
+            response = self._connection.run_rest(path, REST_METHOD_POST, reference_batch_request.get_request_body())
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err)
                                  + ' Connection error, reference was not added to weaviate.').with_traceback(
@@ -347,7 +347,7 @@ class Client:
         if not isinstance(uuid_thing, str):
             uuid_thing = str(uuid_thing)
         try:
-            response = self.connection.run_rest("/things/"+uuid_thing, REST_METHOD_GET, params=params)
+            response = self._connection.run_rest("/things/" + uuid_thing, REST_METHOD_GET, params=params)
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err) + ' Connection error not sure if thing exists').with_traceback(
                 sys.exc_info()[2])
@@ -369,7 +369,7 @@ class Client:
 
         path = "/c11y/words/" + word
         try:
-            response = self.connection.run_rest(path, REST_METHOD_GET)
+            response = self._connection.run_rest(path, REST_METHOD_GET)
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err)
                                  + ' Connection error, c11y vector was not retrieved.').with_traceback(
@@ -442,7 +442,7 @@ class Client:
 
             # Add the item
             try:
-                response = self.connection.run_rest("/schema/"+schema_class_type, REST_METHOD_POST, schema_class)
+                response = self._connection.run_rest("/schema/" + schema_class_type, REST_METHOD_POST, schema_class)
             except ConnectionError as conn_err:
                 raise type(conn_err)(str(conn_err)
                                      + ' Connection error, class may not have been created properly.').with_traceback(
@@ -488,7 +488,7 @@ class Client:
 
                 path = "/schema/"+schema_class_type+"/"+schema_class["class"]+"/properties"
                 try:
-                    response = self.connection.run_rest(path, REST_METHOD_POST, schema_property)
+                    response = self._connection.run_rest(path, REST_METHOD_POST, schema_property)
                 except ConnectionError as conn_err:
                     raise type(conn_err)(str(conn_err)
                                          + ' Connection error, property may not have been created properly.'
@@ -506,9 +506,9 @@ class Client:
         :return: True if weaviate could be reached False otherwise.
         """
         try:
-            response = self.connection.run_rest("/meta", REST_METHOD_GET)
+            response = self._connection.run_rest("/meta", REST_METHOD_GET)
             if response.status_code == 200 or response.status_code == 401:
-                response = self.connection.run_rest("/things", REST_METHOD_GET, params={"limit":1})
+                response = self._connection.run_rest("/things", REST_METHOD_GET, params={"limit":1})
                 if response.status_code == 200 or response.status_code == 401:
                     return True
             return False
@@ -524,7 +524,7 @@ class Client:
             ConnectionError: In case of network issues.
         """
         try:
-            response = self.connection.run_rest("/schema", REST_METHOD_GET)
+            response = self._connection.run_rest("/schema", REST_METHOD_GET)
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err)
                                  + ' Connection error, schema could not be retrieved.'
@@ -569,7 +569,7 @@ class Client:
             raise ValueError("UUID does not have proper form")
 
         try:
-            response = self.connection.run_rest("/things/"+uuid, REST_METHOD_DELETE)
+            response = self._connection.run_rest("/things/" + uuid, REST_METHOD_DELETE)
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err)
                                  + ' Connection error, thing could not be deleted.'
@@ -616,7 +616,7 @@ class Client:
         path = "/things/" + from_thing_uuid + "/references/" + from_property_name
 
         try:
-            response = self.connection.run_rest(path, REST_METHOD_DELETE, beacon)
+            response = self._connection.run_rest(path, REST_METHOD_DELETE, beacon)
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err)
                                  + ' Connection error, thing could not be deleted.'
@@ -657,7 +657,7 @@ class Client:
         }
 
         try:
-            response = self.connection.run_rest("/c11y/extensions/", REST_METHOD_POST, extension)
+            response = self._connection.run_rest("/c11y/extensions/", REST_METHOD_POST, extension)
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err)
                                  + ' Connection error, c11y could not be extended.'

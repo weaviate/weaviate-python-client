@@ -38,7 +38,7 @@ class TestAddThings(unittest.TestCase):
         w = weaviate.Client("http://semi.testing.eu:8080")
         connection_mock = Mock()  # Mock calling weaviate
         connection_mock.run_rest.side_effect = run_rest_raise_connection_error
-        w.connection = connection_mock
+        w._connection = connection_mock
         try:
             w.create_thing({"name": "Alan Greenspan"}, "CoolestPersonEver")
         except ConnectionError as e:

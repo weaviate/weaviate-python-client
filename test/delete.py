@@ -26,7 +26,7 @@ class TestDelete(unittest.TestCase):
 
         # 1. Succesfully delete something
         connection_mock = Mock()
-        w.connection = add_run_rest_to_mock(connection_mock, status_code=204)
+        w._connection = add_run_rest_to_mock(connection_mock, status_code=204)
 
         thing = "b36268d4-a6b5-5274-985f-45f13ce0c642"
         w.delete_thing(thing)
@@ -35,7 +35,7 @@ class TestDelete(unittest.TestCase):
 
         # 2. Delete something that does not exist
         connection_mock = Mock()
-        w.connection = add_run_rest_to_mock(connection_mock, status_code=404)
+        w._connection = add_run_rest_to_mock(connection_mock, status_code=404)
 
         thing = "b36268d4-a6b5-5274-985f-45f13ce0c642"
         try:
@@ -88,7 +88,7 @@ class TestDelete(unittest.TestCase):
 
         # 1. Succesfully delete something
         connection_mock = Mock()
-        w.connection = add_run_rest_to_mock(connection_mock, status_code=204)
+        w._connection = add_run_rest_to_mock(connection_mock, status_code=204)
 
         thing = "b36268d4-a6b5-5274-985f-45f13ce0c642"
         to_thing = "a36268d4-a6b5-5274-985f-45f13ce0c642"

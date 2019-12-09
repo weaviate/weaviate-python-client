@@ -9,7 +9,7 @@ class TestClassification(unittest.TestCase):
     def test_contextual_classification(self):
         w = weaviate.Client("http://localhost:8080")
         connection_mock = Mock()
-        w.classification.connection = add_run_rest_to_mock(connection_mock, status_code=201, return_json={"classification": "result"})
+        w.classification._connection = add_run_rest_to_mock(connection_mock, status_code=201, return_json={"classification": "result"})
 
         classify_class =  "MyClass"
         based_on_prop = "prop"
@@ -88,3 +88,19 @@ class TestClassification(unittest.TestCase):
         self.assertEqual(config["basedOnProperties"], ["content"])
         self.assertEqual(config["classifyProperties"], ["topic"])
         self.assertEqual(config["type"], "contextual")
+
+    def test_add_filter(self):
+        w = weaviate.Client("http://localhost:8080")
+        unfiltered_config = w.classification.get_contextual_config("Class", "basedOn", "other")
+        filter = """
+        {
+            operator: Equal
+            path: ["kind"]
+            valueString: "string"
+        }
+        """
+
+        new_config = w.classification.add_filter_to_config(weaviate.TRAINING_SET_WHERE_FILTER, filter, unfiltered_config)
+
+        self.assertTrue("trainingSetWhere" in new_config)
+        self.assertFalse("trainingSetWhere" in unfiltered_config)
