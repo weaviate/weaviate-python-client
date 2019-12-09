@@ -2,7 +2,7 @@ import sys
 import validators
 
 from .connect import *
-from .classification import *
+from .classify import Classification
 from .exceptions import *
 from .util import _get_dict_from_object
 from requests.exceptions import ConnectionError

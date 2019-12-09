@@ -1,8 +1,9 @@
 
-from weaviate.exceptions import UnexpectedStatusCodeException
-from weaviate.connect import REST_METHOD_POST, REST_METHOD_GET
+from .exceptions import UnexpectedStatusCodeException
+from .connect import REST_METHOD_POST, REST_METHOD_GET
 import sys
 import validators
+
 
 class Classification:
 

@@ -6,30 +6,6 @@ from weaviate.connect import REST_METHOD_POST
 
 class TestClassification(unittest.TestCase):
 
-    def test_contextual_input(self):
-        w = weaviate.Client("http://localhost:8080")
-        # Correct input
-        connection_mock = Mock()
-        w.connection = add_run_rest_to_mock(connection_mock, status_code=201)
-
-        w.start_contextual_classification("MyClass", "context", "referenceToLabelClass")
-        w.start_contextual_classification("MyClass", ["context", "context2"], ["referenceToLabelClass", "referenceToLabel2"])
-        try:
-            w.start_contextual_classification(None, "context", "referenceToLabelClass")
-            self.fail("Wrong input accepted")
-        except TypeError:
-            pass
-        try:
-            w.start_contextual_classification("MyClass", None, "referenceToLabelClass")
-            self.fail("Wrong input accepted")
-        except TypeError:
-            pass
-        try:
-            w.start_contextual_classification("MyClass", "context", None)
-            self.fail("Wrong input accepted")
-        except TypeError:
-            pass
-
     def test_contextual_classification(self):
         w = weaviate.Client("http://localhost:8080")
         connection_mock = Mock()
