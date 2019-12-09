@@ -242,25 +242,6 @@ UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="weaviate.client.Client.get_knn_classification_status">
-<code class="sig-name descname">get_knn_classification_status</code><span class="sig-paren">(</span><em class="sig-param">classification_uuid</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.get_knn_classification_status" title="Permalink to this definition">¶</a></dt>
-<dd><p>Polls the current state of the given classification</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>classification_uuid</strong> (<em>str</em>) – identifier of the classification.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>a dict containing the weaviate answer.</p>
-</dd>
-<dt class="field-odd">Raises</dt>
-<dd class="field-odd"><p>ValueError: if not a proper uuid.
-ConnectionError: if the network connection to weaviate fails.
-UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
 <dt id="weaviate.client.Client.get_schema">
 <code class="sig-name descname">get_schema</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.get_schema" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the schema in weaviate</p>
@@ -293,20 +274,6 @@ None in case the thing does not exist.</p>
 <dt class="field-odd">Raises</dt>
 <dd class="field-odd"><p>ConnectionError: if the network connection to weaviate fails.
 UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="weaviate.client.Client.is_classification_complete">
-<code class="sig-name descname">is_classification_complete</code><span class="sig-paren">(</span><em class="sig-param">classification_uuid</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.is_classification_complete" title="Permalink to this definition">¶</a></dt>
-<dd><p>Checks if a previously started classification job has completed.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>classification_uuid</strong> – identifier of the classification.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>true if given classification has finished.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -366,31 +333,6 @@ It may be an URL or path to a json or a python dict describing the new values.</
 <dt class="field-odd">Raises</dt>
 <dd class="field-odd"><p>ConnectionError: If the network connection to weaviate fails.
 UnexpectedStatusCodeException: If weaviate reports a none OK status.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="weaviate.client.Client.start_knn_classification">
-<code class="sig-name descname">start_knn_classification</code><span class="sig-paren">(</span><em class="sig-param">schema_class_name</em>, <em class="sig-param">k</em>, <em class="sig-param">based_on_properties</em>, <em class="sig-param">classify_properties</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.start_knn_classification" title="Permalink to this definition">¶</a></dt>
-<dd><p>Starts a knn classification based on the given parameters.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>schema_class_name</strong> (<em>str</em>) – Class on which the classification is executed.</p></li>
-<li><p><strong>k</strong> (<em>int</em>) – the number of nearest neighbours that are taken into account for the classification.</p></li>
-<li><p><strong>based_on_properties</strong> (<em>str</em><em>, </em><em>list of str</em>) – The property or the properties that are used to for the classification.
-This field is compared to the other fields and serves as the decision base.</p></li>
-<li><p><strong>classify_properties</strong> (<em>str</em><em>, </em><em>list of str</em>) – The property or the properties that are labeled (the classes).</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>dict with the status of the classification.</p>
-</dd>
-<dt class="field-odd">Raises</dt>
-<dd class="field-odd"><p>TypeError: if argument is of wrong type.
-ConnectionError: if the network connection to weaviate fails.
-UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
 </dd>
 </dl>
 </dd></dl>
