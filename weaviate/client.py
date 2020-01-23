@@ -10,12 +10,13 @@ from requests.exceptions import ConnectionError
 SCHEMA_CLASS_TYPE_THINGS = "things"
 SCHEMA_CLASS_TYPE_ACTIONS = "actions"
 
+_PRIMITIVE_WEAVIATE_TYPES = ["string", "int", "boolean", "number", "date", "text", "geoCoordinates", "CrossRef"]
 
 class Client:
     """ A python native weaviate client
     """
 
-    def __init__(self, url, auth_client_secret=""):
+    def __init__(self, url, auth_client_secret=None):
         """ New weaviate client
 
         :param url: To the weaviate instance.
@@ -23,6 +24,7 @@ class Client:
         :param auth_client_secret: Authentification client secret.
         :type auth_client_secret: str
         """
+        # TODO Document auth client secret
         if url is None:
             raise TypeError("URL is expected to be string but is None")
         if not isinstance(url, str):
@@ -405,20 +407,22 @@ class Client:
         except UnexpectedStatusCodeException:
             raise
 
-        # TODO validate the schema e.g. small parser?
-
         if SCHEMA_CLASS_TYPE_THINGS in loaded_schema:
-            self._create_class(SCHEMA_CLASS_TYPE_THINGS, loaded_schema[SCHEMA_CLASS_TYPE_THINGS]["classes"])
+            self._create_class_with_primitives(SCHEMA_CLASS_TYPE_THINGS,
+                                               loaded_schema[SCHEMA_CLASS_TYPE_THINGS]["classes"])
         if SCHEMA_CLASS_TYPE_ACTIONS in loaded_schema:
-            self._create_class(SCHEMA_CLASS_TYPE_ACTIONS, loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS]["classes"])
+            self._create_class_with_primitives(SCHEMA_CLASS_TYPE_ACTIONS,
+                                               loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS]["classes"])
         if SCHEMA_CLASS_TYPE_THINGS in loaded_schema:
-            self._create_properties(SCHEMA_CLASS_TYPE_THINGS, loaded_schema[SCHEMA_CLASS_TYPE_THINGS]["classes"])
+            self._create_complex_properties(SCHEMA_CLASS_TYPE_THINGS,
+                                            loaded_schema[SCHEMA_CLASS_TYPE_THINGS]["classes"])
         if SCHEMA_CLASS_TYPE_ACTIONS in loaded_schema:
-            self._create_properties(SCHEMA_CLASS_TYPE_ACTIONS, loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS]["classes"])
+            self._create_complex_properties(SCHEMA_CLASS_TYPE_ACTIONS,
+                                            loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS]["classes"])
 
-    def _create_class(self, schema_class_type, schema_classes_list):
-        """ Create all the classes in the list.
-        This function does not create properties,
+    def _create_class_with_primitives(self, schema_class_type, schema_classes_list):
+        """ Create all the classes in the list and primitive properties.
+        This function does not create references,
         to avoid references to classes that do not yet exist.
 
         :param schema_class_type: can be found as constants e.g. SCHEMA_CLASS_TYPE_THINGS.
@@ -433,12 +437,19 @@ class Client:
 
         for weaviate_class in schema_classes_list:
 
+            # Create the class
             schema_class = {
                 "class": weaviate_class['class'],
                 "description": weaviate_class['description'],
                 "properties": [],
                 "keywords": []
             }
+
+            if "vectorizeClassName" in weaviate_class:
+                schema_class["vectorizeClassName"] = weaviate_class["vectorizeClassName"]
+
+            if "properties" in weaviate_class:
+                schema_class["properties"] = self._get_primitive_properties(weaviate_class["properties"])
 
             # Add the item
             try:
@@ -450,10 +461,57 @@ class Client:
             if response.status_code != 200:
                 raise UnexpectedStatusCodeException("Create class", response)
 
-    def _create_properties(self, schema_class_type, schema_classes_list):
-        """ Create all the properties in the list.
-        Make sure that all necessary classes have been created first.
-        See _create_class
+    def _get_primitive_properties(self, properties_list):
+        """ Filters the list of properties for only primitive properties
+
+        :param properties_list: A list of schema properties
+        :type properties_list: list
+        :return: a list of properties containing only primitives or an empty list
+        """
+        primitive_properties = []
+
+        for property_ in properties_list:
+
+            if not self._property_is_primitive(property_["dataType"]):
+                # property is complex and therefore will be ignored
+                continue
+
+            # create the property object
+            schema_property = {
+                "dataType": property_["dataType"],
+                "cardinality": property_["cardinality"],
+                "description": property_["description"],
+                "name": property_["name"]
+            }
+
+            # Check not mandetory fields
+            if "index" in property_:
+                schema_property["index"] = property_["index"]
+            if "vectorizePropertyName" in property_:
+                schema_property["vectorizePropertyName"] = property_["vectorizePropertyName"]
+
+            # add keywords
+            if "keywords" in property_:
+                schema_property["keywords"] = property_["keywords"]
+
+            primitive_properties.append(schema_property)
+
+        return primitive_properties
+
+    def _property_is_primitive(self, data_type_list):
+        """ Checks if the property is primitive
+
+        :param data_type_list: Data types of the property
+        :type data_type_list: list
+        :return: true if it only consists of primitive types
+        """
+        for data_type in data_type_list:
+            if data_type not in _PRIMITIVE_WEAVIATE_TYPES:
+                return False
+        return True
+
+    def _create_complex_properties(self, schema_class_type, schema_classes_list):
+        """ Add crossreferences to already existing classes
 
         :param schema_class_type: can be found as constants e.g. SCHEMA_CLASS_TYPE_THINGS.
         :type schema_class_type: SCHEMA_CLASS_TYPE_THINGS or SCHEMA_CLASS_TYPE_ACTIONS
@@ -464,12 +522,16 @@ class Client:
             ConnectionError: if the network connection to weaviate fails.
             UnexpectedStatusCodeException: if weaviate reports a none OK status.
         """
+
         for schema_class in schema_classes_list:
             for property_ in schema_class["properties"]:
 
+                if self._property_is_primitive(property_["dataType"]):
+                    continue
+
                 # create the property object
                 schema_property = {
-                    "dataType": [],
+                    "dataType": property_["dataType"],
                     "cardinality": property_["cardinality"],
                     "description": property_["description"],
                     "name": property_["name"]
@@ -477,10 +539,8 @@ class Client:
 
                 if "index" in property_:
                     schema_property["index"] = property_["index"]
-
-                # add the dataType(s)
-                for datatype in property_["dataType"]:
-                    schema_property["dataType"].append(datatype)
+                if "vectorizePropertyName" in property_:
+                    schema_property["vectorizePropertyName"] = property_["vectorizePropertyName"]
 
                 # add keywords
                 if "keywords" in property_:
@@ -496,6 +556,7 @@ class Client:
                         sys.exc_info()[2])
                 if response.status_code != 200:
                     raise UnexpectedStatusCodeException("Add properties to classes", response)
+
 
 
 

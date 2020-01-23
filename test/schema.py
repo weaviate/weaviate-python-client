@@ -199,6 +199,79 @@ person_index_false_schema = {
 }
 
 
+stop_vectorization_schema = {
+  "actions": {
+    "classes": [],
+    "type": "action"
+  },
+  "things": {
+    "@context": "",
+    "version": "0.2.0",
+    "type": "thing",
+    "name": "data",
+    "maintainer": "yourfriends@weaviate.com",
+    "classes": [
+      {
+        "class": "DataType",
+        "description": "DataType",
+        "keywords": [],
+        "vectorizeClassName": False,
+        "properties": [
+          {
+            "name": "owner",
+            "description": "the owner",
+            "dataType": [
+              "text"
+            ],
+            "cardinality": "atMostOne",
+            "keywords": [],
+            "vectorizePropertyName": False,
+            "index": False
+          },
+          {
+            "name": "complexDescription",
+            "description": "Description of the complex type",
+            "dataType": [
+              "text"
+            ],
+            "cardinality": "atMostOne",
+            "keywords": [],
+            "vectorizePropertyName": False,
+          },
+          {
+            "name": "hasPrimitives",
+            "description": "The primitive data points",
+            "dataType": [
+              "Primitive"
+            ],
+            "cardinality": "many",
+            "keywords": []
+          }
+        ]
+      },
+
+      {
+        "class": "Primitive",
+        "description": "DataType",
+        "keywords": [],
+        "vectorizeClassName": True,
+        "properties": [
+          {
+            "name": "type",
+            "description": "the primitive type",
+            "dataType": [
+              "text"
+            ],
+            "cardinality": "atMostOne",
+            "keywords": [],
+          }
+        ]
+      }
+    ]
+  }
+}
+
+
 
 
 class TestSchema(unittest.TestCase):
@@ -330,6 +403,16 @@ class TestSchema(unittest.TestCase):
 
         w._connection = connection_mock_dict
         w.create_schema(person_index_false_schema)
+        connection_mock_dict.run_rest.assert_called()
+
+    def test_not_indexed_class_name(self):
+        w = weaviate.Client("http://localhost:8080")
+
+        connection_mock_dict = Mock()  # Replace mock
+        add_run_rest_to_mock(connection_mock_dict)
+
+        w._connection = connection_mock_dict
+        w.create_schema(stop_vectorization_schema)
         connection_mock_dict.run_rest.assert_called()
 
 

@@ -10,7 +10,8 @@ WEAVIATE_REST_API_VERSION_PATH = "/v1"
 
 class Connection:
 
-    def __init__(self, url, auth_client_secret=""):
+    def __init__(self, url, auth_client_secret=None):
+        # TODO auth client secret
         self.url = url+WEAVIATE_REST_API_VERSION_PATH  # e.g. http://localhost:80/v1
         self.auth_expires = 0  # unix time when auth expires
         self.auth_bearer = 0
@@ -61,12 +62,16 @@ class Connection:
             raise AuthenticationFailedException(
                 "The grant_types supported by the thirdparty authentication service are insufficient. Please add 'client_credentials'")
 
+        request_body = self.auth_client_secret.get_credentials()
+        request_body["client_id"] = client_id
+
+        # TODO test
         # Set the body
-        request_body = {
-            "client_id": client_id,
-            "grant_type": 'client_credentials',
-            "client_secret": self.auth_client_secret
-        }
+        # request_body = {
+        #     "client_id": client_id,
+        #     "grant_type": 'client_credentials',
+        #     "client_secret": self.auth_client_secret
+        # }
 
         # try the request
         try:

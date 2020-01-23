@@ -58,6 +58,8 @@ class ThingsBatchRequest:
     Caution this batch will not be validated through weaviate.
     """
 
+    # TODO add length
+
     def __init__(self):
         self.things = []
 
