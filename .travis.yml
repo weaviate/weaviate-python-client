@@ -11,10 +11,21 @@ os: linux
 jobs:
   include:
     - stage: "Unit tests"
+      name: "3.6"
       branches:
         only:
           - master
       python: "3.6"
+      install:
+        - pip install -r requirements.txt
+      script:
+        - /bin/bash ci/unit_tests/run_unit_tests.bash
+    
+    - name: "3.7"
+      branches:
+        only:
+          - master
+      python: "3.7"
       install:
         - pip install -r requirements.txt
       script:
@@ -26,7 +37,7 @@ jobs:
           - master
       python: "3.6"
       env:
-        - WEAVIATE_RELEASE_VERSION="0.21.0"
+        - WEAVIATE_RELEASE_VERSION="0.22.0"
       install:
         - pip install -r requirements.txt
         - pip install .
