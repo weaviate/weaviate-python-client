@@ -60,6 +60,17 @@ Look at the data using the simple query:
 Please find the [full client documentation here](https://semi-technologies.github.io/weaviate-python-client/html/index.html).
 
 
+## Authentication
+
+``` python
+import weaviate
+
+auth = weaviate.AuthClientPassword("user@example.com", "supersecrettoken")
+client = weaviate.Client("http://xcosauwqdjyiwqlb.dev.semi.network", auth)
+
+if client.is_reachable():
+    print("Success!")
+```
 
 ## Build Status
 
