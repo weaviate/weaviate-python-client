@@ -2,6 +2,7 @@
 
 python -m unittest test.add_thing
 python -m unittest test.add_thing_batch
+python -m unittest test.auth
 python -m unittest test.c11y
 python -m unittest test.client
 python -m unittest test.delete
