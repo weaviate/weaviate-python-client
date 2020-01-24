@@ -49,6 +49,42 @@
             "cardinality": "many"
           }
         ]
+      },
+      {
+        "class": "Association",
+        "description": "A legal body that consists of a set of juristic persons. All juristic persons in a group are deliberate members.",
+        "keywords": [],
+        "vectorizeClassName": false,
+        "properties": [
+          {
+            "name": "name",
+            "description": "The name of the association",
+            "dataType": [
+              "text"
+            ],
+            "cardinality": "atMostOne",
+            "keywords": []
+          },
+          {
+            "name": "members",
+            "description": "The juristic persons that are part of this association",
+            "dataType": [
+              "Person", "Association"
+            ],
+            "cardinality": "many",
+            "vectorizePropertyName": true
+          },
+          {
+            "name": "RegistrationId",
+            "description": "The id under which the association is legally registered",
+            "dataType": [
+              "string"
+            ],
+            "cardinality": "atMostOne",
+            "vectorizePropertyName": false,
+            "index": false
+          }
+        ]
       }
     ]
   }
