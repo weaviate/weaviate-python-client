@@ -110,7 +110,7 @@ class Client:
 
         :param things_batch_request: The batch of things that should be added.
         :type things_batch_request: ThingsBatchRequest
-        :return: None if successful.
+        :return: A list with the status of every thing that was created.
         :raises:
             ConnectionError: if the network connection to weaviate fails.
             UnexpectedStatusCodeException: if weaviate reports a none OK status.
@@ -125,7 +125,7 @@ class Client:
                 sys.exc_info()[2])
 
         if response.status_code == 200:
-            return
+            return response.json()
 
         else:
             raise UnexpectedStatusCodeException("Create thing in batch", response)
@@ -261,7 +261,7 @@ class Client:
 
         :param reference_batch_request: contains all the references that should be added in one batch.
         :type reference_batch_request: weaviate.batch.ReferenceBatchRequest
-        :return: None
+        :return: A list with the status of every reference added.
         :raises:
             ConnectionError: if the network connection to weaviate fails.
             UnexpectedStatusCodeException: if weaviate reports a none OK status.
@@ -280,7 +280,7 @@ class Client:
                 sys.exc_info()[2])
 
         if response.status_code == 200:
-            return
+            return response.json()
         else:
             raise UnexpectedStatusCodeException("Add references in batch", response)
 
