@@ -31,6 +31,16 @@ jobs:
       script:
         - /bin/bash ci/unit_tests/run_unit_tests.bash
 
+    - name: "3.8"
+      branches:
+        only:
+          - master
+      python: "3.8"
+      install:
+        - pip install -r requirements.txt
+      script:
+        - /bin/bash ci/unit_tests/run_unit_tests.bash
+
     - stage: "Integration test"
       branches:
         only:
