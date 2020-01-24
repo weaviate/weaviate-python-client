@@ -1,13 +1,15 @@
+notifications:
+  email:
+    on_success: change
+language: python
+os: linux
+python:
+  - "3.6"
+  - "3.7"
+
 jobs:
   include:
     - stage: "Unit tests"
-      language: python
-      python:
-        - "3.6"
-        - "3.7"
-      notifications:
-        email:
-          on_success: change
       branches:
         only:
           - master
@@ -24,16 +26,7 @@ jobs:
         - python -m unittest test.patch_thing
         - python -m unittest test.schema
 
-
-
     - stage: "Integration test"
-      language: python
-      python:
-        - "3.6"
-        - "3.7"
-      notifications:
-        email:
-          on_success: change
       branches:
         only:
           - master
