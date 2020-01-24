@@ -19,14 +19,4 @@ class TestIsReachable(unittest.TestCase):
         add_run_rest_to_mock(connection_mock)  # return 200 for everything
         w._connection = connection_mock
         self.assertTrue(w.is_reachable())
-        self.assertEqual(connection_mock.run_rest.call_count, 2,
-                         "Call twice once for the meta endpoint (c11y) and once for the things for ES and etcd")
-
-        # 3. Mock weaviate answering with status 401 (unauthorized)
-        connection_mock = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock, status_code=401)  # return 200 for everything
-        w._connection = connection_mock
-        self.assertTrue(w.is_reachable())
-        self.assertEqual(connection_mock.run_rest.call_count, 2,
-                         "Call twice once for the meta endpoint (c11y) and once for the things for ES and etcd")
-
+        self.assertEqual(connection_mock.run_rest.call_count, 1)

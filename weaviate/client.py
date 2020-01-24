@@ -557,21 +557,16 @@ class Client:
                 if response.status_code != 200:
                     raise UnexpectedStatusCodeException("Add properties to classes", response)
 
-
-
-
-
     def is_reachable(self):
         """ Ping weaviate
 
         :return: True if weaviate could be reached False otherwise.
         """
         try:
-            response = self._connection.run_rest("/meta", REST_METHOD_GET)
-            if response.status_code == 200 or response.status_code == 401:
-                response = self._connection.run_rest("/things", REST_METHOD_GET, params={"limit":1})
-                if response.status_code == 200 or response.status_code == 401:
-                    return True
+            
+            response = self._connection.run_rest("/v1/.well-known/ready", REST_METHOD_GET)
+            if response.status_code == 200:
+                return True
             return False
         except ConnectionError:
             return False
