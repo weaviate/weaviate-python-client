@@ -1,9 +1,7 @@
 import os
 import time
-#from queries import *
-# TODO DELETE
-import weaviate
-from ci.queries import *
+from queries import *
+
 
 
 
