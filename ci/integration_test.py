@@ -112,7 +112,8 @@ w.delete_reference_from_thing(prime_ministers_group, "members", prime_ministers[
 
 print("Test query")
 expected_name = "Sophie Scholl"
-w.create_thing({"name": expected_name}, "Person", "28935261-0449-56a2-ade5-e9e08d11f51a")
+w.create_thing({"name": expected_name}, "Person", "594b7827-f795-40d0-aabb-5e0553953dad")
+time.sleep(2.0)
 result = w.query(gql_get_sophie_scholl)
 if result["data"]["Get"]["Things"]["Person"][0]["name"] != expected_name:
     print("Query result is wrong")

@@ -59,7 +59,7 @@ gql_get_sophie_scholl = """
       Person (where: {
         path: ["uuid"]
         operator: Equal
-        valueString: "28935261-0449-56a2-ade5-e9e08d11f51a"
+        valueString: "594b7827-f795-40d0-aabb-5e0553953dad"
       }){
         name
         uuid

@@ -338,6 +338,29 @@ UnexpectedStatusCodeException: If weaviate reports a none OK status.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="weaviate.client.Client.query">
+<code class="sig-name descname">query</code><span class="sig-paren">(</span><em class="sig-param">gql_query</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.query" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Allows to send simple graph QL string queries.</dt><dd><p>To create more complex GQL queries please use a GQL python client.
+Be cautious of injection risks when generating query strings.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>gql_query</strong> (<em>str</em>) – A GQL query in form of a string</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Data response of the query</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>TypeError: If parameter has the wrong type.
+ConnectionError: if the network connection to weaviate fails.
+UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="weaviate.client.Client.thing_exists">
 <code class="sig-name descname">thing_exists</code><span class="sig-paren">(</span><em class="sig-param">uuid_thing</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.thing_exists" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
