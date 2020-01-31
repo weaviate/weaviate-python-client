@@ -52,6 +52,23 @@ gql_get_group_chemists = """
 }
 """
 
+gql_get_sophie_scholl = """
+{
+  Get {
+    Things {
+      Person (where: {
+        path: ["uuid"]
+        operator: Equal
+        valueString: "28935261-0449-56a2-ade5-e9e08d11f51a"
+      }){
+        name
+        uuid
+      }
+    }
+  }
+}
+"""
+
 def get_query_for_group(name):
     return ("""
     {
@@ -75,3 +92,4 @@ def get_query_for_group(name):
       }
     }
     """ % name)
+

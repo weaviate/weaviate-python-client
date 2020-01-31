@@ -724,3 +724,36 @@ class Client:
             return  # Successfully extended
         else:
             raise UnexpectedStatusCodeException("Extend c11y", response)
+
+
+    def query(self, gql_query):
+        """ Allows to send simple graph QL string queries.
+            To create more complex GQL queries please use a GQL python client.
+            Be cautious of injection risks when generating query strings.
+
+        :param gql_query: A GQL query in form of a string
+        :type gql_query: str
+        :return: Data response of the query
+        :raises:
+            TypeError: If parameter has the wrong type.
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
+        """
+        if not isinstance(gql_query, str):
+            raise TypeError("Query is expected to be a string")
+
+        json_query = {"query": gql_query}
+
+        try:
+            response = self._connection.run_rest("/graphql", REST_METHOD_POST, json_query)
+        except ConnectionError as conn_err:
+            raise type(conn_err)(str(conn_err)
+                                 + ' Connection error, query not executed.'
+                                 ).with_traceback(
+                sys.exc_info()[2])
+
+        if response.status_code == 200:
+            return response.json() # Successfully queried
+        else:
+            raise UnexpectedStatusCodeException("GQL query", response)
+

@@ -1,6 +1,11 @@
 import os
-from queries import *
 import time
+#from queries import *
+# TODO DELETE
+import weaviate
+from ci.queries import *
+
+
 
 print("Weaviate should be running at local host 8080")
 w = weaviate.Client("http://localhost:8080")
@@ -105,6 +110,15 @@ w.delete_reference_from_thing(prime_ministers_group, "members", prime_ministers[
 # len(group_prime_ministers["Group"][0]["Members"][0]) != 3:
 #     print("Reference not deleted correctly")
 #     exit(9)
+
+
+print("Test query")
+expected_name = "Sophie Scholl"
+w.create_thing({"name": expected_name}, "Person", "28935261-0449-56a2-ade5-e9e08d11f51a")
+result = w.query(gql_get_sophie_scholl)
+if result["data"]["Get"]["Things"]["Person"][0]["name"] != expected_name:
+    print("Query result is wrong")
+    exit(10)
 
 print("Integration test successfully completed")
 exit(0)
