@@ -169,3 +169,12 @@ class TestAddThings(unittest.TestCase):
             w.create_things_in_batch(batch)
         except ConnectionError as e:
             pass
+
+    def test_batch_length(self):
+        batch = weaviate.ThingsBatchRequest()
+        batch.add_thing({"A": "B"}, "Thing")
+        self.assertEqual(1, len(batch))
+        batch.add_thing({"A": "B"}, "Thing")
+        self.assertEqual(2, len(batch))
+        batch.add_thing({"A": "B"}, "Thing")
+        self.assertEqual(3, len(batch))

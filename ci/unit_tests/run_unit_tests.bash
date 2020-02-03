@@ -1,5 +1,6 @@
 #!/bin/bash
 
+python -m unittest test.add_reference_batch
 python -m unittest test.add_thing
 python -m unittest test.add_thing_batch
 python -m unittest test.auth

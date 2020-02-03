@@ -8,10 +8,13 @@ class ReferenceBatchRequest:
     """
 
     def __init__(self):
-        self.from_thing_class_names = []
-        self.from_thing_ids = []
-        self.from_thing_properties = []
-        self.to_thing_ids = []
+        self._from_thing_class_names = []
+        self._from_thing_ids = []
+        self._from_thing_properties = []
+        self._to_thing_ids = []
+
+    def __len__(self):
+        return len(self._from_thing_class_names)
 
     def add_reference(self, from_thing_class_name, from_thing_uuid, from_property_name, to_thing_uuid):
         """ Add one reference to this batch
@@ -33,21 +36,21 @@ class ReferenceBatchRequest:
                 not isinstance(from_property_name, str) or not isinstance(to_thing_uuid, str):
             raise TypeError('All arguments must be of type string')
 
-        self.from_thing_class_names.append(from_thing_class_name)
-        self.from_thing_ids.append(from_thing_uuid)
-        self.from_thing_properties.append(from_property_name)
-        self.to_thing_ids.append(to_thing_uuid)
+        self._from_thing_class_names.append(from_thing_class_name)
+        self._from_thing_ids.append(from_thing_uuid)
+        self._from_thing_properties.append(from_property_name)
+        self._to_thing_ids.append(to_thing_uuid)
 
     def get_batch_size(self):
-        return len(self.from_thing_class_names)
+        return len(self._from_thing_class_names)
 
     def get_request_body(self):
         batch_body = [None] * self.get_batch_size()
         for i in range(self.get_batch_size()):
             batch_body[i] = {
-                "from": "weaviate://localhost/things/" + self.from_thing_class_names[i] + "/" + self.from_thing_ids[i] + "/" +
-                        self.from_thing_properties[i],
-                "to": "weaviate://localhost/things/" + self.to_thing_ids[i]
+                "from": "weaviate://localhost/things/" + self._from_thing_class_names[i] + "/" + self._from_thing_ids[i] + "/" +
+                        self._from_thing_properties[i],
+                "to": "weaviate://localhost/things/" + self._to_thing_ids[i]
             }
         return batch_body
 
@@ -61,7 +64,10 @@ class ThingsBatchRequest:
     # TODO add length
 
     def __init__(self):
-        self.things = []
+        self._things = []
+
+    def __len__(self):
+        return len(self._things)
 
     def add_thing(self, thing, class_name, uuid=None):
         """ Add a thing to this batch
@@ -90,7 +96,7 @@ class ThingsBatchRequest:
                 raise ValueError
             batch_item["id"] = uuid
 
-        self.things.append(batch_item)
+        self._things.append(batch_item)
 
     def get_request_body(self):
         """ Get the request body as it is needed for weaviate
@@ -101,5 +107,5 @@ class ThingsBatchRequest:
             "fields": [
                 "ALL"
             ],
-            "things": self.things
+            "things": self._things
         }
