@@ -53,6 +53,8 @@ class Client:
         :type class_name: str
         :param uuid: Thing will be created under this uuid if it is provided.
         :type uuid: str
+        :param vector_weights: Influence the weight of words on thing creation.
+        :type vector_weights: dict
         :return: Returns the UUID of the created thing if successful.
         :raises:
             TypeError: if argument is of wrong type.
@@ -62,8 +64,6 @@ class Client:
             more information is given in the exception.
             ConnectionError: if the network connection to weaviate fails.
         """
-        # TODO add vector weights to request
-        # TODO document vector weights
 
         if not isinstance(thing, dict):
             raise TypeError("Expected thing to be of type dict instead it was: "+str(type(thing)))

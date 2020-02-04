@@ -117,7 +117,7 @@ UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
 
 <dl class="method">
 <dt id="weaviate.client.Client.create_thing">
-<code class="sig-name descname">create_thing</code><span class="sig-paren">(</span><em class="sig-param">thing</em>, <em class="sig-param">class_name</em>, <em class="sig-param">uuid=None</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.create_thing" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">create_thing</code><span class="sig-paren">(</span><em class="sig-param">thing</em>, <em class="sig-param">class_name</em>, <em class="sig-param">uuid=None</em>, <em class="sig-param">vector_weights=None</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.create_thing" title="Permalink to this definition">¶</a></dt>
 <dd><p>Takes a dict describing the thing and adds it to weaviate</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -125,6 +125,7 @@ UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
 <li><p><strong>thing</strong> (<em>dict</em>) – Thing to be added.</p></li>
 <li><p><strong>class_name</strong> (<em>str</em>) – Associated with the thing given.</p></li>
 <li><p><strong>uuid</strong> (<em>str</em>) – Thing will be created under this uuid if it is provided.</p></li>
+<li><p><strong>vector_weights</strong> (<em>dict</em>) – Influence the weight of words on thing creation.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
