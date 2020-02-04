@@ -44,7 +44,7 @@ class Client:
         self._connection = connection.Connection(url=url, auth_client_secret=auth_client_secret)
         self.classification = Classification(self._connection)
 
-    def create_thing(self, thing, class_name, uuid=None):
+    def create_thing(self, thing, class_name, uuid=None, vector_weights=None):
         """ Takes a dict describing the thing and adds it to weaviate
 
         :param thing: Thing to be added.
@@ -62,10 +62,13 @@ class Client:
             more information is given in the exception.
             ConnectionError: if the network connection to weaviate fails.
         """
+        # TODO add vector weights to request
+        # TODO document vector weights
+
         if not isinstance(thing, dict):
             raise TypeError("Expected thing to be of type dict instead it was: "+str(type(thing)))
         if not isinstance(class_name, str):
-            raise TypeError("Expected class_name of type str but was: "+str(type))
+            raise TypeError("Expected class_name of type str but was: "+str(type(class_name)))
 
         weaviate_obj = {
             "class": class_name,
@@ -78,6 +81,12 @@ class Client:
                 raise ValueError("Given uuid does not have a valid form")
 
             weaviate_obj["id"] = uuid
+
+        if vector_weights is not None:
+            if not isinstance(vector_weights, dict):
+                raise TypeError("Expected vector_weights to be of type dict but was "+str(type(vector_weights)))
+
+            weaviate_obj["vectorWeights"] = vector_weights
 
         try:
             response = self._connection.run_rest("/things", REST_METHOD_POST, weaviate_obj)
