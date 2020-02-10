@@ -10,9 +10,11 @@ WEAVIATE_REST_API_VERSION_PATH = "/v1"
 
 class Connection:
 
-    def __init__(self, url, auth_client_secret=None):
-        # TODO auth client secret
+    def __init__(self, url, auth_client_secret=None, timeout_config=None):
         self.url = url+WEAVIATE_REST_API_VERSION_PATH  # e.g. http://localhost:80/v1
+        if timeout_config is None:
+            self.timeout_config = (2, 20)
+
         self.auth_expires = 0  # unix time when auth expires
         self.auth_bearer = 0
         self.auth_client_secret = auth_client_secret
@@ -65,14 +67,6 @@ class Connection:
         request_body = self.auth_client_secret.get_credentials()
         request_body["client_id"] = client_id
 
-        # TODO test
-        # Set the body
-        # request_body = {
-        #     "client_id": client_id,
-        #     "grant_type": 'client_credentials',
-        #     "client_secret": self.auth_client_secret
-        # }
-
         # try the request
         try:
             request = requests.post(request_third_part.json()['token_endpoint'], request_body, timeout=(30, 45))
@@ -102,7 +96,7 @@ class Connection:
 
         return header
 
-    def run_rest(self, path, rest_method, weaviate_object=None, retries=2, params={}):
+    def run_rest(self, path, rest_method, weaviate_object=None, params=None):
         """ Make a request to weaviate
 
         :param path: must be a valid weaviate sub-path e.g. /meta or /things without version.
@@ -111,35 +105,32 @@ class Connection:
         :type rest_method: enum constant
         :param weaviate_object: if set this object is used as payload.
         :type weaviate_object: dict
-        :param retries: define how often the request is retried in case of exceptions, until it ultimately fails.
-        :type retries: int
         :param params: additional request prameter.
         :type params: dict
         :return: the response if request was successful.
         :raises:
             ConnectionError: If weaviate could not be reached.
         """
-        # TODO urlencode params??w
-
+        if params is None:
+            params = {}
         request_url = self.url+path
-        timeout_config = (retries, 20)
 
         try:
             if rest_method == REST_METHOD_GET:
                 response = requests.get(url=request_url,
-                                        headers=self._get_request_header(), timeout=timeout_config, params=params)
+                                        headers=self._get_request_header(), timeout=self.timeout_config, params=params)
             elif rest_method == REST_METHOD_PUT:
                 response = requests.put(url=request_url, json=weaviate_object,
-                                        headers=self._get_request_header(), timeout=timeout_config)
+                                        headers=self._get_request_header(), timeout=self.timeout_config)
             elif rest_method == REST_METHOD_POST:
                 response = requests.post(url=request_url, json=weaviate_object,
-                                         headers=self._get_request_header(), timeout=timeout_config)
+                                         headers=self._get_request_header(), timeout=self.timeout_config)
             elif rest_method == REST_METHOD_PATCH:
                 response = requests.patch(url=request_url, json=weaviate_object,
-                                          headers=self._get_request_header(), timeout=timeout_config)
+                                          headers=self._get_request_header(), timeout=self.timeout_config)
             elif rest_method == REST_METHOD_DELETE:
                 response = requests.delete(url=request_url, json=weaviate_object,
-                                          headers=self._get_request_header(), timeout=timeout_config)
+                                          headers=self._get_request_header(), timeout=self.timeout_config)
             else:
                 print("Not yet implemented rest method called")
                 response = None
