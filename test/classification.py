@@ -1,8 +1,12 @@
 import unittest
 import weaviate
 from test.testing_util import add_run_rest_to_mock
-from unittest.mock import Mock
 from weaviate.connect import REST_METHOD_POST
+import sys
+if sys.version_info[0] == 2:
+    from mock import MagicMock as Mock
+else:
+    from unittest.mock import Mock
 
 class TestClassification(unittest.TestCase):
 

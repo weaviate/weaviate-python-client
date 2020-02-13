@@ -1,8 +1,11 @@
 import unittest
 import weaviate
-from unittest.mock import Mock
 from test.testing_util import add_run_rest_to_mock
-
+import sys
+if sys.version_info[0] == 2:
+    from mock import MagicMock as Mock
+else:
+    from unittest.mock import Mock
 
 
 class TestPatchThing(unittest.TestCase):

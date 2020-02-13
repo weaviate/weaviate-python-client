@@ -1,11 +1,15 @@
 import unittest
 import weaviate
-from unittest.mock import Mock
 from test.testing_util import add_run_rest_to_mock
+import sys
+if sys.version_info[0] == 2:
+    from mock import MagicMock as Mock
+else:
+    from unittest.mock import Mock
 
 class TestIsReachable(unittest.TestCase):
     def test_no_weaviate_rachable(self):
-        w = weaviate.Client("http://localhost:8080")
+        w = weaviate.Client("http://localhost:12334")
 
         # 1. No weaviate
         try:

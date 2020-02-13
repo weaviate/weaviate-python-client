@@ -1,8 +1,13 @@
 import unittest
 import weaviate
 from test.testing_util import *
-from unittest.mock import Mock
-from unittest.mock import patch
+import sys
+if sys.version_info[0] == 2:
+    from mock import MagicMock as Mock
+    from mock import patch
+else:
+    from unittest.mock import Mock
+    from unittest.mock import patch
 
 
 class TestWeaviateClient(unittest.TestCase):

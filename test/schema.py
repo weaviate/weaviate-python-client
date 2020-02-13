@@ -1,10 +1,18 @@
 import unittest
 import weaviate
-from unittest.mock import Mock
-from unittest.mock import patch
+
 import copy
 import os
 from test.testing_util import add_run_rest_to_mock
+
+import sys
+if sys.version_info[0] == 2:
+    from mock import MagicMock as Mock
+    from mock import patch
+else:
+    from unittest.mock import Mock
+    from unittest.mock import patch
+
 
 company_test_schema = {
   "actions": {

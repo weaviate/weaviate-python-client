@@ -1,5 +1,11 @@
-from unittest.mock import Mock
 from requests.exceptions import ConnectionError
+
+import sys
+if sys.version_info[0] == 2:
+    from mock import MagicMock as Mock
+else:
+    from unittest.mock import Mock
+
 
 
 def add_run_rest_to_mock(mock, return_json=None, status_code=200):

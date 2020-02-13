@@ -1,9 +1,13 @@
 import unittest
 import weaviate
-from unittest.mock import Mock
 from test.testing_util import add_run_rest_to_mock
 from weaviate.connect import REST_METHOD_DELETE
 from weaviate import UnexpectedStatusCodeException
+import sys
+if sys.version_info[0] == 2:
+    from mock import MagicMock as Mock
+else:
+    from unittest.mock import Mock
 
 class TestExceptions(unittest.TestCase):
 

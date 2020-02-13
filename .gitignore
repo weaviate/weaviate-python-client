@@ -4,3 +4,4 @@ Weaviate_client.egg-info
 **/__pycache__
 tmp
 /build
+*.pyc
