@@ -95,7 +95,7 @@ class Client:
                 sys.exc_info()[2])
 
         if response.status_code == 200:
-            return response.json()["id"]
+            return str(response.json()["id"])
 
         else:
             thing_does_already_exist = False
