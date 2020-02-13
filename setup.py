@@ -1,5 +1,5 @@
 from setuptools import setup
-from builtins import open, bytes
+from builtins import open
 
 # read the contents of your README file
 from os import path
