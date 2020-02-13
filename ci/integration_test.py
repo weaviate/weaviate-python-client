@@ -1,8 +1,7 @@
+from __future__ import print_function
 import os
 import time
 from queries import *
-
-
 
 
 print("Weaviate should be running at local host 8080")
