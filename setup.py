@@ -14,7 +14,7 @@ setup(name="weaviate-client",
       author="SeMI Technologies",
       author_email="hello@semi.technology",
       packages=["weaviate", "weaviate.connect"],
-      python_requires='>=3.6.7',
+      python_requires='>=2.7',
       install_requires=[
         "requests>=2.22.0",
         "validators>=0.14.0",]),
