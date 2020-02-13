@@ -73,7 +73,7 @@ jobs:
       python: "2.7"
       install:
         - pip install -r requirements.txt
-        - pip install .
+        - python setup.py install
         - /bin/bash ci/start_weaviate.bash
       script:
         - python ci/integration_test.py
