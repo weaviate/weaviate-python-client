@@ -13,7 +13,7 @@ A python native client for easy interaction with a weaviate instance.
 
 ## Contributing
 
-- [How to Contribute](CONTRIBUTE.md).
+- [How to Contribute](https://github.com/semi-technologies/weaviate/blob/master/CONTRIBUTE.md).
 
 ## Build Status
 
