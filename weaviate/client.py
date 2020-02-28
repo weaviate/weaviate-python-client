@@ -5,6 +5,7 @@ from .connect import *
 from .classify import Classification
 from .exceptions import *
 from .util import _get_dict_from_object
+from .client_config import ClientConfig
 from requests.exceptions import ConnectionError
 
 SCHEMA_CLASS_TYPE_THINGS = "things"
@@ -17,13 +18,16 @@ class Client:
     """ A python native weaviate client
     """
 
-    def __init__(self, url, auth_client_secret=None):
+    def __init__(self, url, auth_client_secret=None, client_config=None):
         """ New weaviate client
 
         :param url: To the weaviate instance.
         :type url: str
         :param auth_client_secret: Authentification client secret.
         :type auth_client_secret: weaviate.AuthClientCredentials or weaviate.AuthClientPassword
+        :param client_config: Gives additional optimization parameters for the client.
+                              Uses default parameters if omitted.
+        :type client_config: weaviate.ClientConfig
         """
         if url is None:
             raise TypeError("URL is expected to be string but is None")
@@ -44,7 +48,23 @@ class Client:
             # remove trailing slash
             url = url[:-1]
 
-        self._connection = connection.Connection(url=url, auth_client_secret=auth_client_secret)
+        if client_config is not None:
+            # Check the input
+            if (not isinstance(client_config.timeout_config, tuple)) or\
+                    (not isinstance(client_config.timeout_config[0], int)) or\
+                    (not isinstance(client_config.timeout_config[1], int)):
+                raise TypeError("ClientConfig.timeout_config must be tupel of int")
+            if len(client_config.timeout_config) > 2 or len(client_config.timeout_config) < 2:
+                raise ValueError("ClientConfig.timeout_config must be of length 2")
+
+        else:
+            # Create the default config
+            client_config = ClientConfig()
+
+        self._connection = connection.Connection(url=url,
+                                                 auth_client_secret=auth_client_secret,
+                                                 timeout_config=client_config.timeout_config)
+
         self.classification = Classification(self._connection)
 
     def create_thing(self, thing, class_name, uuid=None, vector_weights=None):

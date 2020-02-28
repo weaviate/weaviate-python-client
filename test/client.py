@@ -75,7 +75,38 @@ class TestWeaviateClient(unittest.TestCase):
         w = weaviate.Client("http://localhost:8080/")
         self.assertEqual("http://localhost:8080/v1", w._connection.url, "Should remove trailing slash")
 
+    def test_client_config(self):
+        # The client config is supposed to just be a model.
+        # The checking of the validity of the values should happen in the client.
 
+        # Should work
+        timeout = (3, 60)
+        config = weaviate.ClientConfig(timeout_config=timeout)
+        w = weaviate.Client("http://localhost:8080", client_config=config)
+        self.assertEqual(timeout, w._connection.timeout_config)
+
+        try:
+            config = weaviate.ClientConfig(timeout_config="very long timeout")
+            weaviate.Client("http://localhost:8080", client_config=config)
+            self.fail("Should throw error")
+        except TypeError:
+            pass
+
+        # Too long tupel
+        try:
+            config = weaviate.ClientConfig(timeout_config=(3, 4, 5))
+            weaviate.Client("http://localhost:8080", client_config=config)
+            self.fail("Should throw error")
+        except ValueError:
+            pass
+
+        # tupel of wrong kind
+        try:
+            config = weaviate.ClientConfig(timeout_config=("many", "short"))
+            weaviate.Client("http://localhost:8080", client_config=config)
+            self.fail("Should throw error")
+        except TypeError:
+            pass
 
 
 if __name__ == '__main__':
