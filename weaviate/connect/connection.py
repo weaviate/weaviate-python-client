@@ -11,9 +11,17 @@ WEAVIATE_REST_API_VERSION_PATH = "/v1"
 class Connection:
 
     def __init__(self, url, auth_client_secret=None, timeout_config=None):
+        """
+        :param url:
+        :param auth_client_secret:
+        :param timeout_config: Set the timeout config as a tuple of (retries, time out seconds)
+        :type timeout_config: tuple of int
+        """
         self.url = url+WEAVIATE_REST_API_VERSION_PATH  # e.g. http://localhost:80/v1
         if timeout_config is None:
             self.timeout_config = (2, 20)
+        else:
+            self.timeout_config = timeout_config
 
         self.auth_expires = 0  # unix time when auth expires
         self.auth_bearer = 0

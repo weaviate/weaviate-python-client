@@ -55,6 +55,7 @@ class TestWeaviateClient(unittest.TestCase):
             except Exception as e:
                 self.fail("Unexpected exception: " + str(e))
 
+
     def test_is_reachable(self):
         w = weaviate.Client("http://localhost:8080")
         connection_mock = Mock()
@@ -68,6 +69,12 @@ class TestWeaviateClient(unittest.TestCase):
         connection_mock.run_rest.side_effect = run_rest_raise_connection_error
         w._connection = connection_mock
         self.assertFalse(w.is_reachable())
+
+
+    def test_input_checking(self):
+        w = weaviate.Client("http://localhost:8080/")
+        self.assertEqual("http://localhost:8080/v1", w._connection.url, "Should remove trailing slash")
+
 
 
 

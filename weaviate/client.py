@@ -12,6 +12,7 @@ SCHEMA_CLASS_TYPE_ACTIONS = "actions"
 
 _PRIMITIVE_WEAVIATE_TYPES = ["string", "int", "boolean", "number", "date", "text", "geoCoordinates", "CrossRef"]
 
+
 class Client:
     """ A python native weaviate client
     """
@@ -22,9 +23,8 @@ class Client:
         :param url: To the weaviate instance.
         :type url: str
         :param auth_client_secret: Authentification client secret.
-        :type auth_client_secret: str
+        :type auth_client_secret: weaviate.AuthClientCredentials or weaviate.AuthClientPassword
         """
-        # TODO Document auth client secret
         if url is None:
             raise TypeError("URL is expected to be string but is None")
         if not isinstance(url, str):
@@ -40,6 +40,9 @@ class Client:
             ip = ip.split(':')[0]
             if not validators.ip_address.ipv4(ip):
                 raise ValueError("URL has no propper form: " + url)
+        if url.endswith("/"):
+            # remove trailing slash
+            url = url[:-1]
 
         self._connection = connection.Connection(url=url, auth_client_secret=auth_client_secret)
         self.classification = Classification(self._connection)
