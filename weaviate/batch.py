@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import validators
 import copy
 
+
 class ReferenceBatchRequest:
     """
     Collect references to add them in one request to weaviate.
@@ -62,8 +63,6 @@ class ThingsBatchRequest:
     Caution this batch will not be validated through weaviate.
     """
 
-    # TODO add length
-
     def __init__(self):
         self._things = []
 
@@ -82,9 +81,9 @@ class ThingsBatchRequest:
         :raises: TypeError, ValueError
         """
         if not isinstance(thing, dict):
-            raise TypeError
+            raise TypeError("Thing must be of type dict")
         if not isinstance(class_name, str):
-            raise TypeError
+            raise TypeError("Class name must be of type str")
 
         batch_item = {
             "class": class_name,
@@ -92,9 +91,9 @@ class ThingsBatchRequest:
         }
         if uuid is not None:
             if not isinstance(uuid, str):
-                raise TypeError
+                raise TypeError("UUID must be of type str")
             if not validators.uuid(uuid):
-                raise ValueError
+                raise ValueError("UUID is not in a proper form")
             batch_item["id"] = uuid
 
         self._things.append(batch_item)
