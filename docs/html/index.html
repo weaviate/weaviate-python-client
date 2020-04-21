@@ -43,10 +43,21 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>from_thing_uuid</strong> (<em>str in the form of an UUID</em>) – the thing that should have the reference as part of its properties.</p></li>
-<li><p><strong>from_property_name</strong> (<em>str</em>) – the name of the property within the thing.</p></li>
-<li><p><strong>to_thing_uuid</strong> (<em>str in the form of an UUID</em>) – the UUID of the thing that should be referenced.</p></li>
-<li><p><strong>to_weaviate</strong> (<em>str</em>) – specifies the weaviate instance on which the cross referenced thing is loacated</p></li>
+<li><p><strong>from_thing_uuid</strong> (<em>str in the form of an UUID</em>) – The thing that should have the reference as part of its properties.
+Accepts a plane UUID or an URL. E.g.
+‘weaviate://localhost/things/fc7eb129-f138-457f-b727-1b29db191a67’
+or
+‘fc7eb129-f138-457f-b727-1b29db191a67’</p></li>
+<li><p><strong>from_property_name</strong> (<em>str</em>) – The name of the property within the thing.</p></li>
+<li><p><strong>to_thing_uuid</strong> (<em>str in the form of an UUID</em>) – The UUID of the thing that should be referenced.
+Accepts a plane UUID or an URL. E.g.
+‘weaviate://localhost/things/fc7eb129-f138-457f-b727-1b29db191a67’
+or
+‘fc7eb129-f138-457f-b727-1b29db191a67’</p></li>
+<li><p><strong>to_weaviate</strong> (<em>str</em>) – Specifies the weaviate instance on which the cross referenced thing is located.
+Defaults to ‘localhost’.
+If ‘to_thing_uuid’ specifies an URL then ‘to_weviate’ must match the given domain
+or be explicitly set to None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -54,7 +65,9 @@
 </dd>
 <dt class="field-odd">Raises</dt>
 <dd class="field-odd"><p>ConnectionError: if the network connection to weaviate fails.
-UnexpectedStatusCodeException: if weaviate reports a none OK status.</p>
+UnexpectedStatusCodeException: if weaviate reports a none OK status.
+TypeError: If the parameters are of the wrong type
+ValueError: If the parameters are of the wrong value</p>
 </dd>
 </dl>
 </dd></dl>
@@ -393,9 +406,9 @@ Caution this request will miss some validations to be faster.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>from_thing_class_name</strong> (<em>str</em>) – The name of the class that should reference another thing.</p></li>
-<li><p><strong>from_thing_uuid</strong> (<em>str in form of UUID</em>) – The UUID of the thing that should reference another thing.</p></li>
+<li><p><strong>from_thing_uuid</strong> (<em>str in form of UUID</em>) – The UUID or URL of the thing that should reference another thing.</p></li>
 <li><p><strong>from_property_name</strong> (<em>str</em>) – The name of the property that contains the reference.</p></li>
-<li><p><strong>to_thing_uuid</strong> (<em>str</em>) – The UUID of the thing that is actually referenced.</p></li>
+<li><p><strong>to_thing_uuid</strong> (<em>str</em>) – The UUID or URL of the thing that is actually referenced.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -461,6 +474,49 @@ Caution this batch will not be validated through weaviate.</p>
 </dd>
 <dt class="field-odd">Raises</dt>
 <dd class="field-odd"><p>ValueError, TypeError</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="weaviate.util.get_domain_from_weaviate_url">
+<code class="sig-prename descclassname">weaviate.util.</code><code class="sig-name descname">get_domain_from_weaviate_url</code><span class="sig-paren">(</span><em class="sig-param">url</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.util.get_domain_from_weaviate_url" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>url</strong> (<em>str</em>) – Along this form: ‘weaviate://localhost/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2’</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="weaviate.util.get_uuid_from_weaviate_url">
+<code class="sig-prename descclassname">weaviate.util.</code><code class="sig-name descname">get_uuid_from_weaviate_url</code><span class="sig-paren">(</span><em class="sig-param">url</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.util.get_uuid_from_weaviate_url" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>url</strong> (<em>str</em>) – Along this form: ‘weaviate://localhost/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2’</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="weaviate.util.is_weaviate_thing_url">
+<code class="sig-prename descclassname">weaviate.util.</code><code class="sig-name descname">is_weaviate_thing_url</code><span class="sig-paren">(</span><em class="sig-param">input</em><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.util.is_weaviate_thing_url" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Checks if the input follows a normal url like this:</dt><dd><p>‘weaviate://localhost/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2’</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input</strong> (<em>str</em>) – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
 </dd>
 </dl>
 </dd></dl>
