@@ -24,11 +24,11 @@ class ReferenceBatchRequest:
 
         :param from_thing_class_name: The name of the class that should reference another thing.
         :type from_thing_class_name: str
-        :param from_thing_uuid: The UUID of the thing that should reference another thing.
+        :param from_thing_uuid: The UUID or URL of the thing that should reference another thing.
         :type from_thing_uuid: str in form of UUID
         :param from_property_name: The name of the property that contains the reference.
         :type from_property_name: str
-        :param to_thing_uuid: The UUID of the thing that is actually referenced.
+        :param to_thing_uuid: The UUID or URL of the thing that is actually referenced.
         :type to_thing_uuid: str
         :return: None if successful
         :raises:

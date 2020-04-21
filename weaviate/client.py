@@ -214,19 +214,31 @@ class Client:
     def add_reference_to_thing(self, from_thing_uuid, from_property_name, to_thing_uuid, to_weaviate="localhost"):
         """ Allows to link two objects unidirectionally.
 
-        :param from_thing_uuid: the thing that should have the reference as part of its properties.
+        :param from_thing_uuid: The thing that should have the reference as part of its properties.
+                                Accepts a plane UUID or an URL. E.g.
+                                'weaviate://localhost/things/fc7eb129-f138-457f-b727-1b29db191a67'
+                                or
+                                'fc7eb129-f138-457f-b727-1b29db191a67'
         :type from_thing_uuid: str in the form of an UUID
-        :param from_property_name: the name of the property within the thing.
+        :param from_property_name: The name of the property within the thing.
         :type from_property_name: str
-        :param to_thing_uuid: the UUID of the thing that should be referenced.
+        :param to_thing_uuid: The UUID of the thing that should be referenced.
+                              Accepts a plane UUID or an URL. E.g.
+                              'weaviate://localhost/things/fc7eb129-f138-457f-b727-1b29db191a67'
+                              or
+                              'fc7eb129-f138-457f-b727-1b29db191a67'
         :type to_thing_uuid: str in the form of an UUID
-        :param to_weaviate: specifies the weaviate instance on which the cross referenced thing is loacated
+        :param to_weaviate: Specifies the weaviate instance on which the cross referenced thing is located.
+                            Defaults to 'localhost'.
+                            If 'to_thing_uuid' specifies an URL then 'to_weviate' must match the given domain
+                            or be explicitly set to None.
         :type to_weaviate: str
         :return: None if successful.
         :raises:
             ConnectionError: if the network connection to weaviate fails.
             UnexpectedStatusCodeException: if weaviate reports a none OK status.
-
+            TypeError: If the parameters are of the wrong type
+            ValueError: If the parameters are of the wrong value
         """
 
         if not isinstance(from_thing_uuid, str):
