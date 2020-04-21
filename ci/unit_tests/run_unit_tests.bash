@@ -12,3 +12,4 @@ python -m unittest test.is_reachable
 python -m unittest test.patch_thing
 python -m unittest test.query
 python -m unittest test.schema
+python -m unittest test.util

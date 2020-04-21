@@ -64,3 +64,49 @@ def _get_dict_from_object(object_):
         raise TypeError(
             "Argument is not of the supported types. Supported types are url or file path as string or schema as dict.")
 
+
+def is_weaviate_thing_url(input):
+    """ Checks if the input follows a normal url like this:
+        'weaviate://localhost/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'
+
+    :param input:
+    :type input: str
+    :return:
+    """
+    if not isinstance(input, str):
+        return False
+    if not input.startswith("weaviate://"):
+        return False
+    input = input[11:]
+    split = input.split("/")
+    if len(split) != 3:
+        return False
+    if split[0] != "localhost":
+        if not validators.domain(split[0]):
+            return False
+    if split[1] != "things" and split[1] != "actions":
+        return False
+    if not validators.uuid(split[2]):
+        return False
+
+    return True
+
+
+def get_uuid_from_weaviate_url(url):
+    """
+
+    :param url: Along this form: 'weaviate://localhost/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'
+    :type url: str
+    :return:
+    """
+    return url.split("/")[-1]
+
+
+def get_domain_from_weaviate_url(url):
+    """
+
+    :param url: Along this form: 'weaviate://localhost/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'
+    :type url: str
+    :return:
+    """
+    return url[11:].split("/")[0]

@@ -109,26 +109,6 @@ class TestWeaviateClient(unittest.TestCase):
         except TypeError:
             pass
 
-    def test_is_weaviate_thing_url(self):
-        w = weaviate.Client("http://localhost:8081")
-        self.assertTrue(
-            w._is_weaviate_thing_url("weaviate://localhost/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2"))
-        self.assertTrue(
-            w._is_weaviate_thing_url("weaviate://some-domain.com/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2"))
-        self.assertTrue(
-            w._is_weaviate_thing_url("weaviate://localhost/actions/28f3f61b-b524-45e0-9bbe-2c1550bf73d2"))
-        self.assertFalse(
-            w._is_weaviate_thing_url("http://some-domain.com/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2"))
-        self.assertFalse(
-            w._is_weaviate_thing_url("weaviate://localhost/nachos/28f3f61b-b524-45e0-9bbe-2c1550bf73d2"))
-        self.assertFalse(
-            w._is_weaviate_thing_url("weaviate://localhost/things/f61b-b524-45e0-9bbe-2c1550bf73d2"))
-
-    def test_get_uuid_from_weaviate_url(self):
-        w = weaviate.Client("http://localhost:8081")
-        self.assertEqual("28f3f61b-b524-45e0-9bbe-2c1550bf73d2",
-                         w._get_uuid_from_weaviate_url(
-                             "weaviate://localhost/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2"))
 
     def test_add_reference_to_thing_types(self):
         w = weaviate.Client("http://localhost:8081")

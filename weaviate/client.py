@@ -4,7 +4,7 @@ import validators
 from .connect import *
 from .classify import Classification
 from .exceptions import *
-from .util import _get_dict_from_object
+from .util import _get_dict_from_object, get_uuid_from_weaviate_url, get_domain_from_weaviate_url, is_weaviate_thing_url
 from .client_config import ClientConfig
 from requests.exceptions import ConnectionError
 
@@ -209,48 +209,7 @@ class Client:
         else:
             raise UnexpectedStatusCodeException("PATCH merge of thing not successful", response)
 
-    def _is_weaviate_thing_url(self, input):
-        """
 
-        :param input:
-        :type input: str
-        :return:
-        """
-        if not isinstance(input, str):
-            return False
-        if not input.startswith("weaviate://"):
-            return False
-        input = input[11:]
-        split = input.split("/")
-        if len(split) != 3:
-            return False
-        if split[0] != "localhost":
-            if not validators.domain(split[0]):
-                return False
-        if split[1] != "things" and split[1] != "actions":
-            return False
-        if not validators.uuid(split[2]):
-            return False
-
-        return True
-
-    def _get_uuid_from_weaviate_url(self, url):
-        """
-
-        :param url:
-        :type url: str
-        :return:
-        """
-        return url.split("/")[-1]
-
-    def _get_domain_from_weaviate_url(self, url):
-        """
-
-        :param url:
-        :type url: str
-        :return:
-        """
-        return url[11:].split("/")[0]
 
     def add_reference_to_thing(self, from_thing_uuid, from_property_name, to_thing_uuid, to_weaviate="localhost"):
         """ Allows to link two objects unidirectionally.
@@ -277,15 +236,15 @@ class Client:
         if not isinstance(to_thing_uuid, str):
             raise TypeError("to_thing_uuid must be of type str but was: " + str(type(to_thing_uuid)))
 
-        if self._is_weaviate_thing_url(from_thing_uuid):
+        if is_weaviate_thing_url(from_thing_uuid):
             # If url extract uuid
-            from_thing_uuid = self._get_uuid_from_weaviate_url(from_thing_uuid)
+            from_thing_uuid = get_uuid_from_weaviate_url(from_thing_uuid)
         if not validators.uuid(from_thing_uuid):
             raise ValueError("from_thing_uuid does not contain a valid uuid")
 
-        if self._is_weaviate_thing_url(to_thing_uuid):
+        if is_weaviate_thing_url(to_thing_uuid):
 
-            to_thing_url_weavaite = self._get_domain_from_weaviate_url(to_thing_uuid)
+            to_thing_url_weavaite = get_domain_from_weaviate_url(to_thing_uuid)
             if to_weaviate is None:
                 to_weaviate = to_thing_url_weavaite
             else:
@@ -295,7 +254,7 @@ class Client:
                                      "'to_weaviate defaults to 'localhost' "
                                      "considder explicitly setting it to the right domain or None.")
 
-            to_thing_uuid = self._get_uuid_from_weaviate_url(to_thing_uuid)
+            to_thing_uuid = get_uuid_from_weaviate_url(to_thing_uuid)
         if not validators.uuid(to_thing_uuid):
             raise ValueError("to_thing_uuid does not contain a valid uuid")
 

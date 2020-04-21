@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import validators
 import copy
+from weaviate.util import is_weaviate_thing_url, get_uuid_from_weaviate_url
 
 
 class ReferenceBatchRequest:
@@ -37,6 +38,12 @@ class ReferenceBatchRequest:
         if not isinstance(from_thing_class_name, str) or not isinstance(from_thing_uuid, str) or \
                 not isinstance(from_property_name, str) or not isinstance(to_thing_uuid, str):
             raise TypeError('All arguments must be of type string')
+
+        if is_weaviate_thing_url(from_thing_uuid):
+            from_thing_uuid = get_uuid_from_weaviate_url(from_thing_uuid)
+        if is_weaviate_thing_url(to_thing_uuid):
+            to_thing_uuid = get_uuid_from_weaviate_url(to_thing_uuid)
+
 
         self._from_thing_class_names.append(from_thing_class_name)
         self._from_thing_ids.append(from_thing_uuid)
