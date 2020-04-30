@@ -23,6 +23,7 @@ while [ $? -ne 0 ]; do
   sleep 10
   if [ $i -gt 300 ]; then
     echo "Weaviate did not start in time"
+    cat nohup.out
     exit 1
   fi
   curl localhost:8080/v1/meta
