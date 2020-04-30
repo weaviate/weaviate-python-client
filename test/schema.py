@@ -424,5 +424,28 @@ class TestSchema(unittest.TestCase):
         connection_mock_dict.run_rest.assert_called()
 
 
+    def test_invalid_schema(self):
+        schema = {
+            "class": "Category",
+            "description": "Category an article is a type off",
+            "properties": [
+              {
+                "cardinality": "atMostOne",
+                "dataType": [
+                  "text"
+                ],
+                "description": "category name",
+                "name": "name"
+              }
+            ]
+        }
+        w = weaviate.Client("http://localhost:1234")
+        try:
+            w.create_schema(schema)
+            self.fail("Expected SchemaValidationException")
+        except weaviate.SchemaValidationException:
+            pass
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -48,3 +48,8 @@ class ServerError500Exception(Exception):
 
     def __str__(self):
         return self.message
+
+class SchemaValidationException(Exception):
+
+    def __init__(self, message):
+        super().__init__(message)

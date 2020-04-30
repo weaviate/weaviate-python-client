@@ -6,6 +6,7 @@ from .classify import Classification
 from .exceptions import *
 from .util import _get_dict_from_object, get_uuid_from_weaviate_url, get_domain_from_weaviate_url, is_weaviate_thing_url
 from .client_config import ClientConfig
+from .validate_schema import validate_schema
 from requests.exceptions import ConnectionError
 
 SCHEMA_CLASS_TYPE_THINGS = "things"
@@ -282,6 +283,14 @@ class Client:
 
         path = "/things/" + from_thing_uuid + "/references/" + from_property_name
 
+        # TODO allow replacement of references
+        #:param replace_reference: If true the reference is not appended but replaces an existing reference instead.
+        #:type replace_reference: bool
+        #
+        # method = REST_METHOD_POST
+        # if replace_reference:
+        #     method = REST_METHOD_PUT
+
         try:
             response = self._connection.run_rest(path, REST_METHOD_POST, beacon)
         except ConnectionError as conn_err:
@@ -477,6 +486,7 @@ class Client:
             ValueError: if schema can not be converted into a weaviate schema.
             ConnectionError: if the network connection to weaviate fails.
             UnexpectedStatusCodeException: if weaviate reports a none OK status.
+            SchemaValidationException: if the schema could not be validated against the standard format.
         """
         try:
             loaded_schema = _get_dict_from_object(schema)
@@ -484,6 +494,9 @@ class Client:
             raise
         except UnexpectedStatusCodeException:
             raise
+
+        # validate the schema before loading
+        validate_schema(loaded_schema)
 
         if SCHEMA_CLASS_TYPE_THINGS in loaded_schema:
             self._create_class_with_primitives(SCHEMA_CLASS_TYPE_THINGS,
