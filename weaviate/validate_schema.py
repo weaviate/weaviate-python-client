@@ -27,13 +27,13 @@ def _check_class(class_definition):
     """
     # check mandatory keys
     if "class" not in class_definition:
-        raise SchemaValidationException(f"\"class\" key is missing in class definition.")
+        raise SchemaValidationException("\"class\" key is missing in class definition.")
 
     # check optional keys
     for key in class_definition.keys():
         # Check if key is known
         if key not in ["class", "description", "vectorizeClassName", "keywords", "properties"]:
-            raise SchemaValidationException(f"{key} is not a known class definition key.")
+            raise SchemaValidationException("{key} is not a known class definition key.".format(key=key))
         # check if key is right type
         if key == "vectorizeClassName":
             _check_key_type(key, class_definition[key], bool)
@@ -53,7 +53,7 @@ def _check_class(class_definition):
 def _check_key_type(key, value, expected_type):
     type_of_value = type(value)
     if type(value) != expected_type:
-        raise SchemaValidationException(f"{key} is type {type_of_value} but should be {expected_type}.")
+        raise SchemaValidationException("{key} is type {type_of_value} but should be {expected_type}.".format(key=key, type_of_value=type_of_value, expected_type=expected_type))
 
 
 def _check_keywords(keywords):
@@ -71,7 +71,7 @@ def _check_keywords(keywords):
             _check_key_type("weight", word_item["weight"], float)
         for word_key in word_item:
             if word_key not in ["keyword", "weight"]:
-                raise SchemaValidationException(f"Unknown key in \"keywords\" item: {word_key}")
+                raise SchemaValidationException("Unknown key in \"keywords\" item: {word_key}".format(word_key=word_key))
 
 
 def _check_property(class_property):
@@ -88,7 +88,7 @@ def _check_property(class_property):
 
     for key in class_property:
         if key not in ["dataType", "name", "vectorizePropertyName", "keywords", "cardinality", "description", "index"]:
-            raise SchemaValidationException(f"Property key {key} is not known.")
+            raise SchemaValidationException("Property key {key} is not known.".format(key=key))
 
         # Test types
         if key in ["dataType", "keywords"]:
@@ -103,7 +103,7 @@ def _check_property(class_property):
         cardinality = class_property["cardinality"]
         if cardinality != "many" and cardinality != "atMostOne":
             raise SchemaValidationException(
-                f"Property cardinality must either be \"many\" or \"atMostOne\" but was {cardinality}")
+                "Property cardinality must either be \"many\" or \"atMostOne\" but was {cardinality}".format(cardinality=cardinality))
 
     # Test keywords
     if "keywords" in class_property:
@@ -122,9 +122,9 @@ def _check_schema_class_types(class_type, content):
     :return:
     """
     if not ("classes" in content):
-        raise SchemaValidationException(f"{class_type} does not contain mandatory key \"classes\".")
+        raise SchemaValidationException("{class_type} does not contain mandatory key \"classes\".".format(class_type=class_type))
     if type(content["classes"]) != list:
-        raise SchemaValidationException(f"\"classes\" in {class_type} must be of type list.")
+        raise SchemaValidationException("\"classes\" in {class_type} must be of type list.".format(class_type=class_type))
 
 
 def _check_schema_class_type_definitions(keys):
@@ -139,4 +139,4 @@ def _check_schema_class_type_definitions(keys):
                                         "Please specify \"actions\" and/or \"things\".")
     for key in keys:
         if key not in ["things", "actions"]:
-            raise SchemaValidationException(f"{key} is not a valid schema class type.")
+            raise SchemaValidationException("{key} is not a valid schema class type.".format(key=key))
