@@ -53,6 +53,9 @@ def _check_class(class_definition):
 def _check_key_type(key, value, expected_type):
     type_of_value = type(value)
     if type(value) != expected_type:
+        if expected_type == str and type_of_value == unicode:
+            # python2.7 compatiblity
+            return
         raise SchemaValidationException("{key} is type {type_of_value} but should be {expected_type}.".format(key=key, type_of_value=type_of_value, expected_type=expected_type))
 
 
