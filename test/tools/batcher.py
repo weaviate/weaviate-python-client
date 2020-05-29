@@ -1,7 +1,11 @@
 import unittest
-from unittest.mock import Mock
 from weaviate.tools import Batcher
 import uuid
+import sys
+if sys.version_info[0] == 2:
+    from mock import MagicMock as Mock
+else:
+    from unittest.mock import Mock
 
 
 class TestBatcher(unittest.TestCase):

@@ -1,21 +1,28 @@
 #!/bin/bash
 
+function runTest {
+    echo "Testing: $1"
+    python -m unittest "$1"
+}
+
+
+
 # /test
-python -m unittest test.add_reference_batch
-python -m unittest test.add_thing
-python -m unittest test.add_thing_batch
-python -m unittest test.auth
-python -m unittest test.c11y
-python -m unittest test.classification
-python -m unittest test.client
-python -m unittest test.delete
-python -m unittest test.exceptions
-python -m unittest test.is_reachable
-python -m unittest test.patch_thing
-python -m unittest test.query
-python -m unittest test.schema
-python -m unittest test.util
-python -m unittest test.validate_schema
+runTest "test.add_reference_batch"
+runTest "test.add_thing"
+runTest "test.add_thing_batch"
+runTest "test.auth"
+runTest "test.c11y"
+runTest "test.classification"
+runTest "test.client"
+runTest "test.delete"
+runTest "test.exceptions"
+runTest "test.is_reachable"
+runTest "test.patch_thing"
+runTest "test.query"
+runTest "test.schema"
+runTest "test.util"
+runTest "test.validate_schema"
 
 # /test/tools
-python -m unittest test.tools.batcher
+runTest "test.tools.batcher"

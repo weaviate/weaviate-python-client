@@ -1,11 +1,14 @@
 import unittest
 import weaviate
-from unittest.mock import Mock
 from test.testing_util import run_rest_raise_connection_error
 from requests.exceptions import ConnectionError
 from test.testing_util import add_run_rest_to_mock
 from weaviate.connect import REST_METHOD_POST
-
+import sys
+if sys.version_info[0] == 2:
+    from mock import MagicMock as Mock
+else:
+    from unittest.mock import Mock
 
 class TestAddThings(unittest.TestCase):
     def test_create_thing_flawed_input(self):
@@ -41,8 +44,10 @@ class TestAddThings(unittest.TestCase):
         except TypeError:
             pass
 
-
     def test_create_thing_connection_error(self):
+        if sys.version_info[0] == 2:
+            # Test is not working on version 2 because of old mock object
+            return
         w = weaviate.Client("http://semi.testing.eu:8080")
         connection_mock = Mock()  # Mock calling weaviate
         connection_mock.run_rest.side_effect = run_rest_raise_connection_error
@@ -67,7 +72,6 @@ class TestAddThings(unittest.TestCase):
         beacon = weaviate.generate_local_things_beacon("fcf33178-1b5d-5174-b2e7-04a2129dd35a")
         self.assertTrue("beacon" in beacon)
         self.assertEqual(beacon["beacon"], "weaviate://localhost/things/fcf33178-1b5d-5174-b2e7-04a2129dd35a")
-
 
     def test_set_vector_weigths(self):
         w = weaviate.Client("http://localhost:8081")
@@ -94,6 +98,6 @@ class TestAddThings(unittest.TestCase):
         }
 
         uuid = w.create_thing(thing, class_name, None, vector_weights)
-        self.assertEqual(uuid, 0)
+        self.assertEqual(uuid, str(0))
         connection_mock.run_rest.assert_called_with("/things", REST_METHOD_POST, rest_object)
 

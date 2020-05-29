@@ -3,8 +3,6 @@ import time
 from requests.exceptions import ReadTimeout, Timeout, ConnectionError
 
 
-# TODO add __enter and __exit
-
 class Batcher:
     """ manages batches and batch loading
     """
