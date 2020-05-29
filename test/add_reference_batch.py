@@ -3,6 +3,7 @@ import weaviate
 from weaviate.connect import REST_METHOD_POST
 from test.testing_util import *
 
+
 class TestReferences(unittest.TestCase):
 
     def test_batch_length(self):

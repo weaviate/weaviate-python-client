@@ -54,6 +54,8 @@ jobs:
 
     - stage: "integration test"
       name: "integration 3.6"
+      env:
+        - PYTHONPATH=$(pwd)
       branches:
         only:
           - master
@@ -68,6 +70,8 @@ jobs:
 
     - stage: "integration test"
       name: "integration 2.7"
+      env:
+        - PYTHONPATH=$(pwd)
       branches:
         only:
           - master
