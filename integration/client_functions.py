@@ -17,7 +17,7 @@ if w.contains_schema():
     exit(3)
 
 print("Load a schema")
-schema_json_file = os.path.join(os.path.dirname(__file__), "people_schema.json")
+schema_json_file = os.path.join(os.path.dirname(__file__), "../ci/people_schema.json")
 w.create_schema(schema_json_file)
 
 if not w.contains_schema():
