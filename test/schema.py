@@ -280,8 +280,6 @@ stop_vectorization_schema = {
 }
 
 
-
-
 class TestSchema(unittest.TestCase):
     def test_create_schema_invalid_input(self):
         w = weaviate.Client("http://localhost:8080")
@@ -381,28 +379,6 @@ class TestSchema(unittest.TestCase):
         self.assertTrue("things" in schema)
         self.assertEqual(len(schema["things"]["classes"]), 2)
 
-
-    def test_contains_schema(self):
-        # If a schema is present it should return true otherwise false
-        # 1. test schema is present:
-        w = weaviate.Client("http://localhost:8080")
-
-        connection_mock_file = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock_file, persons_return_test_schema)
-        w._connection = connection_mock_file  # Replace connection with mock
-
-        self.assertTrue(w.contains_schema())
-
-        # 2. test no schema is present:
-        w = weaviate.Client("http://localhost:8080")
-
-        connection_mock_file = Mock()  # Mock calling weaviate
-        empty_schema = {"actions":{"classes":[],"type":"action"},"things":{"classes":[],"type":"thing"}}
-        add_run_rest_to_mock(connection_mock_file, empty_schema)
-        w._connection = connection_mock_file  # Replace connection with mock
-
-        self.assertFalse(w.contains_schema())
-
     def test_create_schema_with_explicit_index(self):
         w = weaviate.Client("http://localhost:8080")
 
@@ -445,6 +421,57 @@ class TestSchema(unittest.TestCase):
             self.fail("Expected SchemaValidationException")
         except weaviate.SchemaValidationException:
             pass
+
+
+class TestContainsSchema(unittest.TestCase):
+
+    def test_contains_a_schema(self):
+        # If a schema is present it should return true otherwise false
+        # 1. test schema is present:
+        w = weaviate.Client("http://localhost:8080")
+
+        connection_mock_file = Mock()  # Mock calling weaviate
+        add_run_rest_to_mock(connection_mock_file, persons_return_test_schema)
+        w._connection = connection_mock_file  # Replace connection with mock
+
+        self.assertTrue(w.contains_schema())
+
+        # 2. test no schema is present:
+        w = weaviate.Client("http://localhost:8080")
+
+        connection_mock_file = Mock()  # Mock calling weaviate
+        empty_schema = {"actions":{"classes":[],"type":"action"},"things":{"classes":[],"type":"thing"}}
+        add_run_rest_to_mock(connection_mock_file, empty_schema)
+        w._connection = connection_mock_file  # Replace connection with mock
+
+        self.assertFalse(w.contains_schema())
+
+    def test_contains_specific_schema(self):
+        w = weaviate.Client("http://localhost:8080")
+
+        connection_mock_file = Mock()  # Mock calling weaviate
+        add_run_rest_to_mock(connection_mock_file, persons_return_test_schema)
+        w._connection = connection_mock_file  # Replace connection with mock
+        self.assertFalse(w.contains_schema(company_test_schema))
+        subset_schema = {
+            "things": {
+                "classes": [
+                    {
+                        "class": "Person",
+                        "description": "",
+                        "properties": [{
+                                "cardinality": "atMostOne",
+                                "dataType": ["text"],
+                                "description": "",
+                                "name": "name"
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+        self.assertTrue(w.contains_schema(subset_schema))
+
 
 
 if __name__ == '__main__':

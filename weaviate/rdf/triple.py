@@ -20,10 +20,7 @@ class TripleLoader:
         self._batcher = None
 
     def _add_schema(self):
-        # TODO more elaborate test if the classes already exist
-        #  There might be a bigger schema already present that does
-        #  not contain the right classes
-        if not self._client.contains_schema():
+        if not self._client.contains_schema(tripple_schema):
             self._client.create_schema(tripple_schema)
 
     def _add_rdf_object(self, value, class_name):

@@ -53,5 +53,8 @@ class TestBatcher(unittest.TestCase):
         assert client_mock.add_references_in_batch.called
 
     def test_with_batcher(self):
-        with Batcher()
+        client_mock = Mock()
+        with Batcher(client_mock) as batcher:
+            batcher.add_thing({}, "MyClass", str(uuid.uuid4()))
 
+        assert client_mock.create_things_in_batch.called

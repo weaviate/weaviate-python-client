@@ -8,13 +8,13 @@ with open(path.join(this_directory, 'readme.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(name="weaviate-client",
-      version="0.3.5", #rc0
+      version="0.3.6rc0", # rc0
       description="A python native weaviate client",
       long_description=long_description,
       long_description_content_type='text/markdown',
       author="SeMI Technologies",
       author_email="hello@semi.technology",
-      packages=["weaviate", "weaviate.connect"],
+      packages=["weaviate", "weaviate.connect", "weaviate.tools", "weaviate.rdf"],
       python_requires='>=2.7',
       install_requires=[
         "requests>=2.22.0",

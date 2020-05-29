@@ -27,7 +27,7 @@ class Batcher:
         self._print_errors_activated = print_errors
 
     def __enter__(self):
-        pass
+        return self
 
     def _print_errors(self, request_result):
         if not self._print_errors_activated:
@@ -104,5 +104,8 @@ class Batcher:
         self._things_batch = None
         self._client = None
 
-    def __exit__(self):
-        pass
+    def __exit__(self, exception_type, exception_value, traceback):
+        try:
+            self.close()
+        except Exception as e:
+            print(e)

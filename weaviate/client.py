@@ -4,7 +4,8 @@ import validators
 from .connect import *
 from .classify import Classification
 from .exceptions import *
-from .util import _get_dict_from_object, get_uuid_from_weaviate_url, get_domain_from_weaviate_url, is_weaviate_thing_url
+from .util import _get_dict_from_object, get_uuid_from_weaviate_url, get_domain_from_weaviate_url, \
+    is_weaviate_thing_url, _is_sub_schema
 from .client_config import ClientConfig
 from .validate_schema import validate_schema
 from requests.exceptions import ConnectionError
@@ -682,17 +683,23 @@ class Client:
         else:
             raise UnexpectedStatusCodeException("Get schema", response)
 
-    def contains_schema(self):
+    def contains_schema(self, schema=None):
         """ To check if weaviate already contains a schema.
 
+        :param schema: if a schema is given it is checked if this
+            specific schema is already loaded. It will test only this schema.
+            If the given schema is a subset of the loaded schema it will still return true.
         :return: True if a schema is present otherwise False
+        :rtype: bool
         :raises:
             ConnectionError: In case of network issues.
         """
+        loaded_schema = self.get_schema()
 
-        schema = self.get_schema()
+        if schema is not None:
+            return _is_sub_schema(schema, loaded_schema)
 
-        if len(schema["things"]["classes"]) > 0 or len(schema["actions"]["classes"]) > 0:
+        if len(loaded_schema["things"]["classes"]) > 0 or len(loaded_schema["actions"]["classes"]) > 0:
             return True
 
         return False

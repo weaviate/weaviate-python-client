@@ -52,7 +52,7 @@ jobs:
         - /bin/bash ci/unit_tests/run_unit_tests.bash
 
 
-    - stage: "Integration test"
+    - stage: "integration test"
       name: "integration 3.6"
       branches:
         only:
@@ -63,9 +63,10 @@ jobs:
         - pip install .
         - /bin/bash ci/start_weaviate.bash
       script:
-        - python ci/integration_test.py
+        - python integration/client_functions.py
+        - python integration/rdf.py
 
-    - stage: "Integration test"
+    - stage: "integration test"
       name: "integration 2.7"
       branches:
         only:
@@ -76,7 +77,8 @@ jobs:
         - python setup.py install
         - /bin/bash ci/start_weaviate.bash
       script:
-        - python ci/integration_test.py
+        - python integration/client_functions.py
+        - python integration/rdf.py
 
 #    - stage: "Build documentation"
 #      language: python

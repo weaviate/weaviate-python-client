@@ -1,6 +1,7 @@
 import os
 import time
-from .queries import *
+from integration.queries import *
+
 
 
 print("Weaviate should be running at local host 8080")

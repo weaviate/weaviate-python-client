@@ -110,3 +110,69 @@ def get_domain_from_weaviate_url(url):
     :return:
     """
     return url[11:].split("/")[0]
+
+
+def _is_sub_schema(sub_schema, schema):
+    """
+
+    :param sub_schema: the smaller schema that should be contained in the other schema
+    :param schema: the
+    :return:
+    """
+    is_sub_set_actions = _is_sub_schema_schema_class(sub_schema, schema, "actions")
+    is_sub_set_things = _is_sub_schema_schema_class(sub_schema, schema, "things")
+    return is_sub_set_actions and is_sub_set_things
+
+
+def _is_sub_schema_schema_class(sub_schema, schema, schema_class):
+    if schema_class in sub_schema:
+        if schema_class in schema:
+            schema_classes = schema[schema_class].get("classes", [])
+        else:
+            # Even if schema_class is not present it might be as a empty node
+            # only the classes itself should be important for the schema comparison
+            schema_classes = []
+
+        sub_schema_classes = sub_schema[schema_class].get("classes", [])
+
+        return _compare_class_sets(sub_schema_classes, schema_classes)
+
+    return True
+
+def _compare_class_sets(sub_set, set):
+    """
+
+    :param sub_set:
+    :type sub_set: list
+    :param set:
+    :type set: list
+    :return: True if subset in set
+    """
+    for sub_set_class in sub_set:
+        found = False
+        for set_class in set:
+            if sub_set_class["class"] == set_class["class"]:
+                if _compare_properties(sub_set_class["properties"], set_class["properties"]):
+                    found = True
+                    break
+        if not found:
+            return False
+    return True
+
+
+def _compare_properties(sub_set, set):
+    """
+
+    :param sub_set:
+    :param set:
+    :return: True if subset in set
+    """
+    for sub_set_property in sub_set:
+        found = False
+        for set_property in set:
+            if sub_set_property["name"] == set_property["name"]:
+                found = True
+                break
+        if not found:
+            return False
+    return True

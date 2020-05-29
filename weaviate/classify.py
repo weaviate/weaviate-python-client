@@ -1,4 +1,3 @@
-
 from .exceptions import UnexpectedStatusCodeException
 from .connect import REST_METHOD_POST, REST_METHOD_GET
 import sys
@@ -9,12 +8,20 @@ SOURCE_WHERE_FILTER = 0
 TRAINING_SET_WHERE_FILTER = 1
 TARGET_WHERE_FILTER = 2
 
+
 class Classification:
 
     def __init__(self, connection):
         self._connection = connection
 
     def start(self, config):
+        """ Start the classification described by the config on weaviate and return the status.
+            Does not block or wait until the classification is complete.
+
+        :param config: for the classification.
+                       A config can be created using get_contextual_config or get_knn_config.
+        :return: the weaviate response if successfully started or an Exception.
+        """
 
         try:
             response = self._connection.run_rest("/classifications", REST_METHOD_POST, config)
