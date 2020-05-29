@@ -9,7 +9,6 @@ else:
 
 
 class TestBatcher(unittest.TestCase):
-
     def test_batcher_add_thing(self):
         client_mock = Mock()
         batcher = Batcher(client_mock, 3)
