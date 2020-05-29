@@ -8,6 +8,7 @@ if sys.version_info[0] == 2:
 else:
     from unittest.mock import Mock
 
+
 class TestClassification(unittest.TestCase):
 
     def test_contextual_classification(self):
