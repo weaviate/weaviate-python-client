@@ -9,9 +9,7 @@ from .util import _get_dict_from_object, get_uuid_from_weaviate_url, get_domain_
 from .client_config import ClientConfig
 from .validate_schema import validate_schema
 from requests.exceptions import ConnectionError
-
-SCHEMA_CLASS_TYPE_THINGS = "things"
-SCHEMA_CLASS_TYPE_ACTIONS = "actions"
+from weaviate import SEMANTIC_TYPE_ACTIONS, SEMANTIC_TYPE_THINGS
 
 _PRIMITIVE_WEAVIATE_TYPES = ["string", "int", "boolean", "number", "date", "text", "geoCoordinates", "CrossRef"]
 
@@ -69,6 +67,29 @@ class Client:
 
         self.classification = Classification(self._connection)
 
+    def create_action(self, action, class_name, uuid=None, vector_weights=None):
+        """ Takes a dict describing the action and adds it to weaviate
+
+        :param action: Action to be added.
+        :type action: str
+        :param class_name: Associated with the action given.
+        :type class_name: str
+        :param uuid: Action will be created under this uuid if it is provided.
+        :type uuid: str
+        :param vector_weights: Influence the weight of words on action creation.
+        :type vector_weights: dict
+        :return: The UUID of the creaded thing if successful.
+        :raises:
+            TypeError: if argument is of wrong type.
+            ValueError: if argument contains an invalid value.
+            ThingAlreadyExistsException: if an thing with the given uuid already exists within weaviate.
+            UnexpectedStatusCodeException: if creating the thing in weavate failed with a different reason,
+            more information is given in the exception.
+            ConnectionError: if the network connection to weaviate fails.
+        :rtype: str
+        """
+        return self._create_object(SEMANTIC_TYPE_ACTIONS, action, class_name, uuid, vector_weights)
+
     def create_thing(self, thing, class_name, uuid=None, vector_weights=None):
         """ Takes a dict describing the thing and adds it to weaviate
 
@@ -88,16 +109,35 @@ class Client:
             UnexpectedStatusCodeException: if creating the thing in weavate failed with a different reason,
             more information is given in the exception.
             ConnectionError: if the network connection to weaviate fails.
+        :rtype: str
+        """
+        return self._create_object(SEMANTIC_TYPE_THINGS, thing, class_name, uuid, vector_weights)
+
+    def _create_object(self, semantic_type, w_object, class_name, uuid=None, vector_weights=None):
+        """ Implements the generic adding of an object to weaviate.
+            See also create_thing and create_action
+
+        :param semantic_type: defined in constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
+        :type semantic_type: str
+        :param w_object:
+        :type w_object: dict
+        :param class_name:
+        :type class_name: str
+        :param uuid:
+        :type uuid: str
+        :param vector_weights:
+        :type vector_weights: dict
+        :return:
         """
 
-        if not isinstance(thing, dict):
-            raise TypeError("Expected thing to be of type dict instead it was: "+str(type(thing)))
+        if not isinstance(w_object, dict):
+            raise TypeError(f"Expected {semantic_type[:-1]} to be of type dict instead it was: {str(type(w_object))}")
         if not isinstance(class_name, str):
-            raise TypeError("Expected class_name of type str but was: "+str(type(class_name)))
+            raise TypeError(f"Expected class_name of type str but was: {str(type(class_name))}")
 
         weaviate_obj = {
             "class": class_name,
-            "schema": thing
+            "schema": w_object
         }
         if uuid is not None:
             if not isinstance(uuid, str):
@@ -114,9 +154,9 @@ class Client:
             weaviate_obj["vectorWeights"] = vector_weights
 
         try:
-            response = self._connection.run_rest("/things", REST_METHOD_POST, weaviate_obj)
+            response = self._connection.run_rest(f"/{semantic_type}", REST_METHOD_POST, weaviate_obj)
         except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err) + ' Connection error, thing was not added to weaviate.').with_traceback(
+            raise type(conn_err)(str(conn_err) + ' Connection error, object was not added to weaviate.').with_traceback(
                 sys.exc_info()[2])
 
         if response.status_code == 200:
@@ -210,8 +250,6 @@ class Client:
             return None  # success
         else:
             raise UnexpectedStatusCodeException("PATCH merge of thing not successful", response)
-
-
 
     def add_reference_to_thing(self, from_thing_uuid, from_property_name, to_thing_uuid, to_weaviate="localhost"):
         """ Allows to link two objects unidirectionally.
@@ -499,26 +537,26 @@ class Client:
         # validate the schema before loading
         validate_schema(loaded_schema)
 
-        if SCHEMA_CLASS_TYPE_THINGS in loaded_schema:
-            self._create_class_with_primitives(SCHEMA_CLASS_TYPE_THINGS,
-                                               loaded_schema[SCHEMA_CLASS_TYPE_THINGS]["classes"])
-        if SCHEMA_CLASS_TYPE_ACTIONS in loaded_schema:
-            self._create_class_with_primitives(SCHEMA_CLASS_TYPE_ACTIONS,
-                                               loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS]["classes"])
-        if SCHEMA_CLASS_TYPE_THINGS in loaded_schema:
-            self._create_complex_properties(SCHEMA_CLASS_TYPE_THINGS,
-                                            loaded_schema[SCHEMA_CLASS_TYPE_THINGS]["classes"])
-        if SCHEMA_CLASS_TYPE_ACTIONS in loaded_schema:
-            self._create_complex_properties(SCHEMA_CLASS_TYPE_ACTIONS,
-                                            loaded_schema[SCHEMA_CLASS_TYPE_ACTIONS]["classes"])
+        if SEMANTIC_TYPE_THINGS in loaded_schema:
+            self._create_class_with_primitives(SEMANTIC_TYPE_THINGS,
+                                               loaded_schema[SEMANTIC_TYPE_THINGS]["classes"])
+        if SEMANTIC_TYPE_ACTIONS in loaded_schema:
+            self._create_class_with_primitives(SEMANTIC_TYPE_ACTIONS,
+                                               loaded_schema[SEMANTIC_TYPE_ACTIONS]["classes"])
+        if SEMANTIC_TYPE_THINGS in loaded_schema:
+            self._create_complex_properties(SEMANTIC_TYPE_THINGS,
+                                            loaded_schema[SEMANTIC_TYPE_THINGS]["classes"])
+        if SEMANTIC_TYPE_ACTIONS in loaded_schema:
+            self._create_complex_properties(SEMANTIC_TYPE_ACTIONS,
+                                            loaded_schema[SEMANTIC_TYPE_ACTIONS]["classes"])
 
-    def _create_class_with_primitives(self, schema_class_type, schema_classes_list):
+    def _create_class_with_primitives(self, semantic_type, schema_classes_list):
         """ Create all the classes in the list and primitive properties.
         This function does not create references,
         to avoid references to classes that do not yet exist.
 
-        :param schema_class_type: can be found as constants e.g. SCHEMA_CLASS_TYPE_THINGS.
-        :type schema_class_type: SCHEMA_CLASS_TYPE_THINGS or SCHEMA_CLASS_TYPE_ACTIONS
+        :param semantic_type: can be found as constants e.g. SEMANTIC_TYPE_THINGS.
+        :type semantic_type: SEMANTIC_TYPE_THINGS or SEMANTIC_TYPE_ACTIONS
         :param schema_classes_list: classes as they are found in a schema json description.
         :type schema_classes_list: list
         :return: None if successful.
@@ -545,7 +583,7 @@ class Client:
 
             # Add the item
             try:
-                response = self._connection.run_rest("/schema/" + schema_class_type, REST_METHOD_POST, schema_class)
+                response = self._connection.run_rest("/schema/" + semantic_type, REST_METHOD_POST, schema_class)
             except ConnectionError as conn_err:
                 raise type(conn_err)(str(conn_err)
                                      + ' Connection error, class may not have been created properly.').with_traceback(
@@ -602,11 +640,11 @@ class Client:
                 return False
         return True
 
-    def _create_complex_properties(self, schema_class_type, schema_classes_list):
+    def _create_complex_properties(self, semantic_type, schema_classes_list):
         """ Add crossreferences to already existing classes
 
-        :param schema_class_type: can be found as constants e.g. SCHEMA_CLASS_TYPE_THINGS.
-        :type schema_class_type: SCHEMA_CLASS_TYPE_THINGS or SCHEMA_CLASS_TYPE_ACTIONS
+        :param semantic_type: can be found as constants e.g. SEMANTIC_TYPE_THINGS.
+        :type semantic_type: SEMANTIC_TYPE_THINGS or SEMANTIC_TYPE_ACTIONS
         :param schema_classes_list: classes as they are found in a schema json description.
         :type schema_classes_list: list
         :return: None if successful.
@@ -638,7 +676,7 @@ class Client:
                 if "keywords" in property_:
                     schema_property["keywords"] = property_["keywords"]
 
-                path = "/schema/"+schema_class_type+"/"+schema_class["class"]+"/properties"
+                path = "/schema/" + semantic_type + "/" + schema_class["class"] + "/properties"
                 try:
                     response = self._connection.run_rest(path, REST_METHOD_POST, schema_property)
                 except ConnectionError as conn_err:

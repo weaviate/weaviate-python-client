@@ -2,6 +2,7 @@ import validators
 import requests
 import json
 import os
+from weaviate import SEMANTIC_TYPE_ACTIONS, SEMANTIC_TYPE_THINGS
 
 
 def generate_local_things_beacon(to_thing_uuid):
@@ -11,14 +12,40 @@ def generate_local_things_beacon(to_thing_uuid):
     :param to_thing_uuid: The uuid of the object that will be referenced
     :type to_thing_uuid: str
     :return: the beacon in form of a dict
+    :rtype: dict
     :raises: ValueError, TypeError
     """
-    if not isinstance(to_thing_uuid, str):
+    return generate_local_beacon(SEMANTIC_TYPE_THINGS, to_thing_uuid)
+
+
+def generate_local_actions_beacon(to_action_uuid):
+    """ Generates a beacon to the given action.
+        This may be helpful when adding cross references to objects.
+
+    :param to_action_uuid:
+    :type to_action_uuid: str
+    :return:  the beacon in form of a dict
+    :rtype: dict
+    :raises: ValueError, TypeError
+    """
+    return generate_local_beacon(SEMANTIC_TYPE_ACTIONS, to_action_uuid)
+
+
+def generate_local_beacon(semantic_type, to_uuid):
+    """ Generates a beacon to the given schema class type with the given uuid.
+
+    :param semantic_type: defined in constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS.
+    :type semantic_type: str
+    :param to_uuid:
+    :type to_uuid: str
+    :return:
+    """
+    if not isinstance(to_uuid, str):
         raise TypeError("Expected to_thing_uuid of type str")
-    if not validators.uuid(to_thing_uuid):
+    if not validators.uuid(to_uuid):
         raise ValueError("Uuid does not have the propper form")
 
-    return {"beacon": "weaviate://localhost/things/" + to_thing_uuid}
+    return {"beacon": f"weaviate://localhost/{semantic_type}/" + to_uuid}
 
 def _get_dict_from_object(object_):
     """ Takes an object that should describe a dict

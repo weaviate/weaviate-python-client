@@ -349,11 +349,11 @@ class TestSchema(unittest.TestCase):
         w._connection = add_run_rest_to_mock(connection_mock)
         schema = copy.deepcopy(company_test_schema)
         # Remove actions
-        del schema[weaviate.client.SCHEMA_CLASS_TYPE_ACTIONS]
+        del schema[weaviate.client.SEMANTIC_TYPE_ACTIONS]
         w.create_schema(company_test_schema)
 
         schema = copy.deepcopy(company_test_schema)
-        del schema[weaviate.client.SCHEMA_CLASS_TYPE_THINGS]
+        del schema[weaviate.client.SEMANTIC_TYPE_THINGS]
         w.create_schema(company_test_schema)
         connection_mock.run_rest.assert_called()
 
