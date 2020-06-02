@@ -18,4 +18,5 @@ setup(name="weaviate-client",
       python_requires='>=2.7',
       install_requires=[
         "requests>=2.22.0",
-        "validators>=0.14.0",]),
+        "validators>=0.14.0",
+        "rdflib==5.0.0"]),
