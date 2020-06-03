@@ -67,13 +67,15 @@ class ReferenceBatchRequest:
         batch_body = [None] * self.get_batch_size()
         for i in range(self.get_batch_size()):
             batch_body[i] = {
-                "from": f"weaviate://localhost/{self._from_semantic_type[i]}/{self._from_entity_class_names[i]}/{self._from_entity_ids[i]}/{self._from_entity_properties[i]}",
-                "to": f"weaviate://localhost/{self._to_semantic_type[i]}/{self._to_entity_ids[i]}"
+                "from": "weaviate://localhost/"+self._from_semantic_type[i]+"/" +
+                        self._from_entity_class_names[i]+"/"+self._from_entity_ids[i] +
+                        "/"+self._from_entity_properties[i],
+                "to": "weaviate://localhost/"+self._to_semantic_type[i]+"/"+self._to_entity_ids[i]
             }
         return batch_body
 
 
-class EntityBatchRequest:
+class EntityBatchRequest(object):
     """
         Base for storing entities
     """
@@ -114,9 +116,6 @@ class ThingsBatchRequest(EntityBatchRequest):
     def __init__(self):
         super(ThingsBatchRequest, self).__init__()
 
-    def __len__(self):
-        return len(self._entities)
-
     def add_thing(self, thing, class_name, uuid=None):
         """ Add a thing to this batch
 
@@ -151,9 +150,6 @@ class ActionsBatchRequest(EntityBatchRequest):
 
     def __init__(self):
         super(ActionsBatchRequest, self).__init__()
-
-    def __len__(self):
-        return len(self._entities)
 
     def add_action(self, action, class_name, uuid=None):
         """ Add an action to this batch

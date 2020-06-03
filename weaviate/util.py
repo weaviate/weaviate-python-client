@@ -45,7 +45,8 @@ def generate_local_beacon(semantic_type, to_uuid):
     if not validators.uuid(to_uuid):
         raise ValueError("Uuid does not have the propper form")
 
-    return {"beacon": f"weaviate://localhost/{semantic_type}/" + to_uuid}
+    return {"beacon": "weaviate://localhost/"+semantic_type+"/"+to_uuid}
+
 
 def _get_dict_from_object(object_):
     """ Takes an object that should describe a dict

@@ -131,9 +131,9 @@ class Client:
         """
 
         if not isinstance(w_object, dict):
-            raise TypeError(f"Expected {semantic_type[:-1]} to be of type dict instead it was: {str(type(w_object))}")
+            raise TypeError("Expected" + semantic_type[:-1] + " to be of type dict instead it was: " + str(type(w_object)))
         if not isinstance(class_name, str):
-            raise TypeError(f"Expected class_name of type str but was: {str(type(class_name))}")
+            raise TypeError("Expected class_name of type str but was: " + str(type(class_name)))
 
         weaviate_obj = {
             "class": class_name,
@@ -153,8 +153,9 @@ class Client:
 
             weaviate_obj["vectorWeights"] = vector_weights
 
+        path = "/"+semantic_type
         try:
-            response = self._connection.run_rest(f"/{semantic_type}", REST_METHOD_POST, weaviate_obj)
+            response = self._connection.run_rest(path, REST_METHOD_POST, weaviate_obj)
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err) + ' Connection error, object was not added to weaviate.').with_traceback(
                 sys.exc_info()[2])
@@ -206,7 +207,7 @@ class Client:
         return self._create_entity_in_batch(SEMANTIC_TYPE_THINGS, things_batch_request)
 
     def _create_entity_in_batch(self, semantic_type, batch_request):
-        path = f"/batching/{semantic_type}"
+        path = "/batching/" + semantic_type
 
         try:
             response = self._connection.run_rest(path, REST_METHOD_POST, batch_request.get_request_body())
@@ -218,7 +219,7 @@ class Client:
             return response.json()
 
         else:
-            raise UnexpectedStatusCodeException(f"Create {semantic_type} in batch", response)
+            raise UnexpectedStatusCodeException("Create "+semantic_type+" in batch", response)
 
     def _patch_entity(self, semantic_type, entity, class_name, uuid):
         try:
@@ -239,7 +240,7 @@ class Client:
             "schema": entity_dict
         }
 
-        path = f"/{semantic_type}/{uuid}"
+        path = "/"+semantic_type+"/"+uuid
 
         try:
             response = self._connection.run_rest(path, REST_METHOD_PATCH, payload)
@@ -299,7 +300,7 @@ class Client:
             # If url extract uuid
             from_entity_uuid = get_uuid_from_weaviate_url(from_entity_uuid)
         if not validators.uuid(from_entity_uuid):
-            raise ValueError(f"{from_entity_uuid} is not a valid uuid")
+            raise ValueError(from_entity_uuid+" is not a valid uuid")
 
         if is_weaviate_entity_url(to_entity_uuid):
 
