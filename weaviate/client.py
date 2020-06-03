@@ -589,30 +589,6 @@ class Client:
         else:
             return response
 
-    # def _get_thing_response(self, uuid_thing, meta=False):
-    #     """ Retrieves a thing from weaviate.
-    #
-    #     :param uuid_thing: the identifier of the thing that should be retrieved.
-    #     :type uuid_thing: str
-    #     :param meta: if True the result includes meta data.
-    #     :type meta: bool
-    #     :return: response object.
-    #     :raises:
-    #         ConnectionError: if the network connection to weaviate fails.
-    #     """
-    #     params = {}
-    #     if meta:
-    #         params['meta'] = True
-    #     if not isinstance(uuid_thing, str):
-    #         uuid_thing = str(uuid_thing)
-    #     try:
-    #         response = self._connection.run_rest("/things/" + uuid_thing, REST_METHOD_GET, params=params)
-    #     except ConnectionError as conn_err:
-    #         raise type(conn_err)(str(conn_err) + ' Connection error not sure if thing exists').with_traceback(
-    #             sys.exc_info()[2])
-    #     else:
-    #         return response
-
     def get_c11y_vector(self, word):
         """ Retrieves the vector representation of the given word.
 
@@ -873,11 +849,11 @@ class Client:
 
         return False
 
-    def delete_thing(self, uuid):
+    def delete_action(self, action_uuid):
         """
 
-        :param uuid: ID of the thing that should be removed from the graph.
-        :type uuid: str
+        :param action_uuid: ID of the action that should be removed from the graph.
+        :type action_uuid: str
         :return: None if successful
         :raises:
             ConnectionError: if the network connection to weaviate fails.
@@ -885,26 +861,42 @@ class Client:
             TypeError: If parameter has the wrong type.
             ValueError: If uuid is not properly formed.
         """
+        return self._delete_entity(SEMANTIC_TYPE_ACTIONS, action_uuid)
 
-        if not isinstance(uuid, str):
+    def delete_thing(self, thing_uuid):
+        """
+
+        :param thing_uuid: ID of the thing that should be removed from the graph.
+        :type thing_uuid: str
+        :return: None if successful
+        :raises:
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
+            TypeError: If parameter has the wrong type.
+            ValueError: If uuid is not properly formed.
+        """
+        return self._delete_entity(SEMANTIC_TYPE_THINGS, thing_uuid)
+
+    def _delete_entity(self, semantic_type, entity_uuid):
+        if not isinstance(entity_uuid, str):
             raise TypeError("UUID must be type str")
-        if not validators.uuid(uuid):
+        if not validators.uuid(entity_uuid):
             raise ValueError("UUID does not have proper form")
 
         try:
-            response = self._connection.run_rest("/things/" + uuid, REST_METHOD_DELETE)
+            response = self._connection.run_rest("/" + semantic_type + "/" + entity_uuid, REST_METHOD_DELETE)
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err)
-                                 + ' Connection error, thing could not be deleted.'
+                                 + ' Connection error, entity could not be deleted.'
                                  ).with_traceback(
                 sys.exc_info()[2])
 
         if response.status_code == 204:
             return  # Successfully deleted
         else:
-            raise UnexpectedStatusCodeException("Delete thing", response)
+            raise UnexpectedStatusCodeException("Delete entity", response)
 
-    def delete_reference_from_thing(self, from_thing_uuid, from_property_name, to_thing_uuid, to_weaviate="localhost"):
+    def delete_reference_from_thing_to_thing(self, from_thing_uuid, from_property_name, to_thing_uuid, to_weaviate="localhost"):
         """ Remove a reference to another thing. Equal to removing one direction of an edge from the graph.
 
         :param from_thing_uuid: Id of the thing that references another thing.
@@ -922,10 +914,36 @@ class Client:
             TypeError: If parameter has the wrong type.
             ValueError: If uuid is not properly formed.
         """
+        return self.delete_reference_from_entity(SEMANTIC_TYPE_THINGS, from_thing_uuid, from_property_name,
+                                                 SEMANTIC_TYPE_THINGS, to_thing_uuid, to_weaviate)
 
-        if not isinstance(from_thing_uuid, str) or not isinstance(to_thing_uuid, str):
+    def delete_reference_from_action_to_action(self, from_action_uuid, from_property_name, to_action_uuid, to_weaviate="localhost"):
+        """ Remove a reference to another action. Equal to removing one direction of an edge from the graph.
+
+        :param from_action_uuid: Id of the action that references another thing.
+        :type from_action_uuid: str
+        :param from_property_name: The property from which the reference should be deleted.
+        :type from_property_name: str
+        :param to_action_uuid: The referenced action.
+        :type to_action_uuid: str
+        :param to_weaviate: The other weaviate instance, localhost by default.
+        :type to_weaviate: str
+        :return: None if successful
+        :raises:
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
+            TypeError: If parameter has the wrong type.
+            ValueError: If uuid is not properly formed.
+        """
+        return self.delete_reference_from_entity(SEMANTIC_TYPE_ACTIONS, from_action_uuid, from_property_name,
+                                                 SEMANTIC_TYPE_ACTIONS, to_action_uuid, to_weaviate)
+
+    def delete_reference_from_entity(self, from_semantic_type, from_entity_uuid, from_property_name,
+                                     to_smeantic_type, to_entity_uuid, to_weaviate="localhost"):
+
+        if not isinstance(from_entity_uuid, str) or not isinstance(to_entity_uuid, str):
             raise TypeError("UUID must be of type str")
-        if not validators.uuid(from_thing_uuid) or not validators.uuid(to_thing_uuid):
+        if not validators.uuid(from_entity_uuid) or not validators.uuid(to_entity_uuid):
             raise ValueError("UUID has no proper form")
         if not isinstance(from_property_name, str):
             raise TypeError("Property name must be type str")
@@ -933,23 +951,23 @@ class Client:
             raise TypeError("To weaviate must be type str")
 
         beacon = {
-            "beacon": "weaviate://" + to_weaviate + "/things/" + to_thing_uuid
+            "beacon": "weaviate://" + to_weaviate + "/" + to_smeantic_type + "/" + to_entity_uuid
         }
 
-        path = "/things/" + from_thing_uuid + "/references/" + from_property_name
+        path = "/" + from_semantic_type + "/" + from_entity_uuid + "/references/" + from_property_name
 
         try:
             response = self._connection.run_rest(path, REST_METHOD_DELETE, beacon)
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err)
-                                 + ' Connection error, thing could not be deleted.'
+                                 + ' Connection error, reference could not be deleted.'
                                  ).with_traceback(
                 sys.exc_info()[2])
 
         if response.status_code == 204:
             return  # Successfully deleted
         else:
-            raise UnexpectedStatusCodeException("Delete property from thing", response)
+            raise UnexpectedStatusCodeException("Delete reference", response)
 
     def extend_c11y(self, concept, definition, weight=1.0):
         """ Extend the c11y with new concepts

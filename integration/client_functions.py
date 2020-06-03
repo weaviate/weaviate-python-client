@@ -99,7 +99,7 @@ time.sleep(1.2)
 for prime_minister in prime_ministers:
     w.add_reference_from_thing_to_thing(prime_ministers_group, "members", prime_minister)
 time.sleep(1.2)
-w.delete_reference_from_thing(prime_ministers_group, "members", prime_ministers[0])
+w.delete_reference_from_thing_to_thing(prime_ministers_group, "members", prime_ministers[0])
 
 # TODO test some how query seems to fail raiscondition or result set not big enough
 
