@@ -78,10 +78,10 @@ class Batcher:
         self._update_batch_if_necessary()
 
     def add_reference(self, from_thing_class_name, from_thing_uuid, from_property_name, to_thing_uuid):
-        self._reference_batch.add_reference(from_thing_class_name=from_thing_class_name,
-                                            from_thing_uuid=from_thing_uuid,
-                                            from_property_name=from_property_name,
-                                            to_thing_uuid=to_thing_uuid)
+        self._reference_batch.add_thing_reference(from_thing_class_name=from_thing_class_name,
+                                                  from_thing_uuid=from_thing_uuid,
+                                                  from_property_name=from_property_name,
+                                                  to_entity_uuid=to_thing_uuid)
         self._update_batch_if_necessary()
 
     def close(self):

@@ -179,21 +179,37 @@ class Client:
 
             raise UnexpectedStatusCodeException("Creating thing", response)
 
-    def create_things_in_batch(self, things_batch_request):
-        """ Creates multiple things at once in weaviate
+    def create_actions_in_batch(self, actions_batch_request):
+        """ Crate multiple actions at once in weavaite
 
-        :param things_batch_request: The batch of things that should be added.
-        :type things_batch_request: ThingsBatchRequest
-        :return: A list with the status of every thing that was created.
+        :param actions_batch_request: The batch of actions that should be added.
+        :type actions_batch_request: weaviate.ActionsBatchRequest
+        :return: A list with the status of every action that was created
+        :rtype: list
         :raises:
             ConnectionError: if the network connection to weaviate fails.
             UnexpectedStatusCodeException: if weaviate reports a none OK status.
         """
+        return self._create_entity_in_batch(SEMANTIC_TYPE_ACTIONS, actions_batch_request)
 
-        path = "/batching/things"
+    def create_things_in_batch(self, things_batch_request):
+        """ Creates multiple things at once in weaviate
+
+        :param things_batch_request: The batch of things that should be added.
+        :type things_batch_request: weaviate.ThingsBatchRequest
+        :return: A list with the status of every thing that was created.
+        :rtype: list
+        :raises:
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
+        """
+        return self._create_entity_in_batch(SEMANTIC_TYPE_THINGS, things_batch_request)
+
+    def _create_entity_in_batch(self, semantic_type, batch_request):
+        path = f"/batching/{semantic_type}"
 
         try:
-            response = self._connection.run_rest(path, REST_METHOD_POST, things_batch_request.get_request_body())
+            response = self._connection.run_rest(path, REST_METHOD_POST, batch_request.get_request_body())
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err) + ' Connection error, batch was not added to weaviate.').with_traceback(
                 sys.exc_info()[2])
@@ -202,7 +218,57 @@ class Client:
             return response.json()
 
         else:
-            raise UnexpectedStatusCodeException("Create thing in batch", response)
+            raise UnexpectedStatusCodeException(f"Create {semantic_type} in batch", response)
+
+    def _patch_entity(self, semantic_type, entity, class_name, uuid):
+        try:
+            entity_dict = _get_dict_from_object(entity)
+        except:
+            raise  # Keep exception boiling back to user
+
+        if not isinstance(class_name, str):
+            raise TypeError("Class must be type str")
+        if not isinstance(uuid, str):
+            raise TypeError("UUID must be type str")
+        if not validators.uuid(uuid):
+            raise ValueError("Not a proper UUID")
+
+        payload = {
+            "id": uuid,
+            "class": class_name,
+            "schema": entity_dict
+        }
+
+        path = f"/{semantic_type}/{uuid}"
+
+        try:
+            response = self._connection.run_rest(path, REST_METHOD_PATCH, payload)
+        except ConnectionError as conn_err:
+            raise type(conn_err)(str(conn_err) + ' Connection error, entity was not patched.').with_traceback(
+                sys.exc_info()[2])
+
+        if response.status_code == 204:
+            return None  # success
+        else:
+            raise UnexpectedStatusCodeException("PATCH merge of entity not successful", response)
+
+    def patch_action(self, action, class_name, uuid):
+        """ Merges the given action with the already existing action in weaviate.
+        Overwrites all given fields.
+
+        :param action: The action states the fields that should be updated.
+                  Fields not stated by action will not be changed.
+                  Fields that are None will not be changed (may change in the future to deleted).
+        :param class_name: The name of the class of action.
+        :type class_name: str
+        :param uuid: The ID of the action that should be changed.
+        :type uuid: str
+        :return: None if successful
+        :raises:
+            ConnectionError: If the network connection to weaviate fails.
+            UnexpectedStatusCodeException: If weaviate reports a none successful status.
+        """
+        return self._patch_entity(SEMANTIC_TYPE_ACTIONS, action, class_name, uuid)
 
     def patch_thing(self, thing, class_name, uuid):
         """ Merges the given thing with the already existing thing in weaviate.
@@ -221,38 +287,10 @@ class Client:
             ConnectionError: If the network connection to weaviate fails.
             UnexpectedStatusCodeException: If weaviate reports a none successful status.
         """
-
-        try:
-            thing_object = _get_dict_from_object(thing)
-        except:
-            raise  # Keep exception boiling back to user
-
-        if not isinstance(class_name, str):
-            raise TypeError("Class must be type str")
-        if not isinstance(uuid, str):
-            raise TypeError("UUID must be type str")
-        if not validators.uuid(uuid):
-            raise ValueError("Not a proper UUID")
-
-        payload = {
-            "id": uuid,
-            "class": class_name,
-            "schema": thing
-        }
-
-        try:
-            response = self._connection.run_rest("/things/" + uuid, REST_METHOD_PATCH, payload)
-        except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err) + ' Connection error, thing was not patched.').with_traceback(
-                sys.exc_info()[2])
-
-        if response.status_code == 204:
-            return None  # success
-        else:
-            raise UnexpectedStatusCodeException("PATCH merge of thing not successful", response)
+        return self._patch_entity(SEMANTIC_TYPE_THINGS, thing, class_name, uuid)
 
     def add_reference_to_thing(self, from_thing_uuid, from_property_name, to_thing_uuid, to_weaviate="localhost"):
-        """ Allows to link two objects unidirectionally.
+        """ Allows to link two things unidirectionally.
 
         :param from_thing_uuid: The thing that should have the reference as part of its properties.
                                 Accepts a plane UUID or an URL. E.g.

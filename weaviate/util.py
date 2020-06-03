@@ -118,6 +118,10 @@ def is_weaviate_thing_url(input):
 
     return True
 
+def is_semantic_type(semantic_type):
+    if semantic_type == SEMANTIC_TYPE_THINGS or semantic_type == SEMANTIC_TYPE_ACTIONS:
+        return True
+    return False
 
 def get_uuid_from_weaviate_url(url):
     """

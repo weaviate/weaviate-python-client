@@ -39,7 +39,7 @@ class TripleLoader:
             "value": str(value),
             "valueKey": str(value)
         }
-        self._batcher.add_thing(thing, class_name, object_id)
+        self._batcher.add_entity(thing, class_name, object_id)
         return object_id
 
     def add_graph(self, graph):

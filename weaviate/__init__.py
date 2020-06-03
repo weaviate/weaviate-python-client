@@ -4,6 +4,7 @@ SEMANTIC_TYPE_ACTIONS = "actions"
 from .client import Client
 from .batch import ReferenceBatchRequest
 from .batch import ThingsBatchRequest
+from .batch import ActionsBatchRequest
 from .exceptions import *
 from .util import generate_local_things_beacon, generate_local_actions_beacon
 from .classify import SOURCE_WHERE_FILTER, TRAINING_SET_WHERE_FILTER, TARGET_WHERE_FILTER

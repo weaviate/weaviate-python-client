@@ -61,7 +61,7 @@ print("Add reference to thing in batch")
 reference_batch = weaviate.batch.ReferenceBatchRequest()
 
 for chemist in chemists:
-    reference_batch.add_reference("Group", "577887c1-4c6b-5594-aa62-f0c17883d9bf", "members", chemist)
+    reference_batch.add_thing_reference("Group", "577887c1-4c6b-5594-aa62-f0c17883d9bf", "members", chemist)
 
 w.add_references_in_batch(reference_batch)
 
