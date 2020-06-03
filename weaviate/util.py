@@ -92,7 +92,7 @@ def _get_dict_from_object(object_):
             "Argument is not of the supported types. Supported types are url or file path as string or schema as dict.")
 
 
-def is_weaviate_thing_url(input):
+def is_weaviate_entity_url(input):
     """ Checks if the input follows a normal url like this:
         'weaviate://localhost/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'
 

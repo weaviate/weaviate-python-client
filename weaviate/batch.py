@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 import validators
 import copy
-from weaviate.util import is_weaviate_thing_url, get_uuid_from_weaviate_url
+from weaviate.util import is_weaviate_entity_url, get_uuid_from_weaviate_url
 
 
 class ReferenceBatchRequest:
@@ -51,9 +51,9 @@ class ReferenceBatchRequest:
                 not isinstance(to_semantic_type, str) or not isinstance(to_entity_uuid, str):
             raise TypeError('All arguments must be of type string')
 
-        if is_weaviate_thing_url(from_entity_uuid):
+        if is_weaviate_entity_url(from_entity_uuid):
             from_entity_uuid = get_uuid_from_weaviate_url(from_entity_uuid)
-        if is_weaviate_thing_url(to_entity_uuid):
+        if is_weaviate_entity_url(to_entity_uuid):
             to_entity_uuid = get_uuid_from_weaviate_url(to_entity_uuid)
 
         self._from_semantic_type.append(from_semantic_type)

@@ -52,8 +52,8 @@ chemists[2] = w.create_thing({"name": "Walter White"}, "Person")
 time.sleep(1.1)  # Let weaviate refresh its index with the newly loaded things
 
 print("Add reference to thing")
-w.add_reference_to_thing("2db436b5-0557-5016-9c5f-531412adf9c6", "members", "b36268d4-a6b5-5274-985f-45f13ce0c642")
-w.add_reference_to_thing("2db436b5-0557-5016-9c5f-531412adf9c6", "members", "1c9cd584-88fe-5010-83d0-017cb3fcb446")
+w.add_reference_from_thing_to_thing("2db436b5-0557-5016-9c5f-531412adf9c6", "members", "b36268d4-a6b5-5274-985f-45f13ce0c642")
+w.add_reference_from_thing_to_thing("2db436b5-0557-5016-9c5f-531412adf9c6", "members", "1c9cd584-88fe-5010-83d0-017cb3fcb446")
 
 
 
@@ -97,7 +97,7 @@ for name in prime_minister_names:
     prime_ministers.append(w.create_thing({"name": name}, "Person"))
 time.sleep(1.2)
 for prime_minister in prime_ministers:
-    w.add_reference_to_thing(prime_ministers_group, "members", prime_minister)
+    w.add_reference_from_thing_to_thing(prime_ministers_group, "members", prime_minister)
 time.sleep(1.2)
 w.delete_reference_from_thing(prime_ministers_group, "members", prime_ministers[0])
 
