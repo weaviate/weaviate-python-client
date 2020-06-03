@@ -1,6 +1,8 @@
 import os
 import time
+import weaviate
 from integration.queries import *
+from datetime import datetime, timezone
 
 
 
@@ -25,17 +27,22 @@ if not w.contains_schema():
     exit(4)
 
 print("Create a batch with data")
-batch = weaviate.batch.ThingsBatchRequest()
+things_batch = weaviate.batch.ThingsBatchRequest()
 
-batch.add_thing({"name": "John Rawls"}, "Person")
-batch.add_thing({"name": "Emanuel Kant"}, "Person")
-batch.add_thing({"name": "Plato"}, "Person")
+things_batch.add_thing({"name": "John Rawls"}, "Person")
+things_batch.add_thing({"name": "Emanuel Kant"}, "Person")
+things_batch.add_thing({"name": "Plato"}, "Person")
 
+actions_batch = weaviate.batch.ActionsBatchRequest()
+actions_batch.add_action({"name": "Pull-up"}, "Exercise")
+actions_batch.add_action({"name": "Squat"}, "Exercise")
+actions_batch.add_action({"name": "Star jump"}, "Exercise")
 
 print("Load batch")
-w.create_things_in_batch(batch)
+w.create_things_in_batch(things_batch)
+w.create_actions_in_batch(actions_batch)
 
-print("Load a single things")
+print("Load a single things and actions")
 w.create_thing({"name": "Andrew S. Tanenbaum"}, "Person", "28954261-0449-57a2-ade5-e9e08d11f51a")
 w.create_thing({"name": "Alan Turing"}, "Person", "1c9cd584-88fe-5010-83d0-017cb3fcb446")
 w.create_thing({"name": "John von Neumann"}, "Person", "b36268d4-a6b5-5274-985f-45f13ce0c642")
@@ -49,19 +56,29 @@ chemists[0] = w.create_thing({"name": "Marie Curie"}, "Person")
 chemists[1] = w.create_thing({"name": "Fritz Haber"}, "Person")
 chemists[2] = w.create_thing({"name": "Walter White"}, "Person")
 
+local_time = datetime.now(timezone.utc).astimezone()
+w.create_action({"start": local_time.isoformat()}, "Call", "3ab05e06-2bb2-41d1-b5c5-e044f3aa9623")
+
 time.sleep(1.1)  # Let weaviate refresh its index with the newly loaded things
 
 print("Add reference to thing")
 w.add_reference_from_thing_to_thing("2db436b5-0557-5016-9c5f-531412adf9c6", "members", "b36268d4-a6b5-5274-985f-45f13ce0c642")
 w.add_reference_from_thing_to_thing("2db436b5-0557-5016-9c5f-531412adf9c6", "members", "1c9cd584-88fe-5010-83d0-017cb3fcb446")
 
-
+# TODO use when PUT is implemented
+# print("Add reference to action")
+# w.add_reference_to_entity(weaviate.SEMANTIC_TYPE_ACTIONS, "3ab05e06-2bb2-41d1-b5c5-e044f3aa9623", "caller",
+#                           weaviate.SEMANTIC_TYPE_THINGS, "1c9cd584-88fe-5010-83d0-017cb3fcb446")
+# w.add_reference_to_entity(weaviate.SEMANTIC_TYPE_ACTIONS, "3ab05e06-2bb2-41d1-b5c5-e044f3aa9623", "recipient",
+#                           weaviate.SEMANTIC_TYPE_THINGS, "b36268d4-a6b5-5274-985f-45f13ce0c642")
 
 print("Add reference to thing in batch")
 reference_batch = weaviate.batch.ReferenceBatchRequest()
 
 for chemist in chemists:
-    reference_batch.add_thing_reference("Group", "577887c1-4c6b-5594-aa62-f0c17883d9bf", "members", chemist)
+    reference_batch.add_reference(weaviate.SEMANTIC_TYPE_THINGS, "Group",
+                                  "577887c1-4c6b-5594-aa62-f0c17883d9bf", "members",
+                                  weaviate.SEMANTIC_TYPE_THINGS, chemist)
 
 w.add_references_in_batch(reference_batch)
 

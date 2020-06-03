@@ -1,6 +1,57 @@
 {
   "actions": {
-    "classes": [],
+    "classes": [
+      {
+        "class": "Call",
+        "description": "A call between two Persons",
+        "keywords": [],
+        "properties": [
+          {
+            "name": "start",
+            "description": "The start of the call",
+            "dataType": [
+              "date"
+            ],
+            "cardinality": "atMostOne",
+            "keywords": []
+          },
+          {
+            "name": "caller",
+            "description": "The person who calls",
+            "dataType": [
+              "Person"
+            ],
+            "cardinality": "atMostOne",
+            "keywords": []
+          },
+          {
+            "name": "recipient",
+            "description": "The person who was called",
+            "dataType": [
+              "Person"
+            ],
+            "cardinality": "atMostOne",
+            "keywords": []
+          }
+        ]
+      },
+      {
+        "class": "Exercise",
+        "description": "A sport exercise",
+        "keywords": [],
+        "properties": [
+          {
+            "name": "name",
+            "description": "The name of the exercise",
+            "dataType": [
+              "string"
+            ],
+            "cardinality": "atMostOne",
+            "keywords": []
+          }
+        ]
+      }
+    ],
     "type": "action"
   },
   "things": {

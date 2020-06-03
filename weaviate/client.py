@@ -71,7 +71,7 @@ class Client:
         """ Takes a dict describing the action and adds it to weaviate
 
         :param action: Action to be added.
-        :type action: str
+        :type action: dict
         :param class_name: Associated with the action given.
         :type class_name: str
         :param uuid: Action will be created under this uuid if it is provided.

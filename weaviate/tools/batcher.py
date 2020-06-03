@@ -109,7 +109,7 @@ class Batcher:
             Batcher is not useable after closing.
         """
         retry_counter = 0
-        while len(self._things_batch) > 0 or len(self._reference_batch) > 0:
+        while len(self._things_batch) > 0 or len(self._actions_batch) > 0 or len(self._reference_batch) > 0:
             # update batches might have an connection error just retry until it is successful
             self.update_batches()
             retry_counter += 1
@@ -118,6 +118,7 @@ class Batcher:
                 exit(5)
 
         self._reference_batch = None
+        self._actions_batch = None
         self._things_batch = None
         self._client = None
 
