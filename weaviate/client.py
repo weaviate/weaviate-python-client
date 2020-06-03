@@ -481,18 +481,33 @@ class Client:
         else:
             raise UnexpectedStatusCodeException("Add references in batch", response)
 
-    def thing_exists(self, uuid_thing):
+    def action_exists(self, action_uuid):
         """
 
-        :param uuid_thing: the uuid of the thing that may or may not exist within weaviate.
-        :type uuid_thing: str
+        :param action_uuid: he uuid of the action that may or may not exist within weaviate.
+        :type action_uuid: str
+        :return: true if action exists
+        :raises:
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
+        """
+        return self._entity_exists(SEMANTIC_TYPE_ACTIONS, action_uuid)
+
+    def thing_exists(self, thing_uuid):
+        """
+
+        :param thing_uuid: the uuid of the thing that may or may not exist within weaviate.
+        :type thing_uuid: str
         :return: true if thing exists.
         :raises:
             ConnectionError: if the network connection to weaviate fails.
             UnexpectedStatusCodeException: if weaviate reports a none OK status.
         """
+        return self._entity_exists(SEMANTIC_TYPE_THINGS, thing_uuid)
+
+    def _entity_exists(self, semantic_type, uuid_entity):
         try:
-            response = self._get_thing_response(uuid_thing)
+            response = self._get_entity_response(semantic_type, uuid_entity)
         except ConnectionError:
             raise  # Just pass the same error back
 
@@ -503,11 +518,27 @@ class Client:
         else:
             raise UnexpectedStatusCodeException("Thing exists", response)
 
-    def get_thing(self, uuid_thing, meta=False):
+    def get_action(self, action_uuid, meta=False):
+        """ Get an action as dict
+
+        :param action_uuid: the identifier of the action that should be retrieved.
+        :type action_uuid: str
+        :param meta: if True the result includes meta data.
+        :type meta: bool
+        :return:
+            dict in case the action exists.
+            None in case the action does not exist.
+        :raises:
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
+        """
+        return self._get_entity(SEMANTIC_TYPE_ACTIONS, action_uuid, meta)
+
+    def get_thing(self, thing_uuid, meta=False):
         """ Gets a thing as dict.
 
-        :param uuid_thing: the identifier of the thing that should be retrieved.
-        :type uuid_thing: str
+        :param thing_uuid: the identifier of the thing that should be retrieved.
+        :type thing_uuid: str
         :param meta: if True the result includes meta data.
         :type meta: bool
         :return:
@@ -517,8 +548,11 @@ class Client:
             ConnectionError: if the network connection to weaviate fails.
             UnexpectedStatusCodeException: if weaviate reports a none OK status.
         """
+        return self._get_entity(SEMANTIC_TYPE_THINGS, thing_uuid, meta)
+
+    def _get_entity(self, semantic_type, entity_uuid, meta):
         try:
-            response = self._get_thing_response(uuid_thing, meta)
+            response = self._get_entity_response(semantic_type, entity_uuid, meta)
         except ConnectionError:
             raise
 
@@ -527,13 +561,15 @@ class Client:
         elif response.status_code == 404:
             return None
         else:
-            raise UnexpectedStatusCodeException("Get thing", response)
+            raise UnexpectedStatusCodeException("Get entity", response)
 
-    def _get_thing_response(self, uuid_thing, meta=False):
-        """ Retrieves a thing from weaviate.
+    def _get_entity_response(self, semantic_type, entity_uuid, meta=False):
+        """ Retrieves an entity from weaviate.
 
-        :param uuid_thing: the identifier of the thing that should be retrieved.
-        :type uuid_thing: str
+        :param semantic_type: can be found as constants e.g. SEMANTIC_TYPE_THINGS.
+        :type semantic_type: str
+        :param entity_uuid: the identifier of the entity that should be retrieved.
+        :type entity_uuid: str
         :param meta: if True the result includes meta data.
         :type meta: bool
         :return: response object.
@@ -543,15 +579,39 @@ class Client:
         params = {}
         if meta:
             params['meta'] = True
-        if not isinstance(uuid_thing, str):
-            uuid_thing = str(uuid_thing)
+        if not isinstance(entity_uuid, str):
+            entity_uuid = str(entity_uuid)
         try:
-            response = self._connection.run_rest("/things/" + uuid_thing, REST_METHOD_GET, params=params)
+            response = self._connection.run_rest("/" + semantic_type + "/" + entity_uuid, REST_METHOD_GET, params=params)
         except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err) + ' Connection error not sure if thing exists').with_traceback(
+            raise type(conn_err)(str(conn_err) + ' Connection error not sure if entity exists').with_traceback(
                 sys.exc_info()[2])
         else:
             return response
+
+    # def _get_thing_response(self, uuid_thing, meta=False):
+    #     """ Retrieves a thing from weaviate.
+    #
+    #     :param uuid_thing: the identifier of the thing that should be retrieved.
+    #     :type uuid_thing: str
+    #     :param meta: if True the result includes meta data.
+    #     :type meta: bool
+    #     :return: response object.
+    #     :raises:
+    #         ConnectionError: if the network connection to weaviate fails.
+    #     """
+    #     params = {}
+    #     if meta:
+    #         params['meta'] = True
+    #     if not isinstance(uuid_thing, str):
+    #         uuid_thing = str(uuid_thing)
+    #     try:
+    #         response = self._connection.run_rest("/things/" + uuid_thing, REST_METHOD_GET, params=params)
+    #     except ConnectionError as conn_err:
+    #         raise type(conn_err)(str(conn_err) + ' Connection error not sure if thing exists').with_traceback(
+    #             sys.exc_info()[2])
+    #     else:
+    #         return response
 
     def get_c11y_vector(self, word):
         """ Retrieves the vector representation of the given word.
