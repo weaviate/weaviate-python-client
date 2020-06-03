@@ -2,7 +2,10 @@ import os
 import time
 import weaviate
 from integration.queries import *
-from datetime import datetime, timezone
+from datetime import datetime
+import sys
+if not sys.version_info[0] == 2:
+    from datetime import timezone
 
 
 
@@ -56,8 +59,10 @@ chemists[0] = w.create_thing({"name": "Marie Curie"}, "Person")
 chemists[1] = w.create_thing({"name": "Fritz Haber"}, "Person")
 chemists[2] = w.create_thing({"name": "Walter White"}, "Person")
 
-local_time = datetime.now(timezone.utc).astimezone()
-w.create_action({"start": local_time.isoformat()}, "Call", "3ab05e06-2bb2-41d1-b5c5-e044f3aa9623")
+if not sys.version_info[0] == 2:
+    # Python 2.7 is not fully supported this test will not be replaced
+    local_time = datetime.now(timezone.utc).astimezone()
+    w.create_action({"start": local_time.isoformat()}, "Call", "3ab05e06-2bb2-41d1-b5c5-e044f3aa9623")
 
 time.sleep(1.1)  # Let weaviate refresh its index with the newly loaded things
 
