@@ -20,6 +20,7 @@ class Batcher:
 
         self._client = client
         self._things_batch = weaviate.batch.ThingsBatchRequest()
+        self._actions_batch = weaviate.batch.ActionsBatchRequest()
         self._reference_batch = weaviate.batch.ReferenceBatchRequest()
         self._batch_size = batch_size
         self._print_errors_activated = print_errors
@@ -54,6 +55,15 @@ class Batcher:
                 return
             self._print_errors(result)
             self._things_batch = weaviate.batch.ThingsBatchRequest()
+        if len(self._actions_batch) > 0:
+            try:
+                result = self._client.create_actions_in_batch(self._actions_batch)
+            except (ConnectionError, Timeout, ReadTimeout, weaviate.UnexpectedStatusCodeException) as e:
+                time.sleep(180.0)
+                print("Exception in adding action: ", e)
+                return
+            self._print_errors(result)
+            self._actions_batch = weaviate.batch.ActionsBatchRequest()
         if len(self._reference_batch) > 0:
             try:
                 result = self._client.add_references_in_batch(self._reference_batch)
@@ -70,18 +80,27 @@ class Batcher:
     def _update_batch_if_necessary(self):
         """ Starts a batch load if the batch size is reached
         """
-        if len(self._things_batch) >= self._batch_size or len(self._reference_batch) >= self._batch_size:
+        if len(self._things_batch) >= self._batch_size or \
+                len(self._reference_batch) >= self._batch_size or \
+                len(self._actions_batch) >= self._batch_size:
             self.update_batches()
 
     def add_thing(self, thing, class_name, thing_uuid=None):
         self._things_batch.add_thing(thing, class_name, thing_uuid)
         self._update_batch_if_necessary()
 
-    def add_reference(self, from_thing_class_name, from_thing_uuid, from_property_name, to_thing_uuid):
-        self._reference_batch.add_thing_reference(from_thing_class_name=from_thing_class_name,
-                                                  from_thing_uuid=from_thing_uuid,
-                                                  from_property_name=from_property_name,
-                                                  to_entity_uuid=to_thing_uuid)
+    def add_action(self, action, class_name, action_uuid=None):
+        self._actions_batch.add_action(action, class_name, action_uuid)
+        self._update_batch_if_necessary()
+
+    def add_reference(self, from_semantic_type, from_thing_class_name, from_thing_uuid, from_property_name,
+                      to_semantic_type, to_thing_uuid):
+        self._reference_batch.add_reference(from_semantic_type=from_semantic_type,
+                                            from_entity_class_name=from_thing_class_name,
+                                            from_entity_uuid=from_thing_uuid,
+                                            from_property_name=from_property_name,
+                                            to_semantic_type=to_semantic_type,
+                                            to_entity_uuid=to_thing_uuid)
         self._update_batch_if_necessary()
 
     def close(self):

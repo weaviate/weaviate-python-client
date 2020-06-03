@@ -8,6 +8,8 @@ function runTest {
 
 
 # /test
+runTest "test.add_action"
+runTest "test.add_action_batch"
 runTest "test.add_reference_batch"
 runTest "test.add_thing"
 runTest "test.add_thing_batch"
@@ -18,7 +20,7 @@ runTest "test.client"
 runTest "test.delete"
 runTest "test.exceptions"
 runTest "test.is_reachable"
-runTest "test.patch_thing"
+runTest "test.patch_entity"
 runTest "test.query"
 runTest "test.schema"
 runTest "test.util"

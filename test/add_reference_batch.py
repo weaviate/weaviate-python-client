@@ -20,8 +20,10 @@ class TestReferences(unittest.TestCase):
 
     def test_batch_add_url(self):
         batch = weaviate.ReferenceBatchRequest()
-        batch.add_thing_reference("Alpha", "weaviate://localhost/things/04a4b17d-6beb-443a-b1bc-835b0dd4e660",
-                            "a", "weaviate://localhost/things/fc7eb129-f138-457f-b727-1b29db191a67")
+        batch.add_reference(SEMANTIC_TYPE_THINGS, "Alpha",
+                            "weaviate://localhost/things/04a4b17d-6beb-443a-b1bc-835b0dd4e660",
+                            SEMANTIC_TYPE_THINGS, "a",
+                            "weaviate://localhost/things/fc7eb129-f138-457f-b727-1b29db191a67")
         self.assertEqual(1, len(batch))
         self.assertEqual("04a4b17d-6beb-443a-b1bc-835b0dd4e660", batch._from_entity_ids[0])
         self.assertEqual("fc7eb129-f138-457f-b727-1b29db191a67", batch._to_entity_ids[0])
