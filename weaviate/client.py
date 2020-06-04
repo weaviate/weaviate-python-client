@@ -88,7 +88,7 @@ class Client:
             ConnectionError: if the network connection to weaviate fails.
         :rtype: str
         """
-        return self._create_object(SEMANTIC_TYPE_ACTIONS, action, class_name, uuid, vector_weights)
+        return self._create_entity(SEMANTIC_TYPE_ACTIONS, action, class_name, uuid, vector_weights)
 
     def create_thing(self, thing, class_name, uuid=None, vector_weights=None):
         """ Takes a dict describing the thing and adds it to weaviate
@@ -111,16 +111,16 @@ class Client:
             ConnectionError: if the network connection to weaviate fails.
         :rtype: str
         """
-        return self._create_object(SEMANTIC_TYPE_THINGS, thing, class_name, uuid, vector_weights)
+        return self._create_entity(SEMANTIC_TYPE_THINGS, thing, class_name, uuid, vector_weights)
 
-    def _create_object(self, semantic_type, w_object, class_name, uuid=None, vector_weights=None):
+    def _create_entity(self, semantic_type, entity, class_name, uuid=None, vector_weights=None):
         """ Implements the generic adding of an object to weaviate.
             See also create_thing and create_action
 
         :param semantic_type: defined in constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
         :type semantic_type: str
-        :param w_object:
-        :type w_object: dict
+        :param entity:
+        :type entity: dict
         :param class_name:
         :type class_name: str
         :param uuid:
@@ -130,14 +130,14 @@ class Client:
         :return:
         """
 
-        if not isinstance(w_object, dict):
-            raise TypeError("Expected" + semantic_type[:-1] + " to be of type dict instead it was: " + str(type(w_object)))
+        if not isinstance(entity, dict):
+            raise TypeError("Expected" + semantic_type[:-1] + " to be of type dict instead it was: " + str(type(entity)))
         if not isinstance(class_name, str):
             raise TypeError("Expected class_name of type str but was: " + str(type(class_name)))
 
         weaviate_obj = {
             "class": class_name,
-            "schema": w_object
+            "schema": entity
         }
         if uuid is not None:
             if not isinstance(uuid, str):
