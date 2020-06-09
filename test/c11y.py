@@ -3,6 +3,7 @@ import weaviate
 from weaviate.connect import REST_METHOD_POST
 from test.testing_util import *
 
+
 class TestC11y(unittest.TestCase):
 
     def test_extend_input(self):
@@ -32,3 +33,11 @@ class TestC11y(unittest.TestCase):
             self.fail("Wrong input accepted")
         except ValueError:
             pass
+
+    def test_get_c11y_vector(self):
+        w = weaviate.Client("http://citadelofricks.city:6969")
+        connection_mock = Mock()
+        w._connection = add_run_rest_to_mock(connection_mock, return_json={"A": "B"})
+
+        self.assertEqual("B", w.get_c11y_vector("sauce")["A"])
+
