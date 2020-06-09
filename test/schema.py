@@ -304,12 +304,11 @@ class TestSchema(unittest.TestCase):
     # def mock_get_dict_from_object(self, object_):
     #     return company_test_schema
 
-
     def test_create_schema_load_file(self):
         w = weaviate.Client("http://localhost:8080")
 
         # Load from URL
-        with patch('weaviate.client._get_dict_from_object') as mock_util:
+        with patch('weaviate._client_schema._get_dict_from_object') as mock_util:
             # Mock weaviate.client._get_dict_from_object the function where
             # it is looked up see https://docs.python.org/3/library/unittest.mock.html#where-to-patch
             # for more information
