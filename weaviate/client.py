@@ -304,11 +304,11 @@ class Client:
 
         if is_weaviate_entity_url(to_entity_uuid):
 
-            to_entity_url_weavaite = get_domain_from_weaviate_url(to_entity_uuid)
+            to_entity_url_weaviate = get_domain_from_weaviate_url(to_entity_uuid)
             if to_weaviate is None:
-                to_weaviate = to_entity_url_weavaite
+                to_weaviate = to_entity_url_weaviate
             else:
-                if to_entity_url_weavaite != to_weaviate:
+                if to_entity_url_weaviate != to_weaviate:
                     raise ValueError("'to_thing_uuid' is defining another weaviate instance, "
                                      "which is inconsistent with 'to_weaviate'."
                                      "'to_weaviate defaults to 'localhost' "
@@ -1010,7 +1010,6 @@ class Client:
             return  # Successfully extended
         else:
             raise UnexpectedStatusCodeException("Extend c11y", response)
-
 
     def query(self, gql_query):
         """ Allows to send simple graph QL string queries.
