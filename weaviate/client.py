@@ -13,7 +13,12 @@ class Client:
     """
 
     # Class is splitted into multiple files
-    # Other class methods get imported here
+
+    # Other class methods get imported here:
+    # (pep-8 error showing these as unused,
+    #  but they are imported into the class
+    #  to make them available to the end
+    #  user and among each other)
 
     from weaviate._client_schema import create_schema, contains_schema, get_schema, \
         _create_complex_properties, _property_is_primitive, _get_primitive_properties, _create_class_with_primitives
@@ -27,6 +32,9 @@ class Client:
         action_exists, thing_exists, \
         delete_action, delete_thing, \
         _delete_entity, _get_entity, _get_entity_response, _entity_exists
+    from weaviate._client_crud_reference import \
+        add_reference_to_action, add_reference_to_thing, _add_reference_to_entity, \
+        delete_reference_from_action, delete_reference_from_thing, _delete_reference_from_entity
 
     def __init__(self, url, auth_client_secret=None, client_config=None):
         """ New weaviate client
@@ -118,6 +126,6 @@ class Client:
                 sys.exc_info()[2])
 
         if response.status_code == 200:
-            return response.json() # Successfully queried
+            return response.json()  # Successfully queried
         else:
             raise UnexpectedStatusCodeException("GQL query", response)

@@ -119,10 +119,23 @@ def is_weaviate_entity_url(input):
 
     return True
 
+
 def is_semantic_type(semantic_type):
+    """
+
+    :param semantic_type:
+    :type semantic_type: str
+    :return:
+    :rtype: bool
+    :raises:
+        TypeError
+    """
+    if not isinstance(semantic_type, str):
+        raise TypeError("Semantic type must be str but is "+str(type(semantic_type)))
     if semantic_type == SEMANTIC_TYPE_THINGS or semantic_type == SEMANTIC_TYPE_ACTIONS:
         return True
     return False
+
 
 def get_uuid_from_weaviate_url(url):
     """
@@ -170,6 +183,7 @@ def _is_sub_schema_schema_class(sub_schema, schema, schema_class):
         return _compare_class_sets(sub_schema_classes, schema_classes)
 
     return True
+
 
 def _compare_class_sets(sub_set, set):
     """

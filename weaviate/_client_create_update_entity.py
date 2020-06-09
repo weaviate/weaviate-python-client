@@ -137,6 +137,7 @@ def create_actions_in_batch(self, actions_batch_request):
     """
     return self._create_entity_in_batch(SEMANTIC_TYPE_ACTIONS, actions_batch_request)
 
+
 def create_things_in_batch(self, things_batch_request):
     """ Creates multiple things at once in weaviate
 
@@ -149,6 +150,7 @@ def create_things_in_batch(self, things_batch_request):
         UnexpectedStatusCodeException: if weaviate reports a none OK status.
     """
     return self._create_entity_in_batch(SEMANTIC_TYPE_THINGS, things_batch_request)
+
 
 def _create_entity_in_batch(self, semantic_type, batch_request):
     path = "/batching/" + semantic_type
@@ -164,6 +166,7 @@ def _create_entity_in_batch(self, semantic_type, batch_request):
 
     else:
         raise UnexpectedStatusCodeException("Create "+semantic_type+" in batch", response)
+
 
 def _patch_entity(self, semantic_type, entity, class_name, uuid):
     try:
@@ -197,6 +200,7 @@ def _patch_entity(self, semantic_type, entity, class_name, uuid):
     else:
         raise UnexpectedStatusCodeException("PATCH merge of entity not successful", response)
 
+
 def patch_action(self, action, class_name, uuid):
     """ Merges the given action with the already existing action in weaviate.
     Overwrites all given fields.
@@ -214,6 +218,7 @@ def patch_action(self, action, class_name, uuid):
         UnexpectedStatusCodeException: If weaviate reports a none successful status.
     """
     return self._patch_entity(SEMANTIC_TYPE_ACTIONS, action, class_name, uuid)
+
 
 def patch_thing(self, thing, class_name, uuid):
     """ Merges the given thing with the already existing thing in weaviate.
