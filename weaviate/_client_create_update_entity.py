@@ -221,7 +221,7 @@ def patch_thing(self, thing, class_name, uuid):
 
     :param thing: The thing states the fields that should be updated.
                   Fields not stated by thing will not be changed.
-                  Fields that are None will not be changed (may change in the future to deleted).
+                  Fields that are None will not be changed.
     :type thing: dict, url, file
     :param class_name: The name of the class of thing.
     :type class_name: str
@@ -233,6 +233,25 @@ def patch_thing(self, thing, class_name, uuid):
         UnexpectedStatusCodeException: If weaviate reports a none successful status.
     """
     return self._patch_entity(SEMANTIC_TYPE_THINGS, thing, class_name, uuid)
+
+
+def put_action(self, action, class_name, uuid):
+    """ Replaces an already existing action with the given thing. Does not keep unset values.
+
+    :param action: Describes the new values.
+                   It may be an URL or path to a json or a python dict describing the new values.
+    :type action: str, dict
+    :param class_name: Name of the class of the action that should be updated.
+    :type class_name: str
+    :param uuid: Of the action
+    :type uuid: str
+    :return: None if successful.
+    :raises:
+        ConnectionError: If the network connection to weaviate fails.
+        UnexpectedStatusCodeException: If weaviate reports a none OK status.
+    """
+    return self.put_entity(SEMANTIC_TYPE_ACTIONS, action, class_name, uuid)
+
 
 def put_thing(self, thing, class_name, uuid):
     """ Replaces an already existing thing with the given thing. Does not keep unset values.
@@ -249,17 +268,19 @@ def put_thing(self, thing, class_name, uuid):
         ConnectionError: If the network connection to weaviate fails.
         UnexpectedStatusCodeException: If weaviate reports a none OK status.
     """
+    return self.put_entity(SEMANTIC_TYPE_THINGS, thing, class_name, uuid)
 
-    parsed_thing = _get_dict_from_object(thing)
+def put_entity(self, semantic_type, entity, class_name, uuid):
+    parsed_entity = _get_dict_from_object(entity)
 
     weaviate_obj = {
         "id": uuid,
         "class": class_name,
-        "schema": parsed_thing
+        "schema": parsed_entity
     }
 
     try:
-        response = self._connection.run_rest("/things/" + uuid, REST_METHOD_PUT, weaviate_obj)
+        response = self._connection.run_rest("/" + semantic_type + "/" + uuid, REST_METHOD_PUT, weaviate_obj)
     except ConnectionError as conn_err:
         raise type(conn_err)(str(conn_err) + ' Connection error, thing was not updated.').with_traceback(
             sys.exc_info()[2])
@@ -269,4 +290,3 @@ def put_thing(self, thing, class_name, uuid):
 
     else:
         raise UnexpectedStatusCodeException("Update thing", response)
-
