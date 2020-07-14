@@ -2,7 +2,8 @@ from __future__ import unicode_literals
 import validators
 import copy
 from weaviate.util import is_weaviate_entity_url, get_uuid_from_weaviate_url
-from weaviate import SEMANTIC_TYPE_THINGS, SEMANTIC_TYPE_ACTIONS
+from weaviate import SEMANTIC_TYPE_THINGS
+
 
 class ReferenceBatchRequest:
     """
@@ -24,28 +25,26 @@ class ReferenceBatchRequest:
     def get_batch_size(self):
         return len(self._from_entity_class_names)
 
-    # def add_reference_to_action(self, from_action, from_action_class_name, from_property_name, to_semantic_type, to_entity):
-    #     self.add_reference(SEMANTIC_TYPE_ACTIONS, from_action, from_action_class_name, from_property_name, to_semantic_type, to_entity)
-    #
-    # def add_reference_to_thing(self, from_thing, from_thing_class_name, from_property_name, to_semantic_type, to_entity):
-    #     self.add_reference(SEMANTIC_TYPE_THINGS, from_thing, from_thing_class_name, from_property_name, to_semantic_type, to_entity)
-
-    def add_reference(self, from_semantic_type, from_entity_uuid, from_entity_class_name, from_property_name,
-                      to_semantic_type, to_entity_uuid):
+    def add_reference(self, from_entity_uuid, from_entity_class_name, from_property_name,
+                    to_entity_uuid, from_semantic_type=SEMANTIC_TYPE_THINGS, to_semantic_type=SEMANTIC_TYPE_THINGS):
         """ Add one reference to this batch
 
-        :param from_semantic_type: Either a thing or an action settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
-        :type from_semantic_type: str
         :param from_entity_uuid: The UUID or URL of the thing that should reference another entity.
         :type from_entity_uuid: str in form of UUID
         :param from_entity_class_name: The name of the class that should reference another entity.
         :type from_entity_class_name: str
         :param from_property_name: The name of the property that contains the reference.
         :type from_property_name: str
-        :param to_semantic_type: Either a thing or an action
-        :type to_semantic_type: Either a thing or an action settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
         :param to_entity_uuid: The UUID or URL of the thing that is actually referenced.
         :type to_entity_uuid: str
+        :param from_semantic_type: Either things or actions.
+                                   Defaults to things.
+                                   Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
+        :type from_semantic_type: str
+        :param to_semantic_type: Either things or actions.
+                                 Defaults to things.
+                                 Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
+        :type to_semantic_type: str
         :return: None if successful
         :raises:
             TypeError: If arguments are not string.
