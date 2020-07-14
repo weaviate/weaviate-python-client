@@ -62,28 +62,21 @@ chemists[2] = w.create({"name": "Walter White"}, "Person")
 if not sys.version_info[0] == 2:
     # Python 2.7 is not fully supported this test will not be replaced
     local_time = datetime.now(timezone.utc).astimezone()
-    w.create_action({"start": local_time.isoformat()}, "Call", "3ab05e06-2bb2-41d1-b5c5-e044f3aa9623")
+    w.create({"start": local_time.isoformat()}, "Call",
+             "3ab05e06-2bb2-41d1-b5c5-e044f3aa9623",weaviate.SEMANTIC_TYPE_ACTIONS)
 
 time.sleep(1.1)  # Let weaviate refresh its index with the newly loaded things
 
 print("Add reference to thing")
-w.add_reference_from_thing_to_thing("2db436b5-0557-5016-9c5f-531412adf9c6", "members", "b36268d4-a6b5-5274-985f-45f13ce0c642")
-w.add_reference_from_thing_to_thing("2db436b5-0557-5016-9c5f-531412adf9c6", "members", "1c9cd584-88fe-5010-83d0-017cb3fcb446")
-
-# TODO use when PUT is implemented
-# print("Add reference to action")
-# w.add_reference_to_entity(weaviate.SEMANTIC_TYPE_ACTIONS, "3ab05e06-2bb2-41d1-b5c5-e044f3aa9623", "caller",
-#                           weaviate.SEMANTIC_TYPE_THINGS, "1c9cd584-88fe-5010-83d0-017cb3fcb446")
-# w.add_reference_to_entity(weaviate.SEMANTIC_TYPE_ACTIONS, "3ab05e06-2bb2-41d1-b5c5-e044f3aa9623", "recipient",
-#                           weaviate.SEMANTIC_TYPE_THINGS, "b36268d4-a6b5-5274-985f-45f13ce0c642")
+w.add_reference("2db436b5-0557-5016-9c5f-531412adf9c6", "members", "b36268d4-a6b5-5274-985f-45f13ce0c642")
+w.add_reference("2db436b5-0557-5016-9c5f-531412adf9c6", "members", "1c9cd584-88fe-5010-83d0-017cb3fcb446")
 
 print("Add reference to thing in batch")
 reference_batch = weaviate.batch.ReferenceBatchRequest()
 
 for chemist in chemists:
-    reference_batch.add_reference(weaviate.SEMANTIC_TYPE_THINGS, "Group",
-                                  "577887c1-4c6b-5594-aa62-f0c17883d9bf", "members",
-                                  weaviate.SEMANTIC_TYPE_THINGS, chemist)
+    reference_batch.add_reference("577887c1-4c6b-5594-aa62-f0c17883d9bf", "Group", "members",
+                                  chemist)
 
 w.add_references_in_batch(reference_batch)
 
@@ -105,9 +98,9 @@ if len(group_chemists["Group"][0]["Members"]) != 3:
     exit(7)
 
 print("Test Delete")
-w.delete_thing(chemists[2])  # Delete Walter White not a real chemist just a legend
+w.delete(chemists[2])  # Delete Walter White not a real chemist just a legend
 time.sleep(1.1)
-if w.get_thing(chemists[2]) is not None:
+if w.get(chemists[2]) is not None:
     print("Thing was not correctly deleted")
     exit(8)
 
@@ -119,9 +112,9 @@ for name in prime_minister_names:
     prime_ministers.append(w.create({"name": name}, "Person"))
 time.sleep(1.2)
 for prime_minister in prime_ministers:
-    w.add_reference_from_thing_to_thing(prime_ministers_group, "members", prime_minister)
+    w.add_reference(prime_ministers_group, "members", prime_minister)
 time.sleep(1.2)
-w.delete_reference_from_thing_to_thing(prime_ministers_group, "members", prime_ministers[0])
+w.add_reference(prime_ministers_group, "members", prime_ministers[0])
 
 # TODO test some how query seems to fail raiscondition or result set not big enough
 
