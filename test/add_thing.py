@@ -15,32 +15,32 @@ class TestAddThings(unittest.TestCase):
     def test_create_thing_flawed_input(self):
         w = weaviate.Client("http://localhost:8080")
         try:
-            w.create_thing(None, "Class")
+            w.create(None, "Class")
             self.fail("Thing was not given but accepted anyways")
         except TypeError:
             pass
         try:
-            w.create_thing(224345, "Class")
+            w.create(224345, "Class")
             self.fail("Thing is of wrong type but no error")
         except TypeError:
             pass
         try:
-            w.create_thing({'name': 'Optimus Prime'}, None)
+            w.create({'name': 'Optimus Prime'}, None)
             self.fail("Class name has wrong type")
         except TypeError:
             pass
         try:
-            w.create_thing({'name': 'Optimus Prime'}, "Transformer", 19210)
+            w.create({'name': 'Optimus Prime'}, "Transformer", 19210)
             self.fail("Uuid wrong type")
         except TypeError:
             pass
         try:
-            w.create_thing({'name': 'Optimus Prime'}, "Transformer", "1234_1234_1234_1234")
+            w.create({'name': 'Optimus Prime'}, "Transformer", "1234_1234_1234_1234")
             self.fail("Uuid wrong form")
         except ValueError:
             pass
         try:
-            w.create_thing({'name': 'Optimus Prime'}, "Transformer", None, 1234)
+            w.create({'name': 'Optimus Prime'}, "Transformer", None, 1234)
             self.fail("weight vectors wrong type")
         except TypeError:
             pass
@@ -54,7 +54,7 @@ class TestAddThings(unittest.TestCase):
         connection_mock.run_rest.side_effect = run_rest_raise_connection_error
         w._connection = connection_mock
         try:
-            w.create_thing({"name": "Alan Greenspan"}, "CoolestPersonEver")
+            w.create({"name": "Alan Greenspan"}, "CoolestPersonEver")
         except ConnectionError as e:
             pass
 
@@ -98,7 +98,7 @@ class TestAddThings(unittest.TestCase):
             "vectorWeights": vector_weights
         }
 
-        uuid = w.create_thing(thing, class_name, None, vector_weights)
+        uuid = w.create(thing, class_name, None, vector_weights)
         self.assertEqual(uuid, str(0))
         connection_mock.run_rest.assert_called_with("/things", REST_METHOD_POST, rest_object)
 

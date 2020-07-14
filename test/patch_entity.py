@@ -12,22 +12,22 @@ class TestPatchThing(unittest.TestCase):
     def test_patch_thing_wrong_input(self):
         w = weaviate.Client("http://localhost:8080")
         try:
-            w.patch_thing(None, "Class", "ae6d51d6-b4ea-5a03-a808-6aae990bdebf")
+            w.patch(None, "Class", "ae6d51d6-b4ea-5a03-a808-6aae990bdebf")
             self.fail("Thing was not given but accepted anyways")
         except TypeError:
             pass
         try:
-            w.patch_thing({"A": "B"}, 35, "ae6d51d6-b4ea-5a03-a808-6aae990bdebf")
+            w.patch({"A": "B"}, 35, "ae6d51d6-b4ea-5a03-a808-6aae990bdebf")
             self.fail("Class is not string")
         except TypeError:
             pass
         try:
-            w.patch_thing({"A": "B"}, "Class", 1238234)
+            w.patch({"A": "B"}, "Class", 1238234)
             self.fail("Class is not string")
         except TypeError:
             pass
         try:
-            w.patch_thing({"A": "B"}, "Class", "NOT-A-valid-uuid")
+            w.patch({"A": "B"}, "Class", "NOT-A-valid-uuid")
             self.fail("Class is not string")
         except ValueError:
             pass
@@ -38,7 +38,7 @@ class TestPatchThing(unittest.TestCase):
         connection_mock = Mock()
         w._connection = add_run_rest_to_mock(connection_mock, status_code=204)
 
-        x = w.patch_thing({"A": "B"}, "Class", "ae6d51d6-b4ea-5a03-a808-6aae990bdebf")
+        x = w.patch({"A": "B"}, "Class", "ae6d51d6-b4ea-5a03-a808-6aae990bdebf")
 
         self.assertEqual(x, None)
         connection_mock.run_rest.assert_called()
@@ -48,7 +48,7 @@ class TestPatchThing(unittest.TestCase):
         w._connection = add_run_rest_to_mock(connection_mock, status_code=404)
 
         try:
-            w.patch_thing({"A": "B"}, "Class", "ae6d51d6-b4ea-5a03-a808-6aae990bdebf")
+            w.patch({"A": "B"}, "Class", "ae6d51d6-b4ea-5a03-a808-6aae990bdebf")
             self.fail("No exception was thrown")
         except weaviate.UnexpectedStatusCodeException:
             pass

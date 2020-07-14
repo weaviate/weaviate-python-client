@@ -7,41 +7,22 @@ from .util import _get_dict_from_object
 from requests.exceptions import ConnectionError
 from weaviate import SEMANTIC_TYPE_ACTIONS, SEMANTIC_TYPE_THINGS
 
-
-def create_action(self, action, class_name, uuid=None, vector_weights=None):
-    """ Takes a dict describing the action and adds it to weaviate
-
-    :param action: Action to be added.
-    :type action: dict
-    :param class_name: Associated with the action given.
-    :type class_name: str
-    :param uuid: Action will be created under this uuid if it is provided.
-    :type uuid: str
-    :param vector_weights: Influence the weight of words on action creation.
-    :type vector_weights: dict
-    :return: The UUID of the creaded thing if successful.
-    :raises:
-        TypeError: if argument is of wrong type.
-        ValueError: if argument contains an invalid value.
-        ThingAlreadyExistsException: if an thing with the given uuid already exists within weaviate.
-        UnexpectedStatusCodeException: if creating the thing in weavate failed with a different reason,
-        more information is given in the exception.
-        ConnectionError: if the network connection to weaviate fails.
-    :rtype: str
-    """
-    return self._create_entity(SEMANTIC_TYPE_ACTIONS, action, class_name, uuid, vector_weights)
-
-
-def create_thing(self, thing, class_name, uuid=None, vector_weights=None):
+def create(self, entity, class_name, uuid=None, semantic_type=SEMANTIC_TYPE_THINGS, vector_weights=None):
     """ Takes a dict describing the thing and adds it to weaviate
 
-    :param thing: Thing to be added.
-    :type thing: dict
-    :param class_name: Associated with the thing given.
+    :param entity: Entity to be added.
+    :type entity: dict
+    :param class_name: Associated with the entity given.
     :type class_name: str
-    :param uuid: Thing will be created under this uuid if it is provided.
+    :param uuid: Entity will be created under this uuid if it is provided.
+                 Otherwise weaviate will generate a uuid for this entity.
     :type uuid: str
+    :param semantic_type: Either things or actions.
+                          Defaults to things.
+                          Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
+    :type semantic_type: str
     :param vector_weights: Influence the weight of words on thing creation.
+                           Default is None for no influence.
     :type vector_weights: dict
     :return: Returns the UUID of the created thing if successful.
     :raises:
@@ -52,25 +33,6 @@ def create_thing(self, thing, class_name, uuid=None, vector_weights=None):
         more information is given in the exception.
         ConnectionError: if the network connection to weaviate fails.
     :rtype: str
-    """
-    return self._create_entity(SEMANTIC_TYPE_THINGS, thing, class_name, uuid, vector_weights)
-
-
-def _create_entity(self, semantic_type, entity, class_name, uuid=None, vector_weights=None):
-    """ Implements the generic adding of an object to weaviate.
-        See also create_thing and create_action
-
-    :param semantic_type: defined in constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
-    :type semantic_type: str
-    :param entity:
-    :type entity: dict
-    :param class_name:
-    :type class_name: str
-    :param uuid:
-    :type uuid: str
-    :param vector_weights:
-    :type vector_weights: dict
-    :return:
     """
 
     if not isinstance(entity, dict):
@@ -167,8 +129,27 @@ def _create_entity_in_batch(self, semantic_type, batch_request):
     else:
         raise UnexpectedStatusCodeException("Create "+semantic_type+" in batch", response)
 
+def patch(self, entity, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
+    """ Merges the given thing with the already existing thing in weaviate.
+    Overwrites all given fields.
 
-def _patch_entity(self, semantic_type, entity, class_name, uuid):
+    :param entity: The entity states the fields that should be updated.
+                   Fields not stated by entity will not be changed.
+                   Fields that are None will not be changed.
+    :type entity: dict, url, file
+    :param class_name: The name of the class of entity.
+    :type class_name: str
+    :param uuid: The ID of the entity that should be changed.
+    :type uuid: str
+    :param semantic_type: Either things or actions.
+                          Defaults to things.
+                          Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
+    :type semantic_type: str
+    :return: None if successful
+    :raises:
+        ConnectionError: If the network connection to weaviate fails.
+        UnexpectedStatusCodeException: If weaviate reports a none successful status.
+    """
     try:
         entity_dict = _get_dict_from_object(entity)
     except:
@@ -200,82 +181,25 @@ def _patch_entity(self, semantic_type, entity, class_name, uuid):
     else:
         raise UnexpectedStatusCodeException("PATCH merge of entity not successful", response)
 
+def put(self, entity, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
+    """ Replaces an already existing entity with the given entity. Does not keep unset values.
 
-def patch_action(self, action, class_name, uuid):
-    """ Merges the given action with the already existing action in weaviate.
-    Overwrites all given fields.
-
-    :param action: The action states the fields that should be updated.
-              Fields not stated by action will not be changed.
-              Fields that are None will not be changed (may change in the future to deleted).
-    :param class_name: The name of the class of action.
-    :type class_name: str
-    :param uuid: The ID of the action that should be changed.
-    :type uuid: str
-    :return: None if successful
-    :raises:
-        ConnectionError: If the network connection to weaviate fails.
-        UnexpectedStatusCodeException: If weaviate reports a none successful status.
-    """
-    return self._patch_entity(SEMANTIC_TYPE_ACTIONS, action, class_name, uuid)
-
-
-def patch_thing(self, thing, class_name, uuid):
-    """ Merges the given thing with the already existing thing in weaviate.
-    Overwrites all given fields.
-
-    :param thing: The thing states the fields that should be updated.
-                  Fields not stated by thing will not be changed.
-                  Fields that are None will not be changed.
-    :type thing: dict, url, file
-    :param class_name: The name of the class of thing.
-    :type class_name: str
-    :param uuid: The ID of the thing that should be changed.
-    :type uuid: str
-    :return: None if successful
-    :raises:
-        ConnectionError: If the network connection to weaviate fails.
-        UnexpectedStatusCodeException: If weaviate reports a none successful status.
-    """
-    return self._patch_entity(SEMANTIC_TYPE_THINGS, thing, class_name, uuid)
-
-
-def put_action(self, action, class_name, uuid):
-    """ Replaces an already existing action with the given thing. Does not keep unset values.
-
-    :param action: Describes the new values.
+    :param entity: Describes the new values.
                    It may be an URL or path to a json or a python dict describing the new values.
-    :type action: str, dict
-    :param class_name: Name of the class of the action that should be updated.
-    :type class_name: str
-    :param uuid: Of the action
-    :type uuid: str
-    :return: None if successful.
-    :raises:
-        ConnectionError: If the network connection to weaviate fails.
-        UnexpectedStatusCodeException: If weaviate reports a none OK status.
-    """
-    return self.put_entity(SEMANTIC_TYPE_ACTIONS, action, class_name, uuid)
-
-
-def put_thing(self, thing, class_name, uuid):
-    """ Replaces an already existing thing with the given thing. Does not keep unset values.
-
-    :param thing: Describes the new values.
-                  It may be an URL or path to a json or a python dict describing the new values.
-    :type thing: str, dict
+    :type entity: str, dict
     :param class_name: Name of the class of the thing that should be updated.
     :type class_name: str
-    :param uuid: Of the thing.
+    :param uuid: Of the entity.
     :type uuid: str
+    :param semantic_type: Either things or actions.
+                          Defaults to things.
+                          Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
+    :type semantic_type: str
     :return: None if successful.
     :raises:
         ConnectionError: If the network connection to weaviate fails.
         UnexpectedStatusCodeException: If weaviate reports a none OK status.
     """
-    return self.put_entity(SEMANTIC_TYPE_THINGS, thing, class_name, uuid)
-
-def put_entity(self, semantic_type, entity, class_name, uuid):
     parsed_entity = _get_dict_from_object(entity)
 
     weaviate_obj = {

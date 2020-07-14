@@ -46,18 +46,18 @@ w.create_things_in_batch(things_batch)
 w.create_actions_in_batch(actions_batch)
 
 print("Load a single things and actions")
-w.create_thing({"name": "Andrew S. Tanenbaum"}, "Person", "28954261-0449-57a2-ade5-e9e08d11f51a")
-w.create_thing({"name": "Alan Turing"}, "Person", "1c9cd584-88fe-5010-83d0-017cb3fcb446")
-w.create_thing({"name": "John von Neumann"}, "Person", "b36268d4-a6b5-5274-985f-45f13ce0c642")
-w.create_thing({"name": "Tim Berners-Lee"}, "Person", "d1e90d26-d82e-5ef8-84f6-ca67119c7998")
+w.create({"name": "Andrew S. Tanenbaum"}, "Person", "28954261-0449-57a2-ade5-e9e08d11f51a")
+w.create({"name": "Alan Turing"}, "Person", "1c9cd584-88fe-5010-83d0-017cb3fcb446")
+w.create({"name": "John von Neumann"}, "Person", "b36268d4-a6b5-5274-985f-45f13ce0c642")
+w.create({"name": "Tim Berners-Lee"}, "Person", "d1e90d26-d82e-5ef8-84f6-ca67119c7998")
 
-w.create_thing({"name": "Legends"}, "Group", "2db436b5-0557-5016-9c5f-531412adf9c6")
-w.create_thing({"name": "Chemists"}, "Group", "577887c1-4c6b-5594-aa62-f0c17883d9bf")
+w.create({"name": "Legends"}, "Group", "2db436b5-0557-5016-9c5f-531412adf9c6")
+w.create({"name": "Chemists"}, "Group", "577887c1-4c6b-5594-aa62-f0c17883d9bf")
 
 chemists = [None]*3
-chemists[0] = w.create_thing({"name": "Marie Curie"}, "Person")
-chemists[1] = w.create_thing({"name": "Fritz Haber"}, "Person")
-chemists[2] = w.create_thing({"name": "Walter White"}, "Person")
+chemists[0] = w.create({"name": "Marie Curie"}, "Person")
+chemists[1] = w.create({"name": "Fritz Haber"}, "Person")
+chemists[2] = w.create({"name": "Walter White"}, "Person")
 
 if not sys.version_info[0] == 2:
     # Python 2.7 is not fully supported this test will not be replaced
@@ -112,11 +112,11 @@ if w.get_thing(chemists[2]) is not None:
     exit(8)
 
 # Test delete reference
-prime_ministers_group = w.create_thing({"name": "Prime Ministers"}, "Group")
+prime_ministers_group = w.create({"name": "Prime Ministers"}, "Group")
 prime_ministers = []
 prime_minister_names = ["Wim Kok", "Dries van Agt", "Piet de Jong"]
 for name in prime_minister_names:
-    prime_ministers.append(w.create_thing({"name": name}, "Person"))
+    prime_ministers.append(w.create({"name": name}, "Person"))
 time.sleep(1.2)
 for prime_minister in prime_ministers:
     w.add_reference_from_thing_to_thing(prime_ministers_group, "members", prime_minister)
@@ -133,7 +133,7 @@ w.delete_reference_from_thing_to_thing(prime_ministers_group, "members", prime_m
 
 print("Test query")
 expected_name = "Sophie Scholl"
-w.create_thing({"name": expected_name}, "Person", "594b7827-f795-40d0-aabb-5e0553953dad")
+w.create({"name": expected_name}, "Person", "594b7827-f795-40d0-aabb-5e0553953dad")
 time.sleep(2.0)
 result = w.query(gql_get_sophie_scholl)
 if result["data"]["Get"]["Things"]["Person"][0]["name"] != expected_name:

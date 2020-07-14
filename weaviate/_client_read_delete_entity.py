@@ -4,38 +4,23 @@ import validators
 from .connect import *
 from .exceptions import *
 from requests.exceptions import ConnectionError
-from weaviate import SEMANTIC_TYPE_ACTIONS, SEMANTIC_TYPE_THINGS
+from weaviate import SEMANTIC_TYPE_THINGS
 
 
-def action_exists(self, action_uuid):
+def exists(self, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
     """
 
-    :param action_uuid: he uuid of the action that may or may not exist within weaviate.
-    :type action_uuid: str
-    :return: true if action exists
-    :raises:
-        ConnectionError: if the network connection to weaviate fails.
-        UnexpectedStatusCodeException: if weaviate reports a none OK status.
-    """
-    return self._entity_exists(SEMANTIC_TYPE_ACTIONS, action_uuid)
-
-
-def thing_exists(self, thing_uuid):
-    """
-
-    :param thing_uuid: the uuid of the thing that may or may not exist within weaviate.
-    :type thing_uuid: str
+    :param uuid: the uuid of the thing that may or may not exist within weaviate.
+    :type uuid: str
+    :param semantic_type: defaults to things allows also actions see SEMANTIC_TYPE_ACTIONS.
+    :type semantic_type: str
     :return: true if thing exists.
     :raises:
         ConnectionError: if the network connection to weaviate fails.
         UnexpectedStatusCodeException: if weaviate reports a none OK status.
     """
-    return self._entity_exists(SEMANTIC_TYPE_THINGS, thing_uuid)
-
-
-def _entity_exists(self, semantic_type, uuid_entity):
     try:
-        response = self._get_entity_response(semantic_type, uuid_entity)
+        response = self._get_entity_response(semantic_type, uuid)
     except ConnectionError:
         raise  # Just pass the same error back
 
@@ -46,14 +31,15 @@ def _entity_exists(self, semantic_type, uuid_entity):
     else:
         raise UnexpectedStatusCodeException("Thing exists", response)
 
-
-def get_thing(self, thing_uuid, meta=False):
+def get(self, uuid, meta=False, semantic_type=SEMANTIC_TYPE_THINGS):
     """ Gets a thing as dict.
 
-    :param thing_uuid: the identifier of the thing that should be retrieved.
-    :type thing_uuid: str
+    :param uuid: the identifier of the thing that should be retrieved.
+    :type uuid: str
     :param meta: if True the result includes meta data.
     :type meta: bool
+    :param semantic_type: defaults to things allows also actions see SEMANTIC_TYPE_ACTIONS.
+    :type semantic_type: str
     :return:
         dict in case the thing exists.
         None in case the thing does not exist.
@@ -61,29 +47,9 @@ def get_thing(self, thing_uuid, meta=False):
         ConnectionError: if the network connection to weaviate fails.
         UnexpectedStatusCodeException: if weaviate reports a none OK status.
     """
-    return self._get_entity(SEMANTIC_TYPE_THINGS, thing_uuid, meta)
 
-
-def get_action(self, action_uuid, meta=False):
-    """ Get an action as dict
-
-    :param action_uuid: the identifier of the action that should be retrieved.
-    :type action_uuid: str
-    :param meta: if True the result includes meta data.
-    :type meta: bool
-    :return:
-        dict in case the action exists.
-        None in case the action does not exist.
-    :raises:
-        ConnectionError: if the network connection to weaviate fails.
-        UnexpectedStatusCodeException: if weaviate reports a none OK status.
-    """
-    return self._get_entity(SEMANTIC_TYPE_ACTIONS, action_uuid, meta)
-
-
-def _get_entity(self, semantic_type, entity_uuid, meta):
     try:
-        response = self._get_entity_response(semantic_type, entity_uuid, meta)
+        response = self._get_entity_response(semantic_type, uuid, meta)
     except ConnectionError:
         raise
 
@@ -122,11 +88,13 @@ def _get_entity_response(self, semantic_type, entity_uuid, meta=False):
         return response
 
 
-def delete_action(self, action_uuid):
+def delete(self, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
     """
 
-    :param action_uuid: ID of the action that should be removed from the graph.
-    :type action_uuid: str
+    :param uuid: ID of the thing that should be removed from the graph.
+    :type uuid: str
+    :param semantic_type: defaults to things allows also actions see SEMANTIC_TYPE_ACTIONS.
+    :type semantic_type: str
     :return: None if successful
     :raises:
         ConnectionError: if the network connection to weaviate fails.
@@ -134,32 +102,13 @@ def delete_action(self, action_uuid):
         TypeError: If parameter has the wrong type.
         ValueError: If uuid is not properly formed.
     """
-    return self._delete_entity(SEMANTIC_TYPE_ACTIONS, action_uuid)
-
-
-def delete_thing(self, thing_uuid):
-    """
-
-    :param thing_uuid: ID of the thing that should be removed from the graph.
-    :type thing_uuid: str
-    :return: None if successful
-    :raises:
-        ConnectionError: if the network connection to weaviate fails.
-        UnexpectedStatusCodeException: if weaviate reports a none OK status.
-        TypeError: If parameter has the wrong type.
-        ValueError: If uuid is not properly formed.
-    """
-    return self._delete_entity(SEMANTIC_TYPE_THINGS, thing_uuid)
-
-
-def _delete_entity(self, semantic_type, entity_uuid):
-    if not isinstance(entity_uuid, str):
+    if not isinstance(uuid, str):
         raise TypeError("UUID must be type str")
-    if not validators.uuid(entity_uuid):
+    if not validators.uuid(uuid):
         raise ValueError("UUID does not have proper form")
 
     try:
-        response = self._connection.run_rest("/" + semantic_type + "/" + entity_uuid, REST_METHOD_DELETE)
+        response = self._connection.run_rest("/" + semantic_type + "/" + uuid, REST_METHOD_DELETE)
     except ConnectionError as conn_err:
         raise type(conn_err)(str(conn_err)
                              + ' Connection error, entity could not be deleted.'
