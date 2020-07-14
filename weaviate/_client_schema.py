@@ -171,7 +171,6 @@ def _get_primitive_properties(self, properties_list):
         # create the property object
         schema_property = {
             "dataType": property_["dataType"],
-            "cardinality": property_["cardinality"],
             "description": property_["description"],
             "name": property_["name"]
         }
@@ -181,6 +180,8 @@ def _get_primitive_properties(self, properties_list):
             schema_property["index"] = property_["index"]
         if "vectorizePropertyName" in property_:
             schema_property["vectorizePropertyName"] = property_["vectorizePropertyName"]
+        if "cardinality" in property_:
+            schema_property["cardinality"] = property_["cardinality"]
 
         # add keywords
         if "keywords" in property_:

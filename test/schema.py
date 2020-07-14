@@ -231,7 +231,6 @@ stop_vectorization_schema = {
             "dataType": [
               "text"
             ],
-            "cardinality": "atMostOne",
             "keywords": [],
             "vectorizePropertyName": False,
             "index": False
