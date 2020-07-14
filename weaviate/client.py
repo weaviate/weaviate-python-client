@@ -23,18 +23,10 @@ class Client:
     from weaviate._client_schema import create_schema, contains_schema, get_schema, \
         _create_complex_properties, _property_is_primitive, _get_primitive_properties, _create_class_with_primitives
     from weaviate._client_c11y import get_c11y_vector, extend_c11y
-    from weaviate._client_create_update_entity import create, create_action, \
-        create_actions_in_batch, create_things_in_batch, \
-        patch_action, patch, \
-        put, \
-        _get_dict_from_object, _patch_entity, _create_entity_in_batch, _create_entity
-    from weaviate._client_read_delete_entity import get_action, get_thing, \
-        action_exists, exists, \
-        delete_action, delete_thing, \
-        delete, _get_entity, _get_entity_response, _entity_exists
-    from weaviate._client_crud_reference import \
-        add_reference_to_action, add_reference, _add_reference_to_entity, \
-        delete_reference_from_action, delete_reference, _delete_reference_from_entity
+    from weaviate._client_create_update_entity import create, \
+        create_actions_in_batch, create_things_in_batch, patch, put, _create_entity_in_batch
+    from weaviate._client_read_delete_entity import exists, get, _get_entity_response, delete
+    from weaviate._client_crud_reference import add_reference, add_references_in_batch, delete_reference
 
     def __init__(self, url, auth_client_secret=None, client_config=None):
         """ New weaviate client

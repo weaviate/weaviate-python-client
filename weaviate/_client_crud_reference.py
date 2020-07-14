@@ -5,7 +5,8 @@ from .connect import *
 from .exceptions import *
 from .util import get_uuid_from_weaviate_url, get_domain_from_weaviate_url, is_weaviate_entity_url, is_semantic_type
 from requests.exceptions import ConnectionError
-from weaviate import SEMANTIC_TYPE_ACTIONS, SEMANTIC_TYPE_THINGS
+from weaviate import SEMANTIC_TYPE_THINGS
+
 
 def add_reference(self, from_uuid, from_property_name, to_uuid,
                   from_semantic_type=SEMANTIC_TYPE_THINGS, to_semantic_type=SEMANTIC_TYPE_THINGS,
@@ -53,7 +54,7 @@ def add_reference(self, from_uuid, from_property_name, to_uuid,
         raise TypeError("uuid must be of type str but was: " + str(type(from_uuid)))
     if not isinstance(from_property_name, str):
         raise TypeError("from_property_name must be of type str but was: " + str(type(from_property_name)))
-    if not is_semantic_type(to_semantic_type):
+    if not is_semantic_type(to_semantic_type) or not is_semantic_type(from_semantic_type):
         raise ValueError("Semantic type must be \"things\" or \"actions\"")
 
     if is_weaviate_entity_url(from_uuid):

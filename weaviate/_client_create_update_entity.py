@@ -7,6 +7,7 @@ from .util import _get_dict_from_object
 from requests.exceptions import ConnectionError
 from weaviate import SEMANTIC_TYPE_ACTIONS, SEMANTIC_TYPE_THINGS
 
+
 def create(self, entity, class_name, uuid=None, semantic_type=SEMANTIC_TYPE_THINGS, vector_weights=None):
     """ Takes a dict describing the thing and adds it to weaviate
 

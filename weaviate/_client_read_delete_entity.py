@@ -31,6 +31,7 @@ def exists(self, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
     else:
         raise UnexpectedStatusCodeException("Thing exists", response)
 
+
 def get(self, uuid, meta=False, semantic_type=SEMANTIC_TYPE_THINGS):
     """ Gets a thing as dict.
 
