@@ -22,7 +22,7 @@ class TestExceptions(unittest.TestCase):
         w._connection = add_run_rest_to_mock(connection_mock, status_code=404, return_json=error)
 
         try:
-            w.delete_thing("b36268d4-a6b5-5274-985f-45f13ce0c642")
+            w.delete("b36268d4-a6b5-5274-985f-45f13ce0c642")
             self.fail("No unexpected status code")
         except UnexpectedStatusCodeException as e:
             self.assertEqual(e.status_code, 404)
@@ -36,7 +36,7 @@ class TestExceptions(unittest.TestCase):
         w._connection = add_run_rest_to_mock(connection_mock, status_code=404)
 
         try:
-            w.delete_thing("b36268d4-a6b5-5274-985f-45f13ce0c642")
+            w.delete("b36268d4-a6b5-5274-985f-45f13ce0c642")
             self.fail("No unexpected status code")
         except UnexpectedStatusCodeException as e:
             self.assertEqual(e.status_code, 404)

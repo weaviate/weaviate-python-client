@@ -113,53 +113,53 @@ class TestWeaviateClient(unittest.TestCase):
         w = weaviate.Client("http://localhost:8081")
         # Type errors:
         try:
-            w.add_reference_from_thing_to_thing(1,
-                                     "hasReference",
-                                     "28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
+            w.add_reference(1,
+                            "hasReference",
+                            "28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
             self.fail("Should throw error")
         except TypeError:
             pass
         try:
-            w.add_reference_from_thing_to_thing("686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
-                                                1,
-                                     "28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
+            w.add_reference("686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
+                            1,
+                            "28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
             self.fail("Should throw error")
         except TypeError:
             pass
         try:
-            w.add_reference_from_thing_to_thing("686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
-                                     "hasReference",
-                                                1)
+            w.add_reference("686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
+                            "hasReference",
+                            1)
             self.fail("Should throw error")
         except TypeError:
             pass
         # Value errors:
         try:
-            w.add_reference_from_thing_to_thing("dcd1d-573b-4fba-bbb9-f63fa9a6926b",
-                                     "hasReference",
-                                     "28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
+            w.add_reference("dcd1d-573b-4fba-bbb9-f63fa9a6926b",
+                            "hasReference",
+                            "28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
             self.fail("Should throw error")
         except ValueError:
             pass
         try:
-            w.add_reference_from_thing_to_thing("686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
-                                     "",
-                                     "28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
+            w.add_reference("686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
+                            "",
+                            "28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
             self.fail("Should throw error")
         except ValueError:
             pass
         try:
-            w.add_reference_from_thing_to_thing("686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
-                                     "hasReference",
-                                     "f61b-b524-45e0-9bbe-2c1550bf73d2")
+            w.add_reference("686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
+                            "hasReference",
+                            "f61b-b524-45e0-9bbe-2c1550bf73d2")
             self.fail("Should throw error")
         except ValueError:
             pass
         try:
-            w.add_reference_from_thing_to_thing("weaviate://localhost/things/686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
-                                     "hasReference",
-                                     "weaviate://localhost/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2",
-                                     "otherdomain.com")
+            w.add_reference("weaviate://localhost/things/686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
+                            "hasReference",
+                            "weaviate://localhost/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2",
+                            "otherdomain.com")
             self.fail("to_thing_uuid is an url but the domain does not macht to_weaviate")
         except ValueError:
             pass
@@ -170,9 +170,9 @@ class TestWeaviateClient(unittest.TestCase):
         w._connection = add_run_rest_to_mock(connection_mock, None, status_code=200)
 
         # Add reference using uuids
-        w.add_reference_from_thing_to_thing("686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
-                                 "hasReference",
-                                 "28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
+        w.add_reference("686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
+                        "hasReference",
+                        "28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
 
         connection_mock.run_rest.assert_called_with(
             '/things/686dcd1d-573b-4fba-bbb9-f63fa9a6926b/references/hasReference',
@@ -180,9 +180,9 @@ class TestWeaviateClient(unittest.TestCase):
             {'beacon': 'weaviate://localhost/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'})
 
         # Add reference using urls local host
-        w.add_reference_from_thing_to_thing("weaviate://localhost/things/686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
-                                 "hasReference",
-                                 "weaviate://localhost/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
+        w.add_reference("weaviate://localhost/things/686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
+                        "hasReference",
+                        "weaviate://localhost/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
 
         connection_mock.run_rest.assert_called_with(
             '/things/686dcd1d-573b-4fba-bbb9-f63fa9a6926b/references/hasReference',
@@ -190,17 +190,15 @@ class TestWeaviateClient(unittest.TestCase):
             {'beacon': 'weaviate://localhost/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'})
 
         # Add reference using urls local host
-        w.add_reference_from_thing_to_thing("weaviate://peoplesfrontofjudea.org/things/686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
-                                 "hasReference",
-                                 "weaviate://judeanpeoplesfront.org/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2",
-                                            None)
+        w.add_reference("weaviate://peoplesfrontofjudea.org/things/686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
+                        "hasReference",
+                        "weaviate://judeanpeoplesfront.org/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2",
+                        weaviate.SEMANTIC_TYPE_THINGS, weaviate.SEMANTIC_TYPE_THINGS, None)
 
         connection_mock.run_rest.assert_called_with(
             '/things/686dcd1d-573b-4fba-bbb9-f63fa9a6926b/references/hasReference',
             REST_METHOD_POST,
             {'beacon': 'weaviate://judeanpeoplesfront.org/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'})
-
-
 
 
 if __name__ == '__main__':
