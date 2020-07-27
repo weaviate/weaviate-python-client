@@ -23,16 +23,6 @@ class TestWeaviateClient(unittest.TestCase):
             self.fail("No exception when no valid url given")
         except TypeError:
             pass  # Exception expected
-        try:
-            w = weaviate.Client("")
-            self.fail("No exception when no valid url given")
-        except ValueError:
-            pass  # Exception expected
-        try:
-            w = weaviate.Client("hallo\tasdf")
-            self.fail("No exception when no valid url given")
-        except ValueError:
-            pass  # Exception expected
 
     def test_create_weaviate_object_create_valid_object(self):
         try:
@@ -45,6 +35,10 @@ class TestWeaviateClient(unittest.TestCase):
             self.fail("Unexpected exception: " + str(e))
         try:
             w = weaviate.Client("http://test.domain/path:8080", "xyz")
+        except Exception as e:
+            self.fail("Unexpected exception: " + str(e))
+        try:
+            w = weaviate.Client("http://hercules:8080", "xyz")
         except Exception as e:
             self.fail("Unexpected exception: " + str(e))
         with patch('weaviate.connect.connection.requests') as requests_mock:

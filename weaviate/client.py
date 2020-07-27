@@ -43,17 +43,6 @@ class Client:
             raise TypeError("URL is expected to be string but is None")
         if not isinstance(url, str):
             raise TypeError("URL is expected to be string but is "+str(type(url)))
-        if not validators.url(url):
-            # IPs ending with 0 are not seen as valid URL
-            # Lets check if a valid URL is in place
-            ip = url
-            if ip.startswith("http://"):
-                ip = ip[7:]
-            if ip.startswith("https://"):
-                ip = ip[8:]
-            ip = ip.split(':')[0]
-            if not validators.ip_address.ipv4(ip):
-                raise ValueError("URL has no propper form: " + url)
         if url.endswith("/"):
             # remove trailing slash
             url = url[:-1]
