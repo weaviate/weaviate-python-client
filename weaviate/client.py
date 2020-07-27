@@ -12,14 +12,19 @@ from weaviate import SEMANTIC_TYPE_THINGS
 from weaviate._client_create_update_entity import _create, \
     _create_actions_in_batch, _create_things_in_batch, _patch, _put
 from weaviate._client_schema import _create_schema, _contains_schema, _get_schema
-# TODO _create_complex_properties, _property_is_primitive, _get_primitive_properties, _create_class_with_primitives
 from weaviate._client_crud_reference import _add_reference, _add_references_in_batch, _delete_reference
 from weaviate._client_read_delete_entity import _exists, _get, _delete
 from weaviate._client_c11y import _get_c11y_vector, _extend_c11y
 
+
 class Client:
     """ A python native weaviate client
     """
+
+    from weaviate._client_schema import \
+        _create_complex_properties, _property_is_primitive, _get_primitive_properties, _create_class_with_primitives
+    from weaviate._client_create_update_entity import _create_entity_in_batch
+    from weaviate._client_read_delete_entity import _get_entity_response
 
     def __init__(self, url, auth_client_secret=None, client_config=None):
         """ New weaviate client

@@ -103,3 +103,15 @@ class TestDelete(unittest.TestCase):
         }
 
         connection_mock.run_rest.assert_called_with("/things/"+thing+"/references/myProperty", REST_METHOD_DELETE, body)
+
+    def test_get_thinng(self):
+        w = weaviate.Client("http://localhost:8080")
+
+        thing = {
+            "name": "test"
+        }
+        connection_mock = Mock()
+        w._connection = add_run_rest_to_mock(connection_mock, return_json=thing, status_code=200)
+
+        result = w.get("73802305-c0da-427e-b21c-d6779a22f35f")
+        self.assertIn("name", result)
