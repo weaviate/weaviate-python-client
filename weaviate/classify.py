@@ -3,6 +3,7 @@ from .connect import REST_METHOD_POST, REST_METHOD_GET
 import sys
 import validators
 import copy
+import time
 
 SOURCE_WHERE_FILTER = 0
 TRAINING_SET_WHERE_FILTER = 1
@@ -35,6 +36,22 @@ class Classification:
             return response.json()
         else:
             raise UnexpectedStatusCodeException("Start classification", response)
+
+    def start_and_wait(self, config):
+        """ Start the classification described by the config on weaviate and return the status.
+            Waits until the classification is complete or failed.
+
+        :param config: for the classification.
+                       A config can be created using get_contextual_config or get_knn_config.
+        :return: the weaviate response if successfully finished or an Exception.
+        """
+        try:
+            id = self.start(config)["id"]
+            while not self.is_classification_complete(id):
+                time.sleep(2.0)
+            return self.get_classification_status(id)
+        except UnexpectedStatusCodeException as e:
+            raise e
 
     def add_filter_to_config(self, filter_type, filter, config):
         """ Create a new config based on the provided with the added filter.

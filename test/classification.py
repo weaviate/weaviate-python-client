@@ -16,7 +16,7 @@ class TestClassification(unittest.TestCase):
         connection_mock = Mock()
         w.classification._connection = add_run_rest_to_mock(connection_mock, status_code=201, return_json={"classification": "result"})
 
-        classify_class =  "MyClass"
+        classify_class = "MyClass"
         based_on_prop = "prop"
         classify_prop = "label"
         payload = w.classification.get_contextual_config(classify_class, based_on_prop, classify_prop)
