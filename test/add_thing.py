@@ -13,7 +13,7 @@ else:
 
 
 class TestAddThings(unittest.TestCase):
-    def test_create_thing_flawed_input(self):
+    def testcreate_thing_flawed_input(self):
         w = weaviate.Client("http://localhost:8080")
         try:
             w.create(None, "Class")
@@ -46,7 +46,7 @@ class TestAddThings(unittest.TestCase):
         except TypeError:
             pass
 
-    def test_create_thing_connection_error(self):
+    def testcreate_thing_connection_error(self):
         if sys.version_info[0] == 2:
             # Test is not working on version 2 because of old mock object
             return

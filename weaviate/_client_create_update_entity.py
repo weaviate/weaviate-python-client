@@ -8,7 +8,7 @@ from requests.exceptions import ConnectionError
 from weaviate import SEMANTIC_TYPE_ACTIONS, SEMANTIC_TYPE_THINGS
 
 
-def create(self, entity, class_name, uuid=None, semantic_type=SEMANTIC_TYPE_THINGS, vector_weights=None):
+def _create(self, entity, class_name, uuid=None, semantic_type=SEMANTIC_TYPE_THINGS, vector_weights=None):
     """ Takes a dict describing the thing and adds it to weaviate
 
     :param entity: Entity to be added.
@@ -87,7 +87,7 @@ def create(self, entity, class_name, uuid=None, semantic_type=SEMANTIC_TYPE_THIN
         raise UnexpectedStatusCodeException("Creating thing", response)
 
 
-def create_actions_in_batch(self, actions_batch_request):
+def _create_actions_in_batch(self, actions_batch_request):
     """ Crate multiple actions at once in weavaite
 
     :param actions_batch_request: The batch of actions that should be added.
@@ -101,7 +101,7 @@ def create_actions_in_batch(self, actions_batch_request):
     return self._create_entity_in_batch(SEMANTIC_TYPE_ACTIONS, actions_batch_request)
 
 
-def create_things_in_batch(self, things_batch_request):
+def _create_things_in_batch(self, things_batch_request):
     """ Creates multiple things at once in weaviate
 
     :param things_batch_request: The batch of things that should be added.
@@ -130,7 +130,7 @@ def _create_entity_in_batch(self, semantic_type, batch_request):
     else:
         raise UnexpectedStatusCodeException("Create "+semantic_type+" in batch", response)
 
-def patch(self, entity, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
+def _patch(self, entity, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
     """ Merges the given thing with the already existing thing in weaviate.
     Overwrites all given fields.
 
@@ -182,7 +182,7 @@ def patch(self, entity, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
     else:
         raise UnexpectedStatusCodeException("PATCH merge of entity not successful", response)
 
-def put(self, entity, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
+def _put(self, entity, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
     """ Replaces an already existing entity with the given entity. Does not keep unset values.
 
     :param entity: Describes the new values.

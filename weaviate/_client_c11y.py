@@ -3,7 +3,7 @@ from .exceptions import *
 from weaviate.connect import REST_METHOD_POST, REST_METHOD_GET
 
 
-def extend_c11y(self, concept, definition, weight=1.0):
+def _extend_c11y(self, concept, definition, weight=1.0):
     """ Extend the c11y with new concepts
 
     :param concept: The new concept that should be added, e.g. an abbreviation.
@@ -45,7 +45,7 @@ def extend_c11y(self, concept, definition, weight=1.0):
         raise UnexpectedStatusCodeException("Extend c11y", response)
 
 
-def get_c11y_vector(self, word):
+def _get_c11y_vector(self, word):
     """ Retrieves the vector representation of the given word.
 
     :param word: for which the vector should be retrieved. May be CamelCase for word combinations.

@@ -12,7 +12,7 @@ from weaviate import SEMANTIC_TYPE_ACTIONS, SEMANTIC_TYPE_THINGS
 _PRIMITIVE_WEAVIATE_TYPES = ["string", "int", "boolean", "number", "date", "text", "geoCoordinates", "CrossRef"]
 
 
-def create_schema(self, schema):
+def _create_schema(self, schema):
     """ Create the schema at the weaviate instance.
 
     :param schema: can either be the path to a json file, a url of a json file or a python native dict.
@@ -49,7 +49,7 @@ def create_schema(self, schema):
                                         loaded_schema[SEMANTIC_TYPE_ACTIONS]["classes"])
 
 
-def contains_schema(self, schema=None):
+def _contains_schema(self, schema=None):
     """ To check if weaviate already contains a schema.
 
     :param schema: if a schema is given it is checked if this
@@ -71,7 +71,7 @@ def contains_schema(self, schema=None):
     return False
 
 
-def get_schema(self):
+def _get_schema(self):
     """ Get the schema in weaviate
 
     :return: a dict containing the schema.

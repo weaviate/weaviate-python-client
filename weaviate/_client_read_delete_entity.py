@@ -7,7 +7,7 @@ from requests.exceptions import ConnectionError
 from weaviate import SEMANTIC_TYPE_THINGS
 
 
-def exists(self, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
+def _exists(self, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
     """
 
     :param uuid: the uuid of the thing that may or may not exist within weaviate.
@@ -32,7 +32,7 @@ def exists(self, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
         raise UnexpectedStatusCodeException("Thing exists", response)
 
 
-def get(self, uuid, meta=False, semantic_type=SEMANTIC_TYPE_THINGS):
+def _get(self, uuid, meta=False, semantic_type=SEMANTIC_TYPE_THINGS):
     """ Gets a thing as dict.
 
     :param uuid: the identifier of the thing that should be retrieved.
@@ -89,7 +89,7 @@ def _get_entity_response(self, semantic_type, entity_uuid, meta=False):
         return response
 
 
-def delete(self, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
+def _delete(self, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
     """
 
     :param uuid: ID of the thing that should be removed from the graph.

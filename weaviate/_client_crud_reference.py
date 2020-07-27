@@ -8,7 +8,7 @@ from requests.exceptions import ConnectionError
 from weaviate import SEMANTIC_TYPE_THINGS
 
 
-def add_reference(self, from_uuid, from_property_name, to_uuid,
+def _add_reference(self, from_uuid, from_property_name, to_uuid,
                   from_semantic_type=SEMANTIC_TYPE_THINGS, to_semantic_type=SEMANTIC_TYPE_THINGS,
                   to_weaviate="localhost"):
     """ Allows to link an entity from a thing unidirectionally.
@@ -105,7 +105,7 @@ def add_reference(self, from_uuid, from_property_name, to_uuid,
         raise UnexpectedStatusCodeException("Add property reference to thing", response)
 
 
-def add_references_in_batch(self, reference_batch_request):
+def _add_references_in_batch(self, reference_batch_request):
     """ Batch loading references
     Loading batch references is faster by ignoring some validations.
     Loading inconsistent data may ends up in an invalid graph.
@@ -138,7 +138,7 @@ def add_references_in_batch(self, reference_batch_request):
         raise UnexpectedStatusCodeException("Add references in batch", response)
 
 
-def delete_reference(self, from_uuid, from_property_name, to_uuid,
+def _delete_reference(self, from_uuid, from_property_name, to_uuid,
                      from_semantic_type=SEMANTIC_TYPE_THINGS, to_semantic_type=SEMANTIC_TYPE_THINGS,
                      to_weaviate="localhost"):
     """ Remove a reference to another thing. Equal to removing one direction of an edge from the graph.
