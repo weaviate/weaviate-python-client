@@ -7,7 +7,6 @@ else:
     from unittest.mock import Mock
 
 
-
 def add_run_rest_to_mock(mock, return_json=None, status_code=200):
     """Adds the run_rest method to a mock using the given options
 

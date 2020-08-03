@@ -24,7 +24,7 @@ matt_id = client.create({"name": "Matt Flegenheimer"}, "Author")
 print(f"UUID of Matt Flegenheimer: {matt_id}")
 
 # Create an Action
-client.create({}, "Cite", semantic_type=weaviate.SEMANTIC_TYPE_ACTIONS)
+cite_id = client.create({}, "Cite", semantic_type=weaviate.SEMANTIC_TYPE_ACTIONS)
 
 # Create an Article
 article = {
@@ -43,11 +43,12 @@ article = {
 }
 client.create(article, "Article", "23b9e00c-884c-4543-b68a-abf875c950c4")
 
-# Add a reference from the article to the
+# Add a reference from the article to the authors
 client.add_reference("d412133d-75fc-4ad5-aaae-46465522f1c2", "hasAuthors", "1c9cd584-88fe-5010-83d0-017cb3fcb446")
 client.add_reference("d412133d-75fc-4ad5-aaae-46465522f1c2", "hasAuthors", matt_id)
-
 client.add_reference("23b9e00c-884c-4543-b68a-abf875c950c4", "hasAuthors", "b36268d4-a6b5-5274-985f-45f13ce0c642")
+# Add a reference from an action type to a thing type
+client.add_reference(cite_id, "citation", "23b9e00c-884c-4543-b68a-abf875c950c4", from_semantic_type=weaviate.SEMANTIC_TYPE_ACTIONS)
 
 # Query the insterted data
 gql_get_articles = """
@@ -84,6 +85,7 @@ print(json.dumps(query_result, indent=4, sort_keys=True))
 client.create({"name": "entertainment"}, "Category")
 client.create({"name": "politics"}, "Category")
 
+# Give weaviate 2 seconds to update the index with the newly added categories
 time.sleep(2.0)
 
 classification_cfg = client.classification.get_contextual_config("Article", "summary", "ofCategory")
@@ -94,4 +96,5 @@ print(json.dumps(classification_status, indent=4, sort_keys=True))
 query_result = client.query(gql_get_articles)
 print("\nQuery results for articles after classification:")
 print(json.dumps(query_result, indent=4, sort_keys=True))
+
 

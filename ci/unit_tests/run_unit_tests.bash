@@ -8,7 +8,6 @@ function runTest {
 
 
 # /test
-runTest "test.add_action"
 runTest "test.add_action_batch"
 runTest "test.add_reference"
 runTest "test.add_reference_batch"
