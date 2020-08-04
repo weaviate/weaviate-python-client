@@ -50,7 +50,6 @@ class TestWeaviateClient(unittest.TestCase):
             except Exception as e:
                 self.fail("Unexpected exception: " + str(e))
 
-
     def test_is_reachable(self):
         w = weaviate.Client("http://localhost:8080")
         connection_mock = Mock()

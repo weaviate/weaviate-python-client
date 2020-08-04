@@ -8,8 +8,6 @@ class Builder:
         self._properties = properties
         self.filter = None
 
-
-
     def with_filter(self, filter):
         """
 
@@ -22,6 +20,7 @@ class Builder:
     def do(self):
         """
         :return:
+        :rtype: str
         """
         query = f'{{Get{{Things{{{self._class_name}'
         if self.filter is not None:
@@ -29,6 +28,8 @@ class Builder:
         query = query + f'{self._properties}}}}}}}'
 
         print(query)
+        return query
+
 
 class Get:
     def things(class_name, properties):
@@ -40,8 +41,10 @@ class Filter:
     def __init__(self, content):
         """
 
-        :param content:
+        :param content: dict describing the filter.
         :type content: dict
+        :raises:
+            KeyError: If a mandatory key is missing in the filter content
         """
         if not isinstance(content, dict):
             raise TypeError
@@ -49,19 +52,28 @@ class Filter:
         if "path" in content:
             self.is_filter = True
             self._parse_filter(content)
-        elif "operator" in content:
+        elif "operands" in content:
             self.is_filter = False
             self._parse_operator(content)
         else:
-            raise ValueError("Filter does not contain required fields")
+            self._raise_filter_misses_fields(content)
+
+    def _raise_filter_misses_fields(self, content):
+        raise ValueError("Filter is missing required fileds: ", content)
 
     def _parse_filter(self, content):
+        if "operator" not in content:
+            self._raise_filter_misses_fields(content)
+
         self.path = json.dumps(content["path"])
         self.operator = content["operator"]
-        self.value_type = find_value_type(content)
+        self.value_type = self._find_value_type(content)
         self.value = content[self.value_type]
 
     def _parse_operator(self, content):
+        if "operator" not in content:
+            self._raise_filter_misses_fields(content)
+            
         self.operator = content["operator"]
         self.operands = []
         for operand in content["operands"]:
@@ -85,27 +97,26 @@ class Filter:
             operands: [{operands}] \
             }}'
 
+    def _find_value_type(self, content):
+        """
 
-def find_value_type(content):
-    """
-
-    :param content:
-    :type content: dict
-    :return:
-    """
-    if "valueString" in content:
-        return "valueString"
-    elif "valueText" in content:
-        return "valueText"
-    elif "valueInt" in content:
-        return "valueInt"
-    elif "valueNumber" in content:
-        return "valueNumber"
-    elif "valueDate" in content:
-        return "valueDate"
-    elif "valueBoolean" in content:
-        return "valueBoolean"
-    elif "valueGeoRange" in content:
-        return "valueGeoRange"
-    else:
-        raise ValueError("Where no valid value type found")
+        :param content:
+        :type content: dict
+        :return:
+        """
+        if "valueString" in content:
+            return "valueString"
+        elif "valueText" in content:
+            return "valueText"
+        elif "valueInt" in content:
+            return "valueInt"
+        elif "valueNumber" in content:
+            return "valueNumber"
+        elif "valueDate" in content:
+            return "valueDate"
+        elif "valueBoolean" in content:
+            return "valueBoolean"
+        elif "valueGeoRange" in content:
+            return "valueGeoRange"
+        else:
+            self._raise_filter_misses_fields(content)
