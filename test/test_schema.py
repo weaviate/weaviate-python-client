@@ -327,8 +327,7 @@ class TestSchema(unittest.TestCase):
         # Load from file
         connection_mock_file = Mock()  # Mock calling weaviate
         add_run_rest_to_mock(connection_mock_file)
-
-        w.schema._connection = connection_mock_file  # Replace connection with mock
+        replace_connection(w, add_run_rest_to_mock(connection_mock_file))  # Replace connection with mock
 
         current_dir = os.path.dirname(__file__)
         schema_json_file = os.path.join(current_dir, "schema_company.json")
@@ -339,14 +338,14 @@ class TestSchema(unittest.TestCase):
         connection_mock_dict = Mock()  # Replace mock
         add_run_rest_to_mock(connection_mock_dict)
 
-        w._connection = connection_mock_dict
+        replace_connection(w, add_run_rest_to_mock(connection_mock_dict))
         w.schema.create(company_test_schema)
         connection_mock_dict.run_rest.assert_called()
 
         # Test schema missing actions/schema
         # Mock run_rest
         connection_mock = Mock()
-        w._connection = add_run_rest_to_mock(connection_mock)
+        replace_connection(w, add_run_rest_to_mock(connection_mock))
         schema = copy.deepcopy(company_test_schema)
         # Remove actions
         del schema[weaviate.SEMANTIC_TYPE_ACTIONS]
@@ -363,7 +362,7 @@ class TestSchema(unittest.TestCase):
         w._connection = add_run_rest_to_mock(connection_mock, return_json={"Test error"}, status_code=500)
 
         try:
-            w.create_schema(company_test_schema)
+            w.schema.create(company_test_schema)
         except weaviate.UnexpectedStatusCodeException:
             pass  # Expected exception
 
@@ -372,9 +371,9 @@ class TestSchema(unittest.TestCase):
 
         connection_mock_file = Mock()  # Mock calling weaviate
         add_run_rest_to_mock(connection_mock_file, persons_return_test_schema)
-        w._connection = connection_mock_file  # Replace connection with mock
+        replace_connection(w, connection_mock_file)  # Replace connection with mock
 
-        schema = w.get_schema()
+        schema = w.schema.get()
         connection_mock_file.run_rest.assert_called()  # See if mock has been called
         self.assertTrue("things" in schema)
         self.assertEqual(len(schema["things"]["classes"]), 2)
@@ -385,8 +384,8 @@ class TestSchema(unittest.TestCase):
         connection_mock_dict = Mock()  # Replace mock
         add_run_rest_to_mock(connection_mock_dict)
 
-        w._connection = connection_mock_dict
-        w.create_schema(person_index_false_schema)
+        replace_connection(w, connection_mock_dict)
+        w.schema.create(person_index_false_schema)
         connection_mock_dict.run_rest.assert_called()
 
     def test_not_indexed_class_name(self):
@@ -395,10 +394,9 @@ class TestSchema(unittest.TestCase):
         connection_mock_dict = Mock()  # Replace mock
         add_run_rest_to_mock(connection_mock_dict)
 
-        w._connection = connection_mock_dict
-        w.create_schema(stop_vectorization_schema)
+        replace_connection(w, connection_mock_dict)
+        w.schema.create(stop_vectorization_schema)
         connection_mock_dict.run_rest.assert_called()
-
 
     def test_invalid_schema(self):
         schema = {
@@ -417,7 +415,7 @@ class TestSchema(unittest.TestCase):
         }
         w = weaviate.Client("http://localhost:1234")
         try:
-            w.create_schema(schema)
+            w.schema.create(schema)
             self.fail("Expected SchemaValidationException")
         except weaviate.SchemaValidationException:
             pass
@@ -432,9 +430,9 @@ class TestContainsSchema(unittest.TestCase):
 
         connection_mock_file = Mock()  # Mock calling weaviate
         add_run_rest_to_mock(connection_mock_file, persons_return_test_schema)
-        w._connection = connection_mock_file  # Replace connection with mock
+        replace_connection(w, connection_mock_file)
 
-        self.assertTrue(w.contains_schema())
+        self.assertTrue(w.schema.contains())
 
         # 2. test no schema is present:
         w = weaviate.Client("http://localhost:8080")
@@ -442,17 +440,17 @@ class TestContainsSchema(unittest.TestCase):
         connection_mock_file = Mock()  # Mock calling weaviate
         empty_schema = {"actions":{"classes":[],"type":"action"},"things":{"classes":[],"type":"thing"}}
         add_run_rest_to_mock(connection_mock_file, empty_schema)
-        w._connection = connection_mock_file  # Replace connection with mock
+        replace_connection(w, connection_mock_file)
 
-        self.assertFalse(w.contains_schema())
+        self.assertFalse(w.schema.contains())
 
     def test_contains_specific_schema(self):
         w = weaviate.Client("http://localhost:8080")
 
         connection_mock_file = Mock()  # Mock calling weaviate
         add_run_rest_to_mock(connection_mock_file, persons_return_test_schema)
-        w._connection = connection_mock_file  # Replace connection with mock
-        self.assertFalse(w.contains_schema(company_test_schema))
+        replace_connection(w, connection_mock_file)
+        self.assertFalse(w.schema.contains(company_test_schema))
         subset_schema = {
             "things": {
                 "classes": [
@@ -470,15 +468,7 @@ class TestContainsSchema(unittest.TestCase):
                 ]
             }
         }
-        self.assertTrue(w.contains_schema(subset_schema))
-
-
-    def test_schema_path(self):
-        w = weaviate.Client("http://localhost:8080")
-        w.schema.create_schema(company_test_schema)
-        #
-        # connection_mock_file = Mock()  # Mock calling weaviate
-        # add_run_rest_to_mock(connection_mock_file, persons_return_test_schema)
+        self.assertTrue(w.schema.contains(subset_schema))
 
 
 if __name__ == '__main__':

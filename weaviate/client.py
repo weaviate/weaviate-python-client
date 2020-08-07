@@ -137,16 +137,6 @@ class Client:
     def get_c11y_vector(self, word):
         return _get_c11y_vector(self, word)
 
-    # # Schema
-    # def create_schema(self, schema):
-    #     return _create_schema(self, schema)
-    #
-    # def contains_schema(self, schema=None):
-    #     return _contains_schema(self, schema)
-    #
-    # def get_schema(self):
-    #     return _get_schema(self)
-
     # CRUD Reference
     def add_reference(self, from_uuid, from_property_name, to_uuid,
                       from_semantic_type=SEMANTIC_TYPE_THINGS, to_semantic_type=SEMANTIC_TYPE_THINGS,

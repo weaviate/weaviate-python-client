@@ -54,8 +54,7 @@ class Schema:
             self._create_complex_properties(SEMANTIC_TYPE_ACTIONS,
                                             loaded_schema[SEMANTIC_TYPE_ACTIONS]["classes"])
 
-
-    def _contains_schema(self, schema=None):
+    def contains(self, schema=None):
         """ To check if weaviate already contains a schema.
 
         :param schema: if a schema is given it is checked if this
@@ -66,7 +65,7 @@ class Schema:
         :raises:
             ConnectionError: In case of network issues.
         """
-        loaded_schema = self.get_schema()
+        loaded_schema = self.get()
 
         if schema is not None:
             return _is_sub_schema(schema, loaded_schema)
@@ -76,8 +75,7 @@ class Schema:
 
         return False
 
-
-    def _get_schema(self):
+    def get(self):
         """ Get the schema in weaviate
 
         :return: a dict containing the schema.
