@@ -1,6 +1,6 @@
 import sys
 from weaviate.connect import *
-from weaviate.util import _get_dict_from_object, _is_sub_schema
+from weaviate.util import _get_dict_from_object, _is_sub_schema, is_semantic_type
 from weaviate.exceptions import *
 from weaviate.schema.validate_schema import validate_schema
 from weaviate import SEMANTIC_TYPE_ACTIONS, SEMANTIC_TYPE_THINGS
@@ -42,17 +42,55 @@ class Schema:
         validate_schema(loaded_schema)
 
         if SEMANTIC_TYPE_THINGS in loaded_schema:
-            self._create_class_with_primitives(SEMANTIC_TYPE_THINGS,
-                                               loaded_schema[SEMANTIC_TYPE_THINGS]["classes"])
+            self._create_classes_with_primitives(SEMANTIC_TYPE_THINGS,
+                                                 loaded_schema[SEMANTIC_TYPE_THINGS]["classes"])
         if SEMANTIC_TYPE_ACTIONS in loaded_schema:
-            self._create_class_with_primitives(SEMANTIC_TYPE_ACTIONS,
-                                               loaded_schema[SEMANTIC_TYPE_ACTIONS]["classes"])
+            self._create_classes_with_primitives(SEMANTIC_TYPE_ACTIONS,
+                                                 loaded_schema[SEMANTIC_TYPE_ACTIONS]["classes"])
         if SEMANTIC_TYPE_THINGS in loaded_schema:
-            self._create_complex_properties(SEMANTIC_TYPE_THINGS,
-                                            loaded_schema[SEMANTIC_TYPE_THINGS]["classes"])
+            self._create_complex_properties_from_classes(SEMANTIC_TYPE_THINGS,
+                                                         loaded_schema[SEMANTIC_TYPE_THINGS]["classes"])
         if SEMANTIC_TYPE_ACTIONS in loaded_schema:
-            self._create_complex_properties(SEMANTIC_TYPE_ACTIONS,
-                                            loaded_schema[SEMANTIC_TYPE_ACTIONS]["classes"])
+            self._create_complex_properties_from_classes(SEMANTIC_TYPE_ACTIONS,
+                                                         loaded_schema[SEMANTIC_TYPE_ACTIONS]["classes"])
+
+    def create_class(self, schema_class, semantic_type=SEMANTIC_TYPE_THINGS):
+        self._create_class_with_premitives(semantic_type, schema_class)
+        self._create_complex_properties_from_class(schema_class, semantic_type)
+
+    def delete_class(self, class_name, semantic_type=SEMANTIC_TYPE_THINGS):
+        """ Delete a schema class from weaviate. This deletes all associated data.
+
+        :param class_name: that should be deleted
+        :type class_name: str
+        :param semantic_type: Either things or actions.
+                          Defaults to things.
+                          Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
+        :type semantic_type: str
+        :return: None
+        :raises
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
+            TypeError: if parameters are wrong type
+        """
+        if not isinstance(class_name, str):
+            raise TypeError(f"Class name was {type(class_name)} instead of str")
+        if not is_semantic_type(semantic_type):
+            raise ValueError("Semantic type must be \"things\" or \"actions\"")
+
+        path = f"/schema/{semantic_type}/{class_name}"
+        try:
+            response = self._connection.run_rest(path, REST_METHOD_DELETE)
+        except ConnectionError as conn_err:
+            raise type(conn_err)(str(conn_err)
+                                 + ' Connection error, during deletion of class.'
+                                 ).with_traceback(
+                sys.exc_info()[2])
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException("Delete class from schema", response)
+
+    def delete_all(self):
+        raise NotImplemented
 
     def contains(self, schema=None):
         """ To check if weaviate already contains a schema.
@@ -96,7 +134,41 @@ class Schema:
             raise UnexpectedStatusCodeException("Get schema", response)
 
 
-    def _create_complex_properties(self, semantic_type, schema_classes_list):
+    def _create_complex_properties_from_class(self, schema_class, semantic_type):
+        for property_ in schema_class["properties"]:
+
+            if self._property_is_primitive(property_["dataType"]):
+                continue
+
+            # create the property object
+            schema_property = {
+                "dataType": property_["dataType"],
+                "cardinality": property_["cardinality"],
+                "description": property_["description"],
+                "name": property_["name"]
+            }
+
+            if "index" in property_:
+                schema_property["index"] = property_["index"]
+            if "vectorizePropertyName" in property_:
+                schema_property["vectorizePropertyName"] = property_["vectorizePropertyName"]
+
+            # add keywords
+            if "keywords" in property_:
+                schema_property["keywords"] = property_["keywords"]
+
+            path = "/schema/" + semantic_type + "/" + schema_class["class"] + "/properties"
+            try:
+                response = self._connection.run_rest(path, REST_METHOD_POST, schema_property)
+            except ConnectionError as conn_err:
+                raise type(conn_err)(str(conn_err)
+                                     + ' Connection error, property may not have been created properly.'
+                                     ).with_traceback(
+                    sys.exc_info()[2])
+            if response.status_code != 200:
+                raise UnexpectedStatusCodeException("Add properties to classes", response)
+
+    def _create_complex_properties_from_classes(self, semantic_type, schema_classes_list):
         """ Add crossreferences to already existing classes
 
         :param semantic_type: can be found as constants e.g. SEMANTIC_TYPE_THINGS.
@@ -110,38 +182,7 @@ class Schema:
         """
 
         for schema_class in schema_classes_list:
-            for property_ in schema_class["properties"]:
-
-                if self._property_is_primitive(property_["dataType"]):
-                    continue
-
-                # create the property object
-                schema_property = {
-                    "dataType": property_["dataType"],
-                    "cardinality": property_["cardinality"],
-                    "description": property_["description"],
-                    "name": property_["name"]
-                }
-
-                if "index" in property_:
-                    schema_property["index"] = property_["index"]
-                if "vectorizePropertyName" in property_:
-                    schema_property["vectorizePropertyName"] = property_["vectorizePropertyName"]
-
-                # add keywords
-                if "keywords" in property_:
-                    schema_property["keywords"] = property_["keywords"]
-
-                path = "/schema/" + semantic_type + "/" + schema_class["class"] + "/properties"
-                try:
-                    response = self._connection.run_rest(path, REST_METHOD_POST, schema_property)
-                except ConnectionError as conn_err:
-                    raise type(conn_err)(str(conn_err)
-                                         + ' Connection error, property may not have been created properly.'
-                                         ).with_traceback(
-                        sys.exc_info()[2])
-                if response.status_code != 200:
-                    raise UnexpectedStatusCodeException("Add properties to classes", response)
+            self._create_complex_properties_from_class(schema_class, semantic_type)
 
 
     def _property_is_primitive(self, data_type_list):
@@ -195,8 +236,32 @@ class Schema:
 
         return primitive_properties
 
+    def _create_class_with_premitives(self, semantic_type, weaviate_class):
+        # Create the class
+        schema_class = {
+            "class": weaviate_class['class'],
+            "description": weaviate_class['description'],
+            "properties": [],
+            "keywords": []
+        }
 
-    def _create_class_with_primitives(self, semantic_type, schema_classes_list):
+        if "vectorizeClassName" in weaviate_class:
+            schema_class["vectorizeClassName"] = weaviate_class["vectorizeClassName"]
+
+        if "properties" in weaviate_class:
+            schema_class["properties"] = self._get_primitive_properties(weaviate_class["properties"])
+
+        # Add the item
+        try:
+            response = self._connection.run_rest("/schema/" + semantic_type, REST_METHOD_POST, schema_class)
+        except ConnectionError as conn_err:
+            raise type(conn_err)(str(conn_err)
+                                 + ' Connection error, class may not have been created properly.').with_traceback(
+                sys.exc_info()[2])
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException("Create class", response)
+
+    def _create_classes_with_primitives(self, semantic_type, schema_classes_list):
         """ Create all the classes in the list and primitive properties.
         This function does not create references,
         to avoid references to classes that do not yet exist.
@@ -212,27 +277,4 @@ class Schema:
         """
 
         for weaviate_class in schema_classes_list:
-
-            # Create the class
-            schema_class = {
-                "class": weaviate_class['class'],
-                "description": weaviate_class['description'],
-                "properties": [],
-                "keywords": []
-            }
-
-            if "vectorizeClassName" in weaviate_class:
-                schema_class["vectorizeClassName"] = weaviate_class["vectorizeClassName"]
-
-            if "properties" in weaviate_class:
-                schema_class["properties"] = self._get_primitive_properties(weaviate_class["properties"])
-
-            # Add the item
-            try:
-                response = self._connection.run_rest("/schema/" + semantic_type, REST_METHOD_POST, schema_class)
-            except ConnectionError as conn_err:
-                raise type(conn_err)(str(conn_err)
-                                     + ' Connection error, class may not have been created properly.').with_traceback(
-                    sys.exc_info()[2])
-            if response.status_code != 200:
-                raise UnexpectedStatusCodeException("Create class", response)
+            self._create_class_with_premitives(semantic_type, weaviate_class)

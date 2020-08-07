@@ -50,3 +50,4 @@ def replace_connection(weaviate, connection):
     weaviate._connection = connection
     weaviate.classification._connection = connection
     weaviate.schema._connection = connection
+    weaviate.contextionary._connection = connection

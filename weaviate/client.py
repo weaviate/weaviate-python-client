@@ -3,6 +3,7 @@ import sys
 from .connect import *
 from .classify import Classification
 from .schema import Schema
+from .contextionary import Contextionary
 from .exceptions import *
 from .client_config import ClientConfig
 from requests.exceptions import ConnectionError
@@ -12,10 +13,9 @@ from weaviate import SEMANTIC_TYPE_THINGS
 
 from weaviate._client_create_update_entity import _create, \
     _create_actions_in_batch, _create_things_in_batch, _patch, _put
-#from weaviate._client_schema import _create_schema, _contains_schema, _get_schema
 from weaviate._client_crud_reference import _add_reference, _add_references_in_batch, _delete_reference
 from weaviate._client_read_delete_entity import _exists, _get, _delete
-from weaviate._client_c11y import _get_c11y_vector, _extend_c11y
+
 
 
 class Client:
@@ -65,6 +65,7 @@ class Client:
 
         self.classification = Classification(self._connection)
         self.schema = Schema(self._connection)
+        self.contextionary = Contextionary(self._connection)
 
     def is_reachable(self):
         """ Ping weaviate
@@ -130,12 +131,12 @@ class Client:
     def put(self, entity, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
         return _put(self, entity, class_name, uuid, semantic_type)
 
-    # Contextionary
-    def extend_c11y(self, concept, definition, weight=1.0):
-        return _extend_c11y(self, concept, definition, weight)
-
-    def get_c11y_vector(self, word):
-        return _get_c11y_vector(self, word)
+    # # Contextionary
+    # def extend_c11y(self, concept, definition, weight=1.0):
+    #     return _extend_c11y(self, concept, definition, weight)
+    #
+    # def get_c11y_vector(self, word):
+    #     return _get_c11y_vector(self, word)
 
     # CRUD Reference
     def add_reference(self, from_uuid, from_property_name, to_uuid,

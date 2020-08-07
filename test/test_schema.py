@@ -4,6 +4,8 @@ import weaviate
 import copy
 import os
 from test.testing_util import replace_connection, add_run_rest_to_mock
+from weaviate.connect import REST_METHOD_POST, REST_METHOD_PUT, REST_METHOD_DELETE
+from weaviate import SEMANTIC_TYPE_ACTIONS
 
 import sys
 if sys.version_info[0] == 2:
@@ -469,6 +471,110 @@ class TestContainsSchema(unittest.TestCase):
             }
         }
         self.assertTrue(w.schema.contains(subset_schema))
+
+
+class TestCreate(unittest.TestCase):
+
+    def test_create_single_class(self):
+        group_class = {
+            "class": "Group",
+            "description": "A set of persons who are associated with each other over some common properties",
+            "keywords": [],
+            "properties": [
+                {
+                    "name": "name",
+                    "description": "The name under which this group is known",
+                    "dataType": [
+                        "text"
+                    ],
+                    "cardinality": "atMostOne",
+                    "keywords": [],
+                    "index": True
+                },
+                {
+                    "name": "members",
+                    "description": "The persons that are part of this group",
+                    "dataType": [
+                        "Person"
+                    ],
+                    "cardinality": "many"
+                }
+            ]
+        }
+
+        w = weaviate.Client("http://localhost:8080")
+
+        connection_mock = Mock()  # Mock calling weaviate
+        add_run_rest_to_mock(connection_mock)
+        replace_connection(w, connection_mock)
+
+        w.schema.create_class(group_class)
+        w.schema.create_class(group_class, SEMANTIC_TYPE_ACTIONS)
+
+        connection_mock.run_rest.assert_called()
+        call_args_list = connection_mock.run_rest.call_args_list
+        call_args, call_kwargs = call_args_list[0]
+        self.assertEqual("/schema/things", call_args[0])
+        self.assertEqual(REST_METHOD_POST, call_args[1])
+        created_class = call_args[2]
+        self.assertEqual("Group", created_class["class"])
+        self.assertEqual(1, len(created_class["properties"]))
+
+        call_args, call_kwargs = call_args_list[1]
+        self.assertEqual("/schema/things/Group/properties", call_args[0])
+        self.assertEqual(REST_METHOD_POST, call_args[1])
+        created_property = call_args[2]
+        self.assertEqual(["Person"], created_property["dataType"])
+
+        call_args, call_kwargs = call_args_list[2]
+        self.assertEqual("/schema/actions", call_args[0])
+        self.assertEqual(REST_METHOD_POST, call_args[1])
+
+
+class TestDelete(unittest.TestCase):
+
+    def test_delete_class_input(self):
+        w = weaviate.Client("http://localhost:8080")
+        try:
+            w.schema.delete_class(1)
+            self.fail("Expected error")
+        except TypeError:
+            pass
+        try:
+            w.schema.delete_class("a", 1)
+            self.fail("Expected error")
+        except TypeError:
+            pass
+
+    def test_delete_class(self):
+        w = weaviate.Client("http://localhost:8080")
+
+        connection_mock = Mock()  # Mock calling weaviate
+        add_run_rest_to_mock(connection_mock)
+        replace_connection(w, connection_mock)
+
+        w.schema.delete_class("Poverty")
+        w.schema.delete_class("Poverty", SEMANTIC_TYPE_ACTIONS)
+
+        connection_mock.run_rest.assert_called()
+
+        call_args_list = connection_mock.run_rest.call_args_list
+        call_args, call_kwargs = call_args_list[0]
+
+        self.assertEqual("/schema/things/Poverty", call_args[0])
+        self.assertEqual(REST_METHOD_DELETE, call_args[1])
+
+        call_args, call_kwargs = call_args_list[1]
+
+        self.assertEqual("/schema/actions/Poverty", call_args[0])
+        self.assertEqual(REST_METHOD_DELETE, call_args[1])
+
+    def test_delete_everything(self):
+        self.fail("NOT IMPLEMENTED")
+
+# TODO
+#  - delete: class, properties, all
+
 
 
 if __name__ == '__main__':

@@ -8,6 +8,7 @@ from requests.exceptions import ConnectionError
 
 WEAVIATE_REST_API_VERSION_PATH = "/v1"
 
+
 class Connection:
 
     def __init__(self, url, auth_client_secret=None, timeout_config=None):
