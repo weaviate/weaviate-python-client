@@ -7,6 +7,7 @@ else:
     from unittest.mock import Mock
 
 
+
 def add_run_rest_to_mock(mock, return_json=None, status_code=200):
     """Adds the run_rest method to a mock using the given options
 
@@ -34,3 +35,18 @@ def run_rest_raise_connection_error(path, rest_method, weaviate_object=None, ret
     :raises ConnectionError
     """
     raise ConnectionError
+
+
+def replace_connection(weaviate, connection):
+    """
+
+    :param weaviate:
+    :type weaviate: weaviate.Client
+    :param connection:
+    :type connection: weaviate.connection.Connection
+    :return:
+    """
+
+    weaviate._connection = connection
+    weaviate.classification._connection = connection
+    weaviate.schema._connection = connection

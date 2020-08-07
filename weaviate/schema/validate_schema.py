@@ -1,5 +1,6 @@
-from .exceptions import SchemaValidationException
+from weaviate.exceptions import SchemaValidationException
 import sys
+
 
 def validate_schema(schema):
     """
