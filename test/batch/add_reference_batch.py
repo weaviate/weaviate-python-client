@@ -1,9 +1,12 @@
 import unittest
+from unittest.mock import Mock
+from test.testing_util import replace_connection, add_run_rest_to_mock
+
 import weaviate
 from weaviate import SEMANTIC_TYPE_ACTIONS, SEMANTIC_TYPE_THINGS
+from weaviate.connect import REST_METHOD_POST
 
-
-class TestReferences(unittest.TestCase):
+class TestBatchReferencesObject(unittest.TestCase):
 
     def test_batch_length(self):
         batch = weaviate.ReferenceBatchRequest()
@@ -58,3 +61,31 @@ class TestReferences(unittest.TestCase):
                          body[2]["from"])
         self.assertEqual("weaviate://localhost/things/aeb937d8-546c-44fe-bc5c-e11d93970ccd",
                          body[2]["to"])
+
+
+class TestAddReferencesBatch(unittest.TestCase):
+
+    def test_add_references_in_batch(self):
+        w = weaviate.Client("http://test-add-references")
+
+        connection_mock = Mock()  # Mock calling weaviate
+        add_run_rest_to_mock(connection_mock)
+        replace_connection(w, connection_mock)
+
+        batch = weaviate.ReferenceBatchRequest()
+        batch.add_reference("431c13e7-7479-45ac-a956-29ef6c662a9e", "Product", "parts",
+                            "1d5c8296-d24e-4e4b-b0e8-9e7e1b40bfb1")
+        batch.add_reference("715de36c-e528-47c2-a5ee-73cccadacbc0", "Product", "parts",
+                            "465533f8-f0af-4f53-a51b-35a885423e6a", from_semantic_type=SEMANTIC_TYPE_ACTIONS)
+
+        w.batch.add_references(batch)
+
+        connection_mock.run_rest.assert_called()
+
+        call_args_list = connection_mock.run_rest.call_args_list
+        call_args, call_kwargs = call_args_list[0]
+
+        self.assertEqual("/batching/references", call_args[0])
+        self.assertEqual(REST_METHOD_POST, call_args[1])
+
+

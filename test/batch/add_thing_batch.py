@@ -4,6 +4,7 @@ from weaviate.connect import REST_METHOD_POST
 from test.testing_util import *
 import sys
 
+
 class TestAddThings(unittest.TestCase):
 
     def test_create_batch_request(self):
@@ -32,7 +33,6 @@ class TestAddThings(unittest.TestCase):
                 self.assertEqual(thing["id"], "d087b7c6-a115-5c89-8cb2-f25bdeb9bf92")  # Check if id is correct
                 id_found = True
         self.assertTrue(id_found)  # Check if id was in thing
-
 
     def test_create_batch_request_with_changing_object(self):
         # Create a batch and fill it with some data
@@ -69,7 +69,6 @@ class TestAddThings(unittest.TestCase):
                 id_found = True
         self.assertTrue(id_found)  # Check if id was in thing
 
-
     def test_create_batch_flawed_input(self):
         batch = weaviate.ThingsBatchRequest()
         try:
@@ -100,10 +99,11 @@ class TestAddThings(unittest.TestCase):
 
     def test_add_thing_batch(self):
         # test adding a normal batch
-        w = weaviate.Client("http://localhost:8080")
+        w = weaviate.Client("http://localhorst:8080")
+
         connection_mock = Mock()
         add_run_rest_to_mock(connection_mock)
-        w._connection = connection_mock
+        replace_connection(w, connection_mock)
 
         batch = weaviate.ThingsBatchRequest()
         batch.add_thing({"name": "John Rawls"}, "Philosopher", "3fa85f64-5717-4562-b3fc-2c963f66afa6")
@@ -123,16 +123,16 @@ class TestAddThings(unittest.TestCase):
           ]
         }
 
-        w.create_things_in_batch(batch)
+        w.batch.create_things(batch)
 
         connection_mock.run_rest.assert_called_with("/batching/things", REST_METHOD_POST, batch_request)
 
     def test_add_things_batch(self):
         # test adding a normal batch
-        w = weaviate.Client("http://localhost:8080")
+        w = weaviate.Client("http://localhorst:8080")
         connection_mock = Mock()
         add_run_rest_to_mock(connection_mock)
-        w._connection = connection_mock
+        replace_connection(w, connection_mock)
 
         # Add some data to the batch
         batch = weaviate.ThingsBatchRequest()
@@ -144,7 +144,7 @@ class TestAddThings(unittest.TestCase):
         batch.add_thing(schemas[2], classes[2])
 
         # Create the things from the batch
-        w.create_things_in_batch(batch)
+        w.batch.create_things(batch)
 
         connection_mock.run_rest.assert_called()
         call_args = connection_mock.run_rest.call_args_list[0][0]
@@ -170,7 +170,7 @@ class TestAddThings(unittest.TestCase):
 
         batch = weaviate.ThingsBatchRequest()
         try:
-            w.create_things_in_batch(batch)
+            w.batch.create_things(batch)
         except ConnectionError as e:
             pass
 

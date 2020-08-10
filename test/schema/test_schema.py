@@ -614,10 +614,5 @@ class TestDelete(unittest.TestCase):
         self.assertEqual(REST_METHOD_DELETE, call_args[1])
 
 
-# TODO
-#  - delete: class, properties, all
-
-
-
 if __name__ == '__main__':
     unittest.main()

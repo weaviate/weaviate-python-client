@@ -4,6 +4,8 @@ from .connect import *
 from .classify import Classification
 from .schema import Schema
 from .contextionary import Contextionary
+from .batch import Batch
+from .data import DataObject
 from .exceptions import *
 from .client_config import ClientConfig
 from requests.exceptions import ConnectionError
@@ -11,11 +13,10 @@ from weaviate import SEMANTIC_TYPE_THINGS
 
 # Class is splitted into multiple files
 
-from weaviate._client_create_update_entity import _create, \
-    _create_actions_in_batch, _create_things_in_batch, _patch, _put
-from weaviate._client_crud_reference import _add_reference, _add_references_in_batch, _delete_reference
-from weaviate._client_read_delete_entity import _exists, _get, _delete
-
+# from weaviate._client_create_update_entity import _create, \
+#     _create_actions_in_batch, _create_things_in_batch, _patch, _put
+# from weaviate._client_crud_reference import _add_reference, _add_references_in_batch, _delete_reference
+# from weaviate._client_read_delete_entity import _exists, _get, _delete
 
 
 class Client:
@@ -24,8 +25,8 @@ class Client:
 
     # from weaviate._client_schema import \
     #     _create_complex_properties, _property_is_primitive, _get_primitive_properties, _create_class_with_primitives
-    from weaviate._client_create_update_entity import _create_entity_in_batch
-    from weaviate._client_read_delete_entity import _get_entity_response
+    # from weaviate._client_create_update_entity import _create_entity_in_batch
+    # from weaviate._client_read_delete_entity import _get_entity_response
 
     def __init__(self, url, auth_client_secret=None, client_config=None):
         """ New weaviate client
@@ -66,6 +67,8 @@ class Client:
         self.classification = Classification(self._connection)
         self.schema = Schema(self._connection)
         self.contextionary = Contextionary(self._connection)
+        self.batch = Batch(self._connection)
+        self.data_object = DataObject(self._connection)
 
     def is_reachable(self):
         """ Ping weaviate
@@ -116,51 +119,44 @@ class Client:
     # for better ide recognition of `self`
 
     # Create and update
-    def create(self, entity, class_name, uuid=None, semantic_type=SEMANTIC_TYPE_THINGS, vector_weights=None):
-        return _create(self, entity, class_name, uuid, semantic_type, vector_weights)
+    # def create(self, entity, class_name, uuid=None, semantic_type=SEMANTIC_TYPE_THINGS, vector_weights=None):
+    #     return _create(self, entity, class_name, uuid, semantic_type, vector_weights)
 
-    def create_actions_in_batch(self, actions_batch_request):
-        return _create_actions_in_batch(self, actions_batch_request)
+    # def create_actions_in_batch(self, actions_batch_request):
+    #     return _create_actions_in_batch(self, actions_batch_request)
 
-    def create_things_in_batch(self, things_batch_request):
-        return _create_things_in_batch(self, things_batch_request)
+    # def create_things_in_batch(self, things_batch_request):
+    #     return _create_things_in_batch(self, things_batch_request)
 
-    def patch(self, entity, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
-        return _patch(self, entity, class_name, uuid, semantic_type)
-
-    def put(self, entity, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
-        return _put(self, entity, class_name, uuid, semantic_type)
-
-    # # Contextionary
-    # def extend_c11y(self, concept, definition, weight=1.0):
-    #     return _extend_c11y(self, concept, definition, weight)
+    # def patch(self, entity, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
+    #     return _patch(self, entity, class_name, uuid, semantic_type)
     #
-    # def get_c11y_vector(self, word):
-    #     return _get_c11y_vector(self, word)
+    # def put(self, entity, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
+    #     return _put(self, entity, class_name, uuid, semantic_type)
 
     # CRUD Reference
-    def add_reference(self, from_uuid, from_property_name, to_uuid,
-                      from_semantic_type=SEMANTIC_TYPE_THINGS, to_semantic_type=SEMANTIC_TYPE_THINGS,
-                      to_weaviate="localhost"):
-        return _add_reference(self, from_uuid, from_property_name, to_uuid,
-                       from_semantic_type, to_semantic_type,
-                       to_weaviate)
+    # def add_reference(self, from_uuid, from_property_name, to_uuid,
+    #                   from_semantic_type=SEMANTIC_TYPE_THINGS, to_semantic_type=SEMANTIC_TYPE_THINGS,
+    #                   to_weaviate="localhost"):
+    #     return _add_reference(self, from_uuid, from_property_name, to_uuid,
+    #                    from_semantic_type, to_semantic_type,
+    #                    to_weaviate)
 
-    def add_references_in_batch(self, reference_batch_request):
-        return _add_references_in_batch(self, reference_batch_request)
+    # def add_references_in_batch(self, reference_batch_request):
+    #     return _add_references_in_batch(self, reference_batch_request)
 
-    def delete_reference(self, from_uuid, from_property_name, to_uuid,
-                         from_semantic_type=SEMANTIC_TYPE_THINGS, to_semantic_type=SEMANTIC_TYPE_THINGS,
-                         to_weaviate="localhost"):
-        return _delete_reference(self, from_uuid, from_property_name, to_uuid,
-                          from_semantic_type, to_semantic_type,
-                          to_weaviate)
-
-    def exists(self, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
-        return _exists(self, uuid, semantic_type)
-
-    def get(self, uuid, meta=False, semantic_type=SEMANTIC_TYPE_THINGS):
-        return _get(self, uuid, meta, semantic_type)
-
-    def delete(self, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
-        return _delete(self, uuid, semantic_type)
+    # def delete_reference(self, from_uuid, from_property_name, to_uuid,
+    #                      from_semantic_type=SEMANTIC_TYPE_THINGS, to_semantic_type=SEMANTIC_TYPE_THINGS,
+    #                      to_weaviate="localhost"):
+    #     return _delete_reference(self, from_uuid, from_property_name, to_uuid,
+    #                       from_semantic_type, to_semantic_type,
+    #                       to_weaviate)
+    #
+    # def exists(self, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
+    #     return _exists(self, uuid, semantic_type)
+    #
+    # def get(self, uuid, meta=False, semantic_type=SEMANTIC_TYPE_THINGS):
+    #     return _get(self, uuid, meta, semantic_type)
+    #
+    # def delete(self, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
+    #     return _delete(self, uuid, semantic_type)

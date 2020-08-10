@@ -2,8 +2,8 @@ import unittest
 import weaviate
 from test.testing_util import run_rest_raise_connection_error
 from requests.exceptions import ConnectionError
-from test.testing_util import add_run_rest_to_mock
-from weaviate.connect import REST_METHOD_POST
+from test.testing_util import add_run_rest_to_mock, replace_connection
+from weaviate.connect import REST_METHOD_POST, REST_METHOD_PUT
 from weaviate import SEMANTIC_TYPE_ACTIONS, SEMANTIC_TYPE_THINGS
 import sys
 if sys.version_info[0] == 2:
@@ -13,35 +13,36 @@ else:
 
 
 class TestAddThings(unittest.TestCase):
+
     def testcreate_thing_flawed_input(self):
         w = weaviate.Client("http://localhost:8080")
         try:
-            w.create(None, "Class")
+            w.data_object.create(None, "Class")
             self.fail("Thing was not given but accepted anyways")
         except TypeError:
             pass
         try:
-            w.create(224345, "Class")
+            w.data_object.create(224345, "Class")
             self.fail("Thing is of wrong type but no error")
         except TypeError:
             pass
         try:
-            w.create({'name': 'Optimus Prime'}, None)
+            w.data_object.create({'name': 'Optimus Prime'}, None)
             self.fail("Class name has wrong type")
         except TypeError:
             pass
         try:
-            w.create({'name': 'Optimus Prime'}, "Transformer", 19210)
+            w.data_object.create({'name': 'Optimus Prime'}, "Transformer", 19210)
             self.fail("Uuid wrong type")
         except TypeError:
             pass
         try:
-            w.create({'name': 'Optimus Prime'}, "Transformer", "1234_1234_1234_1234")
+            w.data_object.create({'name': 'Optimus Prime'}, "Transformer", "1234_1234_1234_1234")
             self.fail("Uuid wrong form")
         except ValueError:
             pass
         try:
-            w.create({'name': 'Optimus Prime'}, "Transformer", None, 1234)
+            w.data_object.create({'name': 'Optimus Prime'}, "Transformer", None, 1234)
             self.fail("weight vectors wrong type")
         except TypeError:
             pass
@@ -55,7 +56,7 @@ class TestAddThings(unittest.TestCase):
         connection_mock.run_rest.side_effect = run_rest_raise_connection_error
         w._connection = connection_mock
         try:
-            w.create({"name": "Alan Greenspan"}, "CoolestPersonEver")
+            w.data_object.create({"name": "Alan Greenspan"}, "CoolestPersonEver")
         except ConnectionError as e:
             pass
 
@@ -64,7 +65,8 @@ class TestAddThings(unittest.TestCase):
 
         # 1. Succesfully delete something
         connection_mock = Mock()
-        w._connection = add_run_rest_to_mock(connection_mock, {"id": 0}, status_code=200)
+        add_run_rest_to_mock(connection_mock, {"id": 0}, status_code=200)
+        replace_connection(w, connection_mock)
 
         # thing = "b36268d4-a6b5-5274-985f-45f13ce0c642"
         # to_thing = "a36268d4-a6b5-5274-985f-45f13ce0c642"
@@ -83,7 +85,7 @@ class TestAddThings(unittest.TestCase):
             "vectorWeights": vector_weights
         }
 
-        uuid = w.create(thing, class_name, None, SEMANTIC_TYPE_THINGS, vector_weights)
+        uuid = w.data_object.create(thing, class_name, None, SEMANTIC_TYPE_THINGS, vector_weights)
         self.assertEqual(uuid, str(0))
         connection_mock.run_rest.assert_called_with("/things", REST_METHOD_POST, rest_object)
 
@@ -112,7 +114,8 @@ class TestAddThings(unittest.TestCase):
 
         # 1. Succesfully delete someaction
         connection_mock = Mock()
-        w._connection = add_run_rest_to_mock(connection_mock, {"id": 0}, status_code=200)
+        add_run_rest_to_mock(connection_mock, {"id": 0}, status_code=200)
+        replace_connection(w, connection_mock)
 
         # action = "b36268d4-a6b5-5274-985f-45f13ce0c642"
         # to_action = "a36268d4-a6b5-5274-985f-45f13ce0c642"
@@ -131,6 +134,32 @@ class TestAddThings(unittest.TestCase):
             "vectorWeights": vector_weights
         }
 
-        uuid = w.create(action, class_name, None, SEMANTIC_TYPE_ACTIONS, vector_weights)
+        uuid = w.data_object.create(action, class_name, None, SEMANTIC_TYPE_ACTIONS, vector_weights)
         self.assertEqual(uuid, str(0))
         connection_mock.run_rest.assert_called_with("/actions", REST_METHOD_POST, rest_object)
+
+
+class TestReplaceDataObject(unittest.TestCase):
+
+    def test_put(self):
+        w = weaviate.Client("http://localhorst:8080")
+
+        connection_mock = Mock()  # Mock calling weaviate
+        add_run_rest_to_mock(connection_mock)
+        replace_connection(w, connection_mock)
+
+        w.data_object.replace({"A": 2}, "Hero", "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
+        w.data_object.replace({"A": 2}, "Hero", "f39fd3d6-9d89-4cc1-8e72-f94022d36651", semantic_type=SEMANTIC_TYPE_ACTIONS)
+
+        connection_mock.run_rest.assert_called()
+
+        call_args_list = connection_mock.run_rest.call_args_list
+        call_args, call_kwargs = call_args_list[0]
+
+        self.assertEqual("/things/27be9d8d-1da1-4d52-821f-bc7e2a25247d", call_args[0])
+        self.assertEqual(REST_METHOD_PUT, call_args[1])
+
+        call_args, call_kwargs = call_args_list[1]
+
+        self.assertEqual("/actions/f39fd3d6-9d89-4cc1-8e72-f94022d36651", call_args[0])
+        self.assertEqual(REST_METHOD_PUT, call_args[1])

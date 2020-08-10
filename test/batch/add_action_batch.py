@@ -4,6 +4,7 @@ from weaviate.connect import REST_METHOD_POST
 from test.testing_util import *
 import sys
 
+
 class TestAddactions(unittest.TestCase):
 
     def test_create_batch_request(self):
@@ -98,10 +99,10 @@ class TestAddactions(unittest.TestCase):
 
     def test_add_action_batch(self):
         # test adding a normal batch
-        w = weaviate.Client("http://localhost:8080")
+        w = weaviate.Client("http://localhorst:8080")
         connection_mock = Mock()
         add_run_rest_to_mock(connection_mock)
-        w._connection = connection_mock
+        replace_connection(w, connection_mock)
 
         batch = weaviate.ActionsBatchRequest()
         batch.add_action({"name": "John Rawls"}, "Philosopher", "3fa85f64-5717-4562-b3fc-2c963f66afa6")
@@ -121,16 +122,16 @@ class TestAddactions(unittest.TestCase):
           ]
         }
 
-        w.create_actions_in_batch(batch)
+        w.batch.create_actions(batch)
 
         connection_mock.run_rest.assert_called_with("/batching/actions", REST_METHOD_POST, batch_request)
 
     def test_add_actions_batch(self):
         # test adding a normal batch
-        w = weaviate.Client("http://localhost:8080")
+        w = weaviate.Client("http://localhorst:8080")
         connection_mock = Mock()
         add_run_rest_to_mock(connection_mock)
-        w._connection = connection_mock
+        replace_connection(w, connection_mock)
 
         # Add some data to the batch
         batch = weaviate.ActionsBatchRequest()
@@ -142,7 +143,7 @@ class TestAddactions(unittest.TestCase):
         batch.add_action(schemas[2], classes[2])
 
         # Create the actions from the batch
-        w.create_actions_in_batch(batch)
+        w.batch.create_actions(batch)
 
         connection_mock.run_rest.assert_called()
         call_args = connection_mock.run_rest.call_args_list[0][0]
@@ -164,11 +165,11 @@ class TestAddactions(unittest.TestCase):
         w = weaviate.Client("http://semi.testing.eu:8080")
         connection_mock = Mock()  # Mock calling weaviate
         connection_mock.run_rest.side_effect = run_rest_raise_connection_error
-        w._connection = connection_mock
+        replace_connection(w, connection_mock)
 
         batch = weaviate.ActionsBatchRequest()
         try:
-            w.create_actions_in_batch(batch)
+            w.batch.create_actions(batch)
         except ConnectionError as e:
             pass
 
