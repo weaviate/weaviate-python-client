@@ -90,7 +90,18 @@ class Schema:
             raise UnexpectedStatusCodeException("Delete class from schema", response)
 
     def delete_all(self):
-        raise NotImplemented
+        """ Removes the entire schema from the weavaite instance and all data associated with it.
+
+        :return:
+        """
+        schema = self.get()
+        self._delete_all_classes_of_type(SEMANTIC_TYPE_THINGS, schema)
+        self._delete_all_classes_of_type(SEMANTIC_TYPE_ACTIONS, schema)
+
+    def _delete_all_classes_of_type(self, semantic_type, schema):
+        classes = schema.get(semantic_type, {}).get("classes", [])
+        for _class in classes:
+            self.delete_class(_class["class"], semantic_type)
 
     def contains(self, schema=None):
         """ To check if weaviate already contains a schema.

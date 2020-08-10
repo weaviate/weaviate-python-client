@@ -4,7 +4,7 @@ import weaviate
 import copy
 import os
 from test.testing_util import replace_connection, add_run_rest_to_mock
-from weaviate.connect import REST_METHOD_POST, REST_METHOD_PUT, REST_METHOD_DELETE
+from weaviate.connect import REST_METHOD_POST, REST_METHOD_PUT, REST_METHOD_DELETE, REST_METHOD_GET
 from weaviate import SEMANTIC_TYPE_ACTIONS
 
 import sys
@@ -570,7 +570,49 @@ class TestDelete(unittest.TestCase):
         self.assertEqual(REST_METHOD_DELETE, call_args[1])
 
     def test_delete_everything(self):
-        self.fail("NOT IMPLEMENTED")
+        # First request get schema
+        return_value_mock_get_schema = Mock()
+        return_value_mock_get_schema.json.return_value = company_test_schema
+        return_value_mock_get_schema.configure_mock(status_code=200)
+        # Second request delete class 1
+        return_value_mock_delete_class_1 = Mock()
+        return_value_mock_delete_class_1.json.return_value = None
+        return_value_mock_delete_class_1.configure_mock(status_code=200)
+        # Third request delete class 2
+        return_value_mock_delete_class_2 = Mock()
+        return_value_mock_delete_class_2.json.return_value = None
+        return_value_mock_delete_class_2.configure_mock(status_code=200)
+
+        connection_mock = Mock()  # Mock calling weaviate
+        #connection_mock.run_rest.return_value = [return_value_mock, return_value_mock2]
+        connection_mock.run_rest.side_effect = [return_value_mock_get_schema, return_value_mock_delete_class_1, return_value_mock_delete_class_2]
+
+        w = weaviate.Client("http://localhost:2121")
+        replace_connection(w, connection_mock)
+
+        w.schema.delete_all()
+
+        connection_mock.run_rest.assert_called()
+
+        call_args_list = connection_mock.run_rest.call_args_list
+        # Check if schema was retrieved
+        call_args, call_kwargs = call_args_list[0]
+
+        self.assertEqual("/schema", call_args[0])
+        self.assertEqual(REST_METHOD_GET, call_args[1])
+
+        # Check if class 1 was deleted
+        call_args, call_kwargs = call_args_list[1]
+
+        self.assertEqual("/schema/things/Company", call_args[0])
+        self.assertEqual(REST_METHOD_DELETE, call_args[1])
+
+        # Check if class 2 was deleted
+        call_args, call_kwargs = call_args_list[2]
+
+        self.assertEqual("/schema/things/Employee", call_args[0])
+        self.assertEqual(REST_METHOD_DELETE, call_args[1])
+
 
 # TODO
 #  - delete: class, properties, all
