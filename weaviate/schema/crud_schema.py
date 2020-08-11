@@ -55,6 +55,16 @@ class Schema:
                                                          loaded_schema[SEMANTIC_TYPE_ACTIONS]["classes"])
 
     def create_class(self, schema_class, semantic_type=SEMANTIC_TYPE_THINGS):
+        """ Creates a single class as part of the schema in weaviate.
+
+        :param schema_class: Description of the class that should be added
+        :type schema_class: dict
+        :param semantic_type: Either things or actions.
+                              Defaults to things.
+                              Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
+        :type semantic_type: str
+        :return: None if successful
+        """
         self._create_class_with_premitives(semantic_type, schema_class)
         self._create_complex_properties_from_class(schema_class, semantic_type)
 
@@ -92,7 +102,7 @@ class Schema:
     def delete_all(self):
         """ Removes the entire schema from the weavaite instance and all data associated with it.
 
-        :return:
+        :return: None
         """
         schema = self.get()
         self._delete_all_classes_of_type(SEMANTIC_TYPE_THINGS, schema)
@@ -143,7 +153,6 @@ class Schema:
             return response.json()
         else:
             raise UnexpectedStatusCodeException("Get schema", response)
-
 
     def _create_complex_properties_from_class(self, schema_class, semantic_type):
         for property_ in schema_class["properties"]:

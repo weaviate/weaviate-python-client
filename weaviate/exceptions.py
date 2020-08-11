@@ -1,5 +1,6 @@
 from builtins import super
 
+
 class UnexpectedStatusCodeException(Exception):
     def __init__(self, message, response):
         """ Is raised in case the status code returned from

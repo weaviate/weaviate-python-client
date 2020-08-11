@@ -2,11 +2,7 @@ import unittest
 from weaviate.tools import Batcher
 from weaviate import SEMANTIC_TYPE_THINGS, SEMANTIC_TYPE_ACTIONS
 import uuid
-import sys
-if sys.version_info[0] == 2:
-    from mock import MagicMock as Mock
-else:
-    from unittest.mock import Mock
+from unittest.mock import Mock
 
 
 class TestBatcher(unittest.TestCase):
@@ -17,10 +13,10 @@ class TestBatcher(unittest.TestCase):
         batcher.add_thing({}, "MyClass", str(uuid.uuid4()))
         batcher.add_thing({}, "MyClass", str(uuid.uuid4()))
         self.assertEqual(2, len(batcher._things_batch))
-        assert not client_mock.create_things_in_batch.called
+        assert not client_mock.batch.create_things.called
         # With the next thing the batcher should create the batch
         batcher.add_thing({}, "MyClass", str(uuid.uuid4()))
-        assert client_mock.create_things_in_batch.called
+        assert client_mock.batch.create_things.called
         # check if batch is being reset
         self.assertEqual(0, len(batcher._things_batch))
 
@@ -31,10 +27,10 @@ class TestBatcher(unittest.TestCase):
         batcher.add_action({}, "MyClass", str(uuid.uuid4()))
         batcher.add_action({}, "MyClass", str(uuid.uuid4()))
         self.assertEqual(2, len(batcher._actions_batch))
-        assert not client_mock.create_actions_in_batch.called
+        assert not client_mock.batch.create_actions.called
         # With the next thing the batcher should create the batch
         batcher.add_action({}, "MyClass", str(uuid.uuid4()))
-        assert client_mock.create_actions_in_batch.called
+        assert client_mock.batch.create_actions.called
         # check if batch is being reset
         self.assertEqual(0, len(batcher._things_batch))
 
@@ -82,4 +78,4 @@ class TestBatcher(unittest.TestCase):
         with Batcher(client_mock) as batcher:
             batcher.add_thing({}, "MyClass", str(uuid.uuid4()))
 
-        assert client_mock.create_things_in_batch.called
+        assert client_mock.batch.create_things.called

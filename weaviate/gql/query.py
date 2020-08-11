@@ -5,6 +5,8 @@ from .builder import Builder
 
 
 class Things:
+    """ Proxy class for builder
+    """
     def __init__(self, connection):
         self._connection = connection
 
@@ -18,12 +20,14 @@ class Things:
 class Query:
 
     def __init__(self, connection):
+        """
+        :param connection: needed to directly request from builder
+        """
         self._connection = connection
         self.get = Things(self._connection)
 
     def raw(self, gql_query):
         """ Allows to send simple graph QL string queries.
-            To create more complex GQL queries please use a GQL python client.
             Be cautious of injection risks when generating query strings.
 
         :param gql_query: A GQL query in form of a string

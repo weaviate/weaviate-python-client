@@ -1,4 +1,3 @@
-from rdflib import Graph
 import weaviate
 import weaviate.tools as tools
 import uuid
@@ -20,8 +19,8 @@ class TripleLoader:
         self._batcher = None
 
     def _add_schema(self):
-        if not self._client.contains_schema(tripple_schema):
-            self._client.create_schema(tripple_schema)
+        if not self._client.schema.contains(tripple_schema):
+            self._client.schema.create(tripple_schema)
 
     def _add_rdf_object(self, value, class_name):
         """ Create the object in weaviate

@@ -1,5 +1,3 @@
-
-
 class ClientConfig:
     """ Allows to configure the client with additional parameters
     """

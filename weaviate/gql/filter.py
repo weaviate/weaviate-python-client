@@ -6,12 +6,12 @@ class Explore:
     def __init__(self, content):
         """
 
-        :param content:
+        :param content: of the explore clause
         """
         if not isinstance(content, dict):
             raise TypeError(f"Explore filter is expected to be type dict but was {type(content)}")
 
-        self.concepts = self._check_concept(content)
+        self.concepts = _check_concept(content)
         self.certainty = None
         self.move_to = None
         self.move_away_from = None
@@ -23,10 +23,10 @@ class Explore:
             self.certainty = content["certainty"]
 
         if "moveTo" in content:
-            self.move_to = self._check_direction_clause(content["moveTo"])
+            self.move_to = _check_direction_clause(content["moveTo"])
 
         if "moveAwayFrom" in content:
-            self.move_away_from = self._check_direction_clause(content["moveAwayFrom"])
+            self.move_away_from = _check_direction_clause(content["moveAwayFrom"])
 
 
     def __str__(self):
@@ -39,24 +39,28 @@ class Explore:
             explore += f'moveAwayFrom:{{concepts: {json.dumps(self.move_away_from["concepts"])} force: {self.move_away_from["force"]}}} '
         return explore + '}'
 
-    def _check_direction_clause(self, direction):
-        if not isinstance(direction, dict):
-            raise TypeError(f"move clause should be dict but was {type(direction)}")
-        self._check_concept(direction)
-        if not "force" in direction:
-            raise ValueError("move clause needs to state a force")
-        if not isinstance(direction["force"], float):
-            raise TypeError(f"force should be float but was {type(direction['force'])}")
-        return direction
+def _check_direction_clause(direction):
+    """ Validate the direction sub clause
 
+    :param direction:
+    :return:
+    """
+    if not isinstance(direction, dict):
+        raise TypeError(f"move clause should be dict but was {type(direction)}")
+    _check_concept(direction)
+    if not "force" in direction:
+        raise ValueError("move clause needs to state a force")
+    if not isinstance(direction["force"], float):
+        raise TypeError(f"force should be float but was {type(direction['force'])}")
+    return direction
 
-    def _check_concept(self, content):
-        if "concepts" not in content:
-            raise ValueError("No concepts in content")
+def _check_concept(content):
+    if "concepts" not in content:
+        raise ValueError("No concepts in content")
 
-        if not isinstance(content["concepts"], (list, str)):
-            raise ValueError(f"Concepts must be of type list or str not {type(content['concepts'])}")
-        return content["concepts"]
+    if not isinstance(content["concepts"], (list, str)):
+        raise ValueError(f"Concepts must be of type list or str not {type(content['concepts'])}")
+    return content["concepts"]
 
 
 class WhereFilter:

@@ -47,7 +47,7 @@ class Batcher:
         """
         if len(self._things_batch) > 0:
             try:
-                result = self._client.create_things_in_batch(self._things_batch)
+                result = self._client.batch.create_things(self._things_batch)
 
             except (ConnectionError, Timeout, ReadTimeout, weaviate.UnexpectedStatusCodeException) as e:
                 time.sleep(180.0)
@@ -57,7 +57,7 @@ class Batcher:
             self._things_batch = weaviate.batch.ThingsBatchRequest()
         if len(self._actions_batch) > 0:
             try:
-                result = self._client.create_actions_in_batch(self._actions_batch)
+                result = self._client.batch.create_actions(self._actions_batch)
             except (ConnectionError, Timeout, ReadTimeout, weaviate.UnexpectedStatusCodeException) as e:
                 time.sleep(180.0)
                 print("Exception in adding action: ", e)

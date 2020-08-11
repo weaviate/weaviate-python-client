@@ -63,15 +63,15 @@ class Reference:
                 from_semantic_type=SEMANTIC_TYPE_THINGS, to_semantic_type=SEMANTIC_TYPE_THINGS):
         """ Allows to replace all references in that property with a new set of references
 
-        :param from_uuid: The entity that should have the reference as part of its properties.
+        :param from_uuid: The object that should have the reference as part of its properties.
                            Accepts a plane UUID or an URL. E.g.
                            'http://localhost:8080/v1/things/fc7eb129-f138-457f-b727-1b29db191a67'
                            or
                            'fc7eb129-f138-457f-b727-1b29db191a67'
-                           By default the entity is a thing please specify from_semantic_type
+                           By default the object is a thing please specify from_semantic_type
                            if you want to reference from an action.
         :type from_uuid: str in the form of an UUID, str in form of URL
-        :param from_property_name: The name of the property within the entity.
+        :param from_property_name: The name of the property within the object.
         :type from_property_name: str
         :param to_uuids: The UUIDs of the objects that should be referenced.
                           Accepts a plane UUID or an URL. E.g.
@@ -126,19 +126,19 @@ class Reference:
 
     def add(self, from_uuid, from_property_name, to_uuid,
             from_semantic_type=SEMANTIC_TYPE_THINGS, to_semantic_type=SEMANTIC_TYPE_THINGS):
-        """ Allows to link an entity from a thing unidirectionally.
+        """ Allows to link an object from a thing unidirectionally.
 
-        :param from_uuid: The entity that should have the reference as part of its properties.
+        :param from_uuid: The object that should have the reference as part of its properties.
                            Accepts a plane UUID or an URL. E.g.
                            'http://localhost:8080/v1/things/fc7eb129-f138-457f-b727-1b29db191a67'
                            or
                            'fc7eb129-f138-457f-b727-1b29db191a67'
-                           By default the entity is a thing please specify from_semantic_type
+                           By default the object is a thing please specify from_semantic_type
                            if you want to reference from an action.
         :type from_uuid: str in the form of an UUID, str in form of URL
-        :param from_property_name: The name of the property within the entity.
+        :param from_property_name: The name of the property within the object.
         :type from_property_name: str
-        :param to_uuid: The UUID of the entity that should be referenced.
+        :param to_uuid: The UUID of the object that should be referenced.
                           Accepts a plane UUID or an URL. E.g.
                           'http://localhost:8080/v1/things/fc7eb129-f138-457f-b727-1b29db191a67'
                           or

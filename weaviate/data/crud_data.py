@@ -15,15 +15,15 @@ class DataObject:
         self._connection = connection
         self.reference = Reference(self._connection)
 
-    def create(self, entity, class_name, uuid=None, semantic_type=SEMANTIC_TYPE_THINGS, vector_weights=None):
+    def create(self, data_object, class_name, uuid=None, semantic_type=SEMANTIC_TYPE_THINGS, vector_weights=None):
         """ Takes a dict describing the thing and adds it to weaviate
 
-        :param entity: Entity to be added.
-        :type entity: dict
-        :param class_name: Associated with the entity given.
+        :param data_object: Object to be added.
+        :type data_object: dict
+        :param class_name: Associated with the object given.
         :type class_name: str
-        :param uuid: Entity will be created under this uuid if it is provided.
-                     Otherwise weaviate will generate a uuid for this entity.
+        :param uuid: Object will be created under this uuid if it is provided.
+                     Otherwise weaviate will generate a uuid for this object.
         :type uuid: str
         :param semantic_type: Either things or actions.
                               Defaults to things.
@@ -43,15 +43,15 @@ class DataObject:
         :rtype: str
         """
 
-        if not isinstance(entity, dict):
+        if not isinstance(data_object, dict):
             raise TypeError(
-                "Expected" + semantic_type[:-1] + " to be of type dict instead it was: " + str(type(entity)))
+                "Expected" + semantic_type[:-1] + " to be of type dict instead it was: " + str(type(data_object)))
         if not isinstance(class_name, str):
             raise TypeError("Expected class_name of type str but was: " + str(type(class_name)))
 
         weaviate_obj = {
             "class": class_name,
-            "schema": entity
+            "schema": data_object
         }
         if uuid is not None:
             if not isinstance(uuid, str):
@@ -95,17 +95,17 @@ class DataObject:
 
             raise UnexpectedStatusCodeException("Creating thing", response)
 
-    def merge(self, entity, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
+    def merge(self, data_object, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
         """ Merges the given thing with the already existing thing in weaviate.
         Overwrites all given fields.
 
-        :param entity: The entity states the fields that should be updated.
-                       Fields not stated by entity will not be changed.
-                       Fields that are None will not be changed.
-        :type entity: dict, url, file
-        :param class_name: The name of the class of entity.
+        :param data_object: The object states the fields that should be updated.
+                            Fields not stated by object will not be changed.
+                            Fields that are None will not be changed.
+        :type data_object: dict, url, file
+        :param class_name: The name of the class of the data object.
         :type class_name: str
-        :param uuid: The ID of the entity that should be changed.
+        :param uuid: The ID of the object that should be changed.
         :type uuid: str
         :param semantic_type: Either things or actions.
                               Defaults to things.
@@ -117,7 +117,7 @@ class DataObject:
             UnexpectedStatusCodeException: If weaviate reports a none successful status.
         """
         try:
-            entity_dict = _get_dict_from_object(entity)
+            object_dict = _get_dict_from_object(data_object)
         except:
             raise  # Keep exception boiling back to user
 
@@ -131,31 +131,31 @@ class DataObject:
         payload = {
             "id": uuid,
             "class": class_name,
-            "schema": entity_dict
+            "schema": object_dict
         }
 
-        path = "/" + semantic_type + "/" + uuid
+        path = f"/{semantic_type}/{uuid}"
 
         try:
             response = self._connection.run_rest(path, REST_METHOD_PATCH, payload)
         except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err) + ' Connection error, entity was not patched.').with_traceback(
+            raise type(conn_err)(str(conn_err) + ' Connection error, object was not patched.').with_traceback(
                 sys.exc_info()[2])
 
         if response.status_code == 204:
             return None  # success
         else:
-            raise UnexpectedStatusCodeException("PATCH merge of entity not successful", response)
+            raise UnexpectedStatusCodeException("PATCH merge of object not successful", response)
 
-    def replace(self, entity, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
-        """ Replaces an already existing entity with the given entity. Does not keep unset values.
+    def replace(self, data_object, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
+        """ Replaces an already existing object with the given data object. Does not keep unset values.
 
-        :param entity: Describes the new values.
+        :param data_object: Describes the new values.
                        It may be an URL or path to a json or a python dict describing the new values.
-        :type entity: str, dict
+        :type data_object: str, dict
         :param class_name: Name of the class of the thing that should be updated.
         :type class_name: str
-        :param uuid: Of the entity.
+        :param uuid: Of the object.
         :type uuid: str
         :param semantic_type: Either things or actions.
                               Defaults to things.
@@ -166,12 +166,12 @@ class DataObject:
             ConnectionError: If the network connection to weaviate fails.
             UnexpectedStatusCodeException: If weaviate reports a none OK status.
         """
-        parsed_entity = _get_dict_from_object(entity)
+        parsed_object = _get_dict_from_object(data_object)
 
         weaviate_obj = {
             "id": uuid,
             "class": class_name,
-            "schema": parsed_entity
+            "schema": parsed_object
         }
 
         try:
@@ -204,7 +204,7 @@ class DataObject:
         """
 
         try:
-            response = self._get_entity_response(semantic_type, uuid, meta)
+            response = self._get_object_response(semantic_type, uuid, meta)
         except ConnectionError:
             raise
 
@@ -213,15 +213,15 @@ class DataObject:
         elif response.status_code == 404:
             return None
         else:
-            raise UnexpectedStatusCodeException("Get entity", response)
+            raise UnexpectedStatusCodeException("Get object", response)
 
-    def _get_entity_response(self, semantic_type, entity_uuid, meta=False):
-        """ Retrieves an entity from weaviate.
+    def _get_object_response(self, semantic_type, object_uuid, meta=False):
+        """ Retrieves an object from weaviate.
 
         :param semantic_type: can be found as constants e.g. SEMANTIC_TYPE_THINGS.
         :type semantic_type: str
-        :param entity_uuid: the identifier of the entity that should be retrieved.
-        :type entity_uuid: str
+        :param object_uuid: the identifier of the object that should be retrieved.
+        :type object_uuid: str
         :param meta: if True the result includes meta data.
         :type meta: bool
         :return: response object.
@@ -231,13 +231,13 @@ class DataObject:
         params = {}
         if meta:
             params['meta'] = True
-        if not isinstance(entity_uuid, str):
-            entity_uuid = str(entity_uuid)
+        if not isinstance(object_uuid, str):
+            object_uuid = str(object_uuid)
         try:
-            response = self._connection.run_rest("/" + semantic_type + "/" + entity_uuid, REST_METHOD_GET,
+            response = self._connection.run_rest("/" + semantic_type + "/" + object_uuid, REST_METHOD_GET,
                                                  params=params)
         except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err) + ' Connection error not sure if entity exists').with_traceback(
+            raise type(conn_err)(str(conn_err) + ' Connection error not sure if object exists').with_traceback(
                 sys.exc_info()[2])
         else:
             return response
@@ -265,21 +265,23 @@ class DataObject:
             response = self._connection.run_rest("/" + semantic_type + "/" + uuid, REST_METHOD_DELETE)
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err)
-                                 + ' Connection error, entity could not be deleted.'
+                                 + ' Connection error, object could not be deleted.'
                                  ).with_traceback(
                 sys.exc_info()[2])
 
         if response.status_code == 204:
             return  # Successfully deleted
         else:
-            raise UnexpectedStatusCodeException("Delete entity", response)
+            raise UnexpectedStatusCodeException("Delete object", response)
 
     def exists(self, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
         """
 
         :param uuid: the uuid of the thing that may or may not exist within weaviate.
         :type uuid: str
-        :param semantic_type: defaults to things allows also actions see SEMANTIC_TYPE_ACTIONS.
+        :param semantic_type: Either things or actions.
+                              Defaults to things.
+                              Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
         :type semantic_type: str
         :return: true if thing exists.
         :raises:
@@ -287,7 +289,7 @@ class DataObject:
             UnexpectedStatusCodeException: if weaviate reports a none OK status.
         """
         try:
-            response = self._get_entity_response(semantic_type, uuid)
+            response = self._get_object_response(semantic_type, uuid)
         except ConnectionError:
             raise  # Just pass the same error back
 

@@ -2,6 +2,7 @@ from weaviate.connect.credentials import AuthCredentials
 import base64
 import copy
 
+
 class AuthClientCredentials(AuthCredentials):
     """ Using a client secret for authentication.
         In case of grand type client credentials.

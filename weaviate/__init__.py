@@ -11,5 +11,6 @@ from .classification import SOURCE_WHERE_FILTER, TRAINING_SET_WHERE_FILTER, TARG
 from .auth import AuthClientCredentials, AuthClientPassword
 from .client_config import ClientConfig
 
+
 name = "weaviate"
 
