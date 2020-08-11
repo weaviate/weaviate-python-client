@@ -1,11 +1,8 @@
 import unittest
 import weaviate
 from test.testing_util import add_run_rest_to_mock
-import sys
-if sys.version_info[0] == 2:
-    from mock import MagicMock as Mock
-else:
-    from unittest.mock import Mock
+from unittest.mock import Mock
+
 
 class TestIsReachable(unittest.TestCase):
     def test_no_weaviate_rachable(self):
@@ -16,7 +13,6 @@ class TestIsReachable(unittest.TestCase):
             self.assertFalse(w.is_reachable())
         except Exception as e:
             self.fail("Should not end up in any exception: " +str(e))
-
 
         # 2. Mock weaviate answering with status 200
         connection_mock = Mock()  # Mock calling weaviate

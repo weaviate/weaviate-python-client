@@ -1,7 +1,9 @@
 import unittest
 import weaviate
 
+
 class TestAuthentication(unittest.TestCase):
+
     def test_client_credentials(self):
         token = "testtoken4711"
         credentials = weaviate.AuthClientCredentials(token)
@@ -11,7 +13,6 @@ class TestAuthentication(unittest.TestCase):
 
         self.assertEqual(request_body["client_secret"], token)
         self.assertEqual(request_body["grant_type"], "client_credentials")
-
 
     def test_user_password(self):
         user = "@greenstalone"

@@ -1,9 +1,12 @@
 from weaviate.gql.filter import WhereFilter, Explore
+from weaviate.connect import REST_METHOD_POST
+from weaviate.exceptions import *
+import sys
 
 
 class Builder:
 
-    def __init__(self, class_name, properties):
+    def __init__(self, class_name, properties, connection):
         """
 
         :param class_name:
@@ -11,13 +14,14 @@ class Builder:
         :param properties:
         :type properties: list of str or str
         """
+        self._connection = connection
+
         if not isinstance(class_name, str):
             raise TypeError(f"class name must be of type str but was {type(class_name)}")
         if not isinstance(properties, (list, str)):
             raise TypeError(f"properties must be of type str or list of str but was {type(properties)}")
         if isinstance(properties, str):
             properties = [properties]
-
 
         self._class_name = class_name
         self._properties = properties
@@ -60,9 +64,9 @@ class Builder:
 
         return self
 
-    def do(self):
+    def build(self):
         """
-        :return:
+        :return: The gql query as a string
         :rtype: str
         """
         query = f'{{Get{{Things{{{self._class_name}'
@@ -78,10 +82,18 @@ class Builder:
             query += ')'
         query = query + f'{{{" ".join(self._properties)}}}}}}}}}'
 
-        print(query)
         return query
 
+    def do(self):
+        query = self.build()
 
-class Get:
-    def things(class_name, properties):
-        return Builder(class_name, properties)
+        try:
+            response = self._connection.run_rest("/graphql", REST_METHOD_POST, {"query": query})
+        except ConnectionError as conn_err:
+            raise type(conn_err)(str(conn_err) + ' Connection error, query was not successful.').with_traceback(
+                sys.exc_info()[2])
+
+        if response.status_code == 200:
+            return response.json()  # success
+        else:
+            raise UnexpectedStatusCodeException("Query was not successful", response)

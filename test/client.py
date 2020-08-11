@@ -1,17 +1,12 @@
 import unittest
 import weaviate
-from weaviate.connect import REST_METHOD_POST
 from test.testing_util import *
-import sys
-if sys.version_info[0] == 2:
-    from mock import MagicMock as Mock
-    from mock import patch
-else:
-    from unittest.mock import Mock
-    from unittest.mock import patch
+from unittest.mock import Mock
+from unittest.mock import patch
 
 
 class TestWeaviateClient(unittest.TestCase):
+
     def test_create_weaviate_object_wrong_url(self):
         try:
             w = weaviate.Client(None)
@@ -64,7 +59,6 @@ class TestWeaviateClient(unittest.TestCase):
         w._connection = connection_mock
         self.assertFalse(w.is_reachable())
 
-
     def test_input_checking(self):
         w = weaviate.Client("http://localhost:8080/")
         self.assertEqual("http://localhost:8080/v1", w._connection.url, "Should remove trailing slash")
@@ -101,97 +95,6 @@ class TestWeaviateClient(unittest.TestCase):
             self.fail("Should throw error")
         except TypeError:
             pass
-
-    def test_add_reference_to_thing_types(self):
-        w = weaviate.Client("http://localhost:8081")
-        # Type errors:
-        try:
-            w.add_reference(1,
-                            "hasReference",
-                            "28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
-            self.fail("Should throw error")
-        except TypeError:
-            pass
-        try:
-            w.add_reference("686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
-                            1,
-                            "28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
-            self.fail("Should throw error")
-        except TypeError:
-            pass
-        try:
-            w.add_reference("686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
-                            "hasReference",
-                            1)
-            self.fail("Should throw error")
-        except TypeError:
-            pass
-        # Value errors:
-        try:
-            w.add_reference("dcd1d-573b-4fba-bbb9-f63fa9a6926b",
-                            "hasReference",
-                            "28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
-            self.fail("Should throw error")
-        except ValueError:
-            pass
-        try:
-            w.add_reference("686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
-                            "",
-                            "28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
-            self.fail("Should throw error")
-        except ValueError:
-            pass
-        try:
-            w.add_reference("686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
-                            "hasReference",
-                            "f61b-b524-45e0-9bbe-2c1550bf73d2")
-            self.fail("Should throw error")
-        except ValueError:
-            pass
-        try:
-            w.add_reference("weaviate://localhost/things/686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
-                            "hasReference",
-                            "weaviate://localhost/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2",
-                            "otherdomain.com")
-            self.fail("to_thing_uuid is an url but the domain does not macht to_weaviate")
-        except ValueError:
-            pass
-
-    def test_add_reference_to_thing(self):
-        w = weaviate.Client("http://localhost:8081")
-        connection_mock = Mock()
-        w._connection = add_run_rest_to_mock(connection_mock, None, status_code=200)
-
-        # Add reference using uuids
-        w.add_reference("686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
-                        "hasReference",
-                        "28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
-
-        connection_mock.run_rest.assert_called_with(
-            '/things/686dcd1d-573b-4fba-bbb9-f63fa9a6926b/references/hasReference',
-            REST_METHOD_POST,
-            {'beacon': 'weaviate://localhost/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'})
-
-        # Add reference using urls local host
-        w.add_reference("weaviate://localhost/things/686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
-                        "hasReference",
-                        "weaviate://localhost/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
-
-        connection_mock.run_rest.assert_called_with(
-            '/things/686dcd1d-573b-4fba-bbb9-f63fa9a6926b/references/hasReference',
-            REST_METHOD_POST,
-            {'beacon': 'weaviate://localhost/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'})
-
-        # Add reference using urls local host
-        w.add_reference("weaviate://peoplesfrontofjudea.org/things/686dcd1d-573b-4fba-bbb9-f63fa9a6926b",
-                        "hasReference",
-                        "weaviate://judeanpeoplesfront.org/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2",
-                        weaviate.SEMANTIC_TYPE_THINGS, weaviate.SEMANTIC_TYPE_THINGS, None)
-
-        connection_mock.run_rest.assert_called_with(
-            '/things/686dcd1d-573b-4fba-bbb9-f63fa9a6926b/references/hasReference',
-            REST_METHOD_POST,
-            {'beacon': 'weaviate://judeanpeoplesfront.org/things/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'})
 
 
 if __name__ == '__main__':
