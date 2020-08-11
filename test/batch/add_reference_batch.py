@@ -6,6 +6,7 @@ import weaviate
 from weaviate import SEMANTIC_TYPE_ACTIONS, SEMANTIC_TYPE_THINGS
 from weaviate.connect import REST_METHOD_POST
 
+
 class TestBatchReferencesObject(unittest.TestCase):
 
     def test_batch_length(self):
