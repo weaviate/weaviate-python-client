@@ -53,7 +53,6 @@ class TestDelete(unittest.TestCase):
 
         connection_mock.run_rest.assert_called_with("/things/" + thing, REST_METHOD_DELETE)
 
-
     def test_get_thing(self):
         w = weaviate.Client("http://localhost:8080")
 

@@ -547,7 +547,7 @@ class TestDelete(unittest.TestCase):
             pass
 
     def test_delete_class(self):
-        w = weaviate.Client("http://localhost:8080")
+        w = weaviate.Client("http://localhorst:8080")
 
         connection_mock = Mock()  # Mock calling weaviate
         add_run_rest_to_mock(connection_mock)

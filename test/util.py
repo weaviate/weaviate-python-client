@@ -1,7 +1,9 @@
 import unittest
 from weaviate.util import is_weaviate_entity_url, get_uuid_from_weaviate_url, _is_sub_schema
 
+
 class TestWeaviateClient(unittest.TestCase):
+
     def test_is_weaviate_thing_url(self):
 
         self.assertTrue(
@@ -16,6 +18,7 @@ class TestWeaviateClient(unittest.TestCase):
             is_weaviate_entity_url("weaviate://localhost/nachos/28f3f61b-b524-45e0-9bbe-2c1550bf73d2"))
         self.assertFalse(
             is_weaviate_entity_url("weaviate://localhost/things/f61b-b524-45e0-9bbe-2c1550bf73d2"))
+
 
     def test_get_uuid_from_weaviate_url(self):
         self.assertEqual("28f3f61b-b524-45e0-9bbe-2c1550bf73d2",
