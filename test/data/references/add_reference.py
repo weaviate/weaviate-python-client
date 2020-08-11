@@ -5,6 +5,7 @@ from test.testing_util import replace_connection, add_run_rest_to_mock
 from weaviate import SEMANTIC_TYPE_ACTIONS
 from weaviate.connect import REST_METHOD_POST, REST_METHOD_PUT
 
+
 class TestAddReference(unittest.TestCase):
 
     def test_input(self):
@@ -52,6 +53,24 @@ class TestAddReference(unittest.TestCase):
         except ValueError:
             pass
 
+        try:
+            # URL semantic type and explicit semantic type are different
+            w.data_object.reference.add("http://localhost:8080/v1/things/7591be77-5959-4386-9828-423fc5096e87", "prop",
+                                        "http://localhost:8080/v1/things/3250b0b8-eaf7-499b-ac68-9084c9c82d0f",
+                                        from_semantic_type=SEMANTIC_TYPE_ACTIONS)
+            self.fail("Expected to fail with error")
+        except ValueError:
+            pass
+
+        try:
+            # URL semantic type and explicit semantic type are different
+            w.data_object.reference.add("http://localhost:8080/v1/things/7591be77-5959-4386-9828-423fc5096e87", "prop",
+                                        "http://localhost:8080/v1/things/3250b0b8-eaf7-499b-ac68-9084c9c82d0f",
+                                        to_semantic_type=SEMANTIC_TYPE_ACTIONS)
+            self.fail("Expected to fail with error")
+        except ValueError:
+            pass
+
     def test_add_reference(self):
         w = weaviate.Client("http://localhorst:8080")
 
@@ -72,6 +91,9 @@ class TestAddReference(unittest.TestCase):
         w.data_object.reference.add("http://localhost:8080/v1/things/7591be77-5959-4386-9828-423fc5096e87",
                                     "hasItem", "http://localhost:8080/v1/things/1cd80c11-29f0-453f-823c-21547b1511f0")
 
+        # 4. using weavaite url
+        w.data_object.reference.add("weaviate://localhost/things/f8def983-87e7-4e21-bf10-e32e2de3efcf",
+                                    "hasItem", "weaviate://localhost/things/e40aaef5-d3e5-44f1-8ec4-3eafc8475078")
 
         connection_mock.run_rest.assert_called()
 
@@ -90,16 +112,18 @@ class TestAddReference(unittest.TestCase):
         self.assertEqual({'beacon': 'weaviate://localhost/things/1140b9d7-6335-49c9-92e0-3029f1cf1862'}, call_args[2])
 
         # 3.
-        call_args, call_kwargs = call_args_list[0]
+        call_args, call_kwargs = call_args_list[2]
         self.assertEqual("/things/7591be77-5959-4386-9828-423fc5096e87/references/hasItem", call_args[0])
         self.assertEqual(REST_METHOD_POST, call_args[1])
         self.assertEqual({'beacon': 'weaviate://localhost/things/1cd80c11-29f0-453f-823c-21547b1511f0'}, call_args[2])
 
+        # 4.
+        call_args, call_kwargs = call_args_list[3]
+        self.assertEqual("/things/f8def983-87e7-4e21-bf10-e32e2de3efcf/references/hasItem", call_args[0])
+        self.assertEqual(REST_METHOD_POST, call_args[1])
+        self.assertEqual({'beacon': 'weaviate://localhost/things/e40aaef5-d3e5-44f1-8ec4-3eafc8475078'}, call_args[2])
 
     def test_replace_reference(self):
-        # curl -X PUT "http://localhost:8080/v1/things/2db436b5-0557-5016-9c5f-531412adf9c6/references/members" -H 'Content-Type: application/json' -d '[{"beacon": "weaviate://localhost/things/1c9cd584-88fe-5010-83d0-017cb3fcb446"}]'
-        # curl -X PUT "http://localhost:8080/v1/things/2db436b5-0557-5016-9c5f-531412adf9c6/references/members" -H 'Content-Type: application/json' -d '[{"beacon": "weaviate://remote/things/1c9cd584-88fe-5010-83d0-017cb3fcb446"}]'
-
         # PUT needs a beacon array while POST needs a single beacon dict
         w = weaviate.Client("http://localhorst:8080")
 

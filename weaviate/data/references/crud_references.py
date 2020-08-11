@@ -3,7 +3,7 @@ import validators
 
 from weaviate.connect import *
 from weaviate.exceptions import *
-from weaviate.util import get_uuid_from_weaviate_url, get_domain_from_weaviate_url, is_weaviate_entity_url, is_semantic_type
+from weaviate.util import is_semantic_type, ParsedUUID
 from requests.exceptions import ConnectionError
 from weaviate import SEMANTIC_TYPE_THINGS
 
@@ -14,9 +14,35 @@ class Reference:
         self._connection = connection
 
     def replace(self, from_uuid, from_property_name, to_uuids,
-            from_semantic_type=SEMANTIC_TYPE_THINGS, to_semantic_type=SEMANTIC_TYPE_THINGS,
-            to_weaviate="localhost"):
-        pass
+            from_semantic_type=SEMANTIC_TYPE_THINGS, to_semantic_type=SEMANTIC_TYPE_THINGS):
+        from_uuid_parsed = _validate_uuid_get_parsed(from_uuid, from_semantic_type)
+
+        if not isinstance(to_uuids, list):
+            to_uuids = [to_uuids]
+        to_uuids_parsed = []
+        for to_uuid in to_uuids:
+            to_uuids_parsed.append(_validate_uuid_get_parsed(to_uuid, to_semantic_type))
+
+        _validate_property_name(from_property_name)
+        _validate_semantic_types(from_semantic_type, to_semantic_type)
+
+        beacons = []
+        for to_uuid_parsed in to_uuids_parsed:
+            beacons.append(_get_beacon(to_semantic_type, to_uuid_parsed.uuid))
+
+        path = "/" + from_semantic_type + "/" + from_uuid_parsed.uuid + "/references/" + from_property_name
+
+        try:
+            response = self._connection.run_rest(path, REST_METHOD_PUT, beacons)
+        except ConnectionError as conn_err:
+            raise type(conn_err)(
+                str(conn_err) + ' Connection error, reference was not replaced in weaviate.').with_traceback(
+                sys.exc_info()[2])
+
+        if response.status_code == 200:
+            return
+        else:
+            raise UnexpectedStatusCodeException("Replace property reference to object", response)
 
     def add(self, from_uuid, from_property_name, to_uuid,
                   from_semantic_type=SEMANTIC_TYPE_THINGS, to_semantic_type=SEMANTIC_TYPE_THINGS):
@@ -34,7 +60,7 @@ class Reference:
         :type from_property_name: str
         :param to_uuid: The UUID of the entity that should be referenced.
                           Accepts a plane UUID or an URL. E.g.
-                          'weaviate://localhost/things/fc7eb129-f138-457f-b727-1b29db191a67'
+                          'http://localhost:8080/v1/things/fc7eb129-f138-457f-b727-1b29db191a67'
                           or
                           'fc7eb129-f138-457f-b727-1b29db191a67'
         :type to_uuid: str in the form of an UUID, str in form of URL
@@ -53,21 +79,16 @@ class Reference:
             TypeError: If the parameters are of the wrong type
             ValueError: If the parameters are of the wrong value
         """
-        from_uuid = self._validate_and_get_from_uuid(from_uuid)
-        self._validate_property_and_semantic_types(from_property_name, from_semantic_type, to_semantic_type)
-        to_uuid, to_weaviate = self._validate_and_get_to_uuid_and_to_weaviate(to_uuid)
 
-        if not isinstance(from_property_name, str):
-            raise TypeError("'from_property_name' must be type str")
-        if from_property_name == "":
-            raise ValueError("'from_property_name' can not be empty")
+        from_uuid_parsed = _validate_uuid_get_parsed(from_uuid, from_semantic_type)
+        to_uuid_parsed = _validate_uuid_get_parsed(to_uuid, to_semantic_type)
+        _validate_property_name(from_property_name)
+        _validate_semantic_types(from_semantic_type, to_semantic_type)
 
-            # Create the beacon
-        beacon = {
-            "beacon": "weaviate://" + to_weaviate + "/" + to_semantic_type + "/" + to_uuid
-        }
+        # Create the beacon
+        beacon = _get_beacon(to_semantic_type, to_uuid_parsed.uuid)
 
-        path = "/" + from_semantic_type + "/" + from_uuid + "/references/" + from_property_name
+        path = "/" + from_semantic_type + "/" + from_uuid_parsed.uuid + "/references/" + from_property_name
 
         try:
             response = self._connection.run_rest(path, REST_METHOD_POST, beacon)
@@ -81,46 +102,38 @@ class Reference:
         else:
             raise UnexpectedStatusCodeException("Add property reference to thing", response)
 
-    def _validate_and_get_from_uuid(self, from_uuid):
-        if not isinstance(from_uuid, str):
-            raise TypeError("uuid must be of type str but was: " + str(type(from_uuid)))
 
-        if is_weaviate_entity_url(from_uuid):
-            # If url extract uuid
-            from_uuid = get_uuid_from_weaviate_url(from_uuid)
-        if not validators.uuid(from_uuid):
-            raise ValueError(from_uuid + " is not a valid uuid")
-        return from_uuid
+def _get_beacon(to_semantic_type, to_uuid):
+    return {
+        "beacon": "weaviate://localhost/" + to_semantic_type + "/" + to_uuid
+    }
 
-    def _validate_and_get_to_uuid_and_to_weaviate(self, to_uuid, to_weaviate):
-        if not isinstance(to_uuid, str):
-            raise TypeError("uuid must be of type str but was: " + str(type(to_uuid)))
 
-        if is_weaviate_entity_url(to_uuid):
+def _validate_semantic_types(from_semantic_type, to_semantic_type):
+    if not is_semantic_type(to_semantic_type) or not is_semantic_type(from_semantic_type):
+        raise ValueError("Semantic type must be \"things\" or \"actions\"")
 
-            to_entity_url_weaviate = get_domain_from_weaviate_url(to_uuid)
-            if to_weaviate is None:
-                to_weaviate = to_entity_url_weaviate
-            else:
-                if to_entity_url_weaviate != to_weaviate:
-                    raise ValueError("'to_thing_uuid' is defining another weaviate instance, "
-                                     "which is inconsistent with 'to_weaviate'."
-                                     "'to_weaviate defaults to 'localhost' "
-                                     "considder explicitly setting it to the right domain or None.")
+def _validate_property_name(from_property_name):
+    if not isinstance(from_property_name, str):
+        raise TypeError("from_property_name must be of type str but was: " + str(type(from_property_name)))
 
-            to_uuid = get_uuid_from_weaviate_url(to_uuid)
 
-        if not validators.uuid(to_uuid):
-            raise ValueError("to_thing_uuid does not contain a valid uuid")
+def _validate_uuid_get_parsed(uuid, compare_semantic_type):
+    """
 
-        return to_uuid, to_weaviate
+    :param uuid:
+    :param compare_semantic_type: the semantic type that must fit the specified in the uuid (if any)
+    :return:
+    :rtype: ParsedUUID
+    """
+    uuid_parsed = ParsedUUID(uuid)
+    if not uuid_parsed.is_valid:
+        raise ValueError("not valid uuid or uuid can not be extracted from value")
 
-    def _validate_property_and_semantic_types(self, from_property_name, from_semantic_type, to_semantic_type):
-        if not isinstance(from_property_name, str):
-            raise TypeError("from_property_name must be of type str but was: " + str(type(from_property_name)))
-        if not is_semantic_type(to_semantic_type) or not is_semantic_type(from_semantic_type):
-            raise ValueError("Semantic type must be \"things\" or \"actions\"")
+    if uuid_parsed.semantic_type == None:
+        return uuid_parsed
 
-    def _create_reference(self, from_uuid, from_property_name, to_uuid,
-            from_semantic_type, to_semantic_type, to_weaviate, rest_method):
-        pass
+    if not uuid_parsed.semantic_type == compare_semantic_type:
+        raise ValueError("semantic_type and the in uuid defined semantic type are conflicting")
+
+    return uuid_parsed

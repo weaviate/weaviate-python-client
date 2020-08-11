@@ -88,12 +88,57 @@ def is_weaviate_entity_url(input):
     if split[0] != "localhost":
         if not validators.domain(split[0]):
             return False
-    if split[1] != "things" and split[1] != "actions":
+    if split[1] != SEMANTIC_TYPE_THINGS and split[1] != SEMANTIC_TYPE_ACTIONS:
         return False
     if not validators.uuid(split[2]):
         return False
 
     return True
+
+
+def is_object_url(input):
+    """ Validates if an url like http://localhost:8080/v1/things/1c9cd584-88fe-5010-83d0-017cb3fcb446 references a thing.
+        it only validates the path not the host or the protocol
+
+    :param input:
+    :type input: str
+    :return:
+    """
+    split = input.split("/")
+    if len(split) < 3:
+        return False
+    if not validators.uuid(split[-1]):
+        return False
+    if not (split[-2] == SEMANTIC_TYPE_ACTIONS or split[-2] == SEMANTIC_TYPE_THINGS):
+        return False
+    if not split[-3] == "v1":
+        return False
+    return True
+
+
+class ParsedUUID:
+    def __init__(self, input):
+        """ Parses an input string to a ParsedUUID
+
+        :param input:
+        :type input: str
+        :return:
+            TypeError: If parameter has the wrong type.
+        """
+        if not isinstance(input, str):
+            raise TypeError("uuid must be of type str but was: " + str(type(input)))
+
+        self.is_weaviate_url = is_weaviate_entity_url(input)
+        self.is_object_url = is_object_url(input)
+
+        self.uuid = input
+        self.semantic_type = None
+        if self.is_weaviate_url or self.is_object_url:
+            split = input.split("/")
+            self.uuid = split[-1]
+            self.semantic_type = split[-2]
+
+        self.is_valid = validators.uuid(self.uuid)
 
 
 def is_semantic_type(semantic_type):
