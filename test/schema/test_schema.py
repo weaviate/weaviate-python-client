@@ -353,7 +353,8 @@ class TestSchema(unittest.TestCase):
     def test_run_rest_failed(self):
         w = weaviate.Client("http://localhost:8080")
         connection_mock = Mock()
-        w._connection = add_run_rest_to_mock(connection_mock, return_json={"Test error"}, status_code=500)
+        add_run_rest_to_mock(connection_mock, return_json={"Test error"}, status_code=500)
+        replace_connection(w, connection_mock)
 
         try:
             w.schema.create(company_test_schema)
