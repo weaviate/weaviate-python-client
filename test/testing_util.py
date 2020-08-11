@@ -1,10 +1,5 @@
 from requests.exceptions import ConnectionError
-
-import sys
-if sys.version_info[0] == 2:
-    from mock import MagicMock as Mock
-else:
-    from unittest.mock import Mock
+from unittest.mock import Mock
 
 
 

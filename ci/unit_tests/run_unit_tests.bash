@@ -6,25 +6,43 @@ function runTest {
 }
 
 
-
 # /test
-runTest "test.add_action_batch"
-runTest "test.add_reference"
-runTest "test.add_reference_batch"
-runTest "test.add_thing"
-runTest "test.add_thing_batch"
 runTest "test.auth"
-runTest "test.c11y"
-runTest "test.classification"
 runTest "test.client"
-runTest "test.read_delete_entity"
 runTest "test.exceptions"
 runTest "test.is_reachable"
-runTest "test.patch_entity"
-runTest "test.query"
-runTest "test.schema"
 runTest "test.util"
-runTest "test.validate_schema"
+
+# /test/batch
+runTest "test.batch.add_action_batch"
+runTest "test.batch.add_reference_batch"
+runTest "test.batch.add_thing_batch"
+
+# /test/classification
+runTest "test.classification.classification"
+
+# /test/connection
+runTest "test.connection.test_connection"
+
+# /test/contextionary
+runTest "test.contextionary.c11y"
+
+# /test/data
+runTest "test.data.add_replace_thing"
+runTest "test.data.patch_entity"
+runTest "test.data.read_delete_entity"
+# /test/data/references
+runTest "test.data.references.add_reference"
+runTest "test.data.references.delete"
+
+# /test/gql
+runTest "test.gql.builder_test"
+runTest "test.gql.filter_test"
+runTest "test.gql.gql_test"
+
+# /test/schema
+runTest "test.schema.test_schema"
+runTest "test.schema.validate_schema"
 
 # /test/tools
 runTest "test.tools.batcher"

@@ -1,5 +1,5 @@
 import unittest
-from weaviate.validate_schema import validate_schema, \
+from weaviate.schema.validate_schema import validate_schema, \
     _check_schema_class_types, _check_class, \
     _check_keywords, _check_property
 
