@@ -18,8 +18,9 @@ def query(subject):
           }){ value }}}}
     """
     qq = (q % subject)
-    result = client.query(qq)
+    result = client.query.raw(qq)
     return result["data"]["Get"]["Things"]["Subject"]
+
 
 def add_ttl_file(file_name):
     g = Graph()

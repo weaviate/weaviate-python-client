@@ -66,7 +66,7 @@ class Batcher:
             self._actions_batch = weaviate.batch.ActionsBatchRequest()
         if len(self._reference_batch) > 0:
             try:
-                result = self._client.add_references_in_batch(self._reference_batch)
+                result = self._client.batch.add_references(self._reference_batch)
             except (ConnectionError, Timeout, ReadTimeout, weaviate.UnexpectedStatusCodeException) as e:
                 # The connection error might just be a temporary thing lets sleep and return
                 # The loading will be tried again next time something is added
