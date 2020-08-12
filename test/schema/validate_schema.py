@@ -1,6 +1,6 @@
 import unittest
 from weaviate.schema.validate_schema import validate_schema, \
-    _check_schema_class_types, _check_class, \
+    _check_schema_class_types, check_class, \
     _check_keywords, _check_property
 
 from weaviate.exceptions import SchemaValidationException
@@ -63,10 +63,10 @@ class TestSchemaValidation(unittest.TestCase):
 
     def test_check_class(self):
         # minimal must contain class key as string
-        _check_class({"class": "Car"})
+        check_class({"class": "Car"})
         try:
             # wrong type
-            _check_class({"class": []})
+            check_class({"class": []})
             self.fail()
         except SchemaValidationException:
             pass
@@ -78,37 +78,37 @@ class TestSchemaValidation(unittest.TestCase):
                      "keywords": [],
                      "properties": []}
 
-        _check_class(max_valid)
+        check_class(max_valid)
 
         try:
             # unknown key
             max_valid["random"] = "field"
-            _check_class(max_valid)
+            check_class(max_valid)
             self.fail()
         except SchemaValidationException:
             pass
 
         # Check data types optional fields
         try:
-            _check_class({"class": "Tree",
+            check_class({"class": "Tree",
                           "description": []})
             self.fail()
         except SchemaValidationException:
             pass
         try:
-            _check_class({"class": "Tree",
+            check_class({"class": "Tree",
                           "vectorizeClassName": "yes"})
             self.fail()
         except SchemaValidationException:
             pass
         try:
-            _check_class({"class": "Tree",
+            check_class({"class": "Tree",
                           "keywords": "all of them"})
             self.fail()
         except SchemaValidationException:
             pass
         try:
-            _check_class({"class": "Tree",
+            check_class({"class": "Tree",
                           "properties": "References please"})
             self.fail()
         except SchemaValidationException:

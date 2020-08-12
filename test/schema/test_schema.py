@@ -7,6 +7,7 @@ from test.testing_util import replace_connection, add_run_rest_to_mock
 from weaviate.connect import REST_METHOD_POST, REST_METHOD_DELETE, REST_METHOD_GET
 from weaviate import SEMANTIC_TYPE_ACTIONS
 from unittest.mock import Mock
+from weaviate.exceptions import SchemaValidationException
 
 company_test_schema = {
   "actions": {
@@ -522,6 +523,36 @@ class TestCreate(unittest.TestCase):
         call_args, call_kwargs = call_args_list[2]
         self.assertEqual("/schema/actions", call_args[0])
         self.assertEqual(REST_METHOD_POST, call_args[1])
+
+    def test_input(self):
+        w = weaviate.Client("http://localhorst:8080")
+        invalid_class = {
+            "class": "Group",
+            "description": "A set of persons who are associated with each other over some common properties",
+            "keywords": [],
+            "properties": [
+                {
+                    "name": "name",
+                    "description": "The name under which this group is known",
+                    "cardinality": "atMostOne",
+                    "keywords": [],
+                    "index": True
+                },
+                {
+                    "name": "members",
+                    "description": "The persons that are part of this group",
+                    "dataType": [
+                        "Person"
+                    ],
+                    "cardinality": "many"
+                }
+            ]
+        }
+        try:
+            w.schema.create_class(invalid_class)
+            self.fail("Expected exception")
+        except SchemaValidationException:
+            pass
 
 
 class TestDelete(unittest.TestCase):

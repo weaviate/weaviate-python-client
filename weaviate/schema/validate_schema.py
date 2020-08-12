@@ -16,10 +16,10 @@ def validate_schema(schema):
         _check_schema_class_types(class_type, schema[class_type])
 
         for weaviate_class in schema[class_type]["classes"]:
-            _check_class(weaviate_class)
+            check_class(weaviate_class)
 
 
-def _check_class(class_definition):
+def check_class(class_definition):
     """
 
     :param class_definition:

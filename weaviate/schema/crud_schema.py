@@ -2,7 +2,7 @@ import sys
 from weaviate.connect import *
 from weaviate.util import _get_dict_from_object, _is_sub_schema, is_semantic_type
 from weaviate.exceptions import *
-from weaviate.schema.validate_schema import validate_schema
+from weaviate.schema.validate_schema import validate_schema, check_class
 from weaviate import SEMANTIC_TYPE_ACTIONS, SEMANTIC_TYPE_THINGS
 
 _PRIMITIVE_WEAVIATE_TYPES = ["string", "int", "boolean", "number", "date", "text", "geoCoordinates", "CrossRef"]
@@ -65,6 +65,7 @@ class Schema:
         :type semantic_type: str
         :return: None if successful
         """
+        check_class(schema_class)
         self._create_class_with_premitives(semantic_type, schema_class)
         self._create_complex_properties_from_class(schema_class, semantic_type)
 
