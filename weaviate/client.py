@@ -8,6 +8,7 @@ from .gql import Query
 from .client_config import ClientConfig
 from requests.exceptions import ConnectionError
 
+
 class Client:
     """ A python native weaviate client
     """
