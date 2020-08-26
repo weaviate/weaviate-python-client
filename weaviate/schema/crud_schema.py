@@ -128,7 +128,8 @@ class Schema:
         loaded_schema = self.get()
 
         if schema is not None:
-            return _is_sub_schema(schema, loaded_schema)
+            sub_schema = _get_dict_from_object(schema)
+            return _is_sub_schema(sub_schema, loaded_schema)
 
         if len(loaded_schema["things"]["classes"]) > 0 or len(loaded_schema["actions"]["classes"]) > 0:
             return True

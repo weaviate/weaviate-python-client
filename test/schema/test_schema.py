@@ -466,6 +466,25 @@ class TestContainsSchema(unittest.TestCase):
         }
         self.assertTrue(w.schema.contains(subset_schema))
 
+    def test_contains_specific_schema_from_file(self):
+        w = weaviate.Client("http://localhost:8080")
+
+        connection_mock_file = Mock()  # Mock calling weaviate
+        add_run_rest_to_mock(connection_mock_file, persons_return_test_schema)
+        replace_connection(w, connection_mock_file)
+
+        current_dir = os.path.dirname(__file__)
+        schema_json_file = os.path.join(current_dir, "schema_company.json")
+
+        self.assertFalse(w.schema.contains(schema_json_file))
+
+        connection_mock_file = Mock()  # Mock calling weaviate
+        add_run_rest_to_mock(connection_mock_file, company_test_schema)
+        replace_connection(w, connection_mock_file)
+
+        self.assertTrue(w.schema.contains(schema_json_file))
+
+
 
 class TestCreate(unittest.TestCase):
 
