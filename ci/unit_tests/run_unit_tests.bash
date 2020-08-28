@@ -45,4 +45,4 @@ runTest "test.schema.test_schema"
 runTest "test.schema.validate_schema"
 
 # /test/tools
-runTest "test.tools.batcher"
+runTest "test.tools.batcher_test"
