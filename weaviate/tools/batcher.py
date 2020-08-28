@@ -73,7 +73,8 @@ class Batcher:
         if len(self._things_batch) > 0:
             try:
                 result = self._client.batch.create_things(self._things_batch)
-                result_collection += result
+                if type(result) == list:
+                    result_collection += result
             except (ConnectionError, Timeout, ReadTimeout, weaviate.UnexpectedStatusCodeException) as e:
                 time.sleep(180.0)
                 print("Exception in adding thing: ", e)
@@ -83,7 +84,8 @@ class Batcher:
         if len(self._actions_batch) > 0:
             try:
                 result = self._client.batch.create_actions(self._actions_batch)
-                result_collection += result
+                if type(result) == list:
+                    result_collection += result
             except (ConnectionError, Timeout, ReadTimeout, weaviate.UnexpectedStatusCodeException) as e:
                 time.sleep(180.0)
                 print("Exception in adding action: ", e)
@@ -93,7 +95,8 @@ class Batcher:
         if len(self._reference_batch) > 0:
             try:
                 result = self._client.batch.add_references(self._reference_batch)
-                result_collection += result
+                if type(result) == list:
+                    result_collection += result
             except (ConnectionError, Timeout, ReadTimeout, weaviate.UnexpectedStatusCodeException) as e:
                 # The connection error might just be a temporary thing lets sleep and return
                 # The loading will be tried again next time something is added

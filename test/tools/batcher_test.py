@@ -7,7 +7,9 @@ from unittest.mock import Mock
 from test.testing_util import replace_connection, add_run_rest_to_mock
 import time
 
+
 class TestBatcher(unittest.TestCase):
+
     def test_batcher_add_thing(self):
         client_mock = Mock()
         batcher = Batcher(client_mock, 3)
