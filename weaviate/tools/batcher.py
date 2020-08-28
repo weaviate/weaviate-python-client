@@ -107,7 +107,7 @@ class Batcher:
             self._print_errors(result)
             self._reference_batch = weaviate.batch.ReferenceBatchRequest()
 
-        if self._return_values_callback is not None:
+        if self._return_values_callback is not None and len(result_collection) > 0:
             self._return_values_callback(result_collection)
 
         self._last_update = time.time()
