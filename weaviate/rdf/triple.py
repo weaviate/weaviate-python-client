@@ -38,7 +38,7 @@ class TripleLoader:
             "value": str(value),
             "valueKey": str(value)
         }
-        self._batcher.add_thing(thing, class_name, object_id)
+        self._batcher.add_data_object(thing, class_name, object_id)
         return object_id
 
     def add_graph(self, graph):
@@ -58,7 +58,7 @@ class TripleLoader:
             o_id = self._add_rdf_object(o, "Object")
 
             t_id = str(uuid.uuid4())
-            self._batcher.add_thing({}, "Triple", t_id)
+            self._batcher.add_data_object({}, "Triple", t_id)
             self._batcher.add_reference(weaviate.SEMANTIC_TYPE_THINGS, "Triple",
                                         t_id, "subject",
                                         weaviate.SEMANTIC_TYPE_THINGS, s_id)
