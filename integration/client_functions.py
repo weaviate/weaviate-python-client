@@ -34,6 +34,26 @@ def creating_schema(w):
         print("Weaviate does not contain loaded schema")
         exit(4)
 
+    single_class = {
+        "class": "Barbecue",
+        "description": "Barbecue or BBQ where meat and vegetables get grilled"
+    }
+    w.schema.create_class(single_class)
+    prop = {
+        "dataType": ["string"],
+        "cardinality": "atMostOne",
+        "description": "how hot is the BBQ in C",
+        "name": "heat",
+    }
+    w.schema.property.create("Barbecue", prop)
+    classes = w.schema.get()['things']['classes']
+    found = False
+    for c in classes:
+        if c["class"] == "Barbecue":
+            found = len(c['properties']) == 1
+    if not found:
+        print("Class property not added properly")
+        exit(5)
 
 if __name__ == "__main__":
     print("Weaviate should be running at local host 8080")

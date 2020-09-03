@@ -45,6 +45,7 @@ def replace_connection(weaviate, connection):
     weaviate._connection = connection
     weaviate.classification._connection = connection
     weaviate.schema._connection = connection
+    weaviate.schema.property._connection = connection
     weaviate.contextionary._connection = connection
     weaviate.batch._connection = connection
     weaviate.data_object._connection = connection

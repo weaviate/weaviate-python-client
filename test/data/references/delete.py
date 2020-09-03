@@ -15,32 +15,32 @@ class TestRemoveReference(unittest.TestCase):
         uuid_2 = "a36268d4-a6b5-5274-985f-45f13ce0c642"
 
         try:
-            w.data_object.reference.delete(1, "myProperty", uuid_2)
+            w.data_object.reference._delete(1, "myProperty", uuid_2)
             self.fail("UUID has the wrong type")
         except TypeError:
             pass
         try:
-            w.data_object.reference.delete(uuid_1, "myProperty", 2)
+            w.data_object.reference._delete(uuid_1, "myProperty", 2)
             self.fail("UUID has the wrong type")
         except TypeError:
             pass
         try:
-            w.data_object.reference.delete(uuid_1, 3, uuid_2)
+            w.data_object.reference._delete(uuid_1, 3, uuid_2)
             self.fail("Property name has the wrong type")
         except TypeError:
             pass
         try:
-            w.data_object.reference.delete("str", "myProperty", uuid_2)
+            w.data_object.reference._delete("str", "myProperty", uuid_2)
             self.fail("UUID has the wrong value")
         except ValueError:
             pass
         try:
-            w.data_object.reference.delete(uuid_1, "myProperty", "str")
+            w.data_object.reference._delete(uuid_1, "myProperty", "str")
             self.fail("UUID has the wrong value")
         except ValueError:
             pass
         try:
-            w.data_object.reference.delete(uuid_1, "myProperty", uuid_2, to_weaviate=4)
+            w.data_object.reference._delete(uuid_1, "myProperty", uuid_2, to_weaviate=4)
             self.fail("to_weaviate has the wrong type")
         except TypeError:
             pass
@@ -52,12 +52,12 @@ class TestRemoveReference(unittest.TestCase):
         add_run_rest_to_mock(connection_mock, status_code=204)
         replace_connection(w, connection_mock)
 
-        w.data_object.reference.delete("08f2af9a-78ae-41a6-94de-6ac19392fe2e", "myProperty",
+        w.data_object.reference._delete("08f2af9a-78ae-41a6-94de-6ac19392fe2e", "myProperty",
                                        "a36268d4-a6b5-5274-985f-45f13ce0c642")
 
-        w.data_object.reference.delete("7591be77-5959-4386-9828-423fc5096e87",
+        w.data_object.reference._delete("7591be77-5959-4386-9828-423fc5096e87",
                                     "hasItem", "http://localhost:8080/v1/actions/1cd80c11-29f0-453f-823c-21547b1511f0",
-                                    to_semantic_type=SEMANTIC_TYPE_ACTIONS)
+                                        to_semantic_type=SEMANTIC_TYPE_ACTIONS)
 
         connection_mock.run_rest.assert_called()
 

@@ -43,6 +43,7 @@ runTest "test.gql.gql_test"
 # /test/schema
 runTest "test.schema.test_schema"
 runTest "test.schema.validate_schema"
+runTest "test.schema.test_properties"
 
 # /test/tools
 runTest "test.tools.batcher_test"

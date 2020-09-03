@@ -4,7 +4,7 @@ from weaviate.util import _get_dict_from_object, _is_sub_schema, is_semantic_typ
 from weaviate.exceptions import *
 from weaviate.schema.validate_schema import validate_schema, check_class
 from weaviate import SEMANTIC_TYPE_ACTIONS, SEMANTIC_TYPE_THINGS
-
+from weaviate.schema.properties import Property
 _PRIMITIVE_WEAVIATE_TYPES = ["string", "int", "boolean", "number", "date", "text", "geoCoordinates", "CrossRef"]
 
 
@@ -17,6 +17,8 @@ class Schema:
         :type connection: weaviate.connect.Connection
         """
         self._connection = connection
+
+        self.property = Property(self._connection)
 
     def create(self, schema):
         """ Create the schema at the weaviate instance.
@@ -64,6 +66,9 @@ class Schema:
                               Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
         :type semantic_type: str
         :return: None if successful
+        :raises:
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
         """
         check_class(schema_class)
         self._create_class_with_premitives(semantic_type, schema_class)
@@ -157,6 +162,8 @@ class Schema:
             raise UnexpectedStatusCodeException("Get schema", response)
 
     def _create_complex_properties_from_class(self, schema_class, semantic_type):
+        if "properties" not in schema_class:
+            return  # Class has no properties nothing to do
         for property_ in schema_class["properties"]:
 
             if self._property_is_primitive(property_["dataType"]):
@@ -262,10 +269,12 @@ class Schema:
         # Create the class
         schema_class = {
             "class": weaviate_class['class'],
-            "description": weaviate_class['description'],
             "properties": [],
             "keywords": []
         }
+
+        if "description" in weaviate_class:
+            schema_class['description'] = weaviate_class['description']
 
         if "vectorizeClassName" in weaviate_class:
             schema_class["vectorizeClassName"] = weaviate_class["vectorizeClassName"]

@@ -6,13 +6,15 @@ import sys
 
 class Builder:
 
-    def __init__(self, class_name, properties, connection):
+    def __init__(self, class_name, properties, connection, semantic_type):
         """
 
         :param class_name:
         :type class_name: str
         :param properties:
         :type properties: list of str or str
+        :param semantic_type: Things or Actions caution the semantic type is uppercase in GraphQL
+        :type semantic_type: str
         """
         self._connection = connection
 
@@ -29,6 +31,7 @@ class Builder:
         self._limit = None  # To store the limit filter if it is added
         self._explore = None # To store the explore clause if it is added
         self._contains_filter = False  # true if any filter is added
+        self._semantic_type = semantic_type
 
     def with_where(self, filter):
         """
@@ -69,7 +72,7 @@ class Builder:
         :return: The gql query as a string
         :rtype: str
         """
-        query = f'{{Get{{Things{{{self._class_name}'
+        query = f'{{Get{{{self._semantic_type}{{{self._class_name}'
         if self._contains_filter:
             query += '('
         if self._where is not None:

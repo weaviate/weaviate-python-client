@@ -543,6 +543,23 @@ class TestCreate(unittest.TestCase):
         self.assertEqual("/schema/actions", call_args[0])
         self.assertEqual(REST_METHOD_POST, call_args[1])
 
+    def test_create_minimal_class(self):
+        w = weaviate.Client("http://localhost:8080")
+
+        connection_mock = Mock()  # Mock calling weaviate
+        add_run_rest_to_mock(connection_mock)
+        replace_connection(w, connection_mock)
+
+        w.schema.create_class({"class": "Group"})
+
+        connection_mock.run_rest.assert_called()
+        call_args_list = connection_mock.run_rest.call_args_list
+        call_args, call_kwargs = call_args_list[0]
+
+        self.assertEqual("/schema/things", call_args[0])
+        self.assertEqual(REST_METHOD_POST, call_args[1])
+        self.assertEqual("Group", call_args[2]["class"])
+
     def test_input(self):
         w = weaviate.Client("http://localhorst:8080")
         invalid_class = {

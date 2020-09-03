@@ -1,7 +1,7 @@
 import unittest
 from weaviate.schema.validate_schema import validate_schema, \
     _check_schema_class_types, check_class, \
-    _check_keywords, _check_property
+    _check_keywords, check_property
 
 from weaviate.exceptions import SchemaValidationException
 
@@ -143,7 +143,7 @@ class TestSchemaValidation(unittest.TestCase):
     def test_check_property(self):
         valid_minimal = {"dataType": ["string"],
                          "name": "string"}
-        _check_property(valid_minimal)
+        check_property(valid_minimal)
         valid_max = {"dataType": ["string"],
                      "name": "Rocket",
                      "vectorizePropertyName": True,
@@ -151,17 +151,17 @@ class TestSchemaValidation(unittest.TestCase):
                      "cardinality": "many",
                      "description": "some description",
                      "index": True}
-        _check_property(valid_max)
+        check_property(valid_max)
         try:
             # unknown field
             valid_minimal["random"] = "field"
-            _check_property(valid_minimal)
+            check_property(valid_minimal)
             self.fail()
         except SchemaValidationException:
             pass
         # Wrong data types:
         try:
-            _check_property({"dataType": "not list",
+            check_property({"dataType": "not list",
                              "name": "Rocket",
                              "vectorizePropertyName": True,
                              "keywords": [],
@@ -172,7 +172,7 @@ class TestSchemaValidation(unittest.TestCase):
         except SchemaValidationException:
             pass
         try:
-            _check_property({"dataType": ["string"],
+            check_property({"dataType": ["string"],
                              "name": 12,
                              "vectorizePropertyName": True,
                              "keywords": [],
@@ -183,7 +183,7 @@ class TestSchemaValidation(unittest.TestCase):
         except SchemaValidationException:
             pass
         try:
-            _check_property({"dataType": ["string"],
+            check_property({"dataType": ["string"],
                              "name": "Rocket",
                              "vectorizePropertyName": "Yes",
                              "keywords": [],
@@ -194,7 +194,7 @@ class TestSchemaValidation(unittest.TestCase):
         except SchemaValidationException:
             pass
         try:
-            _check_property({"dataType": ["string"],
+            check_property({"dataType": ["string"],
                              "name": "Rocket",
                              "vectorizePropertyName": True,
                              "keywords": "not list",
@@ -205,7 +205,7 @@ class TestSchemaValidation(unittest.TestCase):
         except SchemaValidationException:
             pass
         try:
-            _check_property({"dataType": ["string"],
+            check_property({"dataType": ["string"],
                              "name": "Rocket",
                              "vectorizePropertyName": True,
                              "keywords": [],
@@ -216,7 +216,7 @@ class TestSchemaValidation(unittest.TestCase):
         except SchemaValidationException:
             pass
         try:
-            _check_property({"dataType": ["string"],
+            check_property({"dataType": ["string"],
                              "name": "Rocket",
                              "vectorizePropertyName": True,
                              "keywords": [],
@@ -227,7 +227,7 @@ class TestSchemaValidation(unittest.TestCase):
         except SchemaValidationException:
             pass
         try:
-            _check_property({"dataType": ["string"],
+            check_property({"dataType": ["string"],
                              "name": "Rocket",
                              "vectorizePropertyName": True,
                              "keywords": [],
@@ -239,7 +239,7 @@ class TestSchemaValidation(unittest.TestCase):
             pass
         # Wrong cardinality
         try:
-            _check_property({"dataType": ["string"],
+            check_property({"dataType": ["string"],
                              "name": "Rocket",
                              "vectorizePropertyName": True,
                              "keywords": [],

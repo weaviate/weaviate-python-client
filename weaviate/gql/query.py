@@ -11,10 +11,10 @@ class Things:
         self._connection = connection
 
     def things(self, class_name, properties):
-        return Builder(class_name, properties, self._connection)
+        return Builder(class_name, properties, self._connection, "Things")
 
     def actions(self, class_name, properties):
-        return Builder(class_name, properties, self._connection)
+        return Builder(class_name, properties, self._connection, "Actions")
 
 
 class Query:

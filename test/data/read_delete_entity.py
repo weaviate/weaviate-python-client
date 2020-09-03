@@ -15,13 +15,13 @@ class TestDelete(unittest.TestCase):
     def test_delete_thing_input(self):
         w = weaviate.Client("http://localhost:8080")
         try:
-            w.data_object.delete(4)
+            w.data_object._delete(4)
             self.fail("UUID has the wrong type")
         except TypeError:
             pass
 
         try:
-            w.data_object.delete("Hallo Wereld")
+            w.data_object._delete("Hallo Wereld")
             self.fail("UUID has the wrong value")
         except ValueError:
             pass
@@ -35,7 +35,7 @@ class TestDelete(unittest.TestCase):
         replace_connection(w, connection_mock)
 
         thing = "b36268d4-a6b5-5274-985f-45f13ce0c642"
-        w.data_object.delete(thing)
+        w.data_object._delete(thing)
 
         connection_mock.run_rest.assert_called_with("/things/"+thing, REST_METHOD_DELETE)
 
@@ -46,7 +46,7 @@ class TestDelete(unittest.TestCase):
 
         thing = "b36268d4-a6b5-5274-985f-45f13ce0c642"
         try:
-            w.data_object.delete(thing)
+            w.data_object._delete(thing)
             self.fail("Unexpected status code")
         except UnexpectedStatusCodeException:
             pass

@@ -48,7 +48,7 @@ def check_class(class_definition):
 
     if "properties" in class_definition:
         for class_property in class_definition["properties"]:
-            _check_property(class_property)
+            check_property(class_property)
 
 
 def _check_key_type(key, value, expected_type):
@@ -75,7 +75,7 @@ def _check_keywords(keywords):
                 raise SchemaValidationException("Unknown key in \"keywords\" item: {word_key}".format(word_key=word_key))
 
 
-def _check_property(class_property):
+def check_property(class_property):
     """
 
     :param class_property:

@@ -101,7 +101,7 @@ class IntegrationTestCrud:
 
     def _delete_objects(self):
         print("Test Delete")
-        self.client.data_object.delete(self.chemists[2])  # Delete Walter White not a real chemist just a legend
+        self.client.data_object._delete(self.chemists[2])  # Delete Walter White not a real chemist just a legend
         time.sleep(1.1)
         if self.client.data_object.get(self.chemists[2]) is not None:
             print("Thing was not correctly deleted")
@@ -118,7 +118,7 @@ class IntegrationTestCrud:
         for prime_minister in prime_ministers:
             self.client.data_object.reference.add(prime_ministers_group, "members", prime_minister)
         time.sleep(2.0)
-        self.client.data_object.reference.delete(prime_ministers_group, "members", prime_ministers[0])
+        self.client.data_object.reference._delete(prime_ministers_group, "members", prime_ministers[0])
         time.sleep(2.0)
         prime_ministers_group_object = self.client.data_object.get(prime_ministers_group)
         if len(prime_ministers_group_object["schema"]["members"]) != 2:
