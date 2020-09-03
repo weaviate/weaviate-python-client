@@ -42,16 +42,13 @@ class DataObject:
             ConnectionError: if the network connection to weaviate fails.
         :rtype: str
         """
-
-        if not isinstance(data_object, dict):
-            raise TypeError(
-                "Expected" + semantic_type[:-1] + " to be of type dict instead it was: " + str(type(data_object)))
+        loaded_data_object = _get_dict_from_object(data_object)
         if not isinstance(class_name, str):
             raise TypeError("Expected class_name of type str but was: " + str(type(class_name)))
 
         weaviate_obj = {
             "class": class_name,
-            "schema": data_object
+            "schema": loaded_data_object
         }
         if uuid is not None:
             if not isinstance(uuid, str):
@@ -116,10 +113,7 @@ class DataObject:
             ConnectionError: If the network connection to weaviate fails.
             UnexpectedStatusCodeException: If weaviate reports a none successful status.
         """
-        try:
-            object_dict = _get_dict_from_object(data_object)
-        except:
-            raise  # Keep exception boiling back to user
+        object_dict = _get_dict_from_object(data_object)
 
         if not isinstance(class_name, str):
             raise TypeError("Class must be type str")

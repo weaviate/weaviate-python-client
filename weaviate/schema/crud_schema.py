@@ -70,7 +70,14 @@ class Schema:
             ConnectionError: if the network connection to weaviate fails.
             UnexpectedStatusCodeException: if weaviate reports a none OK status.
         """
-        check_class(schema_class)
+        try:
+            loaded_schema_class = _get_dict_from_object(schema_class)
+        except ConnectionError:
+            raise
+        except UnexpectedStatusCodeException:
+            raise
+
+        check_class(loaded_schema_class)
         self._create_class_with_premitives(semantic_type, schema_class)
         self._create_complex_properties_from_class(schema_class, semantic_type)
 
