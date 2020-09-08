@@ -193,13 +193,14 @@ class DataObject:
         else:
             raise UnexpectedStatusCodeException("Update thing", response)
 
-    def get(self, uuid, meta=False, semantic_type=SEMANTIC_TYPE_THINGS):
+    def get(self, uuid, underscore_properties=None, semantic_type=SEMANTIC_TYPE_THINGS):
         """ Gets an object as dict.
 
         :param uuid: the identifier of the thing that should be retrieved.
         :type uuid: str
-        :param meta: if True the result includes meta data.
-        :type meta: bool
+        :param underscore_properties: list of underscore properties that should be included in the request.
+                                      Underscore properties allow
+        :type underscore_properties: list of str
         :param semantic_type: defaults to things allows also actions see SEMANTIC_TYPE_ACTIONS.
         :type semantic_type: str
         :return:
@@ -213,7 +214,7 @@ class DataObject:
         """
 
         try:
-            response = self._get_object_response(semantic_type, uuid, meta)
+            response = self._get_object_response(semantic_type, uuid, underscore_properties)
         except ConnectionError:
             raise
 
@@ -224,11 +225,14 @@ class DataObject:
         else:
             raise UnexpectedStatusCodeException("Get object", response)
 
-    def get_all(self, semantic_type=SEMANTIC_TYPE_THINGS):
+    def get_all(self, underscore_properties=None, semantic_type=SEMANTIC_TYPE_THINGS):
         """ Gets all objects of a semantic type
 
         :param semantic_type: defaults to things allows also actions see SEMANTIC_TYPE_ACTIONS.
         :type semantic_type: str
+        :param underscore_properties: list of underscore properties that should be included in the request.
+                                      Underscore properties allow
+        :type underscore_properties: list of str
         :return: A list of all objects if no objects where found the list is empty.
         :rtype: list of dict
         :raises:
@@ -240,8 +244,10 @@ class DataObject:
         if not is_semantic_type(semantic_type):
             raise ValueError(f"{semantic_type} is not a valid semantic type")
 
+        params = _get_params(underscore_properties)
+
         try:
-            response = self._connection.run_rest("/" + semantic_type, REST_METHOD_GET)
+            response = self._connection.run_rest("/" + semantic_type, REST_METHOD_GET, params=params)
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err) + ' Connection error when getting things').with_traceback(
                 sys.exc_info()[2])
@@ -252,16 +258,15 @@ class DataObject:
         else:
             raise UnexpectedStatusCodeException("Get object", response)
 
-
-    def _get_object_response(self, semantic_type, object_uuid, meta=False):
+    def _get_object_response(self, semantic_type, object_uuid, underscore_properties=None):
         """ Retrieves an object from weaviate.
 
         :param semantic_type: can be found as constants e.g. SEMANTIC_TYPE_THINGS.
         :type semantic_type: str
         :param object_uuid: the identifier of the object that should be retrieved.
         :type object_uuid: str
-        :param meta: if True the result includes meta data.
-        :type meta: bool
+        :param underscore_properties: Defines the underscore properties that should be included in the result
+        :type underscore_properties: list of str or None
         :return: response object.
         :raises:
             TypeError: if argument is of wrong type.
@@ -271,14 +276,12 @@ class DataObject:
         if not is_semantic_type(semantic_type):
             raise ValueError(f"{semantic_type} is not a valid semantic type")
 
-        params = {}
-        if meta:
-            params['meta'] = True
+        params = _get_params(underscore_properties)
+
         if not isinstance(object_uuid, str):
             object_uuid = str(object_uuid)
         try:
-            response = self._connection.run_rest("/" + semantic_type + "/" + object_uuid, REST_METHOD_GET,
-                                                 params=params)
+            response = self._connection.run_rest("/" + semantic_type + "/" + object_uuid, REST_METHOD_GET, params=params)
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err) + ' Connection error not sure if object exists').with_traceback(
                 sys.exc_info()[2])
@@ -342,3 +345,20 @@ class DataObject:
             return False
         else:
             raise UnexpectedStatusCodeException("Thing exists", response)
+
+
+def _get_params(underscore_properties):
+    """
+
+    :param underscore_properties: list of underscore properties or None
+    :type underscore_properties: list of str, None
+    :return: dict for params
+    """
+    params = {}
+    if underscore_properties is not None:
+        if not isinstance(underscore_properties, list):
+            raise TypeError(f"Underscore properties must be of type list but are {type(underscore_properties)}")
+
+        params['include'] = ",".join(underscore_properties)
+
+    return params

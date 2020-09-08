@@ -31,6 +31,7 @@ runTest "test.contextionary.c11y"
 runTest "test.data.add_replace_thing"
 runTest "test.data.patch_entity"
 runTest "test.data.read_delete_entity"
+
 # /test/data/references
 runTest "test.data.references.add_reference"
 runTest "test.data.references.delete"
