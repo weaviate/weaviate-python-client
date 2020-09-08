@@ -11,17 +11,6 @@ os: linux
 jobs:
   include:
 
-    - stage: "pip package test"
-      branches:
-        only:
-          - master
-      python: "3.8"
-      install:
-        - pip install -r requirements.txt
-        - pip install .
-      script:
-        - python integration/rdf.py
-
     - stage: "Unit tests"
       name: "3.6"
       branches:
@@ -68,6 +57,18 @@ jobs:
         - /bin/bash ci/start_weaviate.bash
       script:
         - python integration/client_functions.py
+        - python integration/rdf.py
+
+    - name: "pip package test"
+      # Test if pip package throws any errors when importing
+      branches:
+        only:
+          - master
+      python: "3.8"
+      install:
+        - pip install -r requirements.txt
+        - pip install .
+      script:
         - python integration/rdf.py
 
 #    - stage: "Build documentation"
