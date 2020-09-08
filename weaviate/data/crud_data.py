@@ -3,7 +3,7 @@ import validators
 
 from weaviate.connect import *
 from weaviate.exceptions import *
-from weaviate.util import _get_dict_from_object
+from weaviate.util import _get_dict_from_object, is_semantic_type
 from requests.exceptions import ConnectionError
 from weaviate.data.references import Reference
 from weaviate import SEMANTIC_TYPE_THINGS
@@ -42,6 +42,9 @@ class DataObject:
             ConnectionError: if the network connection to weaviate fails.
         :rtype: str
         """
+        if not is_semantic_type(semantic_type):
+            raise ValueError(f"{semantic_type} is not a valid semantic type")
+
         loaded_data_object = _get_dict_from_object(data_object)
         if not isinstance(class_name, str):
             raise TypeError("Expected class_name of type str but was: " + str(type(class_name)))
@@ -110,9 +113,14 @@ class DataObject:
         :type semantic_type: str
         :return: None if successful
         :raises:
+            TypeError: if argument is of wrong type.
+            ValueError: if argument contains an invalid value.
             ConnectionError: If the network connection to weaviate fails.
             UnexpectedStatusCodeException: If weaviate reports a none successful status.
         """
+        if not is_semantic_type(semantic_type):
+            raise ValueError(f"{semantic_type} is not a valid semantic type")
+
         object_dict = _get_dict_from_object(data_object)
 
         if not isinstance(class_name, str):
@@ -157,9 +165,14 @@ class DataObject:
         :type semantic_type: str
         :return: None if successful.
         :raises:
+            TypeError: if argument is of wrong type.
+            ValueError: if argument contains an invalid value.
             ConnectionError: If the network connection to weaviate fails.
             UnexpectedStatusCodeException: If weaviate reports a none OK status.
         """
+        if not is_semantic_type(semantic_type):
+            raise ValueError(f"{semantic_type} is not a valid semantic type")
+
         parsed_object = _get_dict_from_object(data_object)
 
         weaviate_obj = {
@@ -181,7 +194,7 @@ class DataObject:
             raise UnexpectedStatusCodeException("Update thing", response)
 
     def get(self, uuid, meta=False, semantic_type=SEMANTIC_TYPE_THINGS):
-        """ Gets a thing as dict.
+        """ Gets an object as dict.
 
         :param uuid: the identifier of the thing that should be retrieved.
         :type uuid: str
@@ -193,6 +206,8 @@ class DataObject:
             dict in case the thing exists.
             None in case the thing does not exist.
         :raises:
+            TypeError: if argument is of wrong type.
+            ValueError: if argument contains an invalid value.
             ConnectionError: if the network connection to weaviate fails.
             UnexpectedStatusCodeException: if weaviate reports a none OK status.
         """
@@ -209,6 +224,35 @@ class DataObject:
         else:
             raise UnexpectedStatusCodeException("Get object", response)
 
+    def get_all(self, semantic_type=SEMANTIC_TYPE_THINGS):
+        """ Gets all objects of a semantic type
+
+        :param semantic_type: defaults to things allows also actions see SEMANTIC_TYPE_ACTIONS.
+        :type semantic_type: str
+        :return: A list of all objects if no objects where found the list is empty.
+        :rtype: list of dict
+        :raises:
+            TypeError: if argument is of wrong type.
+            ValueError: if argument contains an invalid value.
+            ConnectionError: if the network connection to weaviate fails.
+            UnexpectedStatusCodeException: if weaviate reports a none OK status.
+        """
+        if not is_semantic_type(semantic_type):
+            raise ValueError(f"{semantic_type} is not a valid semantic type")
+
+        try:
+            response = self._connection.run_rest("/" + semantic_type, REST_METHOD_GET)
+        except ConnectionError as conn_err:
+            raise type(conn_err)(str(conn_err) + ' Connection error when getting things').with_traceback(
+                sys.exc_info()[2])
+
+        if response.status_code == 200:
+            response_data = response.json()
+            return response_data[semantic_type]
+        else:
+            raise UnexpectedStatusCodeException("Get object", response)
+
+
     def _get_object_response(self, semantic_type, object_uuid, meta=False):
         """ Retrieves an object from weaviate.
 
@@ -220,8 +264,13 @@ class DataObject:
         :type meta: bool
         :return: response object.
         :raises:
+            TypeError: if argument is of wrong type.
+            ValueError: if argument contains an invalid value.
             ConnectionError: if the network connection to weaviate fails.
         """
+        if not is_semantic_type(semantic_type):
+            raise ValueError(f"{semantic_type} is not a valid semantic type")
+
         params = {}
         if meta:
             params['meta'] = True
