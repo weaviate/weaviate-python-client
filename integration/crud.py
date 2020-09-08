@@ -104,7 +104,7 @@ class IntegrationTestCrud:
         print("Test Delete")
         self.client.data_object.delete(self.chemists[2])  # Delete Walter White not a real chemist just a legend
         time.sleep(1.1)
-        if self.client.data_object.get(self.chemists[2]) is not None:
+        if self.client.data_object.get_by_id(self.chemists[2]) is not None:
             print("Thing was not correctly deleted")
             exit(8)
 
@@ -121,7 +121,7 @@ class IntegrationTestCrud:
         time.sleep(2.0)
         self.client.data_object.reference.delete(prime_ministers_group, "members", prime_ministers[0])
         time.sleep(2.0)
-        prime_ministers_group_object = self.client.data_object.get(prime_ministers_group)
+        prime_ministers_group_object = self.client.data_object.get_by_id(prime_ministers_group)
         if len(prime_ministers_group_object["schema"]["members"]) != 2:
             print("Reference not deleted correctly")
             exit(9)
@@ -129,7 +129,7 @@ class IntegrationTestCrud:
     def _get_data(self):
         self.client.data_object.create({"name": "George Floyd"}, "Person", "452e3031-bdaa-4468-9980-aed60d0258bf")
         time.sleep(2.0)
-        person = self.client.data_object.get("452e3031-bdaa-4468-9980-aed60d0258bf", ["_vector", "_interpretation"])
+        person = self.client.data_object.get_by_id("452e3031-bdaa-4468-9980-aed60d0258bf", ["_vector", "_interpretation"])
         if "_vector" not in person:
             print("underscore property _vector not in person")
             exit(10)
@@ -137,7 +137,7 @@ class IntegrationTestCrud:
             print("underscore property _interpretation not in person")
             exit(11)
 
-        persons = self.client.data_object.get_all(["_vector"])
+        persons = self.client.data_object.get(["_vector"])
         if "_vector" not in persons[0]:
             print("underscore property _vector not in persons")
             exit(12)

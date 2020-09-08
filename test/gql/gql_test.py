@@ -55,9 +55,7 @@ class TestGraphQL(unittest.TestCase):
         add_run_rest_to_mock(connection_mock, return_value)
         replace_connection(w, connection_mock)
         # Mock Things object in Query class
-        w.query.get = Things(connection_mock)
 
-        response = w.query.get.things("Group", ["name", "uuid"]).do()
 
         self.assertEqual(return_value, response)
 

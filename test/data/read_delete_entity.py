@@ -49,7 +49,7 @@ class TestDelete(unittest.TestCase):
 
         connection_mock.run_rest.assert_called_with("/things/" + thing, REST_METHOD_DELETE)
 
-    def test_get_thing(self):
+    def test_get_thing_by_id(self):
         w = weaviate.Client("http://localhost:8080")
 
         thing = {
@@ -59,7 +59,7 @@ class TestDelete(unittest.TestCase):
         add_run_rest_to_mock(connection_mock, return_json=thing, status_code=200)
         replace_connection(w, connection_mock)
 
-        result = w.data_object.get("73802305-c0da-427e-b21c-d6779a22f35f")
+        result = w.data_object.get_by_id("73802305-c0da-427e-b21c-d6779a22f35f")
         self.assertIn("name", result)
 
     def test_get_underscore_properties(self):
@@ -101,8 +101,8 @@ class TestDelete(unittest.TestCase):
         add_run_rest_to_mock(connection_mock, return_value)
         replace_connection(w, connection_mock)
 
-        result = w.data_object.get("21fa7bc8-011f-4066-861e-f62c285f09c8",
-                                   underscore_properties=["_vector", "_interpretation"])
+        result = w.data_object.get_by_id("21fa7bc8-011f-4066-861e-f62c285f09c8",
+                                         underscore_properties=["_vector", "_interpretation"])
 
         self.assertEqual(return_value, result)
 
@@ -169,7 +169,7 @@ class TestDelete(unittest.TestCase):
         add_run_rest_to_mock(connection_mock, return_value_get_all_things)
         replace_connection(w, connection_mock)
 
-        result = w.data_object.get_all()
+        result = w.data_object.get()
         self.assertEqual(return_value_get_all_things["things"], result)
 
         connection_mock.run_rest.assert_called()
@@ -192,7 +192,7 @@ class TestDelete(unittest.TestCase):
         add_run_rest_to_mock(connection_mock, result_empty_actions)
         replace_connection(w, connection_mock)
 
-        result = w.data_object.get_all(semantic_type=SEMANTIC_TYPE_ACTIONS)
+        result = w.data_object.get(semantic_type=SEMANTIC_TYPE_ACTIONS)
         self.assertEqual([], result)
 
         call_args_list = connection_mock.run_rest.call_args_list
@@ -213,7 +213,7 @@ class TestDelete(unittest.TestCase):
         add_run_rest_to_mock(connection_mock, result_empty_actions)
         replace_connection(w, connection_mock)
 
-        result = w.data_object.get_all(["_vector", "_nearestNeighbors"], SEMANTIC_TYPE_ACTIONS)
+        result = w.data_object.get(["_vector", "_nearestNeighbors"], SEMANTIC_TYPE_ACTIONS)
         self.assertEqual([], result)
 
         call_args_list = connection_mock.run_rest.call_args_list

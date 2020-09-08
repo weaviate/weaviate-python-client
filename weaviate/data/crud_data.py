@@ -193,7 +193,7 @@ class DataObject:
         else:
             raise UnexpectedStatusCodeException("Update thing", response)
 
-    def get(self, uuid, underscore_properties=None, semantic_type=SEMANTIC_TYPE_THINGS):
+    def get_by_id(self, uuid, underscore_properties=None, semantic_type=SEMANTIC_TYPE_THINGS):
         """ Gets an object as dict.
 
         :param uuid: the identifier of the thing that should be retrieved.
@@ -225,7 +225,7 @@ class DataObject:
         else:
             raise UnexpectedStatusCodeException("Get object", response)
 
-    def get_all(self, underscore_properties=None, semantic_type=SEMANTIC_TYPE_THINGS):
+    def get(self, underscore_properties=None, semantic_type=SEMANTIC_TYPE_THINGS):
         """ Gets all objects of a semantic type
 
         :param semantic_type: defaults to things allows also actions see SEMANTIC_TYPE_ACTIONS.
