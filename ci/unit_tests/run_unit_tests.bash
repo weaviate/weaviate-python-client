@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 function runTest {
     echo "Testing: $1"
     python -m unittest "$1"
