@@ -10,6 +10,18 @@ os: linux
 
 jobs:
   include:
+
+    - stage: "pip package test"
+      branches:
+        only:
+          - master
+      python: "3.8"
+      install:
+        - pip install -r requirements.txt
+        - pip install .
+      script:
+        - python integration/rdf.py
+
     - stage: "Unit tests"
       name: "3.6"
       branches:
