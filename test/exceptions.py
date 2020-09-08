@@ -17,7 +17,7 @@ class TestExceptions(unittest.TestCase):
         replace_connection(w, connection_mock)
 
         try:
-            w.data_object._delete("b36268d4-a6b5-5274-985f-45f13ce0c642")
+            w.data_object.delete("b36268d4-a6b5-5274-985f-45f13ce0c642")
             self.fail("No unexpected status code")
         except UnexpectedStatusCodeException as e:
             self.assertEqual(e.status_code, 404)
@@ -37,7 +37,7 @@ class TestExceptions(unittest.TestCase):
         replace_connection(w, connection_mock)
 
         try:
-            w.data_object._delete("b36268d4-a6b5-5274-985f-45f13ce0c642")
+            w.data_object.delete("b36268d4-a6b5-5274-985f-45f13ce0c642")
             self.fail("No unexpected status code")
         except UnexpectedStatusCodeException as e:
             self.assertEqual(e.status_code, 404)
