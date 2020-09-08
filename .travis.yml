@@ -69,7 +69,7 @@ jobs:
         - pip install -r requirements.txt
         - pip install .
       script:
-        - python integration/rdf.py
+        - python integration/pip_package.py
 
 #    - stage: "Build documentation"
 #      language: python
