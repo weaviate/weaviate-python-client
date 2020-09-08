@@ -55,6 +55,7 @@ def creating_schema(w):
         print("Class property not added properly")
         exit(5)
 
+
 if __name__ == "__main__":
     print("Weaviate should be running at local host 8080")
     w = weaviate.Client("http://localhost:8080")

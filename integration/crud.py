@@ -28,6 +28,7 @@ class IntegrationTestCrud:
         self._delete_objects()
 
         self._delete_references()
+        self._get_data()
 
     def _create_objects_batch(self):
         print("Create a batch with data")
@@ -125,5 +126,18 @@ class IntegrationTestCrud:
             print("Reference not deleted correctly")
             exit(9)
 
+    def _get_data(self):
+        self.client.data_object.create({"name": "George Floyd"}, "Person", "452e3031-bdaa-4468-9980-aed60d0258bf")
+        time.sleep(2.0)
+        person = self.client.data_object.get("452e3031-bdaa-4468-9980-aed60d0258bf", ["_vector", "_interpretation"])
+        if "_vector" not in person:
+            print("underscore property _vector not in person")
+            exit(10)
+        if "_interpretation" not in person:
+            print("underscore property _interpretation not in person")
+            exit(11)
 
-
+        persons = self.client.data_object.get_all(["_vector"])
+        if "_vector" not in persons[0]:
+            print("underscore property _vector not in persons")
+            exit(12)
