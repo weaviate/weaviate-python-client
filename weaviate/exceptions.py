@@ -31,6 +31,11 @@ class UnexpectedStatusCodeException(Exception):
         self.status_code = response.status_code
         self.json = body
 
+    def __str__(self):
+        code = str(self.status_code)
+        body = str(self.json)
+        return f"Unexpected status code: {code}, with response body: {body}"
+
 
 class ThingAlreadyExistsException(Exception):
     pass
