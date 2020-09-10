@@ -9,15 +9,15 @@ class Batcher:
     """ manages batches and batch loading
     """
 
-    def __init__(self, client, batch_size=512, print_errors=False, auto_commit_timeout=-1, return_values_callback=None):
+    def __init__(self, client, batch_size=512, verbose=False, auto_commit_timeout=-1, return_values_callback=None):
         """
 
         :param client: weaviate client
         :type client: weaviate.Client
         :param batch_size: The batch size determines when a batch is send to weaviate.
         :type batch_size: int
-        :param print_errors: if true the return status of the batches get printed
-        :type print_errors: bool
+        :param verbose: if true the batcher prints many steps e.g. the return status of the batches
+        :type verbose: bool
         :param auto_commit_timeout: time in seconds the batcher waits before posting all the data,
                                     no matter how big the batch size. Deactivated when <= 0.
         :type auto_commit_timeout: float
@@ -32,7 +32,7 @@ class Batcher:
         self._actions_batch = weaviate.batch.ActionsBatchRequest()
         self._reference_batch = weaviate.batch.ReferenceBatchRequest()
         self._batch_size = batch_size
-        self._print_errors_activated = print_errors
+        self._print_verbose_activated = verbose
         self._return_values_callback = return_values_callback
         # Auto commit info
         self._commit_lock: threading.Lock = threading.Lock()
@@ -48,7 +48,7 @@ class Batcher:
         return self
 
     def _print_errors(self, request_result):
-        if not self._print_errors_activated:
+        if not self._print_verbose_activated:
             return
 
         for item in request_result:
@@ -109,6 +109,9 @@ class Batcher:
 
         if self._return_values_callback is not None and len(result_collection) > 0:
             self._return_values_callback(result_collection)
+
+        if self._print_verbose_activated:
+            print("Updated batches successfully")
 
         self._last_update = time.time()
 

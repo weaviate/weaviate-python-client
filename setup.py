@@ -8,7 +8,7 @@ with open(path.join(this_directory, 'readme.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(name="weaviate-client",
-      version="1.0.0rc5", # 0.3.6rc0
+      version="1.0.0rc6", # 0.3.6rc0
       description="A python native weaviate client",
       long_description=long_description,
       long_description_content_type='text/markdown',
