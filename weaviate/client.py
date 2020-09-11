@@ -7,6 +7,7 @@ from .data import DataObject
 from .gql import Query
 from .client_config import ClientConfig
 from requests.exceptions import ConnectionError
+from weaviate.exceptions import UnexpectedStatusCodeException
 
 
 class Client:
@@ -70,4 +71,18 @@ class Client:
         except ConnectionError:
             return False
 
+    def get_meta(self):
+        """ Get the meta endpoint description of weaviate
+
+        :return: dict describing the weaviate configuration
+        """
+        try:
+
+            response = self._connection.run_rest("/meta", REST_METHOD_GET)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                raise UnexpectedStatusCodeException("Meta endpoint", response)
+        except ConnectionError:
+            return False
 

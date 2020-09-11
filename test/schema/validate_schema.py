@@ -5,6 +5,7 @@ from weaviate.schema.validate_schema import validate_schema, \
 
 from weaviate.exceptions import SchemaValidationException
 
+
 class TestSchemaValidation(unittest.TestCase):
 
     def test_actions_and_things(self):

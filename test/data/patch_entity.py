@@ -1,12 +1,7 @@
 import unittest
 import weaviate
-from test.testing_util import add_run_rest_to_mock
-import sys
 from test.testing_util import add_run_rest_to_mock, replace_connection
-if sys.version_info[0] == 2:
-    from mock import MagicMock as Mock
-else:
-    from unittest.mock import Mock
+from unittest.mock import Mock
 
 
 class TestPatchThing(unittest.TestCase):

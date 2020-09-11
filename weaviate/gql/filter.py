@@ -108,6 +108,7 @@ class WhereFilter:
 
     def __str__(self):
         if self.is_filter:
+            # TODO fix value types  
             return f'{{path: {self.path} operator: {self.operator} {self.value_type}: "{self.value}"}}'
         else:
             operands_str = []

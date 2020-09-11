@@ -21,7 +21,7 @@ runTest "test.batch.add_reference_batch"
 runTest "test.batch.add_thing_batch"
 
 # /test/classification
-runTest "test.classification.classification"
+runTest "test.classification.test_classification"
 
 # /test/connection
 runTest "test.connection.test_connection"
