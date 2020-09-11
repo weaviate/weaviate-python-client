@@ -346,6 +346,71 @@ class DataObject:
         else:
             raise UnexpectedStatusCodeException("Thing exists", response)
 
+    def validate(self, data_object, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
+        """ Takes a dict describing the thing and validates it against weaviate
+
+        :param data_object: Object to be validated.
+        :type data_object: dict or str
+        :param class_name: Associated with the object given.
+        :type class_name: str
+        :param uuid: uuid of object
+        :type uuid: str
+        :param semantic_type: Either things or actions.
+                              Defaults to things.
+                              Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
+        :type semantic_type: str
+        :return: dict of form:
+        {
+            valid: bool
+            error: None or list
+        }
+        :rtype: dict
+        :raises:
+            TypeError: if argument is of wrong type.
+            ValueError: if argument contains an invalid value.
+            UnexpectedStatusCodeException: if validating the thing in weavate failed with a different reason,
+            more information is given in the exception.
+            ConnectionError: if the network connection to weaviate fails.
+        :rtype: str
+        """
+        if not is_semantic_type(semantic_type):
+            raise ValueError(f"{semantic_type} is not a valid semantic type")
+
+        if not isinstance(uuid, str):
+            raise TypeError("UUID must be of type str")
+
+        loaded_data_object = _get_dict_from_object(data_object)
+        if not isinstance(class_name, str):
+            raise TypeError("Expected class_name of type str but was: " + str(type(class_name)))
+
+        weaviate_obj = {
+            "id": uuid,
+            "class": class_name,
+            "schema": loaded_data_object
+        }
+
+        path = f"/{semantic_type}/validate"
+        try:
+            response = self._connection.run_rest(path, REST_METHOD_POST, weaviate_obj)
+        except ConnectionError as conn_err:
+            raise type(conn_err)(
+                str(conn_err) + ' Connection error, object was not validated against weaviate.').with_traceback(
+                sys.exc_info()[2])
+
+        result = {
+            "error": None
+        }
+
+        if response.status_code == 200:
+            result["valid"] = True
+            return result
+        elif response.status_code == 422:
+            result["valid"] = False
+            result["error"] = response.json()["error"]
+            return result
+        else:
+            raise UnexpectedStatusCodeException("Validate thing", response)
+
 
 def _get_params(underscore_properties):
     """
