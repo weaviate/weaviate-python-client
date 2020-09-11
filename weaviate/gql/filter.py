@@ -108,8 +108,21 @@ class WhereFilter:
 
     def __str__(self):
         if self.is_filter:
-            # TODO fix value types  
-            return f'{{path: {self.path} operator: {self.operator} {self.value_type}: "{self.value}"}}'
+            # TODO fix value types
+            gql = f'{{path: {self.path} operator: {self.operator} {self.value_type}: '
+            if self.value_type in ["valueInt", "valueNumber"]:
+                gql += f'{self.value}}}'
+            elif self.value_type == "valueBoolean":
+                bool_value = str(self.value).lower()
+                gql += f'{bool_value}}}'
+            elif self.value_type == "valueGeoRange":
+                geo_value = json.dumps(self.value)
+                gql += f'{geo_value}}}'
+            else:
+                gql += f'"{self.value}"}}'
+            return gql
+
+
         else:
             operands_str = []
             for operand in self.operands:
