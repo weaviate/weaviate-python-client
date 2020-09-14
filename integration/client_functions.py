@@ -4,6 +4,7 @@ import weaviate
 from integration.queries import *
 from integration.crud import IntegrationTestCrud
 from integration.graphql import TestGraphQL
+from integration.classification import contextual
 
 
 def query_data(w):
@@ -68,5 +69,7 @@ if __name__ == "__main__":
     gql_integration = TestGraphQL(w)
     gql_integration.query_data()
     gql_integration.aggregate_data()
+
+    contextual(w)
 
     print("Integration test finished successfully")
