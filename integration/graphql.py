@@ -11,7 +11,7 @@ schema = {
     "things": {
         "classes": [
             {
-                "class": "Object",
+                "class": "Ship",
                 "description": "object",
                 "properties": [
                     {
@@ -42,12 +42,12 @@ class TestGraphQL:
         self.client = client
         self.client.schema.create(schema)
 
-        client.data_object.create({"name": "A", "size": 5}, "Object")
-        client.data_object.create({"name": "B", "size": 20}, "Object")
-        client.data_object.create({"name": "C", "size": 43}, "Object")
-        client.data_object.create({"name": "D", "size": 1}, "Object")
-        client.data_object.create({"name": "E", "size": 34}, "Object")
-        client.data_object.create({"name": "F", "size": 303}, "Object")
+        client.data_object.create({"name": "A", "size": 5}, "Ship")
+        client.data_object.create({"name": "B", "size": 20}, "Ship")
+        client.data_object.create({"name": "C", "size": 43}, "Ship")
+        client.data_object.create({"name": "D", "size": 1}, "Ship")
+        client.data_object.create({"name": "E", "size": 34}, "Ship")
+        client.data_object.create({"name": "F", "size": 303}, "Ship")
         time.sleep(2.0)
 
     def query_data(self):
@@ -57,7 +57,7 @@ class TestGraphQL:
             "valueInt": 10
         }
         result = self.client.query.get\
-            .things("Object", ["name", "size"])\
+            .things("Ship", ["name", "size"])\
             .with_limit(2)\
             .with_where(where_filter)\
             .do()
@@ -81,7 +81,7 @@ class TestGraphQL:
         }
 
         result = self.client.query.aggregate \
-            .things("Object") \
+            .things("Ship") \
             .with_where(filter) \
             .with_group_by_filter(["name"]) \
             .with_fields("groupedBy {value}") \
@@ -96,11 +96,11 @@ class TestGraphQL:
 
 
 def get_objects_from_result(result):
-    return result["data"]["Get"]["Things"]["Object"]
+    return result["data"]["Get"]["Things"]["Ship"]
 
 
 def get_aggregation_from_aggregate_result(result):
-    return result["data"]["Aggregate"]["Things"]["Object"][0]
+    return result["data"]["Aggregate"]["Things"]["Ship"][0]
 
 
 if __name__ == "__main__":
