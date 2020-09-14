@@ -7,6 +7,12 @@ import time
 class ConfigBuilder:
 
     def __init__(self, connection, classification):
+        """
+
+        :param connection:
+        :param classification:
+        :type classification: weaviate.classification.classifiy.Classification
+        """
         self._connection = connection
         self._classification = classification
         self._config = {}
@@ -88,6 +94,7 @@ class ConfigBuilder:
 
         # wait for completion
         classification_uuid = response["id"]
-        while not self._classification.is_classification_complete(classification_uuid):
+        #print(classification_uuid)
+        while self._classification.is_running(classification_uuid):
             time.sleep(2.0)
-        return self._classification.get_classification_status(classification_uuid)
+        return self._classification.get(classification_uuid)

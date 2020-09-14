@@ -17,7 +17,7 @@ class Classification:
     def schedule(self):
         return ConfigBuilder(self._connection, self)
 
-    def get_classification_status(self, classification_uuid):
+    def get(self, classification_uuid):
         """ Polls the current state of the given classification
 
         :param classification_uuid: identifier of the classification.
@@ -44,16 +44,33 @@ class Classification:
         else:
             raise UnexpectedStatusCodeException("Get classification status", response)
 
-    def is_classification_complete(self, classification_uuid):
+    def is_complete(self, classification_uuid):
         """ Checks if a previously started classification job has completed.
 
         :param classification_uuid: identifier of the classification.
         :return: true if given classification has finished.
         """
+        return self._check_status(classification_uuid, "completed")
+
+    def is_failed(self, classification_uuid):
+        """
+        :param classification_uuid:
+        :return: True if the classification failed
+        """
+        return self._check_status(classification_uuid, "failed")
+
+    def is_running(self, classification_uuid):
+        """
+        :param classification_uuid:
+        :return: True if the classification is currently running
+        """
+        return self._check_status(classification_uuid, "running")
+
+    def _check_status(self, classification_uuid, status):
         try:
-            response = self.get_classification_status(classification_uuid)
+            response = self.get(classification_uuid)
         except ConnectionError:
             return False
-        if response["status"] == "completed":
+        if response["status"] == status:
             return True
         return False
