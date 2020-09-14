@@ -57,10 +57,10 @@ class Client:
         self.data_object = DataObject(self._connection)
         self.query = Query(self._connection)
 
-    def is_reachable(self):
-        """ Ping weaviate
+    def is_ready(self):
+        """ Ping weaviates ready state
 
-        :return: True if weaviate could be reached False otherwise.
+        :return: True if weaviate is ready to accept requests
         """
         try:
 
@@ -70,6 +70,16 @@ class Client:
             return False
         except ConnectionError:
             return False
+
+    def is_live(self):
+        """ Ping weaviates live state
+
+        :return: True if weaviate is live and should not be killed
+        """
+        response = self._connection.run_rest("/.well-known/live", REST_METHOD_GET)
+        if response.status_code == 200:
+            return True
+        return False
 
     def get_meta(self):
         """ Get the meta endpoint description of weaviate

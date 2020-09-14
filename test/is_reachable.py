@@ -10,7 +10,7 @@ class TestIsReachable(unittest.TestCase):
 
         # 1. No weaviate
         try:
-            self.assertFalse(w.is_reachable())
+            self.assertFalse(w.is_ready())
         except Exception as e:
             self.fail("Should not end up in any exception: " +str(e))
 
@@ -18,5 +18,5 @@ class TestIsReachable(unittest.TestCase):
         connection_mock = Mock()  # Mock calling weaviate
         add_run_rest_to_mock(connection_mock)  # return 200 for everything
         w._connection = connection_mock
-        self.assertTrue(w.is_reachable())
+        self.assertTrue(w.is_ready())
         self.assertEqual(connection_mock.run_rest.call_count, 1)

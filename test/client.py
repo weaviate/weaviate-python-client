@@ -50,14 +50,14 @@ class TestWeaviateClient(unittest.TestCase):
         connection_mock = Mock()
         # Request to weaviate returns 200
         w._connection = add_run_rest_to_mock(connection_mock)
-        self.assertTrue(w.is_reachable())  # Should be true
+        self.assertTrue(w.is_ready())  # Should be true
 
         # Test exception in connect
         w = weaviate.Client("http://localhost:8080")
         connection_mock = Mock()
         connection_mock.run_rest.side_effect = run_rest_raise_connection_error
         w._connection = connection_mock
-        self.assertFalse(w.is_reachable())
+        self.assertFalse(w.is_ready())
 
     def test_input_checking(self):
         w = weaviate.Client("http://localhost:8080/")

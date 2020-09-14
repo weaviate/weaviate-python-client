@@ -20,7 +20,7 @@ def query_data(w):
 
 def creating_schema(w):
     print("Checking if weaviate is reachable")
-    if not w.is_reachable():
+    if not w.is_ready():
         print("Weaviate not reachable")
         exit(2)
 
