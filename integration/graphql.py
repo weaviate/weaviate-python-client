@@ -60,7 +60,6 @@ class TestGraphQL:
             .things("Object", ["name", "size"])\
             .with_limit(2)\
             .with_where(where_filter)\
-            .with_limit(2)\
             .do()
         objects = get_objects_from_result(result)
         a_found = False
@@ -89,10 +88,10 @@ class TestGraphQL:
             .with_fields("name{count}") \
             .do()
 
-        objects = get_objects_from_aggregate_result(result)
-        if "groupedBy" not in objects:
+        aggregation = get_aggregation_from_aggregate_result(result)
+        if "groupedBy" not in aggregation:
             raise TestFailedException("Missing groupedBy")
-        if "name" not in objects:
+        if "name" not in aggregation:
             raise TestFailedException("Missing name property")
 
 
@@ -100,8 +99,8 @@ def get_objects_from_result(result):
     return result["data"]["Get"]["Things"]["Object"]
 
 
-def get_objects_from_aggregate_result(result):
-    return result["data"]["Aggregate"]["Things"]["Object"]
+def get_aggregation_from_aggregate_result(result):
+    return result["data"]["Aggregate"]["Things"]["Object"][0]
 
 
 if __name__ == "__main__":
