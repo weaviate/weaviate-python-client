@@ -1,6 +1,6 @@
 import unittest
 import weaviate
-from weaviate.gql.query import Things
+from weaviate.gql.query import SemanticTypeGetProxy
 from test.testing_util import replace_connection, add_run_rest_to_mock
 from unittest.mock import Mock
 from weaviate.connect import REST_METHOD_POST
@@ -56,7 +56,7 @@ class TestGraphQL(unittest.TestCase):
         replace_connection(w, connection_mock)
         # Mock Things object in Query class
 
-        w.query.get = Things(connection_mock)
+        w.query.get = SemanticTypeGetProxy(connection_mock)
 
         response = w.query.get.things("Group", ["name", "uuid"]).do()
 

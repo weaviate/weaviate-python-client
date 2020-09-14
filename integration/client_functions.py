@@ -3,6 +3,7 @@ import time
 import weaviate
 from integration.queries import *
 from integration.crud import IntegrationTestCrud
+from integration.graphql import TestGraphQL
 
 
 def query_data(w):
@@ -61,9 +62,11 @@ if __name__ == "__main__":
     w = weaviate.Client("http://localhost:8080")
     creating_schema(w)
     integration = IntegrationTestCrud(w)
-
     integration.test_crud()
-
     query_data(w)
+
+    gql_integration = TestGraphQL(w)
+    gql_integration.query_data()
+    gql_integration.aggregate_data()
 
     print("Integration test finished successfully")

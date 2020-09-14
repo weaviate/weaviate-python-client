@@ -39,6 +39,7 @@ class Builder:
         :param filter:
         :type filter: dict
         :return:
+        :rtype: Builder
         """
         self._where = WhereFilter(filter)
         self._contains_filter = True
@@ -50,17 +51,19 @@ class Builder:
         :param explore:
         :type explore: dict
         :return:
+        :rtype: Builder
         """
         self._explore = Explore(explore)
         self._contains_filter = True
         return self
 
     def with_limit(self, limit):
-        """
+        """ The limit of objects returned.
 
-        :param limit:
+        :param limit: Max number of objects returned.
         :type limit: int
         :return:
+        :rtype: Builder
         """
         self._limit = limit
         self._contains_filter = True
@@ -88,6 +91,10 @@ class Builder:
         return query
 
     def do(self):
+        """ Builds and runs the query
+        :return: the response of the query
+        :rtype: dict
+        """
         query = self.build()
 
         try:

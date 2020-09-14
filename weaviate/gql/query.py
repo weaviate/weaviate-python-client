@@ -2,9 +2,9 @@ import sys
 from weaviate.connect import REST_METHOD_POST
 from weaviate.exceptions import *
 from .builder import Builder
+from .aggregate import AggregateBuilder
 
-
-class Things:
+class SemanticTypeGetProxy:
     """ Proxy class for builder
     """
     def __init__(self, connection):
@@ -17,6 +17,17 @@ class Things:
         return Builder(class_name, properties, self._connection, "Actions")
 
 
+class SemanticTypeAggregateProxy:
+    def __init__(self, connection):
+        self._connection = connection
+
+    def things(self, class_name):
+        return AggregateBuilder(class_name, self._connection, "Things")
+
+    def actions(self, class_name):
+        return AggregateBuilder(class_name, self._connection, "Actions")
+
+
 class Query:
 
     def __init__(self, connection):
@@ -24,7 +35,8 @@ class Query:
         :param connection: needed to directly request from builder
         """
         self._connection = connection
-        self.get = Things(self._connection)
+        self.get = SemanticTypeGetProxy(self._connection)
+        self.aggregate = SemanticTypeAggregateProxy(self._connection)
 
     def raw(self, gql_query):
         """ Allows to send simple graph QL string queries.

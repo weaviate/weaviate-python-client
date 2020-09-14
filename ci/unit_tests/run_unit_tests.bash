@@ -42,6 +42,7 @@ runTest "test.data.references.delete"
 runTest "test.gql.builder_test"
 runTest "test.gql.filter_test"
 runTest "test.gql.gql_test"
+runTest "test.gql.aggregate_test"
 
 # /test/schema
 runTest "test.schema.test_schema"
