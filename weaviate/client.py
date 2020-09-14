@@ -76,13 +76,22 @@ class Client:
 
         :return: dict describing the weaviate configuration
         """
-        try:
+        response = self._connection.run_rest("/meta", REST_METHOD_GET)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise UnexpectedStatusCodeException("Meta endpoint", response)
 
-            response = self._connection.run_rest("/meta", REST_METHOD_GET)
-            if response.status_code == 200:
-                return response.json()
-            else:
-                raise UnexpectedStatusCodeException("Meta endpoint", response)
-        except ConnectionError:
-            return False
+    def get_open_id_configuration(self):
+        """ Get the openid-configuration
 
+        :return: configuration or None if not configured
+        :rtype: dict or None
+        """
+        response = self._connection.run_rest("/.well-known/openid-configuration", REST_METHOD_GET)
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 404:
+            return None
+        else:
+            raise UnexpectedStatusCodeException("Meta endpoint", response)
