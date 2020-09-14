@@ -9,43 +9,43 @@ class ConfigBuilder:
     def __init__(self, connection, classification):
         self._connection = connection
         self._classification = classification
-        self.config = {}
-        self.wait_for_completion = False
+        self._config = {}
+        self._wait_for_completion = False
 
     def with_type(self, type):
-        self.config["type"] = type
+        self._config["type"] = type
         return self
 
     def with_k(self, k):
-        self.config["k"] = k
+        self._config["k"] = k
         return self
 
     def with_class_name(self, class_name):
-        self.config["class"] = class_name
+        self._config["class"] = class_name
         return self
 
     def with_classify_properties(self, classify_properties):
-        self.config["classifyProperties"] = classify_properties
+        self._config["classifyProperties"] = classify_properties
         return self
 
     def with_based_on_properties(self, based_on_properties):
-        self.config["basedOnProperties"] = based_on_properties
+        self._config["basedOnProperties"] = based_on_properties
         return self
 
     def with_source_where_filter(self, filter):
-        self.config["sourceWhere"] = filter
+        self._config["sourceWhere"] = filter
         return self
 
     def with_training_set_where_filter(self, filter):
-        self.config["trainingSetWhere"] = filter
+        self._config["trainingSetWhere"] = filter
         return self
 
     def with_target_where_filter(self, filter):
-        self.config["targetWhere"] = filter
+        self._config["targetWhere"] = filter
         return self
 
     def with_wait_for_completion(self):
-        self.wait_for_completion = True
+        self._wait_for_completion = True
         return self
 
     def _raise_missing_configuration_error(self, field):
@@ -54,16 +54,16 @@ class ConfigBuilder:
     def _validate_config(self):
         required_fields = ["type", "class", "basedOnProperties", "classifyProperties"]
         for field in required_fields:
-            if field not in self.config:
+            if field not in self._config:
                 self._raise_missing_configuration_error(field)
 
-        if self.config["type"] == "knn":
-            if "k" not in self.config:
+        if self._config["type"] == "knn":
+            if "k" not in self._config:
                 self._raise_missing_configuration_error("k")
 
     def _start(self):
         try:
-            response = self._connection.run_rest("/classifications", REST_METHOD_POST, self.config)
+            response = self._connection.run_rest("/classifications", REST_METHOD_POST, self._config)
         except ConnectionError as conn_err:
             raise type(conn_err)(str(conn_err)
                                  + ' Connection error, classification may not started.'
@@ -83,7 +83,7 @@ class ConfigBuilder:
         self._validate_config()
 
         response = self._start()
-        if not self.wait_for_completion:
+        if not self._wait_for_completion:
             return response
 
         # wait for completion

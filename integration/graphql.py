@@ -1,11 +1,6 @@
 import weaviate
 import time
-
-
-class TestFailedException(Exception):
-    def __init__(self, message):
-        super().__init__(message)
-
+from integration.integration_util import TestFailedException
 
 schema = {
     "things": {
