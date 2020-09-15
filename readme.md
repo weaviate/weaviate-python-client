@@ -3,11 +3,10 @@
 A python native client for easy interaction with a weaviate instance.
 
 The client is tested for python 3.6 and higher.
-The client has limited support for python 2.7.
 
 ## Documentation
 
-- [Documentation](https://www.semi.technology/documentation/weaviate/current/client-libs/python.html).
+- [Documentation](https://www.semi.technology/documentation/weaviate/current/client-libraries/python.html).
 
 ## Support
 
