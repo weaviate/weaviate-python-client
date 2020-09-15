@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "Download the Weaviate docker-compose file"
-curl -O http://configuration.semi.technology/docker-compose
+curl -s -o docker-compose.yml https://configuration.semi.technology/docker-compose
 echo "Run Docker compose"
 nohup docker-compose up &
 
