@@ -149,8 +149,8 @@ class DataObject:
         else:
             raise UnexpectedStatusCodeException("PATCH merge of object not successful", response)
 
-    def replace(self, data_object, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
-        """ Replaces an already existing object with the given data object. Does not keep unset values.
+    def update(self, data_object, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
+        """ Updates an already existing object with the given data object. Does not keep unset values.
 
         :param data_object: Describes the new values.
                        It may be an URL or path to a json or a python dict describing the new values.

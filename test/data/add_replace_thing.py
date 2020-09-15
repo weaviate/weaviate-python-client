@@ -148,8 +148,8 @@ class TestReplaceDataObject(unittest.TestCase):
         add_run_rest_to_mock(connection_mock)
         replace_connection(w, connection_mock)
 
-        w.data_object.replace({"A": 2}, "Hero", "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
-        w.data_object.replace({"A": 2}, "Hero", "f39fd3d6-9d89-4cc1-8e72-f94022d36651", semantic_type=SEMANTIC_TYPE_ACTIONS)
+        w.data_object.update({"A": 2}, "Hero", "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
+        w.data_object.update({"A": 2}, "Hero", "f39fd3d6-9d89-4cc1-8e72-f94022d36651", semantic_type=SEMANTIC_TYPE_ACTIONS)
 
         connection_mock.run_rest.assert_called()
 
