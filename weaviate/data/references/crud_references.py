@@ -59,9 +59,10 @@ class Reference:
         else:
             raise UnexpectedStatusCodeException("Delete reference", response)
 
-    def replace(self, from_uuid, from_property_name, to_uuids,
-                from_semantic_type=SEMANTIC_TYPE_THINGS, to_semantic_type=SEMANTIC_TYPE_THINGS):
-        """ Allows to replace all references in that property with a new set of references
+    def update(self, from_uuid, from_property_name, to_uuids,
+               from_semantic_type=SEMANTIC_TYPE_THINGS, to_semantic_type=SEMANTIC_TYPE_THINGS):
+        """ Allows to update all references in that property with a new set of references.
+            All old references will be replaced.
 
         :param from_uuid: The object that should have the reference as part of its properties.
                            Accepts a plane UUID or an URL. E.g.

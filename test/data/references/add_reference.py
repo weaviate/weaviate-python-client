@@ -131,11 +131,11 @@ class TestAddReference(unittest.TestCase):
         add_run_rest_to_mock(connection_mock)
         replace_connection(w, connection_mock)
 
-        w.data_object.reference.replace("de998e81-fa66-440e-a1de-2a2013667e77", "hasAwards",
+        w.data_object.reference.update("de998e81-fa66-440e-a1de-2a2013667e77", "hasAwards",
                                         "fc041624-4ddf-4b76-8e09-a5b0b9f9f832")
 
-        w.data_object.reference.replace("4e44db9b-7f9c-4cf4-a3a0-b57024eefed0", "hasAwards",
-                                        ["17ee17bd-a09a-49ff-adeb-d242f25f390d",
+        w.data_object.reference.update("4e44db9b-7f9c-4cf4-a3a0-b57024eefed0", "hasAwards",
+                                       ["17ee17bd-a09a-49ff-adeb-d242f25f390d",
                                          "f8c25386-707c-40c0-b7b9-26cc0e9b2bd1",
                                          "d671dc52-dce4-46e7-8731-b722f19420c8"])
 
