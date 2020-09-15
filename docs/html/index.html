@@ -49,12 +49,37 @@
 </dd></dl>
 
 <dl class="py method">
-<dt id="weaviate.client.Client.is_reachable">
-<code class="sig-name descname">is_reachable</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.is_reachable" title="Permalink to this definition">¶</a></dt>
-<dd><p>Ping weaviate</p>
+<dt id="weaviate.client.Client.get_open_id_configuration">
+<code class="sig-name descname">get_open_id_configuration</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.get_open_id_configuration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the openid-configuration</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>True if weaviate could be reached False otherwise.</p>
+<dd class="field-odd"><p>configuration or None if not configured</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>dict or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="weaviate.client.Client.is_live">
+<code class="sig-name descname">is_live</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.is_live" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ping weaviates live state</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if weaviate is live and should not be killed</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="weaviate.client.Client.is_ready">
+<code class="sig-name descname">is_ready</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#weaviate.client.Client.is_ready" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ping weaviates ready state</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if weaviate is ready to accept requests</p>
 </dd>
 </dl>
 </dd></dl>

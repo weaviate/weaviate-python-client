@@ -1,6 +1,4 @@
 requests==2.22.0
 validators==0.14.0
 rdflib==5.0.0
-mock==3.0.5; python_version <= '2.7'
-future==0.18.2; python_version <= '2.7'
 
