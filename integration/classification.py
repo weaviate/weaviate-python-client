@@ -66,7 +66,7 @@ query = """
 
 
 def contextual(client:weaviate.Client):
-    client = client
+    print("Test classification")
     client.schema.create(schema)
 
     # Create labels
