@@ -1,4 +1,4 @@
-requests==2.22.0
-validators==0.14.0
+requests==2.24.0
+validators==0.18.1
 rdflib==5.0.0
 
