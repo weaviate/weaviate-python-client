@@ -21,7 +21,6 @@
             "dataType": [
               "text"
             ],
-            "cardinality": "atMostOne",
             "keywords": []
           }
         ]
@@ -37,7 +36,6 @@
             "dataType": [
               "text"
             ],
-            "cardinality": "atMostOne",
             "keywords": []
           },
           {
@@ -45,8 +43,7 @@
             "description": "The persons that are part of this group",
             "dataType": [
               "Person"
-            ],
-            "cardinality": "many"
+            ]
           }
         ]
       }

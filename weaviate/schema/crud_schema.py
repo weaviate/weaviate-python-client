@@ -179,7 +179,6 @@ class Schema:
             # create the property object
             schema_property = {
                 "dataType": property_["dataType"],
-                "cardinality": property_["cardinality"],
                 "description": property_["description"],
                 "name": property_["name"]
             }
@@ -188,10 +187,8 @@ class Schema:
                 schema_property["index"] = property_["index"]
             if "vectorizePropertyName" in property_:
                 schema_property["vectorizePropertyName"] = property_["vectorizePropertyName"]
-
-            # add keywords
-            if "keywords" in property_:
-                schema_property["keywords"] = property_["keywords"]
+            if "cardinality"in property_:
+                schema_property["cardinality"] = property_["cardinality"]
 
             path = "/schema/" + semantic_type + "/" + schema_class["class"] + "/properties"
             try:
@@ -264,10 +261,6 @@ class Schema:
             if "cardinality" in property_:
                 schema_property["cardinality"] = property_["cardinality"]
 
-            # add keywords
-            if "keywords" in property_:
-                schema_property["keywords"] = property_["keywords"]
-
             primitive_properties.append(schema_property)
 
         return primitive_properties
@@ -276,8 +269,7 @@ class Schema:
         # Create the class
         schema_class = {
             "class": weaviate_class['class'],
-            "properties": [],
-            "keywords": []
+            "properties": []
         }
 
         if "description" in weaviate_class:

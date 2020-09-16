@@ -12,7 +12,6 @@
                         ],
                         "description": "The cited article",
                         "name": "citation",
-                        "cardinality": "many"
                     },
                     {
                         "dataType": [
@@ -20,7 +19,6 @@
                         ],
                         "description": "The articles that cite the citation",
                         "name": "citedIn",
-                        "cardinality": "many"
                     }
                 ]
             }
@@ -62,8 +60,7 @@
                             "Article"
                         ],
                         "description": "The articles this publication has",
-                        "name": "hasArticles",
-                        "cardinality": "many"
+                        "name": "hasArticles"
                     }
                 ]
             },
@@ -87,7 +84,6 @@
                         "vectorizePropertyName": false
                     },
                     {
-                        "cardinality": "many",
                         "dataType": [
                             "Article"
                         ],
@@ -95,7 +91,6 @@
                         "name": "wroteArticles"
                     },
                     {
-                        "cardinality": "many",
                         "dataType": [
                             "Publication"
                         ],
@@ -155,24 +150,21 @@
                             "Author", "Publication"
                         ],
                         "description": "authors this article has",
-                        "name": "hasAuthors",
-                        "cardinality": "many"
+                        "name": "hasAuthors"
                     },
                     {
                         "dataType": [
                             "Publication"
                         ],
                         "description": "publication this article is in",
-                        "name": "inPublication",
-                        "cardinality": "atMostOne"
+                        "name": "inPublication"
                     },
                     {
                         "dataType": [
                             "Category"
                         ],
                         "description": "category this article is of",
-                        "name": "ofCategory",
-                        "cardinality": "atMostOne"
+                        "name": "ofCategory"
                     },
                     {
                         "dataType": [
