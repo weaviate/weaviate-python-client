@@ -1,5 +1,4 @@
 from weaviate.exceptions import SchemaValidationException
-import sys
 
 
 def validate_schema(schema):
@@ -40,11 +39,6 @@ def check_class(class_definition):
             _check_key_type(key, class_definition[key], bool)
         if key in ["description", "class"]:
             _check_key_type(key, class_definition[key], str)
-        if key in ["keywords", "properties"]:
-            _check_key_type(key, class_definition[key], list)
-
-    if "keywords" in class_definition:
-        _check_keywords(class_definition["keywords"])
 
     if "properties" in class_definition:
         for class_property in class_definition["properties"]:
@@ -55,25 +49,6 @@ def _check_key_type(key, value, expected_type):
     type_of_value = type(value)
     if type(value) != expected_type:
         raise SchemaValidationException(f"{key} is type {type_of_value} but should be {expected_type}.")
-
-
-def _check_keywords(keywords):
-    """
-
-    :param keywords: the keywords list of a class or property
-    :type keywords: list
-    :return:
-    """
-    for word_item in keywords:
-        if "keyword" not in word_item:
-            raise SchemaValidationException("\"keywords\" item does not contain \"keyword\" key.")
-        _check_key_type("keyword", word_item["keyword"], str)
-        if "weight" in word_item:
-            _check_key_type("weight", word_item["weight"], float)
-        for word_key in word_item:
-            if word_key not in ["keyword", "weight"]:
-                raise SchemaValidationException("Unknown key in \"keywords\" item: {word_key}".format(word_key=word_key))
-
 
 def check_property(class_property):
     """
@@ -92,7 +67,7 @@ def check_property(class_property):
             raise SchemaValidationException("Property key {key} is not known.".format(key=key))
 
         # Test types
-        if key in ["dataType", "keywords"]:
+        if key in ["dataType"]:
             _check_key_type(key, class_property[key], list)
         if key in ["name", "cardinality", "description"]:
             _check_key_type(key, class_property[key], str)
@@ -105,10 +80,6 @@ def check_property(class_property):
         if cardinality != "many" and cardinality != "atMostOne":
             raise SchemaValidationException(
                 "Property cardinality must either be \"many\" or \"atMostOne\" but was {cardinality}".format(cardinality=cardinality))
-
-    # Test keywords
-    if "keywords" in class_property:
-        _check_keywords(class_property["keywords"])
 
     # Test dataType types
     for data_type in class_property["dataType"]:

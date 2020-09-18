@@ -1,7 +1,6 @@
 import unittest
 from weaviate.schema.validate_schema import validate_schema, \
-    _check_schema_class_types, check_class, \
-    _check_keywords, check_property
+    _check_schema_class_types, check_class, check_property
 
 from weaviate.exceptions import SchemaValidationException
 
@@ -111,32 +110,6 @@ class TestSchemaValidation(unittest.TestCase):
         try:
             check_class({"class": "Tree",
                           "properties": "References please"})
-            self.fail()
-        except SchemaValidationException:
-            pass
-
-    def test_check_keywords(self):
-        valid = [{"keyword": "rock"},
-                 {"keyword": "roll",
-                  "weight": 0.0}]
-        _check_keywords(valid)
-        try:
-            _check_keywords([{"keyword": 5}])
-            self.fail()
-        except SchemaValidationException:
-            pass
-        try:
-            _check_keywords([{"keyword": "roll", "weight": "five"}])
-            self.fail()
-        except SchemaValidationException:
-            pass
-        try:
-            _check_keywords([{"keywood": "test"}])
-            self.fail()
-        except SchemaValidationException:
-            pass
-        try:
-            _check_keywords([{"keyword": "asdf", "random": "field"}])
             self.fail()
         except SchemaValidationException:
             pass
