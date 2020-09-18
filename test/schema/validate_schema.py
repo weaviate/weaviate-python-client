@@ -103,12 +103,6 @@ class TestSchemaValidation(unittest.TestCase):
             pass
         try:
             check_class({"class": "Tree",
-                          "keywords": "all of them"})
-            self.fail()
-        except SchemaValidationException:
-            pass
-        try:
-            check_class({"class": "Tree",
                           "properties": "References please"})
             self.fail()
         except SchemaValidationException:
@@ -161,17 +155,6 @@ class TestSchemaValidation(unittest.TestCase):
                              "name": "Rocket",
                              "vectorizePropertyName": "Yes",
                              "keywords": [],
-                             "cardinality": "many",
-                             "description": "some description",
-                             "index": True})
-            self.fail()
-        except SchemaValidationException:
-            pass
-        try:
-            check_property({"dataType": ["string"],
-                             "name": "Rocket",
-                             "vectorizePropertyName": True,
-                             "keywords": "not list",
                              "cardinality": "many",
                              "description": "some description",
                              "index": True})
