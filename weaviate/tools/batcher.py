@@ -67,44 +67,36 @@ class Batcher:
         with self._commit_lock:
             self._update_batches_force()
 
+    def _update_resource(self, create_func, data):
+        result_collection = []
+        if len(data) > 0:
+            try:
+                result = create_func(data)
+                if type(result) == list:
+                    result_collection += result
+            except (ConnectionError, Timeout, ReadTimeout, weaviate.UnexpectedStatusCodeException) as e:
+                time.sleep(180.0)
+                print("Exception in creating data: ", e)
+                return None
+            self._print_errors(result)
+        return result_collection
 
     def _update_batches_force(self):
         result_collection = []
-        if len(self._things_batch) > 0:
-            try:
-                result = self._client.batch.create_things(self._things_batch)
-                if type(result) == list:
-                    result_collection += result
-            except (ConnectionError, Timeout, ReadTimeout, weaviate.UnexpectedStatusCodeException) as e:
-                time.sleep(180.0)
-                print("Exception in adding thing: ", e)
-                return
-            self._print_errors(result)
+        result = self._update_resource(self._client.batch.create_things, self._things_batch)
+        if result is not None:
+            # No error occurred
+            result_collection += result
             self._things_batch = weaviate.batch.ThingsBatchRequest()
-        if len(self._actions_batch) > 0:
-            try:
-                result = self._client.batch.create_actions(self._actions_batch)
-                if type(result) == list:
-                    result_collection += result
-            except (ConnectionError, Timeout, ReadTimeout, weaviate.UnexpectedStatusCodeException) as e:
-                time.sleep(180.0)
-                print("Exception in adding action: ", e)
-                return
-            self._print_errors(result)
+        result = self._update_resource(self._client.batch.create_actions, self._actions_batch)
+        if result is not None:
+            # No error occurred
+            result_collection += result
             self._actions_batch = weaviate.batch.ActionsBatchRequest()
-        if len(self._reference_batch) > 0:
-            try:
-                result = self._client.batch.add_references(self._reference_batch)
-                if type(result) == list:
-                    result_collection += result
-            except (ConnectionError, Timeout, ReadTimeout, weaviate.UnexpectedStatusCodeException) as e:
-                # The connection error might just be a temporary thing lets sleep and return
-                # The loading will be tried again next time something is added
-                # Sleep for three minutes
-                time.sleep(180.0)
-                print("Exception in adding reference: ", e)
-                return
-            self._print_errors(result)
+        result = self._update_resource(self._client.batch.add_references, self._reference_batch)
+        if result is not None:
+            # No error occurred
+            result_collection += result
             self._reference_batch = weaviate.batch.ReferenceBatchRequest()
 
         if self._return_values_callback is not None and len(result_collection) > 0:
