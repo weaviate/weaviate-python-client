@@ -1,5 +1,7 @@
 from builtins import super
 
+# Import requests ConnectionError as weaviate.ConnectionError to overwrite buildins connection error
+from requests.exceptions import ConnectionError as ConnectionError
 
 class UnexpectedStatusCodeException(Exception):
     def __init__(self, message, response):
