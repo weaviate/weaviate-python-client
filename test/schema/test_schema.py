@@ -485,7 +485,6 @@ class TestContainsSchema(unittest.TestCase):
         self.assertTrue(w.schema.contains(schema_json_file))
 
 
-
 class TestCreate(unittest.TestCase):
 
     def test_create_single_class(self):

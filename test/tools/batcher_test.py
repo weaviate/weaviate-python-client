@@ -6,6 +6,7 @@ import uuid
 from unittest.mock import Mock
 from test.testing_util import replace_connection, add_run_rest_to_mock
 import time
+from weaviate.connect import REST_METHOD_POST
 
 
 class TestBatcher(unittest.TestCase):
@@ -142,6 +143,91 @@ class TestBatcher(unittest.TestCase):
         b.update_batches()
 
         self.assertEqual(3, len(vrc.data))
+
+    def test_batch_exceeds_size_but_fails(self):
+        w = weaviate.Client("http://localhorst:8080")
+
+        connection_mock = Mock()  # Mock calling weaviate
+        add_run_rest_to_mock(connection_mock, {"Error": "test error"}, 502)
+        replace_connection(w, connection_mock)
+
+        batcher = weaviate.tools.Batcher(w, batch_size=2, max_backoff_time=2, max_request_retries=2)
+
+        batcher.add_data_object({'d': 1}, "Data")
+        batcher.add_data_object({'d': 2}, "Data")
+        batcher.add_data_object({'d': 3}, "Data")
+        batcher.add_data_object({'d': 4}, "Data")
+
+        success_mock = Mock()
+        # First mock only returned errors so the batches should be retaiend
+        # This mock allows now successful requests
+        add_run_rest_to_mock(success_mock)
+        replace_connection(w, success_mock)
+
+        batcher.add_data_object({'d': 5}, "Data")
+        batcher.add_data_object({'d': 6}, "Data")
+
+        # Batch must be called twice with batch request
+        connection_mock.run_rest.assert_called()
+
+        call_args_list = connection_mock.run_rest.call_args_list
+        call_args, call_kwargs = call_args_list[0]
+
+        self.assertEqual("/batching/things", call_args[0])
+        self.assertEqual(REST_METHOD_POST, call_args[1])
+
+        call_args, call_kwargs = call_args_list[1]
+
+        self.assertEqual("/batching/things", call_args[0])
+        self.assertEqual(REST_METHOD_POST, call_args[1])
+
+        call_args_list = success_mock.run_rest.call_args_list
+        call_args, call_kwargs = call_args_list[0]
+        self.assertEqual("/batching/things", call_args[0])
+        self.assertEqual(REST_METHOD_POST, call_args[1])
+
+    def test_batch_exceeds_size_but_fails_close(self):
+        w = weaviate.Client("http://localhorst:8080")
+
+        connection_mock = Mock()  # Mock calling weaviate
+        add_run_rest_to_mock(connection_mock, {"Error": "test error"}, 502)
+        replace_connection(w, connection_mock)
+
+        batcher = weaviate.tools.Batcher(w, batch_size=2, max_backoff_time=2, max_request_retries=2)
+
+        batcher.add_data_object({'d': 1}, "Data")
+        batcher.add_data_object({'d': 2}, "Data")
+        batcher.add_data_object({'d': 3}, "Data")
+        batcher.add_data_object({'d': 4}, "Data")
+
+        success_mock = Mock()
+        # First mock only returned errors so the batches should be retaiend
+        # This mock allows now successful requests
+        add_run_rest_to_mock(success_mock)
+        replace_connection(w, success_mock)
+
+        batcher.add_data_object({'d': 5}, "Data")
+
+        batcher.close()
+
+        # Batch must be called twice with batch request
+        connection_mock.run_rest.assert_called()
+
+        call_args_list = connection_mock.run_rest.call_args_list
+        call_args, call_kwargs = call_args_list[0]
+
+        self.assertEqual("/batching/things", call_args[0])
+        self.assertEqual(REST_METHOD_POST, call_args[1])
+
+        call_args, call_kwargs = call_args_list[1]
+
+        self.assertEqual("/batching/things", call_args[0])
+        self.assertEqual(REST_METHOD_POST, call_args[1])
+
+        call_args_list = success_mock.run_rest.call_args_list
+        call_args, call_kwargs = call_args_list[0]
+        self.assertEqual("/batching/things", call_args[0])
+        self.assertEqual(REST_METHOD_POST, call_args[1])
 
 
 class ValidateResultCall:

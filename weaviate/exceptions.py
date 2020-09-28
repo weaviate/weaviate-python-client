@@ -3,6 +3,7 @@ from builtins import super
 # Import requests ConnectionError as weaviate.ConnectionError to overwrite buildins connection error
 from requests.exceptions import ConnectionError as ConnectionError
 
+
 class UnexpectedStatusCodeException(Exception):
     def __init__(self, message, response):
         """ Is raised in case the status code returned from
@@ -42,6 +43,7 @@ class UnexpectedStatusCodeException(Exception):
 class ThingAlreadyExistsException(Exception):
     pass
 
+
 class AuthenticationFailedException(Exception):
 
     def __init__(self, message):
@@ -50,12 +52,14 @@ class AuthenticationFailedException(Exception):
     def __str__(self):
         return self.message
 
+
 class ServerError500Exception(Exception):
     def __init__(self, message):
         self.message = message
 
     def __str__(self):
         return self.message
+
 
 class SchemaValidationException(Exception):
 
