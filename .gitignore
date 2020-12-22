@@ -5,3 +5,5 @@ Weaviate_client.egg-info
 tmp
 /build
 *.pyc
+docker-compose.yaml
+.DS_Store

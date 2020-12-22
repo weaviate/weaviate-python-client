@@ -1,7 +1,7 @@
-from weaviate.exceptions import UnexpectedStatusCodeException
-from weaviate.connect import REST_METHOD_GET
 import sys
 import validators
+from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+from weaviate.connect import REST_METHOD_GET
 from .config_builder import ConfigBuilder
 
 SOURCE_WHERE_FILTER = 0
@@ -10,66 +10,159 @@ TARGET_WHERE_FILTER = 2
 
 
 class Classification:
+    """
+    Classification class used to schedule and/or check the status of
+    a classification process of weaviate objects.
+    """
 
-    def __init__(self, connection):
+    def __init__(self,
+            connection: 'weaviate.connect.Connection'
+        ):
+        """
+        Initialize a Classification class instance.
+
+        Parameters
+        ----------
+        connection : weaviate.connect.Connection
+            Connection object to an active and running weaviate instance.
+        """
+
         self._connection = connection
 
-    def schedule(self):
+    def schedule(self
+        ) -> 'weaviate.classification.config_builder.ConfigBuilder':
+        """
+        Schedule a Classification of the Objects within weaviate.
+
+        Returns
+        -------
+        weaviate.classification.config_builder.ConfigBuilder
+            A ConfigBuilder that should be configured to the desired
+            classification task
+        """
+
         return ConfigBuilder(self._connection, self)
 
-    def get(self, classification_uuid):
-        """ Polls the current state of the given classification
+    def get(self,
+            classification_uuid: str
+        ) -> dict:
+        """
+        Polls the current state of the given classification.
 
-        :param classification_uuid: identifier of the classification.
-        :type classification_uuid: str
-        :return: a dict containing the weaviate answer.
-        :raises:
-            ValueError: if not a proper uuid.
-            ConnectionError: if the network connection to weaviate fails.
-            UnexpectedStatusCodeException: if weaviate reports a none OK status.
+        Parameters
+        ----------
+        classification_uuid : str
+            Identifier of the classification.
+
+        Returns
+        -------
+        dict
+            A dict containing the weaviate answer.
+
+        Raises
+        ------
+        ValueError
+            If not a proper uuid.
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
         """
 
         if not validators.uuid(classification_uuid):
             raise ValueError("Given UUID does not have a proper form")
 
         try:
-            response = self._connection.run_rest("/classifications/" + classification_uuid, REST_METHOD_GET)
-        except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err)
-                                 + ' Connection error, classification status could not be retrieved.'
-                                 ).with_traceback(
-                sys.exc_info()[2])
+            response = self._connection.run_rest("/classifications/" + classification_uuid,\
+                                                                         REST_METHOD_GET)
+        except RequestsConnectionError as conn_err:
+            message = str(conn_err)\
+                    + ' Connection error, classification status could not be retrieved.'
+            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
         if response.status_code == 200:
             return response.json()
-        else:
-            raise UnexpectedStatusCodeException("Get classification status", response)
+        raise UnexpectedStatusCodeException("Get classification status", response)
 
-    def is_complete(self, classification_uuid):
-        """ Checks if a previously started classification job has completed.
-
-        :param classification_uuid: identifier of the classification.
-        :return: true if given classification has finished.
+    def is_complete(self,
+            classification_uuid: str
+        ) -> bool:
         """
+        Checks if a started classification job has completed.
+
+        Parameters
+        ----------
+        classification_uuid : str
+            Identifier of the classification.
+
+        Returns
+        -------
+        bool
+            True if given classification has finished, False otherwise.
+        """
+
         return self._check_status(classification_uuid, "completed")
 
-    def is_failed(self, classification_uuid):
+    def is_failed(self,
+            classification_uuid: str
+        ) -> bool:
         """
-        :param classification_uuid:
-        :return: True if the classification failed
+        Checks if a started classification job has failed.
+
+        Parameters
+        ----------
+        classification_uuid : str
+            Identifier of the classification.
+
+        Returns
+        -------
+        bool
+            True if the classification failed, False otherwise.
         """
+
         return self._check_status(classification_uuid, "failed")
 
-    def is_running(self, classification_uuid):
+    def is_running(self,
+            classification_uuid: str
+        ) -> bool:
         """
-        :param classification_uuid:
-        :return: True if the classification is currently running
+        Checks if a started classification job is running.
+
+        Parameters
+        ----------
+        classification_uuid : str
+            Identifier of the classification.
+
+        Returns
+        -------
+        bool
+            True if the classification is running, False otherwise.
         """
+
         return self._check_status(classification_uuid, "running")
 
-    def _check_status(self, classification_uuid, status):
+    def _check_status(self,
+            classification_uuid: str,
+            status: str
+        ) -> bool:
+        """
+        Check for a status of a classification.
+
+        Parameters
+        ----------
+        classification_uuid : str
+            Identifier of the classification.
+        status : str
+            Status to check for.
+
+        Returns
+        -------
+        bool
+            True if 'status' is satisfied, False otherwise.
+        """
+
         try:
             response = self.get(classification_uuid)
-        except ConnectionError:
+        except RequestsConnectionError:
             return False
         if response["status"] == status:
             return True

@@ -1,91 +1,262 @@
 import sys
-from weaviate.exceptions import UnexpectedStatusCodeException
-from weaviate.connect import REST_METHOD_POST
 import time
+from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+from weaviate.connect import REST_METHOD_POST
 
 
 class ConfigBuilder:
+    """
+    ConfigBuild class that is used to configure a classification process.
+    """
 
-    def __init__(self, connection, classification):
+    def __init__(self,
+            connection: 'weaviate.connect.Connection',
+            classification: 'weaviate.classification.classifiy.Classification'
+        ):
+        """
+        Initialize a ConfiBuilder class instance.
+
+        Parameters
+        ----------
+        connection : weaviate.connect.Connection
+            Connection object to an active and running weaviate instance.
+        classification : weaviate.classification.classifiy.Classification
+            [description]
         """
 
-        :param connection:
-        :param classification:
-        :type classification: weaviate.classification.classifiy.Classification
-        """
         self._connection = connection
         self._classification = classification
         self._config = {}
         self._wait_for_completion = False
 
-    def with_type(self, type):
+    def with_type(self,
+            type: str
+        ) -> 'ConfigBuilder':
+        """
+        Set classification type.
+
+        Parameters
+        ----------
+        type : str
+            Type of the desired classification.
+
+        Returns
+        -------
+        ConfigBuilder
+            Updated ConfigBuilder.
+        """
         self._config["type"] = type
         return self
 
-    def with_k(self, k):
+    def with_k(self,
+            k: int
+        ) -> 'ConfigBuilder':
+        """
+        Set k number for the kNN.
+
+        Parameters
+        ----------
+        k : int
+            Number of objects to use to make a classification guess.
+            (For kNN)
+
+        Returns
+        -------
+        ConfigBuilder
+            Updated ConfigBuilder.
+        """
+
         self._config["k"] = k
         return self
 
-    def with_class_name(self, class_name):
+    def with_class_name(self,
+            class_name: str
+        ) -> 'ConfigBuilder':
+        """
+        What Object type to classify.
+
+        Parameters
+        ----------
+        class_name : str
+            Name of the class to be classified.
+
+        Returns
+        -------
+        ConfigBuilder
+            Updated ConfigBuilder.
+        """
+
         self._config["class"] = class_name
         return self
 
-    def with_classify_properties(self, classify_properties):
+    def with_classify_properties(self,
+            classify_properties: list
+        ) -> 'ConfigBuilder':
+        """
+        Set the classify properties.
+
+        Parameters
+        ----------
+        classify_properties: list
+            A list of properties to clasify.
+
+        Returns
+        -------
+        ConfigBuilder
+            Updated ConfigBuilder.
+        """
+
         self._config["classifyProperties"] = classify_properties
         return self
 
-    def with_based_on_properties(self, based_on_properties):
+    def with_based_on_properties(self,
+            based_on_properties: list
+        ) -> 'ConfigBuilder':
+        """
+        Set properties to build the classification on.
+
+        Parameters
+        ----------
+        based_on_properties: list
+            A list of properties to classify on.
+
+        Returns
+        -------
+        ConfigBuilder
+            Updated ConfigBuilder.
+        """
+
         self._config["basedOnProperties"] = based_on_properties
         return self
 
-    def with_source_where_filter(self, filter):
+    def with_source_where_filter(self,
+            filter: dict
+        ) -> 'ConfigBuilder':
+        """
+        Set Source 'where' Filter.
+
+        Parameters
+        ----------
+        filter : dict
+            Filter to use, as a dict.
+
+        Returns
+        -------
+        ConfigBuilder
+            Updated ConfigBuilder.
+        """
+
         self._config["sourceWhere"] = filter
         return self
 
-    def with_training_set_where_filter(self, filter):
+    def with_training_set_where_filter(self,
+            filter: dict
+        ) -> 'ConfigBuilder':
+        """
+        Set Training set 'where' Filter.
+
+        Parameters
+        ----------
+        filter : dict
+            Filter to use, as a dict.
+
+        Returns
+        -------
+        ConfigBuilder
+            Updated ConfigBuilder.
+        """
+
         self._config["trainingSetWhere"] = filter
         return self
 
-    def with_target_where_filter(self, filter):
+    def with_target_where_filter(self,
+            filter: dict
+        ) -> 'ConfigBuilder':
+        """
+        Set Target 'where' Filter.
+
+        Parameters
+        ----------
+        filter : dict
+            Filter to use, as a dict.
+
+        Returns
+        -------
+        ConfigBuilder
+            Updated ConfigBuilder.
+        """
+
         self._config["targetWhere"] = filter
         return self
 
-    def with_wait_for_completion(self):
+    def with_wait_for_completion(self) -> 'ConfigBuilder':
+        """
+        Wait for completion.
+
+        Returns
+        -------
+        ConfigBuilder
+            Updated ConfigBuilder.
+        """
+
         self._wait_for_completion = True
         return self
 
-    def _raise_missing_configuration_error(self, field):
-        raise ValueError(f"{field} is not set for this classification")
-
     def _validate_config(self):
+        """
+        Validate the current classification configuration.
+
+        Raises
+        ------
+        ValueError
+            If a mandatory field is not set.
+        """
+
         required_fields = ["type", "class", "basedOnProperties", "classifyProperties"]
         for field in required_fields:
             if field not in self._config:
-                self._raise_missing_configuration_error(field)
+                raise ValueError(f"{field} is not set for this classification")
 
         if self._config["type"] == "knn":
             if "k" not in self._config:
-                self._raise_missing_configuration_error("k")
+                raise ValueError("k is not set for this classification")
 
-    def _start(self):
+    def _start(self) -> dict:
+        """
+        Start the classification based on the configuration set.
+
+        Returns
+        -------
+        dict
+            Classification result.
+
+        Raises
+        ------
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        UnexpectedStatusCodeException
+            Unexpected error.
+        """
         try:
             response = self._connection.run_rest("/classifications", REST_METHOD_POST, self._config)
-        except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err)
-                                 + ' Connection error, classification may not started.'
-                                 ).with_traceback(
-                sys.exc_info()[2])
-
+        except RequestsConnectionError as conn_err:
+            message = str(conn_err)\
+                        + ' Connection error, classification may not started.'
+            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
         if response.status_code == 201:
             return response.json()
-        else:
-            raise UnexpectedStatusCodeException("Start classification", response)
+        raise UnexpectedStatusCodeException("Start classification", response)
 
     def do(self):
-        """ Start the classification.
-
-        :return:
         """
+        Start the classification.
+
+        Returns
+        -------
+        dict
+            Classification result.
+        """
+
         self._validate_config()
 
         response = self._start()
