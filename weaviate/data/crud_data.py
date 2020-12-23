@@ -1,53 +1,87 @@
 import sys
+from typing import Union, Optional, List
 import validators
-
-from weaviate.connect import *
-from weaviate.exceptions import *
-from weaviate.util import _get_dict_from_object, is_semantic_type
-from requests.exceptions import ConnectionError
+from weaviate.connect import REST_METHOD_POST
+from weaviate.connect import REST_METHOD_PATCH
+from weaviate.connect import REST_METHOD_PUT
+from weaviate.connect import REST_METHOD_GET
+from weaviate.connect import REST_METHOD_DELETE
+from weaviate.connect import Connection
+from weaviate.exceptions import ObjectAlreadyExistsException
+from weaviate.exceptions import RequestsConnectionError
+from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.util import _get_dict_from_object
 from weaviate.data.references import Reference
-from weaviate import SEMANTIC_TYPE_THINGS
+from requests import Response
 
 
 class DataObject:
+    """
+    DataObject class used to manipulate object to/from weaviate.
+    """
+    def __init__(self,
+            connection: Connection
+        ):
+        """
+        Initialize a DataObject class instance.
 
-    def __init__(self, connection):
+        Parameters
+        ----------
+        connection : weaviate.connect.Connection
+            Connection object to an active and running weaviate instance.
+        """
+
         self._connection = connection
         self.reference = Reference(self._connection)
 
-    def create(self, data_object, class_name, uuid=None, semantic_type=SEMANTIC_TYPE_THINGS, vector_weights=None):
-        """ Takes a dict describing the thing and adds it to weaviate
-
-        :param data_object: Object to be added.
-        :type data_object: dict
-        :param class_name: Associated with the object given.
-        :type class_name: str
-        :param uuid: Object will be created under this uuid if it is provided.
-                     Otherwise weaviate will generate a uuid for this object.
-        :type uuid: str
-        :param semantic_type: Either things or actions.
-                              Defaults to things.
-                              Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
-        :type semantic_type: str
-        :param vector_weights: Influence the weight of words on thing creation.
-                               Default is None for no influence.
-        :type vector_weights: dict
-        :return: Returns the UUID of the created thing if successful.
-        :raises:
-            TypeError: if argument is of wrong type.
-            ValueError: if argument contains an invalid value.
-            ThingAlreadyExistsException: if an thing with the given uuid already exists within weaviate.
-            UnexpectedStatusCodeException: if creating the thing in weavate failed with a different reason,
-            more information is given in the exception.
-            ConnectionError: if the network connection to weaviate fails.
-        :rtype: str
+    def create(self,
+            data_object: Union[dict, str],
+            class_name: str,
+            uuid: str = None,
+            vector_weights: dict = None
+        ) -> str:
         """
-        if not is_semantic_type(semantic_type):
-            raise ValueError(f"{semantic_type} is not a valid semantic type")
+        Takes a dict describing the object and adds it to weaviate.
+
+        Parameters
+        ----------
+        data_object : dict or str
+            Object to be added.
+            If type is str it should be either an URL or a file.
+        class_name : str
+            Class name associated with the object given.
+        uuid : str, optional
+            Object will be created under this uuid if it is provided.
+            Otherwise weaviate will generate a uuid for this object,
+            by default None.
+        vector_weights : dict, optional
+            Influence the weight of words on object creation.
+            Default is None for no influence.
+
+        Returns
+        -------
+        str
+            Returns the UUID of the created object if successful.
+
+        Raises
+        ------
+        TypeError
+            If argument is of wrong type.
+        ValueError
+            If argument contains an invalid value.
+        weaviate.ThingAlreadyExistsException
+            If an object with the given uuid already exists within weaviate.
+        weaviate.UnexpectedStatusCodeException
+            If creating the object in weavate failed with a different reason,
+            more information is given in the exception.
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        """
 
         loaded_data_object = _get_dict_from_object(data_object)
         if not isinstance(class_name, str):
-            raise TypeError("Expected class_name of type str but was: " + str(type(class_name)))
+            raise TypeError("Expected class_name of type str but was: "\
+                            + str(type(class_name)))
 
         weaviate_obj = {
             "class": class_name,
@@ -55,7 +89,8 @@ class DataObject:
         }
         if uuid is not None:
             if not isinstance(uuid, str):
-                raise TypeError("Expected uuid to be of type str but was: " + str(type(uuid)))
+                raise TypeError("Expected uuid to be of type str but was: "\
+                                + str(type(uuid)))
             if not validators.uuid(uuid):
                 raise ValueError("Given uuid does not have a valid form")
 
@@ -63,63 +98,69 @@ class DataObject:
 
         if vector_weights is not None:
             if not isinstance(vector_weights, dict):
-                raise TypeError("Expected vector_weights to be of type dict but was " + str(type(vector_weights)))
+                raise TypeError("Expected vector_weights to be of type dict but was "\
+                                + str(type(vector_weights)))
 
             weaviate_obj["vectorWeights"] = vector_weights
 
-        path = "/" + semantic_type
+        path = "/objects"
         try:
             response = self._connection.run_rest(path, REST_METHOD_POST, weaviate_obj)
-        except ConnectionError as conn_err:
-            raise type(conn_err)(
-                str(conn_err) + ' Connection error, object was not added to weaviate.').with_traceback(
-                sys.exc_info()[2])
+        except RequestsConnectionError as conn_err:
+            message = str(conn_err)\
+                    + ' Connection error, object was not added to weaviate.'
+            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
 
         if response.status_code == 200:
             return str(response.json()["id"])
 
-        else:
-            thing_does_already_exist = False
-            try:
-                if 'already exists' in response.json()['error'][0]['message']:
-                    thing_does_already_exist = True
-            except KeyError:
-                pass
-            except Exception as e:
-                raise type(e)(str(e)
-                              + ' Unexpected exception please report this excetpion in an issue.').with_traceback(
-                    sys.exc_info()[2])
+        object_does_already_exist = False
+        try:
+            if 'already exists' in response.json()['error'][0]['message']:
+                object_does_already_exist = True
+        except KeyError:
+            pass
+        except Exception as error:
+            message = str(error)\
+                    + ' Unexpected exception please report this excetpion in an issue.'
+            raise type(error)(message).with_traceback(sys.exc_info()[2])
 
-            if thing_does_already_exist:
-                raise ThingAlreadyExistsException(str(uuid))
+        if object_does_already_exist:
+            raise ObjectAlreadyExistsException(str(uuid))
+        raise UnexpectedStatusCodeException("Creating object", response)
 
-            raise UnexpectedStatusCodeException("Creating thing", response)
-
-    def merge(self, data_object, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
-        """ Merges the given thing with the already existing thing in weaviate.
+    def merge(self,
+            data_object: Union[dict, str],
+            class_name: str,
+            uuid: str
+        ) -> None:
+        """
+        Merge the given object with the already existing object in weaviate.
         Overwrites all given fields.
 
-        :param data_object: The object states the fields that should be updated.
-                            Fields not stated by object will not be changed.
-                            Fields that are None will not be changed.
-        :type data_object: dict, url, file
-        :param class_name: The name of the class of the data object.
-        :type class_name: str
-        :param uuid: The ID of the object that should be changed.
-        :type uuid: str
-        :param semantic_type: Either things or actions.
-                              Defaults to things.
-                              Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
-        :type semantic_type: str
-        :return: None if successful
-        :raises:
-            TypeError: if argument is of wrong type.
-            ValueError: if argument contains an invalid value.
-            ConnectionError: If the network connection to weaviate fails.
-            UnexpectedStatusCodeException: If weaviate reports a none successful status.
+        Parameters
+        ----------
+        data_object : dict or str
+            The object states the fields that should be updated.
+            Fields not stated by object will not be changed.
+            Fields that are None will not be changed.
+            If type is str it should be either an URL or a file.
+        class_name : str
+            The class name of the object.
+        uuid : str
+            The ID of the object that should be changed.
+
+        Raises
+        ------
+        TypeError
+            If argument is of wrong type.
+        ValueError
+            If argument contains an invalid value.
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none successful status.
         """
-        if not is_semantic_type(semantic_type):
-            raise ValueError(f"{semantic_type} is not a valid semantic type")
 
         object_dict = _get_dict_from_object(data_object)
 
@@ -136,42 +177,48 @@ class DataObject:
             "schema": object_dict
         }
 
-        path = f"/{semantic_type}/{uuid}"
+        path = f"/objects/{uuid}"
 
         try:
             response = self._connection.run_rest(path, REST_METHOD_PATCH, payload)
-        except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err) + ' Connection error, object was not patched.').with_traceback(
-                sys.exc_info()[2])
-
+        except RequestsConnectionError as conn_err:
+            message = str(conn_err) + ' Connection error, object was not patched.'
+            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
         if response.status_code == 204:
-            return None  # success
-        else:
-            raise UnexpectedStatusCodeException("PATCH merge of object not successful", response)
+            # Successful merge
+            return
+        raise UnexpectedStatusCodeException("PATCH merge of object not successful", response)
 
-    def update(self, data_object, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
-        """ Updates an already existing object with the given data object. Does not keep unset values.
-
-        :param data_object: Describes the new values.
-                       It may be an URL or path to a json or a python dict describing the new values.
-        :type data_object: str, dict
-        :param class_name: Name of the class of the thing that should be updated.
-        :type class_name: str
-        :param uuid: Of the object.
-        :type uuid: str
-        :param semantic_type: Either things or actions.
-                              Defaults to things.
-                              Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
-        :type semantic_type: str
-        :return: None if successful.
-        :raises:
-            TypeError: if argument is of wrong type.
-            ValueError: if argument contains an invalid value.
-            ConnectionError: If the network connection to weaviate fails.
-            UnexpectedStatusCodeException: If weaviate reports a none OK status.
+    def update(self,
+            data_object: Union[dict, str],
+            class_name: str,
+            uuid: str
+        ) -> None:
         """
-        if not is_semantic_type(semantic_type):
-            raise ValueError(f"{semantic_type} is not a valid semantic type")
+        Update an already existing object with the given data object.
+        Does not keep unset values.
+
+        Parameters
+        ----------
+        data_object : dict or str
+            Describes the new values. It may be an URL or path to a json
+            or a python dict describing the new values.
+        class_name : str
+            Name of the class of the object that should be updated.
+        uuid : str
+            The UUID of the object that should be changed.
+
+        Raises
+        ------
+        TypeError
+            If argument is of wrong type.
+        ValueError
+            If argument contains an invalid value.
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        """
 
         parsed_object = _get_dict_from_object(data_object)
 
@@ -181,207 +228,262 @@ class DataObject:
             "schema": parsed_object
         }
 
+        path = f"/objects/{uuid}"
         try:
-            response = self._connection.run_rest("/" + semantic_type + "/" + uuid, REST_METHOD_PUT, weaviate_obj)
-        except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err) + ' Connection error, thing was not updated.').with_traceback(
-                sys.exc_info()[2])
-
+            response = self._connection.run_rest(path, REST_METHOD_PUT, weaviate_obj)
+        except RequestsConnectionError as conn_err:
+            message = str(conn_err) + ' Connection error, object was not updated.'
+            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
         if response.status_code == 200:
+            # Successful update
             return
+        raise UnexpectedStatusCodeException("Update object", response)
 
-        else:
-            raise UnexpectedStatusCodeException("Update thing", response)
+    def get_by_id(self,
+            uuid: str,
+            underscore_properties: List[str] = None
+        ) -> Optional[dict]:
+        """
+        Get an object as dict.
 
-    def get_by_id(self, uuid, underscore_properties=None, semantic_type=SEMANTIC_TYPE_THINGS):
-        """ Gets an object as dict.
+        Parameters
+        ----------
+        uuid : str
+            The identifier of the object that should be retrieved.
+        underscore_properties : list of str, optional
+            List of underscore properties that should be included in the request,
+            by default None
 
-        :param uuid: the identifier of the thing that should be retrieved.
-        :type uuid: str
-        :param underscore_properties: list of underscore properties that should be included in the request.
-                                      Underscore properties allow
-        :type underscore_properties: list of str
-        :param semantic_type: defaults to things allows also actions see SEMANTIC_TYPE_ACTIONS.
-        :type semantic_type: str
-        :return:
-            dict in case the thing exists.
-            None in case the thing does not exist.
-        :raises:
-            TypeError: if argument is of wrong type.
-            ValueError: if argument contains an invalid value.
-            ConnectionError: if the network connection to weaviate fails.
-            UnexpectedStatusCodeException: if weaviate reports a none OK status.
+        Returns
+        -------
+        dict or None
+            dict in case the object exists.
+            None in case the object does not exist.
+
+        Raises
+        ------
+        TypeError
+            If argument is of wrong type.
+        ValueError
+            If argument contains an invalid value.
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
         """
 
-        try:
-            response = self._get_object_response(semantic_type, uuid, underscore_properties)
-        except ConnectionError:
-            raise
+        response = self._get_object_response(uuid, underscore_properties)
 
         if response.status_code == 200:
             return response.json()
-        elif response.status_code == 404:
+        if response.status_code == 404:
             return None
-        else:
-            raise UnexpectedStatusCodeException("Get object", response)
+        raise UnexpectedStatusCodeException("Get object", response)
 
-    def get(self, underscore_properties=None, semantic_type=SEMANTIC_TYPE_THINGS):
-        """ Gets all objects of a semantic type
-
-        :param semantic_type: defaults to things allows also actions see SEMANTIC_TYPE_ACTIONS.
-        :type semantic_type: str
-        :param underscore_properties: list of underscore properties that should be included in the request.
-                                      Underscore properties allow
-        :type underscore_properties: list of str
-        :return: A list of all objects if no objects where found the list is empty.
-        :rtype: list of dict
-        :raises:
-            TypeError: if argument is of wrong type.
-            ValueError: if argument contains an invalid value.
-            ConnectionError: if the network connection to weaviate fails.
-            UnexpectedStatusCodeException: if weaviate reports a none OK status.
+    def get(self,
+            underscore_properties: List[str] = None
+        ) -> List[dict]:
         """
-        if not is_semantic_type(semantic_type):
-            raise ValueError(f"{semantic_type} is not a valid semantic type")
+        Gets all objects.
+
+        Parameters
+        ----------
+        underscore_properties : list of str, optional
+            list of underscore properties that should be included in the request,
+            by default None
+
+        Returns
+        -------
+        list of dicts
+            A list of all objects. If no objects where found the list is empty.
+
+        Raises
+        ------
+        TypeError
+            If argument is of wrong type.
+        ValueError
+            If argument contains an invalid value.
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        """
 
         params = _get_params(underscore_properties)
 
+        path = "/objects"
+
         try:
-            response = self._connection.run_rest("/" + semantic_type, REST_METHOD_GET, params=params)
-        except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err) + ' Connection error when getting things').with_traceback(
-                sys.exc_info()[2])
+            response = self._connection.run_rest(path, REST_METHOD_GET, params=params)
+        except RequestsConnectionError as conn_err:
+            message = str(conn_err) + ' Connection error when getting objects'
+            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
 
         if response.status_code == 200:
-            response_data = response.json()
-            return response_data[semantic_type]
-        else:
-            raise UnexpectedStatusCodeException("Get object", response)
+            return response.json()
+        raise UnexpectedStatusCodeException("Get object", response)
 
-    def _get_object_response(self, semantic_type, object_uuid, underscore_properties=None):
-        """ Retrieves an object from weaviate.
-
-        :param semantic_type: can be found as constants e.g. SEMANTIC_TYPE_THINGS.
-        :type semantic_type: str
-        :param object_uuid: the identifier of the object that should be retrieved.
-        :type object_uuid: str
-        :param underscore_properties: Defines the underscore properties that should be included in the result
-        :type underscore_properties: list of str or None
-        :return: response object.
-        :raises:
-            TypeError: if argument is of wrong type.
-            ValueError: if argument contains an invalid value.
-            ConnectionError: if the network connection to weaviate fails.
+    def _get_object_response(self,
+            object_uuid: str,
+            underscore_properties: List[str] = None
+        ) -> Response:
         """
-        if not is_semantic_type(semantic_type):
-            raise ValueError(f"{semantic_type} is not a valid semantic type")
+        Retrieve an object from weaviate.
+
+        Parameters
+        ----------
+        object_uuid : str
+            The identifier of the object that should be retrieved.
+        underscore_properties : list of str, optional
+            Defines the underscore properties that should be included in the result,
+            by default None.
+
+        Returns
+        -------
+        requests.Response
+            Respose object.
+
+        Raises
+        ------
+        TypeError
+            If argument is of wrong type.
+        ValueError
+            If argument contains an invalid value.
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        """
 
         params = _get_params(underscore_properties)
 
         if not isinstance(object_uuid, str):
             object_uuid = str(object_uuid)
         try:
-            response = self._connection.run_rest("/" + semantic_type + "/" + object_uuid, REST_METHOD_GET, params=params)
-        except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err) + ' Connection error not sure if object exists').with_traceback(
-                sys.exc_info()[2])
-        else:
-            return response
+            response = self._connection.run_rest(
+                "/objects/" + object_uuid,
+                REST_METHOD_GET,
+                params=params
+                )
+        except RequestsConnectionError as conn_err:
+            message = str(conn_err) + ' Connection error not sure if object exists'
+            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+        return response
 
-    def delete(self, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
+    def delete(self, uuid: str) -> None:
+        """
+        Delete an existing object from weaviate.
+
+        Parameters
+        ----------
+        uuid : str
+            The ID of the object that should be deleted.
+
+        Raises
+        ------
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        TypeError
+            If parameter has the wrong type.
+        ValueError
+            If uuid is not properly formed.
         """
 
-        :param uuid: ID of the thing that should be removed from the graph.
-        :type uuid: str
-        :param semantic_type: defaults to things allows also actions see SEMANTIC_TYPE_ACTIONS.
-        :type semantic_type: str
-        :return: None if successful
-        :raises:
-            ConnectionError: if the network connection to weaviate fails.
-            UnexpectedStatusCodeException: if weaviate reports a none OK status.
-            TypeError: If parameter has the wrong type.
-            ValueError: If uuid is not properly formed.
-        """
         if not isinstance(uuid, str):
             raise TypeError("UUID must be type str")
         if not validators.uuid(uuid):
             raise ValueError("UUID does not have proper form")
 
         try:
-            response = self._connection.run_rest("/" + semantic_type + "/" + uuid, REST_METHOD_DELETE)
-        except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err)
-                                 + ' Connection error, object could not be deleted.'
-                                 ).with_traceback(
-                sys.exc_info()[2])
-
+            response = self._connection.run_rest("/objects/" + uuid, REST_METHOD_DELETE)
+        except RequestsConnectionError as conn_err:
+            message = str(conn_err)\
+                    + ' Connection error, object could not be deleted.'
+            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
         if response.status_code == 204:
-            return  # Successfully deleted
-        else:
-            raise UnexpectedStatusCodeException("Delete object", response)
+            # Successfully deleted
+            return
+        raise UnexpectedStatusCodeException("Delete object", response)
 
-    def exists(self, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
+    def exists(self, uuid: str) -> bool:
+        """
+        Check if the object exist in weaviate.
+
+        Parameters
+        ----------
+        uuid : str
+            The UUID of the object that may or may not exist within weaviate.
+
+        Returns
+        -------
+        bool
+            True if object exists, False otherwise.
+
+        Raises
+        ------
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        TypeError
+            If parameter has the wrong type.
+        ValueError
+            If uuid is not properly formed.
         """
 
-        :param uuid: the uuid of the thing that may or may not exist within weaviate.
-        :type uuid: str
-        :param semantic_type: Either things or actions.
-                              Defaults to things.
-                              Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
-        :type semantic_type: str
-        :return: true if thing exists.
-        :raises:
-            ConnectionError: if the network connection to weaviate fails.
-            UnexpectedStatusCodeException: if weaviate reports a none OK status.
-        """
-        try:
-            response = self._get_object_response(semantic_type, uuid)
-        except ConnectionError:
-            raise  # Just pass the same error back
+        response = self._get_object_response(uuid)
 
         if response.status_code == 200:
             return True
-        elif response.status_code == 404:
+        if response.status_code == 404:
             return False
-        else:
-            raise UnexpectedStatusCodeException("Thing exists", response)
+        raise UnexpectedStatusCodeException("Object exists", response)
 
-    def validate(self, data_object, class_name, uuid, semantic_type=SEMANTIC_TYPE_THINGS):
-        """ Takes a dict describing the thing and validates it against weaviate
-
-        :param data_object: Object to be validated.
-        :type data_object: dict or str
-        :param class_name: Associated with the object given.
-        :type class_name: str
-        :param uuid: uuid of object
-        :type uuid: str
-        :param semantic_type: Either things or actions.
-                              Defaults to things.
-                              Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
-        :type semantic_type: str
-        :return: dict of form:
-        {
-            valid: bool
-            error: None or list
-        }
-        :rtype: dict
-        :raises:
-            TypeError: if argument is of wrong type.
-            ValueError: if argument contains an invalid value.
-            UnexpectedStatusCodeException: if validating the thing in weavate failed with a different reason,
-            more information is given in the exception.
-            ConnectionError: if the network connection to weaviate fails.
-        :rtype: str
+    def validate(self,
+            data_object: Union[dict, str],
+            class_name: str,
+            uuid: str
+        ) -> dict:
         """
-        if not is_semantic_type(semantic_type):
-            raise ValueError(f"{semantic_type} is not a valid semantic type")
+        Validate an object against weaviate.
+
+        Parameters
+        ----------
+        data_object : dict or str
+            Object to be validated.
+            If type is str it should be either an URL or a file.
+        class_name : str
+            Name of the class of the object that should be validated.
+        uuid : str
+            The UUID of the object that shoudl be validated against weaviate.
+
+        Returns
+        -------
+        dict
+            Validation result. E.g.
+            {
+                "valid": bool,
+                "error": None or list
+            }
+
+        Raises
+        ------
+        TypeError
+            If argument is of wrong type.
+        ValueError
+            If argument contains an invalid value.
+        weaviate.UnexpectedStatusCodeException
+            If validating the object against weavate failed with a different reason.
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        """
 
         if not isinstance(uuid, str):
             raise TypeError("UUID must be of type str")
 
         loaded_data_object = _get_dict_from_object(data_object)
         if not isinstance(class_name, str):
-            raise TypeError("Expected class_name of type str but was: " + str(type(class_name)))
+            raise TypeError(f"Expected class_name of type str but was: {type(class_name)}")
 
         weaviate_obj = {
             "id": uuid,
@@ -389,13 +491,13 @@ class DataObject:
             "schema": loaded_data_object
         }
 
-        path = f"/{semantic_type}/validate"
+        path = "/objects/validate"
         try:
             response = self._connection.run_rest(path, REST_METHOD_POST, weaviate_obj)
-        except ConnectionError as conn_err:
-            raise type(conn_err)(
-                str(conn_err) + ' Connection error, object was not validated against weaviate.').with_traceback(
-                sys.exc_info()[2])
+        except RequestsConnectionError as conn_err:
+            message = str(conn_err)\
+                    + ' Connection error, object was not validated against weaviate.'
+            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
 
         result = {
             "error": None
@@ -404,26 +506,37 @@ class DataObject:
         if response.status_code == 200:
             result["valid"] = True
             return result
-        elif response.status_code == 422:
+        if response.status_code == 422:
             result["valid"] = False
             result["error"] = response.json()["error"]
             return result
-        else:
-            raise UnexpectedStatusCodeException("Validate thing", response)
+        raise UnexpectedStatusCodeException("Validate object", response)
 
 
-def _get_params(underscore_properties):
+def _get_params(underscore_properties: List[str]) -> dict:
+    """
+    Get underscor properties in the format accepted by weaviate.
+
+    Parameters
+    ----------
+    underscore_properties : list of str
+        A list of underscore properties or None.
+
+    Returns
+    -------
+    dict
+        A dictionary including weaviate-accepted underscore properties.
+
+    Raises
+    ------
+    TypeError
+        If 'underscore_properties' is not of type list.
     """
 
-    :param underscore_properties: list of underscore properties or None
-    :type underscore_properties: list of str, None
-    :return: dict for params
-    """
     params = {}
     if underscore_properties is not None:
         if not isinstance(underscore_properties, list):
-            raise TypeError(f"Underscore properties must be of type list but are {type(underscore_properties)}")
-
+            raise TypeError(f"Underscore properties must be of type list \
+                                but are {type(underscore_properties)}")
         params['include'] = ",".join(underscore_properties)
-
     return params

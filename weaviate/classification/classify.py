@@ -1,7 +1,7 @@
 import sys
 import validators
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
-from weaviate.connect import REST_METHOD_GET
+from weaviate.connect import REST_METHOD_GET, Connection
 from .config_builder import ConfigBuilder
 
 SOURCE_WHERE_FILTER = 0
@@ -16,7 +16,7 @@ class Classification:
     """
 
     def __init__(self,
-            connection: 'weaviate.connect.Connection'
+            connection: Connection
         ):
         """
         Initialize a Classification class instance.
@@ -30,7 +30,7 @@ class Classification:
         self._connection = connection
 
     def schedule(self
-        ) -> 'weaviate.classification.config_builder.ConfigBuilder':
+        ) -> 'ConfigBuilder':
         """
         Schedule a Classification of the Objects within weaviate.
 
@@ -65,7 +65,7 @@ class Classification:
             If not a proper uuid.
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 

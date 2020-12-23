@@ -1,24 +1,57 @@
 import sys
-from weaviate.exceptions import *
-from weaviate.connect import REST_METHOD_POST, REST_METHOD_GET
-import warnings
+from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+from weaviate.connect import REST_METHOD_POST, REST_METHOD_GET, Connection
 
 
 class Contextionary:
+    """
+    Contextionary class used to add exted the weaviate contextionary module
+    or to get vector/s of a specific concept.
+    """
 
-    def __init__(self, connection):
+    def __init__(self,
+            connection: Connection
+        ):
+        """
+        Initialize a Contextionary class instance.
+
+        Parameters
+        ----------
+        connection : weaviate.connect.Connection
+            Connection object to an active and running weaviate instance.
+        """
+
         self._connection = connection
 
-    def extend(self, concept, definition, weight=1.0):
-        """ Extend the c11y with new concepts
+    def extend(self,
+            concept: str,
+            definition: str,
+            weight: float = 1.0
+        ) -> None:
+        """
+        Extend the C11y (Contextionary) with new concepts
 
-        :param concept: The new concept that should be added, e.g. an abbreviation.
-        :type concept: str
-        :param definition: The definition of the new concept.
-        :type definition: str
-        :param weight: The weight of the new definition compared to the old one.
-        :type weight: float
-        :return: None if successful
+        Parameters
+        ----------
+        concept : str
+            The new concept that should be added that is not in the weaviate
+            or needs to be updated, e.g. an abbreviation.
+        definition : str
+            The definition of the new concept.
+        weight : float, optional
+            The weight of the new definition compared to the old one,
+            must be inbetween the interval [0.0; 1.0], by default 1.0
+
+        Raises
+        ------
+        TypeError
+            If an argument is not of an approptiate type.
+        ValueError
+            If 'weight' is outside the interval [0.0; 1.0].
+        requests.exceptions.ConnectionError
+            If C11y could not be extended.
+        weaviate.UnexpectedStatusCodeException
+            Unexpected error.
         """
 
         if not isinstance(concept, str):
@@ -38,46 +71,63 @@ class Contextionary:
         }
 
         try:
-            response = self._connection.run_rest("/c11y/extensions/", REST_METHOD_POST, extension)
-        except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err)
-                                 + ' Connection error, c11y could not be extended.'
-                                 ).with_traceback(
-                sys.exc_info()[2])
-
+            response = self._connection.run_rest(
+                "/c11y/extensions/",
+                REST_METHOD_POST,
+                extension
+                )
+        except RequestsConnectionError as conn_err:
+            message = str(conn_err)\
+                    + ' Connection error, c11y could not be extended.'
+            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
         if response.status_code == 200:
-            return  # Successfully extended
-        else:
-            raise UnexpectedStatusCodeException("Extend c11y", response)
+            # Successfully extended
+            return
+        raise UnexpectedStatusCodeException("Extend c11y", response)
 
-    def get_concept_vector(self, concept):
-        """ Retrieves the vector representation of the given concept.
+    def get_concept_vector(self,
+            concept: str
+        ) -> dict:
+        """
+        Retrieves the vector representation of the given concept.
 
-        :param concept: for which the vector should be retrieved. May be CamelCase for word combinations.
-        :type concept: str
-        :return: the vector or vectors of the given word.
+        Parameters
+        ----------
+        concept : str
+            Concept for which the vector should be retrieved.
+            May be CamelCase for word combinations.
+
+        Returns
+        -------
+        dict
+            A dictionary containing info and the vector/s of the concept.
             The vector might be empty if the c11y does not contain it.
-        :raises:
-            AttributeError:
-            ConnectionError: if the network connection to weaviate fails.
-            UnexpectedStatusCodeException: if weaviate reports a none OK status.
+
+        Raises
+        ------
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        Exception
+            Unexpected exception that should be reported in an issue.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        AttributeError
         """
 
         path = "/c11y/concepts/" + concept
         try:
             response = self._connection.run_rest(path, REST_METHOD_GET)
-        except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err)
-                                 + ' Connection error, c11y vector was not retrieved.').with_traceback(
-                sys.exc_info()[2])
+        except RequestsConnectionError as conn_err:
+            message = str(conn_err)\
+                    + ' Connection error, c11y vector was not retrieved.'
+            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
         except AttributeError:
             raise
-        except Exception as e:
-            raise type(e)(
-                str(e) + ' Unexpected exception please report this excetpion in an issue.').with_traceback(
-                sys.exc_info()[2])
+        except Exception as error:
+            message = str(error)\
+                    + ' Unexpected exception please report this excetpion in an issue.'
+            raise type(error)(message).with_traceback(sys.exc_info()[2])
         else:
             if response.status_code == 200:
                 return response.json()
-            else:
-                raise UnexpectedStatusCodeException("C11y vector", response)
+            raise UnexpectedStatusCodeException("C11y vector", response)

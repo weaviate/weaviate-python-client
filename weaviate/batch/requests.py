@@ -1,10 +1,29 @@
 from __future__ import unicode_literals
 import copy
+from abc import ABC, abstractmethod
 import validators
 from weaviate.util import is_weaviate_entity_url, get_uuid_from_weaviate_url
 
+class BatchRequest(ABC):
+    """
+    BatchRequest abstract class used as a interface for batch requests.
+    """
 
-class ReferenceBatchRequest:
+    @abstractmethod
+    def add(self):
+        """
+        Add data object to the Batch. Should be implemented in all
+        classes that inherit from BatchRequest.
+        """
+
+    @abstractmethod
+    def __len__(self):
+        """
+        Get number of data objects in the Batch. Should be implemented 
+        in all classes that inherit from BatchRequest.
+        """
+
+class ReferenceBatchRequest(BatchRequest):
     """
     Collect references to add them in one request to weaviate.
     Caution this request will miss some validations to be faster.
@@ -19,19 +38,7 @@ class ReferenceBatchRequest:
     def __len__(self):
         return len(self._from_entity_class_names)
 
-    def get_batch_size(self) -> int:
-        """
-        Get current number of references that are not yet uploaded to weaviate.
-
-        Returns
-        -------
-        int
-            Number of references.
-        """
-
-        return len(self._from_entity_class_names)
-
-    def add_reference(self,
+    def add(self,
             from_entity_uuid: str,
             from_entity_class_name: str,
             from_property_name: str,
@@ -54,7 +61,7 @@ class ReferenceBatchRequest:
         Raises
         ------
         TypeError
-            If arguments are not string.
+            If arguments are not of type str.
         """
 
         if not isinstance(from_entity_class_name, str) or not isinstance(from_entity_uuid, str) or\
@@ -71,6 +78,39 @@ class ReferenceBatchRequest:
         self._from_entity_properties.append(from_property_name)
         self._to_entity_ids.append(to_entity_uuid)
 
+    def add_reference(self,
+            from_entity_uuid: str,
+            from_entity_class_name: str,
+            from_property_name: str,
+            to_entity_uuid: str
+        ) -> None:
+        """
+        Add one reference to this batch. It is the same as method 'add'.
+
+        Parameters
+        ----------
+        from_entity_uuid : str
+            The UUID or URL of the thing that should reference another object.
+        from_entity_class_name : str
+            The name of the class that should reference another object.
+        from_property_name : str
+            The name of the property that contains the reference.
+        to_entity_uuid : str
+            The UUID or URL of the object that is actually referenced.
+
+        Raises
+        ------
+        TypeError
+            If arguments are not string.
+        """
+
+        return self.add(
+            from_entity_uuid=from_entity_uuid,
+            from_entity_class_name=from_entity_class_name,
+            from_property_name=from_property_name,
+            to_entity_uuid=to_entity_uuid
+            )
+
     def get_request_body(self) -> list:
         """
         Get request body as a list of dictionaries, where each dictionary
@@ -82,8 +122,8 @@ class ReferenceBatchRequest:
             A list of references as dictionaries.
         """
 
-        batch_body = [None] * self.get_batch_size()
-        for i in range(self.get_batch_size()):
+        batch_body = [None] * len(self)
+        for i in range(len(self)):
             batch_body[i] = {
                 "from": "weaviate://localhost/" + self._from_entity_class_names[i] + "/"
                     + self._from_entity_ids[i] + "/" + self._from_entity_properties[i],
@@ -92,7 +132,7 @@ class ReferenceBatchRequest:
         return batch_body
 
 
-class ObjectsBatchRequest:
+class ObjectsBatchRequest(BatchRequest):
     """
     Collect objects for one batch request to weaviate.
     Caution this batch will not be validated through weaviate.
@@ -104,7 +144,7 @@ class ObjectsBatchRequest:
     def __len__(self):
         return len(self._objects)
 
-    def add_object(self,
+    def add(self,
             data_object: dict,
             class_name: str,
             uuid: str = None
@@ -124,11 +164,7 @@ class ObjectsBatchRequest:
         Raises
         ------
         TypeError
-            If 'data_object' is not of type dict.
-        TypeError
-            If 'class_name` is not of type str.
-        TypeError
-            If 'uuid' is not None and is not of type str.
+            If an argument passed is not of an appropriate type.
         ValueError
             If 'uuid' is not of a propper form.
         """
@@ -151,7 +187,38 @@ class ObjectsBatchRequest:
 
         self._objects.append(batch_item)
 
-    def get_request_body(self):
+    def add_object(self,
+            data_object: dict,
+            class_name: str,
+            uuid: str = None
+        ) -> None:
+        """
+        Add one object to this batch. It is the same as method 'add'.
+
+        Parameters
+        ----------
+        data_object : dict
+            Object to be added as a dict datatype.
+        class_name : str
+            The name of the class this object belongs to.
+        uuid : str, optional
+            UUID of the object as a string, by default None.
+
+        Raises
+        ------
+        TypeError
+            If an argument passed is not of an appropriate type.
+        ValueError
+            If 'uuid' is not of a propper form.
+        """
+
+        return self.add(
+            data_object=data_object,
+            class_name=class_name,
+            uuid=uuid
+        )
+
+    def get_request_body(self) -> dict:
         """
         Get the request body as it is needed for weaviate
 
@@ -160,6 +227,7 @@ class ObjectsBatchRequest:
         dict
             The request body as a dict.
         """
+
         return {
             "fields": [
                 "ALL"

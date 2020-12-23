@@ -1,221 +1,308 @@
 import sys
+from typing import Union, List
+from weaviate.connect import REST_METHOD_DELETE, REST_METHOD_PUT, REST_METHOD_POST, Connection
+from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+from weaviate.util import ParsedUUID
 
-from weaviate.connect import *
-from weaviate.exceptions import *
-from weaviate.util import is_semantic_type, ParsedUUID
-from requests.exceptions import ConnectionError
-from weaviate import SEMANTIC_TYPE_THINGS
 
 
 class Reference:
+    """
+    Reference class used to manipulate refferences within objects.
+    """
 
-    def __init__(self, connection):
+    # This is a class private variable that contains implemented
+    # methods and their respective REST method and Success return code.
+    _methods_to_rest = {
+        "add" : {
+            "rest" : REST_METHOD_POST,
+            "success_code": 200,
+        },
+        "update" : {
+            "rest" : REST_METHOD_PUT,
+            "success_code" : 200,
+        },
+        "delete" : {
+            "rest" : REST_METHOD_DELETE,
+            "success_code" : 204
+        }
+    }
+
+    def __init__(self,
+            connection: Connection
+        ):
+        """
+        Initialize a Reference class instance.
+
+        Parameters
+        ----------
+        connection : weaviate.connect.Connection
+            Connection object to an active and running weaviate instance.
+        """
+
         self._connection = connection
 
-    def delete(self, from_uuid, from_property_name, to_uuid,
-               from_semantic_type=SEMANTIC_TYPE_THINGS, to_semantic_type=SEMANTIC_TYPE_THINGS):
-        """ Remove a reference to another thing. Equal to removing one direction of an edge from the graph.
+    def delete(self,
+            from_uuid: str,
+            from_property_name: str,
+            to_uuid: str
+        ) -> None:
+        """
+        Remove a reference to another thing. Equal to removing one
+        direction of an edge from the graph.
 
-            :param from_uuid: Id of the thing that references another thing.
-            :type from_uuid: str in form uuid
-            :param from_property_name: The property from which the reference should be deleted.
-            :type from_property_name:  str
-            :param from_semantic_type: Either things or actions.
-                                       Defaults to things.
-                                       Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
-            :type from_semantic_type: str
-            :param to_semantic_type: Either things or actions.
-                                     Defaults to things.
-                                     Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
-            :type to_semantic_type: str
-            :param to_uuid: The referenced thing.
-            :type to_uuid: str in form uuid
-            :return: None if successful
-            :raises:
-                ConnectionError: if the network connection to weaviate fails.
-                UnexpectedStatusCodeException: if weaviate reports a none OK status.
-                TypeError: If parameter has the wrong type.
-                ValueError: If uuid is not properly formed.
-            """
+        Parameters
+        ----------
+        from_uuid : str
+            The ID of the object that references another object.
+        from_property_name : str
+            The property from which the reference should be deleted.
+        to_uuid : str
+            The UUID of the referenced object.
 
-        from_uuid_parsed = _validate_uuid_get_parsed(from_uuid, from_semantic_type)
-        to_uuid_parsed = _validate_uuid_get_parsed(to_uuid, to_semantic_type)
-        _validate_property_name(from_property_name)
-        _validate_semantic_types(from_semantic_type, to_semantic_type)
-
-        beacon = _get_beacon(to_semantic_type, to_uuid_parsed.uuid)
-        path = f"/{from_semantic_type}/{from_uuid_parsed.uuid}/references/{from_property_name}"
-
-        try:
-            response = self._connection.run_rest(path, REST_METHOD_DELETE, beacon)
-        except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err)
-                                 + ' Connection error, reference could not be deleted.'
-                                 ).with_traceback(
-                sys.exc_info()[2])
-
-        if response.status_code == 204:
-            return  # Successfully deleted
-        else:
-            raise UnexpectedStatusCodeException("Delete reference", response)
-
-    def update(self, from_uuid, from_property_name, to_uuids,
-               from_semantic_type=SEMANTIC_TYPE_THINGS, to_semantic_type=SEMANTIC_TYPE_THINGS):
-        """ Allows to update all references in that property with a new set of references.
-            All old references will be replaced.
-
-        :param from_uuid: The object that should have the reference as part of its properties.
-                           Accepts a plane UUID or an URL. E.g.
-                           'http://localhost:8080/v1/things/fc7eb129-f138-457f-b727-1b29db191a67'
-                           or
-                           'fc7eb129-f138-457f-b727-1b29db191a67'
-                           By default the object is a thing please specify from_semantic_type
-                           if you want to reference from an action.
-        :type from_uuid: str in the form of an UUID, str in form of URL
-        :param from_property_name: The name of the property within the object.
-        :type from_property_name: str
-        :param to_uuids: The UUIDs of the objects that should be referenced.
-                          Accepts a plane UUID or an URL. E.g.
-                          ['http://localhost:8080/v1/things/fc7eb129-f138-457f-b727-1b29db191a67', ...]
-                          or
-                          ['fc7eb129-f138-457f-b727-1b29db191a67', ...]
-        :type to_uuids: list of str with str in the form of an UUID, str in form of URL
-        :param from_semantic_type: Either things or actions.
-                                   Defaults to things.
-                                   Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
-        :type from_semantic_type: str
-        :param to_semantic_type: Either things or actions.
-                                 Defaults to things.
-                                 Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
-        :type to_semantic_type: str
-        :return: None if successful.
-        :raises:
-            ConnectionError: if the network connection to weaviate fails.
-            UnexpectedStatusCodeException: if weaviate reports a none OK status.
-            TypeError: If the parameters are of the wrong type
-            ValueError: If the parameters are of the wrong value
+        Raises
+        ------
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        TypeError
+            If parameter has the wrong type.
+        ValueError
+            If uuid is not properly formed.
         """
 
-        from_uuid_parsed = _validate_uuid_get_parsed(from_uuid, from_semantic_type)
+        self._try_run_rest(
+            from_uuid=from_uuid,
+            from_property_name=from_property_name,
+            to_uuid_s=to_uuid,
+            method="delete"
+        )
 
-        if not isinstance(to_uuids, list):
-            to_uuids = [to_uuids]
-        to_uuids_parsed = []
-        for to_uuid in to_uuids:
-            to_uuids_parsed.append(_validate_uuid_get_parsed(to_uuid, to_semantic_type))
+    def update(self,
+            from_uuid: str,
+            from_property_name: str,
+            to_uuids: list
+        ) -> None:
+        """
+        Allows to update all references in that property with a new set of references.
+        All old references will be replaced.
 
+        Parameters
+        ----------
+        from_uuid : str
+            The object that should have the reference as part of its properties.
+            Should be in the form of an UUID or in form of an URL.
+            E.g.
+            'http://localhost:8080/v1/objects/fc7eb129-f138-457f-b727-1b29db191a67'
+            or
+            'fc7eb129-f138-457f-b727-1b29db191a67'
+        from_property_name : str
+            The name of the property within the object.
+        to_uuids : list
+            The UUIDs of the objects that should be referenced.
+            Should be a list of str in the form of an UUID or str in form of an URL.
+            E.g.
+            ['http://localhost:8080/v1/objects/fc7eb129-f138-457f-b727-1b29db191a67', ...]
+            or
+            ['fc7eb129-f138-457f-b727-1b29db191a67', ...]
+
+        Raises
+        ------
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        TypeError
+            If the parameters are of the wrong type.
+        ValueError
+            If the parameters are of the wrong value.
+        """
+
+        self._try_run_rest(
+            from_uuid=from_uuid,
+            from_property_name=from_property_name,
+            to_uuid_s=to_uuids,
+            method="update"
+        )
+
+    def add(self,
+            from_uuid: str,
+            from_property_name: str,
+            to_uuid: str
+        ) -> None:
+        """
+        Allows to link an object to an object unidirectionally.
+
+        Parameters
+        ----------
+        from_uuid : str
+            The ID of the object that should have the reference as part
+            of its properties. Should be a plane UUID or an URL.
+            E.g.
+            'http://localhost:8080/v1/objects/fc7eb129-f138-457f-b727-1b29db191a67'
+            or
+            'fc7eb129-f138-457f-b727-1b29db191a67'
+        from_property_name : str
+            The name of the property within the object.
+        to_uuid : str
+            The UUID of the object that should be referenced.
+            Should be a plane UUID or an URL.
+            E.g.
+            'http://localhost:8080/v1/objects/fc7eb129-f138-457f-b727-1b29db191a67'
+            or
+            'fc7eb129-f138-457f-b727-1b29db191a67'
+
+        Raises
+        ------
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        TypeError
+            If the parameters are of the wrong type.
+        ValueError
+            If the parameters are of the wrong value.
+        """
+
+        self._try_run_rest(
+            from_uuid=from_uuid,
+            from_property_name=from_property_name,
+            to_uuid_s=to_uuid,
+            method="add"
+        )
+
+    def _try_run_rest(self,
+            from_uuid: str,
+            from_property_name: str,
+            to_uuid_s: Union[str, List[str]],
+            method: str
+        ) -> None:
+        """
+        Try to run a rest method based on the 'method' argument.
+
+        Parameters
+        ----------
+        from_uuid : str
+            The ID of the object that should have the reference as part
+            of its properties. Should be a plane UUID or an URL.
+        from_property_name : str
+            The name of the property within the object.
+        to_uuid_s : Union[str, List[str]]
+            The UUID/s of the object/s that should be referenced.
+            It can be a string or a list of strings. List of string is only
+            used for the 'update' method.
+        method : str
+            REST call method, check self._methods_to_rest to see what methods
+            are available at the moment.
+
+        Raises
+        ------
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        TypeError
+            If the parameters are of the wrong type.
+        ValueError
+            If the parameters are of the wrong value.
+        """
+        if method not in self._methods_to_rest.keys():
+            raise ValueError(f"'{method}' not supported!")
+
+        # Validate and create Beacon
+        _validate_uuid(from_uuid)
         _validate_property_name(from_property_name)
-        _validate_semantic_types(from_semantic_type, to_semantic_type)
 
+        # Validate 'to_uuid_s' and create the respective beacon/s
         beacons = []
-        for to_uuid_parsed in to_uuids_parsed:
-            beacons.append(_get_beacon(to_semantic_type, to_uuid_parsed.uuid))
+        if method == "update":
+            # Update works with a list of 'to_uuids' so it needs a separate check.
+            if not isinstance(to_uuid_s, list):
+                to_uuid_s = [to_uuid_s]
 
-        path = f"/{from_semantic_type}/{from_uuid_parsed.uuid}/references/{from_property_name}"
-
-        try:
-            response = self._connection.run_rest(path, REST_METHOD_PUT, beacons)
-        except ConnectionError as conn_err:
-            raise type(conn_err)(
-                str(conn_err) + ' Connection error, reference was not replaced in weaviate.').with_traceback(
-                sys.exc_info()[2])
-
-        if response.status_code == 200:
-            return
+            for to_uuid in to_uuid_s:
+                _validate_uuid(to_uuid)
+                beacons.append(_get_beacon(to_uuid))
         else:
-            raise UnexpectedStatusCodeException("Replace property reference to object", response)
+            # Other methods take just a UUID as a str
+            _validate_uuid(to_uuid_s)
+            beacons = _get_beacon(to_uuid_s)
 
-    def add(self, from_uuid, from_property_name, to_uuid,
-            from_semantic_type=SEMANTIC_TYPE_THINGS, to_semantic_type=SEMANTIC_TYPE_THINGS):
-        """ Allows to link an object from a thing unidirectionally.
-
-        :param from_uuid: The object that should have the reference as part of its properties.
-                           Accepts a plane UUID or an URL. E.g.
-                           'http://localhost:8080/v1/things/fc7eb129-f138-457f-b727-1b29db191a67'
-                           or
-                           'fc7eb129-f138-457f-b727-1b29db191a67'
-                           By default the object is a thing please specify from_semantic_type
-                           if you want to reference from an action.
-        :type from_uuid: str in the form of an UUID, str in form of URL
-        :param from_property_name: The name of the property within the object.
-        :type from_property_name: str
-        :param to_uuid: The UUID of the object that should be referenced.
-                          Accepts a plane UUID or an URL. E.g.
-                          'http://localhost:8080/v1/things/fc7eb129-f138-457f-b727-1b29db191a67'
-                          or
-                          'fc7eb129-f138-457f-b727-1b29db191a67'
-        :type to_uuid: str in the form of an UUID, str in form of URL
-        :param from_semantic_type: Either things or actions.
-                                   Defaults to things.
-                                   Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
-        :type from_semantic_type: str
-        :param to_semantic_type: Either things or actions.
-                                 Defaults to things.
-                                 Settable through the constants SEMANTIC_TYPE_THINGS and SEMANTIC_TYPE_ACTIONS
-        :type to_semantic_type: str
-        :return: None if successful.
-        :raises:
-            ConnectionError: if the network connection to weaviate fails.
-            UnexpectedStatusCodeException: if weaviate reports a none OK status.
-            TypeError: If the parameters are of the wrong type
-            ValueError: If the parameters are of the wrong value
-        """
-
-        from_uuid_parsed = _validate_uuid_get_parsed(from_uuid, from_semantic_type)
-        to_uuid_parsed = _validate_uuid_get_parsed(to_uuid, to_semantic_type)
-        _validate_property_name(from_property_name)
-        _validate_semantic_types(from_semantic_type, to_semantic_type)
-
-        # Create the beacon
-        beacon = _get_beacon(to_semantic_type, to_uuid_parsed.uuid)
-
-        path = f"/{from_semantic_type}/{from_uuid_parsed.uuid}/references/{from_property_name}"
-
+        # Try to Run REST method
+        path = f"/objects/{from_uuid}/references/{from_property_name}"
         try:
-            response = self._connection.run_rest(path, REST_METHOD_POST, beacon)
-        except ConnectionError as conn_err:
-            raise type(conn_err)(
-                str(conn_err) + ' Connection error, reference was not added to weaviate.').with_traceback(
-                sys.exc_info()[2])
+            response = self._connection.run_rest(
+                path=path,
+                rest_method=self._methods_to_rest[method]["rest"],
+                weaviate_object=beacons
+                )
+        except RequestsConnectionError as conn_err:
+            message = str(conn_err)\
+                    + f' Connection error, did not {method} reference.'
+            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
 
-        if response.status_code == 200:
+        if response.status_code == self._methods_to_rest[method]["success_code"]:
             return
-        else:
-            raise UnexpectedStatusCodeException("Add property reference to thing", response)
+        raise UnexpectedStatusCodeException(f"{method} property reference to object", response)
 
 
-def _get_beacon(to_semantic_type, to_uuid):
+def _get_beacon(to_uuid: str) -> dict:
+    """
+    Get a weaviate-style beacon.
+
+    Parameters
+    ----------
+    to_uuid : str
+        The UUID to create beacon for.
+
+    Returns
+    -------
+    dict
+        Weaviate-style beacon as a dict.
+    """
+
     return {
-        "beacon": f"weaviate://localhost/{to_semantic_type}/{to_uuid}"
+        "beacon": f"weaviate://localhost/{to_uuid}"
     }
 
 
-def _validate_semantic_types(from_semantic_type, to_semantic_type):
-    if not is_semantic_type(to_semantic_type) or not is_semantic_type(from_semantic_type):
-        raise ValueError("Semantic type must be \"things\" or \"actions\"")
+def _validate_property_name(property_name: str) -> None:
+    """
+    Validate the property name.
 
+    Parameters
+    ----------
+    property_name : str
+        Property name to be validated.
 
-def _validate_property_name(from_property_name):
-    if not isinstance(from_property_name, str):
-        raise TypeError("from_property_name must be of type str but was: " + str(type(from_property_name)))
-
-
-def _validate_uuid_get_parsed(uuid, compare_semantic_type):
+    Raises
+    ------
+    TypeError
+        If 'property_name' is not of type str.
     """
 
-    :param uuid:
-    :param compare_semantic_type: the semantic type that must fit the specified in the uuid (if any)
-    :return:
-    :rtype: ParsedUUID
+    if not isinstance(property_name, str):
+        raise TypeError("from_property_name must be of type 'str' but was: "\
+                        + str(type(property_name)))
+
+
+def _validate_uuid(uuid: str) -> None:
     """
+    Validate the UUID.
+
+    Parameters
+    ----------
+    uuid : str
+        The UUID to be validated.
+
+    Raises
+    ------
+    ValueError
+        If 'uuid' is not valid or UUID can not be extracted
+        from 'uuid'.
+    """
+
     uuid_parsed = ParsedUUID(uuid)
     if not uuid_parsed.is_valid:
-        raise ValueError("not valid uuid or uuid can not be extracted from value")
-
-    if uuid_parsed.semantic_type == None:
-        return uuid_parsed
-
-    if not uuid_parsed.semantic_type == compare_semantic_type:
-        raise ValueError("semantic_type and the in uuid defined semantic type are conflicting")
-
-    return uuid_parsed
+        raise ValueError("Not valid uuid or uuid can not be extracted from value")

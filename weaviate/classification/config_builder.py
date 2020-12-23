@@ -1,7 +1,8 @@
 import sys
 import time
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
-from weaviate.connect import REST_METHOD_POST
+from weaviate.connect import REST_METHOD_POST, Connection
+from .classify import Classification
 
 
 class ConfigBuilder:
@@ -10,8 +11,8 @@ class ConfigBuilder:
     """
 
     def __init__(self,
-            connection: 'weaviate.connect.Connection',
-            classification: 'weaviate.classification.classifiy.Classification'
+            connection: Connection,
+            classification: Classification
         ):
         """
         Initialize a ConfiBuilder class instance.
@@ -21,7 +22,8 @@ class ConfigBuilder:
         connection : weaviate.connect.Connection
             Connection object to an active and running weaviate instance.
         classification : weaviate.classification.classifiy.Classification
-            [description]
+            Classification object to be configured using this ConfigBuilder
+            instance.
         """
 
         self._connection = connection
@@ -234,7 +236,7 @@ class ConfigBuilder:
         ------
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             Unexpected error.
         """
         try:

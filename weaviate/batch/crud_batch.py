@@ -1,6 +1,8 @@
 import sys
+import warnings
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
-from weaviate.connect import REST_METHOD_POST
+from weaviate.connect import REST_METHOD_POST, Connection
+from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest
 
 class Batch:
     """
@@ -8,7 +10,7 @@ class Batch:
     """
 
     def __init__(self,
-            connection: 'weaviate.connect.Connection'
+            connection: Connection
         ):
         """
         Initialize a Batch class instance.
@@ -21,8 +23,63 @@ class Batch:
 
         self._connection = connection
 
+    def create(self,
+            batch_request: BatchRequest
+        ) -> list:
+        """
+        Load data objects in batches, either Objects or References.
+        Loading batch References is faster by ignoring some validations.
+        Loading inconsistent data may ends up in an invalid graph.
+        If the consistency of the References is wanted use
+        'Client().data_object.reference.add' to have additional validation instead.
+
+        Parameters
+        ----------
+        batch_request : weaviate.batch.BatchRequest
+            Contains all the data objects that should be added in one batch.
+            Note: Should be a sub-class of BatchRequest since BatchRequest
+            is just an abstract class.
+
+        Returns
+        -------
+        list
+            A list with the status of every data object added.
+
+        Raises
+        ------
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        """
+
+        if isinstance(batch_request, ObjectsBatchRequest):
+            data_object_type = "objects"
+        elif isinstance(batch_request, ReferenceBatchRequest):
+            data_object_type = "references"
+        else:
+            raise TypeError("Wrong argument type, expected a sub-class of BatchRequest \
+                    (ObjectsBatchRequest or ReferenceBatchRequest), got: " +\
+                    str(type(batch_request)))
+
+        path = f"/batch/{data_object_type}"
+
+        try:
+            response = self._connection.run_rest(
+                path=path,
+                rest_method=REST_METHOD_POST,
+                weaviate_object=batch_request.get_request_body()
+                )
+        except RequestsConnectionError as conn_err:
+            message = str(conn_err)\
+                        + ' Connection error, batch was not added to weaviate.'
+            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+        if response.status_code == 200:
+            return response.json()
+        raise UnexpectedStatusCodeException(f"Create {data_object_type} in batch", response)
+
     def create_objects(self,
-            objects_batch_request: 'weaviate.batch.ObjectsBatchReques'
+            objects_batch_request: ObjectsBatchRequest
         ) -> list:
         """
         Creates multiple objects at once in weaviate
@@ -40,29 +97,16 @@ class Batch:
         ------
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
-        path = "/batch/"
+        return self.create(
+            batch_request=objects_batch_request
+            )
 
-        try:
-            response = self._connection.run_rest(
-                path=path,
-                rest_method=REST_METHOD_POST,
-                weaviate_object=objects_batch_request.get_request_body()
-                )
-        except RequestsConnectionError as conn_err:
-            message = str(conn_err)\
-                        + ' Connection error, batch was not added to weaviate.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
-        if response.status_code == 200:
-            return response.json()
-        raise UnexpectedStatusCodeException("Create objects in batch", response)
-
-
-    def add_references(self,
-            reference_batch_request: 'weaviate.batch.ReferenceBatchRequest'
+    def create_references(self,
+            reference_batch_request: ReferenceBatchRequest
         ) -> list:
         """
         Batch loading references.
@@ -78,33 +122,32 @@ class Batch:
 
         Returns
         -------
-        list, optional
-            A list with the status of every reference added or None if no
-            reference in the 'reference_batch_request'.
+        list
+            A list with the status of every reference added.
 
         Raises
         ------
-        type
+        requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
-        if reference_batch_request.get_batch_size() == 0:
-            return None # No data in batch
+        return self.create(
+            batch_request=reference_batch_request
+            )
 
-        path = "/batch/references"
+    def add_references(self,
+            reference_batch_request: ReferenceBatchRequest
+        ) -> list:
+        """
+        'add_references' is deprecated, use 'create' or 'create_references' instead!
+        """
 
-        try:
-            response = self._connection.run_rest(
-                path=path,
-                rest_method=REST_METHOD_POST,
-                weaviate_object=reference_batch_request.get_request_body()
-                )
-        except ConnectionError as conn_err:
-            message = str(conn_err)\
-                        + ' Connection error, reference was not added to weaviate.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
-        if response.status_code == 200:
-            return response.json()
-        raise UnexpectedStatusCodeException("Add references in batch", response)
+        warnings.warn(
+            "'add_references' is deprecated, use 'create' or 'create_references' instead!",
+            DeprecationWarning
+        )
+        return self.create(
+            batch_request=reference_batch_request
+            )

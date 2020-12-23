@@ -1,24 +1,38 @@
-import requests
 import time
 import urllib
-from weaviate.connect import *
-from weaviate.exceptions import *
+import requests
+from weaviate.exceptions import AuthenticationFailedException
 from weaviate.connect.constants import *
-from requests.exceptions import ConnectionError
+from weaviate.auth import AuthCredentials
+from .util import get_epoch_time
 
 WEAVIATE_REST_API_VERSION_PATH = "/v1"
 
 
 class Connection:
+    """
+    Connection class used to communicate to a weaviate instance.
+    """
+    def __init__(self,
+            url: str,
+            auth_client_secret: AuthCredentials = None,
+            timeout_config: tuple = None
+        ):
+        """
+        Initialize a Connection class instance.
 
-    def __init__(self, url, auth_client_secret=None, timeout_config=None):
+        Parameters
+        ----------
+        url : str
+            URL to a running weaviate instance.
+        auth_client_secret : weaviate.auth.AuthCredentials, optional
+            User login credentials to a weaviate instance, by default None
+        timeout_config : tuple(int, int), optional
+            Set the timeout config as a tuple of (retries, time out seconds),
+            by default None.
         """
-        :param url:
-        :param auth_client_secret:
-        :param timeout_config: Set the timeout config as a tuple of (retries, time out seconds)
-        :type timeout_config: tuple of int
-        """
-        self.url = url+WEAVIATE_REST_API_VERSION_PATH  # e.g. http://localhost:80/v1
+
+        self.url = url + WEAVIATE_REST_API_VERSION_PATH  # e.g. http://localhost:80/v1
         if timeout_config is None:
             self.timeout_config = (2, 20)
         else:
@@ -30,9 +44,12 @@ class Connection:
 
         self.is_authentication_required = False
         try:
-            request = requests.get(self.url + "/.well-known/openid-configuration",
-                                   headers={"content-type": "application/json"}, timeout=(30, 45))
-        except Exception as error:
+            request = requests.get(
+                self.url + "/.well-known/openid-configuration",
+                headers={"content-type": "application/json"},
+                timeout=(30, 45)
+                )
+        except Exception:
             pass
         else:
             if request.status_code == 200:
@@ -40,18 +57,44 @@ class Connection:
                 self._refresh_authentication()
 
     # Requests a new bearer
-    def _refresh_authentication(self):
+    def _refresh_authentication(self) -> None:
+        """
+        Request a new bearer.
+        """
         if (self.auth_expires - 2) < get_epoch_time():  # -2 for some lagtime
             self._auth_get_bearer()
 
+    def _auth_get_bearer(self) -> None:
+        """
+        Get a authentication bearer.
 
-    def _auth_get_bearer(self):
+        Raises
+        ------
+        AuthenticationFailedException
+            If cannot connect to weaviate.
+        AuthenticationFailedException
+            If cannot authenticate http status not ok.
+        AuthenticationFailedException
+            If cannot connect to the third party authentication service.
+        AuthenticationFailedException
+            If status not OK in connection to the third party authentication service.
+        AuthenticationFailedException
+            If the grant_types supported by the thirdparty authentication service are insufficient.
+        AuthenticationFailedException
+            If unable to get a OAuth token from server.
+        AuthenticationFailedException
+            If authtentication access denied.
+        """
 
         # collect data for the request
         try:
-            request = requests.get(self.url + "/.well-known/openid-configuration", headers={"content-type": "application/json"}, timeout=(30, 45))
+            request = requests.get(
+                self.url + "/.well-known/openid-configuration",
+                headers={"content-type": "application/json"},
+                timeout=(30, 45)
+                )
         except urllib.error.HTTPError as error:
-            raise AuthenticationFailedException("Cant connect to weaviate")
+            raise AuthenticationFailedException("Cant connect to weaviate") from error
         if request.status_code != 200:
             raise AuthenticationFailedException("Cant authenticate http status not ok")
 
@@ -60,10 +103,15 @@ class Connection:
 
         # request additional information
         try:
-            request_third_part = requests.get(request.json()['href'], headers={"content-type": "application/json"}, timeout=(30, 45))
+            request_third_part = requests.get(
+                request.json()['href'],
+                headers={"content-type": "application/json"},
+                timeout=(30, 45)
+                )
         except urllib.error.HTTPError as error:
             raise AuthenticationFailedException(
-                "Can't connect to the third party authentication service. Validate that it's running")
+                "Can't connect to the third party authentication service. \
+                    Validate that it's running") from error
         if request_third_part.status_code != 200:
             raise AuthenticationFailedException(
                 "Status not OK in connection to the third party authentication service")
@@ -71,31 +119,43 @@ class Connection:
         # Validate third part auth info
         if 'client_credentials' not in request_third_part.json()['grant_types_supported']:
             raise AuthenticationFailedException(
-                "The grant_types supported by the thirdparty authentication service are insufficient. Please add 'client_credentials'")
+                "The grant_types supported by the thirdparty authentication service are \
+                    insufficient. Please add 'client_credentials'")
 
         request_body = self.auth_client_secret.get_credentials()
         request_body["client_id"] = client_id
 
         # try the request
         try:
-            request = requests.post(request_third_part.json()['token_endpoint'], request_body, timeout=(30, 45))
-        except urllib.error.HTTPError:
+            request = requests.post(
+                request_third_part.json()['token_endpoint'],
+                request_body,
+                timeout=(30, 45)
+                )
+        except urllib.error.HTTPError as error:
             raise AuthenticationFailedException(
-                "Unable to get a OAuth token from server. Are the credentials and URLs correct?")
+                "Unable to get a OAuth token from server. Are the credentials \
+                    and URLs correct?") from error
 
         # sleep to process
         time.sleep(0.125)
 
         if request.status_code == 401:
             raise AuthenticationFailedException(
-                "Authtentication access denied are the credentials correct?"
+                "Authtentication access denied. Are the credentials correct?"
             )
-
         self.auth_bearer = request.json()['access_token']
         self.auth_expires = int(get_epoch_time() + request.json()['expires_in'] - 2)
 
-    def _get_request_header(self):
-        """Returns the correct headers for a request"""
+    def _get_request_header(self) -> dict:
+        """
+        Returns the correct headers for a request.
+
+        Returns
+        -------
+        dict
+            Request header as a dict.
+        """
 
         header = {"content-type": "application/json"}
 
@@ -105,46 +165,80 @@ class Connection:
 
         return header
 
-    def run_rest(self, path, rest_method, weaviate_object=None, params=None):
-        """ Make a request to weaviate
-
-        :param path: must be a valid weaviate sub-path e.g. /meta or /things without version.
-        :type path: str
-        :param rest_method: is defined through a constant given in the package e.g. REST_METHOD_GET.
-        :type rest_method: enum constant
-        :param weaviate_object: if set this object is used as payload.
-        :type weaviate_object: dict
-        :param params: additional request prameter.
-        :type params: dict
-        :return: the response if request was successful.
-        :raises:
-            ConnectionError: If weaviate could not be reached.
+    def run_rest(self,
+            path: str,
+            rest_method: int,
+            weaviate_object: dict = None,
+            params: dict = None
+        ) -> dict:
         """
+        Make a request to the weaviate instance.
+
+        Parameters
+        ----------
+        path : str
+            Sub-path to the weaviate resources. Must be a valid weaviate sub-path.
+            e.g. /meta or /objects, without version.
+        rest_method : int
+            Type of the rest API request. Is defined through a constant given in
+            the package e.g. REST_METHOD_GET.
+        weaviate_object : dict, optional
+            Object is used as payload, by default None
+        params : dict, optional
+            Additional request prameters, by default None
+
+        Returns
+        -------
+        dict
+            The response if request was successful.
+
+        Raises
+        ------
+        requests.exceptions.ConnectionError
+            If the request could not be made.
+            (from requests.'method' calls)
+        """
+
         if params is None:
             params = {}
         request_url = self.url+path
 
-        try:
-            if rest_method == REST_METHOD_GET:
-                response = requests.get(url=request_url,
-                                        headers=self._get_request_header(), timeout=self.timeout_config, params=params)
-            elif rest_method == REST_METHOD_PUT:
-                response = requests.put(url=request_url, json=weaviate_object,
-                                        headers=self._get_request_header(), timeout=self.timeout_config)
-            elif rest_method == REST_METHOD_POST:
-                response = requests.post(url=request_url, json=weaviate_object,
-                                         headers=self._get_request_header(), timeout=self.timeout_config)
-            elif rest_method == REST_METHOD_PATCH:
-                response = requests.patch(url=request_url, json=weaviate_object,
-                                          headers=self._get_request_header(), timeout=self.timeout_config)
-            elif rest_method == REST_METHOD_DELETE:
-                response = requests.delete(url=request_url, json=weaviate_object,
-                                          headers=self._get_request_header(), timeout=self.timeout_config)
-            else:
-                print("Not yet implemented rest method called")
-                response = None
-        except ConnectionError:
-            raise
-
+        if rest_method == REST_METHOD_GET:
+            response = requests.get(
+                url=request_url,
+                headers=self._get_request_header(),
+                timeout=self.timeout_config,
+                params=params
+                )
+        elif rest_method == REST_METHOD_PUT:
+            response = requests.put(
+                url=request_url,
+                json=weaviate_object,
+                headers=self._get_request_header(),
+                timeout=self.timeout_config
+                )
+        elif rest_method == REST_METHOD_POST:
+            response = requests.post(
+                url=request_url,
+                json=weaviate_object,
+                headers=self._get_request_header(),
+                timeout=self.timeout_config
+                )
+        elif rest_method == REST_METHOD_PATCH:
+            response = requests.patch(
+                url=request_url,
+                json=weaviate_object,
+                headers=self._get_request_header(),
+                timeout=self.timeout_config
+                )
+        elif rest_method == REST_METHOD_DELETE:
+            response = requests.delete(
+                url=request_url,
+                json=weaviate_object,
+                headers=self._get_request_header(),
+                timeout=self.timeout_config
+                )
         else:
-            return response
+            print("Not yet implemented rest method called")
+            response = None
+        return response
