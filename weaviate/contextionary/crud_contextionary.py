@@ -9,9 +9,7 @@ class Contextionary:
     or to get vector/s of a specific concept.
     """
 
-    def __init__(self,
-            connection: Connection
-        ):
+    def __init__(self, connection: Connection):
         """
         Initialize a Contextionary class instance.
 
@@ -26,7 +24,7 @@ class Contextionary:
     def extend(self,
             concept: str,
             definition: str,
-            weight: float = 1.0
+            weight: float=1.0
         ) -> None:
         """
         Extend the C11y (Contextionary) with new concepts
@@ -51,7 +49,7 @@ class Contextionary:
         requests.exceptions.ConnectionError
             If C11y could not be extended.
         weaviate.UnexpectedStatusCodeException
-            Unexpected error.
+            If the network connection to weaviate fails.
         """
 
         if not isinstance(concept, str):
@@ -85,9 +83,7 @@ class Contextionary:
             return
         raise UnexpectedStatusCodeException("Extend c11y", response)
 
-    def get_concept_vector(self,
-            concept: str
-        ) -> dict:
+    def get_concept_vector(self, concept: str) -> dict:
         """
         Retrieves the vector representation of the given concept.
 

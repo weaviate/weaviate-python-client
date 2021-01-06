@@ -1,55 +1,92 @@
 import sys
-from weaviate.connect import REST_METHOD_POST
-from weaviate.exceptions import *
-from .builder import Builder
+from typing import List, Union
+from weaviate.connect import REST_METHOD_POST, Connection
+from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+from .get import GetBuilder
 from .aggregate import AggregateBuilder
-
-class SemanticTypeGetProxy:
-    """ Proxy class for builder
-    """
-    def __init__(self, connection):
-        self._connection = connection
-
-    def things(self, class_name, properties):
-        return Builder(class_name, properties, self._connection, "Things")
-
-    def actions(self, class_name, properties):
-        return Builder(class_name, properties, self._connection, "Actions")
-
-
-class SemanticTypeAggregateProxy:
-    def __init__(self, connection):
-        self._connection = connection
-
-    def things(self, class_name):
-        return AggregateBuilder(class_name, self._connection, "Things")
-
-    def actions(self, class_name):
-        return AggregateBuilder(class_name, self._connection, "Actions")
 
 
 class Query:
+    """
+    Query class used to make `get` and/or `aggregate` GraphQL queries.
+    """
 
-    def __init__(self, connection):
+    def __init__(self, connection: Connection):
         """
-        :param connection: needed to directly request from builder
+        Initialize a Classification class instance.
+
+        Parameters
+        ----------
+        connection : weaviate.connect.Connection
+            Connection object to an active and running weaviate instance.
         """
+
         self._connection = connection
-        self.get = SemanticTypeGetProxy(self._connection)
-        self.aggregate = SemanticTypeAggregateProxy(self._connection)
 
-    def raw(self, gql_query):
-        """ Allows to send simple graph QL string queries.
-            Be cautious of injection risks when generating query strings.
-
-        :param gql_query: A GQL query in form of a string
-        :type gql_query: str
-        :return: Data response of the query
-        :raises:
-            TypeError: If parameter has the wrong type.
-            ConnectionError: if the network connection to weaviate fails.
-            UnexpectedStatusCodeException: if weaviate reports a none OK status.
+    def get(self,
+            class_name: str,
+            properties: Union[List[str], str]
+        ) -> GetBuilder:
         """
+        Instantiate a GetBuilder for GraphQL `get` requests.
+
+        Parameters
+        ----------
+        class_name : str
+            Class name of the objects to interact with.
+        properties : list of str or str
+            Properties of the objetcs to interact with.
+
+        Returns
+        -------
+        GetBuilder
+            A GetBuilder to make GraphQL `get` requests from weaviate.
+        """
+
+        return GetBuilder(class_name, properties, self._connection)
+
+    def aggregate(self, class_name: str) -> AggregateBuilder:
+        """
+        Instantiate an AggregateBuilder for GraphQL `aggregate` requests.
+
+        Parameters
+        ----------
+        class_name : str
+            Class name of the objects to be aggregated.
+
+        Returns
+        -------
+        AggregateBuilder
+            An AggregateBuilder to make GraphQL `aggregate` requests from weaviate.
+        """
+
+        return AggregateBuilder(class_name, self._connection)
+
+    def raw(self, gql_query: str) -> dict:
+        """
+        Allows to send simple graph QL string queries.
+        Be cautious of injection risks when generating query strings.
+
+        Parameters
+        ----------
+        gql_query : str
+            GraphQL query as a string.
+
+        Returns
+        -------
+        dict
+            Data response of the query.
+
+        Raises
+        ------
+        TypeError
+            If 'gql_query' is not of type str.
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        """
+
         if not isinstance(gql_query, str):
             raise TypeError("Query is expected to be a string")
 
@@ -57,13 +94,10 @@ class Query:
 
         try:
             response = self._connection.run_rest("/graphql", REST_METHOD_POST, json_query)
-        except ConnectionError as conn_err:
-            raise type(conn_err)(str(conn_err)
-                                 + ' Connection error, query not executed.'
-                                 ).with_traceback(
-                sys.exc_info()[2])
+        except RequestsConnectionError as conn_err:
+            message = str(conn_err) + ' Connection error, query not executed.'
+            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
 
         if response.status_code == 200:
             return response.json()  # Successfully queried
-        else:
-            raise UnexpectedStatusCodeException("GQL query", response)
+        raise UnexpectedStatusCodeException("GQL query", response)

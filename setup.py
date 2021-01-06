@@ -15,7 +15,7 @@ setup(name="weaviate-client",
       author="SeMI Technologies",
       author_email="hello@semi.technology",
       packages=["weaviate", "weaviate.connect", "weaviate.tools", "weaviate.rdf", "weaviate.schema", "weaviate.schema.properties", "weaviate.batch", "weaviate.classification", "weaviate.contextionary", "weaviate.data", "weaviate.data.references", "weaviate.gql"],
-      python_requires='>=2.7',
+      python_requires='>=3.6',
       install_requires=[
         "requests>=2.22.0",
         "validators>=0.14.0",

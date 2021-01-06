@@ -1,10 +1,8 @@
-SEMANTIC_TYPE_THINGS = "things"
-SEMANTIC_TYPE_ACTIONS = "actions"
+OBJECTS_TYPE = "objects"
 
 from .client import Client
 from .batch import ReferenceBatchRequest
-from .batch import ThingsBatchRequest
-from .batch import ActionsBatchRequest
+from .batch import ObjectsBatchRequest
 from .exceptions import *
 from .util import generate_local_beacon
 from .classification import SOURCE_WHERE_FILTER, TRAINING_SET_WHERE_FILTER, TARGET_WHERE_FILTER

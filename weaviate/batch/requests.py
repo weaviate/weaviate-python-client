@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import copy
 from abc import ABC, abstractmethod
+from typing import List
 import validators
 from weaviate.util import is_weaviate_entity_url, get_uuid_from_weaviate_url
 
@@ -8,20 +9,10 @@ class BatchRequest(ABC):
     """
     BatchRequest abstract class used as a interface for batch requests.
     """
-
+    
     @abstractmethod
-    def add(self):
-        """
-        Add data object to the Batch. Should be implemented in all
-        classes that inherit from BatchRequest.
-        """
-
-    @abstractmethod
-    def __len__(self):
-        """
-        Get number of data objects in the Batch. Should be implemented 
-        in all classes that inherit from BatchRequest.
-        """
+    def get_request_body(self):
+        pass
 
 class ReferenceBatchRequest(BatchRequest):
     """
@@ -111,7 +102,7 @@ class ReferenceBatchRequest(BatchRequest):
             to_entity_uuid=to_entity_uuid
             )
 
-    def get_request_body(self) -> list:
+    def get_request_body(self) -> List[dict]:
         """
         Get request body as a list of dictionaries, where each dictionary
         is a weaviate-schema reference.
@@ -122,13 +113,15 @@ class ReferenceBatchRequest(BatchRequest):
             A list of references as dictionaries.
         """
 
-        batch_body = [None] * len(self)
+        batch_body = []
         for i in range(len(self)):
-            batch_body[i] = {
+            batch_body.append(
+                {
                 "from": "weaviate://localhost/" + self._from_entity_class_names[i] + "/"
                     + self._from_entity_ids[i] + "/" + self._from_entity_properties[i],
                 "to": "weaviate://localhost/" + self._to_entity_ids[i]
-            }
+                }
+            )
         return batch_body
 
 
@@ -147,7 +140,7 @@ class ObjectsBatchRequest(BatchRequest):
     def add(self,
             data_object: dict,
             class_name: str,
-            uuid: str = None
+            uuid: str=None
         ) -> None:
         """
         Add one object to this batch.
@@ -190,7 +183,7 @@ class ObjectsBatchRequest(BatchRequest):
     def add_object(self,
             data_object: dict,
             class_name: str,
-            uuid: str = None
+            uuid: str=None
         ) -> None:
         """
         Add one object to this batch. It is the same as method 'add'.

@@ -2,7 +2,7 @@ import sys
 from typing import Union, List
 from weaviate.connect import REST_METHOD_DELETE, REST_METHOD_PUT, REST_METHOD_POST, Connection
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
-from weaviate.util import ParsedUUID
+from weaviate.util import is_valid_uuid
 
 
 
@@ -28,9 +28,7 @@ class Reference:
         }
     }
 
-    def __init__(self,
-            connection: Connection
-        ):
+    def __init__(self, connection: Connection):
         """
         Initialize a Reference class instance.
 
@@ -207,6 +205,7 @@ class Reference:
         ValueError
             If the parameters are of the wrong value.
         """
+
         if method not in self._methods_to_rest.keys():
             raise ValueError(f"'{method}' not supported!")
 
@@ -303,6 +302,5 @@ def _validate_uuid(uuid: str) -> None:
         from 'uuid'.
     """
 
-    uuid_parsed = ParsedUUID(uuid)
-    if not uuid_parsed.is_valid:
+    if not is_valid_uuid(uuid):
         raise ValueError("Not valid uuid or uuid can not be extracted from value")

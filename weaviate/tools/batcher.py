@@ -1,41 +1,61 @@
-import weaviate
 import time
-from weaviate import SEMANTIC_TYPE_THINGS
 import threading
+from typing import Callable
+import weaviate
 from .submit import SubmitBatches, SubmitBatchesException
 
 
 class Batcher:
-    """ manages batches and batch loading
+    """
+    Manages batches and batch loading. Autocommits both Objects and References
+    when the batcher reacher the allocated size. It resets after the batch is 
+    loaded to the weaviate, and can be reused.
     """
 
-    def __init__(self, client, batch_size=512, verbose=False, auto_commit_timeout=-1, return_values_callback=None,
-                 max_backoff_time=300, max_request_retries=4):
+    def __init__(self,
+            client: weaviate.Client,
+            batch_size: int=512,
+            verbose: bool=False,
+            auto_commit_timeout: float=-1.0,
+            max_backoff_time: int=300,
+            max_request_retries: int=4,
+            return_values_callback: Callable=None
+        ):
         """
+        Initialization of a Batcher class instance.
 
-        :param client: weaviate client
-        :type client: weaviate.Client
-        :param batch_size: The batch size determines when a batch is send to weaviate.
-        :type batch_size: int
-        :param verbose: if true the batcher prints many steps e.g. the return status of the batches
-        :type verbose: bool
-        :param auto_commit_timeout: time in seconds the batcher waits before posting all the data,
-                                    no matter how big the batch size. Deactivated when <= 0.
-        :type auto_commit_timeout: float
-        :param max_backoff_time: Exponential backoff will never exceed this time in seconds.
-        :type max_backoff_time: int
-        :param max_request_retries: States how often a request is retried before it counts as failed
-        :type max_request_retries: int
-        :param return_values_callback: If not none this function is called with the return values
-                                       every time a batch is submitted.
-                                       Caution if you use this together with the auto_commit_timeout
-                                       you need to ensure thread safety on the callback.
+        Parameters
+        ----------
+        client : weaviate.Client
+            The weaviate client for which to use the Batcher.
+        batch_size : int, optional
+            Total batcher size, i.e. "objects" batch size + "references" batch size,
+            by default 512.
+        verbose : bool, optional
+            If True the batcher prints statuses of many steps.
+            e.g. the return status of the batches,
+            by default False.
+        auto_commit_timeout : float, optional
+            Time, in seconds, the batcher waits before loading all the data,
+            no matter how big the batch size. Deactivated when <= 0,
+            by default -1.0.
+        max_backoff_time : int, optional
+            Exponential backoff will never exceed this time in seconds,
+            by default 300
+        max_request_retries : int, optional
+            States how often a request is retried before it is considered as failed,
+            by default 4
+        return_values_callback : Callable, optional
+            If not none this function is called with the return values every time a
+            batch is submitted.
+            CAUTION if you use this together with the 'auto_commit_timeout'
+            you need to ensure thread safety on the callback.
+            by default None.
         """
 
         self._client = client
         # New batches
-        self._things_batch = weaviate.batch.ThingsBatchRequest()
-        self._actions_batch = weaviate.batch.ActionsBatchRequest()
+        self._objects_batch = weaviate.batch.ObjectsBatchRequest()
         self._reference_batch = weaviate.batch.ReferenceBatchRequest()
         # Submission fails are batches that where tried to be submitted but gave errors.
         # They are stored in an extra list with tuples (submission function, batch data)
@@ -60,9 +80,10 @@ class Batcher:
     def __enter__(self):
         return self
 
-    def update_batches(self):
-        """ Forces an update of the batches no matter the current batch size
-            Prints errors if there are any
+    def update_batches(self) -> None:
+        """
+        Forces an update of the batches no matter the current batch size.
+        Prints errors if there are any.
         """
         with self._commit_lock:
             self._update_batches_force()
@@ -75,6 +96,7 @@ class Batcher:
         :param batch_data:
         :return:
         """
+
         try:
             self._submit_batches.submit_update(create_function, batch_data)
         except SubmitBatchesException:
@@ -103,13 +125,10 @@ class Batcher:
         if len(self._submission_fails) > 0:
             self._retry_failed_submissions()
 
-        self._update_batch_object(self._client.batch.create_things, self._things_batch)
-        self._things_batch = weaviate.batch.ThingsBatchRequest()
+        self._update_batch_object(self._client.batch.create, self._objects_batch)
+        self._objects_batch = weaviate.batch.ObjectsBatchRequest()
 
-        self._update_batch_object(self._client.batch.create_actions, self._actions_batch)
-        self._actions_batch = weaviate.batch.ActionsBatchRequest()
-
-        self._update_batch_object(self._client.batch.add_references, self._reference_batch)
+        self._update_batch_object(self._client.batch.create, self._reference_batch)
         self._reference_batch = weaviate.batch.ReferenceBatchRequest()
 
         result_collection = self._submit_batches.pop_results()
@@ -121,29 +140,25 @@ class Batcher:
     def _update_batch_if_necessary(self):
         """ Starts a batch load if the batch size is reached
         """
-        if len(self._things_batch) + len(self._reference_batch) + len(self._actions_batch) >= self._batch_size:
+        if len(self._objects_batch) + len(self._reference_batch) >= self._batch_size:
             self._update_batches_force()
 
-    def add_data_object(self, data_object, class_name, uuid=None, semantic_type=SEMANTIC_TYPE_THINGS):
+    def add_data_object(self, data_object, class_name, uuid=None):
         with self._commit_lock:
             self._last_update = time.time()
-            if semantic_type == SEMANTIC_TYPE_THINGS:
-                self._things_batch.add_thing(data_object, class_name, uuid)
-                self._update_batch_if_necessary()
-            else:
-                self._actions_batch.add_action(data_object, class_name, uuid)
-                self._update_batch_if_necessary()
+            self._objects_batch.add(data_object, class_name, uuid)
+            self._update_batch_if_necessary()
 
-    def add_reference(self, from_semantic_type, from_thing_class_name, from_thing_uuid, from_property_name,
-                      to_semantic_type, to_thing_uuid):
+    def add_reference(self, from_thing_class_name, from_thing_uuid, from_property_name,
+                    , to_thing_uuid):
         with self._commit_lock:
             self._last_update = time.time()
-            self._reference_batch.add_reference(from_semantic_type=from_semantic_type,
-                                                from_entity_class_name=from_thing_class_name,
-                                                from_entity_uuid=from_thing_uuid,
-                                                from_property_name=from_property_name,
-                                                to_semantic_type=to_semantic_type,
-                                                to_entity_uuid=to_thing_uuid)
+            self._reference_batch.add(
+                from_entity_class_name=from_thing_class_name,
+                from_entity_uuid=from_thing_uuid,
+                from_property_name=from_property_name,
+                to_entity_uuid=to_thing_uuid
+            )
             self._update_batch_if_necessary()
 
     def close(self):
@@ -158,8 +173,8 @@ class Batcher:
                 self._auto_commit_watchdog.is_closed = True
 
         retry_counter = 0
-        while len(self._things_batch) > 0 or len(self._actions_batch) > 0 or \
-                len(self._reference_batch) > 0 or len(self._submission_fails) > 0:
+        while len(self._objects_batch) > 0 or len(self._reference_batch) > 0 or\
+                        len(self._submission_fails) > 0:
             # update batches might have an connection error just retry until it is successful
             self.update_batches()
             retry_counter += 1
@@ -168,8 +183,7 @@ class Batcher:
                 exit(5)
 
         self._reference_batch = None
-        self._actions_batch = None
-        self._things_batch = None
+        self._objects_batch = None
         self._client = None
 
     def __exit__(self, exception_type, exception_value, traceback):

@@ -1,6 +1,6 @@
 import time
-from requests.exceptions import ReadTimeout, Timeout, ConnectionError
-from weaviate.exceptions import UnexpectedStatusCodeException
+from requests.exceptions import ReadTimeout, Timeout
+from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
 
 
 class SubmitBatchesException(Exception):
@@ -10,13 +10,24 @@ class SubmitBatchesException(Exception):
 
 class SubmitBatches:
 
-    def __init__(self, max_backoff_time=300, max_request_retries=4, verbose_enabled=False):
+    def __init__(self,
+            max_backoff_time: int = 300,
+            max_request_retries: int = 4,
+            verbose_enabled: bool = False
+        ):
+        """
+        Initialize a SubmitBatches class instance.
+
+        Parameters
+        ----------
+        max_backoff_time : int, optional
+            Max time used in the exponential backoff, by default 300.
+        max_request_retries : int, optional
+            States how often a request is retried before it counts as failed, by default 4.
+        verbose_enabled : bool, optional
+            If True errors will be printed directly to stdout, by default False.
         """
 
-        :param max_backoff_time: Max time used in the exponential backoff
-        :param verbose_enabled: if true errors will be printed directly to stdout
-        :param max_request_retries: States how often a request is retried before it counts as failed
-        """
         self._backoff_time = 10
         self._backoff_count = 0
         self._max_backoff_time = max_backoff_time
@@ -24,15 +35,21 @@ class SubmitBatches:
         self._verbose_enabled = verbose_enabled
         self._max_request_retries = max_request_retries
 
-    def pop_results(self):
-        """ Pops the results of the submissions
-        :return: The results from all submitted updates since the last pop
+    def pop_results(self) -> list:
         """
+        Pops the results of the submissions.
+        
+        Returns
+        -------
+        list 
+            The results from all submitted updates since the last pop.
+        """
+
         return_value = self._result_collection
         self._result_collection = []
         return return_value
 
-    def submit_update(self, create_func, data):
+    def submit_update(self, create_func, data) -> None:
         """
 
         :param create_func: the function that should be called with the data
@@ -42,7 +59,7 @@ class SubmitBatches:
             SubmitBatchesException if the batch could not be submitted
         """
 
-        if len(data) <= 0:
+        if len(data) == 0:
             return
 
         retry_counter = 0
@@ -63,11 +80,11 @@ class SubmitBatches:
         """
         try:
             result = create_func(data)
-        except (ConnectionError, Timeout, ReadTimeout, UnexpectedStatusCodeException) as e:
+        except (RequestsConnectionError, Timeout, ReadTimeout, UnexpectedStatusCodeException) as e:
             print("Exception in creating data: ", e)
             return False
         else:
-            if type(result) == list:
+            if isinstance(result, list):
                 self._result_collection += result
                 self._print_errors(result)
             return True

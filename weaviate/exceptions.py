@@ -1,22 +1,31 @@
-from builtins import super
-
+"""
+Weaviate Exceptions.
+"""
 # Import requests ConnectionError as weaviate.ConnectionError to overwrite buildins connection error
-from requests.exceptions import ConnectionError as ConnectionError
+from requests.exceptions import ConnectionError as RequestsConnectionError
+from requests import Response
 
 
 class UnexpectedStatusCodeException(Exception):
-    def __init__(self, message, response):
-        """ Is raised in case the status code returned from
-        weaviate is not handled in the client implementation
-        and suggests an error
+    """
+    Is raised in case the status code returned from weaviate is
+    not handled in the client implementation and suggests an error.
+    """
+    def __init__(self, message: str, response: Response):
+        """
+        Is raised in case the status code returned from weaviate is
+        not handled in the client implementation and suggests an error.
 
         Custom code can act on the attributes:
         - status_code
         - json
 
-        :param message: An error message specific to the context,
-        in which the error occurred
-        :param response: The request response of which the status code was unexpected
+        Parameters
+        ----------
+        message: str
+            An error message specific to the context, in which the error occurred.
+        response: requests.Response
+            The request response of which the status code was unexpected.
         """
 
         # Set error message
@@ -40,13 +49,19 @@ class UnexpectedStatusCodeException(Exception):
         return f"Unexpected status code: {code}, with response body: {body}"
 
 
-class ThingAlreadyExistsException(Exception):
-    pass
+class ObjectAlreadyExistsException(Exception):
+    """
+    Object Already Exists Exception.
+    """
 
 
 class AuthenticationFailedException(Exception):
+    """
+    Authentication Failed Exception.
+    """
 
     def __init__(self, message):
+        super().__init__(message)
         self.message = message
 
     def __str__(self):
@@ -54,7 +69,12 @@ class AuthenticationFailedException(Exception):
 
 
 class ServerError500Exception(Exception):
+    """
+    Server Error 500 Exception.
+    """
+
     def __init__(self, message):
+        super().__init__(message)
         self.message = message
 
     def __str__(self):
@@ -62,6 +82,10 @@ class ServerError500Exception(Exception):
 
 
 class SchemaValidationException(Exception):
+    """
+    Schema Validation Exception.
+    """
 
     def __init__(self, message):
         super().__init__(message)
+        self.message = message

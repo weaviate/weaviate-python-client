@@ -1,5 +1,6 @@
 import time
 import urllib
+from typing import Tuple, Optional
 import requests
 from weaviate.exceptions import AuthenticationFailedException
 from weaviate.connect.constants import *
@@ -15,8 +16,8 @@ class Connection:
     """
     def __init__(self,
             url: str,
-            auth_client_secret: AuthCredentials = None,
-            timeout_config: tuple = None
+            auth_client_secret: Optional[AuthCredentials]=None,
+            timeout_config: Optional[Tuple[int, int]]=None
         ):
         """
         Initialize a Connection class instance.
@@ -53,20 +54,17 @@ class Connection:
             pass
         else:
             if request.status_code == 200:
-                self.is_authentication_required = True
-                self._refresh_authentication()
+                if isinstance(auth_client_secret, AuthCredentials):
+                    self.is_authentication_required = True
+                    self._refresh_authentication()
+                else:
+                    raise ValueError(f"No login credentials provided. The weaviate instance at \
+                        {url} requires login credential, use argument 'auth_client_secret'.")
 
     # Requests a new bearer
     def _refresh_authentication(self) -> None:
         """
         Request a new bearer.
-        """
-        if (self.auth_expires - 2) < get_epoch_time():  # -2 for some lagtime
-            self._auth_get_bearer()
-
-    def _auth_get_bearer(self) -> None:
-        """
-        Get a authentication bearer.
 
         Raises
         ------
@@ -86,66 +84,68 @@ class Connection:
             If authtentication access denied.
         """
 
-        # collect data for the request
-        try:
-            request = requests.get(
-                self.url + "/.well-known/openid-configuration",
-                headers={"content-type": "application/json"},
-                timeout=(30, 45)
+        if (self.auth_expires - 2) < get_epoch_time():  # -2 for some lagtime
+            # collect data for the request
+            try:
+                request = requests.get(
+                    self.url + "/.well-known/openid-configuration",
+                    headers={"content-type": "application/json"},
+                    timeout=(30, 45)
+                    )
+            except urllib.error.HTTPError as error:
+                raise AuthenticationFailedException("Cant connect to weaviate") from error
+            if request.status_code != 200:
+                raise AuthenticationFailedException("Cant authenticate http status not ok")
+
+            # Set the client ID
+            client_id = request.json()['clientId']
+
+            # request additional information
+            try:
+                request_third_part = requests.get(
+                    request.json()['href'],
+                    headers={"content-type": "application/json"},
+                    timeout=(30, 45)
+                    )
+            except urllib.error.HTTPError as error:
+                raise AuthenticationFailedException(
+                    "Can't connect to the third party authentication service. \
+                        Validate that it's running") from error
+            if request_third_part.status_code != 200:
+                raise AuthenticationFailedException(
+                    "Status not OK in connection to the third party authentication service")
+
+            # Validate third part auth info
+            if 'client_credentials' not in request_third_part.json()['grant_types_supported']:
+                raise AuthenticationFailedException(
+                    "The grant_types supported by the thirdparty authentication service are \
+                        insufficient. Please add 'client_credentials'")
+
+            request_body = self.auth_client_secret.get_credentials()
+            request_body["client_id"] = client_id
+
+            # try the request
+            try:
+                request = requests.post(
+                    request_third_part.json()['token_endpoint'],
+                    request_body,
+                    timeout=(30, 45)
+                    )
+            except urllib.error.HTTPError as error:
+                raise AuthenticationFailedException(
+                    "Unable to get a OAuth token from server. Are the credentials \
+                        and URLs correct?") from error
+
+            # sleep to process
+            time.sleep(0.125)
+
+            if request.status_code == 401:
+                raise AuthenticationFailedException(
+                    "Authtentication access denied. Are the credentials correct?"
                 )
-        except urllib.error.HTTPError as error:
-            raise AuthenticationFailedException("Cant connect to weaviate") from error
-        if request.status_code != 200:
-            raise AuthenticationFailedException("Cant authenticate http status not ok")
+            self.auth_bearer = request.json()['access_token']
+            self.auth_expires = int(get_epoch_time() + request.json()['expires_in'] - 2)
 
-        # Set the client ID
-        client_id = request.json()['clientId']
-
-        # request additional information
-        try:
-            request_third_part = requests.get(
-                request.json()['href'],
-                headers={"content-type": "application/json"},
-                timeout=(30, 45)
-                )
-        except urllib.error.HTTPError as error:
-            raise AuthenticationFailedException(
-                "Can't connect to the third party authentication service. \
-                    Validate that it's running") from error
-        if request_third_part.status_code != 200:
-            raise AuthenticationFailedException(
-                "Status not OK in connection to the third party authentication service")
-
-        # Validate third part auth info
-        if 'client_credentials' not in request_third_part.json()['grant_types_supported']:
-            raise AuthenticationFailedException(
-                "The grant_types supported by the thirdparty authentication service are \
-                    insufficient. Please add 'client_credentials'")
-
-        request_body = self.auth_client_secret.get_credentials()
-        request_body["client_id"] = client_id
-
-        # try the request
-        try:
-            request = requests.post(
-                request_third_part.json()['token_endpoint'],
-                request_body,
-                timeout=(30, 45)
-                )
-        except urllib.error.HTTPError as error:
-            raise AuthenticationFailedException(
-                "Unable to get a OAuth token from server. Are the credentials \
-                    and URLs correct?") from error
-
-        # sleep to process
-        time.sleep(0.125)
-
-        if request.status_code == 401:
-            raise AuthenticationFailedException(
-                "Authtentication access denied. Are the credentials correct?"
-            )
-        self.auth_bearer = request.json()['access_token']
-        self.auth_expires = int(get_epoch_time() + request.json()['expires_in'] - 2)
 
     def _get_request_header(self) -> dict:
         """
@@ -168,9 +168,9 @@ class Connection:
     def run_rest(self,
             path: str,
             rest_method: int,
-            weaviate_object: dict = None,
-            params: dict = None
-        ) -> dict:
+            weaviate_object: dict=None,
+            params: dict=None
+        ) -> requests.Response:
         """
         Make a request to the weaviate instance.
 
@@ -189,7 +189,7 @@ class Connection:
 
         Returns
         -------
-        dict
+        requests.Response
             The response if request was successful.
 
         Raises

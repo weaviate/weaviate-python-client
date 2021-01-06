@@ -1,5 +1,9 @@
-tripple_schema = {
-  "things": {
+"""
+Triple schema as constant.
+"""
+
+triple_schema = {
+  "objects": {
     "type": "thing",
     "name": "rdf-triples",
     "classes": [

@@ -15,9 +15,7 @@ class Classification:
     a classification process of weaviate objects.
     """
 
-    def __init__(self,
-            connection: Connection
-        ):
+    def __init__(self, connection: Connection):
         """
         Initialize a Classification class instance.
 
@@ -29,8 +27,7 @@ class Classification:
 
         self._connection = connection
 
-    def schedule(self
-        ) -> 'ConfigBuilder':
+    def schedule(self) -> ConfigBuilder:
         """
         Schedule a Classification of the Objects within weaviate.
 
@@ -43,9 +40,7 @@ class Classification:
 
         return ConfigBuilder(self._connection, self)
 
-    def get(self,
-            classification_uuid: str
-        ) -> dict:
+    def get(self, classification_uuid: str) -> dict:
         """
         Polls the current state of the given classification.
 
@@ -83,9 +78,7 @@ class Classification:
             return response.json()
         raise UnexpectedStatusCodeException("Get classification status", response)
 
-    def is_complete(self,
-            classification_uuid: str
-        ) -> bool:
+    def is_complete(self, classification_uuid: str) -> bool:
         """
         Checks if a started classification job has completed.
 
@@ -102,9 +95,7 @@ class Classification:
 
         return self._check_status(classification_uuid, "completed")
 
-    def is_failed(self,
-            classification_uuid: str
-        ) -> bool:
+    def is_failed(self, classification_uuid: str) -> bool:
         """
         Checks if a started classification job has failed.
 
@@ -121,9 +112,7 @@ class Classification:
 
         return self._check_status(classification_uuid, "failed")
 
-    def is_running(self,
-            classification_uuid: str
-        ) -> bool:
+    def is_running(self, classification_uuid: str) -> bool:
         """
         Checks if a started classification job is running.
 

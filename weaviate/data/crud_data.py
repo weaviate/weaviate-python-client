@@ -19,9 +19,7 @@ class DataObject:
     """
     DataObject class used to manipulate object to/from weaviate.
     """
-    def __init__(self,
-            connection: Connection
-        ):
+    def __init__(self, connection: Connection):
         """
         Initialize a DataObject class instance.
 
@@ -37,8 +35,8 @@ class DataObject:
     def create(self,
             data_object: Union[dict, str],
             class_name: str,
-            uuid: str = None,
-            vector_weights: dict = None
+            uuid: str=None,
+            vector_weights: dict=None
         ) -> str:
         """
         Takes a dict describing the object and adds it to weaviate.
@@ -241,7 +239,7 @@ class DataObject:
 
     def get_by_id(self,
             uuid: str,
-            underscore_properties: List[str] = None
+            underscore_properties: List[str]=None
         ) -> Optional[dict]:
         """
         Get an object as dict.
@@ -281,7 +279,7 @@ class DataObject:
         raise UnexpectedStatusCodeException("Get object", response)
 
     def get(self,
-            underscore_properties: List[str] = None
+            underscore_properties: List[str]=None
         ) -> List[dict]:
         """
         Gets all objects.
@@ -325,7 +323,7 @@ class DataObject:
 
     def _get_object_response(self,
             object_uuid: str,
-            underscore_properties: List[str] = None
+            underscore_properties: List[str]=None
         ) -> Response:
         """
         Retrieve an object from weaviate.
@@ -499,7 +497,7 @@ class DataObject:
                     + ' Connection error, object was not validated against weaviate.'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
 
-        result = {
+        result: dict = {
             "error": None
         }
 
@@ -513,13 +511,13 @@ class DataObject:
         raise UnexpectedStatusCodeException("Validate object", response)
 
 
-def _get_params(underscore_properties: List[str]) -> dict:
+def _get_params(underscore_properties: Optional[List[str]]) -> dict:
     """
     Get underscor properties in the format accepted by weaviate.
 
     Parameters
     ----------
-    underscore_properties : list of str
+    underscore_properties : list of str or None
         A list of underscore properties or None.
 
     Returns

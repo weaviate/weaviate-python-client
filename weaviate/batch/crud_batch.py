@@ -9,9 +9,7 @@ class Batch:
     Batch class used to add multiple objects or object references at once into weaviate.
     """
 
-    def __init__(self,
-            connection: Connection
-        ):
+    def __init__(self,connection: Connection):
         """
         Initialize a Batch class instance.
 
@@ -23,9 +21,7 @@ class Batch:
 
         self._connection = connection
 
-    def create(self,
-            batch_request: BatchRequest
-        ) -> list:
+    def create(self, batch_request: BatchRequest) -> list:
         """
         Load data objects in batches, either Objects or References.
         Loading batch References is faster by ignoring some validations.
@@ -78,9 +74,7 @@ class Batch:
             return response.json()
         raise UnexpectedStatusCodeException(f"Create {data_object_type} in batch", response)
 
-    def create_objects(self,
-            objects_batch_request: ObjectsBatchRequest
-        ) -> list:
+    def create_objects(self, objects_batch_request: ObjectsBatchRequest) -> list:
         """
         Creates multiple objects at once in weaviate
 
@@ -105,9 +99,7 @@ class Batch:
             batch_request=objects_batch_request
             )
 
-    def create_references(self,
-            reference_batch_request: ReferenceBatchRequest
-        ) -> list:
+    def create_references(self, reference_batch_request: ReferenceBatchRequest) -> list:
         """
         Batch loading references.
         Loading batch references is faster by ignoring some validations.
@@ -137,9 +129,7 @@ class Batch:
             batch_request=reference_batch_request
             )
 
-    def add_references(self,
-            reference_batch_request: ReferenceBatchRequest
-        ) -> list:
+    def add_references(self, reference_batch_request: ReferenceBatchRequest) -> list:
         """
         'add_references' is deprecated, use 'create' or 'create_references' instead!
         """

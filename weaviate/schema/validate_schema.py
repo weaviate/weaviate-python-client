@@ -1,114 +1,142 @@
+"""
+Schema validation module.
+"""
+from typing import Any
 from weaviate.exceptions import SchemaValidationException
 
 
-def validate_schema(schema):
+def validate_schema(schema: dict) -> None:
+    """
+    Validate schema.
+
+    Parameters
+    ----------
+    schema : dict
+        Schema to be validated.
+
+    Raises
+    ------
+    SchemaValidationException
+        If the schema could not be validated against the standard format.
     """
 
-    :param schema:
-    :type schema: dict
-    :return: None if parsing was successful
-    :raises SchemaValidationException: if the schema could not be validated against the standard format.
+    # check if schema has only "objects" as keys
+    if len(schema) != 1 or "objects" not in schema:
+        raise SchemaValidationException('each schema has to have only "objects" \
+                    in the first level of the JSON format file/parameter/object')
+    # check if schema["objects"] has only "classes" as keys
+    if len(schema["objects"]) != 1 or "classes" not in schema["objects"]:
+        raise SchemaValidationException('"objects" has more than one key or \
+                                    does not contain mandatory key "classes".')
+    # check if "classes" is of type list
+    _check_key_type("classes", schema["objects"]["classes"], list)
+    # check if each class in the "classes" is a valid class
+    for weaviate_class in schema["objects"]["classes"]:
+        check_class(weaviate_class)
+
+
+def check_class(class_definition: dict) -> None:
     """
-    _check_schema_class_type_definitions(schema.keys())
+    Validate a class against the standard class format.
 
-    for class_type in schema:
-        _check_schema_class_types(class_type, schema[class_type])
+    Parameters
+    ----------
+    class_definition : dict
+        The definition of the class to be validated.
 
-        for weaviate_class in schema[class_type]["classes"]:
-            check_class(weaviate_class)
-
-
-def check_class(class_definition):
+    Raises
+    ------
+    SchemaValidationException
+        If the class could not be validated against the standard class format.
     """
 
-    :param class_definition:
-    :type class_definition: dict
-    :return:
-    """
     # check mandatory keys
     if "class" not in class_definition:
-        raise SchemaValidationException("\"class\" key is missing in class definition.")
+        raise SchemaValidationException('"class" key is missing in class definition.')
 
     # check optional keys
     for key in class_definition.keys():
         # Check if key is known
-        if key not in ["class", "description", "vectorizeClassName", "keywords", "properties"]:
-            raise SchemaValidationException("{key} is not a known class definition key.".format(key=key))
+        if key not in ["class", "vectorIndexType", "vectorIndexConfig", "moduleConfig",\
+            "description", "vectorizer", "properties"]:
+            raise SchemaValidationException(f'"{key}" is not a known class definition key.')
         # check if key is right type
-        if key == "vectorizeClassName":
+        if key in ["vectorizeClassName"]:
             _check_key_type(key, class_definition[key], bool)
-        if key in ["description", "class"]:
+        if key in ["description", "class", "vectorizer"]:
             _check_key_type(key, class_definition[key], str)
+        if key in ["vectorIndexConfig", "moduleConfig"]:
+            _check_key_type(key, class_definition[key], dict)
+        # TODO check in depth dicts
+
 
     if "properties" in class_definition:
         for class_property in class_definition["properties"]:
             check_property(class_property)
 
 
-def _check_key_type(key, value, expected_type):
-    type_of_value = type(value)
-    if type(value) != expected_type:
-        raise SchemaValidationException(f"{key} is type {type_of_value} but should be {expected_type}.")
+def check_property(class_property: dict) -> None:
+    """
+    Validate a class property against the standard class property.
 
-def check_property(class_property):
+    Parameters
+    ----------
+    class_property : dict
+        The class property to be validated.
+
+    Raises
+    ------
+    SchemaValidationException
+        If the class property could not be validated against\
+        the standard class property format.
     """
 
-    :param class_property:
-    :type class_property: dict
-    :return:
-    """
+    # mandatory fields
     if "dataType" not in class_property:
-        raise SchemaValidationException("Property does not contain \"dataType\"")
+        raise SchemaValidationException('Property does not contain "dataType"')
     if "name" not in class_property:
-        raise SchemaValidationException("Property does not contain \"name\"")
+        raise SchemaValidationException('Property does not contain "name"')
 
     for key in class_property:
-        if key not in ["dataType", "name", "vectorizePropertyName", "keywords", "cardinality", "description", "index"]:
-            raise SchemaValidationException("Property key {key} is not known.".format(key=key))
+        # check for misspelled and/or non-existent properties
+        if key not in ["dataType", "name", "moduleConfig", "description", "indexInverted"]:
+            raise SchemaValidationException(f'Property "{key}" is not known.')
 
         # Test types
         if key in ["dataType"]:
             _check_key_type(key, class_property[key], list)
-        if key in ["name", "cardinality", "description"]:
+        if key in ["name", "description"]:
             _check_key_type(key, class_property[key], str)
-        if key in ["vectorizePropertyName", "index"]:
+        if key in ["indexInverted"]:
             _check_key_type(key, class_property[key], bool)
-
-    # Test cardinality
-    if "cardinality" in class_property:
-        cardinality = class_property["cardinality"]
-        if cardinality != "many" and cardinality != "atMostOne":
-            raise SchemaValidationException(
-                "Property cardinality must either be \"many\" or \"atMostOne\" but was {cardinality}".format(cardinality=cardinality))
+        if key in ["moduleConfig"]:
+            _check_key_type(key, class_property[key], dict)
+            # TODO check "moduleConfig" hierarch types and keys
 
     # Test dataType types
     for data_type in class_property["dataType"]:
         _check_key_type("dataType", data_type, str)
 
 
-def _check_schema_class_types(class_type, content):
-    """ Only classes is mandatory in the class type
-
-    :param class_type: things or actions
-    :param content:
-    :return:
+def _check_key_type(key: str, value: Any, expected_type: Any) -> None:
     """
-    if not ("classes" in content):
-        raise SchemaValidationException("{class_type} does not contain mandatory key \"classes\".".format(class_type=class_type))
-    if type(content["classes"]) != list:
-        raise SchemaValidationException("\"classes\" in {class_type} must be of type list.".format(class_type=class_type))
+    Check if value is of an expected type.
 
+    Parameters
+    ----------
+    key : str
+        The key for which to check data type.
+    value : Any
+        The value of the 'key' for which to check data type.
+    expected_type : Any
+        The expected data type of the 'value'.
 
-def _check_schema_class_type_definitions(keys):
-    """ Checks if the keys that define the schema class types are valid.
-    :param keys:
-    :type keys: dict_keys
-    :return:
+    Raises
+    ------
+    SchemaValidationException
+        If the 'value' is of wrong data type.
     """
-    if len(keys) == 0:
-        # at least one type must be defined
-        raise SchemaValidationException("No schema class types are defined in the schema. "
-                                        "Please specify \"actions\" and/or \"things\".")
-    for key in keys:
-        if key not in ["things", "actions"]:
-            raise SchemaValidationException("{key} is not a valid schema class type.".format(key=key))
+
+    if not isinstance(value, expected_type):
+        raise SchemaValidationException(f'"{key}" is type {type(value)} \
+                                        but should be {expected_type}.')
