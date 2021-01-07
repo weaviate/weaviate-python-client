@@ -63,7 +63,9 @@ class ConfigBuilder:
             Updated ConfigBuilder.
         """
 
-        self._config["k"] = k
+        self._config["settings"] = {
+            "k" : k
+        }
         return self
 
     def with_class_name(self, class_name: str) -> 'ConfigBuilder':
@@ -135,7 +137,9 @@ class ConfigBuilder:
             Updated ConfigBuilder.
         """
 
-        self._config["sourceWhere"] = filter
+        if "filters" not in self._config:
+            self._config["filters"] = {}
+        self._config["filters"]["sourceWhere"] = filter
         return self
 
     def with_training_set_where_filter(self, filter: dict) -> 'ConfigBuilder':
@@ -153,7 +157,9 @@ class ConfigBuilder:
             Updated ConfigBuilder.
         """
 
-        self._config["trainingSetWhere"] = filter
+        if "filters" not in self._config:
+            self._config["filters"] = {}
+        self._config["filters"]["trainingSetWhere"] = filter
         return self
 
     def with_target_where_filter(self, filter: dict) -> 'ConfigBuilder':
@@ -171,7 +177,9 @@ class ConfigBuilder:
             Updated ConfigBuilder.
         """
 
-        self._config["targetWhere"] = filter
+        if "filters" not in self._config:
+            self._config["filters"] = {}
+        self._config["filters"]["targetWhere"] = filter
         return self
 
     def with_wait_for_completion(self) -> 'ConfigBuilder':
@@ -187,6 +195,27 @@ class ConfigBuilder:
         self._wait_for_completion = True
         return self
 
+    def with_settings(self, settings: dict) -> 'ConfigBuilder':
+        """
+        Set settings for the classification. NOTE if you are using 'kNN'
+        the value 'k' can be set by this method or by 'with_k'.
+        This method overwrites any previously set settings, like 'k' from
+        the 'with_k' method.
+
+        Parameters
+        ----------
+        settings: dict
+            Additional settings to be set/overwritten.
+
+        Returns
+        -------
+        ConfigBuilder
+            Updated ConfigBuilder.
+        """
+
+        self._config["settings"] = settings
+        return self
+    
     def _validate_config(self) -> None:
         """
         Validate the current classification configuration.
@@ -202,8 +231,12 @@ class ConfigBuilder:
             if field not in self._config:
                 raise ValueError(f"{field} is not set for this classification")
 
+        if "settings" in self._config:
+            if not isinstance(self._config["settings"], dict):
+                TypeError('"settings" should be of type dict')
+
         if self._config["type"] == "knn":
-            if "k" not in self._config:
+            if "k" not in self._config.get("settings", []):
                 raise ValueError("k is not set for this classification")
 
     def _start(self) -> dict:

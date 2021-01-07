@@ -61,14 +61,13 @@ def check_class(class_definition: dict) -> None:
             "description", "vectorizer", "properties"]:
             raise SchemaValidationException(f'"{key}" is not a known class definition key.')
         # check if key is right type
-        if key in ["vectorizeClassName"]:
-            _check_key_type(key, class_definition[key], bool)
-        if key in ["description", "class", "vectorizer"]:
+        if key in ["class", "vectorIndexType", "description", "vectorizer"]:
             _check_key_type(key, class_definition[key], str)
         if key in ["vectorIndexConfig", "moduleConfig"]:
             _check_key_type(key, class_definition[key], dict)
+        if key in ["properties"]:
+            _check_key_type(key, class_definition[key], list)
         # TODO check in depth dicts
-
 
     if "properties" in class_definition:
         for class_property in class_definition["properties"]:

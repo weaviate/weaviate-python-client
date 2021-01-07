@@ -239,7 +239,7 @@ class DataObject:
 
     def get_by_id(self,
             uuid: str,
-            underscore_properties: List[str]=None
+            additional_properties: List[str]=None
         ) -> Optional[dict]:
         """
         Get an object as dict.
@@ -248,8 +248,8 @@ class DataObject:
         ----------
         uuid : str
             The identifier of the object that should be retrieved.
-        underscore_properties : list of str, optional
-            List of underscore properties that should be included in the request,
+        additional_properties : list of str, optional
+            List of additional properties that should be included in the request,
             by default None
 
         Returns
@@ -270,7 +270,7 @@ class DataObject:
             If weaviate reports a none OK status.
         """
 
-        response = self._get_object_response(uuid, underscore_properties)
+        response = self._get_object_response(uuid, additional_properties)
 
         if response.status_code == 200:
             return response.json()
@@ -279,15 +279,15 @@ class DataObject:
         raise UnexpectedStatusCodeException("Get object", response)
 
     def get(self,
-            underscore_properties: List[str]=None
+            additional_properties: List[str]=None
         ) -> List[dict]:
         """
         Gets all objects.
 
         Parameters
         ----------
-        underscore_properties : list of str, optional
-            list of underscore properties that should be included in the request,
+        additional_properties : list of str, optional
+            list of additional properties that should be included in the request,
             by default None
 
         Returns
@@ -307,7 +307,7 @@ class DataObject:
             If weaviate reports a none OK status.
         """
 
-        params = _get_params(underscore_properties)
+        params = _get_params(additional_properties)
 
         path = "/objects"
 
@@ -323,7 +323,7 @@ class DataObject:
 
     def _get_object_response(self,
             object_uuid: str,
-            underscore_properties: List[str]=None
+            additional_properties: List[str]=None
         ) -> Response:
         """
         Retrieve an object from weaviate.
@@ -332,8 +332,8 @@ class DataObject:
         ----------
         object_uuid : str
             The identifier of the object that should be retrieved.
-        underscore_properties : list of str, optional
-            Defines the underscore properties that should be included in the result,
+        additional_properties : list of str, optional
+            Defines the additional properties that should be included in the result,
             by default None.
 
         Returns
@@ -351,7 +351,7 @@ class DataObject:
             If the network connection to weaviate fails.
         """
 
-        params = _get_params(underscore_properties)
+        params = _get_params(additional_properties)
 
         if not isinstance(object_uuid, str):
             object_uuid = str(object_uuid)
@@ -511,30 +511,30 @@ class DataObject:
         raise UnexpectedStatusCodeException("Validate object", response)
 
 
-def _get_params(underscore_properties: Optional[List[str]]) -> dict:
+def _get_params(additional_properties: Optional[List[str]]) -> dict:
     """
     Get underscor properties in the format accepted by weaviate.
 
     Parameters
     ----------
-    underscore_properties : list of str or None
-        A list of underscore properties or None.
+    additional_properties : list of str or None
+        A list of additional properties or None.
 
     Returns
     -------
     dict
-        A dictionary including weaviate-accepted underscore properties.
+        A dictionary including weaviate-accepted additional properties.
 
     Raises
     ------
     TypeError
-        If 'underscore_properties' is not of type list.
+        If 'additional_properties' is not of type list.
     """
 
     params = {}
-    if underscore_properties is not None:
-        if not isinstance(underscore_properties, list):
-            raise TypeError(f"Underscore properties must be of type list \
-                                but are {type(underscore_properties)}")
-        params['include'] = ",".join(underscore_properties)
+    if additional_properties is not None:
+        if not isinstance(additional_properties, list):
+            raise TypeError(f"Additional properties must be of type list \
+                                but are {type(additional_properties)}")
+        params['include'] = ",".join(additional_properties)
     return params
