@@ -27,7 +27,7 @@ class Contextionary:
             weight: float=1.0
         ) -> None:
         """
-        Extend the C11y (Contextionary) with new concepts
+        Extend the text2vec-contextionary with new concepts
 
         Parameters
         ----------
@@ -47,7 +47,7 @@ class Contextionary:
         ValueError
             If 'weight' is outside the interval [0.0; 1.0].
         requests.exceptions.ConnectionError
-            If C11y could not be extended.
+            If text2vec-contextionary could not be extended.
         weaviate.UnexpectedStatusCodeException
             If the network connection to weaviate fails.
         """
@@ -70,18 +70,18 @@ class Contextionary:
 
         try:
             response = self._connection.run_rest(
-                "/c11y/extensions/",
+                "/modules/text2vec-contextionary/extensions/",
                 REST_METHOD_POST,
                 extension
                 )
         except RequestsConnectionError as conn_err:
             message = str(conn_err)\
-                    + ' Connection error, c11y could not be extended.'
+                    + ' Connection error, text2vec-contextionary could not be extended.'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
         if response.status_code == 200:
             # Successfully extended
             return
-        raise UnexpectedStatusCodeException("Extend c11y", response)
+        raise UnexpectedStatusCodeException("Extend text2vec-contextionary", response)
 
     def get_concept_vector(self, concept: str) -> dict:
         """
@@ -97,7 +97,7 @@ class Contextionary:
         -------
         dict
             A dictionary containing info and the vector/s of the concept.
-            The vector might be empty if the c11y does not contain it.
+            The vector might be empty if the text2vec-contextionary does not contain it.
 
         Raises
         ------
@@ -110,12 +110,12 @@ class Contextionary:
         AttributeError
         """
 
-        path = "/c11y/concepts/" + concept
+        path = "/modules/text2vec-contextionary/concepts/" + concept
         try:
             response = self._connection.run_rest(path, REST_METHOD_GET)
         except RequestsConnectionError as conn_err:
             message = str(conn_err)\
-                    + ' Connection error, c11y vector was not retrieved.'
+                    + ' Connection error, text2vec-contextionary vector was not retrieved.'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
         except AttributeError:
             raise
@@ -126,4 +126,4 @@ class Contextionary:
         else:
             if response.status_code == 200:
                 return response.json()
-            raise UnexpectedStatusCodeException("C11y vector", response)
+            raise UnexpectedStatusCodeException("text2vec-contextionary vector", response)
