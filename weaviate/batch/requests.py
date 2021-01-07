@@ -169,7 +169,7 @@ class ObjectsBatchRequest(BatchRequest):
 
         batch_item = {
             "class": class_name,
-            "schema": copy.deepcopy(data_object)
+            "properties": copy.deepcopy(data_object)
         }
         if uuid is not None:
             if not isinstance(uuid, str):

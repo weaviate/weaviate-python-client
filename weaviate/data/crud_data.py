@@ -83,7 +83,7 @@ class DataObject:
 
         weaviate_obj = {
             "class": class_name,
-            "schema": loaded_data_object
+            "properties": loaded_data_object
         }
         if uuid is not None:
             if not isinstance(uuid, str):
@@ -172,7 +172,7 @@ class DataObject:
         payload = {
             "id": uuid,
             "class": class_name,
-            "schema": object_dict
+            "properties": object_dict
         }
 
         path = f"/objects/{uuid}"
@@ -223,7 +223,7 @@ class DataObject:
         weaviate_obj = {
             "id": uuid,
             "class": class_name,
-            "schema": parsed_object
+            "properties": parsed_object
         }
 
         path = f"/objects/{uuid}"
@@ -486,7 +486,7 @@ class DataObject:
         weaviate_obj = {
             "id": uuid,
             "class": class_name,
-            "schema": loaded_data_object
+            "properties": loaded_data_object
         }
 
         path = "/objects/validate"
