@@ -1,20 +1,20 @@
 import json
-from typing import Union
+from typing import Union, List, Optional
 
 
-class Explore:
+class NearText:
     """
-    Explore class used to interact with objects from weaviate.
+    NearText class used to filter weaviate objects.
     """
 
     def __init__(self, content: dict):
         """
-        Initialize an Explore class instance.
+        Initialize a NearText class instance.
 
         Parameters
         ----------
         content : dict
-            The content of the `explore` clause.
+            The content of the `nearText` clause.
 
         Raises
         ------
@@ -25,12 +25,13 @@ class Explore:
         """
 
         if not isinstance(content, dict):
-            raise TypeError(f"Explore filter is expected to be type dict but was {type(content)}")
+            raise TypeError(f"{self.__class__.__name__} filter is expected to \
+                                        be type dict but was {type(content)}")
 
         self.concepts = _check_concept(content)
-        self.certainty = None
-        self.move_to = None
-        self.move_away_from = None
+        self.certainty: Optional[float] = None
+        self.move_to: Optional[dict] = None
+        self.move_away_from: Optional[dict] = None
 
         if "certainty" in content:
             if not isinstance(content["certainty"], float):
@@ -45,23 +46,70 @@ class Explore:
         if "moveAwayFrom" in content:
             self.move_away_from = _check_direction_clause(content["moveAwayFrom"])
 
-
     def __str__(self):
-        explore = f'{{concepts: {json.dumps(self.concepts)} '
+        near_text = f'nearText: {{concepts: {json.dumps(self.concepts)} '
         if self.certainty is not None:
-            explore += f'certainty: {str(self.certainty)} '
+            near_text += f'certainty: {str(self.certainty)} '
         if self.move_to is not None:
-            explore += f'moveTo:{{concepts: {json.dumps(self.move_to["concepts"])} \
+            near_text += f'moveTo:{{concepts: {json.dumps(self.move_to["concepts"])} \
                         force: {self.move_to["force"]}}} '
         if self.move_away_from is not None:
-            explore += f'moveAwayFrom:{{concepts: {json.dumps(self.move_away_from["concepts"])} \
+            near_text += f'moveAwayFrom:{{concepts: {json.dumps(self.move_away_from["concepts"])} \
                         force: {self.move_away_from["force"]}}} '
-        return explore + '}'
+        return near_text + '} '
+
+
+class NearVector:
+    """
+    NearVector class used to filter weaviate objects.
+    """
+
+    def __init__(self, content: dict):
+        """
+        Initialize a NearVector class instance.
+
+        Parameters
+        ----------
+        content : list
+            The content of the `nearVector` clause.
+
+        Raises
+        ------
+        TypeError
+            If 'content' is not of type dict.
+        ValueError
+            If 'content' does not contain "vector".
+        TypeError
+            If 'content["vector"]' is not of type list.
+        AttributeError
+            If invalid 'content' keys are provided.
+        """
+
+        if not isinstance(content, dict):
+            raise TypeError(f"{self.__class__.__name__} filter is expected to \
+                be type dict but was {type(content)}")
+
+        self.vector = _check_vector(content)
+        self.certainty: Optional[float] = None
+
+        # Check optional fields
+
+        if "certainty" in content:
+            if not isinstance(content["certainty"], float):
+                raise TypeError(f"certainty is expected to be a float but was \
+                            {type(content['certainty'])}")
+            self.certainty = content["certainty"]
+
+    def __str__(self):
+        near_vector = f'nearVector: {{vector: {json.dumps(self.vector)}'
+        if self.certainty is not None:
+            near_vector += f' certainty: {self.certainty}'
+        return near_vector + '} '
 
 
 class WhereFilter:
     """
-    WhereFilter class used to interact with objects from weaviate.
+    WhereFilter class used to filter weaviate objects.
     """
 
     def __init__(self, content: dict):
@@ -141,7 +189,7 @@ class WhereFilter:
 
     def __str__(self):
         if self.is_filter:
-            gql = f'{{path: {self.path} operator: {self.operator} {self.value_type}: '
+            gql = f'where: {{path: {self.path} operator: {self.operator} {self.value_type}: '
             if self.value_type in ["valueInt", "valueNumber"]:
                 gql += f'{self.value}}}'
             elif self.value_type == "valueBoolean":
@@ -152,13 +200,13 @@ class WhereFilter:
                 gql += f'{geo_value}}}'
             else:
                 gql += f'"{self.value}"}}'
-            return gql
+            return gql + ' '
 
         operands_str = []
         for operand in self.operands:
             operands_str.append(str(operand))
         operands = ", ".join(operands_str)
-        return f'{{operator: {self.operator} operands: [{operands}]}}'
+        return f'where: {{operator: {self.operator} operands: [{operands}]}} '
 
 
 def _check_direction_clause(direction: dict) -> dict:
@@ -202,7 +250,7 @@ def _check_concept(content: dict) -> Union[list, str]:
     Parameters
     ----------
     content : dict
-        An Explore (sub) clause to chack for 'concepts'.
+        An Explore (sub) clause to check for 'concepts'.
 
     Returns
     -------
@@ -223,6 +271,35 @@ def _check_concept(content: dict) -> Union[list, str]:
     if not isinstance(content["concepts"], (list, str)):
         raise TypeError(f"Concepts must be of type list or str not {type(content['concepts'])}")
     return content["concepts"]
+
+
+def _check_vector(content: dict) -> List[float]:
+    """
+    Validate the vector of the nearVector.
+
+    Parameters
+    ----------
+    content : dict
+        A nearVector clause to validate.
+
+    Returns
+    -------
+    list or str
+        The vector of the clause.
+
+    Raises
+    ------
+    ValueError
+        If no "vector" key in the 'content' dict.
+    TypeError
+        If the value of the  "vector" is of wrong type.
+    """
+
+    if "vector" not in content:
+        raise ValueError("No 'vector' in 'content'.")
+    if not isinstance(content["vector"], list):
+        raise TypeError(f"'vector' key is expected to be type list but was {content['vector']}")
+    return content["vector"]
 
 
 def _find_value_type(content: dict) -> str:

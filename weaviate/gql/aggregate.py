@@ -120,7 +120,7 @@ class AggregateBuilder:
         if self._uses_filter:
             query += "("
         if self._where is not None:
-            query += f"where: {str(self._where)} "
+            query += str(self._where)
         if self._group_by_properties is not None:
             query += f"groupBy: {json.dumps(self._group_by_properties)}"
         if self._uses_filter:
