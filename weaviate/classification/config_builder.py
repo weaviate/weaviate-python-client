@@ -3,7 +3,6 @@ import time
 from typing import Dict, Any
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
 from weaviate.connect import REST_METHOD_POST, Connection
-from .classify import Classification
 
 
 class ConfigBuilder:
@@ -11,7 +10,7 @@ class ConfigBuilder:
     ConfigBuild class that is used to configure a classification process.
     """
 
-    def __init__(self, connection: Connection, classification: Classification):
+    def __init__(self, connection: Connection, classification: 'Classification'):
         """
         Initialize a ConfiBuilder class instance.
 
@@ -19,7 +18,7 @@ class ConfigBuilder:
         ----------
         connection : weaviate.connect.Connection
             Connection object to an active and running weaviate instance.
-        classification : weaviate.classification.classifiy.Classification
+        classification : weaviate.classification.Classification
             Classification object to be configured using this ConfigBuilder
             instance.
         """
@@ -215,7 +214,7 @@ class ConfigBuilder:
 
         self._config["settings"] = settings
         return self
-    
+
     def _validate_config(self) -> None:
         """
         Validate the current classification configuration.

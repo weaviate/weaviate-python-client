@@ -10,7 +10,7 @@ class BatchRequest(ABC):
     """
     BatchRequest abstract class used as a interface for batch requests.
     """
-    
+
     @abstractmethod
     def get_request_body(self):
         pass

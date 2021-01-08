@@ -1,14 +1,7 @@
-OBJECTS_TYPE = "objects"
-
-from .client import Client
-from .batch import ReferenceBatchRequest
-from .batch import ObjectsBatchRequest
-from .exceptions import *
-from .util import generate_local_beacon
-from .classification import SOURCE_WHERE_FILTER, TRAINING_SET_WHERE_FILTER, TARGET_WHERE_FILTER
 from .auth import AuthClientCredentials, AuthClientPassword
 from .client_config import ClientConfig
-
-
-name = "weaviate"
-
+from .exceptions import *
+from .util import generate_local_beacon
+from .batch import ReferenceBatchRequest, ObjectsBatchRequest
+from .classification import Classification
+from .client import Client

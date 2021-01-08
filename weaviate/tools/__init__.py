@@ -1,3 +1,6 @@
+"""
+Module used to automaticaly submit batches to weaviate.
+"""
 from .batcher import Batcher
 import uuid
 
@@ -12,4 +15,3 @@ def generate_uuid(identifier, namespace=""):
     :rtype: str
     """
     return str(uuid.uuid5(uuid.NAMESPACE_DNS, str(namespace) + str(identifier)))
-

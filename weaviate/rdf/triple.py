@@ -6,7 +6,6 @@ import weaviate.tools as tools
 from weaviate.rdf.constants import triple_schema
 
 
-
 class TripleLoader:
 
     def __init__(self, client: weaviate.Client):

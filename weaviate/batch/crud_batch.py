@@ -95,6 +95,10 @@ class Batch:
             If weaviate reports a none OK status.
         """
 
+        if not isinstance(objects_batch_request, ObjectsBatchRequest):
+            raise TypeError(f"'reference_batch_request' should be of type \
+                ObjectsBatchRequest but was given : {type(objects_batch_request)}")
+
         return self.create(
             batch_request=objects_batch_request
             )
@@ -125,6 +129,10 @@ class Batch:
             If weaviate reports a none OK status.
         """
 
+        if not isinstance(reference_batch_request, ReferenceBatchRequest):
+            raise TypeError(f"'reference_batch_request' should be of type \
+                ReferenceBatchRequest but was given : {type(reference_batch_request)}")
+
         return self.create(
             batch_request=reference_batch_request
             )
@@ -138,6 +146,6 @@ class Batch:
             "'add_references' is deprecated, use 'create' or 'create_references' instead!",
             DeprecationWarning
         )
-        return self.create(
-            batch_request=reference_batch_request
+        return self.create_references(
+            reference_batch_request=reference_batch_request
             )

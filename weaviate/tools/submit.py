@@ -38,10 +38,10 @@ class SubmitBatches:
     def pop_results(self) -> list:
         """
         Pops the results of the submissions.
-        
+
         Returns
         -------
-        list 
+        list
             The results from all submitted updates since the last pop.
         """
 

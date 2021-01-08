@@ -150,7 +150,7 @@ class Batcher:
             self._update_batch_if_necessary()
 
     def add_reference(self, from_thing_class_name, from_thing_uuid, from_property_name,
-                    , to_thing_uuid):
+                    to_thing_uuid):
         with self._commit_lock:
             self._last_update = time.time()
             self._reference_batch.add(

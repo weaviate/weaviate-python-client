@@ -4,11 +4,6 @@ from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectio
 from weaviate.connect import REST_METHOD_GET, Connection
 from .config_builder import ConfigBuilder
 
-SOURCE_WHERE_FILTER = 0
-TRAINING_SET_WHERE_FILTER = 1
-TARGET_WHERE_FILTER = 2
-
-
 class Classification:
     """
     Classification class used to schedule and/or check the status of
