@@ -1,6 +1,7 @@
 import sys
 from typing import Union, Optional, List
 import validators
+from requests import Response
 from weaviate.connect import REST_METHOD_POST
 from weaviate.connect import REST_METHOD_PATCH
 from weaviate.connect import REST_METHOD_PUT
@@ -12,7 +13,6 @@ from weaviate.exceptions import RequestsConnectionError
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _get_dict_from_object
 from weaviate.data.references import Reference
-from requests import Response
 
 
 class DataObject:
@@ -239,7 +239,8 @@ class DataObject:
 
     def get_by_id(self,
             uuid: str,
-            additional_properties: List[str]=None
+            additional_properties: List[str]=None,
+            with_vector: bool=False
         ) -> Optional[dict]:
         """
         Get an object as dict.
@@ -251,6 +252,9 @@ class DataObject:
         additional_properties : list of str, optional
             List of additional properties that should be included in the request,
             by default None
+        with_vector: bool
+            If True the `vector` property will be returned too,
+            by default False.
 
         Returns
         -------
@@ -270,7 +274,7 @@ class DataObject:
             If weaviate reports a none OK status.
         """
 
-        response = self._get_object_response(uuid, additional_properties)
+        response = self._get_object_response(uuid, additional_properties, with_vector)
 
         if response.status_code == 200:
             return response.json()
@@ -279,7 +283,8 @@ class DataObject:
         raise UnexpectedStatusCodeException("Get object", response)
 
     def get(self,
-            additional_properties: List[str]=None
+            additional_properties: List[str]=None,
+            with_vector: bool=False
         ) -> List[dict]:
         """
         Gets all objects.
@@ -289,6 +294,9 @@ class DataObject:
         additional_properties : list of str, optional
             list of additional properties that should be included in the request,
             by default None
+        with_vector: bool
+            If True the `vector` property will be returned too,
+            by default False.
 
         Returns
         -------
@@ -307,7 +315,7 @@ class DataObject:
             If weaviate reports a none OK status.
         """
 
-        params = _get_params(additional_properties)
+        params = _get_params(additional_properties, with_vector)
 
         path = "/objects"
 
@@ -323,7 +331,8 @@ class DataObject:
 
     def _get_object_response(self,
             object_uuid: str,
-            additional_properties: List[str]=None
+            additional_properties: List[str],
+            with_vector: bool
         ) -> Response:
         """
         Retrieve an object from weaviate.
@@ -333,8 +342,9 @@ class DataObject:
         object_uuid : str
             The identifier of the object that should be retrieved.
         additional_properties : list of str, optional
-            Defines the additional properties that should be included in the result,
-            by default None.
+            Defines the additional properties that should be included in the result.
+        with_vector: bool
+            If True the `vector` property will be returned too.
 
         Returns
         -------
@@ -351,7 +361,7 @@ class DataObject:
             If the network connection to weaviate fails.
         """
 
-        params = _get_params(additional_properties)
+        params = _get_params(additional_properties, with_vector)
 
         if not isinstance(object_uuid, str):
             object_uuid = str(object_uuid)
@@ -429,7 +439,7 @@ class DataObject:
             If uuid is not properly formed.
         """
 
-        response = self._get_object_response(uuid)
+        response = self._get_object_response(uuid, None, False)
 
         if response.status_code == 200:
             return True
@@ -511,7 +521,7 @@ class DataObject:
         raise UnexpectedStatusCodeException("Validate object", response)
 
 
-def _get_params(additional_properties: Optional[List[str]]) -> dict:
+def _get_params(additional_properties: Optional[List[str]], with_vector: bool) -> dict:
     """
     Get underscor properties in the format accepted by weaviate.
 
@@ -519,11 +529,14 @@ def _get_params(additional_properties: Optional[List[str]]) -> dict:
     ----------
     additional_properties : list of str or None
         A list of additional properties or None.
+    with_vector: bool
+        If True the `vector` property will be returned too.
 
     Returns
     -------
     dict
-        A dictionary including weaviate-accepted additional properties.
+        A dictionary including weaviate-accepted additional properties
+        and/or `vector` property.
 
     Raises
     ------
@@ -537,4 +550,10 @@ def _get_params(additional_properties: Optional[List[str]]) -> dict:
             raise TypeError(f"Additional properties must be of type list \
                                 but are {type(additional_properties)}")
         params['include'] = ",".join(additional_properties)
+
+    if with_vector:
+        if 'include' in params:
+            params['include'] = params['include'] + ',vector'
+        else:
+            params['include'] = 'vector'
     return params
