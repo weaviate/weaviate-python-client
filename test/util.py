@@ -1,6 +1,5 @@
 import unittest
-from weaviate.util import is_weaviate_entity_url, get_uuid_from_weaviate_url, _is_sub_schema, is_object_url, ParsedUUID
-from weaviate import SEMANTIC_TYPE_THINGS, SEMANTIC_TYPE_ACTIONS
+from weaviate.util import is_weaviate_entity_url, get_uuid_from_weaviate_url, _is_sub_schema, is_object_url
 
 class TestWeaviateClient(unittest.TestCase):
 
@@ -173,24 +172,7 @@ disjoint_set = {
 }
 
 partial_set = {
-    "actions": {
-        "classes": [
-            {
-                "class": "Ollie",
-                "properties": [{"name": "height"}]
-            },
-            {
-                "class": "Shuvit",
-                "properties": [{"name": "direction"}]
-            },
-            {
-                "class": "Manual",
-                "properties": [{"name": "nose"}]
-            }
-        ],
-        "type": "action"
-    },
-    "things": {
+    "objects": {
         "classes": [
             {
                 "class": "Board",
@@ -206,6 +188,18 @@ partial_set = {
             {
                 "class": "Bearings",
                 "properties": [{"name": "brand"}]
+            },
+            {
+                "class": "Ollie",
+                "properties": [{"name": "height"}]
+            },
+            {
+                "class": "Shuvit",
+                "properties": [{"name": "direction"}]
+            },
+            {
+                "class": "Manual",
+                "properties": [{"name": "nose"}]
             }
         ],
     }

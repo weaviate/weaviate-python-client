@@ -1,4 +1,4 @@
-from requests.exceptions import ConnectionError
+import requests
 from unittest.mock import Mock
 
 
@@ -29,7 +29,7 @@ def run_rest_raise_connection_error(path, rest_method, weaviate_object=None, ret
 
     :raises ConnectionError
     """
-    raise ConnectionError
+    raise requests.exceptions.ConnectionError
 
 
 def replace_connection(weaviate, connection):
