@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 import copy
+import warnings
 from abc import ABC, abstractmethod
 from typing import List
 import validators
@@ -76,24 +77,13 @@ class ReferenceBatchRequest(BatchRequest):
             to_entity_uuid: str
         ) -> None:
         """
-        Add one reference to this batch. It is the same as method 'add'.
-
-        Parameters
-        ----------
-        from_entity_uuid : str
-            The UUID or URL of the thing that should reference another object.
-        from_entity_class_name : str
-            The name of the class that should reference another object.
-        from_property_name : str
-            The name of the property that contains the reference.
-        to_entity_uuid : str
-            The UUID or URL of the object that is actually referenced.
-
-        Raises
-        ------
-        TypeError
-            If arguments are not string.
+        'add_references' is deprecated due to redundancy, use 'add' instead!
         """
+
+        warnings.warn(
+            "'add_references' is deprecated due to redundancy, use 'add' instead!",
+            DeprecationWarning
+        )
 
         return self.add(
             from_entity_uuid=from_entity_uuid,
@@ -186,24 +176,13 @@ class ObjectsBatchRequest(BatchRequest):
             uuid: str=None
         ) -> None:
         """
-        Add one object to this batch. It is the same as method 'add'.
-
-        Parameters
-        ----------
-        data_object : dict
-            Object to be added as a dict datatype.
-        class_name : str
-            The name of the class this object belongs to.
-        uuid : str, optional
-            UUID of the object as a string, by default None.
-
-        Raises
-        ------
-        TypeError
-            If an argument passed is not of an appropriate type.
-        ValueError
-            If 'uuid' is not of a propper form.
+        'add_object' is deprecated due to redundancy, use 'add' instead!
         """
+
+        warnings.warn(
+            "'add_object' is deprecated due to redundancy, use 'add' instead!",
+            DeprecationWarning
+        )
 
         return self.add(
             data_object=data_object,
