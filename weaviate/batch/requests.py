@@ -4,7 +4,7 @@ import warnings
 from abc import ABC, abstractmethod
 from typing import List
 import validators
-from weaviate.util import is_weaviate_entity_url, get_uuid_from_weaviate_url
+from weaviate.util import is_weaviate_object_url, get_uuid_from_weaviate_url
 
 class BatchRequest(ABC):
     """
@@ -22,32 +22,32 @@ class ReferenceBatchRequest(BatchRequest):
     """
 
     def __init__(self):
-        self._from_entity_class_names = []
-        self._from_entity_ids = []
-        self._from_entity_properties = []
-        self._to_entity_ids = []
+        self._from_object_class_names = []
+        self._from_object_ids = []
+        self._from_object_properties = []
+        self._to_object_ids = []
 
     def __len__(self):
-        return len(self._from_entity_class_names)
+        return len(self._from_object_class_names)
 
     def add(self,
-            from_entity_uuid: str,
-            from_entity_class_name: str,
+            from_object_uuid: str,
+            from_object_class_name: str,
             from_property_name: str,
-            to_entity_uuid: str
+            to_object_uuid: str
         ) -> None:
         """
         Add one reference to this batch.
 
         Parameters
         ----------
-        from_entity_uuid : str
-            The UUID or URL of the thing that should reference another object.
-        from_entity_class_name : str
+        from_object_uuid : str
+            The UUID or URL of the object that should reference another object.
+        from_object_class_name : str
             The name of the class that should reference another object.
         from_property_name : str
             The name of the property that contains the reference.
-        to_entity_uuid : str
+        to_object_uuid : str
             The UUID or URL of the object that is actually referenced.
 
         Raises
@@ -56,25 +56,25 @@ class ReferenceBatchRequest(BatchRequest):
             If arguments are not of type str.
         """
 
-        if not isinstance(from_entity_class_name, str) or not isinstance(from_entity_uuid, str) or\
-            not isinstance(from_property_name, str) or not isinstance(to_entity_uuid, str):
+        if not isinstance(from_object_class_name, str) or not isinstance(from_object_uuid, str) or\
+            not isinstance(from_property_name, str) or not isinstance(to_object_uuid, str):
             raise TypeError('All arguments must be of type string')
 
-        if is_weaviate_entity_url(from_entity_uuid):
-            from_entity_uuid = get_uuid_from_weaviate_url(from_entity_uuid)
-        if is_weaviate_entity_url(to_entity_uuid):
-            to_entity_uuid = get_uuid_from_weaviate_url(to_entity_uuid)
+        if is_weaviate_object_url(from_object_uuid):
+            from_object_uuid = get_uuid_from_weaviate_url(from_object_uuid)
+        if is_weaviate_object_url(to_object_uuid):
+            to_object_uuid = get_uuid_from_weaviate_url(to_object_uuid)
 
-        self._from_entity_class_names.append(from_entity_class_name)
-        self._from_entity_ids.append(from_entity_uuid)
-        self._from_entity_properties.append(from_property_name)
-        self._to_entity_ids.append(to_entity_uuid)
+        self._from_object_class_names.append(from_object_class_name)
+        self._from_object_ids.append(from_object_uuid)
+        self._from_object_properties.append(from_property_name)
+        self._to_object_ids.append(to_object_uuid)
 
     def add_reference(self,
-            from_entity_uuid: str,
-            from_entity_class_name: str,
+            from_object_uuid: str,
+            from_object_class_name: str,
             from_property_name: str,
-            to_entity_uuid: str
+            to_object_uuid: str
         ) -> None:
         """
         'add_references' is deprecated due to redundancy, use 'add' instead!
@@ -86,10 +86,10 @@ class ReferenceBatchRequest(BatchRequest):
         )
 
         return self.add(
-            from_entity_uuid=from_entity_uuid,
-            from_entity_class_name=from_entity_class_name,
+            from_object_uuid=from_object_uuid,
+            from_object_class_name=from_object_class_name,
             from_property_name=from_property_name,
-            to_entity_uuid=to_entity_uuid
+            to_object_uuid=to_object_uuid
             )
 
     def get_request_body(self) -> List[dict]:
@@ -107,9 +107,9 @@ class ReferenceBatchRequest(BatchRequest):
         for i in range(len(self)):
             batch_body.append(
                 {
-                "from": "weaviate://localhost/" + self._from_entity_class_names[i] + "/"
-                    + self._from_entity_ids[i] + "/" + self._from_entity_properties[i],
-                "to": "weaviate://localhost/" + self._to_entity_ids[i]
+                "from": "weaviate://localhost/" + self._from_object_class_names[i] + "/"
+                    + self._from_object_ids[i] + "/" + self._from_object_properties[i],
+                "to": "weaviate://localhost/" + self._to_object_ids[i]
                 }
             )
         return batch_body

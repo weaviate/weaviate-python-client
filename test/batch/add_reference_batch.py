@@ -19,14 +19,14 @@ class TestBatchReferencesObject(unittest.TestCase):
             Expected size.
         """
 
-        # test _from_entity_class_names
-        self.assertEqual(len(batch._from_entity_class_names), expected_size)
-        # test _from_entity_ids
-        self.assertEqual(len(batch._from_entity_ids), expected_size)
-        # test _from_entity_properties
-        self.assertEqual(len(batch._from_entity_properties), expected_size)
-        # test _to_entity_ids
-        self.assertEqual(len(batch._to_entity_ids), expected_size)
+        # test _from_object_class_names
+        self.assertEqual(len(batch._from_object_class_names), expected_size)
+        # test _from_object_ids
+        self.assertEqual(len(batch._from_object_ids), expected_size)
+        # test _from_object_properties
+        self.assertEqual(len(batch._from_object_properties), expected_size)
+        # test _to_object_ids
+        self.assertEqual(len(batch._to_object_ids), expected_size)
 
     def test_ref_batch_size(self):
         """
@@ -69,10 +69,10 @@ class TestBatchReferencesObject(unittest.TestCase):
                 "a",
                 "weaviate://localhost/fc7eb129-f138-457f-b727-1b29db191a67",
                 )
-        self.assertEqual(batch._from_entity_ids[0], "04a4b17d-6beb-443a-b1bc-835b0dd4e660")
-        self.assertEqual(batch._to_entity_ids[0], "fc7eb129-f138-457f-b727-1b29db191a67")
-        self.assertEqual(batch._from_entity_class_names[0], "Alpha")
-        self.assertEqual(batch._from_entity_properties[0], "a")
+        self.assertEqual(batch._from_object_ids[0], "04a4b17d-6beb-443a-b1bc-835b0dd4e660")
+        self.assertEqual(batch._to_object_ids[0], "fc7eb129-f138-457f-b727-1b29db191a67")
+        self.assertEqual(batch._from_object_class_names[0], "Alpha")
+        self.assertEqual(batch._from_object_properties[0], "a")
 
         # test with a incorrect formated url, should work nevertheless
         batch = ReferenceBatchRequest()
@@ -81,10 +81,10 @@ class TestBatchReferencesObject(unittest.TestCase):
                 "property_a",
                 "this is not an uuid",
                 )
-        self.assertEqual(batch._from_entity_ids[0], "12345-1234")
-        self.assertEqual(batch._to_entity_ids[0], "this is not an uuid")
-        self.assertEqual(batch._from_entity_class_names[0], "Class/Alpha")
-        self.assertEqual(batch._from_entity_properties[0], "property_a")
+        self.assertEqual(batch._from_object_ids[0], "12345-1234")
+        self.assertEqual(batch._to_object_ids[0], "this is not an uuid")
+        self.assertEqual(batch._from_object_class_names[0], "Class/Alpha")
+        self.assertEqual(batch._from_object_properties[0], "property_a")
 
         # test with a incorrect formated url, should work nevertheless
         batch = ReferenceBatchRequest()
@@ -93,10 +93,10 @@ class TestBatchReferencesObject(unittest.TestCase):
                 "//a/prop",
                 "this_is_a_path//other_path/this is not an uuid",
                 )
-        self.assertEqual(batch._from_entity_ids[0], "some_path/12345-1234")
-        self.assertEqual(batch._to_entity_ids[0], "this_is_a_path//other_path/this is not an uuid")
-        self.assertEqual(batch._from_entity_class_names[0], "Class/Alpha/")
-        self.assertEqual(batch._from_entity_properties[0], "//a/prop")
+        self.assertEqual(batch._from_object_ids[0], "some_path/12345-1234")
+        self.assertEqual(batch._to_object_ids[0], "this_is_a_path//other_path/this is not an uuid")
+        self.assertEqual(batch._from_object_class_names[0], "Class/Alpha/")
+        self.assertEqual(batch._from_object_properties[0], "//a/prop")
 
         # add another reference to the previous batch
         batch.add("http://this-is_diferent/Some_Path/12345-1234",
@@ -104,15 +104,15 @@ class TestBatchReferencesObject(unittest.TestCase):
                 "some_prop",
                 "www.path/////some_other_path/this is Not uuid",
                 )
-        self.assertEqual(batch._from_entity_ids[0], "some_path/12345-1234")
-        self.assertEqual(batch._to_entity_ids[0], "this_is_a_path//other_path/this is not an uuid")
-        self.assertEqual(batch._from_entity_class_names[0], "Class/Alpha/")
-        self.assertEqual(batch._from_entity_properties[0], "//a/prop")
+        self.assertEqual(batch._from_object_ids[0], "some_path/12345-1234")
+        self.assertEqual(batch._to_object_ids[0], "this_is_a_path//other_path/this is not an uuid")
+        self.assertEqual(batch._from_object_class_names[0], "Class/Alpha/")
+        self.assertEqual(batch._from_object_properties[0], "//a/prop")
 
-        self.assertEqual(batch._from_entity_ids[1], "http://this-is_diferent/Some_Path/12345-1234")
-        self.assertEqual(batch._to_entity_ids[1], "www.path/////some_other_path/this is Not uuid")
-        self.assertEqual(batch._from_entity_class_names[1], "some_class")
-        self.assertEqual(batch._from_entity_properties[1], "some_prop")
+        self.assertEqual(batch._from_object_ids[1], "http://this-is_diferent/Some_Path/12345-1234")
+        self.assertEqual(batch._to_object_ids[1], "www.path/////some_other_path/this is Not uuid")
+        self.assertEqual(batch._from_object_class_names[1], "some_class")
+        self.assertEqual(batch._from_object_properties[1], "some_prop")
 
     def test_ref_batch_add_reference(self):
         """
@@ -206,7 +206,7 @@ class TestBatchReferencesObject(unittest.TestCase):
         client.batch.create(batch)
         connection_mock.run_rest.assert_called()
         call_args_list = connection_mock.run_rest.call_args_list
-        call_args, call_kwargs = call_args_list[0]
+        call_kwargs = call_args_list[0][1]
 
         self.assertEqual("/batch/references", call_kwargs['path'])
         self.assertEqual(REST_METHOD_POST, call_kwargs['rest_method'])

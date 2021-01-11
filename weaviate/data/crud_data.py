@@ -67,7 +67,7 @@ class DataObject:
             If argument is of wrong type.
         ValueError
             If argument contains an invalid value.
-        weaviate.ThingAlreadyExistsException
+        weaviate.ObjectAlreadyExistsException
             If an object with the given uuid already exists within weaviate.
         weaviate.UnexpectedStatusCodeException
             If creating the object in weavate failed with a different reason,

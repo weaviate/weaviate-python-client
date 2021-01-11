@@ -28,7 +28,7 @@ def generate_local_beacon(to_uuid: str) -> dict:
     """
 
     if not isinstance(to_uuid, str):
-        raise TypeError("Expected to_thing_uuid of type str")
+        raise TypeError("Expected to_object_uuid of type str")
     if not validators.uuid(to_uuid):
         raise ValueError("Uuid does not have the propper form")
     return {"beacon": "weaviate://localhost/" + to_uuid}
@@ -58,7 +58,7 @@ def _get_dict_from_object(object_: Union[str, dict]) -> dict:
         If no dict can be retrieved from object.
     """
 
-    # check if things files is url
+    # check if objects files is url
     if object_ is None:
         raise TypeError("argument is None")
 
@@ -83,7 +83,7 @@ def _get_dict_from_object(object_: Union[str, dict]) -> dict:
                                     url or file path as string or schema as dict.")
 
 
-def is_weaviate_entity_url(url: str) -> bool:
+def is_weaviate_object_url(url: str) -> bool:
     """
     Checks if the input follows a normal url like this:
     'weaviate://localhost/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'
@@ -96,7 +96,7 @@ def is_weaviate_entity_url(url: str) -> bool:
     Returns
     -------
     bool
-        True if 'input' is an weaviate entity URL.
+        True if 'input' is an weaviate object URL.
         False otherwise.
     """
 
@@ -168,7 +168,7 @@ def is_valid_uuid(uuid: str) -> bool:
     if not isinstance(uuid, str):
         raise TypeError("uuid must be of type str but was: " + str(type(uuid)))
 
-    _is_weaviate_url = is_weaviate_entity_url(uuid)
+    _is_weaviate_url = is_weaviate_object_url(uuid)
     _is_object_url = is_object_url(uuid)
     _uuid = uuid
     if _is_weaviate_url or _is_object_url:

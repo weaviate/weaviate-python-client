@@ -86,7 +86,7 @@ class Batch:
         Returns
         -------
         list
-            A list with the status of every thing that was created.
+            A list with the status of every object that was created.
         Raises
         ------
         requests.exceptions.ConnectionError

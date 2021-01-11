@@ -1,8 +1,8 @@
 """
 Module used to automaticaly submit batches to weaviate.
 """
-from .batcher import Batcher
 import uuid
+from .batcher import Batcher
 
 
 def generate_uuid(identifier, namespace=""):

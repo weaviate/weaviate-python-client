@@ -204,7 +204,8 @@ class WhereFilter:
 
         operands_str = []
         for operand in self.operands:
-            operands_str.append(str(operand))
+            # remove the `where: ` from the operands.
+            operands_str.append(str(operand)[7:])
         operands = ", ".join(operands_str)
         return f'where: {{operator: {self.operator} operands: [{operands}]}} '
 

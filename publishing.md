@@ -2,7 +2,7 @@
 `make -C documentation html`
 2. Make sure you set the right version in the `setup.py`
 3. Then build the new package:\
-`python setup.py bdist_wheel`
+`python setup.py sdist bdist_wheel`
 4. And check it:\
 `twine check dist/*`
 5. Check if you are on **Master** in case of full release.

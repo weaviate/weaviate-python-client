@@ -8,7 +8,7 @@ from .submit import SubmitBatches, SubmitBatchesException
 class Batcher:
     """
     Manages batches and batch loading. Autocommits both Objects and References
-    when the batcher reacher the allocated size. It resets after the batch is 
+    when the batcher reacher the allocated size. It resets after the batch is
     loaded to the weaviate, and can be reused.
     """
 
@@ -149,15 +149,15 @@ class Batcher:
             self._objects_batch.add(data_object, class_name, uuid)
             self._update_batch_if_necessary()
 
-    def add_reference(self, from_thing_class_name, from_thing_uuid, from_property_name,
-                    to_thing_uuid):
+    def add_reference(self, from_object_class_name, from_object_uuid, from_property_name,
+                    to_object_uuid):
         with self._commit_lock:
             self._last_update = time.time()
             self._reference_batch.add(
-                from_entity_class_name=from_thing_class_name,
-                from_entity_uuid=from_thing_uuid,
+                from_object_class_name=from_object_class_name,
+                from_object_uuid=from_object_uuid,
                 from_property_name=from_property_name,
-                to_entity_uuid=to_thing_uuid
+                to_object_uuid=to_object_uuid
             )
             self._update_batch_if_necessary()
 
@@ -179,7 +179,7 @@ class Batcher:
             self.update_batches()
             retry_counter += 1
             if retry_counter > 500:
-                print("CRITICAL ERROR things can not be updated exit after 500 retries")
+                print("CRITICAL ERROR objects can not be updated exit after 500 retries")
                 exit(5)
 
         self._reference_batch = None

@@ -3,119 +3,93 @@ Triple schema as constant.
 """
 
 triple_schema = {
-  "objects": {
-    "type": "thing",
-    "name": "rdf-triples",
-    "classes": [
-      {
-        "class": "Subject",
-        "description": "Subject",
-        "keywords": [],
-        "properties": [
-          {
-            "name": "value",
-            "description": "value of subject",
-            "dataType": [
-              "text"
-            ],
-            "cardinality": "atMostOne",
-            "keywords": []
-          },
-          {
-            "name": "valueKey",
-            "description": "valueKey of subject",
-            "dataType": [
-              "string"
-            ],
-            "cardinality": "atMostOne",
-            "keywords": []
-          }
-        ]
-      },
-      {
-        "class": "Predicate",
-        "description": "predicate",
-        "keywords": [],
-        "properties": [
-          {
-            "name": "value",
-            "description": "value",
-            "dataType": [
-              "text"
-            ],
-            "cardinality": "atMostOne",
-            "keywords": []
-          },
-          {
-            "name": "valueKey",
-            "description": "valueKey",
-            "dataType": [
-              "string"
-            ],
-            "cardinality": "atMostOne",
-            "keywords": []
-          }
-        ]
-      },
-      {
-        "class": "Object",
-        "description": "object",
-        "keywords": [],
-        "properties": [
-          {
-            "name": "value",
-            "description": "value",
-            "dataType": [
-              "text"
-            ],
-            "cardinality": "atMostOne",
-            "keywords": []
-          },
-          {
-            "name": "valueKey",
-            "description": "valueKey of subject",
-            "dataType": [
-              "string"
-            ],
-            "cardinality": "atMostOne",
-            "keywords": []
-          }
-        ]
-      },
-      {
-        "class": "Triple",
-        "description": "rdf triple",
-        "keywords": [],
-        "properties": [
-          {
-            "name": "subject",
-            "description": "subject of the triple",
-            "dataType": [
-              "Subject"
-            ],
-            "cardinality": "atMostOne",
-            "keywords": []
-          },
-          {
-            "name": "predicate",
-            "description": "predicate of the triple",
-            "dataType": [
-              "Predicate"
-            ],
-            "cardinality": "atMostOne",
-            "keywords": []
-          },
-          {
-            "name": "object",
-            "description": "object of the triple",
-            "dataType": [
-              "Object"
-            ],
-            "cardinality": "atMostOne",
-            "keywords": []
-          }
-        ]
-      }
-    ]
-  }
+  "classes": [
+    {
+      "class": "Subject",
+      "description": "Subject",
+      "properties": [
+        {
+          "name": "value",
+          "description": "value of subject",
+          "dataType": [
+            "text"
+          ],
+        },
+        {
+          "name": "valueKey",
+          "description": "valueKey of subject",
+          "dataType": [
+            "string"
+          ],
+        }
+      ]
+    },
+    {
+      "class": "Predicate",
+      "description": "predicate",
+      "properties": [
+        {
+          "name": "value",
+          "description": "value",
+          "dataType": [
+            "text"
+          ],
+        },
+        {
+          "name": "valueKey",
+          "description": "valueKey",
+          "dataType": [
+            "string"
+          ],
+        }
+      ]
+    },
+    {
+      "class": "Object",
+      "description": "object",
+      "properties": [
+        {
+          "name": "value",
+          "description": "value",
+          "dataType": [
+            "text"
+          ],
+        },
+        {
+          "name": "valueKey",
+          "description": "valueKey of subject",
+          "dataType": [
+            "string"
+          ],
+        }
+      ]
+    },
+    {
+      "class": "Triple",
+      "description": "rdf triple",
+      "properties": [
+        {
+          "name": "subject",
+          "description": "subject of the triple",
+          "dataType": [
+            "Subject"
+          ],
+        },
+        {
+          "name": "predicate",
+          "description": "predicate of the triple",
+          "dataType": [
+            "Predicate"
+          ],
+        },
+        {
+          "name": "object",
+          "description": "object of the triple",
+          "dataType": [
+            "Object"
+          ],
+        }
+      ]
+    }
+  ]
 }

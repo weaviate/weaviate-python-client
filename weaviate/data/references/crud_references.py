@@ -46,7 +46,7 @@ class Reference:
             to_uuid: str
         ) -> None:
         """
-        Remove a reference to another thing. Equal to removing one
+        Remove a reference to another object. Equal to removing one
         direction of an edge from the graph.
 
         Parameters

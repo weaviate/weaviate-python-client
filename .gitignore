@@ -7,3 +7,5 @@ tmp
 *.pyc
 docker-compose.yaml
 .DS_Store
+.ipynb_checkpoints
+*.ipynb

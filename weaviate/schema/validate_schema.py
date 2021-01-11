@@ -20,18 +20,14 @@ def validate_schema(schema: dict) -> None:
         If the schema could not be validated against the standard format.
     """
 
-    # check if schema has only "objects" as keys
-    if len(schema) != 1 or "objects" not in schema:
-        raise SchemaValidationException('each schema has to have only "objects" \
+    # check if schema has only "classes" as keys
+    if len(schema) != 1 or "classes" not in schema:
+        raise SchemaValidationException('each schema has to have only "classes" \
                     in the first level of the JSON format file/parameter/object')
-    # check if schema["objects"] has only "classes" as keys
-    if len(schema["objects"]) != 1 or "classes" not in schema["objects"]:
-        raise SchemaValidationException('"objects" has more than one key or \
-                                    does not contain mandatory key "classes".')
     # check if "classes" is of type list
-    _check_key_type("classes", schema["objects"]["classes"], list)
+    _check_key_type("classes", schema["classes"], list)
     # check if each class in the "classes" is a valid class
-    for weaviate_class in schema["objects"]["classes"]:
+    for weaviate_class in schema["classes"]:
         check_class(weaviate_class)
 
 

@@ -54,8 +54,8 @@ class Schema:
         loaded_schema = _get_dict_from_object(schema)
         # validate the schema before loading
         validate_schema(loaded_schema)
-        self._create_classes_with_primitives(loaded_schema["objects"]["classes"])
-        self._create_complex_properties_from_classes(loaded_schema["objects"]["classes"])
+        self._create_classes_with_primitives(loaded_schema["classes"])
+        self._create_complex_properties_from_classes(loaded_schema["classes"])
 
     def create_class(self, schema_class: Union[dict, str]) -> None:
         """
@@ -122,7 +122,7 @@ class Schema:
         """
 
         schema = self.get()
-        classes = schema.get("objects", {}).get("classes", [])
+        classes = schema.get("classes", [])
         for _class in classes:
             self.delete_class(_class["class"])
 
@@ -151,7 +151,7 @@ class Schema:
             sub_schema = _get_dict_from_object(schema)
             return _is_sub_schema(sub_schema, loaded_schema)
 
-        if len(loaded_schema["objects"]["classes"]) == 0:
+        if len(loaded_schema["classes"]) == 0:
             return False
         return True
 
