@@ -1,208 +1,148 @@
 import unittest
-from weaviate.schema.validate_schema import validate_schema, \
-    _check_schema_class_types, check_class, check_property
+from weaviate.schema.validate_schema import validate_schema, check_class, check_property
 
 from weaviate.exceptions import SchemaValidationException
 
 
 class TestSchemaValidation(unittest.TestCase):
 
-    def test_actions_and_things(self):
-        schema_things = {"things": {"classes": []}}
-        schema_actions = {"actions": {"classes": []}}
-        schema_both = {"actions": {"classes": []},
-                       "things": {"classes": []}}
+    def test_schema_validation(self):
+        """
+        Test schema validation
+        """
+
+        schema_valid = {"classes": []}
+        schema_invalid_0 = {"classes": "my_class"}
+        schema_invalid_1 = {"things": {"classes": []}}
+        schema_invalid_2 = {"classes": [], "things" : []}
         schema_none = {}
-        schema_wrong = {"thinks": {"classes": []}}
-        schema_too_much = {"actions": {"classes": []},
-                           "things": {"classes": []},
-                           "memories": {"classes": []}}
 
-
-        self.assertIsNone(validate_schema(schema_things))
-        self.assertIsNone(validate_schema(schema_actions))
-        self.assertIsNone(validate_schema(schema_both))
-        try:
+        self.assertIsNone(validate_schema(schema_valid))
+        with self.assertRaises(SchemaValidationException):
             validate_schema(schema_none)
-            self.fail("expected exception")
-        except SchemaValidationException:
-            pass
-        try:
-            validate_schema(schema_too_much)
-            self.fail("expected exception")
-        except SchemaValidationException:
-            pass
-        try:
-            validate_schema(schema_wrong)
-            self.fail("expected exception")
-        except SchemaValidationException:
-            pass
-
-    def test_check_schema_class_types(self):
-        with_classes = {"classes": []}
-        no_classes = {"random": "field"}
-        with_classes_and_others = {"@context": "",
-                                   "version": "0.2.0",
-                                   "type": "thing",
-                                   "name": "people",
-                                   "maintainer": "yourfriends@weaviate.com",
-                                   "classes": []}
-        self.assertIsNone(_check_schema_class_types("things", with_classes))
-        self.assertIsNone(_check_schema_class_types("things", with_classes_and_others))
-        try:
-            _check_schema_class_types("things", no_classes)
-            self.fail("expected exception")
-        except SchemaValidationException:
-            pass
-        # test classes not a list
-        try:
-            _check_schema_class_types("things", {"classes": "a"})
-            self.fail("expected exception")
-        except SchemaValidationException:
-            pass
+        with self.assertRaises(SchemaValidationException):
+            validate_schema(schema_invalid_0)
+        with self.assertRaises(SchemaValidationException):
+            validate_schema(schema_invalid_1)
+        with self.assertRaises(SchemaValidationException):
+            validate_schema(schema_invalid_2)
 
     def test_check_class(self):
-        # minimal must contain class key as string
-        check_class({"class": "Car"})
-        try:
-            # wrong type
-            check_class({"class": []})
-            self.fail()
-        except SchemaValidationException:
-            pass
+        """
+        Test check_class.
+        """
 
         # Valid maximal schema
-        max_valid = {"class": "Boat",
-                     "description": "boat swiming on the water",
-                     "vectorizeClassName": True,
-                     "keywords": [],
-                     "properties": []}
+        max_valid = {
+            "class": "Boat",
+            "description": "boat swiming on the water",
+            "properties": [],
+            "vectorIndexType": "hnsw",
+            "vectorIndexConfig": {},
+            "moduleConfig": {},
+            "vectorizer": "text2vec-contextionary",
+            }
+        self.assertIsNone(check_class(max_valid))
+        # minimal must contain class key as string
+        self.assertIsNone(check_class({"class": "Car"}))
 
-        check_class(max_valid)
-
-        try:
-            # unknown key
-            max_valid["random"] = "field"
-            check_class(max_valid)
-            self.fail()
-        except SchemaValidationException:
-            pass
-
-        # Check data types optional fields
-        try:
-            check_class({"class": "Tree",
-                          "description": []})
-            self.fail()
-        except SchemaValidationException:
-            pass
-        try:
-            check_class({"class": "Tree",
-                          "vectorizeClassName": "yes"})
-            self.fail()
-        except SchemaValidationException:
-            pass
-        try:
-            check_class({"class": "Tree",
-                          "properties": "References please"})
-            self.fail()
-        except SchemaValidationException:
-            pass
+        # wrong type
+        with self.assertRaises(SchemaValidationException):
+            class_ = {"class" : []}
+            check_class({
+                "class" : [],
+                "invalid_key": "value"
+                })
+        with self.assertRaises(SchemaValidationException):
+            check_class({
+                "class": "Tree",
+                "description": []
+                })
+        with self.assertRaises(SchemaValidationException):
+            check_class({
+                "class": "Tree",
+                "properties": "References please"
+                })
+        with self.assertRaises(SchemaValidationException):
+            check_class({
+                "class": "Tree",
+                "vectorIndexType": True
+                })
+        with self.assertRaises(SchemaValidationException):
+            check_class({
+                "class": "Tree",
+                "vectorIndexConfig": []
+                })
+        with self.assertRaises(SchemaValidationException):
+            check_class({
+                "class": "Tree",
+                "moduleConfig": []
+                })
+        with self.assertRaises(SchemaValidationException):
+            check_class({
+                "class": "Tree",
+                "vectorizer": 100.1
+                })
 
     def test_check_property(self):
+        """
+        Test check_property.
+        """
+
         valid_minimal = {"dataType": ["string"],
                          "name": "string"}
-        check_property(valid_minimal)
-        valid_max = {"dataType": ["string"],
-                     "name": "Rocket",
-                     "vectorizePropertyName": True,
-                     "keywords": [],
-                     "cardinality": "many",
-                     "description": "some description",
-                     "index": True}
-        check_property(valid_max)
-        try:
-            # unknown field
-            valid_minimal["random"] = "field"
-            check_property(valid_minimal)
-            self.fail()
-        except SchemaValidationException:
-            pass
-        # Wrong data types:
-        try:
-            check_property({"dataType": "not list",
-                             "name": "Rocket",
-                             "vectorizePropertyName": True,
-                             "keywords": [],
-                             "cardinality": "many",
-                             "description": "some description",
-                             "index": True})
-            self.fail()
-        except SchemaValidationException:
-            pass
-        try:
-            check_property({"dataType": ["string"],
-                             "name": 12,
-                             "vectorizePropertyName": True,
-                             "keywords": [],
-                             "cardinality": "many",
-                             "description": "some description",
-                             "index": True})
-            self.fail()
-        except SchemaValidationException:
-            pass
-        try:
-            check_property({"dataType": ["string"],
-                             "name": "Rocket",
-                             "vectorizePropertyName": "Yes",
-                             "keywords": [],
-                             "cardinality": "many",
-                             "description": "some description",
-                             "index": True})
-            self.fail()
-        except SchemaValidationException:
-            pass
-        try:
-            check_property({"dataType": ["string"],
-                             "name": "Rocket",
-                             "vectorizePropertyName": True,
-                             "keywords": [],
-                             "cardinality": 1,
-                             "description": "some description",
-                             "index": True})
-            self.fail()
-        except SchemaValidationException:
-            pass
-        try:
-            check_property({"dataType": ["string"],
-                             "name": "Rocket",
-                             "vectorizePropertyName": True,
-                             "keywords": [],
-                             "cardinality": "many",
-                             "description": 3,
-                             "index": True})
-            self.fail()
-        except SchemaValidationException:
-            pass
-        try:
-            check_property({"dataType": ["string"],
-                             "name": "Rocket",
-                             "vectorizePropertyName": True,
-                             "keywords": [],
-                             "cardinality": "many",
-                             "description": "some description",
-                             "index": "Yes"})
-            self.fail()
-        except SchemaValidationException:
-            pass
-        # Wrong cardinality
-        try:
-            check_property({"dataType": ["string"],
-                             "name": "Rocket",
-                             "vectorizePropertyName": True,
-                             "keywords": [],
-                             "cardinality": "aLot",
-                             "description": "some description",
-                             "index": True})
-            self.fail()
-        except SchemaValidationException:
-            pass
+        self.assertIsNone(check_property(valid_minimal))
+        valid_max = {
+            "dataType": ["string"],
+            "name": "Rocket",
+            "moduleConfig": {},
+            "description": "some description",
+            "indexInverted": True
+        }
+        self.assertIsNone(check_property(valid_max))
+
+        with self.assertRaises(SchemaValidationException):
+            properties = {
+                "dataType": ["string"]
+                }
+            check_property(properties)
+        with self.assertRaises(SchemaValidationException):
+            properties = {
+                "name": "string"
+                }
+            check_property(properties)
+        with self.assertRaises(SchemaValidationException):
+            properties = {
+                "dataType": ["string"],
+                "name": "string",
+                "invalid_property": "value"
+                }
+            check_property(properties)
+        with self.assertRaises(SchemaValidationException):
+            properties = {
+                "dataType": ["string"],
+                "name": "Rocket",
+                "moduleConfig": [],
+            }
+            check_property(properties)
+        with self.assertRaises(SchemaValidationException):
+            properties = {
+                "dataType": ["string"],
+                "name": "Rocket",
+                "description": ["some description"],
+            }
+            check_property(properties)
+        with self.assertRaises(SchemaValidationException):
+            properties = {
+                "dataType": ["string"],
+                "name": "Rocket",
+                "indexInverted": "True"
+            }
+            check_property(properties)
+        with self.assertRaises(SchemaValidationException):
+            properties = {
+                "dataType": ["string", 10],
+                "name": "Rocket",
+                "indexInverted": "True"
+            }
+            check_property(properties)
