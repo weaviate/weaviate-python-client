@@ -151,7 +151,7 @@ class Schema:
             sub_schema = _get_dict_from_object(schema)
             return _is_sub_schema(sub_schema, loaded_schema)
 
-        if len(loaded_schema["objects"]["classes"]) == 0:
+        if len(loaded_schema["classes"]) == 0:
             return False
         return True
 
