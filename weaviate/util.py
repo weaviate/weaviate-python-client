@@ -233,8 +233,8 @@ def _is_sub_schema(sub_schema: dict, schema: dict) -> bool:
         False otherwise.
     """
 
-    schema_classes = schema["objects"].get("classes", [])
-    sub_schema_classes = sub_schema["objects"].get("classes", [])
+    schema_classes = schema.get("classes", [])
+    sub_schema_classes = sub_schema.get("classes", [])
     return _compare_class_sets(sub_schema_classes, schema_classes)
 
 
