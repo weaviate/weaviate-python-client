@@ -70,7 +70,7 @@ class Contextionary:
 
         try:
             response = self._connection.run_rest(
-                "/modules/text2vec-contextionary/extensions/",
+                "/modules/text2vec-contextionary/extensions",
                 REST_METHOD_POST,
                 extension
                 )
