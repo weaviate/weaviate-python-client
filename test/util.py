@@ -204,3 +204,22 @@ partial_set = {
         ],
     }
 }
+#     def test_generate_local_beacon(self):
+#         try:
+#             weaviate.generate_local_beacon(None)
+#             self.fail("TypeError expected should be str")
+#         except TypeError:
+#             pass
+#         try:
+#             weaviate.generate_local_beacon("Leeroy Jenkins")
+#             self.fail("Value error expected should be uuid")
+#         except ValueError:
+#             pass
+
+#         beacon = weaviate.generate_local_beacon("fcf33178-1b5d-5174-b2e7-04a2129dd35a")
+#         self.assertTrue("beacon" in beacon)
+#         self.assertEqual(beacon["beacon"], "weaviate://localhost/things/fcf33178-1b5d-5174-b2e7-04a2129dd35a")
+
+#         beacon = weaviate.generate_local_beacon("fcf33178-1b5d-5174-b2e7-04a2129dd35b", semantic_type=SEMANTIC_TYPE_ACTIONS)
+#         self.assertTrue("beacon" in beacon)
+#         self.assertEqual(beacon["beacon"], "weaviate://localhost/actions/fcf33178-1b5d-5174-b2e7-04a2129dd35b")
