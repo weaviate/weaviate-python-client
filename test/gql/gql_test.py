@@ -1,51 +1,45 @@
 import unittest
 import weaviate
-from weaviate.gql.query import SemanticTypeGetProxy
-from test.testing_util import replace_connection, add_run_rest_to_mock
-from unittest.mock import Mock
+from test.testing_util import replace_connection, add_run_rest_to_mock, Mock
 from weaviate.connect import REST_METHOD_POST
 
 
-class TestGraphQL(unittest.TestCase):
+class TestQuery(unittest.TestCase):
+    
+    def setUp(self):
+        self.client = weaviate.Client("http://localhorst:8080")
 
     def test_get(self):
-        w = weaviate.Client("http://localhorst:8080")
-        gql = w.query.get.things("Group", ["name", "uuid"]).build()
-        self.assertEqual("{Get{Things{Group{name uuid}}}}", gql)
+        gql = self.client.query.get("Group", ["name", "uuid"]).build()
+        self.assertEqual("{Get{Group{name uuid}}}", gql)
+
+    def test_aggregate(self):
+        gql = self.client.query.aggregate("Group").build()
+        self.assertEqual("{Aggregate{Group{}}}", gql)
 
     def test_raw(self):
-        w = weaviate.Client("http://localhorst:8080")
 
         connection_mock = Mock()  # Mock calling weaviate
         add_run_rest_to_mock(connection_mock)
-        replace_connection(w, connection_mock)
+        replace_connection(self.client, connection_mock)
 
-        query = "{Get {Things {Group {name Members {... on Person {name}}}}}}"
-        w.query.raw(query)
+        query = "{Get {Group {name Members {... on Person {name}}}}}"
+        self.client.query.raw(query)
 
         connection_mock.run_rest.assert_called()
-
-        call_args_list = connection_mock.run_rest.call_args_list
-        call_args, call_kwargs = call_args_list[0]
-
-        self.assertEqual("/graphql", call_args[0])
-        self.assertEqual(REST_METHOD_POST, call_args[1])
-        self.assertEqual({"query": query}, call_args[2])
+        connection_mock.run_rest.assert_called_with("/graphql", REST_METHOD_POST, {"query": query})
 
     def test_do(self):
-        w = weaviate.Client("http://localhorst:8080")
 
         return_value = {
             "data": {
                 "Get": {
-                    "Things": {
-                        "Group": [
-                            {
-                                "name": "Legends",
-                                "uuid": "2db436b5-0557-5016-9c5f-531412adf9c6"
-                            }
-                        ]
-                    }
+                    "Group": [
+                        {
+                            "name": "Legends",
+                            "uuid": "2db436b5-0557-5016-9c5f-531412adf9c6"
+                        }
+                    ]
                 }
             },
             "errors": None
@@ -53,19 +47,13 @@ class TestGraphQL(unittest.TestCase):
 
         connection_mock = Mock()  # Mock calling weaviate
         add_run_rest_to_mock(connection_mock, return_value)
-        replace_connection(w, connection_mock)
+        replace_connection(self.client, connection_mock)
         # Mock Things object in Query class
 
-        w.query.get = SemanticTypeGetProxy(connection_mock)
 
-        response = w.query.get.things("Group", ["name", "uuid"]).do()
+        response = self.client.query.get("Group", ["name", "uuid"]).do()
 
         self.assertEqual(return_value, response)
 
         connection_mock.run_rest.assert_called()
-        call_args_list = connection_mock.run_rest.call_args_list
-
-        call_args, call_kwargs = call_args_list[0]
-        self.assertEqual("/graphql", call_args[0])
-        self.assertEqual(REST_METHOD_POST, call_args[1])
-        self.assertEqual({"query": "{Get{Things{Group{name uuid}}}}"}, call_args[2])
+        connection_mock.run_rest.assert_called_with("/graphql", REST_METHOD_POST, {"query": "{Get{Group{name uuid}}}"})
