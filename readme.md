@@ -21,5 +21,4 @@ The client is tested for python 3.6 and higher.
 
 | Branch   | Status        |
 | -------- |:-------------:|
-| Master   | [![Build Status](https://travis-ci.com/semi-technologies/weaviate-python-client.svg?token=1qdvi3hJanQcWdqEstmy&branch=master)](https://travis-ci.com/semi-technologies/weaviate-python-client)
-
+| Master   | [![Build Status](https://travis-ci.com/semi-technologies/weaviate-python-client.svg)](https://travis-ci.com/semi-technologies/weaviate-python-client)
