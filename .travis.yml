@@ -5,7 +5,7 @@ language: python
 
 branches:
   only:
-    - master
+    - weaviate_v1
 
 jobs:
   include:
@@ -39,40 +39,43 @@ jobs:
         - python -m unittest -v
 
 
-    - stage: "integration test"
-      name: "integration 3.6"
-      env:
-        - PYTHONPATH=$(pwd)
+    - stage: "Integration Test"
+      name: "Integration tests on python 3.6"
       python: "3.6"
       install:
         - pip install -r requirements.txt
         - pip install .
         - /bin/bash ci/start_weaviate.bash
       script:
-        - python integration/client_functions.py
-        - python integration/rdf.py
+        - python -m integration.client_functions
+        - python -m integration.rdf
 
-    - name: "pip package test"
-      # Test if pip package throws any errors when importing
+    - name: "Integration tests on python 3.7"
+      python: "3.7"
+      install:
+        - pip install -r requirements.txt
+        - pip install .
+        - /bin/bash ci/start_weaviate.bash
+      script:
+        - python -m integration.client_functions
+        - python -m integration.rdf
+
+    - name: "Integration tests on python 3.8"
       python: "3.8"
       install:
         - pip install -r requirements.txt
         - pip install .
+        - /bin/bash ci/start_weaviate.bash
       script:
-        - python integration/pip_package.py
+        - python -m integration.client_functions
+        - python -m integration.rdf
 
-#    - stage: "Build documentation"
-#      language: python
-#      python:
-#        - "3.7"
-#      notifications:
-#        email:
-#          on_success: change
-#      branches:
-#        only:
-#          # Set the documentation only to master and push all the documentation updates to documentation branch
-#          - master
-#      install:
-#        - pip install sphinx
-#      script:
-#        - /bin/bash ci/generate_doc.bash
+    - name: "Integration tests on python 3.9"
+      python: "3.9"
+      install:
+        - pip install -r requirements.txt
+        - pip install .
+        - /bin/bash ci/start_weaviate.bash
+      script:
+        - python -m integration.client_functions
+        - python -m integration.rdf
