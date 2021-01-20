@@ -1,5 +1,71 @@
+"""
+GraphQL filters for `Get` and `Aggregate` commands.
+GraphQL abstract class for GraphQL commands to inherit from.
+"""
 import json
-from typing import Union, List, Optional
+import sys
+from copy import deepcopy
+from typing import Optional
+from abc import ABC, abstractmethod
+from weaviate.connect import REST_METHOD_POST, Connection
+from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+
+class GraphQL(ABC):
+    """
+    A base abstract class for GraphQL commands, such as Get, Aggregate.
+    """
+
+    def __init__(self, connection: Connection):
+        """
+        Initialize a GraphQL abstract class instance.
+
+        Parameters
+        ----------
+        connection : weaviate.connect.Connection
+            Connection object to an active and running weaviate instance.
+        """
+
+        self._connection = connection
+
+    @abstractmethod
+    def build(self) -> str:
+        """
+        Build method to be overloaded by the child classes. It should return the
+        GraphQL query as a str.
+
+        Returns
+        -------
+        str
+            The query.
+        """
+
+    def do(self) -> dict:
+        """
+        Builds and runs the query.
+
+        Returns
+        -------
+        dict
+            The response of the query.
+
+        Raises
+        ------
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        """
+
+        query = self.build()
+
+        try:
+            response = self._connection.run_rest("/graphql", REST_METHOD_POST, {"query": query})
+        except RequestsConnectionError as conn_err:
+            message = str(conn_err) + ' Connection error, query was not successful.'
+            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+        if response.status_code == 200:
+            return response.json()  # success
+        raise UnexpectedStatusCodeException("Query was not successful", response)
 
 
 class NearText:
@@ -27,35 +93,42 @@ class NearText:
         if not isinstance(content, dict):
             raise TypeError(f"{self.__class__.__name__} filter is expected to \
                                         be type dict but was {type(content)}")
-
-        self.concepts = _check_concept(content)
+        _content = deepcopy(content)
+        _check_concept(_content)
+        self.concepts = _content["concepts"]
         self.certainty: Optional[float] = None
         self.move_to: Optional[dict] = None
         self.move_away_from: Optional[dict] = None
 
-        if "certainty" in content:
-            if not isinstance(content["certainty"], float):
+        if "certainty" in _content:
+            if not isinstance(_content["certainty"], float):
                 raise TypeError(f"certainty is expected to be a float but was \
-                                {type(content['certainty'])}")
+                                {type(_content['certainty'])}")
 
-            self.certainty = content["certainty"]
+            self.certainty = _content["certainty"]
 
-        if "moveTo" in content:
-            self.move_to = _check_direction_clause(content["moveTo"])
+        if "moveTo" in _content:
+            _check_direction_clause(_content["moveTo"])
+            self.move_to = _content["moveTo"]
 
-        if "moveAwayFrom" in content:
-            self.move_away_from = _check_direction_clause(content["moveAwayFrom"])
+        if "moveAwayFrom" in _content:
+            _check_direction_clause(_content["moveAwayFrom"])
+            self.move_away_from = _content["moveAwayFrom"]
 
     def __str__(self):
-        near_text = f'nearText: {{concepts: {json.dumps(self.concepts)} '
+        near_text = f'nearText: {{concepts: {json.dumps(self.concepts)}'
         if self.certainty is not None:
-            near_text += f'certainty: {str(self.certainty)} '
+            near_text += f' certainty: {str(self.certainty)}'
         if self.move_to is not None:
-            near_text += f'moveTo:{{concepts: {json.dumps(self.move_to["concepts"])} \
-                        force: {self.move_to["force"]}}} '
+            near_text += (
+                f' moveTo: {{concepts: {json.dumps(self.move_to["concepts"])} ' +\
+                f'force: {self.move_to["force"]}}}'
+            )
         if self.move_away_from is not None:
-            near_text += f'moveAwayFrom:{{concepts: {json.dumps(self.move_away_from["concepts"])} \
-                        force: {self.move_away_from["force"]}}} '
+            near_text += (
+                f' moveAwayFrom: {{concepts: {json.dumps(self.move_away_from["concepts"])} ' +\
+                        f'force: {self.move_away_from["force"]}}}'
+            )
         return near_text + '} '
 
 
@@ -89,16 +162,18 @@ class NearVector:
             raise TypeError(f"{self.__class__.__name__} filter is expected to \
                 be type dict but was {type(content)}")
 
-        self.vector = _check_vector(content)
+        _content = deepcopy(content)
+        _check_vector(_content)
+        self.vector = _content['vector']
         self.certainty: Optional[float] = None
 
         # Check optional fields
 
         if "certainty" in content:
-            if not isinstance(content["certainty"], float):
+            if not isinstance(_content["certainty"], float):
                 raise TypeError(f"certainty is expected to be a float but was \
-                            {type(content['certainty'])}")
-            self.certainty = content["certainty"]
+                            {type(_content['certainty'])}")
+            self.certainty = _content["certainty"]
 
     def __str__(self):
         near_vector = f'nearVector: {{vector: {json.dumps(self.vector)}'
@@ -181,10 +256,10 @@ class WhereFilter:
 
         if "operator" not in content:
             raise ValueError("Filter is missing required fileds: ", content)
-
-        self.operator = content["operator"]
+        _content = deepcopy(content)
+        self.operator = _content["operator"]
         self.operands = []
-        for operand in content["operands"]:
+        for operand in _content["operands"]:
             self.operands.append(WhereFilter(operand))
 
     def __str__(self):
@@ -204,8 +279,8 @@ class WhereFilter:
 
         operands_str = []
         for operand in self.operands:
-            # remove the `where: ` from the operands.
-            operands_str.append(str(operand)[7:])
+            # remove the `where: ` from the operands and the last space
+            operands_str.append(str(operand)[7:-1])
         operands = ", ".join(operands_str)
         return f'where: {{operator: {self.operator} operands: [{operands}]}} '
 
@@ -218,11 +293,6 @@ def _check_direction_clause(direction: dict) -> dict:
     ----------
     direction : dict
         A sub clause of the Explore filter.
-
-    Returns
-    -------
-    dict
-        Returns back the original 'direction' if it passed the validation.
 
     Raises
     ------
@@ -241,10 +311,9 @@ def _check_direction_clause(direction: dict) -> dict:
         raise ValueError("move clause needs to state a force")
     if not isinstance(direction["force"], float):
         raise TypeError(f"force should be float but was {type(direction['force'])}")
-    return direction
 
 
-def _check_concept(content: dict) -> Union[list, str]:
+def _check_concept(content: dict) -> None:
     """
     Validate the concept sub clause.
 
@@ -252,11 +321,6 @@ def _check_concept(content: dict) -> Union[list, str]:
     ----------
     content : dict
         An Explore (sub) clause to check for 'concepts'.
-
-    Returns
-    -------
-    list or str
-        Concept/s of the (sub) clause.
 
     Raises
     ------
@@ -270,11 +334,12 @@ def _check_concept(content: dict) -> Union[list, str]:
         raise ValueError("No concepts in content")
 
     if not isinstance(content["concepts"], (list, str)):
-        raise TypeError(f"Concepts must be of type list or str not {type(content['concepts'])}")
-    return content["concepts"]
+        raise TypeError(f"Concepts must be of type list or str, not {type(content['concepts'])}")
+    if isinstance(content["concepts"], str):
+        content["concepts"] = [content["concepts"]]
 
 
-def _check_vector(content: dict) -> List[float]:
+def _check_vector(content: dict) -> None:
     """
     Validate the vector of the nearVector.
 
@@ -282,11 +347,6 @@ def _check_vector(content: dict) -> List[float]:
     ----------
     content : dict
         A nearVector clause to validate.
-
-    Returns
-    -------
-    list or str
-        The vector of the clause.
 
     Raises
     ------
@@ -300,7 +360,6 @@ def _check_vector(content: dict) -> List[float]:
         raise ValueError("No 'vector' in 'content'.")
     if not isinstance(content["vector"], list):
         raise TypeError(f"'vector' key is expected to be type list but was {content['vector']}")
-    return content["vector"]
 
 
 def _find_value_type(content: dict) -> str:

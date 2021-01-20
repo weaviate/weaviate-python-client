@@ -1,11 +1,12 @@
-import sys
+"""
+GraphQL `Aggregate` command.
+"""
 import json
 from typing import List, Optional
-from weaviate.connect import REST_METHOD_POST, Connection
-from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
-from .filter import WhereFilter
+from weaviate.connect import Connection
+from .filter import WhereFilter, GraphQL
 
-class AggregateBuilder:
+class AggregateBuilder(GraphQL):
     """
     AggregateBuilder class used to aggregate weaviate objects.
     """
@@ -22,8 +23,8 @@ class AggregateBuilder:
             Connection object to an active and running weaviate instance.
         """
 
+        super().__init__(connection)
         self._class_name = class_name
-        self._connection = connection
         self._with_meta_count = False
         self._fields: List[str] = []
         self._where: Optional[WhereFilter] = None
@@ -136,31 +137,3 @@ class AggregateBuilder:
         # close
         query += "}}}"
         return query
-
-    def do(self) -> dict:
-        """
-        Builds and runs the query.
-
-        Returns
-        -------
-        dict
-            The response of the query.
-
-        Raises
-        ------
-        requests.exceptions.ConnectionError
-            If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
-        """
-
-        query = self.build()
-
-        try:
-            response = self._connection.run_rest("/graphql", REST_METHOD_POST, {"query": query})
-        except RequestsConnectionError as conn_err:
-            message = str(conn_err) + ' Connection error, query was not successful.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
-        if response.status_code == 200:
-            return response.json()  # success
-        raise UnexpectedStatusCodeException("Query was not successful", response)

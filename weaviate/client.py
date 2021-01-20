@@ -38,25 +38,15 @@ class Client:
         ------
         TypeError
             If arguments are of a wrong data type.
-        ValueError
-            If 'client_config.timeout_config' is not a tuple of 2.
         """
 
         if not isinstance(url, str):
-            raise TypeError("URL is expected to be string but is "+str(type(url)))
+            raise TypeError("URL is expected to be string but is " + str(type(url)))
         if url.endswith("/"):
             # remove trailing slash
             url = url[:-1]
 
-        if client_config is not None:
-            # Check the input
-            if (not isinstance(client_config.timeout_config, tuple)) or\
-                    (not isinstance(client_config.timeout_config[0], int)) or\
-                    (not isinstance(client_config.timeout_config[1], int)):
-                raise TypeError("ClientConfig.timeout_config must be tupel of int")
-            if len(client_config.timeout_config) != 2:
-                raise ValueError("ClientConfig.timeout_config must be of length 2")
-        else:
+        if client_config is None:
             # Create the default config
             client_config = ClientConfig()
 

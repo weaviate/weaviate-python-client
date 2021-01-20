@@ -1,5 +1,6 @@
 import time
 import threading
+import sys
 from typing import Callable
 import weaviate
 from .submit import SubmitBatches, SubmitBatchesException
@@ -180,7 +181,7 @@ class Batcher:
             retry_counter += 1
             if retry_counter > 500:
                 print("CRITICAL ERROR objects can not be updated exit after 500 retries")
-                exit(5)
+                sys.exit(5)
 
         self._reference_batch = None
         self._objects_batch = None

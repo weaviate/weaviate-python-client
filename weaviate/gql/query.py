@@ -1,3 +1,6 @@
+"""
+GraphQL query module.
+"""
 import sys
 from typing import List, Union
 from weaviate.connect import REST_METHOD_POST, Connection

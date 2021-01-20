@@ -1,5 +1,5 @@
 import sys
-from typing import Union
+from typing import Union, Optional
 from weaviate.connect import Connection, REST_METHOD_POST, REST_METHOD_GET, REST_METHOD_DELETE
 from weaviate.util import _get_dict_from_object, _is_sub_schema
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
@@ -127,13 +127,14 @@ class Schema:
             self.delete_class(_class["class"])
 
 
-    def contains(self, schema: dict=None) -> bool:
+    def contains(self, schema: Optional[Union[dict, str]]=None) -> bool:
         """
         Check if weaviate already contains a schema.
 
         Parameters
         ----------
-        schema : dict, optional
+        schema : dict or str, optional
+            Schema as a python dict, or the path to a json file or a url of a json file.
             If a schema is given it is checked if this specific schema is already loaded.
             It will test only this schema. If the given schema is a subset of the loaded
             schema it will still return true, by default None.

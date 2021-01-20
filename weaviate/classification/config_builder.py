@@ -232,7 +232,7 @@ class ConfigBuilder:
 
         if "settings" in self._config:
             if not isinstance(self._config["settings"], dict):
-                TypeError('"settings" should be of type dict')
+                raise TypeError('"settings" should be of type dict')
 
         if self._config["type"] == "knn":
             if "k" not in self._config.get("settings", []):

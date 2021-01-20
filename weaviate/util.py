@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Union
+from typing import Union, Optional
 import validators
 import requests
 
@@ -145,7 +145,7 @@ def is_object_url(url: str) -> bool:
     return True
 
 
-def is_valid_uuid(uuid: str) -> bool:
+def get_valid_uuid(uuid: str) -> Optional[str]:
     """
     Validate the UUID.
 
@@ -158,6 +158,12 @@ def is_valid_uuid(uuid: str) -> bool:
         'http://localhost:8080/v1/objects/fc7eb129-f138-457f-b727-1b29db191a67'
         or
         'fc7eb129-f138-457f-b727-1b29db191a67'
+
+    Returns
+    -------
+    str or None
+        If the 'uuid' is not valid it returns None,
+        otherwise it returns the extracted.
 
     Raises
     ------
@@ -172,9 +178,10 @@ def is_valid_uuid(uuid: str) -> bool:
     _is_object_url = is_object_url(uuid)
     _uuid = uuid
     if _is_weaviate_url or _is_object_url:
-        split = uuid.split("/")
-        _uuid = split[-1]
-    return validators.uuid(_uuid)
+        _uuid = uuid.split("/")[-1]
+    if not validators.uuid(_uuid):
+        return None
+    return _uuid
 
 
 def get_uuid_from_weaviate_url(url: str) -> str:

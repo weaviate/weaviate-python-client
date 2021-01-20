@@ -1,11 +1,12 @@
-import sys
+"""
+GraphQL `Get` command.
+"""
 from typing import List, Union, Optional
-from weaviate.gql.filter import WhereFilter, NearText, NearVector
-from weaviate.connect import REST_METHOD_POST, Connection
-from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+from weaviate.gql.filter import WhereFilter, NearText, NearVector, GraphQL
+from weaviate.connect import Connection
 
 
-class GetBuilder:
+class GetBuilder(GraphQL):
     """
     GetBuilder class used to create GraphQL queries.
     """
@@ -32,7 +33,8 @@ class GetBuilder:
         TypeError
             If argument/s is/are of wrong type.
         """
-        self._connection = connection
+
+        super().__init__(connection)
 
         if not isinstance(class_name, str):
             raise TypeError(f"class name must be of type str but was {type(class_name)}")
@@ -144,7 +146,7 @@ class GetBuilder:
         if limit < 1:
             raise ValueError('limit cannot be negative (limit >=1).')
 
-        self._limit = f'limit: {limit}'
+        self._limit = f'limit: {limit} '
         self._contains_filter = True
         return self
 
@@ -173,32 +175,3 @@ class GetBuilder:
         query = query + f'{{{" ".join(self._properties)}}}}}}}'
 
         return query
-
-    def do(self) -> dict:
-        """
-        Builds and runs the query.
-
-        Returns
-        -------
-        dict
-            The response of the query.
-
-        Raises
-        ------
-        requests.exceptions.ConnectionError
-            If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
-        """
-
-        query = self.build()
-
-        try:
-            response = self._connection.run_rest("/graphql", REST_METHOD_POST, {"query": query})
-        except RequestsConnectionError as conn_err:
-            message = str(conn_err) + ' Connection error, query was not successful.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
-
-        if response.status_code == 200:
-            return response.json()  # success
-        raise UnexpectedStatusCodeException("Query was not successful", response)

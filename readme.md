@@ -6,16 +6,16 @@ The client is tested for python 3.6 and higher.
 
 ## Documentation
 
-- [Documentation](https://www.semi.technology/documentation/weaviate/current/client-libraries/python.html).
+- [Documentation](https://www.semi.technology/documentation/weaviate/current/client-libraries/python.html)
 
 ## Support
 
-- [Stackoverflow for questions](https://stackoverflow.com/questions/tagged/weaviate).
-- [Github for issues](https://github.com/semi-technologies/weaviate-python-client/issues).
+- [Stackoverflow for questions](https://stackoverflow.com/questions/tagged/weaviate)
+- [Github for issues](https://github.com/semi-technologies/weaviate-python-client/issues)
 
 ## Contributing
 
-- [How to Contribute](https://github.com/semi-technologies/weaviate/blob/master/CONTRIBUTE.md).
+- [How to Contribute](https://github.com/semi-technologies/weaviate/blob/master/CONTRIBUTE.md)
 
 ## Build Status
 

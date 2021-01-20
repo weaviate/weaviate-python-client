@@ -2,7 +2,7 @@ import sys
 from typing import Union, List
 from weaviate.connect import REST_METHOD_DELETE, REST_METHOD_PUT, REST_METHOD_POST, Connection
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
-from weaviate.util import is_valid_uuid
+from weaviate.util import get_valid_uuid
 
 
 
@@ -80,7 +80,7 @@ class Reference:
     def update(self,
             from_uuid: str,
             from_property_name: str,
-            to_uuids: list
+            to_uuids: Union[list, str]
         ) -> None:
         """
         Allows to update all references in that property with a new set of references.
@@ -97,13 +97,14 @@ class Reference:
             'fc7eb129-f138-457f-b727-1b29db191a67'
         from_property_name : str
             The name of the property within the object.
-        to_uuids : list
+        to_uuids : list or str
             The UUIDs of the objects that should be referenced.
             Should be a list of str in the form of an UUID or str in form of an URL.
             E.g.
             ['http://localhost:8080/v1/objects/fc7eb129-f138-457f-b727-1b29db191a67', ...]
             or
             ['fc7eb129-f138-457f-b727-1b29db191a67', ...]
+            If `str` it is converted internaly into a list of str.
 
         Raises
         ------
@@ -210,7 +211,7 @@ class Reference:
             raise ValueError(f"'{method}' not supported!")
 
         # Validate and create Beacon
-        _validate_uuid(from_uuid)
+        _from_uuid = _validate_and_get_uuid(from_uuid)
         _validate_property_name(from_property_name)
 
         # Validate 'to_uuid_s' and create the respective beacon/s
@@ -221,15 +222,15 @@ class Reference:
                 to_uuid_s = [to_uuid_s]
 
             for to_uuid in to_uuid_s:
-                _validate_uuid(to_uuid)
-                beacons.append(_get_beacon(to_uuid))
+                _to_uuid = _validate_and_get_uuid(to_uuid)
+                beacons.append(_get_beacon(_to_uuid))
         else:
             # Other methods take just a UUID as a str
-            _validate_uuid(to_uuid_s)
-            beacons = _get_beacon(to_uuid_s)
+            _to_uuid = _validate_and_get_uuid(to_uuid_s)
+            beacons = _get_beacon(_to_uuid)
 
         # Try to Run REST method
-        path = f"/objects/{from_uuid}/references/{from_property_name}"
+        path = f"/objects/{_from_uuid}/references/{from_property_name}"
         try:
             response = self._connection.run_rest(
                 path=path,
@@ -286,7 +287,7 @@ def _validate_property_name(property_name: str) -> None:
                         + str(type(property_name)))
 
 
-def _validate_uuid(uuid: str) -> None:
+def _validate_and_get_uuid(uuid: str) -> str:
     """
     Validate the UUID.
 
@@ -295,6 +296,11 @@ def _validate_uuid(uuid: str) -> None:
     uuid : str
         The UUID to be validated.
 
+    Returns
+    -------
+    str
+        The extracted and validated UUID.
+
     Raises
     ------
     ValueError
@@ -302,5 +308,6 @@ def _validate_uuid(uuid: str) -> None:
         from 'uuid'.
     """
 
-    if not is_valid_uuid(uuid):
+    if get_valid_uuid(uuid) is None:
         raise ValueError("Not valid uuid or uuid can not be extracted from value")
+    return uuid.split('/')[-1]
