@@ -1,7 +1,8 @@
 import unittest
+from unittest.mock import Mock
 import weaviate
 from weaviate.connect import REST_METHOD_DELETE, REST_METHOD_POST, REST_METHOD_PUT
-from test.testing_util import replace_connection, add_run_rest_to_mock, Mock, run_rest_raise_connection_error
+from test.util import replace_connection, add_run_rest_to_mock, run_rest_raise_connection_error
 
 
 class TestReference(unittest.TestCase):

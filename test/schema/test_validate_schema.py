@@ -1,6 +1,5 @@
 import unittest
 from weaviate.schema.validate_schema import validate_schema, check_class, check_property
-
 from weaviate.exceptions import SchemaValidationException
 
 

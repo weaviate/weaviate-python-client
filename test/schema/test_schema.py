@@ -1,9 +1,9 @@
 import unittest
 import copy
 import os
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 import weaviate
-from test.testing_util import replace_connection, add_run_rest_to_mock, Mock
+from test.util import replace_connection, add_run_rest_to_mock
 from weaviate.connect import REST_METHOD_POST, REST_METHOD_DELETE, REST_METHOD_GET
 from weaviate.exceptions import SchemaValidationException
 

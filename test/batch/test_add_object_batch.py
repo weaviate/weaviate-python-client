@@ -1,8 +1,9 @@
 import unittest
+from unittest.mock import Mock
 import requests
 from weaviate import ObjectsBatchRequest, ReferenceBatchRequest, Client
 from weaviate.connect import REST_METHOD_POST
-from test.testing_util import *
+from test.util import replace_connection, run_rest_raise_connection_error, add_run_rest_to_mock
 
 
 

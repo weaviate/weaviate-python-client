@@ -1,7 +1,8 @@
 import unittest
+from unittest.mock import Mock
 import weaviate
 from weaviate.connect import REST_METHOD_POST
-from test.testing_util import Mock, add_run_rest_to_mock, run_rest_raise_connection_error, replace_connection
+from test.util import add_run_rest_to_mock, run_rest_raise_connection_error, replace_connection
 
 
 class TestText2VecContextionary(unittest.TestCase):

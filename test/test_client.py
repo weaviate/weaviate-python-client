@@ -1,9 +1,8 @@
 import unittest
-from unittest.mock import Mock
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 import weaviate
 from weaviate import ClientConfig, Client
-from test.testing_util import *
+from test.util import add_run_rest_to_mock, replace_connection, run_rest_raise_connection_error
 
 
 class TestWeaviateClientConfig(unittest.TestCase):

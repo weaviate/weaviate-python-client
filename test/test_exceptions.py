@@ -1,8 +1,9 @@
 import unittest
+from unittest.mock import Mock
 import weaviate
 from weaviate import UnexpectedStatusCodeException
 from weaviate.connect import REST_METHOD_DELETE
-from test.testing_util import replace_connection, add_run_rest_to_mock, Mock
+from test.util import replace_connection, add_run_rest_to_mock
 
 
 class TestExceptions(unittest.TestCase):

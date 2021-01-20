@@ -1,9 +1,8 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 import weaviate
 from weaviate.connect import REST_METHOD_POST, REST_METHOD_PUT, REST_METHOD_PATCH, REST_METHOD_DELETE, REST_METHOD_GET
-from test.testing_util import run_rest_raise_connection_error, Mock
-from test.testing_util import add_run_rest_to_mock, replace_connection
+from test.util import run_rest_raise_connection_error, add_run_rest_to_mock, replace_connection
 
 
 class TestDataObject(unittest.TestCase):
@@ -32,9 +31,9 @@ class TestDataObject(unittest.TestCase):
             self.client.data_object.create({'name': 'Optimus Prime'}, "Transformer", None, 1234)
 
         with self.assertRaises(weaviate.RequestsConnectionError):
-            connection_mock = Mock()  # Mock calling weaviate
-            connection_mock.run_rest.side_effect = run_rest_raise_connection_error
-            self.client._connection = connection_mock
+            mock_obj = Mock()  # Mock calling weaviate
+            mock_obj.run_rest.side_effect = run_rest_raise_connection_error
+            replace_connection(self.client, mock_obj)
             self.client.data_object.create({"name": "Alan Greenspan"}, "CoolestPersonEver")
 
         with self.assertRaises(weaviate.UnexpectedStatusCodeException):
@@ -87,9 +86,9 @@ class TestDataObject(unittest.TestCase):
         # test exceptions
         
         with self.assertRaises(weaviate.RequestsConnectionError):
-            connection_mock = Mock()  # Mock calling weaviate
-            connection_mock.run_rest.side_effect = run_rest_raise_connection_error
-            self.client._connection = connection_mock
+            mock_obj = Mock()  # Mock calling weaviate
+            mock_obj.run_rest.side_effect = run_rest_raise_connection_error
+            replace_connection(self.client, mock_obj)
             self.client.data_object.update(
                 {"name": "Alan Greenspan"},
                 "CoolestPersonEver",
@@ -111,8 +110,7 @@ class TestDataObject(unittest.TestCase):
         add_run_rest_to_mock(connection_mock)
         replace_connection(self.client, connection_mock)
 
-        response = self.client.data_object.update({"A": 2}, "Hero", "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
-        self.assertIsNone(response)
+        self.client.data_object.update({"A": 2}, "Hero", "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
 
         weaviate_obj = {
             "id": "27be9d8d-1da1-4d52-821f-bc7e2a25247d",
@@ -138,6 +136,9 @@ class TestDataObject(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.client.data_object.merge({"A": "B"}, "Class", "NOT-A-valid-uuid")
         with self.assertRaises(weaviate.RequestsConnectionError):
+            mock_obj = Mock()  # Mock calling weaviate
+            mock_obj.run_rest.side_effect = run_rest_raise_connection_error
+            replace_connection(self.client, mock_obj)
             self.client.data_object.merge(
                 {"name": "Alan Greenspan"},
                 "CoolestPersonEver",
@@ -159,8 +160,7 @@ class TestDataObject(unittest.TestCase):
         add_run_rest_to_mock(connection_mock, status_code=204)
         replace_connection(self.client, connection_mock)
 
-        response = self.client.data_object.merge({"A": "B"}, "Class", "ae6d51d6-b4ea-5a03-a808-6aae990bdebf")
-        self.assertIsNone(response)
+        self.client.data_object.merge({"A": "B"}, "Class", "ae6d51d6-b4ea-5a03-a808-6aae990bdebf")
 
         weaviate_obj = {
             "id": "ae6d51d6-b4ea-5a03-a808-6aae990bdebf",
@@ -239,9 +239,9 @@ class TestDataObject(unittest.TestCase):
         with self.assertRaises(TypeError):
             self.client.data_object._get_object_response("UUID", {}, False)
         with self.assertRaises(weaviate.RequestsConnectionError):
-            connection_mock = Mock()  # Mock calling weaviate
-            connection_mock.run_rest.side_effect = run_rest_raise_connection_error
-            self.client._connection = connection_mock
+            mock_obj = Mock()  # Mock calling weaviate
+            mock_obj.run_rest.side_effect = run_rest_raise_connection_error
+            replace_connection(self.client, mock_obj)
             self.client.data_object._get_object_response("UUID", [], False)
 
         return_value = {
