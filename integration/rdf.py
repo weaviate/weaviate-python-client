@@ -1,25 +1,27 @@
-import weaviate.rdf as wrdf
-import weaviate as w
-from rdflib import Graph
 import os
 import time
+import sys
+import weaviate.rdf as wrdf
+import weaviate
+from rdflib import Graph
+from integration.integration_util import TestFailedException
 
-client = w.Client("http://localhost:8080")
+client = weaviate.Client("http://localhost:8080")
 t = wrdf.TripleLoader(client)
 ci_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../ci")
 
 
 def query(subject):
     q = """
-    { Get { Things { Subject (where: {
+    { Get { Subject (where: {
             path: ["valueKey"]
             operator: Equal
             valueString: "%s"
-          }){ value }}}}
+          }){ value }}}
     """
     qq = (q % subject)
     result = client.query.raw(qq)
-    return result["data"]["Get"]["Things"]["Subject"]
+    return result["data"]["Get"]["Subject"]
 
 
 def add_ttl_file(file_name):
@@ -28,16 +30,18 @@ def add_ttl_file(file_name):
     g.parse(ttl_file, format="ttl")
     t.add_graph(g)
 
+def test_length():
+    add_ttl_file("sk8.ttl")
+    time.sleep(2.0)
+    if len(query("https://semi.technology/schema/1.0.0/Skateboard#Board")) != 1:
+        raise TestFailedException("Wrong number of objects")
+    if len(query("https://semi.technology/schema/1.0.0/SkateboardPred#hasPrice")) != 0:
+        raise TestFailedException("Wrong number of objects")
+    add_ttl_file("sk8_pred.ttl")
+    time.sleep(2.0)
+    if len(query("https://semi.technology/schema/1.0.0/SkateboardPred#hasPrice")) != 1:
+        raise TestFailedException("Wrong number of objects")
+    return 0
 
-add_ttl_file("sk8.ttl")
-time.sleep(2.0)
-if len(query("https://semi.technology/schema/1.0.0/Skateboard#Board")) != 1:
-    exit(1)
-if len(query("https://semi.technology/schema/1.0.0/SkateboardPred#hasPrice")) != 0:
-    exit(2)
-add_ttl_file("sk8_pred.ttl")
-time.sleep(2.0)
-if len(query("https://semi.technology/schema/1.0.0/SkateboardPred#hasPrice")) != 1:
-    exit(3)
-
-exit(0)
+if __name__ == "__main__":
+    test_length()

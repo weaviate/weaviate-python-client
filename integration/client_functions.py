@@ -1,75 +1,90 @@
 import os
 import time
+import sys
 import weaviate
-from integration.queries import *
 from integration.crud import IntegrationTestCrud
 from integration.graphql import TestGraphQL
 from integration.classification import contextual
+from integration.integration_util import TestFailedException
 
+gql_get_sophie_scholl = """
+{
+  Get {
+    Person (where: {
+      path: ["id"]
+      operator: Equal
+      valueString: "594b7827-f795-40d0-aabb-5e0553953dad"
+    }){
+      name
+      _additional {
+        id
+      }
+    }
+  }
+}
+"""
 
-def query_data(w):
+def query_data(client):
     print("Test query")
     expected_name = "Sophie Scholl"
-    w.data_object.create({"name": expected_name}, "Person", "594b7827-f795-40d0-aabb-5e0553953dad")
+    client.data_object.create({"name": expected_name}, "Person", "594b7827-f795-40d0-aabb-5e0553953dad")
     time.sleep(2.0)
-    result = w.query.raw(gql_get_sophie_scholl)
-    if result["data"]["Get"]["Things"]["Person"][0]["name"] != expected_name:
-        print("Query result is wrong")
-        exit(10)
+    result = client.query.raw(gql_get_sophie_scholl)
+    if result["data"]["Get"]["Person"][0]["name"] != expected_name:
+        raise TestFailedException("Query result is wrong")
 
 
-def creating_schema(w):
+def creating_schema(client):
     print("Checking if weaviate is reachable")
-    if not w.is_ready():
-        print("Weaviate not reachable")
-        exit(2)
+    if not client.is_ready():
+        raise TestFailedException("Weaviate not reachable")
 
-    if w.schema.contains():
-        print("No schema should be present")
-        exit(3)
+    if client.schema.contains():
+        raise TestFailedException("No schema should be present")
 
     print("Load a schema")
-    schema_json_file = os.path.join(os.path.dirname(__file__), "../ci/people_schema.json")
-    w.schema.create(schema_json_file)
+    schema_json_file = os.path.join(os.path.dirname(__file__), "people_schema.json")
+    client.schema.create(schema_json_file)
 
-    if not w.schema.contains():
-        print("Weaviate does not contain loaded schema")
-        exit(4)
+    if not client.schema.contains():
+        raise TestFailedException("Weaviate does not contain loaded schema")
+    
+    original_schema = weaviate.util._get_dict_from_object(schema_json_file)
+    if not client.schema.contains(original_schema):
+        raise TestFailedException("Loaded schema does not match the one from Weaviate!")
 
     single_class = {
         "class": "Barbecue",
         "description": "Barbecue or BBQ where meat and vegetables get grilled"
     }
-    w.schema.create_class(single_class)
+    client.schema.create_class(single_class)
     prop = {
         "dataType": ["string"],
-        "cardinality": "atMostOne",
         "description": "how hot is the BBQ in C",
         "name": "heat",
     }
-    w.schema.property.create("Barbecue", prop)
-    classes = w.schema.get()['things']['classes']
+    client.schema.property.create("Barbecue", prop)
+    classes = client.schema.get()['classes']
     found = False
-    for c in classes:
-        if c["class"] == "Barbecue":
-            found = len(c['properties']) == 1
+    for class_ in classes:
+        if class_["class"] == "Barbecue":
+            found = len(class_['properties']) == 1
     if not found:
-        print("Class property not added properly")
-        exit(5)
+        raise TestFailedException("Class property not added properly")
 
 
 if __name__ == "__main__":
     print("Weaviate should be running at local host 8080")
-    w = weaviate.Client("http://localhost:8080")
-    creating_schema(w)
-    integration = IntegrationTestCrud(w)
+    client = weaviate.Client("http://localhost:8080")
+    creating_schema(client)
+    integration = IntegrationTestCrud(client)
     integration.test_crud()
-    query_data(w)
+    query_data(client)
 
-    gql_integration = TestGraphQL(w)
-    gql_integration.query_data()
+    gql_integration = TestGraphQL(client)
+    gql_integration.get_data()
     gql_integration.aggregate_data()
 
-    contextual(w)
+    contextual(client)
 
     print("Integration test finished successfully")

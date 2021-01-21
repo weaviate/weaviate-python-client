@@ -3,37 +3,34 @@ import time
 from integration.integration_util import TestFailedException
 
 schema = {
-    "things": {
-        "classes": [
-            {
-                "class": "Ship",
-                "description": "object",
-                "properties": [
-                    {
-                        "dataType": [
-                            "string"
-                        ],
-                        "description": "name",
-                        "name": "name"
-                    },
-                    {
-                        "dataType": [
-                            "int"
-                        ],
-                        "description": "size",
-                        "name": "size"
-                    }
-                ]
-            },
-        ],
-        "type": "thing"
-    }
+    "classes": [
+        {
+            "class": "Ship",
+            "description": "object",
+            "properties": [
+                {
+                    "dataType": [
+                        "string"
+                    ],
+                    "description": "name",
+                    "name": "name"
+                },
+                {
+                    "dataType": [
+                        "int"
+                    ],
+                    "description": "size",
+                    "name": "size"
+                }
+            ]
+        }
+    ]
 }
 
 
 class TestGraphQL:
 
-    def __init__(self, client:weaviate.Client):
+    def __init__(self, client: weaviate.Client):
         self.client = client
         self.client.schema.create(schema)
 
@@ -45,14 +42,18 @@ class TestGraphQL:
         client.data_object.create({"name": "F", "size": 303}, "Ship")
         time.sleep(2.0)
 
-    def query_data(self):
+    def get_data(self):
+        """
+        Test GraphQL's Get clause.
+        """
+
         where_filter = {
             "path": ["size"],
             "operator":  "LessThan",
             "valueInt": 10
         }
-        result = self.client.query.get\
-            .things("Ship", ["name", "size"])\
+        result = self.client.query\
+            .get("Ship", ["name", "size"])\
             .with_limit(2)\
             .with_where(where_filter)\
             .do()
@@ -69,14 +70,18 @@ class TestGraphQL:
         raise TestFailedException("GraphQL result not right")
 
     def aggregate_data(self):
+        """
+        Test GraphQL's Aggregate clause.
+        """
+
         filter = {
             "path": ["name"],
             "operator": "Equal",
             "valueString": "B"
         }
 
-        result = self.client.query.aggregate \
-            .things("Ship") \
+        result = self.client.query\
+            .aggregate("Ship") \
             .with_where(filter) \
             .with_group_by_filter(["name"]) \
             .with_fields("groupedBy {value}") \
@@ -91,15 +96,15 @@ class TestGraphQL:
 
 
 def get_objects_from_result(result):
-    return result["data"]["Get"]["Things"]["Ship"]
+    return result["data"]["Get"]["Ship"]
 
 
 def get_aggregation_from_aggregate_result(result):
-    return result["data"]["Aggregate"]["Things"]["Ship"][0]
+    return result["data"]["Aggregate"]["Ship"][0]
 
 
 if __name__ == "__main__":
     client = weaviate.Client("http://localhost:8080")
     gql = TestGraphQL(client)
-    gql.query_data()
+    gql.get_data()
     gql.aggregate_data()
