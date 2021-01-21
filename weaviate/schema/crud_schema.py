@@ -206,7 +206,6 @@ class Schema:
 
             if _property_is_primitive(property_["dataType"]):
                 continue
-            # TODO adapt the schema properties according to the new standard
             # create the property object
             schema_property = {
                 "dataType": property_["dataType"],
@@ -214,10 +213,11 @@ class Schema:
                 "name": property_["name"]
             }
 
-            if "index" in property_:
-                schema_property["index"] = property_["index"]
-            if "vectorizePropertyName" in property_:
-                schema_property["vectorizePropertyName"] = property_["vectorizePropertyName"]
+            if "indexInverted" in property_:
+                schema_property["indexInverted"] = property_["indexInverted"]
+
+            if "moduleConfig" in property_:
+                schema_property["moduleConfig"] = property_["moduleConfig"]
 
             path = "/schema/" + schema_class["class"] + "/properties"
             try:
@@ -259,7 +259,6 @@ class Schema:
             If weaviate reports a none OK status.
         """
 
-        # TODO addapt to the new class schema config
         # Create the class
         schema_class = {
             "class": weaviate_class['class'],
@@ -269,8 +268,17 @@ class Schema:
         if "description" in weaviate_class:
             schema_class['description'] = weaviate_class['description']
 
-        if "vectorizeClassName" in weaviate_class:
-            schema_class["vectorizeClassName"] = weaviate_class["vectorizeClassName"]
+        if "vectorIndexType" in weaviate_class:
+            schema_class['vectorIndexType'] = weaviate_class['vectorIndexType']
+
+        if "vectorIndexConfig" in weaviate_class:
+            schema_class['vectorIndexConfig'] = weaviate_class['vectorIndexConfig']
+
+        if "vectorizer" in weaviate_class:
+            schema_class['vectorizer'] = weaviate_class['vectorizer']
+
+        if "moduleConfig" in weaviate_class:
+            schema_class["moduleConfig"] = weaviate_class["moduleConfig"]
 
         if "properties" in weaviate_class:
             schema_class["properties"] = _get_primitive_properties(
@@ -342,6 +350,5 @@ def _get_primitive_properties(properties_list: list) -> list:
         if not _property_is_primitive(property_["dataType"]):
             # property is complex and therefore will be ignored
             continue
-        # TODO check it is fine to add the whole dict
         primitive_properties.append(property_)
     return primitive_properties
