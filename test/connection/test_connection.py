@@ -3,7 +3,7 @@ from unittest.mock import patch
 import weaviate
 
 
-class TestSum(unittest.TestCase):
+class TestConnection(unittest.TestCase):
 
     def test_run_rest(self):
         """

@@ -96,7 +96,7 @@ class TestAggregateBuilder(unittest.TestCase):
         mock_obj = Mock()
         add_run_rest_to_mock(mock_obj, status_code=200, return_json={"status": "OK!"})
         self.aggregate._connection = mock_obj
-        self.assertEquals(self.aggregate.do(), {"status": "OK!"})
+        self.assertEqual(self.aggregate.do(), {"status": "OK!"})
         mock_obj.run_rest.assert_called()
         mock_obj.run_rest.assert_called_with(
             "/graphql",

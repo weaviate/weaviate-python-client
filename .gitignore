@@ -10,3 +10,4 @@ docker-compose.yaml
 .ipynb_checkpoints
 *.ipynb
 nohup.out
+.coverage

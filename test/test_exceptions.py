@@ -18,7 +18,6 @@ class TestExceptions(unittest.TestCase):
 
         try:
             client.data_object.delete("b36268d4-a6b5-5274-985f-45f13ce0c642")
-            self.fail("No unexpected status code")
         except UnexpectedStatusCodeException as e:
             self.assertEqual(e.status_code, 404)
             self.assertEqual(e.json, error)
@@ -35,7 +34,6 @@ class TestExceptions(unittest.TestCase):
 
         try:
             client.data_object.delete("b36268d4-a6b5-5274-985f-45f13ce0c642")
-            self.fail("No unexpected status code")
         except UnexpectedStatusCodeException as e:
             self.assertEqual(e.status_code, 404)
             self.assertIsNone(e.json)

@@ -20,7 +20,6 @@ class TestReference(unittest.TestCase):
         # test exceptions
         with self.assertRaises(TypeError):
             self.client.data_object.reference.delete(1, "myProperty", self.uuid_2)
-            self.fail("UUID has the wrong type")
         with self.assertRaises(TypeError):
             self.client.data_object.reference.delete(self.uuid_1, "myProperty", 2)
         with self.assertRaises(TypeError):

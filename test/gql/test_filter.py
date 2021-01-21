@@ -80,46 +80,41 @@ class TestNearText(unittest.TestCase):
         self.move_x_test_case("moveAwayFrom")
 
         # test valid calls
-        self.assertIsInstance(NearText(
+        NearText(
             {
                 "concepts": "Some_concept"
-            }),
-            NearText
+            }
         )
-        self.assertIsInstance(NearText(
+        NearText(
             {
                 "concepts": ["Some_concept", "Some_concept_2"]
-            }),
-            NearText
+            }
         )
-        self.assertIsInstance(NearText(
+        NearText(
             {
                 "concepts": "Some_concept",
                 "certainty": 0.75
-            }),
-            NearText
+            }
         )
-        self.assertIsInstance(NearText(
+        NearText(
             {
                 "concepts": "Some_concept",
                 "moveTo": {
                     "concepts": "moveToConcepts",
                     "force": 0.75
                 }
-            }),
-            NearText
+            }
         )
-        self.assertIsInstance(NearText(
+        NearText(
             {
                 "concepts": "Some_concept",
                 "moveAwayFrom": {
                     "concepts": "moveAwayFromConcepts",
                     "force": 0.75
                 }
-            }),
-            NearText
+            }
         )
-        self.assertIsInstance(NearText(
+        NearText(
             {
                 "concepts": "Some_concept",
                 "certainty": 0.75,
@@ -131,8 +126,7 @@ class TestNearText(unittest.TestCase):
                     "concepts": "moveToConcepts",
                     "force": 0.75
                 }
-            }),
-            NearText
+            }
         )
 
     def test___str__(self):
@@ -236,18 +230,16 @@ class TestNearVector(unittest.TestCase):
             })
 
         # test valid calls
-        self.assertIsInstance(NearVector(
+        NearVector(
             {
                 "vector": [1., 2., 3., 4.]
-            }),
-            NearVector
+            }
         )
-        self.assertIsInstance(NearVector(
+        NearVector(
             {
                 "vector": [1., 2., 3., 4.],
                 "certainty": 0.75
-            }),
-            NearVector
+            }
         )
 
     def test___str__(self):
@@ -295,33 +287,27 @@ class TestWhereFilter(unittest.TestCase):
             WhereFilter({"operands": ["some_path"], "operator": "Like"})
         
         # test valid calls
-        self.assertIsInstance(
-            WhereFilter(
-                {
+        WhereFilter(
+            {
+                "path": "hasTheOneRing",
+                "operator" : "Equal",
+                "valueBoolean" : False
+            }
+        )
+        WhereFilter(
+            {
+                "operands": [{
                     "path": "hasTheOneRing",
                     "operator" : "Equal",
                     "valueBoolean" : False
-                }
-            ),
-            WhereFilter
-        )
-        self.assertIsInstance(
-            WhereFilter(
+                },
                 {
-                    "operands": [{
-                        "path": "hasTheOneRing",
-                        "operator" : "Equal",
-                        "valueBoolean" : False
-                    },
-                    {
-                        "path": "hasFriend",
-                        "operator" : "Equal",
-                        "valueText" : "Samwise Gamgee"
-                    }],
-                    "operator" : "And"
-                }
-            ),
-            WhereFilter
+                    "path": "hasFriend",
+                    "operator" : "Equal",
+                    "valueText" : "Samwise Gamgee"
+                }],
+                "operator" : "And"
+            }
         )
 
     def test___str__(self):

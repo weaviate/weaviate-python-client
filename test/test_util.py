@@ -178,9 +178,11 @@ class TestUtil(unittest.TestCase):
         self.assertFalse(
             is_weaviate_object_url("http://some-domain.com/28f3f61b-b524-45e0-9bbe-2c1550bf73d2"))
         self.assertFalse(
-            is_weaviate_object_url("weaviate://localhost/nachos/28f3f61b-b524-45e0-9bbe-2c1550bf73d2"))
-        self.assertFalse(
             is_weaviate_object_url("weaviate://localhost/things/f61b-b524-45e0-9bbe-2c1550bf73d2"))
+        self.assertFalse(
+            is_weaviate_object_url("weaviate://some-INVALID-domain/28f3f61b-b524-45e0-9bbe-2c1550bf73d2"))
+        self.assertFalse(
+            is_weaviate_object_url("weaviate://localhost/UUID"))
 
     def test_is_object_url(self):
         """
@@ -302,8 +304,8 @@ class TestUtil(unittest.TestCase):
             result_mock.status_code = 404
             mock_obj.get.return_value = result_mock
             with self.assertRaises(ValueError):
-                _get_dict_from_object("www.url.com")
-                mock_obj.get.assert_called()
+                _get_dict_from_object("http://www.url.com")
+            mock_obj.get.assert_called()
 
         # TODO: remove this variable when merging to master branch and use schema_company var instead.
         schema_temp = {

@@ -44,7 +44,20 @@ class TestWeaviateClient(unittest.TestCase):
             Client(42)
 
         # test valid calls
-        Client("some_URL", auth_client_secret=None, client_config=ClientConfig((1, 2)))
+        with patch('weaviate.client.Connection') as mock_obj:
+            Client("some_URL", auth_client_secret=None, client_config=ClientConfig((1, 2)))
+            mock_obj.assert_called_with(
+                url='some_URL',
+                auth_client_secret=None,
+                timeout_config=(1,2)
+                )
+        with patch('weaviate.client.Connection') as mock_obj:
+            Client("some_URL/", auth_client_secret=None, client_config=ClientConfig((5, 20)))
+            mock_obj.assert_called_with(
+                url='some_URL',
+                auth_client_secret=None,
+                timeout_config=(5,20)
+                )
 
 
     def test_is_ready(self):

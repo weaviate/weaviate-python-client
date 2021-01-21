@@ -14,12 +14,12 @@ class TestGetBuilder(unittest.TestCase):
             GetBuilder(1, ["a"], None)
         with self.assertRaises(TypeError):
             GetBuilder("A", 2, None)
+        with self.assertRaises(ValueError):
+            GetBuilder("A", ["str"], None).with_limit(0)
 
         # test valid calls
-        self.assertIsInstance(GetBuilder("name", "prop", None), GetBuilder)
-        self.assertIsInstance(GetBuilder("name", ["prop1", "prop2"], None), GetBuilder)
-
-
+        GetBuilder("name", "prop", None)
+        GetBuilder("name", ["prop1", "prop2"], None)
 
     def test_build_simple_query(self):
         query = GetBuilder("Group", "name", None).build()

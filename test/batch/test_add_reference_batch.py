@@ -238,5 +238,6 @@ class TestBatchReferencesObject(unittest.TestCase):
         # with create
         with self.assertRaises(TypeError):
             client.batch.create([10., 20.])
-
-
+        with self.assertWarns(DeprecationWarning):
+            client.batch.create_references = lambda reference_batch_request: None
+            client.batch.add_references(ReferenceBatchRequest())

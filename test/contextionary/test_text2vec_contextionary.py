@@ -37,7 +37,6 @@ class TestText2VecContextionary(unittest.TestCase):
             connection_mock = add_run_rest_to_mock(connection_mock, status_code=404)
             replace_connection(client, connection_mock)
             client.contextionary.extend(**some_concept)
-            connection_mock.run_rest.assert_called()
 
         ## test requests error
         with self.assertRaises(weaviate.RequestsConnectionError):
@@ -45,7 +44,6 @@ class TestText2VecContextionary(unittest.TestCase):
             connection_mock.run_rest.side_effect = run_rest_raise_connection_error
             replace_connection(client, connection_mock)
             client.contextionary.extend(**some_concept)
-            connection_mock.run_rest.assert_called()
         
         ## test valid call without specifying 'weight'
         connection_mock = Mock()  # Mock calling weaviate
@@ -92,11 +90,9 @@ class TestText2VecContextionary(unittest.TestCase):
             connection_mock = add_run_rest_to_mock(connection_mock, status_code=404)
             replace_connection(client, connection_mock)
             client.contextionary.get_concept_vector("Palantir")
-            connection_mock.run_rest.assert_called()
         ## test requests error
         with self.assertRaises(weaviate.RequestsConnectionError):
             connection_mock = Mock()  # Mock calling weaviate
             connection_mock.run_rest.side_effect = run_rest_raise_connection_error
             replace_connection(client, connection_mock)
             client.contextionary.get_concept_vector("Palantir")
-            connection_mock.run_rest.assert_called()
