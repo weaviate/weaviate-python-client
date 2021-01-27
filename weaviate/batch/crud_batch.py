@@ -1,5 +1,6 @@
 import sys
 import warnings
+from requests.exceptions import ReadTimeout
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.connect import REST_METHOD_POST, Connection
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest
@@ -70,6 +71,12 @@ class Batch:
             message = str(conn_err)\
                         + ' Connection error, batch was not added to weaviate.'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+        except ReadTimeout:
+            message = (f"The {batch_request.__class__.__name__} was cancelled because it took "
+                f"longer than the configured timeout of {self._connection.timeout_config[1]}s. "
+                f"Try reducing the batch size (currently {len(batch_request)}) to a lower value. "
+                "Aim to on average complete batch request within less than 10s")
+            raise ReadTimeout(message)
         if response.status_code == 200:
             return response.json()
         raise UnexpectedStatusCodeException(f"Create {data_object_type} in batch", response)

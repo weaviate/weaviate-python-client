@@ -241,3 +241,9 @@ class TestBatchReferencesObject(unittest.TestCase):
         with self.assertWarns(DeprecationWarning):
             client.batch.create_references = lambda reference_batch_request: None
             client.batch.add_references(ReferenceBatchRequest())
+        with  self.assertRaises(requests.exceptions.ReadTimeout):
+            mock_obj = Mock()
+            mock_obj.timeout_config = (10, 14)
+            mock_obj.run_rest.side_effect = requests.exceptions.ReadTimeout("Test_Exception")
+            replace_connection(client, mock_obj)
+            client.batch.create(ReferenceBatchRequest())

@@ -223,6 +223,12 @@ class TestAddObjects(unittest.TestCase):
         # with create
         with self.assertRaises(TypeError):
             client.batch.create([10., 20.])
+        with  self.assertRaises(requests.exceptions.ReadTimeout):
+            mock_obj = Mock()
+            mock_obj.timeout_config = (10, 14)
+            mock_obj.run_rest.side_effect = requests.exceptions.ReadTimeout("Test_Exception")
+            replace_connection(client, mock_obj)
+            client.batch.create(ObjectsBatchRequest())
 
     def test_batch_size(self):
         """
