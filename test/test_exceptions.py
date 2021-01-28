@@ -1,45 +1,65 @@
 import unittest
 from unittest.mock import Mock
-import weaviate
-from weaviate import UnexpectedStatusCodeException
-from weaviate.connect import REST_METHOD_DELETE
-from test.util import replace_connection, add_run_rest_to_mock
+from weaviate.exceptions import *
 
 
 class TestExceptions(unittest.TestCase):
 
-    def test_unexpected_status_code_error(self):
-        client = weaviate.Client("http://localhorst:8080")
+    def test_unexpected_status_code(self):
+        """
+        Test the `UnexpectedStatusCodeException` exception.
+        """
 
-        connection_mock = Mock()  # Mock calling weaviate
-        error = {"error": "Error message"}
-        add_run_rest_to_mock(connection_mock, status_code=404, return_json=error)
-        replace_connection(client, connection_mock)
+        # with .json() exception raised
+        response = Mock()
+        response.json = Mock()
+        response.json.side_effect = Exception("Test")
+        response.status_code = 1234
+        exception = UnexpectedStatusCodeException(message="Test message", response=response)
 
-        try:
-            client.data_object.delete("b36268d4-a6b5-5274-985f-45f13ce0c642")
-        except UnexpectedStatusCodeException as e:
-            self.assertEqual(e.status_code, 404)
-            self.assertEqual(e.json, error)
+        self.assertEqual(exception.status_code, 1234)
+        self.assertIsNone(exception.json)
+        self.assertEqual(str(exception), "Test message! Unexpected status code: 1234, with response body: None")
 
-        connection_mock.run_rest.assert_called()
+        # with .json() value
+        response = Mock()
+        response.json = Mock()
+        response.json.return_value = {"test" : "OK!"}
+        response.status_code = 4321
+        exception = UnexpectedStatusCodeException(message="Second test message", response=response)
 
-        call_args_list = connection_mock.run_rest.call_args_list
-        call_args = call_args_list[0][0]
-        self.assertEqual(REST_METHOD_DELETE, call_args[1])
+        self.assertEqual(exception.status_code, 4321)
+        self.assertEqual(exception.json, {"test" : "OK!"})
+        self.assertEqual(str(exception), "Second test message! Unexpected status code: 4321, with response body: {'test': 'OK!'}")
 
-        connection_mock = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock, status_code=404)
-        replace_connection(client, connection_mock)
+    def test_object_already_exists(self):
+        """
+        Test the `ObjectAlreadyExistsException` exception.
+        """
 
-        try:
-            client.data_object.delete("b36268d4-a6b5-5274-985f-45f13ce0c642")
-        except UnexpectedStatusCodeException as e:
-            self.assertEqual(e.status_code, 404)
-            self.assertIsNone(e.json)
+        exception = ObjectAlreadyExistsException("Test")
+        self.assertEqual(str(exception), "Test")
 
-        connection_mock.run_rest.assert_called()
+    def test_authentication_failed(self):
+        """
+        Test the `AuthenticationFailedException` exception.
+        """
 
-        call_args_list = connection_mock.run_rest.call_args_list
-        call_args = call_args_list[0][0]
-        self.assertEqual(REST_METHOD_DELETE, call_args[1])
+        exception = AuthenticationFailedException("Test")
+        self.assertEqual(str(exception), "Test")
+
+    def test_server_error_500(self):
+        """
+        Test the `ServerError500Exception` exception.
+        """
+
+        exception = ServerError500Exception("Test")
+        self.assertEqual(str(exception), "Test")
+
+    def test_schema_validation(self):
+        """
+        Test the `SchemaValidationException` exception.
+        """
+
+        exception = SchemaValidationException("Test")
+        self.assertEqual(str(exception), "Test")

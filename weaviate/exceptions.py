@@ -35,18 +35,14 @@ class UnexpectedStatusCodeException(Exception):
         except:
             body = None
 
-        if body is None:
-            super().__init__(message)
-        else:
-            super().__init__(message+"\t"+str(body))
-
+        self.message = message
         self.status_code = response.status_code
         self.json = body
 
     def __str__(self):
         code = str(self.status_code)
         body = str(self.json)
-        return f"Unexpected status code: {code}, with response body: {body}"
+        return f"{self.message}! Unexpected status code: {code}, with response body: {body}"
 
 
 class ObjectAlreadyExistsException(Exception):
@@ -60,32 +56,14 @@ class AuthenticationFailedException(Exception):
     Authentication Failed Exception.
     """
 
-    def __init__(self, message):
-        super().__init__(message)
-        self.message = message
-
-    def __str__(self):
-        return self.message
-
 
 class ServerError500Exception(Exception):
     """
     Server Error 500 Exception.
     """
 
-    def __init__(self, message):
-        super().__init__(message)
-        self.message = message
-
-    def __str__(self):
-        return self.message
-
 
 class SchemaValidationException(Exception):
     """
     Schema Validation Exception.
     """
-
-    def __init__(self, message):
-        super().__init__(message)
-        self.message = message
