@@ -166,21 +166,26 @@ class TestUtil(unittest.TestCase):
         Test the `is_weaviate_object_url` function.
         """
 
-        # correct formats
+        # valid formats
         self.assertTrue(
             is_weaviate_object_url("weaviate://localhost/28f3f61b-b524-45e0-9bbe-2c1550bf73d2"))
         self.assertTrue(
             is_weaviate_object_url("weaviate://some-domain.com/28f3f61b-b524-45e0-9bbe-2c1550bf73d2"))
 
-        # wrong formats
+        # invalid formats
+        ## wrong argument data type
         self.assertFalse(
             is_weaviate_object_url(["weaviate://localhost/28f3f61b-b524-45e0-9bbe-2c1550bf73d2"]))
+        ## wrong prefix, i.e. does not start with 'weaviate://' 
         self.assertFalse(
             is_weaviate_object_url("http://some-domain.com/28f3f61b-b524-45e0-9bbe-2c1550bf73d2"))
+        ## wrong path, additional '/thing'
         self.assertFalse(
             is_weaviate_object_url("weaviate://localhost/things/f61b-b524-45e0-9bbe-2c1550bf73d2"))
+        ## worng domain format
         self.assertFalse(
             is_weaviate_object_url("weaviate://some-INVALID-domain/28f3f61b-b524-45e0-9bbe-2c1550bf73d2"))
+        # wrong UUID format
         self.assertFalse(
             is_weaviate_object_url("weaviate://localhost/UUID"))
 
@@ -189,19 +194,23 @@ class TestUtil(unittest.TestCase):
         Test the `is_object_url` function.
         """
 
-        # correct formats
+        # valid formats
         self.assertTrue(
             is_object_url("http://localhost:8080/v1/objects/1c9cd584-88fe-5010-83d0-017cb3fcb446"))
         self.assertTrue(
             is_object_url("http://ramalamadingdong/v1/objects/1c9cd584-88fe-5010-83d0-017cb3fcb446"))
 
-        # wrong formats
+        # invalid formats
+        ## wrong path, should be at least 3 subpaths to the object UUID
         self.assertFalse(
             is_object_url("objects/1c9cd584-88fe-5010-83d0-017cb3fcb446"))
+        ## wrong '/v2', shoudl be '/v1'  
         self.assertFalse(
             is_object_url("http://localhost:8080/v2/objects/1c9cd584-88fe-5010-83d0-017cb3fcb446"))
+        ## wrong UUID format
         self.assertFalse(
             is_object_url("http://ramalamadingdong/v1/objects/1c9cd584-88fe-5010-83d0"))
+        ## wrong objects path, instead of '/passions' should have been '/objects/
         self.assertFalse(
             is_object_url("http://localhost:8080/v1/passions/1c9cd584-88fe-5010-83d0-017cb3fcb446"))
 
@@ -210,6 +219,7 @@ class TestUtil(unittest.TestCase):
         Test the `get_valid_uuid` function.
         """
 
+        # valid calls
         result = get_valid_uuid("weaviate://localhost/28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
         self.assertEqual(result, "28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
 
@@ -225,18 +235,23 @@ class TestUtil(unittest.TestCase):
         result = get_valid_uuid("1c9cd584-88fe-5010-83d0-017cb3fcb446")
         self.assertEqual(result, "1c9cd584-88fe-5010-83d0-017cb3fcb446")
 
+        # invalid formats (return None)
+        ## neither an object URL nor a weaviate object URL 
         result = get_valid_uuid("http://localhost:8080/v1/1c9cd584-88fe-5010-83d0-017cb3fcb")
         self.assertIsNone(result)
 
+        # wrong UUID format
         result = get_valid_uuid("http://localhost:8080/v1/objects/some-UUID")
         self.assertIsNone(result)
 
+        ## wrong '/v2', shoudl be '/v1' 
         result = get_valid_uuid("http://localhost:8080/v2/objects/1c9cd584-88fe-5010-83d0-017cb3fcb")
         self.assertIsNone(result)
-
+        ## wrong URL
         result = get_valid_uuid("weaviate://INVALID_URL//1c9cd584-88fe-5010-83d0-017cb3fcb")
         self.assertIsNone(result)
 
+        ## wrong UUID data type
         with self.assertRaises(TypeError):
             get_valid_uuid(12353465373573753)
 
@@ -266,6 +281,7 @@ class TestUtil(unittest.TestCase):
         self.assertTrue(_is_sub_schema(schema_set, schema_set))
         self.assertTrue(_is_sub_schema(schema_sub_set, schema_set))
         self.assertTrue(_is_sub_schema({}, schema_set))
+
         self.assertFalse(_is_sub_schema(disjoint_set, schema_set))
         self.assertFalse(_is_sub_schema(partial_set, schema_set))
         self.assertFalse(_is_sub_schema(schema_set_extended_prop, schema_set))
@@ -275,8 +291,10 @@ class TestUtil(unittest.TestCase):
         Test the `generate_local_beacon` function.
         """
 
+        # wrong data type
         with self.assertRaises(TypeError):
             generate_local_beacon(None)
+        # wrong value
         with self.assertRaises(ValueError):
             generate_local_beacon("Leeroy Jenkins")
 
@@ -293,12 +311,16 @@ class TestUtil(unittest.TestCase):
         Test the `_get_dict_from_object` function.
         """
 
+        # test wrong type None
         with self.assertRaises(TypeError):
             _get_dict_from_object(None)
+        # wrong data type
         with self.assertRaises(TypeError):
             _get_dict_from_object([{"key": 1234}])
+        # wrong value
         with self.assertRaises(ValueError):
             _get_dict_from_object("not_a_path_or_url")
+        # wrong URL or non existing one or failure of requests.get
         with patch('weaviate.util.requests') as mock_obj:
             result_mock = Mock()
             result_mock.status_code = 404
@@ -307,92 +329,11 @@ class TestUtil(unittest.TestCase):
                 _get_dict_from_object("http://www.url.com")
             mock_obj.get.assert_called()
 
-        # TODO: remove this variable when merging to master branch and use schema_company var instead.
-        schema_temp = {
-            "actions": {
-                "classes": [],
-                "type": "action"
-            },
-            "things": {
-                "@context": "",
-                "version": "0.2.0",
-                "type": "thing",
-                "name": "company",
-                "maintainer": "yourfriends@weaviate.com",
-                "classes": [
-                {
-                    "class": "Company",
-                    "description": "A business that acts in the market",
-                    "keywords": [],
-                    "properties": [
-                    {
-                        "name": "name",
-                        "description": "The name under which the company is known",
-                        "dataType": [
-                        "text"
-                        ],
-                        "cardinality": "atMostOne",
-                        "keywords": []
-                    },
-                    {
-                        "name": "legalBody",
-                        "description": "The legal body under which the company maintains its business",
-                        "dataType": [
-                        "text"
-                        ],
-                        "cardinality": "atMostOne",
-                        "keywords": []
-                    },
-                    {
-                        "name": "hasEmployee",
-                        "description": "The employees of the company",
-                        "dataType": [
-                        "Employee"
-                        ],
-                        "cardinality": "many",
-                        "keywords": []
-                    }
-                    ]
-                },
-                {
-                    "class": "Employee",
-                    "description": "An employee of the company",
-                    "keywords": [],
-                    "properties": [
-                    {
-                        "name": "name",
-                        "description": "The name of the employee",
-                        "dataType": [
-                        "text"
-                        ],
-                        "cardinality": "atMostOne",
-                        "keywords": []
-                    },
-                    {
-                        "name": "job",
-                        "description": "the job description of the employee",
-                        "dataType": [
-                        "text"
-                        ],
-                        "cardinality": "atMostOne",
-                        "keywords": []
-                    },
-                    {
-                        "name": "yearsInTheCompany",
-                        "description": "The number of years this employee has worked in the company",
-                        "dataType": [
-                        "int"
-                        ],
-                        "cardinality": "atMostOne",
-                        "keywords": []
-                    }
-                    ]
-                }
-                ]
-            }
-            }
+        # valid calls
         self.assertEqual(_get_dict_from_object({"key": "val"}), {"key": "val"})
+        # read from file
         path = '/'.join(__file__.split('/')[:-1])
         self.assertEqual(_get_dict_from_object(f'{path}/schema/schema_company.json'), schema_company)
-        path = "https://raw.githubusercontent.com/semi-technologies/weaviate-python-client/master/test/schema/schema_company.json"
-        self.assertEqual(_get_dict_from_object(path), schema_temp)
+        # read from URL
+        path = "https://raw.githubusercontent.com/semi-technologies/weaviate-python-client/weaviate_v1/test/schema/schema_company.json"
+        self.assertEqual(_get_dict_from_object(path), schema_company)
