@@ -1,53 +1,8 @@
-import requests
 from unittest.mock import Mock
+import weaviate
 
 
-
-def add_run_rest_to_mock(mock, return_json=None, status_code=200):
-    """
-    Adds the run_rest method to a mock using the given options.
-
-    Parameters
-    ----------
-    mock : unittest.mock.Mock
-        The mock to add the method to (this is call by reference
-        so this object will be edited).
-    return_json : any
-        The return value of the `.json()` method.
-    status_code : int
-        The code it should return.
-
-    Returns
-    -------
-    unittest.mock.Mock
-        The same mock as given. The object is not copied so the
-        usage of the return value is not necessary,
-    """
-    # Create mock
-    return_value_mock = Mock()
-    # set the json
-    return_value_mock.json.return_value = return_json
-    # Set status code
-    return_value_mock.configure_mock(status_code=status_code)
-    # Add the return value to the given mock
-    # set return object to mock object
-    mock.run_rest.return_value = return_value_mock 
-
-    return mock
-
-
-def run_rest_raise_connection_error(path, rest_method, weaviate_object=None, retries=3, params={}):
-    """
-    A mock that no mather the input will throw an ConnectionError.
-
-    Raises
-    ------
-    requests.exceptions.ConnectionError
-    """
-    raise requests.exceptions.ConnectionError
-
-
-def replace_connection(weaviate, connection):
+def replace_connection(client, connection):
     """
     Replace connection with a mocked one.
 
@@ -59,12 +14,53 @@ def replace_connection(weaviate, connection):
         The mock connection.
     """
 
-    weaviate._connection = connection
-    weaviate.classification._connection = connection
-    weaviate.schema._connection = connection
-    weaviate.schema.property._connection = connection
-    weaviate.contextionary._connection = connection
-    weaviate.batch._connection = connection
-    weaviate.data_object._connection = connection
-    weaviate.data_object.reference._connection = connection
-    weaviate.query._connection = connection
+    client._connection = connection
+    client.classification._connection = connection
+    client.schema._connection = connection
+    client.schema.property._connection = connection
+    client.contextionary._connection = connection
+    client.batch._connection = connection
+    client.data_object._connection = connection
+    client.data_object.reference._connection = connection
+    client.query._connection = connection
+
+
+def mock_run_rest(return_json=None, status_code=200, side_effect=None) -> Mock:
+    """
+    Mock `run_rest` call, i.e. the `.json()` return value, the `status_code` attribute
+    and also the raised exception when called.
+
+    Parameters
+    ----------
+    mock : unittest.mock.Mock
+        The mock to add the method to (this is call by reference
+        so this object will be edited).
+    return_json : any
+        The return value of the `.json()` method.
+    status_code : int
+        The code it should return.
+    side_effect : Exception()
+        An instance of an exception to be raised when the `run_rest` is called.
+        If side_effect is provided the other arguments are not used.
+
+    Returns
+    -------
+    unittest.mock.Mock
+        The mock object for the `run_rest`.
+    """
+
+    connection_mock = Mock()    
+    if side_effect is not None:
+        connection_mock.run_rest.side_effect = side_effect
+    else: 
+        # Create mock
+        return_value_mock = Mock()
+        # mock the json() method and set its return value
+        return_value_mock.json.return_value = return_json
+        # Set status code
+        return_value_mock.configure_mock(status_code=status_code)
+        # Add the return value to the given mock
+        # set return object to mock object
+        connection_mock.run_rest.return_value = return_value_mock 
+
+    return connection_mock
