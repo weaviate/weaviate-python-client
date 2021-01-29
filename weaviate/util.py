@@ -1,6 +1,9 @@
+"""
+Helper functions!
+"""
 import json
 import os
-from typing import Union, Optional
+from typing import Union, Sequence, Tuple, List
 import validators
 import requests
 
@@ -145,14 +148,14 @@ def is_object_url(url: str) -> bool:
     return True
 
 
-def get_valid_uuid(uuid: str) -> Optional[str]:
+def get_valid_uuid(uuid: str) -> str:
     """
-    Validate the UUID.
+    Validate and extract the UUID.
 
     Parameters
     ----------
     uuid : str
-        The UUID to be validated.
+        The UUID to be validated and extracted.
         Should be in the form of an UUID or in form of an URL.
         E.g.
         'http://localhost:8080/v1/objects/fc7eb129-f138-457f-b727-1b29db191a67'
@@ -161,18 +164,19 @@ def get_valid_uuid(uuid: str) -> Optional[str]:
 
     Returns
     -------
-    str or None
-        If the 'uuid' is not valid it returns None,
-        otherwise it returns the extracted.
+    str
+        The extracted UUID.
 
     Raises
     ------
     TypeError
         If 'uuid' is not of type str.
+    ValueError
+        If 'uuid' is not valid or cannot be extracted.
     """
 
     if not isinstance(uuid, str):
-        raise TypeError("uuid must be of type str but was: " + str(type(uuid)))
+        raise TypeError("'uuid' must be of type str but was: " + str(type(uuid)))
 
     _is_weaviate_url = is_weaviate_object_url(uuid)
     _is_object_url = is_object_url(uuid)
@@ -180,27 +184,45 @@ def get_valid_uuid(uuid: str) -> Optional[str]:
     if _is_weaviate_url or _is_object_url:
         _uuid = uuid.split("/")[-1]
     if not validators.uuid(_uuid):
-        return None
+        raise ValueError("Not valid 'uuid' or 'uuid' can not be extracted from value")
     return _uuid
 
 
-def get_uuid_from_weaviate_url(url: str) -> str:
+def get_vector(vector: Sequence) -> list:
     """
-    Get the UUID from a weaviate URL.
+    Get weaviate compatible format of the embedding vector.
 
     Parameters
     ----------
-    url : str
-        The weaviate URL.
-        Of this form: 'weaviate://localhost/objects/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'
+    vector: Sequence
+        The embedding of an object. Used only for class objects that do not have a vectorization
+        module. Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`.
 
     Returns
     -------
-    str
-        The UUID.
+    list
+        The embedding as a list.
+
+    Raises
+    ------
+    TypeError
+        If 'vector' is not of a supported type.
     """
 
-    return url.split("/")[-1]
+    if isinstance(vector, list):
+        # if vector is already a list
+        return vector
+    try:
+        # if vecor is numpy.ndarray or torch.Tensor
+        return vector.squeeze().tolist()
+    except AttributeError:
+        try:
+            # if vector is tf.Tensor
+            return vector.numpy().squeeze().tolist()
+        except AttributeError:
+            raise TypeError(("The type of the 'vector' argument is not supported!\n"
+                "Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` "
+                "and `tf.Tensor`")) from None
 
 
 def get_domain_from_weaviate_url(url: str) -> str:
@@ -302,3 +324,30 @@ def _compare_properties(sub_set: list, set_: list) -> bool:
         if not found:
             return False
     return True
+
+
+def _get_valid_timeout_config(timeout_config: Union[Tuple[int, int], List[int]]):
+    """
+    Initialize a ClientConfig class instance.
+
+    Parameters
+    ----------
+    timeout_config : tuple of int or list of int
+        Set the timeout config as a tuple of (retries, time out seconds).
+
+    Raises
+    ------
+    TypeError
+        If arguments are of a wrong data type.
+    ValueError
+        If 'timeout_config' is not a tuple of 2.
+    """
+
+    if not isinstance(timeout_config, (tuple, list)):
+        raise TypeError("'timeout_config' should be either a tuple or a list!")
+    if len(timeout_config) != 2:
+        raise ValueError("'timeout_config' must be of length 2!")
+    if not (isinstance(timeout_config[0], int) and isinstance(timeout_config[1], int)):
+        raise TypeError("'timeout_config' must be tupel of int")
+
+    return tuple(timeout_config)
