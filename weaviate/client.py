@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
 from .connect import Connection, REST_METHOD_GET
 from .classification import Classification
@@ -7,7 +7,6 @@ from .contextionary import Contextionary
 from .batch import Batch
 from .data import DataObject
 from .gql import Query
-from .client_config import ClientConfig
 from .auth import AuthCredentials
 
 
@@ -19,7 +18,7 @@ class Client:
     def __init__(self,
             url: str,
             auth_client_secret: AuthCredentials=None,
-            client_config: ClientConfig=None
+            timeout_config: Optional[Tuple[int, int]]=None
         ):
         """
         Initialize a Client class instance.
@@ -30,9 +29,9 @@ class Client:
             The URL to the weaviate instance.
         auth_client_secret : weaviate.AuthCredentials, optional
             Authentification client secret, by default None.
-        client_config : weaviate.ClientConfig, optional
-            Gives additional optimization parameters for the client.
-            Uses default parameters if omitted, by default None.
+        timeout_config : tuple(int, int), optional
+            Set the timeout config as a tuple of (retries, time out seconds),
+            by default None.
 
         Raises
         ------
@@ -46,14 +45,11 @@ class Client:
             # remove trailing slash
             url = url[:-1]
 
-        if client_config is None:
-            # Create the default config
-            client_config = ClientConfig()
-
-        self._connection = Connection(url=url,
-                                    auth_client_secret=auth_client_secret,
-                                    timeout_config=client_config.timeout_config)
-
+        self._connection = Connection(
+            url=url,
+            auth_client_secret=auth_client_secret,
+            timeout_config=timeout_config
+        )
         self.classification = Classification(self._connection)
         self.schema = Schema(self._connection)
         self.contextionary = Contextionary(self._connection)
@@ -137,3 +133,15 @@ class Client:
         if response.status_code == 404:
             return None
         raise UnexpectedStatusCodeException("Meta endpoint", response)
+
+    def set_timeout_config(self, timeout_config: Optional[Tuple[int, int]]):
+        """
+        Set timeout configuration.
+
+        Parameters
+        ----------
+        timeout_config : tuple(int, int) or list[int, int]
+            Timeout config as a tuple of (retries, time out seconds).
+        """
+
+        self._connection.set_timeout_config(timeout_config)
