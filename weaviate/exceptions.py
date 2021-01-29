@@ -56,13 +56,6 @@ class AuthenticationFailedException(Exception):
     Authentication Failed Exception.
     """
 
-
-class ServerError500Exception(Exception):
-    """
-    Server Error 500 Exception.
-    """
-
-
 class SchemaValidationException(Exception):
     """
     Schema Validation Exception.
