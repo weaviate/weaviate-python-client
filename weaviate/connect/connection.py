@@ -59,8 +59,8 @@ class Connection:
                     self.is_authentication_required = True
                     self._refresh_authentication()
                 else:
-                    raise ValueError(f"No login credentials provided. The weaviate instance at \
-                        {url} requires login credential, use argument 'auth_client_secret'.")
+                    raise ValueError(("No login credentials provided. The weaviate instance at "
+                        f"{url} requires login credential, use argument 'auth_client_secret'."))
 
     # Requests a new bearer
     def _refresh_authentication(self) -> None:
@@ -93,8 +93,8 @@ class Connection:
                     headers={"content-type": "application/json"},
                     timeout=(30, 45)
                     )
-            except urllib.error.HTTPError as error:
-                raise AuthenticationFailedException("Cant connect to weaviate") from error
+            except urllib.error.HTTPError:
+                raise AuthenticationFailedException("Cant connect to weaviate") from None
             if request.status_code != 200:
                 raise AuthenticationFailedException("Cant authenticate http status not ok")
 
@@ -108,19 +108,19 @@ class Connection:
                     headers={"content-type": "application/json"},
                     timeout=(30, 45)
                     )
-            except urllib.error.HTTPError as error:
-                raise AuthenticationFailedException(
-                    "Can't connect to the third party authentication service. \
-                        Validate that it's running") from error
+            except urllib.error.HTTPError:
+                raise AuthenticationFailedException((
+                    "Can't connect to the third party authentication service. "
+                    "Validate that it's running")) from None
             if request_third_part.status_code != 200:
                 raise AuthenticationFailedException(
                     "Status not OK in connection to the third party authentication service")
 
             # Validate third part auth info
             if 'client_credentials' not in request_third_part.json()['grant_types_supported']:
-                raise AuthenticationFailedException(
-                    "The grant_types supported by the thirdparty authentication service are \
-                        insufficient. Please add 'client_credentials'")
+                raise AuthenticationFailedException((
+                    "The grant_types supported by the thirdparty authentication service are "
+                    "insufficient. Please add 'client_credentials'"))
 
             request_body = self.auth_client_secret.get_credentials()
             request_body["client_id"] = client_id
@@ -132,10 +132,10 @@ class Connection:
                     request_body,
                     timeout=(30, 45)
                     )
-            except urllib.error.HTTPError as error:
-                raise AuthenticationFailedException(
-                    "Unable to get a OAuth token from server. Are the credentials \
-                        and URLs correct?") from error
+            except urllib.error.HTTPError:
+                raise AuthenticationFailedException((
+                    "Unable to get a OAuth token from server. Are the credentials "
+                    "and URLs correct?")) from None
 
             # sleep to process
             time.sleep(0.125)
