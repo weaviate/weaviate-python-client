@@ -5,6 +5,7 @@ import requests
 from weaviate.exceptions import AuthenticationFailedException
 from weaviate.connect.constants import *
 from weaviate.auth import AuthCredentials
+from weaviate.util import _get_valid_timeout_config
 from .util import get_epoch_time
 
 WEAVIATE_REST_API_VERSION_PATH = "/v1"
@@ -37,7 +38,7 @@ class Connection:
         if timeout_config is None:
             self.timeout_config = (2, 20)
         else:
-            self.timeout_config = timeout_config
+            self.set_timeout_config(timeout_config)
 
         self.auth_expires = 0  # unix time when auth expires
         self.auth_bearer = 0
@@ -242,3 +243,15 @@ class Connection:
             print("Not yet implemented rest method called")
             response = None
         return response
+
+    def set_timeout_config(self, timeout_config: Optional[Tuple[int, int]]):
+        """
+        Set timeout configuration.
+
+        Parameters
+        ----------
+        timeout_config : tuple(int, int) or list[int, int]
+            Timeout config as a tuple/list of (retries, time out seconds).
+        """
+
+        self.timeout_config = _get_valid_timeout_config(timeout_config)
