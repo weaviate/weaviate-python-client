@@ -20,9 +20,9 @@ def validate_schema(schema: dict) -> None:
         If the schema could not be validated against the standard format.
     """
 
-    # check if schema has only "classes" as keys
-    if len(schema) != 1 or "classes" not in schema:
-        raise SchemaValidationException('each schema has to have only "classes" \
+    # check if schema has required "classes" as keys
+    if "classes" not in schema:
+        raise SchemaValidationException('each schema has to have "classes" \
                     in the first level of the JSON format file/parameter/object')
     # check if "classes" is of type list
     _check_key_type("classes", schema["classes"], list)
@@ -106,7 +106,6 @@ def check_property(class_property: dict) -> None:
             _check_key_type(key, class_property[key], bool)
         if key in ["moduleConfig"]:
             _check_key_type(key, class_property[key], dict)
-            # TODO check "moduleConfig" hierarch types and keys
 
     # Test dataType types
     for data_type in class_property["dataType"]:
