@@ -1,33 +1,9 @@
 import unittest
 from unittest.mock import patch, Mock
 import weaviate
-from weaviate import ClientConfig, Client
+from weaviate import Client
 from weaviate.exceptions import RequestsConnectionError
 from test.util import mock_run_rest, replace_connection
-
-
-class TestWeaviateClientConfig(unittest.TestCase):
-
-    def test___init__(self):
-        """
-        Test the `__init__` method.
-        """
-
-        # valid arguments
-        self.assertEqual(ClientConfig((1, 2)).timeout_config, (1, 2))
-        self.assertEqual(ClientConfig([1, 2]).timeout_config, (1, 2))
-
-        # invalid arguments
-        with self.assertRaises(TypeError):
-            ClientConfig((1., 2))
-        with self.assertRaises(TypeError):
-            ClientConfig((1, 2.))
-        with self.assertRaises(TypeError):
-            ClientConfig({1, 2})
-        with self.assertRaises(ValueError):
-            ClientConfig((1, 2, 3))
-        with self.assertRaises(ValueError):
-            ClientConfig([1])
         
 
 class TestWeaviateClient(unittest.TestCase):
@@ -38,22 +14,25 @@ class TestWeaviateClient(unittest.TestCase):
         """
 
         Client._connection = Mock()
+        type_error_message = "URL is expected to be string but is "
         # test incalid calls
-        with self.assertRaises(TypeError):
+        with self.assertRaises(TypeError) as error:
             Client(None)
-        with self.assertRaises(TypeError):
+        self.assertEqual(str(error.exception), type_error_message + str(type(None)))
+        with self.assertRaises(TypeError) as error:
             Client(42)
+        self.assertEqual(str(error.exception), type_error_message + str(int))
 
         # test valid calls
         with patch('weaviate.client.Connection') as mock_obj:
-            Client("some_URL", auth_client_secret=None, client_config=ClientConfig((1, 2)))
+            Client("some_URL", auth_client_secret=None, timeout_config=(1, 2))
             mock_obj.assert_called_with(
                 url='some_URL',
                 auth_client_secret=None,
                 timeout_config=(1,2)
                 )
         with patch('weaviate.client.Connection') as mock_obj:
-            Client("some_URL/", auth_client_secret=None, client_config=ClientConfig((5, 20)))
+            Client("some_URL/", auth_client_secret=None, timeout_config=(5, 20))
             mock_obj.assert_called_with(
                 url='some_URL',
                 auth_client_secret=None,
@@ -124,8 +103,10 @@ class TestWeaviateClient(unittest.TestCase):
         # Request to weaviate returns 404
         connection_mock = mock_run_rest(status_code=404)
         client._connection = connection_mock
-        with self.assertRaises(weaviate.UnexpectedStatusCodeException):
+        with self.assertRaises(weaviate.UnexpectedStatusCodeException) as error:
             client.get_meta()
+        error_message = "Meta endpoint! Unexpected status code: 404, with response body: None"
+        self.assertEqual(str(error.exception), error_message)
         connection_mock.run_rest.assert_called()
         connection_mock.run_rest.assert_called_with("/meta", weaviate.connect.REST_METHOD_GET)
     
@@ -153,7 +134,19 @@ class TestWeaviateClient(unittest.TestCase):
         # Request to weaviate returns 204
         connection_mock = mock_run_rest(status_code=204)
         client._connection = connection_mock
-        with self.assertRaises(weaviate.UnexpectedStatusCodeException):
+        with self.assertRaises(weaviate.UnexpectedStatusCodeException) as error:
             client.get_open_id_configuration()
+        error_message = f"Meta endpoint! Unexpected status code: 204, with response body: None"
+        self.assertEqual(str(error.exception), error_message)
         connection_mock.run_rest.assert_called()
         connection_mock.run_rest.assert_called_with("/.well-known/openid-configuration", weaviate.connect.REST_METHOD_GET)
+
+    def test_timeout_config(self):
+        """
+        Test the `set_timeout_config` method.
+        """
+
+        client = Client("some_URL", auth_client_secret=None, timeout_config=(1, 2))
+        self.assertEqual(client.timeout_config, (1, 2))
+        client.timeout_config = (4, 20) #;)
+        self.assertEqual(client.timeout_config, (4, 20))
