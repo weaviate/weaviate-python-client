@@ -134,9 +134,18 @@ class Client:
             return None
         raise UnexpectedStatusCodeException("Meta endpoint", response)
 
-    def set_timeout_config(self, timeout_config: Optional[Tuple[int, int]]):
+    @property
+    def timeout_config(self):
         """
-        Set timeout configuration.
+        Getter for `timeout_config`.
+        """
+
+        return self._connection.timeout_config
+
+    @timeout_config.setter
+    def timeout_config(self, timeout_config: Optional[Tuple[int, int]]):
+        """
+        Setter for `timeout_config`.
 
         Parameters
         ----------
@@ -144,4 +153,4 @@ class Client:
             Timeout config as a tuple of (retries, time out seconds).
         """
 
-        self._connection.set_timeout_config(timeout_config)
+        self._connection.timeout_config = timeout_config
