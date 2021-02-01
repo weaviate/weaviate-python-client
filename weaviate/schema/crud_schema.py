@@ -126,7 +126,6 @@ class Schema:
         for _class in classes:
             self.delete_class(_class["class"])
 
-
     def contains(self, schema: Optional[Union[dict, str]]=None) -> bool:
         """
         Check if weaviate already contains a schema.

@@ -22,12 +22,13 @@ def validate_schema(schema: dict) -> None:
 
     # check if schema has required "classes" as keys
     if "classes" not in schema:
-        raise SchemaValidationException('each schema has to have "classes" \
-                    in the first level of the JSON format file/parameter/object')
+        raise SchemaValidationException('Each schema has to have "classes" '
+                    'in the first level of the JSON format file/parameter/object')
     # check if "classes" is of type list
     _check_key_type("classes", schema["classes"], list)
     # check if each class in the "classes" is a valid class
     for weaviate_class in schema["classes"]:
+        _check_key_type("class", weaviate_class, dict)
         check_class(weaviate_class)
 
 
@@ -63,7 +64,6 @@ def check_class(class_definition: dict) -> None:
             _check_key_type(key, class_definition[key], dict)
         if key in ["properties"]:
             _check_key_type(key, class_definition[key], list)
-        # TODO check in depth dicts
 
     if "properties" in class_definition:
         for class_property in class_definition["properties"]:
@@ -109,7 +109,7 @@ def check_property(class_property: dict) -> None:
 
     # Test dataType types
     for data_type in class_property["dataType"]:
-        _check_key_type("dataType", data_type, str)
+        _check_key_type("dataType object", data_type, str)
 
 
 def _check_key_type(key: str, value: Any, expected_type: Any) -> None:
@@ -132,5 +132,5 @@ def _check_key_type(key: str, value: Any, expected_type: Any) -> None:
     """
 
     if not isinstance(value, expected_type):
-        raise SchemaValidationException(f'"{key}" is type {type(value)} \
-                                        but should be {expected_type}.')
+        raise SchemaValidationException(f'"{key}" is type {type(value)} '
+                                        f'but should be {expected_type}.')

@@ -82,8 +82,8 @@ def _get_dict_from_object(object_: Union[str, dict]) -> dict:
         # Object is file
         with open(object_, 'r') as file:
             return json.load(file)
-    raise TypeError("Argument is not of the supported types. Supported types are \
-                                    url or file path as string or schema as dict.")
+    raise TypeError("Argument is not of the supported types. Supported types are "
+                    "url or file path as string or schema as dict.")
 
 
 def is_weaviate_object_url(url: str) -> bool:
@@ -220,9 +220,9 @@ def get_vector(vector: Sequence) -> list:
             # if vector is tf.Tensor
             return vector.numpy().squeeze().tolist()
         except AttributeError:
-            raise TypeError(("The type of the 'vector' argument is not supported!\n"
+            raise TypeError("The type of the 'vector' argument is not supported!\n"
                 "Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` "
-                "and `tf.Tensor`")) from None
+                "and `tf.Tensor`") from None
 
 
 def get_domain_from_weaviate_url(url: str) -> str:
