@@ -3,9 +3,9 @@ import copy
 import os
 from unittest.mock import patch, Mock
 import weaviate
-from test.util import replace_connection, add_run_rest_to_mock
+from test.util import replace_connection, mock_run_rest
 from weaviate.connect import REST_METHOD_POST, REST_METHOD_DELETE, REST_METHOD_GET
-from weaviate.exceptions import SchemaValidationException
+from weaviate.exceptions import SchemaValidationException, RequestsConnectionError, UnexpectedStatusCodeException
 
 company_test_schema = {
     "classes": 
@@ -88,268 +88,139 @@ persons_return_test_schema = {
     ],
 }
 
-# Schema containing explicit index
-person_index_false_schema = {
-    "classes": [
+schema_company_local = { # NOTE: should be the same as file schema_company.json
+  "classes": [
+    {
+      "class": "Company",
+      "description": "A business that acts in the market",
+      "properties": [
         {
-            "class": "Person",
-            "description": "A person such as humans or personality known through culture",
-            "properties": [
-                {
-                    "name": "name",
-                    "description": "The name of this person",
-                    "dataType": ["text"],
-                    "indexInverted": False
-                }
-            ]
+          "name": "name",
+          "description": "The name under which the company is known",
+          "dataType": ["text"]
         },
         {
-            "class": "Group",
-            "description": "A set of persons who are associated with each other over some common properties",
-            "properties": [
-                {
-                    "name": "name",
-                    "description": "The name under which this group is known",
-                    "dataType": ["text"],
-                    "indexInverted": True
-                },
-                {
-                    "name": "members",
-                    "description": "The persons that are part of this group",
-                    "dataType": ["Person"],
-                }
-            ]
-        }
-    ]
-}
-
-stop_vectorization_schema = {
-    "classes": [
-        {
-            "class": "DataType",
-            "description": "DataType",
-            "moduleConfig": {
-                "text2vec-contextionary": {  
-                    "vectorizeClassName": False
-                }
-            },
-            "properties": [
-                {
-                    "name": "owner",
-                    "description": "the owner",
-                    "dataType": ["text"],
-                    "moduleConfig": {
-                        "text2vec-contextionary": {  
-                            "vectorizePropertyName": False
-                        }
-                    },
-                    "indexInverted": False
-                },
-                {
-                    "name": "complexDescription",
-                    "description": "Description of the complex type",
-                    "dataType": ["text"],
-                    "moduleConfig": {
-                        "text2vec-contextionary": {  
-                            "vectorizePropertyName": False
-                        }
-                    }
-                },
-                {
-                    "name": "hasPrimitives",
-                    "description": "The primitive data points",
-                    "dataType": ["Primitive"],
-                }
-            ]
+          "name": "legalBody",
+          "description": "The legal body under which the company maintains its business",
+          "dataType": ["text"]
         },
         {
-            "class": "Primitive",
-            "description": "DataType",
-            "moduleConfig": {
-                "text2vec-contextionary": {  
-                    "vectorizeClassName": True
-                }
-            },
-            "properties": [
-                {
-                    "name": "type",
-                    "description": "the primitive type",
-                    "dataType": ["text"],
-                }
-            ]
+          "name": "hasEmployee",
+          "description": "The employees of the company",
+          "dataType": ["Employee"]
         }
-    ]
+      ]
+    },
+    {
+      "class": "Employee",
+      "description": "An employee of the company",
+      "properties": [
+        {
+          "name": "name",
+          "description": "The name of the employee",
+          "dataType": ["text"]
+        },
+        {
+          "name": "job",
+          "description": "the job description of the employee",
+          "dataType": ["text"]
+        },
+        {
+          "name": "yearsInTheCompany",
+          "description": "The number of years this employee has worked in the company",
+          "dataType": ["int"]
+        }
+      ]
+    }
+  ]
 }
-
 
 class TestSchema(unittest.TestCase):
 
-    def test_create_schema_invalid_input(self):
+    def setUp(self):
+        
+        self.client = weaviate.Client("http://localhost:8080")
+
+    def test_create(self):
         """
-        Test create schema exceptions.
-        """
-
-        client = weaviate.Client("http://localhost:8080")
-		# None value
-        with self.assertRaises(TypeError):
-            client.schema.create(None)
-		# invalid file
-        with self.assertRaises(ValueError):
-            client.schema.create("/random/noFile")
-		# invalid url
-        with self.assertRaises(ValueError):
-            client.schema.create("https://www.semi.technology/schema")
-		# wrong type
-        with self.assertRaises(TypeError):
-            client.schema.create(42)
-
-    def test_create_schema_load_file(self):
-        """
-        Test create schema.
-        """
-        client = weaviate.Client("http://localhost:8080")
-        connection_mock_file = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock_file)
-        replace_connection(client, add_run_rest_to_mock(connection_mock_file))  # Replace connection with mock
-
-        # Load from URL
-        with patch('weaviate.schema.crud_schema._get_dict_from_object') as mock_util:
-            mock_util.return_value = company_test_schema
-            self.assertIsNone(client.schema.create("http://semi.technology/schema"))
-
-        # Load from file
-        connection_mock_file = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock_file)
-        replace_connection(client, add_run_rest_to_mock(connection_mock_file))  # Replace connection with mock
-
-        current_dir = os.path.dirname(__file__)
-        schema_json_file = os.path.join(current_dir, "schema_company.json")
-        client.schema.create(schema_json_file)  # Load from file
-        connection_mock_file.run_rest.assert_called()  # See if mock has been called
-
-        # Load dict
-        connection_mock_dict = Mock()  # Replace mock
-        add_run_rest_to_mock(connection_mock_dict)
-
-        replace_connection(client, add_run_rest_to_mock(connection_mock_dict))
-        client.schema.create(company_test_schema)
-        connection_mock_dict.run_rest.assert_called()
-
-    def test_run_rest_failed(self):
-        """
-        test run_rest Failed.
+        Test the `create` method.
         """
 
-        client = weaviate.Client("http://localhost:8080")
-        connection_mock = Mock()
-        add_run_rest_to_mock(connection_mock, return_json={"Test error"}, status_code=500)
-        replace_connection(client, connection_mock)
+        # mock function calls
+        mock_primitive = Mock()
+        mock_complex = Mock()
+        self.client.schema._create_classes_with_primitives = mock_primitive
+        self.client.schema._create_complex_properties_from_classes = mock_complex
 
-        with self.assertRaises(weaviate.UnexpectedStatusCodeException):
-            client.schema.create(company_test_schema)
+        self.client.schema.create("test/schema/schema_company.json") # with read from file
 
-    def test_get_schema(self):
+        mock_primitive.assert_called_with(schema_company_local["classes"])
+        mock_complex.assert_called_with(schema_company_local["classes"])
+
+    def test_create_class(self):
         """
-        Test schema.get
-        """
-
-        client = weaviate.Client("http://localhost:8080")
-
-        connection_mock_file = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock_file, persons_return_test_schema)
-        replace_connection(client, connection_mock_file)  # Replace connection with mock
-
-        schema = client.schema.get()
-        connection_mock_file.run_rest.assert_called()  # See if mock has been called
-        self.assertTrue("classes" in schema)
-        self.assertEqual(len(schema["classes"]), 2)
-
-    def test_create_schema_with_explicit_index(self):
-        """
-        Test create schema with explicit indexInverted.
+        Test the `create_class` method.
         """
 
-        client = weaviate.Client("http://localhost:8080")
+        # mock function calls
+        mock_primitive = Mock()
+        mock_complex = Mock()
+        self.client.schema._create_class_with_premitives = mock_primitive
+        self.client.schema._create_complex_properties_from_class = mock_complex
 
-        connection_mock_dict = Mock()  # Replace mock
-        add_run_rest_to_mock(connection_mock_dict)
+        self.client.schema.create_class(company_test_schema["classes"][0])
 
-        replace_connection(client, connection_mock_dict)
-        client.schema.create(person_index_false_schema)
-        connection_mock_dict.run_rest.assert_called()
+        mock_primitive.assert_called_with(company_test_schema["classes"][0])
+        mock_complex.assert_called_with(company_test_schema["classes"][0])
 
-    def test_not_indexed_class_name(self):
+    def test_get(self):
         """
-        Test un-indexed class name.
+        Test the `get` method.
         """
 
-        client = weaviate.Client("http://localhost:8080")
+        # invalid calls
+        requests_error_message = 'Test! Connection error, schema could not be retrieved.'
 
-        connection_mock_dict = Mock()  # Replace mock
-        add_run_rest_to_mock(connection_mock_dict)
+        mock_conn = mock_run_rest(side_effect=RequestsConnectionError("Test!"))
+        replace_connection(self.client, mock_conn)
+        with self.assertRaises(RequestsConnectionError) as error:
+            self.client.schema.get()
+        self.assertEqual(str(error.exception), requests_error_message)
 
-        replace_connection(client, connection_mock_dict)
-        client.schema.create(stop_vectorization_schema)
-        connection_mock_dict.run_rest.assert_called()
+        mock_conn = mock_run_rest(status_code=404)
+        replace_connection(self.client, mock_conn)
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
+            self.client.schema.get()
+        self.assertTrue(str(error.exception).startswith("Get schema"))
 
-    def test_invalid_schema(self):
-        schema = {
-            "class": "Category",
-            "description": "Category an article is a type off",
-            "properties": [
-              {
-                "cardinality": "atMostOne",
-                "dataType": [
-                  "text"
-                ],
-                "description": "category name",
-                "name": "name"
-              }
-            ]
-        }
-        client = weaviate.Client("http://localhost:1234")
-        with self.assertRaises(weaviate.SchemaValidationException):
-            client.schema.create(schema)
+        # valid calls
+        connection_mock_file = mock_run_rest(status_code=200, return_json={'Test': 'OK!'})
+        replace_connection(self.client, connection_mock_file)  # Replace connection with mock
 
+        self.assertEqual(self.client.schema.get(), {'Test': 'OK!'})
+        connection_mock_file.run_rest.assert_called_with("/schema", REST_METHOD_GET)  # See if mock has been called
 
-class TestContainsSchema(unittest.TestCase):
-
-    def test_contains_a_schema(self):
+    def test_contains(self):
         """
-        Test weaviate.schema.contains any schema.
+        Test the `contains` method.
         """
 
         # If a schema is present it should return true otherwise false
         # 1. test schema is present:
-        client = weaviate.Client("http://localhost:8080")
 
-        connection_mock_file = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock_file, persons_return_test_schema)
-        replace_connection(client, connection_mock_file)
-
-        self.assertTrue(client.schema.contains())
+        replace_connection(self.client, mock_run_rest(return_json=persons_return_test_schema))
+        self.assertTrue(self.client.schema.contains())
 
         # 2. test no schema is present:
-        client = weaviate.Client("http://localhost:8080")
 
-        connection_mock_file = Mock()  # Mock calling weaviate
-        empty_schema = {"classes": []}
-        add_run_rest_to_mock(connection_mock_file, empty_schema)
-        replace_connection(client, connection_mock_file)
+        replace_connection(self.client, mock_run_rest(return_json={"classes": []}))
+        self.assertFalse(self.client.schema.contains())
 
-        self.assertFalse(client.schema.contains())
-
-    def test_contains_specific_schema(self):
-        """
-        Test weaviate.schema.contains specific schema.
-        """
-
-        client = weaviate.Client("http://localhost:8080")
-
-        connection_mock_file = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock_file, persons_return_test_schema)
-        replace_connection(client, connection_mock_file)
-        self.assertFalse(client.schema.contains(company_test_schema))
+        # 3. test with 'schema' argument
+        ## Test weaviate.schema.contains specific schema.
+    
+        replace_connection(self.client, mock_run_rest(return_json=persons_return_test_schema))
+        self.assertFalse(self.client.schema.contains(company_test_schema))
         subset_schema = {
             "classes": [
                 {
@@ -365,210 +236,298 @@ class TestContainsSchema(unittest.TestCase):
                 }
             ]
         }
-        self.assertTrue(client.schema.contains(subset_schema))
+        self.assertTrue(self.client.schema.contains(subset_schema))
 
-    def test_contains_specific_schema_from_file(self):
-        """
-        Test weaviate.schema.contains schema from file.
-        """
+        ## Test weaviate.schema.contains schema from file.
 
-        client = weaviate.Client("http://localhost:8080")
+        replace_connection(self.client, mock_run_rest(return_json=persons_return_test_schema))
+        schema_json_file = os.path.join(os.path.dirname(__file__), "schema_company.json")
+        self.assertFalse(self.client.schema.contains(schema_json_file))
 
-        connection_mock_file = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock_file, persons_return_test_schema)
-        replace_connection(client, connection_mock_file)
-
-        current_dir = os.path.dirname(__file__)
-        schema_json_file = os.path.join(current_dir, "schema_company.json")
-
-        self.assertFalse(client.schema.contains(schema_json_file))
-
-        connection_mock_file = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock_file, company_test_schema)
-        replace_connection(client, connection_mock_file)
-
-        self.assertTrue(client.schema.contains(schema_json_file))
-
-
-class TestCreate(unittest.TestCase):
-
-    def test_create_single_class(self):
-        """
-        Test create single class.
-        """
-
-        group_class = {
-            "class": "Group",
-            "description": "A set of persons who are associated with each other over some common properties",
-            "properties": [
-                {
-                    "name": "name",
-                    "description": "The name under which this group is known",
-                    "dataType": ["text"],
-                    "indexInverted": True
-                },
-                {
-                    "name": "members",
-                    "description": "The persons that are part of this group",
-                    "dataType": ["Person"],
-                }
-            ]
-        }
-
-        client = weaviate.Client("http://localhost:8080")
-
-        connection_mock = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock)
-        replace_connection(client, connection_mock)
-
-        self.assertIsNone(client.schema.create_class(group_class))
-
-        connection_mock.run_rest.assert_called()
-        call_args_list = connection_mock.run_rest.call_args_list
-        call_args = call_args_list[0][0]
-
-        self.assertEqual("/schema", call_args[0])
-        self.assertEqual(REST_METHOD_POST, call_args[1])
-        created_class = call_args[2]
-        self.assertEqual("Group", created_class["class"])
-        self.assertEqual(1, len(created_class["properties"]))
-
-        call_args = call_args_list[1][0]
-        self.assertEqual("/schema/Group/properties", call_args[0])
-        self.assertEqual(REST_METHOD_POST, call_args[1])
-        created_property = call_args[2]
-        self.assertEqual(["Person"], created_property["dataType"])
-
-
-    def test_create_minimal_class(self):
-        """
-        Test create minimal class.
-        """
-
-        client = weaviate.Client("http://localhost:8080")
-
-        connection_mock = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock)
-        replace_connection(client, connection_mock)
-
-        client.schema.create_class({"class": "Group"})
-
-        connection_mock.run_rest.assert_called()
-        call_args_list = connection_mock.run_rest.call_args_list
-        call_args = call_args_list[0][0]
-
-        self.assertEqual("/schema", call_args[0])
-        self.assertEqual(REST_METHOD_POST, call_args[1])
-        self.assertEqual("Group", call_args[2]["class"])
-
-    def test_input(self):
-        """
-        Test input.
-        """
-
-        client = weaviate.Client("http://localhorst:8080")
-        invalid_class = {
-            "class": "Group",
-            "description": "A set of persons who are associated with each other over some common properties",
-            "properties": [
-                {
-                    "name": "name",
-                    "description": "The name under which this group is known",
-                    "indexInverted": True
-                },
-                {
-                    "name": "members",
-                    "description": "The persons that are part of this group",
-                    "dataType": [
-                        "Person"
-                    ],
-                }
-            ]
-        }
-        with self.assertRaises(SchemaValidationException):
-            client.schema.create_class(invalid_class)
-
-
-class TestDelete(unittest.TestCase):
+        replace_connection(self.client, mock_run_rest(return_json=company_test_schema))
+        self.assertTrue(self.client.schema.contains(schema_json_file))
 
     def test_delete_class_input(self):
         """
-        Test delete class input exceptions.
-        """
-        client = weaviate.Client("http://localhost:8080")
-        with self.assertRaises(TypeError):
-            client.schema.delete_class(1)
-        with self.assertRaises(TypeError):
-            client.schema.delete_class("a", 1)
-
-    def test_delete_class(self):
-        """
-        Test delete class.
+        Test the 'delete_class` method.
         """
 
-        client = weaviate.Client("http://localhorst:8080")
+        # invalid calls
+        type_error_message = lambda t: f"Class name was {t} instead of str"
+        requests_error_message = 'Test! Connection error, during deletion of class.'
 
-        connection_mock = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock)
-        replace_connection(client, connection_mock)
+        with self.assertRaises(TypeError) as error:
+            self.client.schema.delete_class(1)
+        self.assertEqual(str(error.exception), type_error_message(int))
 
-        self.assertIsNone(client.schema.delete_class("Poverty"))
+        replace_connection(self.client, mock_run_rest(side_effect=RequestsConnectionError('Test!')))
+        with self.assertRaises(RequestsConnectionError) as error:
+            self.client.schema.delete_class("uuid")
+        self.assertEqual(str(error.exception), requests_error_message)
 
-        connection_mock.run_rest.assert_called()
+        replace_connection(self.client, mock_run_rest(status_code=404))
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
+            self.client.schema.delete_class("uuid")
+        self.assertTrue(str(error.exception).startswith("Delete class from schema"))
 
-        call_args_list = connection_mock.run_rest.call_args_list
-        call_args = call_args_list[0][0]
+        # valid calls
+        mock_conn = mock_run_rest(status_code=200)
+        replace_connection(self.client, mock_conn)
+        self.client.schema.delete_class("uuid")
+        mock_conn.run_rest.assert_called_with("/schema/uuid", REST_METHOD_DELETE)
 
-        self.assertEqual("/schema/Poverty", call_args[0])
-        self.assertEqual(REST_METHOD_DELETE, call_args[1])
 
     def test_delete_everything(self):
         """
-        Test delete everything.
+        Test the `delete_all` method.
         """
 
-        # First request get schema
-        return_value_mock_get_schema = Mock()
-        return_value_mock_get_schema.json.return_value = company_test_schema
-        return_value_mock_get_schema.configure_mock(status_code=200)
-        # Second request delete class 1
-        return_value_mock_delete_class_1 = Mock()
-        return_value_mock_delete_class_1.json.return_value = None
-        return_value_mock_delete_class_1.configure_mock(status_code=200)
-        # Third request delete class 2
-        return_value_mock_delete_class_2 = Mock()
-        return_value_mock_delete_class_2.json.return_value = None
-        return_value_mock_delete_class_2.configure_mock(status_code=200)
+        mock_get = mock_run_rest(return_json=company_test_schema)
+        replace_connection(self.client, mock_get)
 
-        connection_mock = Mock()  # Mock calling weaviate
-        #connection_mock.run_rest.return_value = [return_value_mock, return_value_mock2]
-        connection_mock.run_rest.side_effect = [
-            return_value_mock_get_schema,
-            return_value_mock_delete_class_1,
-            return_value_mock_delete_class_2]
+        self.client.schema.delete_all()
+        self.assertEqual(mock_get.run_rest.call_count, 2 + 1) # + 1 is for the getting the schema
 
-        client = weaviate.Client("http://localhost:2121")
-        replace_connection(client, connection_mock)
+    def test__create_complex_properties_from_classes(self):
+        """
+        Test the `_create_complex_properties_from_classes` method.
+        """
 
-        client.schema.delete_all()
+        mock_complex = Mock()
+        self.client.schema._create_complex_properties_from_class = mock_complex
 
-        connection_mock.run_rest.assert_called()
+        self.client.schema._create_complex_properties_from_classes(list("Test!"))
+        self.assertEqual(mock_complex.call_count, 5)
 
-        call_args_list = connection_mock.run_rest.call_args_list
-        # Check if schema was retrieved
-        call_args = call_args_list[0][0]
+    def test__create_complex_properties_from_class(self):
+        """
+        Test the `_create_complex_properties_from_class` method.
+        """
+        
+        # valid calls
+        test_func = self.client.schema._create_complex_properties_from_class
 
-        self.assertEqual("/schema", call_args[0])
-        self.assertEqual(REST_METHOD_GET, call_args[1])
+        def helper_test(nr_calls=1):
+            mock_rest = mock_run_rest()
+            replace_connection(self.client, mock_rest)
+            test_func(properties)
+            self.assertEqual(mock_rest.run_rest.call_count, nr_calls)
+            mock_rest.run_rest.assert_called_with(
+                "/schema/" + properties["class"] + "/properties",
+                REST_METHOD_POST,
+                properties['properties'][0])
 
-        # Check if class 1 was deleted
-        call_args = call_args_list[1][0]
+        # no `properties` key
+        mock_rest = mock_run_rest()
+        replace_connection(self.client, mock_rest)
+        test_func({})
+        self.assertEqual(mock_rest.run_rest.call_count, 0)
 
-        self.assertEqual("/schema/Company", call_args[0])
-        self.assertEqual(REST_METHOD_DELETE, call_args[1])
+        # no COMPLEX properties
+        properties = {
+            'properties':[
+                {'dataType': ["text"]}
+            ]
+        }
+        test_func(properties)
+        self.assertEqual(mock_rest.run_rest.call_count, 0)
 
-        # Check if class 2 was deleted
-        call_args = call_args_list[2][0]
+        properties = {
+            'properties':[
+                {'dataType': ["text"]},
+                {'dataType': ['string']}
+            ]
+        }
+        test_func(properties)
+        self.assertEqual(mock_rest.run_rest.call_count, 0)
 
-        self.assertEqual("/schema/Employee", call_args[0])
-        self.assertEqual(REST_METHOD_DELETE, call_args[1])
+        properties = {
+            'class' : 'TestClass',
+            'properties':[
+                {
+                    'dataType': ["Test"],
+                    'description': "test description",
+                    'name': 'test_prop'
+                },
+                
+            ]
+        }
+        mock_rest = mock_run_rest()
+        replace_connection(self.client, mock_rest)
+        test_func(properties)
+        self.assertEqual(mock_rest.run_rest.call_count, 1)
+
+        properties = {
+            'class' : 'TestClass',
+            'properties':[
+                {
+                    'dataType': ["Test"],
+                    'description': "test description",
+                    'name': 'test_prop'
+                },
+                
+            ]
+        }
+        helper_test()
+
+        properties['properties'][0]['indexInverted'] = True
+        helper_test()
+
+        properties['properties'][0]['moduleConfig'] = {'test': 'ok!'}
+        helper_test()
+        
+        properties['properties'].append(properties['properties'][0]) # add another property
+        properties['properties'].append(properties['properties'][0]) # add another property
+        helper_test(3)
+
+        # invalid calls
+        requests_error_message = 'TEST1 Connection error, property may not have been created properly.'
+
+        mock_rest = mock_run_rest(side_effect=RequestsConnectionError('TEST1'))
+        replace_connection(self.client, mock_rest)
+        with self.assertRaises(RequestsConnectionError) as error:
+            test_func(properties)
+        self.assertEqual(str(error.exception), requests_error_message)
+
+        mock_rest = mock_run_rest(status_code=404)
+        replace_connection(self.client, mock_rest)
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
+            test_func(properties)
+        self.assertTrue(str(error.exception).startswith("Add properties to classes"))
+
+    def test__create_class_with_premitives(self):
+        """
+        Test the `_create_class_with_premitives` method.
+        """
+        
+        # valid calls
+        test_func = self.client.schema._create_class_with_premitives
+        def helper_test():
+            mock_rest = mock_run_rest()
+            replace_connection(self.client, mock_rest)
+            test_func(test_class)
+            self.assertEqual(mock_rest.run_rest.call_count, 1)
+            mock_rest.run_rest.assert_called_with(
+                "/schema",
+                REST_METHOD_POST,
+                test_class_call)
+
+        test_class = {
+            "class": "TestClass",
+            "properties": [
+                {
+                    'dataType': ['int'],
+                    'name': 'test_prop',
+                    'description': 'None'
+                },
+                {
+                    'dataType': ['Test'],
+                    'name': 'test_prop',
+                    'description': 'None'
+                }
+            ]
+        }
+        test_class_call = {
+            "class": "TestClass",
+            "properties": [
+                {
+                    'dataType': ['int'],
+                    'name': 'test_prop',
+                    'description': 'None'
+                },
+            ]
+        }
+        helper_test()
+
+        test_class['description'] = 'description'
+        test_class_call['description'] = 'description'
+        helper_test()
+        
+        test_class['description'] = 'description'
+        test_class_call['description'] = 'description'
+        helper_test()
+
+        test_class['vectorIndexType'] = 'vectorIndexType'
+        test_class_call['vectorIndexType'] = 'vectorIndexType'
+        helper_test()
+
+        test_class['vectorIndexConfig'] = {'vectorIndexConfig': 'vectorIndexConfig'}
+        test_class_call['vectorIndexConfig'] = {'vectorIndexConfig': 'vectorIndexConfig'}
+        helper_test()
+
+        test_class['vectorizer'] = 'test_vectorizer'
+        test_class_call['vectorizer'] = 'test_vectorizer'
+        helper_test()
+
+        test_class['moduleConfig'] = {'moduleConfig': 'moduleConfig'}
+        test_class_call['moduleConfig'] = {'moduleConfig': 'moduleConfig'}
+        helper_test()
+
+        # multiple properties do not imply multimple `run_rest` calls
+        test_class['properties'].append(test_class['properties'][0]) # add another property
+        test_class['properties'].append(test_class['properties'][0]) # add another property
+        test_class_call['properties'].append(test_class['properties'][0]) # add another property
+        test_class_call['properties'].append(test_class['properties'][0]) # add another property
+        helper_test()
+
+        
+
+        # invalid calls
+        requests_error_message = 'TEST1 Connection error, class may not have been created properly.'
+
+        mock_rest = mock_run_rest(side_effect=RequestsConnectionError('TEST1'))
+        replace_connection(self.client, mock_rest)
+        with self.assertRaises(RequestsConnectionError) as error:
+            test_func(test_class)
+        self.assertEqual(str(error.exception), requests_error_message)
+
+        mock_rest = mock_run_rest(status_code=404)
+        replace_connection(self.client, mock_rest)
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
+            test_func(test_class)
+        self.assertTrue(str(error.exception).startswith("Create class"))
+
+    def test__create_classes_with_primitives(self):
+        """
+        Test the `_create_classes_with_primitives` method.
+        """
+
+        mock_primitive = Mock()
+        self.client.schema._create_class_with_premitives = mock_primitive
+
+        self.client.schema._create_classes_with_primitives(list("Test!!"))
+        self.assertEqual(mock_primitive.call_count, 6) 
+
+    def test__property_is_primitive(self):
+        """
+        Test the `_property_is_primitive` function.
+        """
+
+        test_types_list = ["NOT Primitive", "Neither this one", "Nor This!"]
+        self.assertFalse(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        test_types_list = ["NOT Primitive", "boolean", "text"]
+        self.assertFalse(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        test_types_list = ["text"]
+        self.assertTrue(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+
+    def test__get_primitive_properties(self):
+        """
+        Test the `_get_primitive_properties` function.
+        """
+
+        test_func = weaviate.schema.crud_schema._get_primitive_properties
+
+        properties_list = []
+        self.assertEqual(test_func(properties_list), properties_list)
+
+        properties_list = [{'dataType': ["text"]}]
+        self.assertEqual(test_func(properties_list), properties_list)
+
+        properties_list = [{'dataType': ["text"]}, {'dataType': ["int"]}]
+        self.assertEqual(test_func(properties_list), properties_list)
+
+        properties_list = [{'dataType': ["Test1"]}, {'dataType': ["Test2"]}]
+        self.assertEqual(test_func(properties_list), [])
+
+        properties_list = [{'dataType': ["text"]}, {'dataType': ["int"]}, {'dataType': ["Test1"]}, {'dataType': ["Test2"]}]
+        self.assertEqual(test_func(properties_list), [{'dataType': ["text"]}, {'dataType': ["int"]}])

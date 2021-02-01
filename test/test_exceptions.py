@@ -48,14 +48,6 @@ class TestExceptions(unittest.TestCase):
         exception = AuthenticationFailedException("Test")
         self.assertEqual(str(exception), "Test")
 
-    def test_server_error_500(self):
-        """
-        Test the `ServerError500Exception` exception.
-        """
-
-        exception = ServerError500Exception("Test")
-        self.assertEqual(str(exception), "Test")
-
     def test_schema_validation(self):
         """
         Test the `SchemaValidationException` exception.
