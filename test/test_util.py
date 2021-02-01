@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, Mock
 from weaviate.util import * 
-from weaviate.util import  _get_dict_from_object, _is_sub_schema
+from weaviate.util import  _get_dict_from_object, _is_sub_schema, _get_valid_timeout_config
 
 schema_set = {
     "classes": [
@@ -161,6 +161,71 @@ schema_company = {
 
 class TestUtil(unittest.TestCase):
 
+    def test_generate_local_beacon(self):
+        """
+        Test the `generate_local_beacon` function.
+        """
+
+        type_error_message = "Expected to_object_uuid of type str"
+        value_error_message = "Uuid does not have the propper form"
+        # wrong data type
+        with self.assertRaises(TypeError) as error:
+            generate_local_beacon(None)
+        self.assertEqual(str(error.exception), type_error_message)
+        # wrong value
+        with self.assertRaises(ValueError) as error:
+            generate_local_beacon("Leeroy Jenkins")
+        self.assertEqual(str(error.exception), value_error_message)
+
+        beacon = generate_local_beacon("fcf33178-1b5d-5174-b2e7-04a2129dd35a")
+        self.assertTrue("beacon" in beacon)
+        self.assertEqual(beacon["beacon"], "weaviate://localhost/fcf33178-1b5d-5174-b2e7-04a2129dd35a")
+
+        beacon = generate_local_beacon("fcf33178-1b5d-5174-b2e7-04a2129dd35b")
+        self.assertTrue("beacon" in beacon)
+        self.assertEqual(beacon["beacon"], "weaviate://localhost/fcf33178-1b5d-5174-b2e7-04a2129dd35b")
+
+    def test__get_dict_from_object(self):
+        """
+        Test the `_get_dict_from_object` function.
+        """
+
+        none_error_message = "argument is None"
+        file_error_message = "No file found at location "
+        url_error_message = "Could not download file "
+        type_error_message = ("Argument is not of the supported types. Supported types are "
+                    "url or file path as string or schema as dict.")
+        # test wrong type None
+        with self.assertRaises(TypeError) as error:
+            _get_dict_from_object(None)
+        self.assertEqual(str(error.exception), none_error_message)
+        # wrong data type
+        with self.assertRaises(TypeError) as error:
+            _get_dict_from_object([{"key": 1234}])
+        self.assertEqual(str(error.exception), type_error_message)
+        # wrong path
+        with self.assertRaises(ValueError) as error:
+            _get_dict_from_object("not_a_path_or_url.txt")
+        self.assertEqual(str(error.exception), file_error_message + "not_a_path_or_url.txt")
+        # wrong URL or non existing one or failure of requests.get
+        with patch('weaviate.util.requests') as mock_obj:
+            result_mock = Mock()
+            result_mock.status_code = 404
+            mock_obj.get.return_value = result_mock
+            with self.assertRaises(ValueError) as error:
+                _get_dict_from_object("http://www.url.com")
+            self.assertEqual(str(error.exception), url_error_message + "http://www.url.com")
+            mock_obj.get.assert_called()
+
+        # valid calls
+        self.assertEqual(_get_dict_from_object({"key": "val"}), {"key": "val"})
+        # read from file
+        path = '/'.join(__file__.split('/')[:-1])
+        self.assertEqual(_get_dict_from_object(f'{path}/schema/schema_company.json'), schema_company)
+        # read from URL
+        path = "https://raw.githubusercontent.com/semi-technologies/weaviate-python-client/weaviate_v1/test/schema/schema_company.json"
+        self.assertEqual(_get_dict_from_object(path), schema_company)
+
     def test_is_weaviate_object_url(self):
         """
         Test the `is_weaviate_object_url` function.
@@ -235,34 +300,69 @@ class TestUtil(unittest.TestCase):
         result = get_valid_uuid("1c9cd584-88fe-5010-83d0-017cb3fcb446")
         self.assertEqual(result, "1c9cd584-88fe-5010-83d0-017cb3fcb446")
 
-        # invalid formats (return None)
-        ## neither an object URL nor a weaviate object URL 
-        result = get_valid_uuid("http://localhost:8080/v1/1c9cd584-88fe-5010-83d0-017cb3fcb")
-        self.assertIsNone(result)
+        # invalid formats
+        type_error_message = "'uuid' must be of type str but was: "
+        value_error_message = "Not valid 'uuid' or 'uuid' can not be extracted from value"
+        ## neither an object URL nor a weaviate object URL
+        with self.assertRaises(ValueError) as error:
+            get_valid_uuid("http://localhost:8080/v1/1c9cd584-88fe-5010-83d0-017cb3fcb")
+        self.assertEqual(str(error.exception), value_error_message)
 
         # wrong UUID format
-        result = get_valid_uuid("http://localhost:8080/v1/objects/some-UUID")
-        self.assertIsNone(result)
+        with self.assertRaises(ValueError) as error:
+            get_valid_uuid("http://localhost:8080/v1/objects/some-UUID")
+        self.assertEqual(str(error.exception), value_error_message)
 
-        ## wrong '/v2', shoudl be '/v1' 
-        result = get_valid_uuid("http://localhost:8080/v2/objects/1c9cd584-88fe-5010-83d0-017cb3fcb")
-        self.assertIsNone(result)
+        ## wrong '/v2', shoudl be '/v1'
+        with self.assertRaises(ValueError) as error:
+            get_valid_uuid("http://localhost:8080/v2/objects/1c9cd584-88fe-5010-83d0-017cb3fcb")
+        self.assertEqual(str(error.exception), value_error_message)
+
         ## wrong URL
-        result = get_valid_uuid("weaviate://INVALID_URL//1c9cd584-88fe-5010-83d0-017cb3fcb")
-        self.assertIsNone(result)
+        with self.assertRaises(ValueError) as error:
+            get_valid_uuid("weaviate://INVALID_URL//1c9cd584-88fe-5010-83d0-017cb3fcb")
+        self.assertEqual(str(error.exception), value_error_message)
 
         ## wrong UUID data type
-        with self.assertRaises(TypeError):
-            get_valid_uuid(12353465373573753)
+        with self.assertRaises(TypeError) as error:
+            get_valid_uuid(12)
+        self.assertEqual(str(error.exception), type_error_message + str(int))
 
-    def test_get_uuid_from_weaviate_url(self):
+    def test_get_vector(self):
         """
-        Test the `get_uuid_from_weaviate_url` function.
+        Test the `get_vector` function.
         """
 
-        uuid = "28f3f61b-b524-45e0-9bbe-2c1550bf73d2"
-        self.assertEqual(get_uuid_from_weaviate_url(f"weaviate://localhost/{uuid}"), uuid)
-        self.assertEqual(get_uuid_from_weaviate_url(f"weaviate://otherhost/{uuid}"), uuid)
+        vector_list  = [1., 2., 3.]
+        # vector is a list
+        self.assertEqual(get_vector(vector_list), vector_list)
+
+        # vector is a `torch.Tensor` or `numpy.ndarray`
+        vector_mock = Mock()
+        mock_tolist = Mock()
+        mock_tolist.tolist.return_value = vector_list
+        mock_squeeze = Mock(return_value = mock_tolist)
+        vector_mock.squeeze = mock_squeeze
+        self.assertEqual(get_vector(vector_mock), vector_list)
+
+        # vector is a `tf.Tensor`
+        vector_mock = Mock()
+        mock_tolist = Mock()
+        mock_squeeze = Mock()
+        mock_tolist.tolist.return_value = vector_list
+        mock_squeeze.squeeze.return_value = mock_tolist
+        mock_numpy = Mock(return_value = mock_squeeze)
+        vector_mock.numpy = mock_numpy
+        vector_mock.squeeze = Mock(side_effect = AttributeError("TEST TensorFlow Tensor"))
+        self.assertEqual(get_vector(vector_mock), vector_list)
+
+        # invalid call
+        type_error_message = ("The type of the 'vector' argument is not supported!\n"
+                "Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` "
+                "and `tf.Tensor`")
+        with self.assertRaises(TypeError) as error:
+            get_vector('[1., 2., 3.]')
+        self.assertEqual(str(error.exception), type_error_message)
 
     def test_get_domain_from_weaviate_url(self):
         """
@@ -286,54 +386,55 @@ class TestUtil(unittest.TestCase):
         self.assertFalse(_is_sub_schema(partial_set, schema_set))
         self.assertFalse(_is_sub_schema(schema_set_extended_prop, schema_set))
 
-    def test_generate_local_beacon(self):
+    def test__get_valid_timeout_config(self):
         """
-        Test the `generate_local_beacon` function.
-        """
-
-        # wrong data type
-        with self.assertRaises(TypeError):
-            generate_local_beacon(None)
-        # wrong value
-        with self.assertRaises(ValueError):
-            generate_local_beacon("Leeroy Jenkins")
-
-        beacon = generate_local_beacon("fcf33178-1b5d-5174-b2e7-04a2129dd35a")
-        self.assertTrue("beacon" in beacon)
-        self.assertEqual(beacon["beacon"], "weaviate://localhost/fcf33178-1b5d-5174-b2e7-04a2129dd35a")
-
-        beacon = generate_local_beacon("fcf33178-1b5d-5174-b2e7-04a2129dd35b")
-        self.assertTrue("beacon" in beacon)
-        self.assertEqual(beacon["beacon"], "weaviate://localhost/fcf33178-1b5d-5174-b2e7-04a2129dd35b")
-
-    def test__get_dict_from_object(self):
-        """
-        Test the `_get_dict_from_object` function.
+        Test the `_get_valid_timeout_config` function.
         """
 
-        # test wrong type None
-        with self.assertRaises(TypeError):
-            _get_dict_from_object(None)
-        # wrong data type
-        with self.assertRaises(TypeError):
-            _get_dict_from_object([{"key": 1234}])
-        # wrong value
-        with self.assertRaises(ValueError):
-            _get_dict_from_object("not_a_path_or_url")
-        # wrong URL or non existing one or failure of requests.get
-        with patch('weaviate.util.requests') as mock_obj:
-            result_mock = Mock()
-            result_mock.status_code = 404
-            mock_obj.get.return_value = result_mock
-            with self.assertRaises(ValueError):
-                _get_dict_from_object("http://www.url.com")
-            mock_obj.get.assert_called()
+        # incalid calls 
+        type_error_message = "'timeout_config' should be either a tuple or a list!"
+        value_error_message = "'timeout_config' must be of length 2!"
+        value_types_error_message = "'timeout_config' must be tupel of int"
+        ## wrong type, None
+        with self.assertRaises(TypeError) as error:
+            _get_valid_timeout_config(None)
+        self.assertEqual(str(error.exception), type_error_message)
+
+        ## wrong type, not list or tuple
+        with self.assertRaises(TypeError) as error:
+            _get_valid_timeout_config("(2, 13)")
+        self.assertEqual(str(error.exception), type_error_message)
+
+        ## worng tuple length 3
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config((1,2,3))
+        self.assertEqual(str(error.exception), value_error_message)
+
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config([1, 2, 3])
+        self.assertEqual(str(error.exception), value_error_message)
+
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config(tuple([1]))
+        self.assertEqual(str(error.exception), value_error_message)
+
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config([1])
+        self.assertEqual(str(error.exception), value_error_message)
+
+        ## wrong value types
+        with self.assertRaises(TypeError) as error:
+            _get_valid_timeout_config([1, 10.123])
+        self.assertEqual(str(error.exception), value_types_error_message)
+
+        with self.assertRaises(TypeError) as error:
+            _get_valid_timeout_config(["1", 10])
+        self.assertEqual(str(error.exception), value_types_error_message)
+
+        with self.assertRaises(TypeError) as error:
+            _get_valid_timeout_config(["1", "10"])
+        self.assertEqual(str(error.exception), value_types_error_message)
 
         # valid calls
-        self.assertEqual(_get_dict_from_object({"key": "val"}), {"key": "val"})
-        # read from file
-        path = '/'.join(__file__.split('/')[:-1])
-        self.assertEqual(_get_dict_from_object(f'{path}/schema/schema_company.json'), schema_company)
-        # read from URL
-        path = "https://raw.githubusercontent.com/semi-technologies/weaviate-python-client/weaviate_v1/test/schema/schema_company.json"
-        self.assertEqual(_get_dict_from_object(path), schema_company)
+        _get_valid_timeout_config((2, 20))
+        _get_valid_timeout_config([20, 10])
