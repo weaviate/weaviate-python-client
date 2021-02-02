@@ -211,7 +211,7 @@ class Reference:
             raise ValueError(f"'{method}' not supported!")
 
         # Validate and create Beacon
-        _from_uuid = _validate_and_get_uuid(from_uuid)
+        _from_uuid = get_valid_uuid(from_uuid)
         _validate_property_name(from_property_name)
 
         # Validate 'to_uuid_s' and create the respective beacon/s
@@ -222,11 +222,11 @@ class Reference:
                 to_uuid_s = [to_uuid_s]
 
             for to_uuid in to_uuid_s:
-                _to_uuid = _validate_and_get_uuid(to_uuid)
+                _to_uuid = get_valid_uuid(to_uuid)
                 beacons.append(_get_beacon(_to_uuid))
         else:
             # Other methods take just a UUID as a str
-            _to_uuid = _validate_and_get_uuid(to_uuid_s)
+            _to_uuid = get_valid_uuid(to_uuid_s)
             beacons = _get_beacon(_to_uuid)
 
         # Try to Run REST method
@@ -285,29 +285,3 @@ def _validate_property_name(property_name: str) -> None:
     if not isinstance(property_name, str):
         raise TypeError("from_property_name must be of type 'str' but was: "\
                         + str(type(property_name)))
-
-
-def _validate_and_get_uuid(uuid: str) -> str:
-    """
-    Validate the UUID.
-
-    Parameters
-    ----------
-    uuid : str
-        The UUID to be validated.
-
-    Returns
-    -------
-    str
-        The extracted and validated UUID.
-
-    Raises
-    ------
-    ValueError
-        If 'uuid' is not valid or UUID can not be extracted
-        from 'uuid'.
-    """
-
-    if get_valid_uuid(uuid) is None:
-        raise ValueError("Not valid uuid or uuid can not be extracted from value")
-    return uuid.split('/')[-1]

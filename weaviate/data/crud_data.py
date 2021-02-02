@@ -1,7 +1,6 @@
 import sys
-from typing import Union, Optional, List
+from typing import Union, Optional, List, Sequence
 import validators
-from requests import Response
 from weaviate.connect import REST_METHOD_POST
 from weaviate.connect import REST_METHOD_PATCH
 from weaviate.connect import REST_METHOD_PUT
@@ -11,7 +10,7 @@ from weaviate.connect import Connection
 from weaviate.exceptions import ObjectAlreadyExistsException
 from weaviate.exceptions import RequestsConnectionError
 from weaviate.exceptions import UnexpectedStatusCodeException
-from weaviate.util import _get_dict_from_object
+from weaviate.util import _get_dict_from_object, get_vector
 from weaviate.data.references import Reference
 
 
@@ -36,7 +35,7 @@ class DataObject:
             data_object: Union[dict, str],
             class_name: str,
             uuid: str=None,
-            vector_weights: dict=None
+            vector: Sequence=None
         ) -> str:
         """
         Takes a dict describing the object and adds it to weaviate.
@@ -52,9 +51,11 @@ class DataObject:
             Object will be created under this uuid if it is provided.
             Otherwise weaviate will generate a uuid for this object,
             by default None.
-        vector_weights : dict, optional
-            Influence the weight of words on object creation.
-            Default is None for no influence.
+        vector: Sequence, optional
+            The embedding of the object that should be created. Used only class objects that do not
+            have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
+            `torch.Tensor` and `tf.Tensor`,
+            by default None.
 
         Returns
         -------
@@ -67,19 +68,19 @@ class DataObject:
             If argument is of wrong type.
         ValueError
             If argument contains an invalid value.
-        weaviate.ObjectAlreadyExistsException
+        weaviate.exceptions.ObjectAlreadyExistsException
             If an object with the given uuid already exists within weaviate.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If creating the object in weavate failed with a different reason,
             more information is given in the exception.
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
         """
 
-        loaded_data_object = _get_dict_from_object(data_object)
         if not isinstance(class_name, str):
             raise TypeError("Expected class_name of type str but was: "\
                             + str(type(class_name)))
+        loaded_data_object = _get_dict_from_object(data_object)
 
         weaviate_obj = {
             "class": class_name,
@@ -94,12 +95,8 @@ class DataObject:
 
             weaviate_obj["id"] = uuid
 
-        if vector_weights is not None:
-            if not isinstance(vector_weights, dict):
-                raise TypeError("Expected vector_weights to be of type dict but was "\
-                                + str(type(vector_weights)))
-
-            weaviate_obj["vectorWeights"] = vector_weights
+        if vector is not None:
+            weaviate_obj["vector"] = get_vector(vector)
 
         path = "/objects"
         try:
@@ -127,26 +124,32 @@ class DataObject:
             raise ObjectAlreadyExistsException(str(uuid))
         raise UnexpectedStatusCodeException("Creating object", response)
 
-    def merge(self,
+    def update(self,
             data_object: Union[dict, str],
             class_name: str,
-            uuid: str
+            uuid: str,
+            vector: Sequence=None
         ) -> None:
         """
-        Merge the given object with the already existing object in weaviate.
-        Overwrites all given fields.
+        Update the given object with the already existing object in weaviate.
+        Overwrites only the specified fields, the unspecified ones remain unchanged.
 
         Parameters
         ----------
         data_object : dict or str
             The object states the fields that should be updated.
-            Fields not stated by object will not be changed.
+            Fields not specified by in the 'data_object' remain unchanged.
             Fields that are None will not be changed.
             If type is str it should be either an URL or a file.
         class_name : str
             The class name of the object.
         uuid : str
             The ID of the object that should be changed.
+        vector: Sequence, optional
+            The embedding of the object that should be updated. Used only class objects that do not
+            have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
+            `torch.Tensor` and `tf.Tensor`,
+            by default None.
 
         Raises
         ------
@@ -160,8 +163,6 @@ class DataObject:
             If weaviate reports a none successful status.
         """
 
-        object_dict = _get_dict_from_object(data_object)
-
         if not isinstance(class_name, str):
             raise TypeError("Class must be type str")
         if not isinstance(uuid, str):
@@ -169,32 +170,38 @@ class DataObject:
         if not validators.uuid(uuid):
             raise ValueError("Not a proper UUID")
 
-        payload = {
+        object_dict = _get_dict_from_object(data_object)
+
+        weaviate_obj = {
             "id": uuid,
             "class": class_name,
             "properties": object_dict
         }
 
+        if vector is not None:
+            weaviate_obj['vector'] = get_vector(vector)
+
         path = f"/objects/{uuid}"
 
         try:
-            response = self._connection.run_rest(path, REST_METHOD_PATCH, payload)
+            response = self._connection.run_rest(path, REST_METHOD_PATCH, weaviate_obj)
         except RequestsConnectionError as conn_err:
-            message = str(conn_err) + ' Connection error, object was not patched.'
+            message = str(conn_err) + ' Connection error, object was not updated(REST PATCH).'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
         if response.status_code == 204:
             # Successful merge
             return
-        raise UnexpectedStatusCodeException("PATCH merge of object not successful", response)
+        raise UnexpectedStatusCodeException("Update of the object not successful", response)
 
-    def update(self,
+    def replace(self,
             data_object: Union[dict, str],
             class_name: str,
-            uuid: str
+            uuid: str,
+            vector: Sequence=None
         ) -> None:
         """
-        Update an already existing object with the given data object.
-        Does not keep unset values.
+        Replace an already existing object with the given data object.
+        This method replaces the whole object.
 
         Parameters
         ----------
@@ -205,6 +212,11 @@ class DataObject:
             Name of the class of the object that should be updated.
         uuid : str
             The UUID of the object that should be changed.
+        vector: Sequence, optional
+            The embedding of the object that should be replaced. Used only class objects that do not
+            have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
+            `torch.Tensor` and `tf.Tensor`,
+            by default None.
 
         Raises
         ------
@@ -226,16 +238,19 @@ class DataObject:
             "properties": parsed_object
         }
 
+        if vector is not None:
+            weaviate_obj['vector'] = get_vector(vector)
+
         path = f"/objects/{uuid}"
         try:
             response = self._connection.run_rest(path, REST_METHOD_PUT, weaviate_obj)
         except RequestsConnectionError as conn_err:
-            message = str(conn_err) + ' Connection error, object was not updated.'
+            message = str(conn_err) + ' Connection error, object was not replaced(REST PUT).'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
         if response.status_code == 200:
             # Successful update
             return
-        raise UnexpectedStatusCodeException("Update object", response)
+        raise UnexpectedStatusCodeException("Replace object", response)
 
     def get_by_id(self,
             uuid: str,
@@ -274,23 +289,25 @@ class DataObject:
             If weaviate reports a none OK status.
         """
 
-        response = self._get_object_response(uuid, additional_properties, with_vector)
-
-        if response.status_code == 200:
-            return response.json()
-        if response.status_code == 404:
-            return None
-        raise UnexpectedStatusCodeException("Get object", response)
+        return self.get(
+            uuid=uuid,
+            additional_properties=additional_properties,
+            with_vector=with_vector
+        )
 
     def get(self,
+            uuid:str=None,
             additional_properties: List[str]=None,
             with_vector: bool=False
         ) -> List[dict]:
         """
-        Gets all objects.
+        Gets objects from weaviate. If 'uuid' is None, all objects are returned.
+        If 'uuid' is specified the result is the same as for `get_by_uuid` method.
 
         Parameters
         ----------
+        uuid : str, optional
+            The identifier of the object that should be retrieved.
         additional_properties : list of str, optional
             list of additional properties that should be included in the request,
             by default None
@@ -317,64 +334,22 @@ class DataObject:
 
         params = _get_params(additional_properties, with_vector)
 
-        path = "/objects"
+        if uuid is not None:
+            path = "/objects/" + uuid
+        else:
+            path = "/objects"
 
         try:
             response = self._connection.run_rest(path, REST_METHOD_GET, params=params)
         except RequestsConnectionError as conn_err:
-            message = str(conn_err) + ' Connection error when getting objects'
+            message = str(conn_err) + ' Connection error when getting object/s'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
 
         if response.status_code == 200:
             return response.json()
-        raise UnexpectedStatusCodeException("Get object", response)
-
-    def _get_object_response(self,
-            object_uuid: str,
-            additional_properties: List[str],
-            with_vector: bool
-        ) -> Response:
-        """
-        Retrieve an object from weaviate.
-
-        Parameters
-        ----------
-        object_uuid : str
-            The identifier of the object that should be retrieved.
-        additional_properties : list of str, optional
-            Defines the additional properties that should be included in the result.
-        with_vector: bool
-            If True the `vector` property will be returned too.
-
-        Returns
-        -------
-        requests.Response
-            Respose object.
-
-        Raises
-        ------
-        TypeError
-            If argument is of wrong type.
-        ValueError
-            If argument contains an invalid value.
-        requests.exceptions.ConnectionError
-            If the network connection to weaviate fails.
-        """
-
-        params = _get_params(additional_properties, with_vector)
-
-        if not isinstance(object_uuid, str):
-            object_uuid = str(object_uuid)
-        try:
-            response = self._connection.run_rest(
-                "/objects/" + object_uuid,
-                REST_METHOD_GET,
-                params=params
-                )
-        except RequestsConnectionError as conn_err:
-            message = str(conn_err) + ' Connection error not sure if object exists'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
-        return response
+        if uuid is not None and response.status_code == 404:
+            return None
+        raise UnexpectedStatusCodeException("Get object/s", response)
 
     def delete(self, uuid: str) -> None:
         """
@@ -439,7 +414,7 @@ class DataObject:
             If uuid is not properly formed.
         """
 
-        response = self._get_object_response(uuid, None, False)
+        response = self.get(uuid=uuid)
 
         if response.status_code == 200:
             return True
@@ -450,7 +425,8 @@ class DataObject:
     def validate(self,
             data_object: Union[dict, str],
             class_name: str,
-            uuid: str
+            uuid: str,
+            vector: Sequence=None
         ) -> dict:
         """
         Validate an object against weaviate.
@@ -464,6 +440,11 @@ class DataObject:
             Name of the class of the object that should be validated.
         uuid : str
             The UUID of the object that shoudl be validated against weaviate.
+        vector: Sequence, optional
+            The embedding of the object that should be validated. Used only class objects that
+            do not have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
+            `torch.Tensor` and `tf.Tensor`,
+            by default None.
 
         Returns
         -------
@@ -487,17 +468,20 @@ class DataObject:
         """
 
         if not isinstance(uuid, str):
-            raise TypeError("UUID must be of type str")
+            raise TypeError("UUID must be of type `str`")
 
         loaded_data_object = _get_dict_from_object(data_object)
         if not isinstance(class_name, str):
-            raise TypeError(f"Expected class_name of type str but was: {type(class_name)}")
+            raise TypeError(f"Expected class_name of type `str` but was: {type(class_name)}")
 
         weaviate_obj = {
             "id": uuid,
             "class": class_name,
             "properties": loaded_data_object
         }
+
+        if vector is not None:
+            weaviate_obj['vector'] = get_vector(vector)
 
         path = "/objects/validate"
         try:
@@ -545,10 +529,10 @@ def _get_params(additional_properties: Optional[List[str]], with_vector: bool) -
     """
 
     params = {}
-    if additional_properties is not None:
+    if additional_properties:
         if not isinstance(additional_properties, list):
-            raise TypeError(f"Additional properties must be of type list \
-                                but are {type(additional_properties)}")
+            raise TypeError("Additional properties must be of type list "
+                f"but are {type(additional_properties)}")
         params['include'] = ",".join(additional_properties)
 
     if with_vector:
