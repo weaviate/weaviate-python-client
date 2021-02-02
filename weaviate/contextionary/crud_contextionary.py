@@ -117,8 +117,6 @@ class Contextionary:
             message = str(conn_err)\
                     + ' Connection error, text2vec-contextionary vector was not retrieved.'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
-        except AttributeError:
-            raise
         except Exception as error:
             message = str(error)\
                     + ' Unexpected exception please report this excetpion in an issue.'
