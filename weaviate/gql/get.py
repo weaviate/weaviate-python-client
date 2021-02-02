@@ -39,8 +39,8 @@ class GetBuilder(GraphQL):
         if not isinstance(class_name, str):
             raise TypeError(f"class name must be of type str but was {type(class_name)}")
         if not isinstance(properties, (list, str)):
-            raise TypeError(f"properties must be of type str or \
-                            list of str but was {type(properties)}")
+            raise TypeError("properties must be of type str or "
+                f"list of str but was {type(properties)}")
         if isinstance(properties, str):
             properties = [properties]
 
@@ -144,7 +144,7 @@ class GetBuilder(GraphQL):
         """
 
         if limit < 1:
-            raise ValueError('limit cannot be negative (limit >=1).')
+            raise ValueError('limit cannot be non-positive (limit >=1).')
 
         self._limit = f'limit: {limit} '
         self._contains_filter = True

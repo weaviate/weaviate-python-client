@@ -103,4 +103,4 @@ class Query:
 
         if response.status_code == 200:
             return response.json()  # Successfully queried
-        raise UnexpectedStatusCodeException("GQL query", response)
+        raise UnexpectedStatusCodeException("GQL query failed", response)

@@ -2,7 +2,7 @@ import sys
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
 from weaviate.schema.validate_schema import check_property
 from weaviate.util import _get_dict_from_object
-from weaviate.connect import REST_METHOD_POST, REST_METHOD_DELETE, Connection
+from weaviate.connect import Connection, REST_METHOD_POST #, REST_METHOD_DELETE
 
 
 class Property:

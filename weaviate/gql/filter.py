@@ -91,8 +91,8 @@ class NearText:
         """
 
         if not isinstance(content, dict):
-            raise TypeError(f"{self.__class__.__name__} filter is expected to \
-                                        be type dict but was {type(content)}")
+            raise TypeError(f"{self.__class__.__name__} filter is expected to "
+                f"be type dict but was {type(content)}")
         _content = deepcopy(content)
         _check_concept(_content)
         self.concepts = _content["concepts"]
@@ -102,8 +102,8 @@ class NearText:
 
         if "certainty" in _content:
             if not isinstance(_content["certainty"], float):
-                raise TypeError(f"certainty is expected to be a float but was \
-                                {type(_content['certainty'])}")
+                raise TypeError("certainty is expected to be a float but was "
+                    f"{type(_content['certainty'])}")
 
             self.certainty = _content["certainty"]
 
@@ -159,8 +159,8 @@ class NearVector:
         """
 
         if not isinstance(content, dict):
-            raise TypeError(f"{self.__class__.__name__} filter is expected to \
-                be type dict but was {type(content)}")
+            raise TypeError(f"{self.__class__.__name__} filter is expected to "
+                f"be type dict but was {type(content)}")
 
         _content = deepcopy(content)
         _check_vector(_content)
@@ -171,8 +171,8 @@ class NearVector:
 
         if "certainty" in content:
             if not isinstance(_content["certainty"], float):
-                raise TypeError(f"certainty is expected to be a float but was \
-                            {type(_content['certainty'])}")
+                raise TypeError("certainty is expected to be a float but was "
+                            f"{type(_content['certainty'])}")
             self.certainty = _content["certainty"]
 
     def __str__(self):
@@ -205,7 +205,8 @@ class WhereFilter:
         """
 
         if not isinstance(content, dict):
-            raise TypeError(f"WhereFilter is expected to be type dict but was {type(content)}")
+            raise TypeError(f"{self.__class__.__name__} is expected to be type dict but "
+                f"was {type(content)}")
 
         if "path" in content:
             self.is_filter = True
@@ -214,7 +215,8 @@ class WhereFilter:
             self.is_filter = False
             self._parse_operator(content)
         else:
-            raise ValueError("Filter is missing required fileds: ", content)
+            raise ValueError("Filter is missing required fileds `path` or `operands`."
+                f" Given: {content}")
 
     def _parse_filter(self, content: dict) -> None:
         """
@@ -232,7 +234,8 @@ class WhereFilter:
         """
 
         if "operator" not in content:
-            raise ValueError("Filter is missing required fileds: ", content)
+            raise ValueError("Filter is missing required filed `operator`. "
+                f"Given: {content}")
 
         self.path = json.dumps(content["path"])
         self.operator = content["operator"]
@@ -255,7 +258,8 @@ class WhereFilter:
         """
 
         if "operator" not in content:
-            raise ValueError("Filter is missing required fileds: ", content)
+            raise ValueError("Filter is missing required filed `operator`."
+                f" Given: {content}")
         _content = deepcopy(content)
         self.operator = _content["operator"]
         self.operands = []
@@ -357,9 +361,9 @@ def _check_vector(content: dict) -> None:
     """
 
     if "vector" not in content:
-        raise ValueError("No 'vector' in 'content'.")
+        raise ValueError("No 'vector' key in `content` argument.")
     if not isinstance(content["vector"], list):
-        raise TypeError(f"'vector' key is expected to be type list but was {content['vector']}")
+        raise TypeError(f"'vector' key is expected to be type `list` but was {type(content['vector'])}")
 
 
 def _find_value_type(content: dict) -> str:
@@ -383,17 +387,19 @@ def _find_value_type(content: dict) -> str:
     """
 
     if "valueString" in content:
-        return "valueString"
-    if "valueText" in content:
-        return "valueText"
-    if "valueInt" in content:
-        return "valueInt"
-    if "valueNumber" in content:
-        return "valueNumber"
-    if "valueDate" in content:
-        return "valueDate"
-    if "valueBoolean" in content:
-        return "valueBoolean"
-    if "valueGeoRange" in content:
-        return "valueGeoRange"
-    raise ValueError("Filter is missing required fileds: ", content)
+        to_return = "valueString"
+    elif "valueText" in content:
+        to_return = "valueText"
+    elif "valueInt" in content:
+        to_return = "valueInt"
+    elif "valueNumber" in content:
+        to_return = "valueNumber"
+    elif "valueDate" in content:
+        to_return = "valueDate"
+    elif "valueBoolean" in content:
+        to_return = "valueBoolean"
+    elif "valueGeoRange" in content:
+        to_return = "valueGeoRange"
+    else:
+        raise ValueError(f"Filter is missing required fileds: {content}")
+    return to_return
