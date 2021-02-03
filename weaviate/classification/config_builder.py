@@ -62,9 +62,10 @@ class ConfigBuilder:
             Updated ConfigBuilder.
         """
 
-        self._config["settings"] = {
-            "k" : k
-        }
+        if "settings" not in self._config:
+            self._config["settings"] = {'k': k}
+        else:
+            self._config["settings"]['k'] = k
         return self
 
     def with_class_name(self, class_name: str) -> 'ConfigBuilder':
@@ -198,8 +199,7 @@ class ConfigBuilder:
         """
         Set settings for the classification. NOTE if you are using 'kNN'
         the value 'k' can be set by this method or by 'with_k'.
-        This method overwrites any previously set settings, like 'k' from
-        the 'with_k' method.
+        This method keeps previously set 'settings'.
 
         Parameters
         ----------
@@ -212,7 +212,11 @@ class ConfigBuilder:
             Updated ConfigBuilder.
         """
 
-        self._config["settings"] = settings
+        if "settings" not in self._config:
+            self._config["settings"] = settings
+        else:
+            for key in settings:
+                self._config["settings"][key] = settings[key]
         return self
 
     def _validate_config(self) -> None:
