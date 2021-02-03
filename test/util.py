@@ -64,3 +64,33 @@ def mock_run_rest(return_json=None, status_code=200, side_effect=None) -> Mock:
         connection_mock.run_rest.return_value = return_value_mock 
 
     return connection_mock
+
+
+def check_error_message(self, error, message):
+    """
+    Check if 'error' message equal 'message'.
+
+    Parameters
+    ----------
+    error : unittest.case._AssertRaisesContext
+        Unittest assertion error
+    message : str
+        Expected message.
+    """
+
+    self.assertEqual(str(error.exception), message)
+
+
+def check_startswith_error_message(self, error, message):
+    """
+    Check if 'error' message equal 'message'.
+
+    Parameters
+    ----------
+    error : unittest.case._AssertRaisesContext
+        Unittest assertion error
+    message : str
+        Expected start of the error message.
+    """
+
+    self.assertTrue(str(error.exception).startswith(message))

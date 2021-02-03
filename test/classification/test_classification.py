@@ -1,236 +1,493 @@
 import unittest
 from unittest.mock import patch, Mock
 import requests
-import weaviate
+from weaviate.classification.classify import Classification, ConfigBuilder
 from weaviate.connect import REST_METHOD_POST
-from test.util import replace_connection, add_run_rest_to_mock, run_rest_raise_connection_error
+from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+from test.util import replace_connection, mock_run_rest, check_error_message, check_startswith_error_message
 
 
 class TestClassification(unittest.TestCase):
 
-    def test_incomplete_builder_exceptions(self):
+    def test_schedule(self):
         """
-        Test incomlete Builder.
+        Test the `schedule` method.
         """
-        client = weaviate.Client("http://weaviate:8080")
+
+        self.assertIsInstance(Classification(None).schedule(), ConfigBuilder)
+
+    def test_get(self):
+        """
+        Test the `get` method.
+        """
+
+        # error messages
+        uuid_value_error = "Given UUID does not have a proper form"
+        requests_error_message = 'Test! Connection error, classification status could not be retrieved.'
+        unexpected_error_message = "Get classification status"
+
+        # invalid calls
+        with self.assertRaises(ValueError) as error:
+            Classification(None).get(123)
+        check_error_message(self, error, uuid_value_error)
+
+        with self.assertRaises(ValueError) as error:
+            Classification(None).get('123')
+        check_error_message(self, error, uuid_value_error)
+
+        mock_conn = mock_run_rest(side_effect=RequestsConnectionError('Test!'))
+        with self.assertRaises(RequestsConnectionError) as error:
+            Classification(mock_conn).get("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92")
+        check_error_message(self, error, requests_error_message)
+
+        mock_conn = mock_run_rest(status_code=404)
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
+            Classification(mock_conn).get("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92")
+        check_startswith_error_message(self, error, unexpected_error_message)
+
+        # valid calls
+        mock_conn = mock_run_rest(return_json='OK!', status_code=200)
+        result = Classification(mock_conn).get("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92")
+        self.assertEqual(result, 'OK!')
+
+    @patch('weaviate.classification.classify.Classification._check_status')
+    def test_is_complete(self, mock_check_status):
+        """
+        Test the `is_complete` method.
+        """
+
+        mock_check_status.return_value = 'OK!'
+        result = Classification(None).is_complete("Test!")
+        self.assertEqual(result, 'OK!')
+        mock_check_status.assert_called_with("Test!", "completed")
+
+    @patch('weaviate.classification.classify.Classification._check_status')
+    def test_is_failed(self, mock_check_status):
+        """
+        Test the `is_failed` method.
+        """
+
+        mock_check_status.return_value = 'OK!'
+        result = Classification(None).is_failed("Test!")
+        self.assertEqual(result, 'OK!')
+        mock_check_status.assert_called_with("Test!", "failed")
+    
+    @patch('weaviate.classification.classify.Classification._check_status')
+    def test_is_running(self, mock_check_status):
+        """
+        Test the `is_running` method.
+        """
+
+        mock_check_status.return_value = 'OK!'
+        result = Classification(None).is_running("Test!")
+        self.assertEqual(result, 'OK!')
+        mock_check_status.assert_called_with("Test!", "running")
+
+    @patch('weaviate.classification.classify.Classification.get')
+    def test__check_status(self, mock_get):
+        """
+        Test the `_check_status` method.
+        """
+
         
-        # without any configuration
-        with self.assertRaises(ValueError):
-            client.classification.schedule()\
-                .do()
-        # without any required configuration
-        with self.assertRaises(ValueError):
-            client.classification.schedule()\
-                .with_source_where_filter({})\
-                .with_target_where_filter({})\
-                .with_training_set_where_filter({})\
-                .with_settings({})\
-                .with_wait_for_completion()\
-                .with_k(5)\
-                .do()
-        # with one required configuration
-        with self.assertRaises(ValueError):
-            client.classification.schedule()\
-                .with_type("my_classification")\
-                .do()
-        # with two required configuration
-        with self.assertRaises(ValueError):
-            client.classification.schedule()\
-                .with_type("my_classification")\
-                .with_class_name("MyClass")\
-                .do()
-        # with three required configuration
-        with self.assertRaises(ValueError):
-            client.classification.schedule()\
-                .with_type("my_classification")\
-                .with_class_name("MyClass")\
-                .with_based_on_properties(["prop1", "prop2"])\
-                .do()
-        # knn without k specified
-        with self.assertRaises(ValueError):
-            client.classification.schedule()\
-                .with_type("knn")\
-                .with_class_name("Europa")\
-                .with_based_on_properties(["text"])\
-                .with_classify_properties(["siblings"])\
-                .do()
+        mock_get.return_value = {'status': 'failed'}
 
-    def test_settings_type_exception(self):
-        """
-        Test for settings TypeError.
-        """
+        result = Classification(None)._check_status('uuid', 'running')
+        self.assertFalse(result)
 
-        client = weaviate.Client("http://weaviate:8080")
-        # wrong settings data type
-        with self.assertRaises(TypeError):
-            client.classification.schedule()\
-                .with_type("my_classification")\
-                .with_class_name("Europa")\
-                .with_based_on_properties(["text"])\
-                .with_classify_properties(["siblings"])\
-                .with_settings([{'k' : 1}])\
-                .do()
+        result = Classification(None)._check_status('uuid', 'failed')
+        self.assertTrue(result)
 
-    def test_do_exceptions(self):
-        """
-        Test .do() method Exceptions.
-        """
-
-        client = weaviate.Client("http://weaviate:8080")
-        connection_mock = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock, {}, 404)
-        replace_connection(client, connection_mock)
+        mock_get.side_effect = RequestsConnectionError('Test!')
+        result = Classification(None)._check_status('uuid', 'running')
+        self.assertFalse(result)
         
-        # test UnexpectedStatusCodeException for .do method
-        with self.assertRaises(weaviate.UnexpectedStatusCodeException):
-            client.classification.schedule()\
-                .with_type("my_classification")\
-                .with_class_name("Europa")\
-                .with_based_on_properties(["text"])\
-                .with_classify_properties(["siblings"])\
-                .do()
 
-        connection_mock = Mock()  # Mock calling weaviate
-        connection_mock.run_rest.side_effect = run_rest_raise_connection_error
-        replace_connection(client, connection_mock)
-
-        with self.assertRaises(requests.exceptions.ConnectionError):
-            client.classification.schedule()\
-                .with_type("my_classification")\
-                .with_class_name("Europa")\
-                .with_based_on_properties(["text"])\
-                .with_classify_properties(["siblings"])\
-                .do()
-
-    def test_get_exceptions(self):
+class TestConfigBuilder(unittest.TestCase):
+    
+    def test_with_type(self):
         """
-        Test .get(classification_uuid) method Exceptions.
+        Test the `with_type` method.
         """
 
-        client = weaviate.Client("http://weaviate:8080")
-        connection_mock = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock, {}, 404)
-        replace_connection(client, connection_mock)
+        config = ConfigBuilder(None, None)
+        self.assertEqual(config._config, {})
+        self.assertFalse(config._wait_for_completion)
 
-        # test UnexpectedStatusCodeException for .get method
-        with self.assertRaises(ValueError):
-            client.classification.get("classification-uuid-420")
-        with self.assertRaises(weaviate.UnexpectedStatusCodeException):
-            client.classification.get("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92")
+        result = config.with_type("test_type")
 
-        connection_mock = Mock()  # Mock calling weaviate
-        connection_mock.run_rest.side_effect = run_rest_raise_connection_error
-        replace_connection(client, connection_mock)
+        self.assertEqual(config._config, {'type': 'test_type'})
+        self.assertFalse(config._wait_for_completion)
+        self.assertIs(result, config)
 
-        with self.assertRaises(requests.exceptions.ConnectionError):
-            client.classification.get("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92")
-
-    def test_builder_knn(self):
+    def test_with_k(self):
         """
-        Test Builder kNN.
+        Test the `with_k` method.
         """
 
-        client = weaviate.Client("http://localhorst:8080")
+        # without `with_settings` called
+        config = ConfigBuilder(None, None)
+        self.assertEqual(config._config, {})
+        self.assertFalse(config._wait_for_completion)
 
-        connection_mock = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock, {}, 201)
-        replace_connection(client, connection_mock)
+        result = config.with_k(4)
 
-        client.classification.schedule()\
-            .with_type("knn")\
-            .with_class_name("Europa")\
-            .with_based_on_properties(["text"])\
-            .with_classify_properties(["siblings"])\
-            .with_k(5)\
-            .do()
+        self.assertEqual(config._config, {'settings': {'k': 4}})
+        self.assertFalse(config._wait_for_completion)
+        self.assertIs(result, config)
 
-        config = {
-            "class": "Europa",
-            "settings" : {
-                "k": 5
+        # with `with_settings` called
+        config = ConfigBuilder(None, None)
+        self.assertEqual(config._config, {})
+        self.assertFalse(config._wait_for_completion)
+
+        result = config.with_k(5).with_settings({'test': 'OK!'})
+
+        self.assertEqual(config._config, {'settings': {'k': 5, 'test': 'OK!'}})
+        self.assertFalse(config._wait_for_completion)
+        self.assertIs(result, config)
+
+    def test_with_class_name(self):
+        """
+        Test the `with_class_name` method.
+        """
+
+        config = ConfigBuilder(None, None)
+        self.assertEqual(config._config, {})
+        self.assertFalse(config._wait_for_completion)
+
+        result = config.with_class_name('TestClass')
+
+        self.assertEqual(config._config, {'class': 'TestClass'})
+        self.assertFalse(config._wait_for_completion)
+        self.assertIs(result, config)
+
+    def test_with_classify_properties(self):
+        """
+        Test the `with_classify_properties` method.
+        """
+
+        config = ConfigBuilder(None, None)
+        self.assertEqual(config._config, {})
+        self.assertFalse(config._wait_for_completion)
+
+        result = config.with_classify_properties(['test1', 'test2'])
+
+        self.assertEqual(config._config, {"classifyProperties": ['test1', 'test2']})
+        self.assertFalse(config._wait_for_completion)
+        self.assertIs(result, config)
+
+    def test_with_based_on_properties(self):
+        """
+        Test the `with_based_on_properties` method.
+        """
+
+        config = ConfigBuilder(None, None)
+        self.assertEqual(config._config, {})
+        self.assertFalse(config._wait_for_completion)
+
+        result = config.with_based_on_properties(['test1', 'test2'])
+
+        self.assertEqual(config._config, {"basedOnProperties": ['test1', 'test2']})
+        self.assertFalse(config._wait_for_completion)
+        self.assertIs(result, config)
+
+    def test_with_source_where_filter(self):
+        """
+        Test the `with_source_where_filter` method.
+        """
+
+        # without other filters set before
+        config = ConfigBuilder(None, None)
+        self.assertEqual(config._config, {})
+        self.assertFalse(config._wait_for_completion)
+
+        result = config.with_source_where_filter({'test': 'OK!'})
+
+        self.assertEqual(config._config, {"filters": {'sourceWhere': {'test': 'OK!'}}})
+        self.assertFalse(config._wait_for_completion)
+        self.assertIs(result, config)
+
+        # with other filters set before
+        config = ConfigBuilder(None, None)
+        self.assertEqual(config._config, {})
+        self.assertFalse(config._wait_for_completion)
+
+        result = config\
+            .with_training_set_where_filter({'test': 'OK!'})\
+            .with_source_where_filter({'test': 'OK!'})
+
+        self.assertEqual(config._config, {"filters": {'sourceWhere': {'test': 'OK!'}, 'trainingSetWhere': {'test': 'OK!'}}})
+        self.assertFalse(config._wait_for_completion)
+        self.assertIs(result, config)
+
+    def test_with_training_set_where_filter(self):
+        """
+        Test the `with_training_set_where_filter` method.
+        """
+
+        # without other filters set before
+        config = ConfigBuilder(None, None)
+        self.assertEqual(config._config, {})
+        self.assertFalse(config._wait_for_completion)
+
+        result = config.with_training_set_where_filter({'test': 'OK!'})
+
+        self.assertEqual(config._config, {"filters": {'trainingSetWhere': {'test': 'OK!'}}})
+        self.assertFalse(config._wait_for_completion)
+        self.assertIs(result, config)
+
+        # with other filters set before
+        config = ConfigBuilder(None, None)
+        self.assertEqual(config._config, {})
+        self.assertFalse(config._wait_for_completion)
+
+        result = config\
+            .with_target_where_filter({'test': 'OK!'})\
+            .with_training_set_where_filter({'test': 'OK!'})
+
+        self.assertEqual(config._config, {"filters": {'trainingSetWhere': {'test': 'OK!'}, 'targetWhere': {'test': 'OK!'}}})
+        self.assertFalse(config._wait_for_completion)
+        self.assertIs(result, config)
+
+    def test_with_target_where_filter(self):
+        """
+        Test the `with_target_where_filter` method.
+        """
+
+        # without other filters set before
+        config = ConfigBuilder(None, None)
+        self.assertEqual(config._config, {})
+        self.assertFalse(config._wait_for_completion)
+
+        result = config.with_target_where_filter({'test': 'OK!'})
+
+        self.assertEqual(config._config, {"filters": {'targetWhere': {'test': 'OK!'}}})
+        self.assertFalse(config._wait_for_completion)
+        self.assertIs(result, config)
+
+        # with other filters set before
+        config = ConfigBuilder(None, None)
+        self.assertEqual(config._config, {})
+        self.assertFalse(config._wait_for_completion)
+
+        result = config\
+            .with_source_where_filter({'test': 'OK!'})\
+            .with_target_where_filter({'test': 'OK!'})
+
+        self.assertEqual(config._config, {"filters": {'targetWhere': {'test': 'OK!'}, 'sourceWhere': {'test': 'OK!'}}})
+        self.assertFalse(config._wait_for_completion)
+        self.assertIs(result, config)
+
+    def test_with_wait_for_completion(self):
+        """
+        Test the `with_wait_for_completion` method.
+        """
+
+        config = ConfigBuilder(None, None)
+        self.assertEqual(config._config, {})
+        self.assertFalse(config._wait_for_completion)
+
+        result = config.with_wait_for_completion()
+
+        self.assertEqual(config._config, {})
+        self.assertTrue(config._wait_for_completion)
+        self.assertIs(result, config)
+
+    def test_with_settings(self):
+        """
+        Test the `with_settings` method.
+        """
+
+        # without `with_k` called
+        config = ConfigBuilder(None, None)
+        self.assertEqual(config._config, {})
+        self.assertFalse(config._wait_for_completion)
+
+        result = config.with_settings({'test': 'OK!'})
+
+        self.assertEqual(config._config, {'settings': {'test': 'OK!'}})
+        self.assertFalse(config._wait_for_completion)
+        self.assertIs(result, config)
+
+        # with `with_k` called
+        config = ConfigBuilder(None, None)
+        self.assertEqual(config._config, {})
+        self.assertFalse(config._wait_for_completion)
+
+        result = config.with_settings({'test': 'OK!'}).with_k(7)
+
+        self.assertEqual(config._config, {'settings': {'k': 7, 'test': 'OK!'}})
+        self.assertFalse(config._wait_for_completion)
+        self.assertIs(result, config)
+
+    def test__validate_config(self):
+        """
+        Test the `_validate_config` method.
+        """
+
+        # error messages
+        field_error_message = lambda f: f"{f} is not set for this classification"
+        settings_error_message = '"settings" should be of type dict'
+        k_error_message = "k is not set for this classification"
+        
+        # test required fields without "classifyProperties"
+        config = ConfigBuilder(None, None)\
+            .with_type('Test!')\
+            .with_class_name("Test!")\
+            .with_based_on_properties(['Test!'])
+        with self.assertRaises(ValueError) as error:
+            config._validate_config()
+        check_error_message(self, error, field_error_message("classifyProperties"))
+
+        # test required fields without "basedOnProperties"
+        config = ConfigBuilder(None, None)\
+            .with_type('Test!')\
+            .with_class_name("Test!")\
+            .with_classify_properties(['Test!'])
+        with self.assertRaises(ValueError) as error:
+            config._validate_config()
+        check_error_message(self, error, field_error_message("basedOnProperties"))
+
+        # test required fields without "class"
+        config = ConfigBuilder(None, None)\
+            .with_type('Test!')\
+            .with_based_on_properties(['Test!'])\
+            .with_classify_properties(['Test!'])
+        with self.assertRaises(ValueError) as error:
+            config._validate_config()
+        check_error_message(self, error, field_error_message("class"))
+
+        # test required fields without "type"
+        config = ConfigBuilder(None, None)\
+            .with_based_on_properties(['Test!'])\
+            .with_class_name("Test!")\
+            .with_classify_properties(['Test!'])
+        with self.assertRaises(ValueError) as error:
+            config._validate_config()
+        check_error_message(self, error, field_error_message("type"))
+
+        # test required fields with all required
+        config = ConfigBuilder(None, None)\
+            .with_based_on_properties(['Test!'])\
+            .with_type('Test!')\
+            .with_class_name("Test!")\
+            .with_classify_properties(['Test!'])
+        config._validate_config()
+
+        # test settings
+        config = ConfigBuilder(None, None)\
+            .with_based_on_properties(['Test!'])\
+            .with_type('Test!')\
+            .with_class_name("Test!")\
+            .with_classify_properties(['Test!'])\
+            .with_settings(['Test!'])
+        with self.assertRaises(TypeError) as error:
+            config._validate_config()
+        check_error_message(self, error, settings_error_message)
+
+        # test knn without k
+        config = ConfigBuilder(None, None)\
+            .with_based_on_properties(['Test!'])\
+            .with_type('knn')\
+            .with_class_name("Test!")\
+            .with_classify_properties(['Test!'])
+        with self.assertRaises(ValueError) as error:
+            config._validate_config()
+        check_error_message(self, error, k_error_message)
+
+        # test knn with k
+        config = ConfigBuilder(None, None)\
+            .with_based_on_properties(['Test!'])\
+            .with_type('knn')\
+            .with_class_name("Test!")\
+            .with_classify_properties(['Test!'])\
+            .with_k(4)
+        config._validate_config()
+
+    def test__start(self):
+        """
+        Test the `_start` method.
+        """
+
+        # error messages
+        requests_error_message = 'Test! Connection error, classification may not started.'
+        unexpected_error_message = "Start classification"
+
+        # invalid calls
+        mock_conn = mock_run_rest(side_effect=RequestsConnectionError('Test!'))
+        config = ConfigBuilder(mock_conn, None)
+        with self.assertRaises(RequestsConnectionError) as error:
+            config._start()
+        check_error_message(self, error, requests_error_message)
+        mock_conn.run_rest.assert_called_with("/classifications", REST_METHOD_POST, {})
+
+        mock_conn = mock_run_rest(status_code=200)
+        config = ConfigBuilder(mock_conn, None).with_class_name('Test!')
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
+            config._start()
+        check_startswith_error_message(self, error, unexpected_error_message)
+        mock_conn.run_rest.assert_called_with("/classifications", REST_METHOD_POST, {'class': 'Test!'})
+
+        # valid calls
+        mock_conn = mock_run_rest(status_code=201, return_json='OK!')
+        config = ConfigBuilder(mock_conn, None).with_class_name('TestClass').with_type('TestType')
+        self.assertEqual(config._start(), 'OK!')
+        mock_conn.run_rest.assert_called_with("/classifications", REST_METHOD_POST, {'class': 'TestClass', 'type': 'TestType'})
+
+
+    @patch('weaviate.classification.config_builder.ConfigBuilder._start')
+    @patch('weaviate.classification.config_builder.ConfigBuilder._validate_config', return_value=None)
+    def test_do(self, mock_validate_config, mock_start):
+        """
+        Test the `do` method.
+        """
+
+        mock_start.return_value = {'status': 'test'}
+        config = ConfigBuilder(None, None)
+        self.assertEqual(config.do(), {'status': 'test'})
+
+        mock_start.return_value = {'status': 'test', 'id': 'test_id'}
+        mock_classification = Mock() # mock self._classification instance
+        def mock_waiting(test):
+            if mock_waiting.called:
+                return False
+            mock_waiting.called = True
+            return True
+        mock_waiting.called = False # initialize static variable
+        mock_classification.is_running.side_effect = mock_waiting
+        mock_classification.get.return_value = 'test'
+        config = ConfigBuilder(None, mock_classification).with_wait_for_completion()
+        self.assertEqual(config.do(), 'test')
+
+    def test_integration_config(self):
+        """
+        Test all `with_` methods together that change the configuration.
+        """
+
+        config = ConfigBuilder(None, None)\
+            .with_type('test_type')\
+            .with_k(4)\
+            .with_class_name("TestClass")\
+            .with_classify_properties(['Test1!'])\
+            .with_based_on_properties(['Test2!'])\
+            .with_source_where_filter({'test': 'OK1!'})\
+            .with_training_set_where_filter({'test': 'OK2!'})\
+            .with_target_where_filter({'test': 'OK3!'})\
+            .with_settings({'additional': 'test_settings'})
+        expected_config = {
+            'type': 'test_type',
+            'settings': {
+                'k' : 4,
+                'additional': 'test_settings'
             },
-            "basedOnProperties": ["text"],
-            "classifyProperties": ["siblings"],
-            "type": "knn"
+            'class': "TestClass",
+            'classifyProperties': ['Test1!'],
+            'basedOnProperties': ['Test2!'],
+            'filters': {
+                'sourceWhere': {'test': 'OK1!'},
+                'trainingSetWhere': {'test': 'OK2!'},
+                'targetWhere': {'test': 'OK3!'},
+            }
         }
-
-        connection_mock.run_rest.assert_called()
-
-        call_args_list = connection_mock.run_rest.call_args_list
-        call_args = call_args_list[0][0]
-
-        self.assertEqual("/classifications", call_args[0])
-        self.assertEqual(REST_METHOD_POST, call_args[1])
-        self.assertEqual(config, call_args[2])
-
-    def test_is_complete(self):
-        """
-        Test the methd `is_complete`.
-        """
-
-        client = weaviate.Client("http://localhorst:8080")
-        connection_mock = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock, {"status" : "completed"}, 200)
-        replace_connection(client, connection_mock)
-
-        self.assertTrue(client.classification.is_complete("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92"))
-        self.assertFalse(client.classification.is_failed("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92"))
-        self.assertFalse(client.classification.is_running("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92"))
-
-    def test_is_failed(self):
-        """
-        Test the methd `is_failed`.
-        """
-
-        client = weaviate.Client("http://localhorst:8080")
-        connection_mock = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock, {"status" : "failed"}, 200)
-        replace_connection(client, connection_mock)
-
-        self.assertFalse(client.classification.is_complete("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92"))
-        self.assertTrue(client.classification.is_failed("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92"))
-        self.assertFalse(client.classification.is_running("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92"))
-
-    def test_is_running(self):
-        """
-        Test the methd `is_running`.
-        """
-
-        client = weaviate.Client("http://localhorst:8080")
-        connection_mock = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock, {"status" : "running"}, 200)
-        replace_connection(client, connection_mock)
-
-        self.assertFalse(client.classification.is_complete("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92"))
-        self.assertFalse(client.classification.is_failed("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92"))
-        self.assertTrue(client.classification.is_running("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92"))
-
-    def test_do(self):
-        """
-        Test the methd `is_running`.
-        """
-
-        client = weaviate.Client("http://localhorst:8080")
-        connection_mock = Mock()  # Mock calling weaviate
-        add_run_rest_to_mock(connection_mock, {"id" : "Correct_id"}, 201)
-        replace_connection(client, connection_mock)
-
-        response =  client.classification.schedule()\
-                .with_type("my_classification")\
-                .with_class_name("Europa")\
-                .with_based_on_properties(["text"])\
-                .with_classify_properties(["siblings"])\
-                .do()
-
-        self.assertEqual(response, {"id" : "Correct_id"})
-
-        with patch("weaviate.classification.classify.Classification.get") as mock_obj:
-            mock_obj.return_value = {"id" : "Correct_id", "status" : "completed"}
-            response =  client.classification.schedule()\
-                    .with_type("my_classification")\
-                    .with_class_name("Europa")\
-                    .with_based_on_properties(["text"])\
-                    .with_classify_properties(["siblings"])\
-                    .with_wait_for_completion()\
-                    .do()
-            self.assertEqual(response, {"id" : "Correct_id", "status" : "completed"})
+        self.assertEqual(config._config, expected_config)
