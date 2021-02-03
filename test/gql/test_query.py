@@ -2,7 +2,7 @@ import unittest
 import weaviate
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.connect import REST_METHOD_POST
-from test.util import replace_connection, mock_run_rest
+from test.util import replace_connection, mock_run_rest, check_error_message, check_startswith_error_message
 
 
 class TestQuery(unittest.TestCase):
@@ -49,14 +49,14 @@ class TestQuery(unittest.TestCase):
 
         with self.assertRaises(TypeError) as error:
             self.client.query.raw(["TestQuery"])
-        self.assertEqual(str(error.exception), type_error_message)
+        check_error_message(self, error, type_error_message)
 
         replace_connection(self.client, mock_run_rest(side_effect=RequestsConnectionError("Test!")))
         with self.assertRaises(RequestsConnectionError) as error:
             self.client.query.raw("TestQuery")
-        self.assertEqual(str(error.exception), requests_error_message)
+        check_error_message(self, error, requests_error_message)
 
         replace_connection(self.client, mock_run_rest(status_code=404))
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             self.client.query.raw("TestQuery")
-        self.assertTrue(str(error.exception).startswith(query_error_message))
+        check_startswith_error_message(self, error, query_error_message)

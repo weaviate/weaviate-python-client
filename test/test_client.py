@@ -3,7 +3,7 @@ from unittest.mock import patch, Mock
 import weaviate
 from weaviate import Client
 from weaviate.exceptions import RequestsConnectionError
-from test.util import mock_run_rest, replace_connection
+from test.util import mock_run_rest, replace_connection, check_error_message
         
 
 class TestWeaviateClient(unittest.TestCase):
@@ -18,10 +18,10 @@ class TestWeaviateClient(unittest.TestCase):
         # test incalid calls
         with self.assertRaises(TypeError) as error:
             Client(None)
-        self.assertEqual(str(error.exception), type_error_message + str(type(None)))
+        check_error_message(self, error, type_error_message + str(type(None)))
         with self.assertRaises(TypeError) as error:
             Client(42)
-        self.assertEqual(str(error.exception), type_error_message + str(int))
+        check_error_message(self, error, type_error_message + str(int))
 
         # test valid calls
         with patch('weaviate.client.Connection') as mock_obj:
@@ -106,7 +106,7 @@ class TestWeaviateClient(unittest.TestCase):
         with self.assertRaises(weaviate.UnexpectedStatusCodeException) as error:
             client.get_meta()
         error_message = "Meta endpoint! Unexpected status code: 404, with response body: None"
-        self.assertEqual(str(error.exception), error_message)
+        check_error_message(self, error, error_message)
         connection_mock.run_rest.assert_called()
         connection_mock.run_rest.assert_called_with("/meta", weaviate.connect.REST_METHOD_GET)
     
@@ -137,7 +137,7 @@ class TestWeaviateClient(unittest.TestCase):
         with self.assertRaises(weaviate.UnexpectedStatusCodeException) as error:
             client.get_open_id_configuration()
         error_message = f"Meta endpoint! Unexpected status code: 204, with response body: None"
-        self.assertEqual(str(error.exception), error_message)
+        check_error_message(self, error, error_message)
         connection_mock.run_rest.assert_called()
         connection_mock.run_rest.assert_called_with("/.well-known/openid-configuration", weaviate.connect.REST_METHOD_GET)
 

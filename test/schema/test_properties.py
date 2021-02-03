@@ -2,7 +2,7 @@ import unittest
 import weaviate
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.connect import REST_METHOD_POST, REST_METHOD_DELETE
-from test.util import replace_connection, mock_run_rest
+from test.util import replace_connection, mock_run_rest, check_error_message, check_startswith_error_message
 
 
 class TestCRUDProperty(unittest.TestCase):
@@ -22,22 +22,22 @@ class TestCRUDProperty(unittest.TestCase):
 
         with self.assertRaises(TypeError) as error:
             client.schema.property.create(35, {})
-        self.assertEqual(str(error.exception), error_message + str(int))
+        check_error_message(self, error, error_message + str(int))
 
         # test if `check_property` is called in `create`
         with self.assertRaises(weaviate.SchemaValidationException) as error:
             client.schema.property.create("Class", {})
-        self.assertEqual(str(error.exception), check_property_error_message)
+        check_error_message(self, error, check_property_error_message)
 
         replace_connection(client, mock_run_rest(side_effect=RequestsConnectionError('Test!')))
         with self.assertRaises(RequestsConnectionError) as error:
             client.schema.property.create("Class", {"name": 'test', 'dataType': ["test_type"]})
-        self.assertEqual(str(error.exception), 'Test!' + requests_error_message)
+        check_error_message(self, error, 'Test!' + requests_error_message)
 
         replace_connection(client, mock_run_rest(status_code=404))
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             client.schema.property.create("Class", {"name": 'test', 'dataType': ["test_type"]})
-        self.assertTrue(str(error.exception).startswith("Add property to class"))
+        check_startswith_error_message(self, error, "Add property to class")
 
         # valid calls
         connection_mock = mock_run_rest() # Mock calling weaviate

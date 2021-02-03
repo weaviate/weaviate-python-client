@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import weaviate
 from weaviate.connect import REST_METHOD_DELETE, REST_METHOD_POST, REST_METHOD_PUT
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
-from test.util import replace_connection, mock_run_rest
+from test.util import replace_connection, mock_run_rest, check_error_message, check_startswith_error_message
 
 
 class TestReference(unittest.TestCase):
@@ -27,35 +27,35 @@ class TestReference(unittest.TestCase):
 
         with self.assertRaises(TypeError) as error:
             self.client.data_object.reference.delete(1, "myProperty", self.uuid_2)
-        self.assertEqual(str(error.exception), self.uuid_error_message)
+        check_error_message(self, error, self.uuid_error_message)
 
         with self.assertRaises(TypeError) as error:
             self.client.data_object.reference.delete(self.uuid_1, "myProperty", 2)
-        self.assertEqual(str(error.exception), self.uuid_error_message)
+        check_error_message(self, error, self.uuid_error_message)
 
         with self.assertRaises(TypeError) as error:
             self.client.data_object.reference.delete(self.uuid_1, 3, self.uuid_2)
-        self.assertEqual(str(error.exception), self.name_error_message(int))
+        check_error_message(self, error, self.name_error_message(int))
 
         with self.assertRaises(ValueError) as error:
             self.client.data_object.reference.delete("str", "myProperty", self.uuid_2)
-        self.assertEqual(str(error.exception), self.valid_uuid_error_message)
+        check_error_message(self, error, self.valid_uuid_error_message)
 
         with self.assertRaises(ValueError) as error:
             self.client.data_object.reference.delete(self.uuid_1, "myProperty", "str")
-        self.assertEqual(str(error.exception), self.valid_uuid_error_message)
+        check_error_message(self, error, self.valid_uuid_error_message)
 
         mock_obj = mock_run_rest(status_code=200)
         replace_connection(self.client, mock_obj)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             self.client.data_object.reference.delete(self.uuid_1, "myProperty", self.uuid_2)
-        self.assertTrue(str(error.exception).startswith(self.status_code_error_message('delete')))
+        check_startswith_error_message(self, error, self.status_code_error_message('delete'))
 
         mock_obj = mock_run_rest(side_effect=RequestsConnectionError("Test!"))
         replace_connection(self.client, mock_obj)
         with self.assertRaises(weaviate.RequestsConnectionError) as error:
             self.client.data_object.reference.delete(self.uuid_1, "myProperty", self.uuid_2)
-        self.assertEqual(str(error.exception), self.requests_error_message('delete'))
+        check_error_message(self, error, self.requests_error_message('delete'))
 
         # test valid calls
         connection_mock = mock_run_rest(status_code=204)
@@ -94,45 +94,45 @@ class TestReference(unittest.TestCase):
         # test exceptions
         with self.assertRaises(TypeError) as error:
             self.client.data_object.reference.add(1, "prop", self.uuid_1)
-        self.assertEqual(str(error.exception), self.uuid_error_message)
+        check_error_message(self, error, self.uuid_error_message)
 
         with self.assertRaises(TypeError) as error:
             self.client.data_object.reference.add(self.uuid_1, 1, self.uuid_2)
-        self.assertEqual(str(error.exception), self.name_error_message(int))
+        check_error_message(self, error, self.name_error_message(int))
 
         with self.assertRaises(TypeError) as error:
             self.client.data_object.reference.add(self.uuid_1, "prop", 1)
-        self.assertEqual(str(error.exception), self.uuid_error_message)
+        check_error_message(self, error, self.uuid_error_message)
 
         with self.assertRaises(ValueError) as error:
             self.client.data_object.reference.add("my UUID", "prop", self.uuid_2)
-        self.assertEqual(str(error.exception), self.valid_uuid_error_message)
+        check_error_message(self, error, self.valid_uuid_error_message)
 
         with self.assertRaises(ValueError) as error:
             self.client.data_object.reference.add(self.uuid_1, "prop", "my uuid")
-        self.assertEqual(str(error.exception), self.valid_uuid_error_message)
+        check_error_message(self, error, self.valid_uuid_error_message)
 
         with self.assertRaises(ValueError) as error:
             self.client.data_object.reference.add(f"http://localhost:8080/v1/objects/{self.uuid_1}", "prop",
                                         "http://localhost:8080/v1/objects/MY_UUID")
-        self.assertEqual(str(error.exception), self.valid_uuid_error_message)
+        check_error_message(self, error, self.valid_uuid_error_message)
     
         with self.assertRaises(ValueError) as error:
             self.client.data_object.reference.add("http://localhost:8080/v1/objects/My-UUID", "prop",
                                         f"http://localhost:8080/v1/objects/{self.uuid_2}")
-        self.assertEqual(str(error.exception), self.valid_uuid_error_message)
+        check_error_message(self, error, self.valid_uuid_error_message)
 
         mock_obj = mock_run_rest(status_code=204)
         replace_connection(self.client, mock_obj)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             self.client.data_object.reference.add(self.uuid_1, "myProperty", self.uuid_2)
-        self.assertTrue(str(error.exception).startswith(self.status_code_error_message('add')))
+        check_startswith_error_message(self, error, self.status_code_error_message('add'))
 
         mock_obj = mock_run_rest(side_effect=RequestsConnectionError("Test!"))
         replace_connection(self.client, mock_obj)
         with self.assertRaises(weaviate.RequestsConnectionError) as error:
             self.client.data_object.reference.add(self.uuid_1, "myProperty", self.uuid_2)
-        self.assertEqual(str(error.exception), self.requests_error_message('add'))
+        check_error_message(self, error, self.requests_error_message('add'))
 
         # test valid calls
         connection_mock = mock_run_rest()
@@ -188,54 +188,54 @@ class TestReference(unittest.TestCase):
         # test exceptions
         with self.assertRaises(TypeError) as error:
             self.client.data_object.reference.update(1, "prop", [self.uuid_1])
-        self.assertEqual(str(error.exception), self.uuid_error_message)
+        check_error_message(self, error, self.uuid_error_message)
 
         with self.assertRaises(TypeError) as error:
             self.client.data_object.reference.update(self.uuid_1, 1, [self.uuid_2])
-        self.assertEqual(str(error.exception), self.name_error_message(int))
+        check_error_message(self, error, self.name_error_message(int))
 
         with self.assertRaises(TypeError) as error:
             self.client.data_object.reference.update(self.uuid_1, "prop", 1)
-        self.assertEqual(str(error.exception), self.uuid_error_message)
+        check_error_message(self, error, self.uuid_error_message)
 
         with self.assertRaises(TypeError) as error:
             self.client.data_object.reference.update(self.uuid_1, "prop", [1])
-        self.assertEqual(str(error.exception), self.uuid_error_message)
+        check_error_message(self, error, self.uuid_error_message)
 
         with self.assertRaises(ValueError) as error:
             self.client.data_object.reference.update("my UUID", "prop", self.uuid_2)
-        self.assertEqual(str(error.exception), self.valid_uuid_error_message)
+        check_error_message(self, error, self.valid_uuid_error_message)
 
         with self.assertRaises(ValueError) as error:
             self.client.data_object.reference.update(self.uuid_1, "prop", "my uuid")
-        self.assertEqual(str(error.exception), self.valid_uuid_error_message)
+        check_error_message(self, error, self.valid_uuid_error_message)
 
         with self.assertRaises(ValueError) as error:
             self.client.data_object.reference.update(self.uuid_1, "prop", ["my uuid"])
-        self.assertEqual(str(error.exception), self.valid_uuid_error_message)
+        check_error_message(self, error, self.valid_uuid_error_message)
 
         with self.assertRaises(ValueError) as error:
             self.client.data_object.reference.update(f"http://localhost:8080/v1/objects/{self.uuid_1}", "prop",
                 "http://localhost:8080/v1/objects/MY_UUID")
-        self.assertEqual(str(error.exception), self.valid_uuid_error_message)
+        check_error_message(self, error, self.valid_uuid_error_message)
 
         with self.assertRaises(ValueError) as error:
             self.client.data_object.reference.update("http://localhost:8080/v1/objects/My-UUID", "prop",
                 f"http://localhost:8080/v1/objects/{self.uuid_2}")
-            self.assertEqual(str(error.exception), self.valid_uuid_error_message)
+            check_error_message(self, error, self.valid_uuid_error_message)
         
         mock_obj = mock_run_rest(status_code=204)
         replace_connection(self.client, mock_obj)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             self.client.data_object.reference.update(self.uuid_1, "myProperty", self.uuid_2)
-        self.assertTrue(str(error.exception).startswith(self.status_code_error_message('update')))
+        check_startswith_error_message(self, error, self.status_code_error_message('update'))
 
   
         mock_obj = mock_run_rest(side_effect=RequestsConnectionError("Test!"))
         replace_connection(self.client, mock_obj)
         with self.assertRaises(weaviate.RequestsConnectionError) as error:
             self.client.data_object.reference.update(self.uuid_1, "myProperty", self.uuid_2)
-        self.assertEqual(str(error.exception), self.requests_error_message('update'))
+        check_error_message(self, error, self.requests_error_message('update'))
 
         # test valid calls
         connection_mock = mock_run_rest()
@@ -281,4 +281,4 @@ class TestReference(unittest.TestCase):
 
         with self.assertRaises(ValueError) as error:
             self.client.data_object.reference._try_run_rest("", "", "", "validate")
-        self.assertEqual(str(error.exception), "'validate' not supported!")
+        check_error_message(self, error, "'validate' not supported!")

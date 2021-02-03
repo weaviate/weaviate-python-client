@@ -3,7 +3,7 @@ import copy
 import os
 from unittest.mock import patch, Mock
 import weaviate
-from test.util import replace_connection, mock_run_rest
+from test.util import replace_connection, mock_run_rest, check_error_message, check_startswith_error_message
 from weaviate.connect import REST_METHOD_POST, REST_METHOD_DELETE, REST_METHOD_GET
 from weaviate.exceptions import SchemaValidationException, RequestsConnectionError, UnexpectedStatusCodeException
 
@@ -185,13 +185,13 @@ class TestSchema(unittest.TestCase):
         replace_connection(self.client, mock_conn)
         with self.assertRaises(RequestsConnectionError) as error:
             self.client.schema.get()
-        self.assertEqual(str(error.exception), requests_error_message)
+        check_error_message(self, error, requests_error_message)
 
         mock_conn = mock_run_rest(status_code=404)
         replace_connection(self.client, mock_conn)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             self.client.schema.get()
-        self.assertTrue(str(error.exception).startswith("Get schema"))
+        check_startswith_error_message(self, error, "Get schema")
 
         # valid calls
         connection_mock_file = mock_run_rest(status_code=200, return_json={'Test': 'OK!'})
@@ -258,17 +258,17 @@ class TestSchema(unittest.TestCase):
 
         with self.assertRaises(TypeError) as error:
             self.client.schema.delete_class(1)
-        self.assertEqual(str(error.exception), type_error_message(int))
+        check_error_message(self, error, type_error_message(int))
 
         replace_connection(self.client, mock_run_rest(side_effect=RequestsConnectionError('Test!')))
         with self.assertRaises(RequestsConnectionError) as error:
             self.client.schema.delete_class("uuid")
-        self.assertEqual(str(error.exception), requests_error_message)
+        check_error_message(self, error, requests_error_message)
 
         replace_connection(self.client, mock_run_rest(status_code=404))
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             self.client.schema.delete_class("uuid")
-        self.assertTrue(str(error.exception).startswith("Delete class from schema"))
+        check_startswith_error_message(self, error, "Delete class from schema")
 
         # valid calls
         mock_conn = mock_run_rest(status_code=200)
@@ -387,13 +387,13 @@ class TestSchema(unittest.TestCase):
         replace_connection(self.client, mock_rest)
         with self.assertRaises(RequestsConnectionError) as error:
             test_func(properties)
-        self.assertEqual(str(error.exception), requests_error_message)
+        check_error_message(self, error, requests_error_message)
 
         mock_rest = mock_run_rest(status_code=404)
         replace_connection(self.client, mock_rest)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             test_func(properties)
-        self.assertTrue(str(error.exception).startswith("Add properties to classes"))
+        check_startswith_error_message(self, error, "Add properties to classes")
 
     def test__create_class_with_premitives(self):
         """
@@ -479,13 +479,13 @@ class TestSchema(unittest.TestCase):
         replace_connection(self.client, mock_rest)
         with self.assertRaises(RequestsConnectionError) as error:
             test_func(test_class)
-        self.assertEqual(str(error.exception), requests_error_message)
+        check_error_message(self, error, requests_error_message)
 
         mock_rest = mock_run_rest(status_code=404)
         replace_connection(self.client, mock_rest)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             test_func(test_class)
-        self.assertTrue(str(error.exception).startswith("Create class"))
+        check_startswith_error_message(self, error, "Create class")
 
     def test__create_classes_with_primitives(self):
         """

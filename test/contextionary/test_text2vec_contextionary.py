@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import weaviate
 from weaviate.connect import REST_METHOD_POST, REST_METHOD_GET
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
-from test.util import mock_run_rest, replace_connection
+from test.util import mock_run_rest, replace_connection, check_error_message, check_startswith_error_message
 
 
 class TestText2VecContextionary(unittest.TestCase):
@@ -31,37 +31,37 @@ class TestText2VecContextionary(unittest.TestCase):
         ## test exceptions
         with self.assertRaises(TypeError) as error:
             client.contextionary.extend(concept=None, definition=some_concept["definition"], weight=1.0)
-        self.assertEqual(str(error.exception), concept_type_error_message)
+        check_error_message(self, error, concept_type_error_message)
 
         with self.assertRaises(TypeError) as error:
             client.contextionary.extend(concept=some_concept["concept"], definition=None, weight=1.0)
-        self.assertEqual(str(error.exception), definition_type_error_message)
+        check_error_message(self, error, definition_type_error_message)
 
         with self.assertRaises(TypeError) as error:
             client.contextionary.extend(**some_concept, weight=None)
-        self.assertEqual(str(error.exception), weight_type_error_message)
+        check_error_message(self, error, weight_type_error_message)
 
         with self.assertRaises(ValueError) as error:
             client.contextionary.extend(**some_concept, weight=1.1)
-        self.assertEqual(str(error.exception), weight_value_error_message)
+        check_error_message(self, error, weight_value_error_message)
 
         with self.assertRaises(ValueError) as error:
             client.contextionary.extend(**some_concept, weight=-1.0)
-        self.assertEqual(str(error.exception), weight_value_error_message)
+        check_error_message(self, error, weight_value_error_message)
 
         ## test UnexpectedStatusCodeException
         connection_mock = mock_run_rest(status_code=404)
         replace_connection(client, connection_mock)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             client.contextionary.extend(**some_concept)
-        self.assertTrue(str(error.exception).startswith(unexpected_error_message))
+        check_startswith_error_message(self, error, unexpected_error_message)
 
         ## test requests error
         connection_mock = mock_run_rest(side_effect=RequestsConnectionError("Test!"))
         replace_connection(client, connection_mock)
         with self.assertRaises(weaviate.RequestsConnectionError) as error:
             client.contextionary.extend(**some_concept)
-        self.assertEqual(str(error.exception), requests_error_message)
+        check_error_message(self, error, requests_error_message)
         
         ## test valid call without specifying 'weight'
         some_concept["weight"] = 1.0
@@ -113,16 +113,16 @@ class TestText2VecContextionary(unittest.TestCase):
         replace_connection(client, mock_run_rest(status_code=404))
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             client.contextionary.get_concept_vector("Palantir")
-        self.assertTrue(str(error.exception).startswith(unexpected_exception_error_message))
+        check_startswith_error_message(self, error, unexpected_exception_error_message)
 
         ## test requests error
         replace_connection(client, mock_run_rest(side_effect=RequestsConnectionError("Test!")))
         with self.assertRaises(RequestsConnectionError) as error:
             client.contextionary.get_concept_vector("Palantir")
-        self.assertEqual(str(error.exception), requests_error_message)
+        check_error_message(self, error, requests_error_message)
 
         ## test unexpected error
         replace_connection(client, mock_run_rest(side_effect=Exception("Test")))
         with self.assertRaises(Exception) as error:
             client.contextionary.get_concept_vector("Palantir")
-        self.assertEqual(str(error.exception), unexpected_error_message)
+        check_error_message(self, error, unexpected_error_message)

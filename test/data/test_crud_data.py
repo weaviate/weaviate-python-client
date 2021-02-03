@@ -3,7 +3,7 @@ from unittest.mock import patch, Mock
 import weaviate
 from weaviate.connect import REST_METHOD_POST, REST_METHOD_PUT, REST_METHOD_PATCH, REST_METHOD_DELETE, REST_METHOD_GET
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException, ObjectAlreadyExistsException
-from test.util import mock_run_rest, replace_connection
+from test.util import mock_run_rest, replace_connection, check_error_message, check_startswith_error_message
 
 
 class TestDataObject(unittest.TestCase):
@@ -29,21 +29,21 @@ class TestDataObject(unittest.TestCase):
         # tests
         with self.assertRaises(TypeError) as error:
             self.client.data_object.create({'name': 'Optimus Prime'}, ["Transformer"])
-        self.assertEqual(str(error.exception), class_name_error_message(list))
+        check_error_message(self, error, class_name_error_message(list))
         mock_get_dict_from_object.assert_not_called()
         mock_get_vector.assert_not_called()
         
 
         with self.assertRaises(TypeError) as error:
             self.client.data_object.create({'name': 'Optimus Prime'}, "Transformer", 19210)
-        self.assertEqual(str(error.exception), uuid_type_error_message(int))
+        check_error_message(self, error, uuid_type_error_message(int))
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
         
 
         with self.assertRaises(ValueError) as error:
             self.client.data_object.create({'name': 'Optimus Prime'}, "Transformer", "1234_1234_1234_1234")
-        self.assertEqual(str(error.exception), uuid_value_error_message)
+        check_error_message(self, error, uuid_value_error_message)
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
 
@@ -52,7 +52,7 @@ class TestDataObject(unittest.TestCase):
         replace_connection(self.client, mock_obj)
         with self.assertRaises(weaviate.RequestsConnectionError) as error:
             self.client.data_object.create({"name": "Alan Greenspan"}, "CoolestPersonEver")
-        self.assertEqual(str(error.exception), requests_error_message)
+        check_error_message(self, error, requests_error_message)
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
         
@@ -61,7 +61,7 @@ class TestDataObject(unittest.TestCase):
         replace_connection(self.client, mock_obj)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             self.client.data_object.create({"name": "Alan Greenspan"}, "CoolestPersonEver")
-        self.assertTrue(str(error.exception).startswith("Creating object"))
+        check_startswith_error_message(self, error, "Creating object")
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
 
@@ -69,7 +69,7 @@ class TestDataObject(unittest.TestCase):
         replace_connection(self.client, mock_obj)
         with self.assertRaises(ObjectAlreadyExistsException) as error:
             self.client.data_object.create({"name": "Alan Greenspan"}, "CoolestPersonEver")
-        self.assertEqual(str(error.exception), "None")
+        check_error_message(self, error, "None")
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
         
@@ -77,7 +77,7 @@ class TestDataObject(unittest.TestCase):
         replace_connection(self.client, mock_obj)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             self.client.data_object.create({"name": "Alan Greenspan"}, "CoolestPersonEver")
-        self.assertTrue(str(error.exception).startswith("Creating object"))
+        check_startswith_error_message(self, error, "Creating object")
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
 
@@ -88,7 +88,7 @@ class TestDataObject(unittest.TestCase):
         replace_connection(self.client, mock_obj)
         with self.assertRaises(Exception) as error:
             self.client.data_object.create({"name": "Alan Greenspan"}, "CoolestPersonEver")
-        self.assertEqual(str(error.exception), unexpected_error_message)
+        check_error_message(self, error, unexpected_error_message)
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
 
@@ -152,19 +152,19 @@ class TestDataObject(unittest.TestCase):
         
         with self.assertRaises(TypeError) as error:
             self.client.data_object.update({"A": "B"}, 35, "ae6d51d6-b4ea-5a03-a808-6aae990bdebf")
-        self.assertEqual(str(error.exception), class_type_error_message)
+        check_error_message(self, error, class_type_error_message)
         mock_get_dict_from_object.assert_not_called()
         mock_get_vector.assert_not_called()
 
         with self.assertRaises(TypeError) as error:
             self.client.data_object.update({"A": "B"}, "Class", 1238234)
-        self.assertEqual(str(error.exception), uuid_type_error_message)
+        check_error_message(self, error, uuid_type_error_message)
         mock_get_dict_from_object.assert_not_called()
         mock_get_vector.assert_not_called()
 
         with self.assertRaises(ValueError) as error:
             self.client.data_object.update({"A": "B"}, "Class", "NOT-A-valid-uuid")
-        self.assertEqual(str(error.exception), uuid_value_error_message)
+        check_error_message(self, error, uuid_value_error_message)
         mock_get_dict_from_object.assert_not_called()
         mock_get_vector.assert_not_called()
 
@@ -175,7 +175,7 @@ class TestDataObject(unittest.TestCase):
                 {"name": "Alan Greenspan"},
                 "CoolestPersonEver",
                 "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
-        self.assertEqual(str(error.exception), requests_error_message)
+        check_error_message(self, error, requests_error_message)
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
 
@@ -186,7 +186,7 @@ class TestDataObject(unittest.TestCase):
                 {"name": "Alan Greenspan"},
                 "CoolestPersonEver",
                 "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
-        self.assertTrue(str(error.exception).startswith(unexpected_error_message))
+        check_startswith_error_message(self, error, unexpected_error_message)
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
 
@@ -241,7 +241,7 @@ class TestDataObject(unittest.TestCase):
                 {"name": "Alan Greenspan"},
                 "CoolestPersonEver",
                 "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
-        self.assertEqual(str(error.exception), requests_error_message)
+        check_error_message(self, error, requests_error_message)
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
 
@@ -252,7 +252,7 @@ class TestDataObject(unittest.TestCase):
                 {"name": "Alan Greenspan"},
                 "CoolestPersonEver",
                 "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
-        self.assertTrue(str(error.exception).startswith(unexpected_error_message))
+        check_startswith_error_message(self, error, unexpected_error_message)
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
 
@@ -301,23 +301,23 @@ class TestDataObject(unittest.TestCase):
 
         with self.assertRaises(TypeError) as error:
             self.client.data_object.delete(4)
-        self.assertEqual(str(error.exception), uuid_type_error_message)
+        check_error_message(self, error, uuid_type_error_message)
 
         with self.assertRaises(ValueError) as error:
             self.client.data_object.delete("Hallo Wereld")
-        self.assertEqual(str(error.exception), uuid_value_error_message)
+        check_error_message(self, error, uuid_value_error_message)
 
         connection_mock = mock_run_rest(side_effect=RequestsConnectionError('Test!'))
         replace_connection(self.client, connection_mock)
         with self.assertRaises(RequestsConnectionError) as error:
             self.client.data_object.delete("b36268d4-a6b5-5274-985f-45f13ce0c642")
-        self.assertEqual(str(error.exception), requests_error_message)
+        check_error_message(self, error, requests_error_message)
 
         connection_mock = mock_run_rest(status_code=404)
         replace_connection(self.client, connection_mock)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             self.client.data_object.delete("b36268d4-a6b5-5274-985f-45f13ce0c642")
-        self.assertTrue(str(error.exception).startswith(unexpected_error_message))
+        check_startswith_error_message(self, error, unexpected_error_message)
 
         # 1. Succesfully delete something
         connection_mock = mock_run_rest(status_code=204)
@@ -369,12 +369,12 @@ class TestDataObject(unittest.TestCase):
         replace_connection(self.client, mock_run_rest(side_effect=RequestsConnectionError("Test!")))
         with self.assertRaises(weaviate.RequestsConnectionError) as error:
             self.client.data_object.get()
-        self.assertEqual(str(error.exception), requests_error_message)
+        check_error_message(self, error, requests_error_message)
         
         replace_connection(self.client, mock_run_rest(status_code=204))
         with self.assertRaises(weaviate.UnexpectedStatusCodeException) as error:
             self.client.data_object.get()
-        self.assertTrue(str(error.exception).startswith(unexpected_error_message))
+        check_startswith_error_message(self, error, unexpected_error_message)
 
         # test valid calls
         return_value_get = {"my_key": 12341}
@@ -414,7 +414,7 @@ class TestDataObject(unittest.TestCase):
         mock_get.return_value = mock_obj
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             self.client.data_object.exists("some_id")
-        self.assertTrue(str(error.exception).startswith(unexpected_error_message))
+        check_startswith_error_message(self, error, unexpected_error_message)
         mock_get.assert_called()
 
         # test valit calls
@@ -446,27 +446,27 @@ class TestDataObject(unittest.TestCase):
         # test exceptions
         with self.assertRaises(TypeError) as error:
             self.client.data_object.validate({}, "Name", 1)
-        self.assertEqual(str(error.exception), uuid_type_error_message)
+        check_error_message(self, error, uuid_type_error_message)
         mock_get_dict_from_object.assert_not_called()
         mock_get_vector.assert_not_called()
 
         with self.assertRaises(TypeError) as error:
             self.client.data_object.validate({}, ["Name"], "73802305-c0da-427e-b21c-d6779a22f35f")
-        self.assertEqual(str(error.exception), class_name_error_message(list))
+        check_error_message(self, error, class_name_error_message(list))
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
 
         replace_connection(self.client, mock_run_rest(side_effect=RequestsConnectionError("Test!")))
         with self.assertRaises(RequestsConnectionError) as error:
             self.client.data_object.validate({"name": "Alan Greenspan"}, "CoolestPersonEver", "73802305-c0da-427e-b21c-d6779a22f35f")
-        self.assertEqual(str(error.exception), requests_error_message)
+        check_error_message(self, error, requests_error_message)
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
 
         replace_connection(self.client, mock_run_rest(status_code=204, return_json={}))
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             self.client.data_object.validate({"name": "Alan Greenspan"}, "CoolestPersonEver", "73802305-c0da-427e-b21c-d6779a22f35f")
-        self.assertTrue(str(error.exception).startswith(unexpected_error_message))
+        check_startswith_error_message(self, error, unexpected_error_message)
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
 
@@ -538,7 +538,7 @@ class TestDataObject(unittest.TestCase):
 
         with self.assertRaises(TypeError) as error:
             _get_params("Test", False)
-        self.assertEqual(str(error.exception), type_error_message(str))
+        check_error_message(self, error, type_error_message(str))
 
         self.assertEqual(_get_params(["test1","test2"], False), {'include': "test1,test2"})
         self.assertEqual(_get_params(None, True), {'include': "vector"})

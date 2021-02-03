@@ -2,6 +2,8 @@ import unittest
 from unittest.mock import patch, Mock
 from weaviate.util import * 
 from weaviate.util import  _get_dict_from_object, _is_sub_schema, _get_valid_timeout_config
+from test.util import check_startswith_error_message, check_error_message
+
 
 schema_set = {
     "classes": [
@@ -171,11 +173,11 @@ class TestUtil(unittest.TestCase):
         # wrong data type
         with self.assertRaises(TypeError) as error:
             generate_local_beacon(None)
-        self.assertEqual(str(error.exception), type_error_message)
+        check_error_message(self, error, type_error_message)
         # wrong value
         with self.assertRaises(ValueError) as error:
             generate_local_beacon("Leeroy Jenkins")
-        self.assertEqual(str(error.exception), value_error_message)
+        check_error_message(self, error, value_error_message)
 
         beacon = generate_local_beacon("fcf33178-1b5d-5174-b2e7-04a2129dd35a")
         self.assertTrue("beacon" in beacon)
@@ -198,15 +200,15 @@ class TestUtil(unittest.TestCase):
         # test wrong type None
         with self.assertRaises(TypeError) as error:
             _get_dict_from_object(None)
-        self.assertEqual(str(error.exception), none_error_message)
+        check_error_message(self, error, none_error_message)
         # wrong data type
         with self.assertRaises(TypeError) as error:
             _get_dict_from_object([{"key": 1234}])
-        self.assertEqual(str(error.exception), type_error_message)
+        check_error_message(self, error, type_error_message)
         # wrong path
         with self.assertRaises(ValueError) as error:
             _get_dict_from_object("not_a_path_or_url.txt")
-        self.assertEqual(str(error.exception), file_error_message + "not_a_path_or_url.txt")
+        check_error_message(self, error, file_error_message + "not_a_path_or_url.txt")
         # wrong URL or non existing one or failure of requests.get
         with patch('weaviate.util.requests') as mock_obj:
             result_mock = Mock()
@@ -214,7 +216,7 @@ class TestUtil(unittest.TestCase):
             mock_obj.get.return_value = result_mock
             with self.assertRaises(ValueError) as error:
                 _get_dict_from_object("http://www.url.com")
-            self.assertEqual(str(error.exception), url_error_message + "http://www.url.com")
+            check_error_message(self, error, url_error_message + "http://www.url.com")
             mock_obj.get.assert_called()
 
         # valid calls
@@ -306,27 +308,27 @@ class TestUtil(unittest.TestCase):
         ## neither an object URL nor a weaviate object URL
         with self.assertRaises(ValueError) as error:
             get_valid_uuid("http://localhost:8080/v1/1c9cd584-88fe-5010-83d0-017cb3fcb")
-        self.assertEqual(str(error.exception), value_error_message)
+        check_error_message(self, error, value_error_message)
 
         # wrong UUID format
         with self.assertRaises(ValueError) as error:
             get_valid_uuid("http://localhost:8080/v1/objects/some-UUID")
-        self.assertEqual(str(error.exception), value_error_message)
+        check_error_message(self, error, value_error_message)
 
         ## wrong '/v2', shoudl be '/v1'
         with self.assertRaises(ValueError) as error:
             get_valid_uuid("http://localhost:8080/v2/objects/1c9cd584-88fe-5010-83d0-017cb3fcb")
-        self.assertEqual(str(error.exception), value_error_message)
+        check_error_message(self, error, value_error_message)
 
         ## wrong URL
         with self.assertRaises(ValueError) as error:
             get_valid_uuid("weaviate://INVALID_URL//1c9cd584-88fe-5010-83d0-017cb3fcb")
-        self.assertEqual(str(error.exception), value_error_message)
+        check_error_message(self, error, value_error_message)
 
         ## wrong UUID data type
         with self.assertRaises(TypeError) as error:
             get_valid_uuid(12)
-        self.assertEqual(str(error.exception), type_error_message + str(int))
+        check_error_message(self, error, type_error_message + str(int))
 
     def test_get_vector(self):
         """
@@ -362,7 +364,7 @@ class TestUtil(unittest.TestCase):
                 "and `tf.Tensor`")
         with self.assertRaises(TypeError) as error:
             get_vector('[1., 2., 3.]')
-        self.assertEqual(str(error.exception), type_error_message)
+        check_error_message(self, error, type_error_message)
 
     def test_get_domain_from_weaviate_url(self):
         """
@@ -398,42 +400,42 @@ class TestUtil(unittest.TestCase):
         ## wrong type, None
         with self.assertRaises(TypeError) as error:
             _get_valid_timeout_config(None)
-        self.assertEqual(str(error.exception), type_error_message)
+        check_error_message(self, error, type_error_message)
 
         ## wrong type, not list or tuple
         with self.assertRaises(TypeError) as error:
             _get_valid_timeout_config("(2, 13)")
-        self.assertEqual(str(error.exception), type_error_message)
+        check_error_message(self, error, type_error_message)
 
         ## worng tuple length 3
         with self.assertRaises(ValueError) as error:
             _get_valid_timeout_config((1,2,3))
-        self.assertEqual(str(error.exception), value_error_message)
+        check_error_message(self, error, value_error_message)
 
         with self.assertRaises(ValueError) as error:
             _get_valid_timeout_config([1, 2, 3])
-        self.assertEqual(str(error.exception), value_error_message)
+        check_error_message(self, error, value_error_message)
 
         with self.assertRaises(ValueError) as error:
             _get_valid_timeout_config(tuple([1]))
-        self.assertEqual(str(error.exception), value_error_message)
+        check_error_message(self, error, value_error_message)
 
         with self.assertRaises(ValueError) as error:
             _get_valid_timeout_config([1])
-        self.assertEqual(str(error.exception), value_error_message)
+        check_error_message(self, error, value_error_message)
 
         ## wrong value types
         with self.assertRaises(TypeError) as error:
             _get_valid_timeout_config([1, 10.123])
-        self.assertEqual(str(error.exception), value_types_error_message)
+        check_error_message(self, error, value_types_error_message)
 
         with self.assertRaises(TypeError) as error:
             _get_valid_timeout_config(["1", 10])
-        self.assertEqual(str(error.exception), value_types_error_message)
+        check_error_message(self, error, value_types_error_message)
 
         with self.assertRaises(TypeError) as error:
             _get_valid_timeout_config(["1", "10"])
-        self.assertEqual(str(error.exception), value_types_error_message)
+        check_error_message(self, error, value_types_error_message)
 
         # valid calls
         _get_valid_timeout_config((2, 20))

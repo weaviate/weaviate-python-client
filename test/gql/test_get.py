@@ -1,6 +1,6 @@
 import unittest
 from weaviate.gql.get import GetBuilder
-
+from test.util import check_error_message
 
 class TestGetBuilder(unittest.TestCase):
 
@@ -16,11 +16,11 @@ class TestGetBuilder(unittest.TestCase):
         # invalid calls
         with self.assertRaises(TypeError) as error:
             GetBuilder(1, ["a"], None)
-        self.assertEqual(str(error.exception), class_name_error_message)
+        check_error_message(self, error, class_name_error_message)
 
         with self.assertRaises(TypeError) as error:
             GetBuilder("A", 2, None)
-        self.assertEqual(str(error.exception), properties_error_message)
+        check_error_message(self, error, properties_error_message)
 
         # valid calls
         GetBuilder("name", "prop", None)
@@ -39,11 +39,11 @@ class TestGetBuilder(unittest.TestCase):
         limit_error_message = 'limit cannot be non-positive (limit >=1).'
         with self.assertRaises(ValueError) as error:
             GetBuilder("A", ["str"], None).with_limit(0)
-        self.assertEqual(str(error.exception), limit_error_message)
+        check_error_message(self, error, limit_error_message)
 
         with self.assertRaises(ValueError) as error:
             GetBuilder("A", ["str"], None).with_limit(-1)
-        self.assertEqual(str(error.exception), limit_error_message)
+        check_error_message(self, error, limit_error_message)
 
 
     def test_build_with_where(self):
@@ -80,7 +80,7 @@ class TestGetBuilder(unittest.TestCase):
         near_error_message = "Cannot use both 'nearText' and 'nearVector' filters!"
         with self.assertRaises(AttributeError) as error:
             GetBuilder("Person", "name", None).with_near_text(near_text).with_near_vector(near_text)
-        self.assertEqual(str(error.exception), near_error_message)
+        check_error_message(self, error, near_error_message)
 
     def test_build_near_vector(self):
         """
@@ -100,7 +100,7 @@ class TestGetBuilder(unittest.TestCase):
         near_error_message = "Cannot use both 'nearText' and 'nearVector' filters!"
         with self.assertRaises(AttributeError) as error:
             GetBuilder("Person", "name", None).with_near_vector(near_vector).with_near_text(near_vector)
-        self.assertEqual(str(error.exception), near_error_message)
+        check_error_message(self, error, near_error_message)
 
     def test_build(self):
         """

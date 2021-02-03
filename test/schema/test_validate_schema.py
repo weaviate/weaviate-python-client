@@ -1,6 +1,7 @@
 import unittest
 from weaviate.schema.validate_schema import validate_schema, check_class, check_property
 from weaviate.exceptions import SchemaValidationException
+from test.util import check_error_message
 
 
 valid_schema_with_all_properties = {
@@ -214,28 +215,28 @@ class TestSchemaValidation(unittest.TestCase):
         invalid_schema = {}
         with self.assertRaises(SchemaValidationException) as error:
             validate_schema(invalid_schema)
-        self.assertEqual(str(error.exception), classess_error_message)
+        check_error_message(self, error, classess_error_message)
 
         invalid_schema = {"classes": "my_class"}
         with self.assertRaises(SchemaValidationException) as error:
             validate_schema(invalid_schema)
-        self.assertEqual(str(error.exception), f'"classes" is type {str} but should be {list}.')
+        check_error_message(self, error, f'"classes" is type {str} but should be {list}.')
 
         invalid_schema = {"things": {"classes": []}}
         with self.assertRaises(SchemaValidationException) as error:
             validate_schema(invalid_schema)
-        self.assertEqual(str(error.exception), classess_error_message)
+        check_error_message(self, error, classess_error_message)
 
         invalid_schema = {"classes": ["my_class"]}
         with self.assertRaises(SchemaValidationException) as error:
             validate_schema(invalid_schema)
-        self.assertEqual(str(error.exception), f'"class" is type {str} but should be {dict}.')
+        check_error_message(self, error, f'"class" is type {str} but should be {dict}.')
 
         # test the call of the `check_class` function inside `validate_schema`
         invalid_schema = {"classes": [{"my_class": []}]}
         with self.assertRaises(SchemaValidationException) as error:
             validate_schema(invalid_schema)
-        self.assertEqual(str(error.exception), class_key_error_message)
+        check_error_message(self, error, class_key_error_message)
 
         # valid calls
         valid_schema = {"classes": []}
@@ -273,62 +274,62 @@ class TestSchemaValidation(unittest.TestCase):
             check_class({
                 "invalid_key": "value"
                 })
-        self.assertEqual(str(error.exception), class_key_error_message)
+        check_error_message(self, error, class_key_error_message)
 
         with self.assertRaises(SchemaValidationException) as error:
             check_class({
                 "class" : [],
                 })
-        self.assertEqual(str(error.exception), key_type_error_messsage("class", [], str))
+        check_error_message(self, error, key_type_error_messsage("class", [], str))
 
         with self.assertRaises(SchemaValidationException) as error:
             check_class({
                 "class": "Tree",
                 "invalid_key": []
                 })
-        self.assertEqual(str(error.exception), unknown_key_error_message("invalid_key"))
+        check_error_message(self, error, unknown_key_error_message("invalid_key"))
 
         with self.assertRaises(SchemaValidationException) as error:
             check_class({
                 "class": "Tree",
                 "description": []
                 })
-        self.assertEqual(str(error.exception), key_type_error_messsage("description", [], str))
+        check_error_message(self, error, key_type_error_messsage("description", [], str))
 
         with self.assertRaises(SchemaValidationException) as error:
             check_class({
                 "class": "Tree",
                 "properties": "References please"
                 })
-        self.assertEqual(str(error.exception), key_type_error_messsage("properties", "", list))    
+        check_error_message(self, error, key_type_error_messsage("properties", "", list))    
 
         with self.assertRaises(SchemaValidationException) as error:
             check_class({
                 "class": "Tree",
                 "vectorIndexType": True
                 })
-        self.assertEqual(str(error.exception), key_type_error_messsage("vectorIndexType", True, str)) 
+        check_error_message(self, error, key_type_error_messsage("vectorIndexType", True, str)) 
 
         with self.assertRaises(SchemaValidationException) as error:
             check_class({
                 "class": "Tree",
                 "vectorIndexConfig": []
                 })
-        self.assertEqual(str(error.exception), key_type_error_messsage("vectorIndexConfig", [], dict)) 
+        check_error_message(self, error, key_type_error_messsage("vectorIndexConfig", [], dict)) 
 
         with self.assertRaises(SchemaValidationException) as error:
             check_class({
                 "class": "Tree",
                 "moduleConfig": []
                 })
-        self.assertEqual(str(error.exception), key_type_error_messsage("moduleConfig", [], dict))
+        check_error_message(self, error, key_type_error_messsage("moduleConfig", [], dict))
 
         with self.assertRaises(SchemaValidationException) as error:
             check_class({
                 "class": "Tree",
                 "vectorizer": 100.1
                 })
-        self.assertEqual(str(error.exception), key_type_error_messsage("vectorizer", 100.1, str))
+        check_error_message(self, error, key_type_error_messsage("vectorizer", 100.1, str))
 
         # check if `check_property` is called inside `check_class`
         with self.assertRaises(SchemaValidationException) as error:
@@ -341,7 +342,7 @@ class TestSchemaValidation(unittest.TestCase):
                     }
                 ]
                 })
-        self.assertEqual(str(error.exception), 'Property does not contain "name"')
+        check_error_message(self, error, 'Property does not contain "name"')
 
     def test_check_property(self):
         """
@@ -372,12 +373,12 @@ class TestSchemaValidation(unittest.TestCase):
         properties = {"dataType": ["string"]}
         with self.assertRaises(SchemaValidationException) as error:
             check_property(properties)
-        self.assertEqual(str(error.exception), name_error_message)
+        check_error_message(self, error, name_error_message)
 
         properties = {"name": "string"}
         with self.assertRaises(SchemaValidationException) as error:
             check_property(properties)
-        self.assertEqual(str(error.exception), data_type_error_message)
+        check_error_message(self, error, data_type_error_message)
 
         properties = {
             "dataType": ["string"],
@@ -386,7 +387,7 @@ class TestSchemaValidation(unittest.TestCase):
         }
         with self.assertRaises(SchemaValidationException) as error:
             check_property(properties)
-        self.assertEqual(str(error.exception), key_error_message("invalid_property"))
+        check_error_message(self, error, key_error_message("invalid_property"))
 
         properties = {
             "dataType": ["string"],
@@ -395,7 +396,7 @@ class TestSchemaValidation(unittest.TestCase):
         }
         with self.assertRaises(SchemaValidationException) as error:
             check_property(properties)
-        self.assertEqual(str(error.exception), key_type_error_messsage("moduleConfig", properties["moduleConfig"], dict))
+        check_error_message(self, error, key_type_error_messsage("moduleConfig", properties["moduleConfig"], dict))
 
         properties = {
             "dataType": ["string"],
@@ -404,7 +405,7 @@ class TestSchemaValidation(unittest.TestCase):
         }
         with self.assertRaises(SchemaValidationException) as error:
             check_property(properties)
-        self.assertEqual(str(error.exception), key_type_error_messsage("description", properties['description'], str))
+        check_error_message(self, error, key_type_error_messsage("description", properties['description'], str))
 
         properties = {
             "dataType": ["string"],
@@ -413,7 +414,7 @@ class TestSchemaValidation(unittest.TestCase):
         }
         with self.assertRaises(SchemaValidationException) as error:
             check_property(properties)
-        self.assertEqual(str(error.exception), key_type_error_messsage("indexInverted", properties['indexInverted'], bool))
+        check_error_message(self, error, key_type_error_messsage("indexInverted", properties['indexInverted'], bool))
 
         properties = {
             "dataType": ["string", 10],
@@ -422,4 +423,4 @@ class TestSchemaValidation(unittest.TestCase):
         }
         with self.assertRaises(SchemaValidationException) as error:
             check_property(properties)
-        self.assertEqual(str(error.exception), key_type_error_messsage("dataType object", properties['dataType'][1], str))
+        check_error_message(self, error, key_type_error_messsage("dataType object", properties['dataType'][1], str))

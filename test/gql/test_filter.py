@@ -1,5 +1,6 @@
 import unittest
 from weaviate.gql.filter import NearText, NearVector, WhereFilter
+from test.util import check_error_message, check_startswith_error_message
 
 
 def helper_get_test_filter(type, value):
@@ -33,14 +34,14 @@ class TestNearText(unittest.TestCase):
                 "concepts": "Some_concept",
                 move: "0.5"
             })
-        self.assertEqual(str(error.exception), type_error_message)
+        check_error_message(self, error, type_error_message)
 
         with self.assertRaises(ValueError) as error:
             NearText({
                 "concepts": "Some_concept",
                 move: {"Invalid" : "something"}
             })
-        self.assertEqual(str(error.exception), concept_error_message)
+        check_error_message(self, error, concept_error_message)
 
         with self.assertRaises(TypeError) as error:
             NearText({
@@ -49,7 +50,7 @@ class TestNearText(unittest.TestCase):
                     "concepts" : set("something")
                 }
             })
-        self.assertEqual(str(error.exception), concept_value_error_message)
+        check_error_message(self, error, concept_value_error_message)
 
         with self.assertRaises(ValueError) as error:
             NearText({
@@ -58,7 +59,7 @@ class TestNearText(unittest.TestCase):
                     "concepts" : "something",
                 }
             })
-        self.assertEqual(str(error.exception), force_error_message)
+        check_error_message(self, error, force_error_message)
 
         with self.assertRaises(TypeError) as error:
             NearText({
@@ -68,7 +69,7 @@ class TestNearText(unittest.TestCase):
                     "force": True
                 }
             })
-        self.assertEqual(str(error.exception), force_type_error_message)
+        check_error_message(self, error, force_type_error_message)
 
     def test___init__(self):
         """
@@ -84,15 +85,15 @@ class TestNearText(unittest.TestCase):
         ## test "concepts"
         with self.assertRaises(TypeError) as error:
             NearText(["concepts", "Some_concept"])
-        self.assertEqual(str(error.exception), content_error_message)
+        check_error_message(self, error, content_error_message)
 
         with self.assertRaises(ValueError) as error:
             NearText({"INVALID": "Some_concept"})
-        self.assertEqual(str(error.exception), concept_error_message)
+        check_error_message(self, error, concept_error_message)
 
         with self.assertRaises(TypeError) as error:
             NearText({"concepts" : set("Some_concept")})
-        self.assertEqual(str(error.exception), concept_value_error_message)
+        check_error_message(self, error, concept_value_error_message)
 
         ## test "certainty"
         with self.assertRaises(TypeError) as error:
@@ -100,7 +101,7 @@ class TestNearText(unittest.TestCase):
                 "concepts": "Some_concept",
                 "certainty": "0.5"
             })
-        self.assertEqual(str(error.exception), certainty_error_message)
+        check_error_message(self, error, certainty_error_message)
 
         ## test "moveTo"
         self.move_x_test_case("moveTo")
@@ -253,15 +254,15 @@ class TestNearVector(unittest.TestCase):
         ## test "concepts"
         with self.assertRaises(TypeError) as error:
             NearVector(["concepts", "Some_concept"])
-        self.assertEqual(str(error.exception), content_error_message)
+        check_error_message(self, error, content_error_message)
 
         with self.assertRaises(ValueError) as error:
             NearVector({"INVALID": "Some_concept"})
-        self.assertEqual(str(error.exception), vector_error_message)
+        check_error_message(self, error, vector_error_message)
 
         with self.assertRaises(TypeError) as error:
             NearVector({"vector" : set("Some_concept")})
-        self.assertEqual(str(error.exception), vector_value_error_message)
+        check_error_message(self, error, vector_value_error_message)
 
         ## test "certainty"
         with self.assertRaises(TypeError) as error:
@@ -269,7 +270,7 @@ class TestNearVector(unittest.TestCase):
                 "vector": [1., 2., 3., 4.],
                 "certainty": "0.5"
             })
-        self.assertEqual(str(error.exception), certainty_error_message)
+        check_error_message(self, error, certainty_error_message)
 
         # test valid calls
         NearVector(
@@ -318,35 +319,35 @@ class TestWhereFilter(unittest.TestCase):
 
         with self.assertRaises(TypeError) as error:
             WhereFilter(None)
-        self.assertEqual(str(error.exception), content_error_message(type(None)))
+        check_error_message(self, error, content_error_message(type(None)))
 
         with self.assertRaises(TypeError) as error:
             WhereFilter("filter")
-        self.assertEqual(str(error.exception), content_error_message(str))
+        check_error_message(self, error, content_error_message(str))
 
         with self.assertRaises(ValueError) as error:
             WhereFilter({})
-        self.assertTrue(str(error.exception).startswith(content_key_error_message))
+        check_startswith_error_message(self, error, content_key_error_message)
 
         with self.assertRaises(ValueError) as error:
             WhereFilter({"path": "some_path"})
-        self.assertTrue(str(error.exception).startswith(path_key_error))
+        check_startswith_error_message(self, error, path_key_error)
 
         with self.assertRaises(ValueError) as error:
             WhereFilter({"path": "some_path", "operator": "Like"})
-        self.assertTrue(str(error.exception).startswith(dtype_error_message))
+        check_startswith_error_message(self, error, dtype_error_message)
 
         with self.assertRaises(ValueError) as error:
             WhereFilter({"operands": "some_path"})
-        self.assertTrue(str(error.exception).startswith(path_key_error))
+        check_startswith_error_message(self, error, path_key_error)
 
         with self.assertRaises(TypeError) as error:
             WhereFilter({"operands": "some_path", "operator": "Like"})
-        self.assertEqual(str(error.exception), content_error_message(str))
+        check_error_message(self, error, content_error_message(str))
 
         with self.assertRaises(TypeError) as error:
             WhereFilter({"operands": ["some_path"], "operator": "Like"})
-        self.assertEqual(str(error.exception), content_error_message(str))
+        check_error_message(self, error, content_error_message(str))
 
         
         # test valid calls
