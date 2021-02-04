@@ -1,14 +1,12 @@
+import datetime
 import time
-import urllib
 from typing import Tuple, Optional
 import requests
+from requests import RequestException
 from weaviate.exceptions import AuthenticationFailedException
 from weaviate.connect.constants import *
 from weaviate.auth import AuthCredentials
 from weaviate.util import _get_valid_timeout_config
-from .util import get_epoch_time
-
-WEAVIATE_REST_API_VERSION_PATH = "/v1"
 
 
 class Connection:
@@ -36,9 +34,9 @@ class Connection:
 
         self.url = url + WEAVIATE_REST_API_VERSION_PATH  # e.g. http://localhost:80/v1
         if timeout_config is None:
-            self.timeout_config = (2, 20)
+            self._timeout_config = (2, 20)
         else:
-            self.set_timeout_config(timeout_config)
+            self.timeout_config = timeout_config # this uses the setter
 
         self.auth_expires = 0  # unix time when auth expires
         self.auth_bearer = 0
@@ -59,8 +57,8 @@ class Connection:
                     self.is_authentication_required = True
                     self._refresh_authentication()
                 else:
-                    raise ValueError(("No login credentials provided. The weaviate instance at "
-                        f"{url} requires login credential, use argument 'auth_client_secret'."))
+                    raise ValueError("No login credentials provided. The weaviate instance at "
+                        f"{url} requires login credential, use argument 'auth_client_secret'.")
 
     # Requests a new bearer
     def _refresh_authentication(self) -> None:
@@ -85,7 +83,7 @@ class Connection:
             If authtentication access denied.
         """
 
-        if (self.auth_expires - 2) < get_epoch_time():  # -2 for some lagtime
+        if self.auth_expires < get_epoch_time():
             # collect data for the request
             try:
                 request = requests.get(
@@ -93,10 +91,10 @@ class Connection:
                     headers={"content-type": "application/json"},
                     timeout=(30, 45)
                     )
-            except urllib.error.HTTPError:
-                raise AuthenticationFailedException("Cant connect to weaviate") from None
+            except RequestException as error:
+                raise AuthenticationFailedException("Cannot connect to weaviate.") from error
             if request.status_code != 200:
-                raise AuthenticationFailedException("Cant authenticate http status not ok")
+                raise AuthenticationFailedException("Cannot authenticate http status not ok.")
 
             # Set the client ID
             client_id = request.json()['clientId']
@@ -108,19 +106,19 @@ class Connection:
                     headers={"content-type": "application/json"},
                     timeout=(30, 45)
                     )
-            except urllib.error.HTTPError:
-                raise AuthenticationFailedException((
+            except RequestException as error:
+                raise AuthenticationFailedException(
                     "Can't connect to the third party authentication service. "
-                    "Validate that it's running")) from None
+                    "Check that it is running.") from error
             if request_third_part.status_code != 200:
                 raise AuthenticationFailedException(
-                    "Status not OK in connection to the third party authentication service")
+                    "Status not OK in connection to the third party authentication service.")
 
             # Validate third part auth info
             if 'client_credentials' not in request_third_part.json()['grant_types_supported']:
-                raise AuthenticationFailedException((
+                raise AuthenticationFailedException(
                     "The grant_types supported by the thirdparty authentication service are "
-                    "insufficient. Please add 'client_credentials'"))
+                    "insufficient. Please add 'client_credentials'.")
 
             request_body = self.auth_client_secret.get_credentials()
             request_body["client_id"] = client_id
@@ -132,10 +130,10 @@ class Connection:
                     request_body,
                     timeout=(30, 45)
                     )
-            except urllib.error.HTTPError:
-                raise AuthenticationFailedException((
+            except RequestException:
+                raise AuthenticationFailedException(
                     "Unable to get a OAuth token from server. Are the credentials "
-                    "and URLs correct?")) from None
+                    "and URLs correct?") from None
 
             # sleep to process
             time.sleep(0.125)
@@ -145,8 +143,8 @@ class Connection:
                     "Authtentication access denied. Are the credentials correct?"
                 )
             self.auth_bearer = request.json()['access_token']
+            # -2 for some lagtime
             self.auth_expires = int(get_epoch_time() + request.json()['expires_in'] - 2)
-
 
     def _get_request_header(self) -> dict:
         """
@@ -208,7 +206,7 @@ class Connection:
             response = requests.get(
                 url=request_url,
                 headers=self._get_request_header(),
-                timeout=self.timeout_config,
+                timeout=self._timeout_config,
                 params=params
                 )
         elif rest_method == REST_METHOD_PUT:
@@ -216,37 +214,46 @@ class Connection:
                 url=request_url,
                 json=weaviate_object,
                 headers=self._get_request_header(),
-                timeout=self.timeout_config
+                timeout=self._timeout_config
                 )
         elif rest_method == REST_METHOD_POST:
             response = requests.post(
                 url=request_url,
                 json=weaviate_object,
                 headers=self._get_request_header(),
-                timeout=self.timeout_config
+                timeout=self._timeout_config
                 )
         elif rest_method == REST_METHOD_PATCH:
             response = requests.patch(
                 url=request_url,
                 json=weaviate_object,
                 headers=self._get_request_header(),
-                timeout=self.timeout_config
+                timeout=self._timeout_config
                 )
         elif rest_method == REST_METHOD_DELETE:
             response = requests.delete(
                 url=request_url,
                 json=weaviate_object,
                 headers=self._get_request_header(),
-                timeout=self.timeout_config
+                timeout=self._timeout_config
                 )
         else:
             print("Not yet implemented rest method called")
             response = None
         return response
 
-    def set_timeout_config(self, timeout_config: Optional[Tuple[int, int]]):
+    @property
+    def timeout_config(self):
         """
-        Set timeout configuration.
+        Getter for the `timeout_config`.
+        """
+
+        return self._timeout_config
+
+    @timeout_config.setter
+    def timeout_config(self, timeout_config: Optional[Tuple[int, int]]):
+        """
+        Setter for `timeout_config`.
 
         Parameters
         ----------
@@ -254,4 +261,17 @@ class Connection:
             Timeout config as a tuple/list of (retries, time out seconds).
         """
 
-        self.timeout_config = _get_valid_timeout_config(timeout_config)
+        self._timeout_config = _get_valid_timeout_config(timeout_config)
+
+def get_epoch_time() -> int:
+    """
+    Get the current epoch time as an integer.
+
+    Returns
+    -------
+    int
+        Current epoch time.
+    """
+
+    dts = datetime.datetime.utcnow()
+    return round(time.mktime(dts.timetuple()) + dts.microsecond / 1e6)
