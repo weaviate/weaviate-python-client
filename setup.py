@@ -1,5 +1,6 @@
 from setuptools import setup
 from builtins import open
+from weaviate.version import __version__
 
 # read the contents of your README file
 from os import path
@@ -8,7 +9,7 @@ with open(path.join(this_directory, 'readme.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(name="weaviate-client",
-      version="2.0.2",
+      version=__version__,
       description="A python native weaviate client",
       long_description=long_description,
       long_description_content_type='text/markdown',
