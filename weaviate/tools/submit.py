@@ -1,14 +1,20 @@
 import time
+from typing import Callable
 from requests.exceptions import ReadTimeout, Timeout
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+from weaviate.batch.requests import BatchRequest
 
 
 class SubmitBatchesException(Exception):
-    def __init__(self, message):
-        super().__init__(message)
+    """
+    Submit Batch Exception.
+    """
 
 
 class SubmitBatches:
+    """
+    SubmitBatcher class used to submit data in batcher from the Batcher object.
+    """
 
     def __init__(self,
             max_backoff_time: int = 300,
@@ -49,14 +55,19 @@ class SubmitBatches:
         self._result_collection = []
         return return_value
 
-    def submit_update(self, create_func, data) -> None:
+    def submit_update(self, create_func: Callable[[BatchRequest], None], data: BatchRequest):
         """
+        Parameters
+        ----------
+        create_func: Callable[[BatchRequest], None]
+            The function that should be called with the data.
+        data: BatchRequest
+            The Batch object that should be used as parameter to the `create_func`.
 
-        :param create_func: the function that should be called with the data
-        :param data: the data that should be used as parameter to the create_func
-        :return:
-        :raises:
-            SubmitBatchesException if the batch could not be submitted
+        Raises
+        ------
+        SubmitBatchesException
+            If the batch could not be submitted.
         """
 
         if len(data) == 0:
@@ -71,17 +82,27 @@ class SubmitBatches:
 
         self._reset_backoff()
 
-    def _submit_data(self, create_func, data):
-        """ Submits data using the create func and appends the result to the result collection
-
-        :param create_func: callback function
-        :param data: parameter for callback function
-        :return: False if failed, True if successful
+    def _submit_data(self, create_func: Callable[[BatchRequest], None], data: BatchRequest):
         """
+        Submits `data` using the `create_func` and appends the result to the result collection.
+
+        Parameters
+        ----------
+        create_func: Callable[[BatchRequest], None]
+            The function that should be called with the data.
+        data: BatchRequest
+            The Batch object that should be used as parameter to the `create_func`.
+
+        Return
+        bool
+            False if failed, True if successful.
+        """
+
         try:
             result = create_func(data)
-        except (RequestsConnectionError, Timeout, ReadTimeout, UnexpectedStatusCodeException) as e:
-            print("Exception in creating data: ", e)
+        except (RequestsConnectionError, Timeout, ReadTimeout,\
+                        UnexpectedStatusCodeException) as error:
+            print("Exception in creating data: ", error)
             return False
         else:
             if isinstance(result, list):
@@ -90,10 +111,11 @@ class SubmitBatches:
             return True
 
     def _sleep_backoff(self):
-        """ Calculates an exponential backoff and sleeps for the calculated time.
-            Is limited by the max_backoff_time settable in the constructor
-        :return:
         """
+        Calculates an exponential backoff and sleeps for the calculated time.
+        Is limited by the max_backoff_time settable in the constructor
+        """
+
         self._backoff_time = self._backoff_time + self._backoff_count * self._backoff_time
         if self._backoff_time > self._max_backoff_time:
             self._backoff_time = self._max_backoff_time
@@ -102,10 +124,23 @@ class SubmitBatches:
         time.sleep(self._backoff_time)
 
     def _reset_backoff(self):
+        """
+        Reset backoff values.
+        """
+
         self._backoff_time = 10
         self._backoff_count = 0
 
-    def _print_errors(self, request_result):
+    def _print_errors(self, request_result: dict):
+        """
+        Print request results, only for verbose option of the Batcher class.
+
+        Parameters
+        ----------
+        request_result : dict
+            Request result of the batch submission.
+        """
+
         if not self._verbose_enabled:
             return
 

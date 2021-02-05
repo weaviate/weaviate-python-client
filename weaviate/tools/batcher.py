@@ -1,8 +1,9 @@
 import time
 import threading
 import sys
-from typing import Callable
+from typing import Callable, Sequence
 import weaviate
+from weaviate.batch.requests import BatchRequest
 from .submit import SubmitBatches, SubmitBatchesException
 
 
@@ -66,7 +67,11 @@ class Batcher:
         # Configuration
         self._batch_size = batch_size
         self._print_verbose_activated = verbose
-        self._submit_batches = SubmitBatches(max_backoff_time, max_request_retries, self._print_verbose_activated)
+        self._submit_batches = SubmitBatches(
+            max_backoff_time,
+            max_request_retries,
+            self._print_verbose_activated
+        )
         self._return_values_callback = return_values_callback
 
         # Auto commit info
@@ -81,7 +86,7 @@ class Batcher:
     def __enter__(self):
         return self
 
-    def update_batches(self) -> None:
+    def update_batches(self):
         """
         Forces an update of the batches no matter the current batch size.
         Prints errors if there are any.
@@ -89,28 +94,37 @@ class Batcher:
         with self._commit_lock:
             self._update_batches_force()
 
-    def _update_batch_object(self, create_function, batch_data):
-        """ Tries to send the data to the given function.
-            Retains the function and data in failed submissions list if not successful.
+    def _update_batch_object(self,
+            create_function: Callable[[BatchRequest], None],
+            batch_data: BatchRequest
+        ):
+        """
+        Tries to send the data to the given function. Retains the function and data in failed
+        submissions list if not successful.
 
-        :param create_function:
-        :param batch_data:
-        :return:
+        Parameters
+        ----------
+        create_function: Callable[[BatchRequest], None]
+            The function that should be called with the data.
+        batch_data: BatchRequest
+            The Batch object that should be used as parameter to the `create_func`.
         """
 
         try:
             self._submit_batches.submit_update(create_function, batch_data)
         except SubmitBatchesException:
-            print("Error: Object batch was not added after max retries. Will retry with next batch submit")
+            print("Error: Object batch was not added after max retries."
+                " Will retry with next batch submit")
             self._submission_fails.append((create_function, batch_data))
         else:
             if self._print_verbose_activated:
                 print("Updated object batch successfully")
 
     def _retry_failed_submissions(self):
-        """ Tries to resubmit failed submissions
-        :return:
         """
+        Tries to resubmit failed submissions.
+        """
+
         still_failing = []
         for create_func, batch_data in self._submission_fails:
             try:
@@ -119,7 +133,8 @@ class Batcher:
                 still_failing.append((create_func, batch_data))
         if self._print_verbose_activated:
             if len(self._submission_fails) > 0:
-                print("Of", len(self._submission_fails), "/", len(still_failing), "are still failing.")
+                print("Of", len(self._submission_fails), "/", len(still_failing),
+                    "are still failing.")
         self._submission_fails = still_failing
 
     def _update_batches_force(self):
@@ -139,19 +154,60 @@ class Batcher:
         self._last_update = time.time()
 
     def _update_batch_if_necessary(self):
-        """ Starts a batch load if the batch size is reached
+        """
+        Starts a batch load if the batch size is reached.
         """
         if len(self._objects_batch) + len(self._reference_batch) >= self._batch_size:
             self._update_batches_force()
 
-    def add_data_object(self, data_object, class_name, uuid=None):
+    def add_data_object(self,
+            data_object: dict,
+            class_name: str,
+            uuid: str=None,
+            vector: Sequence=None
+        ):
+        """
+        Add one object to this batcher.
+
+        data_object : dict
+            Object to be added as a dict datatype.
+        class_name : str
+            The name of the class this object belongs to.
+        uuid : str, optional
+            UUID of the object as a string, by default None
+        vector: Sequence, optional
+            The embedding of the object that should be created. Used only class objects that do not
+            have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
+            `torch.Tensor` and `tf.Tensor`,
+            by default None.
+        """
+
         with self._commit_lock:
             self._last_update = time.time()
-            self._objects_batch.add(data_object, class_name, uuid)
+            self._objects_batch.add(data_object, class_name, uuid, vector)
             self._update_batch_if_necessary()
 
-    def add_reference(self, from_object_class_name, from_object_uuid, from_property_name,
-                    to_object_uuid):
+    def add_reference(self,
+            from_object_uuid: str,
+            from_object_class_name: str,
+            from_property_name: str,
+            to_object_uuid: str
+        ) -> None:
+        """
+        Add one reference to this batcher.
+
+        Parameters
+        ----------
+        from_object_uuid : str
+            The UUID or URL of the object that should reference another object.
+        from_object_class_name : str
+            The name of the class that should reference another object.
+        from_property_name : str
+            The name of the property that contains the reference.
+        to_object_uuid : str
+            The UUID or URL of the object that is actually referenced.
+        """
+
         with self._commit_lock:
             self._last_update = time.time()
             self._reference_batch.add(
@@ -163,9 +219,9 @@ class Batcher:
             self._update_batch_if_necessary()
 
     def close(self):
-        """ Closes this Batcher.
-            Makes sure that all unfinished batches are loaded into weaviate.
-            Batcher is not useable after closing.
+        """
+        Closes this Batcher. Makes sure that all unfinished batches are loaded into weaviate.
+        Batcher is not useable after closing.
         """
 
         # stop watchdog thread
@@ -195,6 +251,9 @@ class Batcher:
 
 
 class AutoCommitWatchdog(threading.Thread):
+    """
+    AutoCommitWatchdog used to auto commit batches.
+    """
 
     def __init__(self, batcher):
         """
@@ -207,10 +266,17 @@ class AutoCommitWatchdog(threading.Thread):
         self.is_closed = False
 
     def commit_batcher(self):
+        """
+        Commit Batcher.
+        """
+
         with self.batcher._commit_lock:
             self.batcher._update_batches_force()
 
     def run(self):
+        """
+        Run autocomit.
+        """
         while not self.is_closed:
             now = time.time()
             delta = now - self.batcher._last_update

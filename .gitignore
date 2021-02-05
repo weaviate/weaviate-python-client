@@ -1,9 +1,9 @@
 .idea
-dist
+dist/
 Weaviate_client.egg-info
 **/__pycache__
 tmp
-/build
+build/
 *.pyc
 docker-compose.yaml
 .DS_Store
