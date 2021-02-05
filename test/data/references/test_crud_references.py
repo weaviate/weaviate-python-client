@@ -222,7 +222,7 @@ class TestReference(unittest.TestCase):
         with self.assertRaises(ValueError) as error:
             self.client.data_object.reference.update("http://localhost:8080/v1/objects/My-UUID", "prop",
                 f"http://localhost:8080/v1/objects/{self.uuid_2}")
-            check_error_message(self, error, self.valid_uuid_error_message)
+        check_error_message(self, error, self.valid_uuid_error_message)
         
         mock_obj = mock_run_rest(status_code=204)
         replace_connection(self.client, mock_obj)
