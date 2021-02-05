@@ -81,7 +81,7 @@ class TripleLoader:
 
             t_id = str(uuid.uuid4())
             self._batcher.add_data_object({}, "Triple", t_id)
-            self._batcher.add_reference("Triple", t_id, "subject", s_id)
-            self._batcher.add_reference("Triple", t_id, "predicate", p_id)
-            self._batcher.add_reference("Triple", t_id, "object", o_id)
+            self._batcher.add_reference(t_id, "Triple", "subject", s_id)
+            self._batcher.add_reference(t_id, "Triple", "predicate", p_id)
+            self._batcher.add_reference(t_id, "Triple", "object", o_id)
         self._batcher.close()
