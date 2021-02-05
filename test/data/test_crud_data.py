@@ -13,16 +13,24 @@ class TestDataObject(unittest.TestCase):
         self.client = weaviate.Client("http://localhost:8080")
 
     @patch('weaviate.data.crud_data._get_dict_from_object', side_effect=lambda x:x)
+    @patch('weaviate.data.crud_data.get_valid_uuid', side_effect=lambda x:x)
     @patch('weaviate.data.crud_data.get_vector', side_effect=lambda x:x)
-    def test_create(self, mock_get_vector, mock_get_dict_from_object):
+    def test_create(self, mock_get_vector, mock_get_valid_uuid, mock_get_dict_from_object):
         """
         Test the `create` method.
         """
 
+        def reset():
+            """
+            Reset patched objects
+            """
+
+            mock_get_valid_uuid.reset_mock() # reset called
+            mock_get_vector.reset_mock() # reset called
+            mock_get_dict_from_object.reset_mock() # reset_called
+
         # invalid calls
         class_name_error_message = lambda dt: f"Expected class_name of type str but was: {dt}"
-        uuid_type_error_message = lambda dt: f"Expected uuid to be of type str but was: {dt}"
-        uuid_value_error_message = "Given uuid does not have a valid form"
         requests_error_message = 'Test! Connection error, object was not added to weaviate.'
         unexpected_error_message = 'Test! Unexpected exception please report this excetpion in an issue.'
 
@@ -32,22 +40,9 @@ class TestDataObject(unittest.TestCase):
         check_error_message(self, error, class_name_error_message(list))
         mock_get_dict_from_object.assert_not_called()
         mock_get_vector.assert_not_called()
-        
+        mock_get_valid_uuid.assert_not_called()
 
-        with self.assertRaises(TypeError) as error:
-            self.client.data_object.create({'name': 'Optimus Prime'}, "Transformer", 19210)
-        check_error_message(self, error, uuid_type_error_message(int))
-        mock_get_dict_from_object.assert_called()
-        mock_get_vector.assert_not_called()
-        
-
-        with self.assertRaises(ValueError) as error:
-            self.client.data_object.create({'name': 'Optimus Prime'}, "Transformer", "1234_1234_1234_1234")
-        check_error_message(self, error, uuid_value_error_message)
-        mock_get_dict_from_object.assert_called()
-        mock_get_vector.assert_not_called()
-
-
+        reset()
         mock_obj = mock_run_rest(side_effect=RequestsConnectionError("Test!"))
         replace_connection(self.client, mock_obj)
         with self.assertRaises(weaviate.RequestsConnectionError) as error:
@@ -55,8 +50,9 @@ class TestDataObject(unittest.TestCase):
         check_error_message(self, error, requests_error_message)
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
+        mock_get_valid_uuid.assert_not_called()
         
-
+        reset()
         mock_obj = mock_run_rest(status_code=204, return_json={})
         replace_connection(self.client, mock_obj)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
@@ -64,7 +60,9 @@ class TestDataObject(unittest.TestCase):
         check_startswith_error_message(self, error, "Creating object")
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
+        mock_get_valid_uuid.assert_not_called()
 
+        reset()
         mock_obj = mock_run_rest(status_code=204, return_json={"error" : [{"message" : "already exists"}]})
         replace_connection(self.client, mock_obj)
         with self.assertRaises(ObjectAlreadyExistsException) as error:
@@ -72,7 +70,9 @@ class TestDataObject(unittest.TestCase):
         check_error_message(self, error, "None")
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
-        
+        mock_get_valid_uuid.assert_not_called()
+
+        reset()
         mock_obj = mock_run_rest(status_code=204, return_json={})
         replace_connection(self.client, mock_obj)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
@@ -80,7 +80,9 @@ class TestDataObject(unittest.TestCase):
         check_startswith_error_message(self, error, "Creating object")
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
+        mock_get_valid_uuid.assert_not_called()
 
+        reset()
         mock_obj = mock_run_rest()
         mock_json = Mock(status_code=204)
         mock_json.json.side_effect = Exception("Test!")
@@ -91,6 +93,7 @@ class TestDataObject(unittest.TestCase):
         check_error_message(self, error, unexpected_error_message)
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
+        mock_get_valid_uuid.assert_not_called()
 
         # # test valid calls
         ## without vector argument
@@ -108,11 +111,13 @@ class TestDataObject(unittest.TestCase):
             "id": id_
         }
 
+        reset()
         uuid = self.client.data_object.create(object_, class_name, id_)
         self.assertEqual(uuid, "0")
         connection_mock.run_rest.assert_called_with("/objects", REST_METHOD_POST, rest_object)
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
+        mock_get_valid_uuid.assert_called()
 
         ## with vector argument
         connection_mock = mock_run_rest(return_json={"id": 0}, status_code=200)
@@ -130,11 +135,13 @@ class TestDataObject(unittest.TestCase):
             "id": id_
         }
 
+        reset()
         uuid = self.client.data_object.create(object_, class_name, id_, vector)
         self.assertEqual(uuid, "0")
         connection_mock.run_rest.assert_called_with("/objects", REST_METHOD_POST, rest_object)
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_called()
+        mock_get_valid_uuid.assert_called()
 
     @patch('weaviate.data.crud_data._get_dict_from_object', side_effect=lambda x:x)
     @patch('weaviate.data.crud_data.get_vector', side_effect=lambda x:x)
