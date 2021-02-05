@@ -10,7 +10,7 @@ from weaviate.connect import Connection
 from weaviate.exceptions import ObjectAlreadyExistsException
 from weaviate.exceptions import RequestsConnectionError
 from weaviate.exceptions import UnexpectedStatusCodeException
-from weaviate.util import _get_dict_from_object, get_vector
+from weaviate.util import _get_dict_from_object, get_vector, get_valid_uuid
 from weaviate.data.references import Reference
 
 
@@ -87,13 +87,7 @@ class DataObject:
             "properties": loaded_data_object
         }
         if uuid is not None:
-            if not isinstance(uuid, str):
-                raise TypeError("Expected uuid to be of type str but was: "\
-                                + str(type(uuid)))
-            if not validators.uuid(uuid):
-                raise ValueError("Given uuid does not have a valid form")
-
-            weaviate_obj["id"] = uuid
+            weaviate_obj["id"] = get_valid_uuid(uuid)
 
         if vector is not None:
             weaviate_obj["vector"] = get_vector(vector)
