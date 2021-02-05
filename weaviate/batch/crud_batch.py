@@ -1,5 +1,4 @@
 import sys
-import warnings
 from requests.exceptions import ReadTimeout
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.connect import REST_METHOD_POST, Connection
@@ -55,8 +54,8 @@ class Batch:
         elif isinstance(batch_request, ReferenceBatchRequest):
             data_object_type = "references"
         else:
-            raise TypeError("Wrong argument type, expected a sub-class of BatchRequest \
-                    (ObjectsBatchRequest or ReferenceBatchRequest), got: " +\
+            raise TypeError("Wrong argument type, expected a sub-class of BatchRequest "
+                    "(ObjectsBatchRequest or ReferenceBatchRequest), got: " +\
                     str(type(batch_request)))
 
         path = f"/batch/{data_object_type}"
@@ -76,7 +75,7 @@ class Batch:
                 f"longer than the configured timeout of {self._connection.timeout_config[1]}s. "
                 f"Try reducing the batch size (currently {len(batch_request)}) to a lower value. "
                 "Aim to on average complete batch request within less than 10s")
-            raise ReadTimeout(message)
+            raise ReadTimeout(message) from None
         if response.status_code == 200:
             return response.json()
         raise UnexpectedStatusCodeException(f"Create {data_object_type} in batch", response)
@@ -103,8 +102,8 @@ class Batch:
         """
 
         if not isinstance(objects_batch_request, ObjectsBatchRequest):
-            raise TypeError(f"'reference_batch_request' should be of type \
-                ObjectsBatchRequest but was given : {type(objects_batch_request)}")
+            raise TypeError("'objects_batch_request' should be of type "
+                f"ObjectsBatchRequest but was given : {type(objects_batch_request)}")
 
         return self.create(
             batch_request=objects_batch_request
@@ -137,22 +136,9 @@ class Batch:
         """
 
         if not isinstance(reference_batch_request, ReferenceBatchRequest):
-            raise TypeError(f"'reference_batch_request' should be of type \
-                ReferenceBatchRequest but was given : {type(reference_batch_request)}")
+            raise TypeError("'reference_batch_request' should be of type "
+                f"ReferenceBatchRequest but was given : {type(reference_batch_request)}")
 
         return self.create(
             batch_request=reference_batch_request
-            )
-
-    def add_references(self, reference_batch_request: ReferenceBatchRequest) -> list:
-        """
-        'add_references' is deprecated, use 'create' or 'create_references' instead!
-        """
-
-        warnings.warn(
-            "'add_references' is deprecated, use 'create' or 'create_references' instead!",
-            DeprecationWarning
-        )
-        return self.create_references(
-            reference_batch_request=reference_batch_request
             )

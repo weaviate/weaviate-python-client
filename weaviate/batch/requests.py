@@ -1,10 +1,8 @@
-from __future__ import unicode_literals
 import copy
-import warnings
 from abc import ABC, abstractmethod
-from typing import List
-import validators
-from weaviate.util import is_weaviate_object_url, get_uuid_from_weaviate_url
+from typing import List, Sequence
+from weaviate.util import get_valid_uuid, get_vector
+
 
 class BatchRequest(ABC):
     """
@@ -12,8 +10,23 @@ class BatchRequest(ABC):
     """
 
     @abstractmethod
+    def __len__(self):
+        """
+        This method should me implemented by all inheriting classes.
+        """
+
+    @abstractmethod
+    def add(self, *args, **kwargs):
+        """
+        This method should me implemented by all inheriting classes.
+        """
+
+    @abstractmethod
     def get_request_body(self):
-        pass
+        """
+        This method should me implemented by all inheriting classes.
+        """
+
 
 class ReferenceBatchRequest(BatchRequest):
     """
@@ -60,37 +73,13 @@ class ReferenceBatchRequest(BatchRequest):
             not isinstance(from_property_name, str) or not isinstance(to_object_uuid, str):
             raise TypeError('All arguments must be of type string')
 
-        if is_weaviate_object_url(from_object_uuid):
-            from_object_uuid = get_uuid_from_weaviate_url(from_object_uuid)
-        if is_weaviate_object_url(to_object_uuid):
-            to_object_uuid = get_uuid_from_weaviate_url(to_object_uuid)
+        from_object_uuid = get_valid_uuid(from_object_uuid)
+        to_object_uuid = get_valid_uuid(to_object_uuid)
 
         self._from_object_class_names.append(from_object_class_name)
         self._from_object_ids.append(from_object_uuid)
         self._from_object_properties.append(from_property_name)
         self._to_object_ids.append(to_object_uuid)
-
-    def add_reference(self,
-            from_object_uuid: str,
-            from_object_class_name: str,
-            from_property_name: str,
-            to_object_uuid: str
-        ) -> None:
-        """
-        'add_references' is deprecated due to redundancy, use 'add' instead!
-        """
-
-        warnings.warn(
-            "'add_references' is deprecated due to redundancy, use 'add' instead!",
-            DeprecationWarning
-        )
-
-        return self.add(
-            from_object_uuid=from_object_uuid,
-            from_object_class_name=from_object_class_name,
-            from_property_name=from_property_name,
-            to_object_uuid=to_object_uuid
-            )
 
     def get_request_body(self) -> List[dict]:
         """
@@ -130,7 +119,8 @@ class ObjectsBatchRequest(BatchRequest):
     def add(self,
             data_object: dict,
             class_name: str,
-            uuid: str=None
+            uuid: str=None,
+            vector: Sequence=None
         ) -> None:
         """
         Add one object to this batch.
@@ -143,6 +133,11 @@ class ObjectsBatchRequest(BatchRequest):
             The name of the class this object belongs to.
         uuid : str, optional
             UUID of the object as a string, by default None
+        vector: Sequence, optional
+            The embedding of the object that should be created. Used only class objects that do not
+            have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
+            `torch.Tensor` and `tf.Tensor`,
+            by default None.
 
         Raises
         ------
@@ -162,33 +157,12 @@ class ObjectsBatchRequest(BatchRequest):
             "properties": copy.deepcopy(data_object)
         }
         if uuid is not None:
-            if not isinstance(uuid, str):
-                raise TypeError("UUID must be of type str")
-            if not validators.uuid(uuid):
-                raise ValueError("UUID is not in a proper form")
-            batch_item["id"] = uuid
+            batch_item["id"] = get_valid_uuid(uuid)
+
+        if vector is not None:
+            batch_item["vector"] = get_vector(vector)
 
         self._objects.append(batch_item)
-
-    def add_object(self,
-            data_object: dict,
-            class_name: str,
-            uuid: str=None
-        ) -> None:
-        """
-        'add_object' is deprecated due to redundancy, use 'add' instead!
-        """
-
-        warnings.warn(
-            "'add_object' is deprecated due to redundancy, use 'add' instead!",
-            DeprecationWarning
-        )
-
-        return self.add(
-            data_object=data_object,
-            class_name=class_name,
-            uuid=uuid
-        )
 
     def get_request_body(self) -> dict:
         """
