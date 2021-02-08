@@ -11,5 +11,5 @@
 `git tag -a '<your tag>' -m '<some message for the tag>' && git push --tags`
 tags are either in the form of `v0.2.5` or `v0.2.5rc0`.
 9. Optional: install package locally by running `pip install .` and check if the version is set correctly.
-8. Finally publish:\
+10. Finally publish:\
 `twine upload dist/*`

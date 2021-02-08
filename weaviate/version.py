@@ -2,4 +2,4 @@
 Weaviate-Python-Client version.
 """
 
-__version__ = "2.1.0rc0"
+__version__ = "2.1.0"
