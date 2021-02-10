@@ -68,7 +68,19 @@ class GraphQL(ABC):
         raise UnexpectedStatusCodeException("Query was not successful", response)
 
 
-class NearText:
+class Near(ABC):
+    """
+    A base abstract class for `near` filters, such as `nearText`, `nearVector` or `nearObject`.
+    """
+
+    @abstractmethod
+    def __str__(self) -> str:
+        """
+        Should be implemented in each inheriting class.
+        """
+
+
+class NearText(Near):
     """
     NearText class used to filter weaviate objects.
     """
@@ -101,10 +113,7 @@ class NearText:
         self.move_away_from: Optional[dict] = None
 
         if "certainty" in _content:
-            if not isinstance(_content["certainty"], float):
-                raise TypeError("certainty is expected to be a float but was "
-                    f"{type(_content['certainty'])}")
-
+            _check_certainty_type(_content["certainty"])
             self.certainty = _content["certainty"]
 
         if "moveTo" in _content:
@@ -132,7 +141,7 @@ class NearText:
         return near_text + '} '
 
 
-class NearVector:
+class NearVector(Near):
     """
     NearVector class used to filter weaviate objects.
     """
@@ -169,10 +178,8 @@ class NearVector:
 
         # Check optional fields
 
-        if "certainty" in content:
-            if not isinstance(_content["certainty"], float):
-                raise TypeError("certainty is expected to be a float but was "
-                            f"{type(_content['certainty'])}")
+        if "certainty" in _content:
+            _check_certainty_type(_content["certainty"])
             self.certainty = _content["certainty"]
 
     def __str__(self):
@@ -180,6 +187,57 @@ class NearVector:
         if self.certainty is not None:
             near_vector += f' certainty: {self.certainty}'
         return near_vector + '} '
+
+
+class NearObject(Near):
+    """
+    NearObject class used to filter weaviate objects.
+    """
+
+    def __init__(self, content: dict):
+        """
+        Initialize a NearVector class instance.
+
+        Parameters
+        ----------
+        content : list
+            The content of the `nearVector` clause.
+
+        Raises
+        ------
+        TypeError
+            If 'content' is not of type dict.
+        TypeError
+            If 'content'  has key "certainty" but the value is not float.
+        """
+
+        if not isinstance(content, dict):
+            raise TypeError(f"{self.__class__.__name__} filter is expected to "
+                f"be type dict but was {type(content)}")
+
+        if ('id' in content) == ('beacon' in content):
+            raise ValueError("The 'content' argument should contain EITHER `id` OR `beacon`!")
+
+        if 'id' in content:
+            self.obj_id = 'id'
+        else:
+            self.obj_id = 'beacon'
+
+        if not isinstance(content[self.obj_id], str):
+            raise TypeError("The 'id'/'beacon' should be of type string! Given type"
+                + str(type(content[self.obj_id])))
+
+        if "certainty" in content:
+            _check_certainty_type(content["certainty"])
+
+        self._content = deepcopy(content)
+
+    def __str__(self):
+
+        near_object = f'nearObject: {{{self.obj_id}: {self._content[self.obj_id]}'
+        if 'certainty' in self._content:
+            near_object += f' certainty: {self._content["certainty"]}'
+        return near_object + '} '
 
 
 class WhereFilter:
@@ -309,12 +367,19 @@ def _check_direction_clause(direction: dict) -> dict:
     """
 
     if not isinstance(direction, dict):
-        raise TypeError(f"move clause should be dict but was {type(direction)}")
-    _check_concept(direction)
+        raise TypeError(f"`move` clause should be dict but was {type(direction)}")
+
+    if ('concepts' not in direction) and ('objects' not in direction):
+        raise ValueError("The 'move' clause should contain `concepts` OR/AND `objects`!")
+
+    if 'concepts' in direction:
+        _check_concept(direction)
+    if 'objects' in direction:
+        _check_objects(direction)
     if not "force" in direction:
-        raise ValueError("move clause needs to state a force")
+        raise ValueError("'move' clause needs to state a 'force'")
     if not isinstance(direction["force"], float):
-        raise TypeError(f"force should be float but was {type(direction['force'])}")
+        raise TypeError(f"'force' should be float but was {type(direction['force'])}")
 
 
 def _check_concept(content: dict) -> None:
@@ -343,6 +408,34 @@ def _check_concept(content: dict) -> None:
         content["concepts"] = [content["concepts"]]
 
 
+def _check_objects(content: dict) -> None:
+    """
+    Validate the `objects` sub clause of the `move` clause.
+
+    Parameters
+    ----------
+    content : dict
+        An Explore (sub) clause to check for 'objects'.
+
+    Raises
+    ------
+    ValueError
+        If no "concepts" key in the 'content' dict.
+    TypeError
+        If the value of the  "concepts" is of wrong type.
+    """
+
+    if not isinstance(content["objects"], (list, dict)):
+        raise TypeError(f"'objects' must be of type list or dict, not {type(content['objects'])}")
+    if isinstance(content["objects"], dict):
+        content["objects"] = [content["objects"]]
+
+    for obj in content["objects"]:
+        if len(obj) != 1 or ('id' not in obj and 'beacon' not in obj):
+            raise ValueError('Each object from the `move` clause should have ONLY `id` OR '
+                '`beacon`!')
+
+
 def _check_vector(content: dict) -> None:
     """
     Validate the vector of the nearVector.
@@ -363,7 +456,23 @@ def _check_vector(content: dict) -> None:
     if "vector" not in content:
         raise ValueError("No 'vector' key in `content` argument.")
     if not isinstance(content["vector"], list):
-        raise TypeError(f"'vector' key is expected to be type `list` but was {type(content['vector'])}")
+        raise TypeError("'vector' key is expected to be type `list` but was "
+            + str(type(content['vector'])))
+
+
+def _check_certainty_type(certainty: float) -> None:
+    """
+    Check 'certainty
+
+    Parameters
+    ----------
+    certainty : float
+        Certainty value to check if it is of type float.
+    """
+
+    if not isinstance(certainty, float):
+        raise TypeError("certainty is expected to be a float but was "
+            f"{type(certainty)}")
 
 
 def _find_value_type(content: dict) -> str:

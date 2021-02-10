@@ -328,7 +328,7 @@ def _compare_properties(sub_set: list, set_: list) -> bool:
 
 def _get_valid_timeout_config(timeout_config: Union[Tuple[int, int], List[int]]):
     """
-    Initialize a ClientConfig class instance.
+    Validate and return TimeOut configuration.
 
     Parameters
     ----------

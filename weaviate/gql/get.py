@@ -2,7 +2,7 @@
 GraphQL `Get` command.
 """
 from typing import List, Union, Optional
-from weaviate.gql.filter import WhereFilter, NearText, NearVector, GraphQL
+from weaviate.gql.filter import WhereFilter, NearText, NearVector, GraphQL, NearObject, Near
 from weaviate.connect import Connection
 
 
@@ -48,8 +48,7 @@ class GetBuilder(GraphQL):
         self._properties = properties
         self._where: Optional[WhereFilter] = None  # To store the where filter if it is added
         self._limit: Optional[str] = None  # To store the limit filter if it is added
-        self._near_text: Optional[NearText] = None # To store the nearText clause if it is added
-        self._near_vector: Optional[NearVector] = None # To store the nearText clause if it is added
+        self._near: Optional[Near] = None # To store the `near` clause if it is added
         self._contains_filter = False  # true if any filter is added
 
     def with_where(self, content: dict) -> 'GetBuilder':
@@ -88,23 +87,23 @@ class GetBuilder(GraphQL):
         Raises
         ------
         AttributeError
-            If 'nearVector' was already set.
+            If another 'near' filter was already set.
         """
 
-        if self._near_vector is not None:
-            raise AttributeError("Cannot use both 'nearText' and 'nearVector' filters!")
-        self._near_text = NearText(content)
+        if self._near is not None:
+            raise AttributeError("Cannot use multiple 'near' filters!")
+        self._near = NearText(content)
         self._contains_filter = True
         return self
 
-    def with_near_vector(self, vector: list) -> 'GetBuilder':
+    def with_near_vector(self, content: dict) -> 'GetBuilder':
         """
         Set `nearVector` filter.
 
         Parameters
         ----------
-        vector : list
-            The vector of the nearVector filter to set.
+        content : dict
+            The content of the nearVector filter to set.
 
         Returns
         -------
@@ -114,12 +113,38 @@ class GetBuilder(GraphQL):
         Raises
         ------
         AttributeError
-            If 'nearText' was already set.
+            If another 'near' filter was already set.
         """
 
-        if self._near_text is not None:
-            raise AttributeError("Cannot use both 'nearText' and 'nearVector' filters!")
-        self._near_vector = NearVector(vector)
+        if self._near is not None:
+            raise AttributeError("Cannot use multiple 'near' filters!")
+        self._near = NearVector(content)
+        self._contains_filter = True
+        return self
+
+    def with_near_object(self, content: dict) -> 'GetBuilder':
+        """
+        Set `nearObject` filter.
+
+        Parameters
+        ----------
+        content : dict
+            The content of the nearObject filter to set.
+
+        Returns
+        -------
+        weaviate.gql.get.GetBuilder
+            Updated GetBuilder.
+
+        Raises
+        ------
+        AttributeError
+            If another 'near' filter was already set.
+        """
+
+        if self._near is not None:
+            raise AttributeError("Cannot use multiple 'near' filters!")
+        self._near = NearObject(content)
         self._contains_filter = True
         return self
 
@@ -167,10 +192,8 @@ class GetBuilder(GraphQL):
                 query = query + str(self._where)
             if self._limit is not None:
                 query = query + self._limit
-            if self._near_vector is not None:
-                query = query + str(self._near_vector)
-            if self._near_text is not None:
-                query = query + str(self._near_text)
+            if self._near is not None:
+                query = query + str(self._near)
             query += ')'
         query = query + f'{{{" ".join(self._properties)}}}}}}}'
 
