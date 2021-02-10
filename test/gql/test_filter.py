@@ -1,5 +1,5 @@
 import unittest
-from weaviate.gql.filter import NearText, NearVector, WhereFilter
+from weaviate.gql.filter import NearText, NearVector, NearObject, WhereFilter
 from test.util import check_error_message, check_startswith_error_message
 
 
@@ -23,11 +23,13 @@ class TestNearText(unittest.TestCase):
             The "moveTo" or the "moveAwayFrom" clause name.
         """
 
-        type_error_message = f"move clause should be dict but was {str}"
-        concept_error_message = "No concepts in content"
+        type_error_message = f"`move` clause should be dict but was {str}"
+        concepts_objects_error_message = "The 'move' clause should contain `concepts` OR/AND `objects`!"
+        objects_type_error_message = lambda dt: f"'objects' must be of type list or dict, not {dt}"
+        object_value_error_message = 'Each object from the `move` clause should have ONLY `id` OR `beacon`!'
         concept_value_error_message = f"Concepts must be of type list or str, not {set}"
-        force_error_message = "move clause needs to state a force"
-        force_type_error_message = f"force should be float but was {bool}"
+        force_error_message = "'move' clause needs to state a 'force'"
+        force_type_error_message = f"'force' should be float but was {bool}"
 
         with self.assertRaises(TypeError) as error:
             NearText({
@@ -39,9 +41,9 @@ class TestNearText(unittest.TestCase):
         with self.assertRaises(ValueError) as error:
             NearText({
                 "concepts": "Some_concept",
-                move: {"Invalid" : "something"}
+                move: {}
             })
-        check_error_message(self, error, concept_error_message)
+        check_error_message(self, error, concepts_objects_error_message)
 
         with self.assertRaises(TypeError) as error:
             NearText({
@@ -65,7 +67,44 @@ class TestNearText(unittest.TestCase):
             NearText({
                 "concepts": "Some_concept",
                 move: {
+                    "objects" : 1234,
+                }
+            })
+        check_error_message(self, error, objects_type_error_message(int))
+
+        with self.assertRaises(ValueError) as error:
+            NearText({
+                "concepts": "Some_concept",
+                move: {
+                    "objects" : {},
+                }
+            })
+        check_error_message(self, error, object_value_error_message)
+
+        with self.assertRaises(ValueError) as error:
+            NearText({
+                "concepts": "Some_concept",
+                move: {
+                    "objects" : {'id': 1, 'beacon': 2},
+                }
+            })
+        check_error_message(self, error, object_value_error_message)
+
+        with self.assertRaises(ValueError) as error:
+            NearText({
+                "concepts": "Some_concept",
+                move: {
+                    "objects" : {'test_id': 1},
+                }
+            })
+        check_error_message(self, error, object_value_error_message)
+
+        with self.assertRaises(TypeError) as error:
+            NearText({
+                "concepts": "Some_concept",
+                move: {
                     "concepts": "something",
+                    "objects" : [{'id': 1}],
                     "force": True
                 }
             })
@@ -158,6 +197,22 @@ class TestNearText(unittest.TestCase):
             }
         )
 
+        NearText(
+            {
+                "concepts": "Some_concept",
+                "certainty": 0.75,
+                "moveAwayFrom": {
+                    "objects": {'id': "test_id"},
+                    "force": 0.75
+                },
+                "moveTo": {
+                    "concepts": "moveToConcepts",
+                    "objects": [{'id': "test_id"}, {'beacon': 'Test_beacon'}],
+                    "force": 0.75
+                }
+            }
+        )
+
     def test___str__(self):
         """
         Test the `__str__` method.
@@ -236,6 +291,7 @@ class TestNearText(unittest.TestCase):
         move["force"] = 2.00 # should not be appended to the nearText clause
         self.assertEqual(str(near_text), 'nearText: {concepts: ["con1", "con2"] moveTo: {concepts: ["moveToConcepts"] force: 0.75}} ')
 
+
 class TestNearVector(unittest.TestCase):
 
     def test___init__(self):
@@ -303,6 +359,91 @@ class TestNearVector(unittest.TestCase):
             }
         )
         self.assertEqual(str(near_vector), 'nearVector: {vector: [1.0, 2.0, 3.0, 4.0] certainty: 0.75} ')
+
+
+class TestNearObject(unittest.TestCase):
+
+    def test___init__(self):
+        """
+        Test the `__init__` method.
+        """
+
+        # invalid calls
+
+        ## error messages 
+        content_error_message = lambda dt: f"NearObject filter is expected to be type dict but was {dt}"
+        beacon_id_error_message = "The 'content' argument should contain EITHER `id` OR `beacon`!"
+        beacon_id_type_error_message = lambda dt: ("The 'id'/'beacon' should be of type string! Given type" + str(dt))
+        certainty_error_message = lambda dt: f"certainty is expected to be a float but was {dt}"
+
+        with self.assertRaises(TypeError) as error:
+            NearObject(123)
+        check_error_message(self, error, content_error_message(int))
+
+        with self.assertRaises(ValueError) as error:
+            NearObject({
+                'id': 123,
+                'beacon': 456
+            })
+        check_error_message(self, error, beacon_id_error_message)
+
+        with self.assertRaises(TypeError) as error:
+            NearObject({
+                'id': 123,
+            })
+        check_error_message(self, error, beacon_id_type_error_message(int))
+
+        with self.assertRaises(TypeError) as error:
+            NearObject({
+                'beacon': {123},
+            })
+        check_error_message(self, error, beacon_id_type_error_message(set))
+
+        with self.assertRaises(TypeError) as error:
+            NearObject({
+                'beacon': 'test_beacon',
+                'certainty': False
+            })
+        check_error_message(self, error, certainty_error_message(bool))
+
+        # valid calls
+
+        NearObject({
+            'id': 'test_id',
+        })
+
+        NearObject({
+            'beacon': 'test_beacon',
+            'certainty': 0.7
+        })
+
+    def test___str__(self):
+        """
+        Test the `__str__` method.
+        """
+
+        near_object = NearObject({
+            'id': 'test_id',
+        })
+        self.assertEqual(str(near_object), 'nearObject: {id: test_id} ')
+
+        near_object = NearObject({
+            'id': 'test_id',
+            'certainty': 0.7
+        })
+        self.assertEqual(str(near_object), 'nearObject: {id: test_id certainty: 0.7} ')
+
+        near_object = NearObject({
+            'beacon': 'test_beacon',
+        })
+        self.assertEqual(str(near_object), 'nearObject: {beacon: test_beacon} ')
+
+        near_object = NearObject({
+            'beacon': 'test_beacon',
+            'certainty': 0.0
+        })
+        self.assertEqual(str(near_object), 'nearObject: {beacon: test_beacon certainty: 0.0} ')
+
 
 class TestWhereFilter(unittest.TestCase):
 

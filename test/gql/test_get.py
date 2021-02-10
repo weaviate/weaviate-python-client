@@ -77,9 +77,14 @@ class TestGetBuilder(unittest.TestCase):
         self.assertEqual('{Get{Person(nearText: {concepts: ["computer"] moveTo: {concepts: ["science"] force: 0.5}} ){name}}}', query)
 
         # invalid calls
-        near_error_message = "Cannot use both 'nearText' and 'nearVector' filters!"
+        near_error_message = "Cannot use multiple 'near' filters!"
+
+        near_vector = {
+            "vector": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            "certainty": 0.55
+        }
         with self.assertRaises(AttributeError) as error:
-            GetBuilder("Person", "name", None).with_near_text(near_text).with_near_vector(near_text)
+            GetBuilder("Person", "name", None).with_near_vector(near_vector).with_near_text(near_text)
         check_error_message(self, error, near_error_message)
 
     def test_build_near_vector(self):
@@ -97,9 +102,42 @@ class TestGetBuilder(unittest.TestCase):
         self.assertEqual('{Get{Person(nearVector: {vector: [1, 2, 3, 4, 5, 6, 7, 8, 9] certainty: 0.55} ){name}}}', query)
 
         # invalid calls
-        near_error_message = "Cannot use both 'nearText' and 'nearVector' filters!"
+        near_error_message = "Cannot use multiple 'near' filters!"
+
+        near_object = {
+            "id": "test_id",
+            "certainty": 0.55
+        }
         with self.assertRaises(AttributeError) as error:
-            GetBuilder("Person", "name", None).with_near_vector(near_vector).with_near_text(near_vector)
+            GetBuilder("Person", "name", None).with_near_object(near_object).with_near_vector(near_vector)
+        check_error_message(self, error, near_error_message)
+
+    def test_build_near_object(self):
+        """
+        Test the `with_near_object` method.
+        """
+
+        near_object = {
+            "id": "test_id",
+            "certainty": 0.55
+        }
+
+        # valid calls
+        query = GetBuilder("Person", "name", None).with_near_object(near_object).build()
+        self.assertEqual('{Get{Person(nearObject: {id: test_id certainty: 0.55} ){name}}}', query)
+
+        # invalid calls
+        near_error_message = "Cannot use multiple 'near' filters!"
+
+        near_text = {
+            "concepts": "computer",
+            "moveTo": {
+                "concepts": ["science"],
+                "force": 0.5
+            },
+        }
+        with self.assertRaises(AttributeError) as error:
+            GetBuilder("Person", "name", None).with_near_text(near_text).with_near_object(near_object)
         check_error_message(self, error, near_error_message)
 
     def test_build(self):
