@@ -71,7 +71,7 @@ class DataObject:
         weaviate.exceptions.ObjectAlreadyExistsException
             If an object with the given uuid already exists within weaviate.
         weaviate.exceptions.UnexpectedStatusCodeException
-            If creating the object in weavate failed with a different reason,
+            If creating the object in weavate failed for a different reason,
             more information is given in the exception.
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.

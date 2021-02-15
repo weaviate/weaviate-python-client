@@ -3,6 +3,7 @@ Module used to automaticaly submit batches to weaviate.
 """
 import uuid
 from .batcher import Batcher
+from .wcs import WCS
 
 
 def generate_uuid(identifier, namespace=""):

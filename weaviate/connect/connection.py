@@ -99,52 +99,55 @@ class Connection:
             # Set the client ID
             client_id = request.json()['clientId']
 
-            # request additional information
-            try:
-                request_third_part = requests.get(
-                    request.json()['href'],
-                    headers={"content-type": "application/json"},
-                    timeout=(30, 45)
-                    )
-            except RequestException as error:
-                raise AuthenticationFailedException(
-                    "Can't connect to the third party authentication service. "
-                    "Check that it is running.") from error
-            if request_third_part.status_code != 200:
-                raise AuthenticationFailedException(
-                    "Status not OK in connection to the third party authentication service.")
+            self._set_bearer(client_id=client_id, href=request.json()['href'])
 
-            # Validate third part auth info
-            if 'client_credentials' not in request_third_part.json()['grant_types_supported']:
-                raise AuthenticationFailedException(
-                    "The grant_types supported by the thirdparty authentication service are "
-                    "insufficient. Please add 'client_credentials'.")
-
-            request_body = self.auth_client_secret.get_credentials()
-            request_body["client_id"] = client_id
-
-            # try the request
-            try:
-                request = requests.post(
-                    request_third_part.json()['token_endpoint'],
-                    request_body,
-                    timeout=(30, 45)
-                    )
-            except RequestException:
-                raise AuthenticationFailedException(
-                    "Unable to get a OAuth token from server. Are the credentials "
-                    "and URLs correct?") from None
-
-            # sleep to process
-            time.sleep(0.125)
-
-            if request.status_code == 401:
-                raise AuthenticationFailedException(
-                    "Authtentication access denied. Are the credentials correct?"
+    def _set_bearer(self, client_id: str, href: str) -> None:
+        # request additional information
+        try:
+            request_third_part = requests.get(
+                href,
+                headers={"content-type": "application/json"},
+                timeout=(30, 45)
                 )
-            self.auth_bearer = request.json()['access_token']
-            # -2 for some lagtime
-            self.auth_expires = int(get_epoch_time() + request.json()['expires_in'] - 2)
+        except RequestException as error:
+            raise AuthenticationFailedException(
+                "Can't connect to the third party authentication service. "
+                "Check that it is running.") from error
+        if request_third_part.status_code != 200:
+            raise AuthenticationFailedException(
+                "Status not OK in connection to the third party authentication service.")
+
+        # Validate third part auth info
+        if 'client_credentials' not in request_third_part.json()['grant_types_supported']:
+            raise AuthenticationFailedException(
+                "The grant_types supported by the thirdparty authentication service are "
+                "insufficient. Please add 'client_credentials'.")
+
+        request_body = self.auth_client_secret.get_credentials()
+        request_body["client_id"] = client_id
+
+        # try the request
+        try:
+            request = requests.post(
+                request_third_part.json()['token_endpoint'],
+                request_body,
+                timeout=(30, 45)
+                )
+        except RequestException:
+            raise AuthenticationFailedException(
+                "Unable to get a OAuth token from server. Are the credentials "
+                "and URLs correct?") from None
+
+        # sleep to process
+        time.sleep(0.125)
+
+        if request.status_code == 401:
+            raise AuthenticationFailedException(
+                "Authtentication access denied. Are the credentials correct?"
+            )
+        self.auth_bearer = request.json()['access_token']
+        # -2 for some lagtime
+        self.auth_expires = int(get_epoch_time() + request.json()['expires_in'] - 2)
 
     def _get_request_header(self) -> dict:
         """
