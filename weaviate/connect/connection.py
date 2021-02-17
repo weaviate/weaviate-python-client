@@ -102,6 +102,22 @@ class Connection:
             self._set_bearer(client_id=client_id, href=request.json()['href'])
 
     def _set_bearer(self, client_id: str, href: str) -> None:
+        """
+        Set bearer for a refreshed authentication.
+
+        Parameters
+        ----------
+        client_id : str
+            The client ID of the OpenID Connect.
+        href : str
+            The URL of the OpenID Connect issuer.
+
+        Raises
+        ------
+        AuthenticationFailedException
+            If authentication failed.
+        """
+
         # request additional information
         try:
             request_third_part = requests.get(

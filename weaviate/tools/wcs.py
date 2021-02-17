@@ -176,7 +176,7 @@ class WCS(weaviate.connect.Connection):
             )
         except RequestsConnectionError as conn_err:
             message = str(conn_err)\
-                    + ' Connection error, WCS cluster was not created.'
+                    + ' Connection error, WCS clusters were not fetched.'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
 
         if response.status_code == 200:
@@ -214,7 +214,7 @@ class WCS(weaviate.connect.Connection):
             )
         except RequestsConnectionError as conn_err:
             message = str(conn_err)\
-                    + ' Connection error, WCS cluster was not created.'
+                    + ' Connection error, WCS cluster info was not fetched.'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
         if response.status_code == 200:
             return response.json()

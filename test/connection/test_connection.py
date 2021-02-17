@@ -175,7 +175,8 @@ class TestConnection(unittest.TestCase):
 
     @patch("weaviate.connect.connection.requests")
     @patch("weaviate.connect.connection.get_epoch_time")
-    def test__refresh_authentication(self, mock_get_epoch_time, mock_requests):
+    @patch("weaviate.connect.connection.Connection._set_bearer")
+    def test__refresh_authentication(self, mock_set_bearer, mock_get_epoch_time, mock_requests):
         """
         Test the `_refresh_authentication` method.
         """
@@ -190,10 +191,64 @@ class TestConnection(unittest.TestCase):
         self.check_connection_attributes(connection) # after the `_refresh_authentication` call
         mock_get_epoch_time.assert_called()
         mock_requests.get.assert_not_called()
+        mock_set_bearer.assert_not_called()
 
         # error messages
         data_error_message = "Cannot connect to weaviate."
         data_status_code_error_message = "Cannot authenticate http status not ok."
+        
+        mock_get_epoch_time.return_value = 200
+        get_kwargs = {
+            'headers': {"content-type": "application/json"},
+            'timeout': (30, 45)
+        }
+        # test the expired connection
+        ## requests.get exception (get data)
+        connection = Connection('test_url', auth_client_secret=None)
+        mock_requests.get.configure_mock(side_effect=RequestException('Test!'))
+        with self.assertRaises(AuthenticationFailedException) as error:
+            connection._refresh_authentication()
+        
+        check_error_message(self, error, data_error_message)
+        mock_requests.get.assert_called_with("test_url/v1/.well-known/openid-configuration", **get_kwargs)
+        mock_set_bearer.assert_not_called()
+
+        ## bad status_code (get data)
+        mock_get_epoch_time.reset_mock() # reset mock.called
+        ### reset 'requests' mock because it is called in the `__init__`
+        mock_requests.get.reset_mock(side_effect=True, return_value=True)
+        connection = Connection('test_url', auth_client_secret=None)
+        mock_requests.get.return_value = Mock(status_code=404)
+        with self.assertRaises(AuthenticationFailedException) as error:
+            connection._refresh_authentication()
+        check_error_message(self, error, data_status_code_error_message)
+        mock_requests.get.assert_called_with("test_url/v1/.well-known/openid-configuration", **get_kwargs)
+        mock_set_bearer.assert_not_called()
+
+        # valid call
+        mock_get_epoch_time.reset_mock() # reset mock.called
+        ## reset 'requests' mock because it is called in the `__init__`
+        mock_requests.get.reset_mock(side_effect=True, return_value=True)
+        connection = Connection('test_url', auth_client_secret=None)
+        mock_requests.get.return_value = Mock(**{'status_code': 200, 'json.return_value': {'clientId': 'Test1!', 'href': 'Test2!'}})
+        connection._refresh_authentication()
+        mock_requests.get.assert_called_with("test_url/v1/.well-known/openid-configuration", **get_kwargs)
+        mock_set_bearer.assert_called_with(client_id='Test1!', href='Test2!')
+
+    @patch("weaviate.connect.connection.requests")
+    @patch("weaviate.connect.connection.Connection._refresh_authentication")
+    def test__set_bearer(self, mock_refresh_authentication, mock_requests):
+        """
+        Test the `_set_bearer` method.
+        """
+
+        get_kwargs = {
+            'headers': {"content-type": "application/json"},
+            'timeout': (30, 45)
+        }
+        mock_refresh_authentication.return_value = None
+
+        # error messages
         add_info_error_message = ("Can't connect to the third party authentication service. "
             "Check that it is running.")
         add_info_status_code_error_message = "Status not OK in connection to the third party authentication service."
@@ -203,11 +258,8 @@ class TestConnection(unittest.TestCase):
             "and URLs correct?")
         oauth_status_code_error_message = "Authtentication access denied. Are the credentials correct?"
 
-        # test the expired connection
-        mock_get_epoch_time.return_value = 200
-
         # helper function
-        def helper_before_call(*args, **kwargs):
+        def helper_before_call(**kwargs):
             """
             initialize mock objects and connection before testing th exception.
 
@@ -217,18 +269,14 @@ class TestConnection(unittest.TestCase):
                 Connection.
             """
 
-            mock_second_get_call.called = False
-            mock_get_epoch_time.reset_mock() # reset mock.called
             # reset 'requests' mock because it is called in the `__init__`
             mock_requests.get.reset_mock(side_effect=True, return_value=True)
-            connection = Connection(*args, auth_client_secret=kwargs.get("auth_client_secret", None))
-            mock_requests.get.configure_mock(**kwargs['get'])
-            if 'post' in kwargs:
-                mock_requests.post.reset_mock(side_effect=True, return_value=True)
-                mock_requests.post.configure_mock(**kwargs['post'])
+            mock_requests.post.reset_mock(side_effect=True, return_value=True)
+            connection = Connection(kwargs['url'], auth_client_secret=kwargs.get("auth_client_secret", None))
+            mock_requests.configure_mock(**kwargs['requests'])
             self.check_connection_attributes(
                 connection,
-                url=kwargs.get("url", 'test_url/v1'),
+                url=kwargs.get("url", 'test_url') + '/v1',
                 timeout_config=kwargs.get("timeout_config", (2, 20)),
                 auth_expires=kwargs.get("auth_expires", 0),
                 auth_bearer=kwargs.get("auth_bearer", 0),
@@ -258,91 +306,38 @@ class TestConnection(unittest.TestCase):
                 auth_client_secret=kwargs.get("auth_client_secret", None),
                 is_authentication_required=kwargs.get("is_authentication_required", False),
                 )
-            mock_get_epoch_time.assert_called()
             if 'get' in kwargs:
                 mock_requests.get.assert_called_with(*kwargs['get_args'], **kwargs['get']) # only last call of this method
             if 'post' in kwargs:
                 mock_requests.post.assert_called_with(*kwargs['post_args'], **kwargs['post']) # only last call of this method
 
-        def mock_second_get_call(first_call_func, second_call_func, *args, **kwargs):
-            """
-            Mock different results from requests.get
-            NOTE: Use >>mock_second_get_call.called = False before calling/using this function.
-                    It is used in the `helper_before_call`.
-            """
-
-            if mock_second_get_call.called:
-                return second_call_func()
-            mock_second_get_call.called = True
-            return first_call_func() # first call of request.get
-
-        # requests.get exception (get data)
-        connection = helper_before_call('test_url', get={'side_effect' :RequestException('Test!')})
-        with self.assertRaises(AuthenticationFailedException) as error:
-            connection._refresh_authentication()
-        get_kwargs = {
-            'headers': {"content-type": "application/json"},
-            'timeout': (30, 45)
-        }
-        helper_after_call(data_error_message, get_args=["test_url/v1/.well-known/openid-configuration"], get=get_kwargs)
-
-        # bad status_code (get data)
-        connection = helper_before_call('test_url', get={'status_code': 404})
-        with self.assertRaises(AuthenticationFailedException) as error:
-            connection._refresh_authentication()
-        get_kwargs = {
-            'headers': {"content-type": "application/json"},
-            'timeout': (30, 45)
-        }
-        helper_after_call(data_status_code_error_message, get_args=["test_url/v1/.well-known/openid-configuration"], get=get_kwargs)
-
         # requests.get exception (get additional info)
-        response = Mock(status_code=200)
-        response.json.return_value = {'clientId': 'Test!ID', 'href': "test_href"}
-        first_call_behaviour = lambda: response
-        second_call_behaviour = lambda: exec('raise RequestException("Test!")')
         connection = helper_before_call(
-            'test_url',
-            get={'side_effect': lambda *args, **kwargs: mock_second_get_call(first_call_behaviour, second_call_behaviour)}
+            url='test_url',
+            requests={'get.side_effect': RequestException("Test!")}
         )
         with self.assertRaises(AuthenticationFailedException) as error:
-            connection._refresh_authentication()
-        get_kwargs = {
-            'headers': {"content-type": "application/json"},
-            'timeout': (30, 45)
-        }
+            connection._set_bearer('test_id', 'test_href')
         helper_after_call(add_info_error_message, get_args=["test_href"], get=get_kwargs)
 
         # bad status_code (get additional info)
-        response = Mock(status_code=200)
-        response.json.return_value = {'clientId': 'Test!ID', 'href': "test_href"}
-        first_call_behaviour = lambda: response
-        second_call_behaviour = lambda: Mock(status_code=204)
         connection = helper_before_call(
-            'test_url',
-            get={'side_effect': lambda *args, **kwargs: mock_second_get_call(first_call_behaviour, second_call_behaviour)}
+            url='test_url',
+            requests={'get.return_value': Mock(status_code=204)}
         )
         with self.assertRaises(AuthenticationFailedException) as error:
-            connection._refresh_authentication()
-        get_kwargs = {
-            'headers': {"content-type": "application/json"},
-            'timeout': (30, 45)
-        }
+            connection._set_bearer('test_id', 'test_href')
         helper_after_call(add_info_status_code_error_message, get_args=["test_href"], get=get_kwargs)
 
         # client_credentials error 
-        response = Mock(status_code=200)
-        response.json.return_value = {'clientId': 'Test!ID', 'href': "test_href"}
-        first_call_behaviour = lambda: response
         request_third_part = Mock(status_code=200)
         request_third_part.json.return_value = {'grant_types_supported': {'Test_key': 'Test_value'}}
-        second_call_behaviour = lambda: request_third_part
         connection = helper_before_call(
-            'test_url',
-            get={'side_effect': lambda *args, **kwargs: mock_second_get_call(first_call_behaviour, second_call_behaviour)}
+            url='test_url',
+            requests={'get.return_value': request_third_part}
         )
         with self.assertRaises(AuthenticationFailedException) as error:
-            connection._refresh_authentication()
+            connection._set_bearer('test_id', 'test_href')
         get_kwargs = {
             'headers': {"content-type": "application/json"},
             'timeout': (30, 45)
@@ -350,31 +345,27 @@ class TestConnection(unittest.TestCase):
         helper_after_call(credentials_error_message, get_args=["test_href"], get=get_kwargs)
 
         # OAuth error 
-        response = Mock(status_code=200)
-        response.json.return_value = {'clientId': 'Test!ID', 'href': "test_href"}
-        first_call_behaviour = lambda: response
         request_third_part = Mock(status_code=200)
         request_third_part.json.return_value = {
             'grant_types_supported': {'client_credentials': 'Test_cred!'},
             'token_endpoint': 'Test'}
-        second_call_behaviour = lambda: request_third_part
-        mock_auth = Mock()
-        mock_auth.get_credentials.return_value = {'test_key': 'Value'}
+        mock_auth = Mock(**{'get_credentials.return_value': {'test_key': 'Value'}})
         connection = helper_before_call(
-            'test_url',
+            url='test_url',
             auth_client_secret=mock_auth,
-            get={'side_effect': lambda *args, **kwargs: mock_second_get_call(first_call_behaviour, second_call_behaviour)},
-            post={'side_effect': RequestException('Test')}
-            )
+            requests={
+                'get.return_value': request_third_part,
+                'post.side_effect': RequestException('Test')}
+        )
         with self.assertRaises(AuthenticationFailedException) as error:
-            connection._refresh_authentication()
+            connection._set_bearer('test_id', 'test_href')
         get_kwargs = {
             'headers': {"content-type": "application/json"},
             'timeout': (30, 45)
         }
         get_args = ["test_href"]
         post_kwargs = {'timeout': (30, 45)}
-        post_args = ["Test", {'client_id': 'Test!ID', 'test_key': 'Value'}]
+        post_args = ["Test", {'client_id': 'test_id', 'test_key': 'Value'}]
         helper_after_call(
             oauth_error_message,
             get=get_kwargs,
@@ -385,24 +376,20 @@ class TestConnection(unittest.TestCase):
         )
 
         # OAuth status_code error 
-        response = Mock(status_code=200)
-        response.json.return_value = {'clientId': 'Test!ID', 'href': "test_href"}
-        first_call_behaviour = lambda: response
         request_third_part = Mock(status_code=200)
         request_third_part.json.return_value = {
             'grant_types_supported': {'client_credentials': 'Test_cred!'},
             'token_endpoint': 'Test'}
-        second_call_behaviour = lambda: request_third_part
-        mock_auth = Mock()
-        mock_auth.get_credentials.return_value = {'test_key': 'Value'}
+        mock_auth = Mock(**{'get_credentials.return_value': {'test_key': 'Value'}})
         connection = helper_before_call(
-            'test_url',
+            url='test_url',
             auth_client_secret=mock_auth,
-            get={'side_effect': lambda *args, **kwargs: mock_second_get_call(first_call_behaviour, second_call_behaviour)},
-            post={'return_value': Mock(status_code=401)}
-            )
+            requests={
+                'get.return_value': request_third_part,
+                'post.return_value': Mock(status_code=401)}
+        )
         with self.assertRaises(AuthenticationFailedException) as error:
-            connection._refresh_authentication()
+            connection._set_bearer('Test!ID', 'test_href')
         get_kwargs = {
             'headers': {"content-type": "application/json"},
             'timeout': (30, 45)
@@ -420,28 +407,24 @@ class TestConnection(unittest.TestCase):
         )
 
         # valid call
-        response = Mock(status_code=200)
-        response.json.return_value = {'clientId': 'Test!ID', 'href': "test_href"}
-        first_call_behaviour = lambda: response
         request_third_part = Mock(status_code=200)
         request_third_part.json.return_value = {
             'grant_types_supported': {'client_credentials': 'Test_cred!'},
             'token_endpoint': 'Test'}
-        second_call_behaviour = lambda: request_third_part
-        mock_auth = Mock()
-        mock_auth.get_credentials.return_value = {'test_key': 'Value'}
+        mock_auth = Mock(**{'get_credentials.return_value': {'test_key': 'Value'}})
         mock_post_response = Mock(status_code=400)
         mock_post_response.json.return_value = {
             'access_token': 'TestBearer!',
             'expires_in': 1234
         }
         connection = helper_before_call(
-            'test_url',
+            url='test_url',
             auth_client_secret=mock_auth,
-            get={'side_effect': lambda *args, **kwargs: mock_second_get_call(first_call_behaviour, second_call_behaviour)},
-            post={'return_value': mock_post_response}
+            requests={
+                'get.return_value': request_third_part,            
+                'post.return_value': mock_post_response}
             )
-        connection._refresh_authentication()
+        connection._set_bearer('Test!ID', 'test_href')
         get_kwargs = {
             'headers': {"content-type": "application/json"},
             'timeout': (30, 45)
@@ -459,8 +442,6 @@ class TestConnection(unittest.TestCase):
             auth_expires='skip',#1234 + 200 - 2,
             auth_bearer='TestBearer!'
         )
-
-
 
     def test_timeout_config(self):
         """
