@@ -23,18 +23,129 @@ class Batch:
 
     def create(self, batch_request: BatchRequest) -> list:
         """
-        Load data objects in batches, either Objects or References.
-        Loading batch References is faster by ignoring some validations.
-        Loading inconsistent data may ends up in an invalid graph.
-        If the consistency of the References is wanted use
-        'Client().data_object.reference.add' to have additional validation instead.
+        Create data in batches, either Objects or References. This does NOT guarantee
+        that each batch item (only Objects) is added/created. This can lead to a succesfull 
+        batch creation but unsucessfull per batch item creation. See the Examples below.
+
+        Examples
+        --------
+        Add objects to the object batch.
+
+        >>> batch = weaviate.ObjectsBatchRequest()
+        >>> batch.add({}, 'NonExistingClass')
+        >>> batch.add({}, 'ExistingClass')
+
+        Note that 'NonExistingClass' is not present in the client's schema and 'ExistingObject'
+        is present and has no proprieties.
+        'batch.add' does not raise an exception because the objects added meet the required 
+        criteria (See the documentation of the 'weaviate.ObjectsBatchRequest.add' method for
+        more information).
+
+        >>> result = client.batch.create(batch)
+
+        Successful batch creation even if one data object is inconsistent with the cleint's schema.
+        We can find out more about what objects were succesfully created by analyzing the 'result'
+        variable.
+
+        >>> import json
+        >>> print(json.dumps(result, indent=4))
+        [
+            {
+                "class": "NonExistingClass",
+                "creationTimeUnix": 1614852753747,
+                "id": "154cbccd-89f4-4b29-9c1b-001a3339d89a",
+                "properties": {},
+                "deprecations": null,
+                "result": {
+                    "errors": {
+                        "error": [
+                            {
+                                "message": "class 'NonExistingClass' not present in schema, class NonExistingClass not present"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "class": "ExistingClass",
+                "creationTimeUnix": 1614852753746,
+                "id": "b7b1cfbe-20da-496c-b932-008d35805f26",
+                "properties": {},
+                "vector": [
+                    -0.05244319,
+                    ...
+                    0.076136276
+                ],
+                "deprecations": null,
+                "result": {}
+            }
+        ]
+
+
+        As it can be noticed the first object from the batch was not added/created, but the batch
+        was succesfully created. The batch creation can be successful even if all the objects were
+        NOT created. Check the status of the batch objects to find which object and why creation
+        failed. Alternatively use 'Client().data_object.create' for Object creation that throw an
+        error if data item is inconsistent or creation/addition failed.
+
+        NOTE: The same is NOT true for ReferenceBatchRequest objects.
+
+        Object that does not exist in weaviate.
+        >>> object_1 = '154cbccd-89f4-4b29-9c1b-001a3339d89d'
+
+        Objects that exist in weaviate.
+        >>> object_2 = '154cbccd-89f4-4b29-9c1b-001a3339d89c'
+        >>> object_3 = '254cbccd-89f4-4b29-9c1b-001a3339d89a'
+        >>> object_4 = '254cbccd-89f4-4b29-9c1b-001a3339d89b'
+
+
+        >>> batch = weaviate.ReferenceBatchRequest()
+        >>> batch.add(object_1, 'NonExistingClass', 'existsWith', object_2)
+        >>> batch.add(object_3, 'ExistingClass', 'existsWith', object_4)
+
+        Both references were added to the batch request without error because they meet the
+        required citeria (See the documentation of the 'weaviate.ReferenceBatchRequest.add' method
+        for more information).
+
+        >>> result = client.batch.create(batch)
+
+        As it can be noticed the reference batch creation is successful (no error thrown). Now we
+        can inspect the 'result'.
+
+        >>> import json
+        >>> print(json.dumps(client.batch.create(batch), indent=4))
+        [
+            {
+                "from": "weaviate://localhost/NonExistingClass/154cbccd-89f4-4b29-9c1b-001a3339d89a/existsWith",
+                "to": "weaviate://localhost/154cbccd-89f4-4b29-9c1b-001a3339d89b",
+                "result": {
+                    "status": "SUCCESS"
+                }
+            },
+            {
+                "from": "weaviate://localhost/ExistingClass/254cbccd-89f4-4b29-9c1b-001a3339d89a/existsWith",
+                "to": "weaviate://localhost/254cbccd-89f4-4b29-9c1b-001a3339d89b",
+                "result": {
+                    "status": "SUCCESS"
+                }
+            }
+        ]
+
+        Both references were added successfully but one of them is corrupted (links two objects
+        of unexisting class and one of the objects is not yet created).
+
+        Adding References in batch is faster but it ignors validations like class name,
+        property name and/or if both objects exist, resulting in a SUCESSFUL reference creation of
+        unexisting object types and/or unexisting properties. If the consistency of the References
+        is wanted use 'Client().data_object.reference.add' to have additional validation against
+        the weaviate schema.
 
         Parameters
         ----------
         batch_request : weaviate.batch.BatchRequest
             Contains all the data objects that should be added in one batch.
             Note: Should be a sub-class of BatchRequest since BatchRequest
-            is just an abstract class.
+            is just an abstract class, e.g. ObjectsBatchRequest, ReferenceBatchRequest
 
         Returns
         -------
@@ -82,7 +193,70 @@ class Batch:
 
     def create_objects(self, objects_batch_request: ObjectsBatchRequest) -> list:
         """
-        Creates multiple objects at once in weaviate
+        Creates multiple Objects at once in weaviate. This does not guarantee
+        that each batch item is added/created. This can lead to a succesfull batch creation
+        but unsucessfull per batch item creation. See the example bellow.
+        
+        Examples
+        --------
+        Add objects to the object batch.
+
+        >>> batch = weaviate.ObjectsBatchRequest()
+        >>> batch.add({}, 'NonExistingClass')
+        >>> batch.add({}, 'ExistingClass')
+
+        Note that 'NonExistingClass' is not present in the client's schema and 'ExistingObject'
+        is present and has no proprieties.
+        'batch.add' does not raise an exception because the objects added meet the required 
+        criteria (See the documentation of the 'weaviate.ObjectsBatchRequest.add' method for
+        more information).
+
+        >>> result = client.batch.create(batch)
+
+        Successful batch creation even if one data object is inconsistent with the cleint's schema.
+        We can find out more about what objects were succesfully created by analyzing the 'result'
+        variable.
+
+        >>> import json
+        >>> print(json.dumps(result, indent=4))
+        [
+            {
+                "class": "NonExistingClass",
+                "creationTimeUnix": 1614852753747,
+                "id": "154cbccd-89f4-4b29-9c1b-001a3339d89a",
+                "properties": {},
+                "deprecations": null,
+                "result": {
+                    "errors": {
+                        "error": [
+                            {
+                                "message": "class 'NonExistingClass' not present in schema, class NonExistingClass not present"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "class": "ExistingClass",
+                "creationTimeUnix": 1614852753746,
+                "id": "b7b1cfbe-20da-496c-b932-008d35805f26",
+                "properties": {},
+                "vector": [
+                    -0.05244319,
+                    ...
+                    0.076136276
+                ],
+                "deprecations": null,
+                "result": {}
+            }
+        ]
+
+
+        As it can be noticed the first object from the batch was not added/created, but the batch
+        was succesfully created. The batch creation can be successful even if all the objects were
+        NOT created. Check the status of the batch objects to find which object and why creation
+        failed. Alternatively use 'Client().data_object.create' for Object creation that throw an
+        error if data item is inconsistent or creation/addition failed.
 
         Parameters
         ----------
@@ -93,6 +267,7 @@ class Batch:
         -------
         list
             A list with the status of every object that was created.
+
         Raises
         ------
         requests.exceptions.ConnectionError
@@ -111,11 +286,58 @@ class Batch:
 
     def create_references(self, reference_batch_request: ReferenceBatchRequest) -> list:
         """
-        Batch loading references.
-        Loading batch references is faster by ignoring some validations.
-        Loading inconsistent data may ends up in an invalid graph.
-        If the consistency of the references is wanted use
-        'Client().data_object.reference.add' to have additional validation instead.
+        Creates multiple References at once in weaviate.
+        Adding References in batch is faster but it ignors validations like class name
+        and property name, resulting in a SUCESSFUL reference creation of unexisting object
+        types and/or unexisting properties. If the consistency of the References is wanted
+        use 'Client().data_object.reference.add' to have additional validation against the
+        weaviate schema. See Examples below.
+
+        Examples
+        --------
+        Object that does not exist in weaviate.
+        >>> object_1 = '154cbccd-89f4-4b29-9c1b-001a3339d89d'
+
+        Objects that exist in weaviate.
+        >>> object_2 = '154cbccd-89f4-4b29-9c1b-001a3339d89c'
+        >>> object_3 = '254cbccd-89f4-4b29-9c1b-001a3339d89a'
+        >>> object_4 = '254cbccd-89f4-4b29-9c1b-001a3339d89b'
+
+
+        >>> batch = weaviate.ReferenceBatchRequest()
+        >>> batch.add(object_1, 'NonExistingClass', 'existsWith', object_2)
+        >>> batch.add(object_3, 'ExistingClass', 'existsWith', object_4)
+
+        Both references were added to the batch request without error because they meet the
+        required citeria (See the documentation of the 'weaviate.ReferenceBatchRequest.add' method
+        for more information).
+
+        >>> result = client.batch.create(batch)
+
+        As it can be noticed the reference batch creation is successful (no error thrown). Now we
+        can inspect the 'result'.
+
+        >>> import json
+        >>> print(json.dumps(client.batch.create(batch), indent=4))
+        [
+            {
+                "from": "weaviate://localhost/NonExistingClass/154cbccd-89f4-4b29-9c1b-001a3339d89a/existsWith",
+                "to": "weaviate://localhost/154cbccd-89f4-4b29-9c1b-001a3339d89b",
+                "result": {
+                    "status": "SUCCESS"
+                }
+            },
+            {
+                "from": "weaviate://localhost/ExistingClass/254cbccd-89f4-4b29-9c1b-001a3339d89a/existsWith",
+                "to": "weaviate://localhost/254cbccd-89f4-4b29-9c1b-001a3339d89b",
+                "result": {
+                    "status": "SUCCESS"
+                }
+            }
+        ]
+
+        Both references were added successfully but one of them is corrupted (links two objects
+        of unexisting class and one of the objects is not yet created).
 
         Parameters
         ----------

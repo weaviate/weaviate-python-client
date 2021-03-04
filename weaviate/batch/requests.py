@@ -50,7 +50,8 @@ class ReferenceBatchRequest(BatchRequest):
             to_object_uuid: str
         ) -> None:
         """
-        Add one reference to this batch.
+        Add one reference to this batch. Does NOT validate the consistency of the reference against
+        the client's schema. Checks the arguments' type and UUIDs' format.
 
         Parameters
         ----------
@@ -67,6 +68,8 @@ class ReferenceBatchRequest(BatchRequest):
         ------
         TypeError
             If arguments are not of type str.
+        ValueError
+            If 'uuid' is not valid or cannot be extracted.
         """
 
         if not isinstance(from_object_class_name, str) or not isinstance(from_object_uuid, str) or\
@@ -123,7 +126,8 @@ class ObjectsBatchRequest(BatchRequest):
             vector: Sequence=None
         ) -> None:
         """
-        Add one object to this batch.
+        Add one object to this batch. Does NOT validate the consistency of the object against
+        the client's schema. Checks the arguments' type and UUIDs' format.
 
         Parameters
         ----------

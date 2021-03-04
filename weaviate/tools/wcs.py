@@ -223,6 +223,7 @@ class WCS(weaviate.connect.Connection):
     def delete(self, cluster_name: str) -> None:
         """
         Delete the WCS instance.
+
         Parameters
         ----------
         cluster_name : str
