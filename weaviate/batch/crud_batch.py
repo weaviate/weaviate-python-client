@@ -24,7 +24,7 @@ class Batch:
     def create(self, batch_request: BatchRequest) -> list:
         """
         Create data in batches, either Objects or References. This does NOT guarantee
-        that each batch item (only Objects) is added/created. This can lead to a succesfull 
+        that each batch item (only Objects) is added/created. This can lead to a succesfull
         batch creation but unsucessfull per batch item creation. See the Examples below.
 
         Examples
@@ -37,7 +37,7 @@ class Batch:
 
         Note that 'NonExistingClass' is not present in the client's schema and 'ExistingObject'
         is present and has no proprieties.
-        'batch.add' does not raise an exception because the objects added meet the required 
+        'batch.add' does not raise an exception because the objects added meet the required
         criteria (See the documentation of the 'weaviate.ObjectsBatchRequest.add' method for
         more information).
 
@@ -60,7 +60,8 @@ class Batch:
                     "errors": {
                         "error": [
                             {
-                                "message": "class 'NonExistingClass' not present in schema, class NonExistingClass not present"
+                                "message": "class 'NonExistingClass' not present in schema,
+                                                        class NonExistingClass not present"
                             }
                         ]
                     }
@@ -116,14 +117,16 @@ class Batch:
         >>> print(json.dumps(client.batch.create(batch), indent=4))
         [
             {
-                "from": "weaviate://localhost/NonExistingClass/154cbccd-89f4-4b29-9c1b-001a3339d89a/existsWith",
+                "from": "weaviate://localhost/NonExistingClass/
+                                                154cbccd-89f4-4b29-9c1b-001a3339d89a/existsWith",
                 "to": "weaviate://localhost/154cbccd-89f4-4b29-9c1b-001a3339d89b",
                 "result": {
                     "status": "SUCCESS"
                 }
             },
             {
-                "from": "weaviate://localhost/ExistingClass/254cbccd-89f4-4b29-9c1b-001a3339d89a/existsWith",
+                "from": "weaviate://localhost/ExistingClass/
+                                                254cbccd-89f4-4b29-9c1b-001a3339d89a/existsWith",
                 "to": "weaviate://localhost/254cbccd-89f4-4b29-9c1b-001a3339d89b",
                 "result": {
                     "status": "SUCCESS"
@@ -196,7 +199,7 @@ class Batch:
         Creates multiple Objects at once in weaviate. This does not guarantee
         that each batch item is added/created. This can lead to a succesfull batch creation
         but unsucessfull per batch item creation. See the example bellow.
-        
+
         Examples
         --------
         Add objects to the object batch.
@@ -207,7 +210,7 @@ class Batch:
 
         Note that 'NonExistingClass' is not present in the client's schema and 'ExistingObject'
         is present and has no proprieties.
-        'batch.add' does not raise an exception because the objects added meet the required 
+        'batch.add' does not raise an exception because the objects added meet the required
         criteria (See the documentation of the 'weaviate.ObjectsBatchRequest.add' method for
         more information).
 
@@ -230,7 +233,8 @@ class Batch:
                     "errors": {
                         "error": [
                             {
-                                "message": "class 'NonExistingClass' not present in schema, class NonExistingClass not present"
+                                "message": "class 'NonExistingClass' not present in schema,
+                                                            class NonExistingClass not present"
                             }
                         ]
                     }
@@ -321,14 +325,16 @@ class Batch:
         >>> print(json.dumps(client.batch.create(batch), indent=4))
         [
             {
-                "from": "weaviate://localhost/NonExistingClass/154cbccd-89f4-4b29-9c1b-001a3339d89a/existsWith",
+                "from": "weaviate://localhost/NonExistingClass/
+                                                154cbccd-89f4-4b29-9c1b-001a3339d89a/existsWith",
                 "to": "weaviate://localhost/154cbccd-89f4-4b29-9c1b-001a3339d89b",
                 "result": {
                     "status": "SUCCESS"
                 }
             },
             {
-                "from": "weaviate://localhost/ExistingClass/254cbccd-89f4-4b29-9c1b-001a3339d89a/existsWith",
+                "from": "weaviate://localhost/ExistingClass/
+                                                254cbccd-89f4-4b29-9c1b-001a3339d89a/existsWith",
                 "to": "weaviate://localhost/254cbccd-89f4-4b29-9c1b-001a3339d89b",
                 "result": {
                     "status": "SUCCESS"

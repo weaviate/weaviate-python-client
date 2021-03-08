@@ -326,15 +326,8 @@ class DataObject:
             If weaviate reports a none OK status.
         """
 
-        params = _get_params(additional_properties, with_vector)
-
-        if uuid is not None:
-            path = "/objects/" + uuid
-        else:
-            path = "/objects"
-
         try:
-            response = self._connection.run_rest(path, REST_METHOD_GET, params=params)
+            response = self._get_response(uuid, additional_properties, with_vector)
         except RequestsConnectionError as conn_err:
             message = str(conn_err) + ' Connection error when getting object/s'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
@@ -408,7 +401,7 @@ class DataObject:
             If uuid is not properly formed.
         """
 
-        response = self.get(uuid=uuid)
+        response = self._get_response(uuid=uuid, additional_properties=None, with_vector=False)
 
         if response.status_code == 200:
             return True
@@ -497,6 +490,46 @@ class DataObject:
             result["error"] = response.json()["error"]
             return result
         raise UnexpectedStatusCodeException("Validate object", response)
+
+    def _get_response(self,
+            uuid:str,
+            additional_properties: List[str],
+            with_vector: bool
+        ) -> List[dict]:
+        """
+        Gets object from weaviate as a requests.Response type. If 'uuid' is None, all objects are
+        returned. If 'uuid' is specified the result is the same as for `get_by_uuid` method.
+
+        Parameters
+        ----------
+        uuid : str
+            The identifier of the object that should be retrieved.
+        additional_properties : list of str
+            list of additional properties that should be included in the request.
+        with_vector: bool
+            If True the `vector` property will be returned too.
+
+        Returns
+        -------
+        requests.Response
+            Response of the GET REST request.
+
+        Raises
+        ------
+        TypeError
+            If argument is of wrong type.
+        ValueError
+            If argument contains an invalid value.
+        """
+
+        params = _get_params(additional_properties, with_vector)
+
+        if uuid is not None:
+            path = "/objects/" + uuid
+        else:
+            path = "/objects"
+
+        return self._connection.run_rest(path, REST_METHOD_GET, params=params)
 
 
 def _get_params(additional_properties: Optional[List[str]], with_vector: bool) -> dict:

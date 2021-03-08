@@ -408,8 +408,8 @@ class TestDataObject(unittest.TestCase):
         self.assertIsNone(result)
         connection_mock.run_rest.assert_called_with("/objects/TestUUID", REST_METHOD_GET, params={'include': "test1,test2"})
 
-    @patch('weaviate.data.crud_data.DataObject.get')
-    def test_exists(self, mock_get):
+    @patch('weaviate.data.crud_data.DataObject._get_response')
+    def test_exists(self, mock_get_response):
         """
         Test the `exists` method.
         """
@@ -418,22 +418,22 @@ class TestDataObject(unittest.TestCase):
         unexpected_error_message = "Object exists"
         # test exceptions
         mock_obj = Mock(status_code=300)
-        mock_get.return_value = mock_obj
+        mock_get_response.return_value = mock_obj
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             self.client.data_object.exists("some_id")
         check_startswith_error_message(self, error, unexpected_error_message)
-        mock_get.assert_called()
+        mock_get_response.assert_called()
 
         # test valit calls
         ## status_code 200
         mock_obj = Mock(status_code=200)
-        mock_get.return_value = mock_obj
+        mock_get_response.return_value = mock_obj
         result = self.client.data_object.exists("73802305-c0da-427e-b21c-d6779a22f35f")
         self.assertEqual(result, True)
 
         ## status_code 200
         mock_obj = Mock(status_code=404)
-        mock_get.return_value = mock_obj
+        mock_get_response.return_value = mock_obj
         result = self.client.data_object.exists("73802305-c0da-427e-b21c-d6779a22f35f")
         self.assertEqual(result, False)
 
