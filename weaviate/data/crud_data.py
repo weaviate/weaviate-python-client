@@ -295,8 +295,9 @@ class DataObject:
             with_vector: bool=False
         ) -> List[dict]:
         """
-        Gets objects from weaviate. If 'uuid' is None, all objects are returned.
-        If 'uuid' is specified the result is the same as for `get_by_uuid` method.
+        Gets objects from weaviate, the maximum number of objects returned is 100.
+        If 'uuid' is None, all objects are returned. If 'uuid' is specified the result is the same
+        as for `get_by_uuid` method.
 
         Parameters
         ----------
