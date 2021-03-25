@@ -88,7 +88,7 @@ def _get_dict_from_object(object_: Union[str, dict]) -> dict:
 
 def is_weaviate_object_url(url: str) -> bool:
     """
-    Checks if the input follows a normal url like this:
+    Checks if the input follows a normal weaviate 'beacon' like this:
     'weaviate://localhost/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'
 
     Parameters
@@ -122,7 +122,8 @@ def is_weaviate_object_url(url: str) -> bool:
 def is_object_url(url: str) -> bool:
     """
     Validates if an url like http://localhost:8080/v1/objects/1c9cd584-88fe-5010-83d0-017cb3fcb446
-    references a object. It only validates the path not the host or the protocol.
+    or '/v1/objects/1c9cd584-88fe-5010-83d0-017cb3fcb446' references a object. It only validates
+    the path format and UUID, not the host or the protocol.
 
     Parameters
     ----------
@@ -156,9 +157,11 @@ def get_valid_uuid(uuid: str) -> str:
     ----------
     uuid : str
         The UUID to be validated and extracted.
-        Should be in the form of an UUID or in form of an URL.
+        Should be in the form of an UUID or in form of an URL (weaviate 'beacon' or 'href').
         E.g.
         'http://localhost:8080/v1/objects/fc7eb129-f138-457f-b727-1b29db191a67'
+        or
+        'weaviate://localhost/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'
         or
         'fc7eb129-f138-457f-b727-1b29db191a67'
 
