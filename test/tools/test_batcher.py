@@ -5,7 +5,7 @@ import time
 import weaviate
 from weaviate.tools import Batcher
 from weaviate.connect import REST_METHOD_POST
-from test.util import replace_connection, mock_run_rest
+from test.util import replace_connection, mock_run_rest, check_error_message
 
 
 class TestBatcher(unittest.TestCase):
@@ -34,6 +34,96 @@ class TestBatcher(unittest.TestCase):
         client_mock.batch.create.assert_not_called()
         # With the next reference the batcher should create the batch
         batcher.add_reference(str(uuid.uuid4()),"FromClass", "fromProperty", str(uuid.uuid4()))
+        client_mock.batch.create.assert_called()
+        # check if batch is being reset
+        self.assertEqual(0, len(batcher._reference_batch))
+
+    def test_batcher_add(self):
+        client_mock = Mock()
+        batcher = Batcher(client_mock, 3)
+
+        reference_keys = set(['from_object_uuid', 'from_object_class_name', 'from_property_name',\
+                'to_object_uuid'])
+        all_object_keys = set(['data_object', 'class_name', 'uuid', 'vector'])
+
+        # invalid calls
+        # error message
+        type_error_message = ("Wrong arguments for adding data to batcher!\n"
+            f"Accepted arguments for references: {reference_keys}\n"
+            f"Accepted arguments for objects: {all_object_keys}! 'uuid' and 'vector' - optional\n")
+
+        with self.assertRaises(TypeError) as error:
+            batcher.add(
+                from_object_class_name="FromClass",
+                from_property_name="fromProperty",
+                to_object_uuid=str(uuid.uuid4())
+            )
+        check_error_message(self, error, type_error_message)
+
+        with self.assertRaises(TypeError) as error:
+            batcher.add(
+                from_object_uuid=str(uuid.uuid4()),
+                from_property_name="fromProperty",
+                to_object_uuid=str(uuid.uuid4())
+            )
+        check_error_message(self, error, type_error_message)
+
+        with self.assertRaises(TypeError) as error:
+            batcher.add(
+                from_object_uuid=str(uuid.uuid4()),
+                from_object_class_name="FromClass",
+                to_object_uuid=str(uuid.uuid4())
+            )
+        check_error_message(self, error, type_error_message)
+
+        with self.assertRaises(TypeError) as error:
+            batcher.add(
+                from_object_uuid=str(uuid.uuid4()),
+                from_object_class_name="FromClass",
+                from_property_name="fromProperty",
+            )
+        check_error_message(self, error, type_error_message)
+
+        with self.assertRaises(TypeError) as error:
+            batcher.add(
+                class_name="MyClass",
+                uuid=str(uuid.uuid4()),
+                vector=[1., 2.]
+            )
+        check_error_message(self, error, type_error_message)
+
+        with self.assertRaises(TypeError) as error:
+            batcher.add(
+                data_object={},
+                uuid=str(uuid.uuid4()),
+                vector=[1., 2.]
+            )
+        check_error_message(self, error, type_error_message)
+
+
+        # valid calls
+        batcher.add(
+            from_object_uuid=str(uuid.uuid4()),
+            from_object_class_name="FromClass",
+            from_property_name="fromProperty",
+            to_object_uuid=str(uuid.uuid4())
+        )
+        batcher.add(
+            data_object={},
+            class_name="MyClass",
+            uuid=str(uuid.uuid4()),
+            vector=[1., 2.]
+        )
+        self.assertEqual(1, len(batcher._reference_batch))
+        self.assertEqual(1, len(batcher._objects_batch))
+        client_mock.batch.create.assert_not_called()
+        # With the next reference the batcher should create the batch
+        batcher.add(
+            from_object_uuid=str(uuid.uuid4()),
+            from_object_class_name="FromClass",
+            from_property_name="fromProperty",
+            to_object_uuid=str(uuid.uuid4())
+        )
         client_mock.batch.create.assert_called()
         # check if batch is being reset
         self.assertEqual(0, len(batcher._reference_batch))

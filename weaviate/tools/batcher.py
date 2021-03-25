@@ -218,6 +218,42 @@ class Batcher:
             )
             self._update_batch_if_necessary()
 
+    def add(self, **kwargs: dict):
+        """
+        Add one object or reference to this batcher based on the arguments passed.
+
+        kwargs : dict
+            The arguments that define the object to add. See the documentation of
+            'add_data_object' for data_object arguments, and 'add_reference' for
+            reference arguments.
+        """
+
+        # all keys are mandatory for references
+        reference_keys = set(['from_object_uuid', 'from_object_class_name', 'from_property_name',\
+                'to_object_uuid'])
+
+        if kwargs.keys() == reference_keys: 
+            with self._commit_lock:
+                self._last_update = time.time()
+                self._reference_batch.add(**kwargs)
+                self._update_batch_if_necessary()
+            return
+
+        # only mandatory keys
+        object_keys = set(['data_object', 'class_name'])
+        all_object_keys = set(['data_object', 'class_name', 'uuid', 'vector'])
+
+        if (not object_keys - kwargs.keys()) and set(kwargs).issubset(all_object_keys):
+            with self._commit_lock:
+                self._last_update = time.time()
+                self._objects_batch.add(**kwargs)
+                self._update_batch_if_necessary()
+            return
+        
+        raise TypeError("Wrong arguments for adding data to batcher!\n"
+            f"Accepted arguments for references: {reference_keys}\n"
+            f"Accepted arguments for objects: {all_object_keys}! 'uuid' and 'vector' - optional\n")
+
     def close(self):
         """
         Closes this Batcher. Makes sure that all unfinished batches are loaded into weaviate.
