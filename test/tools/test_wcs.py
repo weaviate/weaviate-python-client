@@ -82,12 +82,14 @@ class TestWCS(unittest.TestCase):
 
         wcs = WCS(AuthClientPassword('test_user', 'test_pass'), dev=True)
         wcs.auth_bearer = 'test_auth'
-        mock_get_cluster_config.side_effect = lambda name: {
+        progress = lambda name, prog = 99: {
             'meta': {'PublicURL': f'{name}.semi.network'},
             'status': {
-                'state': {'percentage': 99}
+                'state': {'percentage': prog}
             }
         }
+
+        mock_get_cluster_config.side_effect = progress
         config = {
             'id': 'Test_name',
             'email': 'test@semi.technology',
@@ -188,21 +190,23 @@ class TestWCS(unittest.TestCase):
         )
         self.assertEqual(result, 'https://test_id.semi.network')
 
-        with patch('weaviate.tools.wcs.WCS.is_ready') as mock_obj:
-            mock_obj.side_effect = lambda x: True if mock_obj.call_count == 2 else False
-            mock_requests.post.return_value = Mock(status_code=202)
-            result = wcs.create(cluster_name='weaviate', wait_for_completion=True)
-            mock_requests.post.assert_called_with(
-                url='https://dev.wcs.api.semi.technology/v1/clusters',
-                data=json.dumps({'id': 'weaviate', 'configuration': {'tier': 'sandbox', 'modules': []}}).encode("utf-8"),
-                headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
-                timeout=(2, 20)
-            )
-            self.assertEqual(result, 'https://weaviate.semi.network')
+        mock_get_cluster_config.reset_mock()
+        mock_get_cluster_config.side_effect = lambda x: progress('weaviate', 100) if mock_get_cluster_config.call_count == 2 else progress('weaviate')
+        mock_requests.post.return_value = Mock(status_code=202)
+        result = wcs.create(cluster_name='weaviate', wait_for_completion=True)
+        mock_requests.post.assert_called_with(
+            url='https://dev.wcs.api.semi.technology/v1/clusters',
+            data=json.dumps({'id': 'weaviate', 'configuration': {'tier': 'sandbox', 'modules': []}}).encode("utf-8"),
+            headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
+            timeout=(2, 20)
+        )
+        self.assertEqual(result, 'https://weaviate.semi.network')
 
         # for PROD
         wcs = WCS(AuthClientPassword('test_user', 'test_pass'), dev=False)
         wcs.auth_bearer = 'test_auth'
+
+        mock_get_cluster_config.side_effect = progress
 
         mock_requests.post.return_value = Mock(status_code=400, text='Cluster already exists!')
         result = wcs.create(cluster_name='my-url')
