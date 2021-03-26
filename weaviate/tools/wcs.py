@@ -3,6 +3,7 @@ from typing import Optional, List, Union
 import json
 import sys
 import requests
+from tqdm import tqdm
 import weaviate
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.auth import AuthCredentials
@@ -147,8 +148,14 @@ class WCS(weaviate.connect.Connection):
             cluster_name = response.json()['id']
 
         if wait_for_completion is True:
-            while not self.is_ready(cluster_name):
+            pbar = tqdm(total=100)
+            progress = 0
+            while progress != 100:
                 time.sleep(2.0)
+                progress = self.get_cluster_config(cluster_name)["status"]["state"]["percentage"]
+                pbar.update(progress - pbar.n)
+            pbar.close()
+
         return 'https://' + self.get_cluster_config(cluster_name)['meta']['PublicURL']
 
     def is_ready(self, cluster_name: str) -> bool:
