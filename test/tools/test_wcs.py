@@ -80,7 +80,7 @@ class TestWCS(unittest.TestCase):
         Test the `create` method.
         """
 
-        wcs = WCS(AuthClientPassword('test_user', 'test_pass'))
+        wcs = WCS(AuthClientPassword('test_user', 'test_pass'), dev=True)
         wcs.auth_bearer = 'test_auth'
         mock_get_cluster_config.side_effect = lambda name: {
             'meta': {'PublicURL': f'{name}.semi.network'},
@@ -102,6 +102,22 @@ class TestWCS(unittest.TestCase):
         ## error messages
         connection_error_message = 'Test! Connection error, WCS cluster was not created.'
         unexpected_error_message = 'Creating WCS instance'
+        key_error_message = "`module` should have a required 'name' key and an optional 'tag' key!"
+        type_error_message = 'Wrong type for `module`, accepted types are str, dict and None!'
+
+        # key error
+        with self.assertRaises(KeyError) as error:
+            wcs.create(cluster_name='Test_name', cluster_type='test_type', module={})
+        check_error_message(self, error, f'"{key_error_message}"') # KeyError adds extra quotes
+
+        with self.assertRaises(KeyError) as error:
+            wcs.create(cluster_name='Test_name', cluster_type='test_type', module={'name': 'Test Name', 'tag': 'Test Tag', 'invalid': 'Test'})
+        check_error_message(self, error, f'"{key_error_message}"')# KeyError adds extra quotes
+
+        # type error
+        with self.assertRaises(TypeError) as error:
+            wcs.create(cluster_name='Test_name', cluster_type='test_type', module=12234)
+        check_error_message(self, error, type_error_message)
 
         # connection error
         mock_requests.post.side_effect = RequestsConnectionError('Test!')
@@ -109,8 +125,8 @@ class TestWCS(unittest.TestCase):
             wcs.create(cluster_name='Test_name', cluster_type='test_type')
         check_error_message(self, error, connection_error_message)
         mock_requests.post.assert_called_with(
-            url='https://wcs.api.semi.technology/v1/clusters',
-            data=json.dumps({'id': 'Test_name', 'configuration': {'tier': 'test_type'}}).encode("utf-8"),
+            url='https://dev.wcs.api.semi.technology/v1/clusters',
+            data=json.dumps({'id': 'Test_name', 'configuration': {'tier': 'test_type', 'modules': []}}).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
             timeout=(2, 20)
         )
@@ -123,7 +139,7 @@ class TestWCS(unittest.TestCase):
             wcs.create(config=config)
         check_startswith_error_message(self, error, unexpected_error_message)
         mock_requests.post.assert_called_with(
-            url='https://wcs.api.semi.technology/v1/clusters',
+            url='https://dev.wcs.api.semi.technology/v1/clusters',
             data=json.dumps(config).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
             timeout=(2, 20)
@@ -133,8 +149,28 @@ class TestWCS(unittest.TestCase):
         mock_requests.post.return_value = Mock(status_code=400, text='Cluster already exists!')
         result = wcs.create(cluster_name='my-url')
         mock_requests.post.assert_called_with(
-            url='https://wcs.api.semi.technology/v1/clusters',
-            data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox'}}).encode("utf-8"),
+            url='https://dev.wcs.api.semi.technology/v1/clusters',
+            data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', 'modules': []}}).encode("utf-8"),
+            headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
+            timeout=(2, 20)
+        )
+        self.assertEqual(result, 'https://my-url.semi.network')
+
+        mock_requests.post.return_value = Mock(status_code=400, text='Cluster already exists!')
+        result = wcs.create(cluster_name='my-url', module='test')
+        mock_requests.post.assert_called_with(
+            url='https://dev.wcs.api.semi.technology/v1/clusters',
+            data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', 'modules': [{'name': 'test'}]}}).encode("utf-8"),
+            headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
+            timeout=(2, 20)
+        )
+        self.assertEqual(result, 'https://my-url.semi.network')
+
+        mock_requests.post.return_value = Mock(status_code=400, text='Cluster already exists!')
+        result = wcs.create(cluster_name='my-url', module={'name': 'test', 'tag': 'test_tag'})
+        mock_requests.post.assert_called_with(
+            url='https://dev.wcs.api.semi.technology/v1/clusters',
+            data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', 'modules': [{'name': 'test', 'tag': 'test_tag'}]}}).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
             timeout=(2, 20)
         )
@@ -145,7 +181,7 @@ class TestWCS(unittest.TestCase):
         mock_requests.post.return_value = post_return
         result = wcs.create(config=config, wait_for_completion=False)
         mock_requests.post.assert_called_with(
-            url='https://wcs.api.semi.technology/v1/clusters',
+            url='https://dev.wcs.api.semi.technology/v1/clusters',
             data=json.dumps(config).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
             timeout=(2, 20)
@@ -157,12 +193,36 @@ class TestWCS(unittest.TestCase):
             mock_requests.post.return_value = Mock(status_code=202)
             result = wcs.create(cluster_name='weaviate', wait_for_completion=True)
             mock_requests.post.assert_called_with(
-                url='https://wcs.api.semi.technology/v1/clusters',
-                data=json.dumps({'id': 'weaviate', 'configuration': {'tier': 'sandbox'}}).encode("utf-8"),
+                url='https://dev.wcs.api.semi.technology/v1/clusters',
+                data=json.dumps({'id': 'weaviate', 'configuration': {'tier': 'sandbox', 'modules': []}}).encode("utf-8"),
                 headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
                 timeout=(2, 20)
             )
             self.assertEqual(result, 'https://weaviate.semi.network')
+
+        # for PROD
+        wcs = WCS(AuthClientPassword('test_user', 'test_pass'), dev=False)
+        wcs.auth_bearer = 'test_auth'
+
+        mock_requests.post.return_value = Mock(status_code=400, text='Cluster already exists!')
+        result = wcs.create(cluster_name='my-url')
+        mock_requests.post.assert_called_with(
+            url='https://wcs.api.semi.technology/v1/clusters',
+            data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox'}}).encode("utf-8"),
+            headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
+            timeout=(2, 20)
+        )
+        self.assertEqual(result, 'https://my-url.semi.network')
+
+        mock_requests.post.return_value = Mock(status_code=400, text='Cluster already exists!')
+        result = wcs.create(cluster_name='my-url', module='test')
+        mock_requests.post.assert_called_with(
+            url='https://wcs.api.semi.technology/v1/clusters',
+            data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox'}}).encode("utf-8"),
+            headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
+            timeout=(2, 20)
+        )
+        self.assertEqual(result, 'https://my-url.semi.network')
 
     @patch('weaviate.tools.wcs.WCS._set_bearer')
     @patch('weaviate.tools.wcs.requests')

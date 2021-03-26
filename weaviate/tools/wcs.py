@@ -1,5 +1,5 @@
 import time
-from typing import Optional, List
+from typing import Optional, List, Union
 import json
 import sys
 import requests
@@ -24,13 +24,16 @@ class WCS(weaviate.connect.Connection):
         auth_client_secret : AuthCredentials
             Authentication credentials for the WCS.
         dev : bool, optional
-            Whether to use the development site, i.e. https://dev.wcs.api.semi.technology.
+            Whether to use the development console, i.e. https://dev.console.semi.technology/.
+            If False uses the production console, i.e. https://console.semi.technology/.
+            By default False.
         """
 
         self._timeout_config = (2, 20)
         self.auth_expires = 0  # unix time when auth expires
         self.auth_bearer = 0
         self.auth_client_secret = auth_client_secret
+        self.dev = dev
         if dev:
             url = 'https://dev.wcs.api.semi.technology'
         else:
@@ -51,6 +54,7 @@ class WCS(weaviate.connect.Connection):
     def create(self,
             cluster_name: str=None,
             cluster_type: str='sandbox',
+            module: Optional[Union[str, dict]]=None,
             config: dict=None,
             wait_for_completion: bool=True
         ) -> str:
@@ -63,10 +67,33 @@ class WCS(weaviate.connect.Connection):
             Name of the weaviate cluster, if None a random one is going to be generated,
             by default None
         cluster_type : str, optional
-            Cluster type, by default 'sandbox'
+            Cluster type, by default 'sandbox'.
+        module: str or dict, optional
+            The vectorizer module to use. Supported only on DEV environment WCS.
+            The module configuration looks like this:
+            { 
+                "name": MODULE_NAME
+                "tag": MODULE_TAG
+            }
+            If the `module` is str then it is going to beused as the MODULE_NAME with a default tag
+            for that given MODULE_NAME. If `module` is a dict then it should have the above
+            structure. Examples:
+
+            # contextionary
+            { 
+                "name": "text2vec-contextionary",
+                "tag": "en0.16.0-v1.0.0" # this is the default tag
+            }
+
+            # transformers
+            { 
+                "name": "text2vec-transformers",
+                "tag": "distilbert-base-uncased" # or another transformer model from 
+                                                 # https://huggingface.co/models
+            }
         config : dict, optional
-            Cluster configuration. If it is not None then `cluster_name` and `cluster_type` are
-            ignored and the whole cluster configuration should be in this argument,
+            Cluster configuration. If it is NOT None then `cluster_name`, `cluster_type`,
+            `module` are ignored and the whole cluster configuration should be in this argument,
             by default None
         wait_for_completion : bool, optional
             Whether to wait until the cluster is built,
@@ -90,9 +117,11 @@ class WCS(weaviate.connect.Connection):
             config = {
                 'id': cluster_name,
                 'configuration': {
-                    'tier': cluster_type
+                    'tier': cluster_type,
                 }
             }
+            if self.dev:
+                config['configuration']['modules'] = _get_module_config(module)
 
         data_to_send = json.dumps(config).encode("utf-8")
 
@@ -252,3 +281,45 @@ class WCS(weaviate.connect.Connection):
         if response.status_code == 200:
             return
         raise UnexpectedStatusCodeException('Deleting WCS instance', response)
+
+def _get_module_config(module: Optional[Union[str, dict]]) -> list:
+    """
+    Get an WCS module configuration format.
+
+    Parameters
+    ----------
+    module : Optional[str, dict]
+        The module information from which to construct the module configuration.
+
+    Resurns
+    -------
+    list
+        The module configuration as a list.
+
+    Raises
+    ------
+    KeyError
+        If `module` is of type dict and does not contain the required key 'name' and the optional
+        'tag' key only.
+    TypeError
+        If `module` is of a wrong type.
+    """
+
+    if module is None:
+        # no module
+        return []
+
+    if isinstance(module, str):
+        # only module name
+        return [
+            {
+                'name': module
+            }
+        ]
+
+    if isinstance(module, dict):
+        # module config
+        if 'name' in module and set(module).issubset(['name', 'tag']):
+            return [module]
+        raise KeyError("`module` should have a required 'name' key and an optional 'tag' key!")
+    raise TypeError('Wrong type for `module`, accepted types are str, dict and None!')
