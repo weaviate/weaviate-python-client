@@ -48,7 +48,6 @@ jobs:
         - /bin/bash ci/start_weaviate.bash
       script:
         - python -m integration.client_functions
-        - python -m integration.rdf
 
     - name: "Integration tests on python 3.7"
       python: "3.7"
@@ -58,7 +57,6 @@ jobs:
         - /bin/bash ci/start_weaviate.bash
       script:
         - python -m integration.client_functions
-        - python -m integration.rdf
 
     - name: "Integration tests on python 3.8"
       python: "3.8"
@@ -68,7 +66,6 @@ jobs:
         - /bin/bash ci/start_weaviate.bash
       script:
         - python -m integration.client_functions
-        - python -m integration.rdf
 
     - name: "Integration tests on python 3.9"
       python: "3.9"
@@ -78,4 +75,3 @@ jobs:
         - /bin/bash ci/start_weaviate.bash
       script:
         - python -m integration.client_functions
-        - python -m integration.rdf
