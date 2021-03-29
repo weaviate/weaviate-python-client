@@ -118,7 +118,10 @@ class Batcher:
             self._submission_fails.append((create_function, batch_data))
         else:
             if self._print_verbose_activated:
-                print("Updated object batch successfully")
+                if isinstance(batch_data, weaviate.batch.ObjectsBatchRequest):
+                    print("Updated object batch successfully")
+                else:
+                    print("Updated reference batch successfully")
 
     def _retry_failed_submissions(self):
         """
