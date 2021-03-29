@@ -84,6 +84,8 @@ class Batcher:
             self._auto_commit_watchdog.start()
 
     def __enter__(self):
+        if self._print_verbose_activated:
+            print('Batcher object created!')
         return self
 
     def update_batches(self):
@@ -285,6 +287,8 @@ class Batcher:
     def __exit__(self, exception_type, exception_value, traceback):
         try:
             self.close()
+            if self._print_verbose_activated:
+                print('Batcher object closed!')
         except Exception as e:
             print(e)
 
