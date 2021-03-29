@@ -138,6 +138,11 @@ class Client:
     def timeout_config(self):
         """
         Getter for `timeout_config`.
+
+        Returns
+        -------
+        tuple
+            Timeout config as a tuple of (retries, time out seconds).
         """
 
         return self._connection.timeout_config

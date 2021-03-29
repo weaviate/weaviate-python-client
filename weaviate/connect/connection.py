@@ -265,6 +265,11 @@ class Connection:
     def timeout_config(self):
         """
         Getter for the `timeout_config`.
+
+        Returns
+        -------
+        tuple
+            Timeout config as a tuple of (retries, time out seconds).
         """
 
         return self._timeout_config
