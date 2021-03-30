@@ -34,6 +34,17 @@ class Property:
         schema_property : dict
             The property that should be added.
 
+        Examples
+        --------
+        >>> property_age = {
+        ...     "dataType": [
+        ...         "int"
+        ...     ],
+        ...     "description": "The Author's age",
+        ...     "name": "age"
+        ... }
+        >>> client.schema.property.create('Author', property_age)
+
         Raises
         ------
         TypeError

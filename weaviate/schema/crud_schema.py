@@ -38,7 +38,34 @@ class Schema:
         schema : dict or str
             Schema as a python dict, or the path to a json file or a url of a json file.
 
+        Examples
+        --------
+        >>> author_class_schema = {
+        ...     "class": "Author",
+        ...     "description": "An Author class to store the author information",
+        ...     "properties": [
+        ...         {
+        ...             "name": "name",
+        ...             "dataType": ["string"],
+        ...             "description": "The name of the author", 
+        ...         },
+        ...         {
+        ...             "name": "wroteArticles",
+        ...             "dataType": ["Article"],
+        ...             "description": "The articles of the author", 
+        ...         }
+        ...     ]
+        ... }
+
+        >>> client.schema.create(author_class_schema)
+
+        If you have your schema saved in the './schema/my_schema.json' you can create it
+        directly from the file.
+
+        >>> client.schema.create('./schema/my_schema.json')
+
         Raises
+        ------
             TypeError
                 If the 'schema' is neither a string nor a dict.
             ValueError
@@ -66,7 +93,34 @@ class Schema:
         schema_class : dict or str
             Class as a python dict, or the path to a json file or a url of a json file.
 
+        Examples
+        --------
+        >>> author_class_schema = {
+        ...     "class": "Author",
+        ...     "description": "An Author class to store the author information",
+        ...     "properties": [
+        ...         {
+        ...             "name": "name",
+        ...             "dataType": ["string"],
+        ...             "description": "The name of the author", 
+        ...         },
+        ...         {
+        ...             "name": "wroteArticles",
+        ...             "dataType": ["Article"],
+        ...             "description": "The articles of the author", 
+        ...         }
+        ...     ]
+        ... }
+
+        >>> client.schema.create_class(author_class_schema)
+
+        If you have your class schema saved in the './schema/my_schema.json' you can create it
+        directly from the file.
+
+        >>> client.schema.create_class('./schema/my_schema.json')
+
         Raises
+        ------
             TypeError
                 If the 'schema_class' is neither a string nor a dict.
             ValueError
@@ -94,6 +148,10 @@ class Schema:
         class_name : str
             The class that should be deleted from weaviate.
 
+        Examples
+        --------
+        >>> client.schema.delete_class('Author')
+
         Raises
         ------
         TypeError
@@ -119,6 +177,10 @@ class Schema:
     def delete_all(self) -> None:
         """
         Remove the entire schema from the weavaite instance and all data associated with it.
+
+        Examples
+        --------
+        >>> client.schema.delete_all()
         """
 
         schema = self.get()
@@ -137,6 +199,29 @@ class Schema:
             If a schema is given it is checked if this specific schema is already loaded.
             It will test only this schema. If the given schema is a subset of the loaded
             schema it will still return true, by default None.
+
+        Examples
+        --------
+        >>> schema = client.schema.get()
+        >>> client.schema.contains(schema)
+        True
+
+        >>> schema = client.schema.get()
+        >>> schema['classes'].append(
+            {
+                "class": "Animal",
+                "description": "An Animal",
+                "properties": [
+                    {
+                        "name": "type",
+                        "dataType": ["string"],
+                        "description": "The animal type", 
+                    }
+                ]
+            }
+        )
+        >>> client.schema.contains(schema)
+        False
 
         Returns
         -------
@@ -164,6 +249,46 @@ class Schema:
         dict
             A dict containing the schema. The schema may be empty.
             To see if a schema has already been loaded use `contains` method.
+
+        Examples
+        --------
+        No schema present in client
+
+        >>> client.schema.get()
+        {'classes': []}
+
+        Schema present in client
+
+        >>> client.schema.get()
+        {
+            "classes": [
+                {
+                "class": "Animal",
+                "description": "An Animal",
+                "invertedIndexConfig": {
+                    "cleanupIntervalSeconds": 60
+                },
+                "properties": [
+                    {
+                    "dataType": [
+                        "string"
+                    ],
+                    "description": "The animal type",
+                    "name": "type"
+                    }
+                ],
+                "vectorIndexConfig": {
+                    "cleanupIntervalSeconds": 300,
+                    "maxConnections": 64,
+                    "efConstruction": 128,
+                    "vectorCacheMaxObjects": 500000
+                },
+                "vectorIndexType": "hnsw",
+                "vectorizer": "text2vec-contextionary"
+                }
+            ]
+        }
+
         Raises
         ------
         requests.exceptions.ConnectionError

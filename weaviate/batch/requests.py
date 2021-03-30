@@ -64,6 +64,17 @@ class ReferenceBatchRequest(BatchRequest):
         to_object_uuid : str
             The UUID or URL of the object that is actually referenced.
 
+        Examples
+        --------
+        >>> # assuming that the 'Guitarist' class has only the 'name' property.
+        >>> ref_batch_req = ReferenceBatchRequest()
+        >>> ref_batch_req.add(
+        ...     from_object_uuid = 'c125010f-7909-4101-bff4-0bdd43de55a2',
+        ...     from_object_class_name = 'Guitarist`,
+        ...     from_property_name = 'hasGuitar',
+        ...     to_object_uuid = '33906fda-0e81-4e13-b196-4334c69076ba'
+        ... )
+
         Raises
         ------
         TypeError
@@ -142,6 +153,24 @@ class ObjectsBatchRequest(BatchRequest):
             have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
             `torch.Tensor` and `tf.Tensor`,
             by default None.
+
+        Examples
+        --------
+        >>> # assuming that the 'Guitarist' class has only the 'name' primitive property.
+        >>> object_batch_req = ObjectsBatchRequest()
+        >>> object_batch_req.add(
+        ...     data_object = {'name`: 'David Gilmour`},
+        ...     class_name = 'Guitarist`,
+        ... )
+        >>> object_batch_req.add(
+        ...     data_object = {'name`: 'Jimmy Page`},
+        ...     class_name = 'Guitarist`,
+        ...     uuid = '2ceee10c-9155-11eb-a8b3-0242ac130003
+        ... )
+
+        >>> # assuming no vectorizer module provided
+        >>> embedding = my_neural_network(some_data_object)
+        >>> object_batch_req.add(vector=embedding)
 
         Raises
         ------

@@ -33,6 +33,25 @@ class Client:
             Set the timeout config as a tuple of (retries, time out seconds),
             by default None.
 
+        Examples
+        --------
+        Without Auth.
+        >>> client = Client(
+        ...     url = 'http://localhost:8080'
+        ... )
+
+        >>> client = Client(
+        ...     url = 'http://localhost:8080',
+        ...     timeout_config = (5, 15)
+        ... )
+
+        With Auth.
+        >>> my_credentials = weaviate.auth.AuthClientPassword(USER_NAME, MY_PASSWORD)
+        >>> client = Client(
+        ...     url = 'http://localhost:8080',
+        ...     auth_client_secret = my_credentials
+        ... )
+
         Raises
         ------
         TypeError
