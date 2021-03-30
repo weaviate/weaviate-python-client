@@ -57,6 +57,22 @@ class DataObject:
             `torch.Tensor` and `tf.Tensor`,
             by default None.
 
+        Examples
+        --------
+        >>> # schema contains a class Author with only 'name' and 'age' primitive property.
+        >>> client.data_object.create(
+        ...     data_object = {'name': 'Neil Gaiman', 'age': 60},
+        ...     class_name = 'Author',
+        ... )
+        '46091506-e3a0-41a4-9597-10e3064d8e2d'
+
+        >>> client.data_object.create(
+        ...     data_object = {'name': 'Andrzej Sapkowski', 'age': 72},
+        ...     class_name = 'Author',
+        ...     uuid = 'e067f671-1202-42c6-848b-ff4d1eb804ab'
+        ... )
+        'e067f671-1202-42c6-848b-ff4d1eb804ab'
+
         Returns
         -------
         str
@@ -145,6 +161,44 @@ class DataObject:
             `torch.Tensor` and `tf.Tensor`,
             by default None.
 
+        Examples
+        --------
+        >>> author_id = client.data_object.create(
+        ...     data_object = {'name': 'Philip Pullman', 'age': 64},
+        ...     class_name = 'Author'
+        ... )
+        >>> client.data_object.get(author_id)
+        {
+            "additional": {},
+            "class": "Author",
+            "creationTimeUnix": 1617111215172,
+            "id": "bec2bca7-264f-452a-a5bb-427eb4add068",
+            "lastUpdateTimeUnix": 1617111215172,
+            "properties": {
+                "age": 64,
+                "name": "Philip Pullman"
+            },
+            "vectorWeights": null
+        }
+        >>> client.data_object.update(
+        ...     data_object = {'age': 74},
+        ...     class_name = 'Author',
+        ...     uuid = author_id
+        ... )
+        >>> client.data_object.get(author_id)
+        {
+            "additional": {},
+            "class": "Author",
+            "creationTimeUnix": 1617111215172,
+            "id": "bec2bca7-264f-452a-a5bb-427eb4add068",
+            "lastUpdateTimeUnix": 1617111215172,
+            "properties": {
+                "age": 74,
+                "name": "Philip Pullman"
+            },
+            "vectorWeights": null
+        }
+
         Raises
         ------
         TypeError
@@ -212,6 +266,42 @@ class DataObject:
             `torch.Tensor` and `tf.Tensor`,
             by default None.
 
+        Examples
+        --------
+        >>> author_id = client.data_object.create(
+        ...     data_object = {'name': 'H. Lovecraft', 'age': 46},
+        ...     class_name = 'Author'
+        ... )
+        >>> client.data_object.get(author_id)
+        {
+            "additional": {},
+            "class": "Author",
+            "creationTimeUnix": 1617112817487,
+            "id": "d842a0f4-ad8c-40eb-80b4-bfefc7b1b530",
+            "lastUpdateTimeUnix": 1617112817487,
+            "properties": {
+                "age": 46,
+                "name": "H. Lovecraft"
+            },
+            "vectorWeights": null
+        }
+        >>> client.data_object.replace(
+        ...     data_object = {'name': 'H.P. Lovecraft'},
+        ...     class_name = 'Author',
+        ...     uuid = author_id
+        ... )
+        >>> client.data_object.get(author_id)
+        {
+            "additional": {},
+            "class": "Author",
+            "id": "d842a0f4-ad8c-40eb-80b4-bfefc7b1b530",
+            "lastUpdateTimeUnix": 1617112838668,
+            "properties": {
+                "name": "H.P. Lovecraft"
+            },
+            "vectorWeights": null
+        }
+
         Raises
         ------
         TypeError
@@ -264,6 +354,22 @@ class DataObject:
         with_vector: bool
             If True the `vector` property will be returned too,
             by default False.
+
+        Examples
+        --------
+        >>> client.data_object.get_by_id("d842a0f4-ad8c-40eb-80b4-bfefc7b1b530")
+        {
+            "additional": {},
+            "class": "Author",
+            "creationTimeUnix": 1617112817487,
+            "id": "d842a0f4-ad8c-40eb-80b4-bfefc7b1b530",
+            "lastUpdateTimeUnix": 1617112817487,
+            "properties": {
+                "age": 46,
+                "name": "H.P. Lovecraft"
+            },
+            "vectorWeights": null
+        }
 
         Returns
         -------
@@ -348,6 +454,25 @@ class DataObject:
         uuid : str
             The ID of the object that should be deleted.
 
+        Examples
+        --------
+        >>> client.data_object.get("d842a0f4-ad8c-40eb-80b4-bfefc7b1b530")
+        {
+            "additional": {},
+            "class": "Author",
+            "creationTimeUnix": 1617112817487,
+            "id": "d842a0f4-ad8c-40eb-80b4-bfefc7b1b530",
+            "lastUpdateTimeUnix": 1617112817487,
+            "properties": {
+                "age": 46,
+                "name": "H.P. Lovecraft"
+            },
+            "vectorWeights": null
+        }
+        >>> client.data_object.delete("d842a0f4-ad8c-40eb-80b4-bfefc7b1b530")
+        >>> client.data_object.get("d842a0f4-ad8c-40eb-80b4-bfefc7b1b530")
+        None
+
         Raises
         ------
         requests.exceptions.ConnectionError
@@ -385,6 +510,18 @@ class DataObject:
         uuid : str
             The UUID of the object that may or may not exist within weaviate.
 
+        Examples
+        --------
+        >>> client.data_object.exists('e067f671-1202-42c6-848b-ff4d1eb804ab')
+        False
+        >>> client.data_object.create(
+        ...     data_object = {'name': 'Andrzej Sapkowski', 'age': 72},
+        ...     class_name = 'Author',
+        ...     uuid = 'e067f671-1202-42c6-848b-ff4d1eb804ab'
+        ... )
+        >>> client.data_object.exists('e067f671-1202-42c6-848b-ff4d1eb804ab')
+        True
+
         Returns
         -------
         bool
@@ -413,7 +550,7 @@ class DataObject:
     def validate(self,
             data_object: Union[dict, str],
             class_name: str,
-            uuid: str,
+            uuid: str=None,
             vector: Sequence=None
         ) -> dict:
         """
@@ -426,13 +563,38 @@ class DataObject:
             If type is str it should be either an URL or a file.
         class_name : str
             Name of the class of the object that should be validated.
-        uuid : str
+        uuid : str, optional
             The UUID of the object that shoudl be validated against weaviate.
+            by default None.
         vector: Sequence, optional
             The embedding of the object that should be validated. Used only class objects that
             do not have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
             `torch.Tensor` and `tf.Tensor`,
             by default None.
+
+        Examples
+        --------
+        Assume we have a Author class only 'name' property, NO 'age'.
+        >>> client1.data_object.validate(
+        ...     data_object = {'name': 'H. Lovecraft'},
+        ...     class_name = 'Author'
+        ... )
+        {'error': None, 'valid': True}
+
+        >>> client1.data_object.validate(
+        ...     data_object = {'name': 'H. Lovecraft', 'age': 46},
+        ...     class_name = 'Author'
+        ... )
+        {
+            "error": [
+                {
+                "message": "invalid object: no such prop with name 'age' found in class 'Author'
+                    in the schema. Check your schema files for which properties in this class are
+                    available"
+                }
+            ],
+            "valid": false
+        }
 
         Returns
         -------
@@ -455,18 +617,19 @@ class DataObject:
             If the network connection to weaviate fails.
         """
 
-        if not isinstance(uuid, str):
-            raise TypeError("UUID must be of type `str`")
-
         loaded_data_object = _get_dict_from_object(data_object)
         if not isinstance(class_name, str):
             raise TypeError(f"Expected class_name of type `str` but was: {type(class_name)}")
 
         weaviate_obj = {
-            "id": uuid,
             "class": class_name,
             "properties": loaded_data_object
         }
+
+        if uuid is not None:
+            if not isinstance(uuid, str):
+                raise TypeError("UUID must be of type `str`")
+            weaviate_obj['id'] = uuid
 
         if vector is not None:
             weaviate_obj['vector'] = get_vector(vector)
