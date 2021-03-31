@@ -168,7 +168,7 @@ class Reference:
 
         Examples
         --------
-        You have data object 1 with reference property `hasFriends` and currently has one reference
+        You have data object 1 with reference property `wroteBooks` and currently has one reference
         to data object 7. Now you say, I want to update the references of data object 1.wroteBooks
         to this list 3,4,9. After the update, the data object 1.wroteBooks is now 3,4,9, but no
         longer contains 7.
