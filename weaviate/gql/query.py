@@ -80,6 +80,50 @@ class Query:
         dict
             Data response of the query.
 
+        Examples
+        --------
+        >>> query = \"""
+        ... {
+        ...     Get {
+        ...         Article(limit: 2) {
+        ...         title
+        ...         hasAuthors {
+        ...             ... on Author {
+        ...                 name
+        ...                 }
+        ...             }
+        ...         }
+        ...     }
+        ... }
+        ... \"""
+        >>> client.query.raw(query)
+        {
+        "data": {
+            "Get": {
+            "Article": [
+                {
+                "hasAuthors": [
+                    {
+                    "name": "Jonathan Wilson"
+                    }
+                ],
+                "title": "Sergio Ag\u00fcero has been far more than a great goalscorer for
+                            Manchester City"
+                },
+                {
+                "hasAuthors": [
+                    {
+                    "name": "Emma Elwick-Bates"
+                    }
+                ],
+                "title": "At Swarovski, Giovanna Engelbert Is Crafting Jewels As Exuberantly
+                            Joyful As She Is"
+                }
+            ]
+            }
+        },
+        "errors": null
+        }
         Raises
         ------
         TypeError
