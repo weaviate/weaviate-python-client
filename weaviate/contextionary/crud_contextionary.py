@@ -40,6 +40,14 @@ class Contextionary:
             The weight of the new definition compared to the old one,
             must be inbetween the interval [0.0; 1.0], by default 1.0
 
+        Examples
+        --------
+        >>> client.contextionary.extend(
+        ...     concept = 'palantir',
+        ...     definition = 'spherical stone objects used for communication in Middle-earth'
+        ... )
+
+
         Raises
         ------
         TypeError
@@ -91,7 +99,40 @@ class Contextionary:
         ----------
         concept : str
             Concept for which the vector should be retrieved.
-            May be CamelCase for word combinations.
+            May be camelCase for word combinations.
+
+        Examples
+        --------
+        >>> client.contextionary.get_concept_vector('king')
+        {
+            "individualWords": [
+                {
+                "info": {
+                    "nearestNeighbors": [
+                    {
+                        "word": "king"
+                    },
+                    {
+                        "distance": 5.7498446,
+                        "word": "kings"
+                    },
+                    ...,
+                    {
+                        "distance": 6.1396513,
+                        "word": "queen"
+                    }
+                    ],
+                    "vector": [
+                    -0.68988,
+                    ...,
+                    -0.561865
+                    ]
+                },
+                "present": true,
+                "word": "king"
+                }
+            ]
+        }
 
         Returns
         -------
