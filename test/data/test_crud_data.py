@@ -454,7 +454,7 @@ class TestDataObject(unittest.TestCase):
         with self.assertRaises(TypeError) as error:
             self.client.data_object.validate({}, "Name", 1)
         check_error_message(self, error, uuid_type_error_message)
-        mock_get_dict_from_object.assert_not_called()
+        mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
 
         with self.assertRaises(TypeError) as error:

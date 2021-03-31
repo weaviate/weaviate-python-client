@@ -47,12 +47,12 @@ class Schema:
         ...         {
         ...             "name": "name",
         ...             "dataType": ["string"],
-        ...             "description": "The name of the author", 
+        ...             "description": "The name of the author",
         ...         },
         ...         {
         ...             "name": "wroteArticles",
         ...             "dataType": ["Article"],
-        ...             "description": "The articles of the author", 
+        ...             "description": "The articles of the author",
         ...         }
         ...     ]
         ... }
@@ -102,12 +102,12 @@ class Schema:
         ...         {
         ...             "name": "name",
         ...             "dataType": ["string"],
-        ...             "description": "The name of the author", 
+        ...             "description": "The name of the author",
         ...         },
         ...         {
         ...             "name": "wroteArticles",
         ...             "dataType": ["Article"],
-        ...             "description": "The articles of the author", 
+        ...             "description": "The articles of the author",
         ...         }
         ...     ]
         ... }
@@ -215,7 +215,7 @@ class Schema:
                     {
                         "name": "type",
                         "dataType": ["string"],
-                        "description": "The animal type", 
+                        "description": "The animal type",
                     }
                 ]
             }

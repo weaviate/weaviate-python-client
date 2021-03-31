@@ -303,7 +303,9 @@ class TestNearVector(unittest.TestCase):
         content_error_message = ("NearVector filter is expected to "
                 f"be type dict but was {list}")
         vector_error_message = "No 'vector' key in `content` argument."
-        vector_value_error_message = f"'vector' key is expected to be type `list` but was {set}"
+        vector_value_error_message = ("The type of the 'vector' argument is not supported!\n"
+                "Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` "
+                "and `tf.Tensor`")
         certainty_error_message = ("certainty is expected to be a float but was "
                     f"{str}")
 

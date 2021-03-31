@@ -38,7 +38,7 @@ class Query:
         class_name : str
             Class name of the objects to interact with.
         properties : list of str or str
-            Properties of the objetcs to interact with.
+            Properties of the objetcs to get.
 
         Returns
         -------

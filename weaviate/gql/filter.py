@@ -9,6 +9,7 @@ from typing import Optional
 from abc import ABC, abstractmethod
 from weaviate.connect import REST_METHOD_POST, Connection
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+from weaviate.util import get_vector
 
 class GraphQL(ABC):
     """
@@ -172,8 +173,9 @@ class NearVector(Near):
                 f"be type dict but was {type(content)}")
 
         _content = deepcopy(content)
-        _check_vector(_content)
-        self.vector = _content['vector']
+        if "vector" not in content:
+            raise ValueError("No 'vector' key in `content` argument.")
+        self.vector = get_vector(_content['vector'])
         self.certainty: Optional[float] = None
 
         # Check optional fields
@@ -434,30 +436,6 @@ def _check_objects(content: dict) -> None:
         if len(obj) != 1 or ('id' not in obj and 'beacon' not in obj):
             raise ValueError('Each object from the `move` clause should have ONLY `id` OR '
                 '`beacon`!')
-
-
-def _check_vector(content: dict) -> None:
-    """
-    Validate the vector of the nearVector.
-
-    Parameters
-    ----------
-    content : dict
-        A nearVector clause to validate.
-
-    Raises
-    ------
-    ValueError
-        If no "vector" key in the 'content' dict.
-    TypeError
-        If the value of the  "vector" is of wrong type.
-    """
-
-    if "vector" not in content:
-        raise ValueError("No 'vector' key in `content` argument.")
-    if not isinstance(content["vector"], list):
-        raise TypeError("'vector' key is expected to be type `list` but was "
-            + str(type(content['vector'])))
 
 
 def _check_certainty_type(certainty: float) -> None:
