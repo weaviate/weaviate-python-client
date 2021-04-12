@@ -6,7 +6,7 @@ The client is tested for python 3.6 and higher.
 
 ## Documentation
 
-- [Documentation](https://www.semi.technology/documentation/weaviate/current/client-libraries/python.html)
+- [Documentation](https://www.semi.technology/developers/weaviate/current/client-libraries/python.html)
 
 ## Support
 

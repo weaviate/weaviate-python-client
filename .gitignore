@@ -5,7 +5,7 @@ Weaviate_client.egg-info
 tmp
 build/
 *.pyc
-docker-compose.yaml
+docker-compose.yml
 .DS_Store
 .ipynb_checkpoints
 *.ipynb
