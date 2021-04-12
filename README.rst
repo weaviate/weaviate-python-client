@@ -1,7 +1,7 @@
-=======================
-Weaviate python client 
-=======================
-.. image:: https://raw.githubusercontent.com/semi-technologies/weaviate/19de0956c69b66c5552447e84d016f4fe29d12c9/docs/assets/weaviate-logo.png
+Weaviate python client |logo|
+=============================
+.. |biohazard| image:: biohazard.png
+.. |logo| image:: https://raw.githubusercontent.com/semi-technologies/weaviate/19de0956c69b66c5552447e84d016f4fe29d12c9/docs/assets/weaviate-logo.png
     :alt: Weaviate logo
     :width: 180
     :align: right
