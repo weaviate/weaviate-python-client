@@ -18,6 +18,6 @@ setup(name="weaviate-client",
       packages=["weaviate", "weaviate.connect", "weaviate.tools", "weaviate.schema", "weaviate.schema.properties", "weaviate.batch", "weaviate.classification", "weaviate.contextionary", "weaviate.data", "weaviate.data.references", "weaviate.gql"],
       python_requires='>=3.6',
       install_requires=[
-        "requests>=2.25.1,<2.26",
+        "requests>=2.23.0",
         "validators>=0.18.2",
         "tqdm>=4.59.0"]),

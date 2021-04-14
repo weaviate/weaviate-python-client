@@ -124,6 +124,7 @@ class Query:
         },
         "errors": null
         }
+        
         Raises
         ------
         TypeError

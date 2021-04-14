@@ -12,6 +12,12 @@ from weaviate.auth import AuthCredentials
 class WCS(weaviate.connect.Connection):
     """
     WCS class used to create/delete WCS cluster instances.
+
+    Attributes
+    ----------
+    dev : bool
+        True if the WCS instance is for the development console, False if it is for the production
+        environment.
     """
 
     is_authentication_required = True
@@ -25,8 +31,8 @@ class WCS(weaviate.connect.Connection):
         auth_client_secret : AuthCredentials
             Authentication credentials for the WCS.
         dev : bool, optional
-            Whether to use the development console, i.e. https://dev.console.semi.technology/.
-            If False uses the production console, i.e. https://console.semi.technology/.
+            Whether to use the development environment, i.e. https://dev.console.semi.technology/.
+            If False uses the production environment, i.e. https://console.semi.technology/.
             By default False.
         """
 

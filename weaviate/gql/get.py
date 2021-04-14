@@ -63,52 +63,58 @@ class GetBuilder(GraphQL):
         Examples
         --------
         The `content` prototype is like this:
-        {
-            'operator': '<operator>',
-            'operands': [
-                {
-                    'path': [path],
-                    'operator': '<operator>'
-                    '<valueType>': <value>
-                },
-                {
-                    'path': [<matchPath>],
-                    'operator': '<operator>',
-                    '<valueType>': <value>
-                }
-            ]
-        }
+
+        >>> content = {
+        ...     'operator': '<operator>',
+        ...     'operands': [
+        ...         {
+        ...             'path': [path],
+        ...             'operator': '<operator>'
+        ...             '<valueType>': <value>
+        ...         },
+        ...         {
+        ...             'path': [<matchPath>],
+        ...             'operator': '<operator>',
+        ...             '<valueType>': <value>
+        ...         }
+        ...     ]
+        ... }
+
         This is a complete `where` filter but it does not have to be like this all the time.
 
         Single operand:
-        content = {
-            'path': ["wordCount"],    # Path to the property that should be used
-            'operator': 'GreaterThan',  # operator
-            'valueInt': 1000          # value (which is always = to the type of the path property)
-        }
+
+        >>> content = {
+        ...     'path': ["wordCount"],    # Path to the property that should be used
+        ...     'operator': 'GreaterThan',  # operator
+        ...     'valueInt': 1000          # value (which is always = to the type of the path property)
+        ... }
+
         Or
-        content = {
-            'path': ["id"],
-            'operator': 'Equal',
-            'valueString': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf"
-        }
+
+        >>> content = {
+        ...     'path': ["id"],
+        ...     'operator': 'Equal',
+        ...     'valueString': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf"
+        ... }
 
         Multiple operands:
-        content = {
-            'operator': 'And',
-            'operands': [
-                {
-                    'path': ["wordCount"],
-                    'operator': 'GreaterThan',
-                    'valueInt': 1000
-                },
-                {
-                    'path': ["wordCount"],
-                    'operator': 'LessThan',
-                    'valueInt': 1500
-                }
-            ]
-        }
+
+        >>> content = {
+        ...     'operator': 'And',
+        ...     'operands': [
+        ...         {
+        ...             'path': ["wordCount"],
+        ...             'operator': 'GreaterThan',
+        ...             'valueInt': 1000
+        ...         },
+        ...         {
+        ...             'path': ["wordCount"],
+        ...             'operator': 'LessThan',
+        ...             'valueInt': 1500
+        ...         }
+        ...     ]
+        ... }
 
         Returns
         -------
@@ -132,47 +138,51 @@ class GetBuilder(GraphQL):
         Examples
         --------
         Content full prototype:
-        content = {
-            'concepts': <list of str or str>,
-            'certainty': <float>, # Optional
-            'moveAwayFrom': { # Optional
-                'concepts': <list of str or str>,
-                'force': <float>
-            },
-            'moveTo': { # Optional
-                'concepts': <list of str or str>,
-                'force': <float>
-            }
-        }
+
+        >>> content = {
+        ...     'concepts': <list of str or str>,
+        ...     'certainty': <float>, # Optional
+        ...     'moveAwayFrom': { # Optional
+        ...         'concepts': <list of str or str>,
+        ...         'force': <float>
+        ...     },
+        ...     'moveTo': { # Optional
+        ...         'concepts': <list of str or str>,
+        ...         'force': <float>
+        ...     }
+        ... }
 
         Full content:
-        content = {
-            'concepts': ["fashion"],
-            'certainty': 0.7,
-            'moveAwayFrom': {
-                'concepts': ["finance"],
-                'force': 0.45
-            },
-            'moveTo': {
-                'concepts': ["haute couture"],
-                'force': 0.85
-            }
-        }
+
+        >>> content = {
+        ...     'concepts': ["fashion"],
+        ...     'certainty': 0.7,
+        ...     'moveAwayFrom': {
+        ...         'concepts': ["finance"],
+        ...         'force': 0.45
+        ...     },
+        ...     'moveTo': {
+        ...         'concepts': ["haute couture"],
+        ...         'force': 0.85
+        ...     }
+        ... }
 
         Partial content:
-        content = {
-            'concepts': ["fashion"],
-            'certainty': 0.7,
-            'moveTo': {
-                'concepts': ["haute couture"],
-                'force': 0.85
-            }
-        }
+
+        >>> content = {
+        ...     'concepts': ["fashion"],
+        ...     'certainty': 0.7,
+        ...     'moveTo': {
+        ...         'concepts': ["haute couture"],
+        ...         'force': 0.85
+        ...     }
+        ... }
 
         Minimal content:
-        content = {
-            'concepts': "fashion"
-        }
+
+        >>> content = {
+        ...     'concepts': "fashion"
+        ... }
 
         Returns
         -------
@@ -203,31 +213,39 @@ class GetBuilder(GraphQL):
         Examples
         --------
         Content full prototype:
-        content = {
-            'vector' : <list of float>,
-            'certainty': <float> # Optional
-        }
+
+        >>> content = {
+        ...     'vector' : <list of float>,
+        ...     'certainty': <float> # Optional
+        ... }
+
         NOTE: Supported types for 'vector' are `list`, 'numpy.ndarray`, `torch.Tensor`
                 and `tf.Tensor`.
 
         Full content:
-        content = {
-            'vector' : [.1, .2, .3, .5],
-            'certainty': 0.75
-        }
+
+        >>> content = {
+        ...     'vector' : [.1, .2, .3, .5],
+        ...     'certainty': 0.75
+        ... }
 
         Minimal content:
-        content = {
-            'vector' : [.1, .2, .3, .5]
-        }
-        or
-        content = {
-            'vector' : torch.tensor([.1, .2, .3, .5])
-        }
-        or
-        content = {
-            'vector' : torch.tensor([[.1, .2, .3, .5]]) # it is going to we sqeezed.
-        }
+
+        >>> content = {
+        ...     'vector' : [.1, .2, .3, .5]
+        ... }
+
+        Or
+
+        >>> content = {
+        ...     'vector' : torch.tensor([.1, .2, .3, .5])
+        ... }
+
+        Or
+
+        >>> content = {
+        ...     'vector' : torch.tensor([[.1, .2, .3, .5]]) # it is going to we sqeezed.
+        ... }
 
         Returns
         -------
@@ -258,15 +276,16 @@ class GetBuilder(GraphQL):
         Examples
         --------
         Content prototype:
-        {
-            'id': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf",
-            'certainty': 0.7 # Optional
-        }
-        alternatively
-        {
-            'beacon': "weaviate://localhost/e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf"
-            'certainty': 0.7 # Optional
-        }
+
+        >>> {
+        ...     'id': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf",
+        ...     'certainty': 0.7 # Optional
+        ... }
+        >>> # alternatively
+        >>> {
+        ...     'beacon': "weaviate://localhost/e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf"
+        ...     'certainty': 0.7 # Optional
+        ... }
 
         Returns
         -------

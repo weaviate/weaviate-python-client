@@ -264,12 +264,17 @@ class Connection:
     @property
     def timeout_config(self):
         """
-        Getter for the `timeout_config`.
+        Getter/setter for `timeout_config`.
 
+        Parameters
+        ----------
+        timeout_config : tuple(int, int) or list[int, int]
+            For Setter only: Timeout config as a tuple of (retries, time out seconds).
+        
         Returns
         -------
         tuple
-            Timeout config as a tuple of (retries, time out seconds).
+            For Getter only: Timeout config as a tuple of (retries, time out seconds).
         """
 
         return self._timeout_config

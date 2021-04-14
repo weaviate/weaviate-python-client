@@ -14,6 +14,11 @@ _PRIMITIVE_WEAVIATE_TYPES_SET = set(["string", "int", "boolean", "number", "date
 class Schema:
     """
     Schema class used to interact and manipulate schemas or classes.
+
+    Attributes
+    ----------
+    property : weaviate.schema.properties.Property
+        A Property object to create new schema property/ies.
     """
 
     def __init__(self, connection: Connection):
@@ -56,7 +61,6 @@ class Schema:
         ...         }
         ...     ]
         ... }
-
         >>> client.schema.create(author_class_schema)
 
         If you have your schema saved in the './schema/my_schema.json' you can create it
@@ -111,7 +115,6 @@ class Schema:
         ...         }
         ...     ]
         ... }
-
         >>> client.schema.create_class(author_class_schema)
 
         If you have your class schema saved in the './schema/my_schema.json' you can create it
@@ -205,7 +208,6 @@ class Schema:
         >>> schema = client.schema.get()
         >>> client.schema.contains(schema)
         True
-
         >>> schema = client.schema.get()
         >>> schema['classes'].append(
             {

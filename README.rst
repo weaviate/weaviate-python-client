@@ -2,7 +2,7 @@ Weaviate python client |logo|
 =============================
 .. |logo| raw:: html
 
-    <img alt='Weaviate logo' src='https://raw.githubusercontent.com/semi-technologies/weaviate/19de0956c69b66c5552447e84d016f4fe29d12c9/docs/assets/weaviate-logo.png' width='256' align='right' />
+    <img alt='Weaviate logo' src='https://raw.githubusercontent.com/semi-technologies/weaviate/19de0956c69b66c5552447e84d016f4fe29d12c9/docs/assets/weaviate-logo.png' width='180' align='right' />
 
 .. image:: https://travis-ci.com/semi-technologies/weaviate-python-client.svg?branch=weaviate_v1
     :target: https://travis-ci.com/semi-technologies/weaviate-python-client

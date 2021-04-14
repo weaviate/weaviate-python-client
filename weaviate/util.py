@@ -56,7 +56,7 @@ def _get_dict_from_object(object_: Union[str, dict]) -> dict:
     Raises
     ------
     TypeError
-        If neither a string nor a dict.
+        If 'object_' is neither a string nor a dict.
     ValueError
         If no dict can be retrieved from object.
     """
@@ -121,7 +121,7 @@ def is_weaviate_object_url(url: str) -> bool:
 
 def is_object_url(url: str) -> bool:
     """
-    Validates if an url like http://localhost:8080/v1/objects/1c9cd584-88fe-5010-83d0-017cb3fcb446
+    Validates an url like 'http://localhost:8080/v1/objects/1c9cd584-88fe-5010-83d0-017cb3fcb446'
     or '/v1/objects/1c9cd584-88fe-5010-83d0-017cb3fcb446' references a object. It only validates
     the path format and UUID, not the host or the protocol.
 
@@ -199,7 +199,7 @@ def get_vector(vector: Sequence) -> list:
     ----------
     vector: Sequence
         The embedding of an object. Used only for class objects that do not have a vectorization
-        module. Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`.
+        module. Supported types are `list`, `numpy.ndarray`, `torch.Tensor` and `tf.Tensor`.
 
     Returns
     -------

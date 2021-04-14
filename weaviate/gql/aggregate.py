@@ -75,52 +75,58 @@ class AggregateBuilder(GraphQL):
         Examples
         --------
         The `content` prototype is like this:
-        {
-            'operator': '<operator>',
-            'operands': [
-                {
-                    'path': [path],
-                    'operator': '<operator>'
-                    '<valueType>': <value>
-                },
-                {
-                    'path': [<matchPath>],
-                    'operator': '<operator>',
-                    '<valueType>': <value>
-                }
-            ]
-        }
+
+        >>> content = {
+        ...     'operator': '<operator>',
+        ...     'operands': [
+        ...         {
+        ...             'path': [path],
+        ...             'operator': '<operator>'
+        ...             '<valueType>': <value>
+        ...         },
+        ...         {
+        ...             'path': [<matchPath>],
+        ...             'operator': '<operator>',
+        ...             '<valueType>': <value>
+        ...         }
+        ...     ]
+        ... }
+
         This is a complete `where` filter but it does not have to be like this all the time.
 
         Single operand:
-        content = {
-            'path': ["wordCount"],    # Path to the property that should be used
-            'operator': 'GreaterThan',  # operator
-            'valueInt': 1000          # value (which is always = to the type of the path property)
-        }
+        
+        >>> content = {
+        ...     'path': ["wordCount"],    # Path to the property that should be used
+        ...     'operator': 'GreaterThan',  # operator
+        ...     'valueInt': 1000          # value (which is always = to the type of the path property)
+        ... }
+        
         Or
-        content = {
-            'path': ["id"],
-            'operator': 'Equal',
-            'valueString': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf"
-        }
+        
+        >>> content = {
+        ...     'path': ["id"],
+        ...     'operator': 'Equal',
+        ...     'valueString': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf"
+        ... }
 
         Multiple operands:
-        content = {
-            'operator': 'And',
-            'operands': [
-                {
-                    'path': ["wordCount"],
-                    'operator': 'GreaterThan',
-                    'valueInt': 1000
-                },
-                {
-                    'path': ["wordCount"],
-                    'operator': 'LessThan',
-                    'valueInt': 1500
-                }
-            ]
-        }
+
+        >>> content = {
+        ...     'operator': 'And',
+        ...     'operands': [
+        ...         {
+        ...             'path': ["wordCount"],
+        ...             'operator': 'GreaterThan',
+        ...             'valueInt': 1000
+        ...         },
+        ...         {
+        ...             'path': ["wordCount"],
+        ...             'operator': 'LessThan',
+        ...             'valueInt': 1500
+        ...         }
+        ...     ]
+        ... }
 
         Returns
         -------

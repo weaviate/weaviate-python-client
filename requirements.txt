@@ -1,4 +1,4 @@
-requests>=2.25.1,<2.26
+requests>=2.23.0
 validators>=0.18.2
 tqdm>=4.59.0
 pylint
