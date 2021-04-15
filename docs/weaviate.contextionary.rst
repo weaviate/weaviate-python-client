@@ -5,4 +5,3 @@ weaviate.contextionary
    :members:
    :undoc-members:
    :show-inheritance:
-

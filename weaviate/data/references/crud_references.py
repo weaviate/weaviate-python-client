@@ -118,12 +118,11 @@ class Reference:
             "vectorWeights": null
         }
 
-
         Raises
         ------
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         TypeError
             If parameter has the wrong type.
@@ -231,7 +230,7 @@ class Reference:
         ------
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         TypeError
             If the parameters are of the wrong type.
@@ -276,6 +275,7 @@ class Reference:
         Examples
         --------
         Assume we have two classes, Author and Book.
+        
         >>> # Create the objects first
         >>> client.data_object.create(
         ...     data_object = {'name': 'Ray Bradbury'},
@@ -317,7 +317,7 @@ class Reference:
         ------
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         TypeError
             If the parameters are of the wrong type.
@@ -360,7 +360,7 @@ class Reference:
         ------
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         TypeError
             If the parameters are of the wrong type.

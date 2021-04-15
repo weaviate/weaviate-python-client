@@ -141,7 +141,7 @@ class Client:
 
         Raises
         ------
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -161,7 +161,7 @@ class Client:
 
         Raises
         ------
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 

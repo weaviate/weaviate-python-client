@@ -78,26 +78,8 @@ class WCS(weaviate.connect.Connection):
         module: str or dict, optional
             The vectorizer module to use. Supported only on DEV environment WCS.
             The module configuration looks like this:
-            { 
-                "name": MODULE_NAME
-                "tag": MODULE_TAG
-            }
-            If the `module` is str then it is going to beused as the MODULE_NAME with a default tag
-            for that given MODULE_NAME. If `module` is a dict then it should have the above
-            structure. Examples:
-
-            # contextionary
-            { 
-                "name": "text2vec-contextionary",
-                "tag": "en0.16.0-v1.0.0" # this is the default tag
-            }
-
-            # transformers
-            { 
-                "name": "text2vec-transformers",
-                "tag": "distilbert-base-uncased" # or another transformer model from 
-                                                 # https://huggingface.co/models
-            }
+            {"name": MODULE_NAME, "tag": MODULE_TAG}
+            See examples below.
         config : dict, optional
             Cluster configuration. If it is NOT None then `cluster_name`, `cluster_type`,
             `module` are ignored and the whole cluster configuration should be in this argument,
@@ -105,6 +87,27 @@ class WCS(weaviate.connect.Connection):
         wait_for_completion : bool, optional
             Whether to wait until the cluster is built,
             by default True
+
+        Examples
+        --------
+        If the `module` is str then it is going to beused as the MODULE_NAME with a default tag
+        for that given MODULE_NAME. If `module` is a dict then it should have the above
+        structure.
+
+        Contextionary:
+
+        >>> { 
+        ...     "name": "text2vec-contextionary",
+        ...     "tag": "en0.16.0-v1.0.0" # this is the default tag
+        ... }
+
+        Transformers:
+
+        >>> { 
+        ...     "name": "text2vec-transformers",
+        ...     "tag": "distilbert-base-uncased" # or another transformer model from 
+        ...                                         # https://huggingface.co/models
+        ... }
 
         Returns
         -------

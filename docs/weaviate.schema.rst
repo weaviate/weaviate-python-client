@@ -7,7 +7,7 @@ weaviate.schema
    :show-inheritance:
 
 weaviate.schema.properties
------------
+--------------------------
 
 .. toctree::
    :maxdepth: 4

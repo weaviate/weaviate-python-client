@@ -4,4 +4,4 @@ tqdm>=4.59.0
 pylint
 coverage
 twine
-Sphinx>=3.5.4
+Sphinx==3.5.4

@@ -5,4 +5,3 @@ weaviate.batch
    :members:
    :undoc-members:
    :show-inheritance:
-

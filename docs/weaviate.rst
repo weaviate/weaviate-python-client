@@ -24,5 +24,3 @@ Subpackages
    weaviate.schema
    weaviate.tools
    weaviate.util
-
-

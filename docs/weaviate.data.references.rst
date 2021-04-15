@@ -5,4 +5,3 @@ weaviate.data.references
    :members:
    :undoc-members:
    :show-inheritance:
-

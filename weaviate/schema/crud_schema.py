@@ -70,16 +70,16 @@ class Schema:
 
         Raises
         ------
-            TypeError
-                If the 'schema' is neither a string nor a dict.
-            ValueError
-                If 'schema' can not be converted into a weaviate schema.
-            ConnectionError
-                If the network connection to weaviate fails.
-            UnexpectedStatusCodeException
-                If weaviate reports a none OK status.
-            SchemaValidationException
-                If the 'schema' could not be validated against the standard format.
+        TypeError
+            If the 'schema' is neither a string nor a dict.
+        ValueError
+            If 'schema' can not be converted into a weaviate schema.
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.exceptions.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        weaviate.exceptions.SchemaValidationException
+            If the 'schema' could not be validated against the standard format.
         """
 
         loaded_schema = _get_dict_from_object(schema)
@@ -124,16 +124,16 @@ class Schema:
 
         Raises
         ------
-            TypeError
-                If the 'schema_class' is neither a string nor a dict.
-            ValueError
-                If 'schema_class' can not be converted into a weaviate schema.
-            ConnectionError
-                If the network connection to weaviate fails.
-            UnexpectedStatusCodeException
-                If weaviate reports a none OK status.
-            SchemaValidationException
-                If the 'schema_class' could not be validated against the standard format.
+        TypeError
+            If the 'schema_class' is neither a string nor a dict.
+        ValueError
+            If 'schema_class' can not be converted into a weaviate schema.
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.exceptions.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        weaviate.exceptions.SchemaValidationException
+            If the 'schema_class' could not be validated against the standard format.
         """
 
         loaded_schema_class = _get_dict_from_object(schema_class)
@@ -161,7 +161,7 @@ class Schema:
             If 'class_name' argument not of type str.
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -295,7 +295,7 @@ class Schema:
         ------
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -321,7 +321,7 @@ class Schema:
         ------
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -381,7 +381,7 @@ class Schema:
         ------
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 

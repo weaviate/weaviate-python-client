@@ -67,19 +67,19 @@ class Connection:
 
         Raises
         ------
-        AuthenticationFailedException
+        weaviate.exceptions.AuthenticationFailedException
             If cannot connect to weaviate.
-        AuthenticationFailedException
+        weaviate.exceptions.AuthenticationFailedException
             If cannot authenticate http status not ok.
-        AuthenticationFailedException
+        weaviate.exceptions.AuthenticationFailedException
             If cannot connect to the third party authentication service.
-        AuthenticationFailedException
+        weaviate.exceptions.AuthenticationFailedException
             If status not OK in connection to the third party authentication service.
-        AuthenticationFailedException
+        weaviate.exceptions.AuthenticationFailedException
             If the grant_types supported by the thirdparty authentication service are insufficient.
-        AuthenticationFailedException
+        weaviate.exceptions.AuthenticationFailedException
             If unable to get a OAuth token from server.
-        AuthenticationFailedException
+        weaviate.exceptions.AuthenticationFailedException
             If authtentication access denied.
         """
 
@@ -114,7 +114,7 @@ class Connection:
 
         Raises
         ------
-        AuthenticationFailedException
+        weaviate.exceptions.AuthenticationFailedException
             If authentication failed.
         """
 

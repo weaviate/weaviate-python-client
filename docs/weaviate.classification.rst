@@ -5,4 +5,3 @@ weaviate.classification
    :members:
    :undoc-members:
    :show-inheritance:
-

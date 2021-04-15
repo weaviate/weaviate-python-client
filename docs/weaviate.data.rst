@@ -13,4 +13,3 @@ weaviate.data.references
    :maxdepth: 4
 
    weaviate.data.references
-
