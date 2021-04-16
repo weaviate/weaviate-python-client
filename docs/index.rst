@@ -22,7 +22,14 @@ A python native client for easy interaction with a weaviate instance.
 
 The client is tested for python 3.6 and higher.
 
-Visit the official `SeMi Technology <https://www.semi.technology/>`_ for more information about the Weaviate and how to use it in production.
+Visit the official `SeMi Technology <https://www.semi.technology/>`_ website for more information about the Weaviate and how to use it in production.
+
+Here are some articles on weaviate: 
+
+- `Getting Started with the Weaviate Vector Search Engine <https://hackernoon.com/getting-started-with-the-weaviate-search-graph-673q32xn>`_
+- `Getting Started with Weaviate Python Library <https://towardsdatascience.com/getting-started-with-weaviate-python-client-e85d14f19e4f>`_
+- `A sub-50ms neural search with DistilBERT and Weaviate <https://towardsdatascience.com/a-sub-50ms-neural-search-with-distilbert-and-weaviate-4857ae390154>`_
+- `Medium blogs <https://medium.com/semi-technologies>`_
 
 Support
 -------
