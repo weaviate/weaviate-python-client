@@ -5,7 +5,7 @@ language: python
 
 branches:
   only:
-    - weaviate_v1
+    - main
 
 jobs:
   include:
