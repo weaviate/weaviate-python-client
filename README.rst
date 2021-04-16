@@ -12,6 +12,10 @@ Weaviate python client |logo|
     :target: https://badge.fury.io/py/weaviate-client
     :alt: PyPI version
 
+.. image:: https://readthedocs.org/projects/weaviate-python-client/badge/?version=latest
+    :target: https://weaviate-python-client.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+
 A python native client for easy interaction with a weaviate instance.
 
 The client is tested for python 3.6 and higher.
@@ -34,7 +38,8 @@ Here are some articles on weaviate:
 Documentation
 -------------
 
-- `Documentation <https://www.semi.technology/developers/weaviate/current/client-libraries/python.html>`_.
+- `Documentation <https://weaviate-python-client.rtfd.io>`_
+- Examples on how to use `weaviate-python` can also be found `here <https://www.semi.technology/developers/weaviate/current/client-libraries/python.html>`_.
 
 Support
 -------

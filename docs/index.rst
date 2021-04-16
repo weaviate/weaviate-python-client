@@ -51,7 +51,7 @@ Weaviate Python Library
 Support
 -------
 
-- Use our `Slack Channel <https://join.slack.com/t/weaviate/shared_invite/zt-goaoifjr-o8FuVz9b1HLzhlUfyfddhw>`_ for suppotr or any other question.
+- Use our `Slack Channel <https://join.slack.com/t/weaviate/shared_invite/zt-goaoifjr-o8FuVz9b1HLzhlUfyfddhw>`_ for support or any other question.
 - Use the ``weaviate`` tag on `Stackoverflow <https://stackoverflow.com/questions/tagged/weaviate>`_  for questions.
 - For bugs and/or problems with the package submit a Github `issue <https://github.com/semi-technologies/weaviate-python-client/issues>`_.
 
