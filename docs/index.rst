@@ -24,28 +24,40 @@ The client is tested for python 3.6 and higher.
 
 Visit the official `SeMi Technology <https://www.semi.technology/>`_ website for more information about the Weaviate and how to use it in production.
 
+Check out our `Command Line Interface (CLI) tool <https://pypi.org/project/weaviate-cli/>`_ for interacting with a Weaviate instance directly from your Terminal.
+
+.. contents:: Table of Contents
+    :depth: 2
+
+Articles
+--------
+
 Here are some articles on weaviate: 
 
-- `Getting Started with the Weaviate Vector Search Engine <https://hackernoon.com/getting-started-with-the-weaviate-search-graph-673q32xn>`_
+- `Semantic Search Queries Return More Informed Results <https://hackernoon.com/semantic-search-queries-return-more-informed-results-nr5335nw>`_
 - `Getting Started with Weaviate Python Library <https://towardsdatascience.com/getting-started-with-weaviate-python-client-e85d14f19e4f>`_
 - `A sub-50ms neural search with DistilBERT and Weaviate <https://towardsdatascience.com/a-sub-50ms-neural-search-with-distilbert-and-weaviate-4857ae390154>`_
-- `Medium blogs <https://medium.com/semi-technologies>`_
+- `SeMI Technology Medium blogs <https://medium.com/semi-technologies>`_
 
-Support
--------
 
-- Use the ``weaviate`` tag on `Stackoverflow <https://stackoverflow.com/questions/tagged/weaviate>`_  for questions.
-- For bugs and/or problems with the package submit a Github `issue <https://github.com/semi-technologies/weaviate-python-client/issues>`_.
-
+Weaviate Python Library
+-----------------------
 .. toctree::
    :maxdepth: 3
    :caption: Contents:
 
-   weaviate 
+   weaviate
+
+Support
+-------
+
+- Use our `Slack Channel <https://join.slack.com/t/weaviate/shared_invite/zt-goaoifjr-o8FuVz9b1HLzhlUfyfddhw>`_ for suppotr or any other question.
+- Use the ``weaviate`` tag on `Stackoverflow <https://stackoverflow.com/questions/tagged/weaviate>`_  for questions.
+- For bugs and/or problems with the package submit a Github `issue <https://github.com/semi-technologies/weaviate-python-client/issues>`_.
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`
+.. * :ref:`modindex`

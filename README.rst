@@ -16,6 +16,21 @@ A python native client for easy interaction with a weaviate instance.
 
 The client is tested for python 3.6 and higher.
 
+Visit the official `SeMi Technology <https://www.semi.technology/>`_ website for more information about the Weaviate and how to use it in production.
+
+Check out our `Command Line Interface (CLI) tool <https://pypi.org/project/weaviate-cli/>`_ for interacting with a Weaviate instance directly from your Terminal.
+
+Articles
+--------
+
+Here are some articles on weaviate: 
+
+- `Semantic Search Queries Return More Informed Results <https://hackernoon.com/semantic-search-queries-return-more-informed-results-nr5335nw>`_
+- `Getting Started with Weaviate Python Library <https://towardsdatascience.com/getting-started-with-weaviate-python-client-e85d14f19e4f>`_
+- `A sub-50ms neural search with DistilBERT and Weaviate <https://towardsdatascience.com/a-sub-50ms-neural-search-with-distilbert-and-weaviate-4857ae390154>`_
+- `SeMI Technology Medium blogs <https://medium.com/semi-technologies>`_
+
+
 Documentation
 -------------
 

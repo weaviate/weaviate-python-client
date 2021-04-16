@@ -1,15 +1,15 @@
 """
 Weaviate Python Client Library used to interact with a Weaviate instance.
 
-The interaction with Weaviate instance should be through a Client object. A Client instance
+The interaction with Weaviate instance should be through a `Client` object. A `Client` instance
 has instance attributes to all the object needed to create objects/schema, do classification,
-upload batches, query data, ... Creating separate Schema, DataObject, Batch, Classification,
-Query, Connect, Reference is strongly DISCOURAGED. The Client class creates the needed instances
-and connects all of the to the same Weaviate instance for you.
+upload batches, query data, ... Creating separate `Schema`, `DataObject`, `Batch`,
+`Classification`, `Query`, `Connect`, `Reference` is **STRONGLY DISCOURAGED**. The `Client` class
+creates the needed instances and connects all of them to the same Weaviate instance for you.
 
 Examples
 --------
-A Weaviate instance running on `localhost`, on port 8080. With Authentication disables.
+A Weaviate instance running on `localhost`, on port `8080`. With Authentication disables.
 
 >>> import weaviate
 >>> client = weaviate.Client('http://localhost:8080')
