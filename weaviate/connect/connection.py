@@ -67,19 +67,19 @@ class Connection:
 
         Raises
         ------
-        AuthenticationFailedException
+        weaviate.exceptions.AuthenticationFailedException
             If cannot connect to weaviate.
-        AuthenticationFailedException
+        weaviate.exceptions.AuthenticationFailedException
             If cannot authenticate http status not ok.
-        AuthenticationFailedException
+        weaviate.exceptions.AuthenticationFailedException
             If cannot connect to the third party authentication service.
-        AuthenticationFailedException
+        weaviate.exceptions.AuthenticationFailedException
             If status not OK in connection to the third party authentication service.
-        AuthenticationFailedException
+        weaviate.exceptions.AuthenticationFailedException
             If the grant_types supported by the thirdparty authentication service are insufficient.
-        AuthenticationFailedException
+        weaviate.exceptions.AuthenticationFailedException
             If unable to get a OAuth token from server.
-        AuthenticationFailedException
+        weaviate.exceptions.AuthenticationFailedException
             If authtentication access denied.
         """
 
@@ -114,7 +114,7 @@ class Connection:
 
         Raises
         ------
-        AuthenticationFailedException
+        weaviate.exceptions.AuthenticationFailedException
             If authentication failed.
         """
 
@@ -264,12 +264,17 @@ class Connection:
     @property
     def timeout_config(self):
         """
-        Getter for the `timeout_config`.
+        Getter/setter for `timeout_config`.
 
+        Parameters
+        ----------
+        timeout_config : tuple(int, int) or list[int, int]
+            For Setter only: Timeout config as a tuple of (retries, time out seconds).
+        
         Returns
         -------
         tuple
-            Timeout config as a tuple of (retries, time out seconds).
+            For Getter only: Timeout config as a tuple of (retries, time out seconds).
         """
 
         return self._timeout_config

@@ -1,7 +1,4 @@
 requests>=2.23.0
 validators>=0.18.2
 tqdm>=4.59.0
-pylint
-coverage
-twine
 Sphinx==3.5.4

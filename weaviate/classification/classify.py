@@ -55,7 +55,7 @@ class Classification:
             If not a proper uuid.
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 

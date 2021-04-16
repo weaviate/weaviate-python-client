@@ -49,11 +49,11 @@ class Property:
         ------
         TypeError
             If 'schema_class_name' is of wrong type.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.SchemaValidationException
+        weaviate.exceptions.SchemaValidationException
             If the 'schema_property' is not valid.
         """
 
@@ -91,11 +91,11 @@ class Property:
     #     ------
     #     TypeError
     #         If argument/s is/are of wrong type/s.
-    #     weaviate.UnexpectedStatusCodeException
+    #     wweaviate.exceptions.UnexpectedStatusCodeException
     #         If weaviate reports a none OK status.
     #     requests.exceptions.ConnectionError
     #         If the network connection to weaviate fails.
-    #     weaviate.SchemaValidationException
+    #     weaviate.exceptions.SchemaValidationException
     #         If the 'schema_property' is not valid.
     #     """
 

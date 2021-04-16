@@ -16,7 +16,7 @@ def validate_schema(schema: dict) -> None:
 
     Raises
     ------
-    SchemaValidationException
+    weaviate.exceptions.SchemaValidationException
         If the schema could not be validated against the standard format.
     """
 
@@ -43,7 +43,7 @@ def check_class(class_definition: dict) -> None:
 
     Raises
     ------
-    SchemaValidationException
+    weaviate.exceptions.SchemaValidationException
         If the class could not be validated against the standard class format.
     """
 
@@ -81,7 +81,7 @@ def check_property(class_property: dict) -> None:
 
     Raises
     ------
-    SchemaValidationException
+    weaviate.exceptions.SchemaValidationException
         If the class property could not be validated against\
         the standard class property format.
     """
@@ -127,7 +127,7 @@ def _check_key_type(key: str, value: Any, expected_type: Any) -> None:
 
     Raises
     ------
-    SchemaValidationException
+    weaviate.exceptions.SchemaValidationException
         If the 'value' is of wrong data type.
     """
 

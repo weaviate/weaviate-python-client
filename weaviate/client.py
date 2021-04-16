@@ -12,7 +12,25 @@ from .auth import AuthCredentials
 
 class Client:
     """
-    A python native weaviate client.
+    A python native weaviate Client class that encapsulates Weaviate functionalities in one object.
+    A Client instance creates all the needed objects to interact with Weaviate, and connects all of
+    them to the same Weaviate instance. See below the Attributes of the Client instance. For the
+    per attribute functionality see that attribute's documentation. 
+
+    Attributes
+    ----------
+    classification : weaviate.classification.Classification
+        A Classification object instance connected to the same Weaviate instance as the Client.
+    schema : weaviate.schema.Schema
+        A Schema object instance connected to the same Weaviate instance as the Client.
+    contextionary : weaviate.contextionary.Contextionary
+        A Contextionary object instance connected to the same Weaviate instance as the Client.
+    batch : weaviate.batch.Batch
+        A Batch object instance connected to the same Weaviate instance as the Client.
+    data_object : weaviate.date.DataObject
+        A DataObject object instance connected to the same Weaviate instance as the Client.
+    query : weaviate.gql.Query
+        A Query object instance connected to the same Weaviate instance as the Client.
     """
 
     def __init__(self,
@@ -36,16 +54,17 @@ class Client:
         Examples
         --------
         Without Auth.
+
         >>> client = Client(
         ...     url = 'http://localhost:8080'
         ... )
-
         >>> client = Client(
         ...     url = 'http://localhost:8080',
         ...     timeout_config = (5, 15)
         ... )
 
         With Auth.
+
         >>> my_credentials = weaviate.auth.AuthClientPassword(USER_NAME, MY_PASSWORD)
         >>> client = Client(
         ...     url = 'http://localhost:8080',
@@ -122,7 +141,7 @@ class Client:
 
         Raises
         ------
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -142,7 +161,7 @@ class Client:
 
         Raises
         ------
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -156,12 +175,17 @@ class Client:
     @property
     def timeout_config(self):
         """
-        Getter for `timeout_config`.
+        Getter/setter for `timeout_config`.
 
+        Parameters
+        ----------
+        timeout_config : tuple(int, int) or list[int, int]
+            For Setter only: Timeout config as a tuple of (retries, time out seconds).
+        
         Returns
         -------
         tuple
-            Timeout config as a tuple of (retries, time out seconds).
+            For Getter only: Timeout config as a tuple of (retries, time out seconds).
         """
 
         return self._connection.timeout_config

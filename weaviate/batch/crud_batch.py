@@ -92,9 +92,11 @@ class Batch:
         NOTE: The same is NOT true for ReferenceBatchRequest objects.
 
         Object that does not exist in weaviate.
+
         >>> object_1 = '154cbccd-89f4-4b29-9c1b-001a3339d89d'
 
         Objects that exist in weaviate.
+
         >>> object_2 = '154cbccd-89f4-4b29-9c1b-001a3339d89c'
         >>> object_3 = '254cbccd-89f4-4b29-9c1b-001a3339d89a'
         >>> object_4 = '254cbccd-89f4-4b29-9c1b-001a3339d89b'
@@ -159,7 +161,7 @@ class Batch:
         ------
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -276,7 +278,7 @@ class Batch:
         ------
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -300,9 +302,11 @@ class Batch:
         Examples
         --------
         Object that does not exist in weaviate.
+
         >>> object_1 = '154cbccd-89f4-4b29-9c1b-001a3339d89d'
 
         Objects that exist in weaviate.
+        
         >>> object_2 = '154cbccd-89f4-4b29-9c1b-001a3339d89c'
         >>> object_3 = '254cbccd-89f4-4b29-9c1b-001a3339d89a'
         >>> object_4 = '254cbccd-89f4-4b29-9c1b-001a3339d89b'
@@ -359,7 +363,7 @@ class Batch:
         ------
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 

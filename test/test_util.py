@@ -225,7 +225,7 @@ class TestUtil(unittest.TestCase):
         path = '/'.join(__file__.split('/')[:-1])
         self.assertEqual(_get_dict_from_object(f'{path}/schema/schema_company.json'), schema_company)
         # read from URL
-        path = "https://raw.githubusercontent.com/semi-technologies/weaviate-python-client/weaviate_v1/test/schema/schema_company.json"
+        path = "https://raw.githubusercontent.com/semi-technologies/weaviate-python-client/main/test/schema/schema_company.json"
         self.assertEqual(_get_dict_from_object(path), schema_company)
 
     def test_is_weaviate_object_url(self):

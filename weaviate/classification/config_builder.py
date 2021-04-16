@@ -255,7 +255,7 @@ class ConfigBuilder:
         ------
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             Unexpected error.
         """
 

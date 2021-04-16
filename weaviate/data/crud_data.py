@@ -17,7 +17,13 @@ from weaviate.data.references import Reference
 class DataObject:
     """
     DataObject class used to manipulate object to/from weaviate.
+
+    Attributes
+    ----------
+    reference : weaviate.data.references.Reference
+        A Reference object to create objects cross-references.
     """
+
     def __init__(self, connection: Connection):
         """
         Initialize a DataObject class instance.
@@ -59,13 +65,13 @@ class DataObject:
 
         Examples
         --------
-        >>> # schema contains a class Author with only 'name' and 'age' primitive property.
+        Schema contains a class Author with only 'name' and 'age' primitive property.
+
         >>> client.data_object.create(
         ...     data_object = {'name': 'Neil Gaiman', 'age': 60},
         ...     class_name = 'Author',
         ... )
         '46091506-e3a0-41a4-9597-10e3064d8e2d'
-
         >>> client.data_object.create(
         ...     data_object = {'name': 'Andrzej Sapkowski', 'age': 72},
         ...     class_name = 'Author',
@@ -207,7 +213,7 @@ class DataObject:
             If argument contains an invalid value.
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none successful status.
         """
 
@@ -310,7 +316,7 @@ class DataObject:
             If argument contains an invalid value.
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -385,7 +391,7 @@ class DataObject:
             If argument contains an invalid value.
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -429,7 +435,7 @@ class DataObject:
             If argument contains an invalid value.
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -477,7 +483,7 @@ class DataObject:
         ------
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         TypeError
             If parameter has the wrong type.
@@ -531,7 +537,7 @@ class DataObject:
         ------
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         TypeError
             If parameter has the wrong type.
@@ -575,12 +581,12 @@ class DataObject:
         Examples
         --------
         Assume we have a Author class only 'name' property, NO 'age'.
+
         >>> client1.data_object.validate(
         ...     data_object = {'name': 'H. Lovecraft'},
         ...     class_name = 'Author'
         ... )
         {'error': None, 'valid': True}
-
         >>> client1.data_object.validate(
         ...     data_object = {'name': 'H. Lovecraft', 'age': 46},
         ...     class_name = 'Author'
@@ -599,11 +605,7 @@ class DataObject:
         Returns
         -------
         dict
-            Validation result. E.g.
-            {
-                "valid": bool,
-                "error": None or list
-            }
+            Validation result. E.g. {"valid": bool, "error": None or list}
 
         Raises
         ------
@@ -611,7 +613,7 @@ class DataObject:
             If argument is of wrong type.
         ValueError
             If argument contains an invalid value.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeException
             If validating the object against weavate failed with a different reason.
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.

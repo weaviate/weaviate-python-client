@@ -1,4 +1,8 @@
 """
 Module for classifying objects wthin weaviate.
 """
-from .classify import Classification
+
+__all__ = ['Classification', 'ConfigBuilder']
+
+from .classify import Classification, ConfigBuilder
+
