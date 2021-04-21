@@ -128,7 +128,7 @@ class TestWCS(unittest.TestCase):
         check_error_message(self, error, connection_error_message)
         mock_requests.post.assert_called_with(
             url='https://dev.wcs.api.semi.technology/v1/clusters',
-            data=json.dumps({'id': 'Test_name', 'configuration': {'tier': 'test_type', 'modules': []}}).encode("utf-8"),
+            data=json.dumps({'id': 'Test_name', 'configuration': {'tier': 'test_type', "requiresAuthentication": False, 'modules': []}}).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
             timeout=(2, 20)
         )
@@ -152,7 +152,7 @@ class TestWCS(unittest.TestCase):
         result = wcs.create(cluster_name='my-url')
         mock_requests.post.assert_called_with(
             url='https://dev.wcs.api.semi.technology/v1/clusters',
-            data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', 'modules': []}}).encode("utf-8"),
+            data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', "requiresAuthentication": False, 'modules': []}}).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
             timeout=(2, 20)
         )
@@ -162,7 +162,17 @@ class TestWCS(unittest.TestCase):
         result = wcs.create(cluster_name='my-url', module='test')
         mock_requests.post.assert_called_with(
             url='https://dev.wcs.api.semi.technology/v1/clusters',
-            data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', 'modules': [{'name': 'test'}]}}).encode("utf-8"),
+            data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', "requiresAuthentication": False, 'modules': [{'name': 'test'}]}}).encode("utf-8"),
+            headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
+            timeout=(2, 20)
+        )
+        self.assertEqual(result, 'https://my-url.semi.network')
+
+        mock_requests.post.return_value = Mock(status_code=400, text='Cluster already exists!')
+        result = wcs.create(cluster_name='my-url', module='test', with_auth=True)
+        mock_requests.post.assert_called_with(
+            url='https://dev.wcs.api.semi.technology/v1/clusters',
+            data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', "requiresAuthentication": True, 'modules': [{'name': 'test'}]}}).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
             timeout=(2, 20)
         )
@@ -172,7 +182,7 @@ class TestWCS(unittest.TestCase):
         result = wcs.create(cluster_name='my-url', module={'name': 'test', 'tag': 'test_tag'})
         mock_requests.post.assert_called_with(
             url='https://dev.wcs.api.semi.technology/v1/clusters',
-            data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', 'modules': [{'name': 'test', 'tag': 'test_tag'}]}}).encode("utf-8"),
+            data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', "requiresAuthentication": False, 'modules': [{'name': 'test', 'tag': 'test_tag'}]}}).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
             timeout=(2, 20)
         )
@@ -196,7 +206,7 @@ class TestWCS(unittest.TestCase):
         result = wcs.create(cluster_name='weaviate', wait_for_completion=True)
         mock_requests.post.assert_called_with(
             url='https://dev.wcs.api.semi.technology/v1/clusters',
-            data=json.dumps({'id': 'weaviate', 'configuration': {'tier': 'sandbox', 'modules': []}}).encode("utf-8"),
+            data=json.dumps({'id': 'weaviate', 'configuration': {'tier': 'sandbox', "requiresAuthentication": False, 'modules': []}}).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
             timeout=(2, 20)
         )
@@ -212,7 +222,17 @@ class TestWCS(unittest.TestCase):
         result = wcs.create(cluster_name='my-url')
         mock_requests.post.assert_called_with(
             url='https://wcs.api.semi.technology/v1/clusters',
-            data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox'}}).encode("utf-8"),
+            data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', "requiresAuthentication": False}}).encode("utf-8"),
+            headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
+            timeout=(2, 20)
+        )
+        self.assertEqual(result, 'https://my-url.semi.network')
+
+        mock_requests.post.return_value = Mock(status_code=400, text='Cluster already exists!')
+        result = wcs.create(cluster_name='my-url', with_auth=True)
+        mock_requests.post.assert_called_with(
+            url='https://wcs.api.semi.technology/v1/clusters',
+            data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', "requiresAuthentication": True}}).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
             timeout=(2, 20)
         )
@@ -222,7 +242,7 @@ class TestWCS(unittest.TestCase):
         result = wcs.create(cluster_name='my-url', module='test')
         mock_requests.post.assert_called_with(
             url='https://wcs.api.semi.technology/v1/clusters',
-            data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox'}}).encode("utf-8"),
+            data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', "requiresAuthentication": False}}).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
             timeout=(2, 20)
         )
