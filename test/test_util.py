@@ -396,7 +396,7 @@ class TestUtil(unittest.TestCase):
         # incalid calls 
         type_error_message = "'timeout_config' should be either a tuple or a list!"
         value_error_message = "'timeout_config' must be of length 2!"
-        value_types_error_message = "'timeout_config' must be tupel of int"
+        value_types_error_message = "'timeout_config' must be tuple of int"
         ## wrong type, None
         with self.assertRaises(TypeError) as error:
             _get_valid_timeout_config(None)

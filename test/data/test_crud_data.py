@@ -32,7 +32,7 @@ class TestDataObject(unittest.TestCase):
         # invalid calls
         class_name_error_message = lambda dt: f"Expected class_name of type str but was: {dt}"
         requests_error_message = 'Test! Connection error, object was not added to weaviate.'
-        unexpected_error_message = 'Test! Unexpected exception please report this excetpion in an issue.'
+        unexpected_error_message = 'Test! Unexpected exception please report this exception in an issue.'
 
         # tests
         with self.assertRaises(TypeError) as error:

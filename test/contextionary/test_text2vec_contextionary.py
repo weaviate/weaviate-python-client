@@ -107,7 +107,7 @@ class TestText2VecContextionary(unittest.TestCase):
         # error messages
         requests_error_message = 'Test! Connection error, text2vec-contextionary vector was not retrieved.'
         unexpected_exception_error_message = "text2vec-contextionary vector"
-        unexpected_error_message = 'Test Unexpected exception please report this excetpion in an issue.'
+        unexpected_error_message = 'Test Unexpected exception please report this exception in an issue.'
 
         ## test UnexpectedStatusCodeException
         replace_connection(client, mock_run_rest(status_code=404))

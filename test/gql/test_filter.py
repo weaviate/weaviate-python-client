@@ -1,5 +1,5 @@
 import unittest
-from weaviate.gql.filter import NearText, NearVector, NearObject, WhereFilter
+from weaviate.gql.filter import NearText, NearVector, NearObject, WhereFilter, Ask
 from test.util import check_error_message, check_startswith_error_message
 
 
@@ -587,3 +587,102 @@ class TestWhereFilter(unittest.TestCase):
         test_filter = helper_get_test_filter("valueGeoRange", geo_range)
         result = str(WhereFilter(test_filter))
         self.assertEqual('where: {path: ["name"] operator: Equal valueGeoRange: {"geoCoordinates": {"latitude": 51.51, "longitude": -0.09}, "distance": {"max": 2000}}} ', str(result))
+
+
+class TestWhereFilter(unittest.TestCase):
+
+    def test___init__(self):
+        """
+        Test the `__init__` method.
+        """
+
+        # test exceptions
+        ## error messages
+        content_type_message = lambda dt: f"Ask filter is expected to be type dict but was {dt}"
+        question_value_message = 'Mandatory "question" key not present in the "content"!'
+        question_type_message = lambda dt: f'"question" key value should be of the type str. Given: {dt}'
+        certainty_type_message = lambda dt: f"certainty is expected to be a float but was {dt}"
+        properties_type_message = lambda dt: f"'properties' should be of type list or str! Given type: {dt}"
+
+        with self.assertRaises(TypeError) as error:
+            Ask(None)
+        check_error_message(self, error, content_type_message(type(None)))
+
+        with self.assertRaises(ValueError) as error:
+            Ask({
+                'certainty': 0.1
+            })
+        check_error_message(self, error, question_value_message)
+
+        with self.assertRaises(TypeError) as error:
+            Ask({
+                'question': ["Who is the president of USA?"]
+            })
+        check_error_message(self, error, question_type_message(list))
+
+        with self.assertRaises(TypeError) as error:
+            Ask({
+                'question': "Who is the president of USA?",
+                'certainty': '1.0'
+            })
+        check_error_message(self, error, certainty_type_message(str))
+
+        with self.assertRaises(TypeError) as error:
+            Ask({
+                'question': "Who is the president of USA?",
+                'certainty': 0.8,
+                'properties': ('prop1', "prop2")
+            })
+        check_error_message(self, error, properties_type_message(tuple))
+
+        # valid calls
+
+        content = {
+            'question': "Who is the president of USA?",
+        }
+        ask = Ask(content=content)
+        self.assertEqual(str(ask), f"ask: {{question: \"{content['question']}\"}} ")
+
+        content = {
+            'question': "Who is the president of USA?",
+            'certainty': 0.8,
+        }
+        ask = Ask(content=content)
+        self.assertEqual(
+            str(ask),
+            (
+                f"ask: {{question: \"{content['question']}\""
+                f' certainty: {content["certainty"]}}} '
+            )
+        )
+
+
+        content = {
+            'question': "Who is the president of USA?",
+            'certainty': 0.8,
+            'properties': 'prop1'
+        }
+        ask = Ask(content=content)
+        self.assertEqual(
+            str(ask),
+            (
+                f"ask: {{question: \"{content['question']}\""
+                f' certainty: {content["certainty"]}'
+                f' properties: [\"prop1\"]}} '
+            )
+        )
+
+        content = {
+            'question': "Who is the president of USA?",
+            'certainty': 0.8,
+            'properties': ['prop1', "prop2"]
+        }
+        ask = Ask(content=content)
+        self.assertEqual(
+            str(ask),
+            (
+                f"ask: {{question: \"{content['question']}\""
+                f' certainty: {content["certainty"]}'
+                f' properties: [\"prop1\", \"prop2\"]}} '
+            )
+        )

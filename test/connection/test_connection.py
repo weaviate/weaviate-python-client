@@ -26,7 +26,7 @@ class TestConnection(unittest.TestCase):
         ):
         """
         Check the attributes of the connection value. Assign 'skip' to
-        an attribute to skip testing. The attributes have the dafault constructor values.
+        an attribute to skip testing. The attributes have the default constructor values.
         """
 
         if url != 'skip':
@@ -256,7 +256,7 @@ class TestConnection(unittest.TestCase):
             "insufficient. Please add 'client_credentials'.")
         oauth_error_message = ("Unable to get a OAuth token from server. Are the credentials "
             "and URLs correct?")
-        oauth_status_code_error_message = "Authtentication access denied. Are the credentials correct?"
+        oauth_status_code_error_message = "Authentication access denied. Are the credentials correct?"
 
         # helper function
         def helper_before_call(**kwargs):
