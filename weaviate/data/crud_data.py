@@ -93,7 +93,7 @@ class DataObject:
         weaviate.exceptions.ObjectAlreadyExistsException
             If an object with the given uuid already exists within weaviate.
         weaviate.exceptions.UnexpectedStatusCodeException
-            If creating the object in weavate failed for a different reason,
+            If creating the object in Weaviate failed for a different reason,
             more information is given in the exception.
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
@@ -133,7 +133,7 @@ class DataObject:
             pass
         except Exception as error:
             message = str(error)\
-                    + ' Unexpected exception please report this excetpion in an issue.'
+                    + ' Unexpected exception please report this exception in an issue.'
             raise type(error)(message).with_traceback(sys.exc_info()[2])
 
         if object_does_already_exist:
@@ -570,7 +570,7 @@ class DataObject:
         class_name : str
             Name of the class of the object that should be validated.
         uuid : str, optional
-            The UUID of the object that shoudl be validated against weaviate.
+            The UUID of the object that should be validated against weaviate.
             by default None.
         vector: Sequence, optional
             The embedding of the object that should be validated. Used only class objects that
@@ -614,7 +614,7 @@ class DataObject:
         ValueError
             If argument contains an invalid value.
         weaviate.exceptions.UnexpectedStatusCodeException
-            If validating the object against weavate failed with a different reason.
+            If validating the object against Weaviate failed with a different reason.
         requests.exceptions.ConnectionError
             If the network connection to weaviate fails.
         """
@@ -700,7 +700,7 @@ class DataObject:
 
 def _get_params(additional_properties: Optional[List[str]], with_vector: bool) -> dict:
     """
-    Get underscor properties in the format accepted by weaviate.
+    Get underscore properties in the format accepted by weaviate.
 
     Parameters
     ----------

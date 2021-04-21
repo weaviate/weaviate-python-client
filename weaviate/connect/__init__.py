@@ -1,6 +1,6 @@
 """
-Module communication to a weaviate instance. Used to connect to
-weaviate and run REST requests.
+Module communication to a Weaviate instance. Used to connect to
+Weaviate and run REST requests.
 """
 
 __all__ = ['Connection']

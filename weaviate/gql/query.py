@@ -21,7 +21,7 @@ class Query:
         Parameters
         ----------
         connection : weaviate.connect.Connection
-            Connection object to an active and running weaviate instance.
+            Connection object to an active and running Weaviate instance.
         """
 
         self._connection = connection
@@ -38,7 +38,7 @@ class Query:
         class_name : str
             Class name of the objects to interact with.
         properties : list of str or str
-            Properties of the objetcs to get.
+            Properties of the objects to get.
 
         Returns
         -------

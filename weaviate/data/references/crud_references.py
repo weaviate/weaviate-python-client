@@ -8,7 +8,7 @@ from weaviate.util import get_valid_uuid
 
 class Reference:
     """
-    Reference class used to manipulate refferences within objects.
+    Reference class used to manipulate references within objects.
     """
 
     # This is a class private variable that contains implemented
@@ -164,7 +164,7 @@ class Reference:
             ['http://localhost:8080/v1/objects/fc7eb129-f138-457f-b727-1b29db191a67', ...]
             or
             ['fc7eb129-f138-457f-b727-1b29db191a67', ...]
-            If `str` it is converted internaly into a list of str.
+            If `str` it is converted internally into a list of str.
 
         Examples
         --------

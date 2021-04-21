@@ -80,7 +80,7 @@ class Connection:
         weaviate.exceptions.AuthenticationFailedException
             If unable to get a OAuth token from server.
         weaviate.exceptions.AuthenticationFailedException
-            If authtentication access denied.
+            If authentication access denied.
         """
 
         if self.auth_expires < get_epoch_time():
@@ -159,7 +159,7 @@ class Connection:
 
         if request.status_code == 401:
             raise AuthenticationFailedException(
-                "Authtentication access denied. Are the credentials correct?"
+                "Authentication access denied. Are the credentials correct?"
             )
         self.auth_bearer = request.json()['access_token']
         # -2 for some lagtime
@@ -203,7 +203,7 @@ class Connection:
         weaviate_object : dict, optional
             Object is used as payload, by default None
         params : dict, optional
-            Additional request prameters, by default None
+            Additional request parameters, by default None
 
         Returns
         -------

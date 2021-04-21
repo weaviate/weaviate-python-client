@@ -5,7 +5,7 @@ from weaviate.connect import REST_METHOD_POST, REST_METHOD_GET, Connection
 
 class Contextionary:
     """
-    Contextionary class used to add exted the weaviate contextionary module
+    Contextionary class used to add extend the Weaviate contextionary module
     or to get vector/s of a specific concept.
     """
 
@@ -16,7 +16,7 @@ class Contextionary:
         Parameters
         ----------
         connection : weaviate.connect.Connection
-            Connection object to an active and running weaviate instance.
+            Connection object to an active and running Weaviate instance.
         """
 
         self._connection = connection
@@ -32,13 +32,13 @@ class Contextionary:
         Parameters
         ----------
         concept : str
-            The new concept that should be added that is not in the weaviate
+            The new concept that should be added that is not in the Weaviate
             or needs to be updated, e.g. an abbreviation.
         definition : str
             The definition of the new concept.
         weight : float, optional
             The weight of the new definition compared to the old one,
-            must be inbetween the interval [0.0; 1.0], by default 1.0
+            must be in-between the interval [0.0; 1.0], by default 1.0
 
         Examples
         --------
@@ -51,7 +51,7 @@ class Contextionary:
         Raises
         ------
         TypeError
-            If an argument is not of an approptiate type.
+            If an argument is not of an appropriate type.
         ValueError
             If 'weight' is outside the interval [0.0; 1.0].
         requests.exceptions.ConnectionError
@@ -160,7 +160,7 @@ class Contextionary:
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
         except Exception as error:
             message = str(error)\
-                    + ' Unexpected exception please report this excetpion in an issue.'
+                    + ' Unexpected exception please report this exception in an issue.'
             raise type(error)(message).with_traceback(sys.exc_info()[2])
         else:
             if response.status_code == 200:

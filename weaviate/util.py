@@ -88,7 +88,7 @@ def _get_dict_from_object(object_: Union[str, dict]) -> dict:
 
 def is_weaviate_object_url(url: str) -> bool:
     """
-    Checks if the input follows a normal weaviate 'beacon' like this:
+    Checks if the input follows a normal Weaviate 'beacon' like this:
     'weaviate://localhost/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'
 
     Parameters
@@ -99,7 +99,7 @@ def is_weaviate_object_url(url: str) -> bool:
     Returns
     -------
     bool
-        True if 'input' is an weaviate object URL.
+        True if 'input' is a Weaviate object URL.
         False otherwise.
     """
 
@@ -351,6 +351,6 @@ def _get_valid_timeout_config(timeout_config: Union[Tuple[int, int], List[int]])
     if len(timeout_config) != 2:
         raise ValueError("'timeout_config' must be of length 2!")
     if not (isinstance(timeout_config[0], int) and isinstance(timeout_config[1], int)):
-        raise TypeError("'timeout_config' must be tupel of int")
+        raise TypeError("'timeout_config' must be tuple of int")
 
     return tuple(timeout_config)

@@ -294,8 +294,8 @@ class Batch:
         """
         Creates multiple References at once in weaviate.
         Adding References in batch is faster but it ignors validations like class name
-        and property name, resulting in a SUCESSFUL reference creation of unexisting object
-        types and/or unexisting properties. If the consistency of the References is wanted
+        and property name, resulting in a SUCCESSFUL reference creation of a nonexistent object
+        types and/or a nonexistent properties. If the consistency of the References is wanted
         use 'Client().data_object.reference.add' to have additional validation against the
         weaviate schema. See Examples below.
 
@@ -347,7 +347,7 @@ class Batch:
         ]
 
         Both references were added successfully but one of them is corrupted (links two objects
-        of unexisting class and one of the objects is not yet created).
+        of nonexisting class and one of the objects is not yet created).
 
         Parameters
         ----------

@@ -1,5 +1,5 @@
 """
-Module for uploading objects and references to weaviate in batches.
+Module for uploading objects and references to Weaviate in batches.
 """
 
 from .crud_batch import Batch

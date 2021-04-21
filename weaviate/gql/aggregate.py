@@ -8,7 +8,7 @@ from .filter import WhereFilter, GraphQL
 
 class AggregateBuilder(GraphQL):
     """
-    AggregateBuilder class used to aggregate weaviate objects.
+    AggregateBuilder class used to aggregate Weaviate objects.
     """
 
     def __init__(self, class_name: str, connection: Connection):
@@ -20,7 +20,7 @@ class AggregateBuilder(GraphQL):
         class_name : str
             Class name of the objects to be aggregated.
         connection : weaviate.connect.Connection
-            Connection object to an active and running weaviate instance.
+            Connection object to an active and running Weaviate instance.
         """
 
         super().__init__(connection)

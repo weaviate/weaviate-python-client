@@ -11,7 +11,7 @@ class Batcher:
     """
     Manages batches and batch loading. Autocommits both Objects and References
     when the batcher reacher the allocated size. It resets after the batch is
-    loaded to the weaviate, and can be reused.
+    loaded to the Weaviate, and can be reused.
     """
 
     def __init__(self,
@@ -318,7 +318,7 @@ class AutoCommitWatchdog(threading.Thread):
 
     def run(self):
         """
-        Run autocomit.
+        Run autocommit.
         """
         while not self.is_closed:
             now = time.time()

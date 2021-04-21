@@ -46,7 +46,7 @@ class Client:
         url : str
             The URL to the weaviate instance.
         auth_client_secret : weaviate.AuthCredentials, optional
-            Authentification client secret, by default None.
+            Authentication client secret, by default None.
         timeout_config : tuple(int, int), optional
             Set the timeout config as a tuple of (retries, time out seconds),
             by default None.
@@ -97,12 +97,12 @@ class Client:
 
     def is_ready(self) -> bool:
         """
-        Ping weaviates ready state
+        Ping Weaviate's ready state
 
         Returns
         -------
         bool
-            True if weaviate is ready to accept requests,
+            True if Weaviate is ready to accept requests,
             False otherwise.
         """
 
@@ -116,7 +116,7 @@ class Client:
 
     def is_live(self) -> bool:
         """
-        Ping weaviates live state.
+        Ping Weaviate's live state.
 
         Returns
         --------

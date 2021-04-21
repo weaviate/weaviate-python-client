@@ -1,5 +1,5 @@
 """
-Module used to automaticaly submit batches to weaviate.
+Module used to automatically submit batches to Weaviate.
 """
 
 __all__ = ['Batcher', 'WCS', 'generate_uuid']

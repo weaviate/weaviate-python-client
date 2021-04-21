@@ -1,5 +1,5 @@
 """
-Module for adding, deleting and updating references inbetween objects.
+Module for adding, deleting and updating references in-between objects.
 """
 
 __all__ = ['Reference']

@@ -7,7 +7,7 @@ from .config_builder import ConfigBuilder
 class Classification:
     """
     Classification class used to schedule and/or check the status of
-    a classification process of weaviate objects.
+    a classification process of Weaviate objects.
     """
 
     def __init__(self, connection: Connection):
@@ -17,14 +17,14 @@ class Classification:
         Parameters
         ----------
         connection : weaviate.connect.Connection
-            Connection object to an active and running weaviate instance.
+            Connection object to an active and running Weaviate instance.
         """
 
         self._connection = connection
 
     def schedule(self) -> ConfigBuilder:
         """
-        Schedule a Classification of the Objects within weaviate.
+        Schedule a Classification of the Objects within Weaviate.
 
         Returns
         -------
@@ -47,7 +47,7 @@ class Classification:
         Returns
         -------
         dict
-            A dict containing the weaviate answer.
+            A dict containing the Weaviate answer.
 
         Raises
         ------

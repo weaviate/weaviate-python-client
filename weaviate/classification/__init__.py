@@ -1,5 +1,5 @@
 """
-Module for classifying objects wthin weaviate.
+Module for classifying objects within Weaviate.
 """
 
 __all__ = ['Classification', 'ConfigBuilder']
