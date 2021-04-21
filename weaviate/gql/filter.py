@@ -69,10 +69,25 @@ class GraphQL(ABC):
         raise UnexpectedStatusCodeException("Query was not successful", response)
 
 
-class Near(ABC):
+class Filter(ABC):
     """
-    A base abstract class for `near` filters, such as `nearText`, `nearVector` or `nearObject`.
+    A base abstract class for all filters.
     """
+
+    def __init__(self, content: dict):
+        """
+        Initialize a Filter class instance.
+
+        Parameters
+        ----------
+        content : dict
+            The content of the `Filter` clause.
+        """
+
+        
+        if not isinstance(content, dict):
+            raise TypeError(f"{self.__class__.__name__} filter is expected to "
+                f"be type dict but was {type(content)}")
 
     @abstractmethod
     def __str__(self) -> str:
@@ -81,9 +96,10 @@ class Near(ABC):
         """
 
 
-class NearText(Near):
+class NearText(Filter):
     """
-    NearText class used to filter weaviate objects.
+    NearText class used to filter weaviate objects. Can be used with text models only (text2vec).
+    E.g.: text2vec-contextionary, text2vec-transformers.
     """
 
     def __init__(self, content: dict):
@@ -99,13 +115,12 @@ class NearText(Near):
         ------
         TypeError
             If 'content' is not of type dict.
-        TypeError
+        ValueError
             If 'content'  has key "certainty" but the value is not float.
         """
 
-        if not isinstance(content, dict):
-            raise TypeError(f"{self.__class__.__name__} filter is expected to "
-                f"be type dict but was {type(content)}")
+        super().__init__(content)
+
         _content = deepcopy(content)
         _check_concept(_content)
         self.concepts = _content["concepts"]
@@ -142,9 +157,9 @@ class NearText(Near):
         return near_text + '} '
 
 
-class NearVector(Near):
+class NearVector(Filter):
     """
-    NearVector class used to filter weaviate objects.
+    NearVector class used to filter weaviate objects. 
     """
 
     def __init__(self, content: dict):
@@ -166,11 +181,11 @@ class NearVector(Near):
             If 'content["vector"]' is not of type list.
         AttributeError
             If invalid 'content' keys are provided.
+        ValueError
+            If 'content'  has key "certainty" but the value is not float.
         """
 
-        if not isinstance(content, dict):
-            raise TypeError(f"{self.__class__.__name__} filter is expected to "
-                f"be type dict but was {type(content)}")
+        super().__init__(content)
 
         _content = deepcopy(content)
         if "vector" not in content:
@@ -191,7 +206,7 @@ class NearVector(Near):
         return near_vector + '} '
 
 
-class NearObject(Near):
+class NearObject(Filter):
     """
     NearObject class used to filter weaviate objects.
     """
@@ -209,13 +224,13 @@ class NearObject(Near):
         ------
         TypeError
             If 'content' is not of type dict.
-        TypeError
+        ValueError
             If 'content'  has key "certainty" but the value is not float.
+        TypeError
+            If 'id'/'beacon' key does not have a value of type str!
         """
 
-        if not isinstance(content, dict):
-            raise TypeError(f"{self.__class__.__name__} filter is expected to "
-                f"be type dict but was {type(content)}")
+        super().__init__(content)
 
         if ('id' in content) == ('beacon' in content):
             raise ValueError("The 'content' argument should contain EITHER `id` OR `beacon`!")
@@ -242,7 +257,61 @@ class NearObject(Near):
         return near_object + '} '
 
 
-class WhereFilter:
+class Ask(Filter):
+    """
+    Ask class used to filter weaviate objects by asking a question.
+    """
+
+    def __init__(self, content: dict):
+        """
+        Initialize a Ask class instance.
+
+        Parameters
+        ----------
+        content : list
+            The content of the `ask` clause.
+
+        Raises
+        ------
+        TypeError
+            If 'content' is not of type dict.
+        ValueError
+            If 'content'  has key "certainty" but the value is not float.
+        TypeError
+            If 'content'  has key "properties" but the type is not list or str.
+        """
+
+        super().__init__(content)
+
+        if 'question' not in content:
+            raise ValueError('Mandatory "question" key not present in the "content"!')
+
+        if not isinstance(content['question'], str):
+            raise TypeError('"question" key value should be of the type str. Given: '
+                + str(type(content["question"])))
+
+        if 'certainty' in content:
+            _check_certainty_type(content["certainty"])
+
+        self._content = deepcopy(content)
+
+        if 'properties' in content:
+            if isinstance(content['properties'], str):
+                self._content['properties'] = [content['properties']]
+            elif not isinstance(content['properties'], list):
+                raise TypeError("'properties' should be of type list or str! Given type: "
+                    + str(type(content['properties'])))
+        
+    def __str__(self):
+        ask = f'ask: {{question: \"{self._content["question"]}\"'
+        if 'certainty' in self._content:
+            ask += f' certainty: {self._content["certainty"]}'
+        if 'properties' in self._content:
+            ask += f' properties: {json.dumps(self._content["properties"])}'
+        return ask + '} '
+
+
+class WhereFilter(Filter):
     """
     WhereFilter class used to filter weaviate objects.
     """
@@ -264,9 +333,7 @@ class WhereFilter:
             If a mandatory key is missing in the filter content.
         """
 
-        if not isinstance(content, dict):
-            raise TypeError(f"{self.__class__.__name__} is expected to be type dict but "
-                f"was {type(content)}")
+        super().__init__(content)
 
         if "path" in content:
             self.is_filter = True
@@ -275,7 +342,7 @@ class WhereFilter:
             self.is_filter = False
             self._parse_operator(content)
         else:
-            raise ValueError("Filter is missing required fileds `path` or `operands`."
+            raise ValueError("Filter is missing required fields `path` or `operands`."
                 f" Given: {content}")
 
     def _parse_filter(self, content: dict) -> None:
@@ -488,5 +555,5 @@ def _find_value_type(content: dict) -> str:
     elif "valueGeoRange" in content:
         to_return = "valueGeoRange"
     else:
-        raise ValueError(f"Filter is missing required fileds: {content}")
+        raise ValueError(f"Filter is missing required fields: {content}")
     return to_return

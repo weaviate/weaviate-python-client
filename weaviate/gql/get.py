@@ -2,7 +2,8 @@
 GraphQL `Get` command.
 """
 from typing import List, Union, Optional
-from weaviate.gql.filter import WhereFilter, NearText, NearVector, GraphQL, NearObject, Near
+from weaviate.gql.filter import WhereFilter, NearText, NearVector, GraphQL, NearObject, Filter
+from weaviate.gql.filter import Ask
 from weaviate.connect import Connection
 
 
@@ -24,9 +25,9 @@ class GetBuilder(GraphQL):
         class_name : str
             Class name of the objects to interact with.
         properties : list of str or str
-            Properties of the objetcs to interact with.
+            Properties of the objects to interact with.
         connection : weaviate.connect.Connection
-            Connection object to an active and running weaviate instance.
+            Connection object to an active and running Weaviate instance.
 
         Raises
         ------
@@ -48,7 +49,7 @@ class GetBuilder(GraphQL):
         self._properties = properties
         self._where: Optional[WhereFilter] = None  # To store the where filter if it is added
         self._limit: Optional[str] = None  # To store the limit filter if it is added
-        self._near: Optional[Near] = None # To store the `near` clause if it is added
+        self._near_ask: Optional[Filter] = None # To store the `near`/`ask` clause if it is added
         self._contains_filter = False  # true if any filter is added
 
     def with_where(self, content: dict) -> 'GetBuilder':
@@ -58,7 +59,7 @@ class GetBuilder(GraphQL):
         Parameters
         ----------
         content : dict
-            The content of the where filter to set. See examples below.
+            The content of the `where` filter to set. See examples below.
 
         Examples
         --------
@@ -128,12 +129,13 @@ class GetBuilder(GraphQL):
 
     def with_near_text(self, content: dict) -> 'GetBuilder':
         """
-        Set `nearText` filter.
+        Set `nearText` filter. This filter can be used with text modules (text2vec).
+        E.g.: text2vec-contextionary, text2vec-transformers.
 
         Parameters
         ----------
         content : dict
-            The content of the nearText filter to set. See examples below.
+            The content of the `nearText` filter to set. See examples below.
 
         Examples
         --------
@@ -195,9 +197,10 @@ class GetBuilder(GraphQL):
             If another 'near' filter was already set.
         """
 
-        if self._near is not None:
-            raise AttributeError("Cannot use multiple 'near' filters!")
-        self._near = NearText(content)
+        if self._near_ask is not None:
+            raise AttributeError("Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!")
+        self._near_ask = NearText(content)
         self._contains_filter = True
         return self
 
@@ -208,7 +211,7 @@ class GetBuilder(GraphQL):
         Parameters
         ----------
         content : dict
-            The content of the nearVector filter to set. See examples below.
+            The content of the `nearVector` filter to set. See examples below.
 
         Examples
         --------
@@ -244,7 +247,7 @@ class GetBuilder(GraphQL):
         Or
 
         >>> content = {
-        ...     'vector' : torch.tensor([[.1, .2, .3, .5]]) # it is going to we sqeezed.
+        ...     'vector' : torch.tensor([[.1, .2, .3, .5]]) # it is going to be squeezed.
         ... }
 
         Returns
@@ -258,9 +261,10 @@ class GetBuilder(GraphQL):
             If another 'near' filter was already set.
         """
 
-        if self._near is not None:
-            raise AttributeError("Cannot use multiple 'near' filters!")
-        self._near = NearVector(content)
+        if self._near_ask is not None:
+            raise AttributeError("Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!")
+        self._near_ask = NearVector(content)
         self._contains_filter = True
         return self
 
@@ -271,7 +275,7 @@ class GetBuilder(GraphQL):
         Parameters
         ----------
         content : dict
-            The content of the nearObject filter to set.See examples below.
+            The content of the `nearObject` filter to set. See examples below.
 
         Examples
         --------
@@ -298,9 +302,10 @@ class GetBuilder(GraphQL):
             If another 'near' filter was already set.
         """
 
-        if self._near is not None:
-            raise AttributeError("Cannot use multiple 'near' filters!")
-        self._near = NearObject(content)
+        if self._near_ask is not None:
+            raise AttributeError("Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!")
+        self._near_ask = NearObject(content)
         self._contains_filter = True
         return self
 
@@ -331,6 +336,53 @@ class GetBuilder(GraphQL):
         self._contains_filter = True
         return self
 
+    def with_ask(self, content: dict) -> 'GetBuilder':
+        """
+        Ask a question for which weaviate will retreive the answer from your data.
+        This filter can be used only with QnA module: qna-transformers.
+
+        Parameters
+        ----------
+        content : dict
+            The content of the `ask` filter to set. See examples below.
+        
+        Examples
+        --------
+        Content full prototype:
+
+        >>> content = {
+        ...     'question' : <str>,
+        ...     'certainty': <float>, # Optional
+        ...     'properties': <list of str or str>
+        ... }
+
+        Full content:
+
+        >>> content = {
+        ...     'question' : "What is the NLP?",
+        ...     'certainty': 0.7,
+        ...     'properties': ['body'] # search the answer in these properties only.
+        ... }
+
+        Minimal content:
+
+        >>> content = {
+        ...     'question' : "What is the NLP?"
+        ... }
+
+        Returns
+        -------
+        weaviate.gql.get.GetBuilder
+            Updated GetBuilder.
+        """
+
+        if self._near_ask is not None:
+            raise AttributeError("Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!")
+        self._near_ask = Ask(content)
+        self._contains_filter = True
+        return self
+
     def build(self) -> str:
         """
         Build query filter as a string.
@@ -348,8 +400,8 @@ class GetBuilder(GraphQL):
                 query = query + str(self._where)
             if self._limit is not None:
                 query = query + self._limit
-            if self._near is not None:
-                query = query + str(self._near)
+            if self._near_ask is not None:
+                query = query + str(self._near_ask)
             query += ')'
         query = query + f'{{{" ".join(self._properties)}}}}}}}'
 
