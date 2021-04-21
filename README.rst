@@ -5,7 +5,7 @@ Weaviate python client
     :align: right
     :alt: Weaviate logo
 
-.. image:: https://travis-ci.com/semi-technologies/weaviate-python-client.svg?branch=weaviate_v1
+.. image:: https://travis-ci.com/semi-technologies/weaviate-python-client.svg?branch=main
     :target: https://travis-ci.com/semi-technologies/weaviate-python-client
     :alt: Build Status (Travis CI)
 
@@ -17,7 +17,7 @@ Weaviate python client
     :target: https://weaviate-python-client.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-A python native client for easy interaction with a weaviate instance.
+A python native client for easy interaction with a Weaviate instance.
 
 The client is tested for python 3.6 and higher.
 
@@ -28,7 +28,7 @@ Check out our `Command Line Interface (CLI) tool <https://pypi.org/project/weavi
 Articles
 --------
 
-Here are some articles on weaviate: 
+Here are some articles on Weaviate: 
 
 - `Semantic Search Queries Return More Informed Results <https://hackernoon.com/semantic-search-queries-return-more-informed-results-nr5335nw>`_
 - `Getting Started with Weaviate Python Library <https://towardsdatascience.com/getting-started-with-weaviate-python-client-e85d14f19e4f>`_
@@ -45,7 +45,8 @@ Documentation
 Support
 -------
 
-- Use the ``weaviate`` tag on `Stackoverflow <https://stackoverflow.com/questions/tagged/weaviate>`_  for questions.
+- Use our `Slack Channel <https://join.slack.com/t/weaviate/shared_invite/zt-goaoifjr-o8FuVz9b1HLzhlUfyfddhw>`_ for support or any other question.
+- Use the ``weaviate`` tag on `StackOverflow <https://stackoverflow.com/questions/tagged/weaviate>`_  for questions.
 - For bugs and/or problems with the package submit a Github `issue <https://github.com/semi-technologies/weaviate-python-client/issues>`_.
 
 Contributing
