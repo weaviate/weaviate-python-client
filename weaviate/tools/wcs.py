@@ -61,6 +61,7 @@ class WCS(weaviate.connect.Connection):
     def create(self,
             cluster_name: str=None,
             cluster_type: str='sandbox',
+            with_auth: bool=False,
             module: Optional[Union[str, dict]]=None,
             config: dict=None,
             wait_for_completion: bool=True
@@ -75,6 +76,9 @@ class WCS(weaviate.connect.Connection):
             by default None
         cluster_type : str, optional
             Cluster type, by default 'sandbox'.
+        with_auth : bool, optional
+            Enable the authentication to the cluster about to be created,
+            by default False.
         module: str or dict, optional
             The vectorizer module to use. Supported only on DEV environment WCS.
             The module configuration looks like this:
@@ -90,7 +94,7 @@ class WCS(weaviate.connect.Connection):
 
         Examples
         --------
-        If the `module` is str then it is going to beused as the MODULE_NAME with a default tag
+        If the `module` is str then it is going to be used as the MODULE_NAME with a default tag
         for that given MODULE_NAME. If `module` is a dict then it should have the above
         structure.
 
@@ -128,6 +132,7 @@ class WCS(weaviate.connect.Connection):
                 'id': cluster_name,
                 'configuration': {
                     'tier': cluster_type,
+                    'requiresAuthentication': with_auth
                 }
             }
             if self.dev:
@@ -189,7 +194,7 @@ class WCS(weaviate.connect.Connection):
 
     def get_clusters(self, email: str) -> Optional[List[str]]:
         """
-        Lists all weaviate clusters registerd with the 'email'.
+        Lists all weaviate clusters registered with the 'email'.
 
         Parameters
         ----------
