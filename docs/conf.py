@@ -13,7 +13,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
-
+from weaviate import __version__
 
 # -- Project information -----------------------------------------------------
 
@@ -22,7 +22,7 @@ copyright = '2021, SeMI Technology'
 author = 'SeMI Technology'
 
 # The full version, including alpha/beta/rc tags
-release = '2.3.1'
+release = __version__
 
 
 # -- General configuration ---------------------------------------------------
