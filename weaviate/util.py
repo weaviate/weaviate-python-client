@@ -1,11 +1,69 @@
 """
 Helper functions!
 """
-import json
 import os
+import json
+import base64
 from typing import Union, Sequence, Tuple, List
+from io import BufferedReader
 import validators
 import requests
+
+
+def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
+    """
+    Encode a image in a Weaviate understandable format from a binary read file or by providing
+    the image path.
+
+    Parameters
+    ----------
+    image_or_image_path : str, io.BufferedReader
+        The binary read file or the path to the file.
+
+    Returns
+    -------
+    str
+        Encoded image.
+
+    Raises
+    ------
+    ValueError
+        If the argument is str and does not point to an existing file.
+    TypeError
+        If the argument is of a wrong data type.
+    """
+
+
+    if isinstance(image_or_image_path, str):
+        if not os.path.isfile(image_or_image_path):
+            raise ValueError("No file found at location " + image_or_image_path)
+        with open(image_or_image_path, 'br') as file:
+            content = file.read()
+
+    elif isinstance(image_or_image_path, BufferedReader):
+        content = image_or_image_path.read()
+    else:
+        raise TypeError('"image_or_image_path" should be a image path or a binary read file'
+            ' (io.BufferedReader)')
+    return base64.b64encode(content).decode("utf-8")
+
+
+def image_decoder_b64(encoded_image: str) -> str:
+    """
+    Decode image from a Weaviate format image.
+
+    Parameters
+    ----------
+    encoded_image : str
+        The encoded image.
+
+    Returns
+    -------
+    str
+        Decoded image as a binary string.
+    """
+
+    return base64.b64decode(encoded_image.encode('utf-8'))
 
 
 def generate_local_beacon(to_uuid: str) -> dict:
