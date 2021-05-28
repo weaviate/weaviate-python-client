@@ -8,7 +8,7 @@ from weaviate.schema.properties import Property
 
 
 _PRIMITIVE_WEAVIATE_TYPES_SET = set(["string", "int", "boolean", "number", "date", "text",\
-                                                            "geoCoordinates", "CrossRef"])
+                                    "geoCoordinates", "blob"])
 
 
 class Schema:

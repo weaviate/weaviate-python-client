@@ -509,6 +509,22 @@ class TestSchema(unittest.TestCase):
         self.assertFalse(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
         test_types_list = ["text"]
         self.assertTrue(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        test_types_list = ["int"]
+        self.assertTrue(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        test_types_list = ["number"]
+        self.assertTrue(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        test_types_list = ["string"]
+        self.assertTrue(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        test_types_list = ["boolean"]
+        self.assertTrue(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        test_types_list = ["date"]
+        self.assertTrue(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        test_types_list = ["geoCoordinates"]
+        self.assertTrue(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        test_types_list = ["blob"]
+        self.assertTrue(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        test_types_list = ["string", "int", "boolean", "number", "date", "text", "geoCoordinates", "blob"]
+        self.assertTrue(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
 
     def test__get_primitive_properties(self):
         """
