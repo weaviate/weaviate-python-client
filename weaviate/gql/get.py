@@ -3,8 +3,9 @@ GraphQL `Get` command.
 """
 from typing import List, Union, Optional
 from weaviate.gql.filter import WhereFilter, NearText, NearVector, GraphQL, NearObject, Filter
-from weaviate.gql.filter import Ask
+from weaviate.gql.filter import Ask, NearImage
 from weaviate.connect import Connection
+from weaviate.util import image_encoder_b64
 
 
 class GetBuilder(GraphQL):
@@ -306,6 +307,105 @@ class GetBuilder(GraphQL):
             raise AttributeError("Cannot use multiple 'near' filters, or a 'near' filter along"
                 " with a 'ask' filter!")
         self._near_ask = NearObject(content)
+        self._contains_filter = True
+        return self
+
+    def with_near_image(self, content: dict, encode: bool = True) -> 'GetBuilder':
+        """
+        Set `nearImage` filter.
+
+        Parameters
+        ----------
+        content : dict
+            The content of the `nearObject` filter to set. See examples below.
+        encode : bool, optional
+            Whether to encode the `content["image"]` to base64 and convert to string. If True, the
+            `content["image"]` can be an image path or a file opened in binary read mode. If False,
+            the `content["image"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
+            string that looks like this: b'BASE64ENCODED` but simple 'BASE64ENCODED`).
+            By default True.
+
+        Examples
+        --------
+        Content prototype:
+
+        >>> {
+        ...     'image': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf",
+        ...     'certainty': 0.7 # Optional
+        ... }
+
+        With `encoded` True:
+
+        >>> content = {
+        ...     'image': "my_image_path.png",
+        ...     'certainty': 0.7 # Optional
+        ... }
+        >>> query = client.query.get('Image', 'description')\
+        ...     .with_near_image(content, encode=True) # <- encode MUST be set to True
+
+        OR
+
+        >>> my_image_file = open("my_image_path.png", "br")
+        >>> content = {
+        ...     'image': my_image_file,
+        ...     'certainty': 0.7 # Optional
+        ... }
+        >>> query = client.query.get('Image', 'description')\
+        ...     .with_near_image(content, encode=True) # <- encode MUST be set to True
+        >>> my_image_file.close()
+
+        With `encoded` False:
+
+        >>> from weaviate.util import image_encoder_b64, image_decoder_b64
+        >>> encoded_image = image_encoder_b64("my_image_path.png")
+        >>> content = {
+        ...     'image': encoded_image,
+        ...     'certainty': 0.7 # Optional
+        ... }
+        >>> query = client.query.get('Image', 'description')\
+        ...     .with_near_image(content, encode=False) # <- encode MUST be set to False
+
+        OR
+
+        >>> from weaviate.util import image_encoder_b64, image_decoder_b64
+        >>> with open("my_image_path.png", "br") as my_image_file:
+        ...     encoded_image = image_encoder_b64(my_image_file)
+        >>> content = {
+        ...     'image': encoded_image,
+        ...     'certainty': 0.7 # Optional
+        ... }
+        >>> query = client.query.get('Image', 'description')\
+        ...     .with_near_image(content, encode=False) # <- encode MUST be set to False
+
+        Encode Image yourself:
+
+        >>> import base64
+        >>> with open("my_image_path.png", "br") as my_image_file:
+        ...     encoded_image = base64.b64encode(my_image_file.read()).decode("utf-8")
+        >>> content = {
+        ...     'image': encoded_image,
+        ...     'certainty': 0.7 # Optional
+        ... }
+        >>> query = client.query.get('Image', 'description')\
+        ...     .with_near_image(content, encode=False) # <- encode MUST be set to False
+
+        Returns
+        -------
+        weaviate.gql.get.GetBuilder
+            Updated GetBuilder.
+
+        Raises
+        ------
+        AttributeError
+            If another 'near' filter was already set.
+        """
+
+        if self._near_ask is not None:
+            raise AttributeError("Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!")
+        if encode:
+            content['image'] = image_encoder_b64(content['image'])
+        self._near_ask = NearImage(content)
         self._contains_filter = True
         return self
 
