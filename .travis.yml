@@ -3,9 +3,9 @@ notifications:
     on_success: change
 language: python
 
-branches:
-  only:
-    - main
+# branches:
+#   only:
+#     - main
 
 jobs:
   include:
