@@ -48,7 +48,7 @@ def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
     return base64.b64encode(content).decode("utf-8")
 
 
-def image_decoder_b64(encoded_image: str) -> str:
+def image_decoder_b64(encoded_image: str) -> bytes:
     """
     Decode image from a Weaviate format image.
 
@@ -59,7 +59,7 @@ def image_decoder_b64(encoded_image: str) -> str:
 
     Returns
     -------
-    str
+    bytes
         Decoded image as a binary string.
     """
 

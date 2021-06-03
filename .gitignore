@@ -12,3 +12,5 @@ docker-compose.yml
 *.ipynb
 nohup.out
 .coverage
+
+image.png

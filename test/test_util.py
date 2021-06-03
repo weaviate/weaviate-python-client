@@ -469,10 +469,12 @@ class TestUtil(unittest.TestCase):
         # valid calls
         encrypted_1 = image_encoder_b64('integration/weaviate-logo.png')
         self.assertEqual(encrypted_1, encode_weaviate_logo_b64)
+        self.assertIsInstance(encrypted_1, str)
 
         with open('integration/weaviate-logo.png', 'rb') as file:
             encrypted_2 = image_encoder_b64(file)
         self.assertEqual(encrypted_2, encode_weaviate_logo_b64)
+        self.assertIsInstance(encrypted_2, str)
 
     def test_image_decoder_b64(self):
         """
@@ -485,3 +487,4 @@ class TestUtil(unittest.TestCase):
 
         with open('integration/weaviate-logo.png', 'rb') as file:
             self.assertEqual(decoded, file.read())
+            self.assertIsInstance(decoded, bytes)
