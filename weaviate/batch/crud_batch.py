@@ -24,8 +24,8 @@ class Batch:
     def create(self, batch_request: BatchRequest) -> list:
         """
         Create data in batches, either Objects or References. This does NOT guarantee
-        that each batch item (only Objects) is added/created. This can lead to a succesfull
-        batch creation but unsucessfull per batch item creation. See the Examples below.
+        that each batch item (only Objects) is added/created. This can lead to a successfull
+        batch creation but unsuccessfull per batch item creation. See the Examples below.
 
         Examples
         --------
@@ -43,8 +43,8 @@ class Batch:
 
         >>> result = client.batch.create(batch)
 
-        Successful batch creation even if one data object is inconsistent with the cleint's schema.
-        We can find out more about what objects were succesfully created by analyzing the 'result'
+        Successful batch creation even if one data object is inconsistent with the client's schema.
+        We can find out more about what objects were successfully created by analyzing the 'result'
         variable.
 
         >>> import json
@@ -84,7 +84,7 @@ class Batch:
 
 
         As it can be noticed the first object from the batch was not added/created, but the batch
-        was succesfully created. The batch creation can be successful even if all the objects were
+        was successfully created. The batch creation can be successful even if all the objects were
         NOT created. Check the status of the batch objects to find which object and why creation
         failed. Alternatively use 'Client().data_object.create' for Object creation that throw an
         error if data item is inconsistent or creation/addition failed.
@@ -137,11 +137,11 @@ class Batch:
         ]
 
         Both references were added successfully but one of them is corrupted (links two objects
-        of unexisting class and one of the objects is not yet created).
+        of non-existing class and one of the objects is not yet created).
 
         Adding References in batch is faster but it ignors validations like class name,
-        property name and/or if both objects exist, resulting in a SUCESSFUL reference creation of
-        unexisting object types and/or unexisting properties. If the consistency of the References
+        property name and/or if both objects exist, resulting in a SUCCESSFUL reference creation of
+        non-existing object types and/or non-existing properties. If the consistency of the References
         is wanted use 'Client().data_object.reference.add' to have additional validation against
         the weaviate schema.
 
@@ -199,8 +199,8 @@ class Batch:
     def create_objects(self, objects_batch_request: ObjectsBatchRequest) -> list:
         """
         Creates multiple Objects at once in weaviate. This does not guarantee
-        that each batch item is added/created. This can lead to a succesfull batch creation
-        but unsucessfull per batch item creation. See the example bellow.
+        that each batch item is added/created. This can lead to a successfull batch creation
+        but unsuccessfull per batch item creation. See the example bellow.
 
         Examples
         --------
@@ -218,8 +218,8 @@ class Batch:
 
         >>> result = client.batch.create(batch)
 
-        Successful batch creation even if one data object is inconsistent with the cleint's schema.
-        We can find out more about what objects were succesfully created by analyzing the 'result'
+        Successful batch creation even if one data object is inconsistent with the client's schema.
+        We can find out more about what objects were successfully created by analyzing the 'result'
         variable.
 
         >>> import json
@@ -259,7 +259,7 @@ class Batch:
 
 
         As it can be noticed the first object from the batch was not added/created, but the batch
-        was succesfully created. The batch creation can be successful even if all the objects were
+        was successfully created. The batch creation can be successful even if all the objects were
         NOT created. Check the status of the batch objects to find which object and why creation
         failed. Alternatively use 'Client().data_object.create' for Object creation that throw an
         error if data item is inconsistent or creation/addition failed.

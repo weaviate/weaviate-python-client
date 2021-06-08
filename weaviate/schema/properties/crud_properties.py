@@ -91,7 +91,7 @@ class Property:
     #     ------
     #     TypeError
     #         If argument/s is/are of wrong type/s.
-    #     wweaviate.exceptions.UnexpectedStatusCodeException
+    #     weaviate.exceptions.UnexpectedStatusCodeException
     #         If weaviate reports a none OK status.
     #     requests.exceptions.ConnectionError
     #         If the network connection to weaviate fails.

@@ -179,7 +179,7 @@ class Schema:
 
     def delete_all(self) -> None:
         """
-        Remove the entire schema from the Weavaite instance and all data associated with it.
+        Remove the entire schema from the Weaviate instance and all data associated with it.
 
         Examples
         --------
@@ -442,7 +442,7 @@ def _property_is_primitive(data_type_list: list) -> bool:
     Parameters
     ----------
     data_type_list : list
-        Data types to be checkedif are primitive.
+        Data types to be checked if are primitive.
 
     Returns
     -------
