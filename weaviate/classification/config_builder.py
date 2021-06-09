@@ -93,7 +93,7 @@ class ConfigBuilder:
         Parameters
         ----------
         classify_properties: list
-            A list of properties to clasify.
+            A list of properties to classify.
 
         Returns
         -------

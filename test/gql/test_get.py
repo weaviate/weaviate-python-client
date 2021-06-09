@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch, Mock
 from weaviate.gql.get import GetBuilder
 from test.util import check_error_message
 
@@ -138,6 +139,42 @@ class TestGetBuilder(unittest.TestCase):
         }
         with self.assertRaises(AttributeError) as error:
             GetBuilder("Person", "name", None).with_near_text(near_text).with_near_object(near_object)
+        check_error_message(self, error, near_error_message)
+    
+    @patch('weaviate.gql.get.image_encoder_b64', side_effect=lambda x: 'test_call')
+    def test_build_near_image(self, mock_image_encoder_b64):
+        """
+        Test the `with_near_object` method.
+        """
+
+        near_image = {
+            "image": "test_image",
+            "certainty": 0.55
+        }
+
+        # valid calls
+        ## encode False
+        query = GetBuilder("Person", "name", None).with_near_image(near_image, encode=False).build()
+        self.assertEqual('{Get{Person(nearImage: {image: test_image certainty: 0.55} ){name}}}', query)
+        mock_image_encoder_b64.assert_not_called()
+
+        ## encode True
+        query = GetBuilder("Person", "name", None).with_near_image(near_image, encode=True).build()
+        self.assertEqual('{Get{Person(nearImage: {image: test_call certainty: 0.55} ){name}}}', query)
+        mock_image_encoder_b64.assert_called()
+
+        # invalid calls
+        near_error_message = "Cannot use multiple 'near' filters, or a 'near' filter along with a 'ask' filter!"
+
+        near_text = {
+            "concepts": "computer",
+            "moveTo": {
+                "concepts": ["science"],
+                "force": 0.5
+            },
+        }
+        with self.assertRaises(AttributeError) as error:
+            GetBuilder("Person", "name", None).with_near_text(near_text).with_near_image(near_image)
         check_error_message(self, error, near_error_message)
 
     def test_build_ask(self):

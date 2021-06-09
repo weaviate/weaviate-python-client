@@ -9,7 +9,7 @@ from typing import Optional
 from abc import ABC, abstractmethod
 from weaviate.connect import REST_METHOD_POST, Connection
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
-from weaviate.util import get_vector
+from weaviate.util import get_vector, image_encoder_b64
 
 class GraphQL(ABC):
     """
@@ -309,6 +309,51 @@ class Ask(Filter):
         if 'properties' in self._content:
             ask += f' properties: {json.dumps(self._content["properties"])}'
         return ask + '} '
+
+
+class NearImage(Filter):
+    """
+    NearObject class used to filter weaviate objects.
+    """
+
+    def __init__(self, content: dict, ):
+        """
+        Initialize a NearImage class instance.
+
+        Parameters
+        ----------
+        content : list
+            The content of the `nearImage` clause.
+
+        Raises
+        ------
+        TypeError
+            If 'content' is not of type dict.
+        TypeError
+            If 'content["image"]' is not of type str.
+        ValueError
+            If 'content'  has key "certainty" but the value is not float.
+        """
+
+        super().__init__(content)
+
+        if 'image' not in content:
+            raise ValueError('"content" is missing the mandatory key "image"!')
+        elif not isinstance(content['image'], str):
+            raise TypeError('the "image" value should be of type str, given ' 
+                                f'{type(content["image"])}')
+
+        if "certainty" in content:
+            _check_certainty_type(content["certainty"])
+
+        self._content = deepcopy(content)
+
+
+    def __str__(self):
+        near_image = f'nearImage: {{image: {self._content["image"]}'
+        if 'certainty' in self._content:
+            near_image += f' certainty: {self._content["certainty"]}'
+        return near_image + '} '
 
 
 class WhereFilter(Filter):

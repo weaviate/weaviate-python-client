@@ -1,5 +1,5 @@
 import unittest
-from weaviate.gql.filter import NearText, NearVector, NearObject, WhereFilter, Ask
+from weaviate.gql.filter import NearText, NearVector, NearObject, NearImage, WhereFilter, Ask
 from test.util import check_error_message, check_startswith_error_message
 
 
@@ -445,6 +445,79 @@ class TestNearObject(unittest.TestCase):
             'certainty': 0.0
         })
         self.assertEqual(str(near_object), 'nearObject: {beacon: test_beacon certainty: 0.0} ')
+
+
+class TestNearImage(unittest.TestCase):
+
+    def test___init__(self):
+        """
+        Test the `__init__` method.
+        """
+
+        # invalid calls
+
+        ## error messages 
+        content_error_message = lambda dt: f"NearImage filter is expected to be type dict but was {dt}"
+        image_key_error_message = '"content" is missing the mandatory key "image"!'
+        image_value_error_message = lambda dt: f'the "image" value should be of type str, given {dt}'
+        certainty_error_message = lambda dt: f"certainty is expected to be a float but was {dt}"
+
+        with self.assertRaises(TypeError) as error:
+            NearImage(123)
+        check_error_message(self, error, content_error_message(int))
+
+        with self.assertRaises(ValueError) as error:
+            NearImage({
+                'id': 'image_path.png',
+                'certainty': 456
+            })
+        check_error_message(self, error, image_key_error_message)
+
+        with self.assertRaises(TypeError) as error:
+            NearImage({
+                'image': True
+            })
+        check_error_message(self, error, image_value_error_message(bool))
+
+        with self.assertRaises(TypeError) as error:
+            NearImage({
+                'image': b'True'
+            })
+        check_error_message(self, error, image_value_error_message(bytes))
+
+        with self.assertRaises(TypeError) as error:
+            NearImage({
+                'image': 'the_encoded_image',
+                'certainty': False
+            })
+        check_error_message(self, error, certainty_error_message(bool))
+
+        # valid calls
+
+        NearImage({
+            'image': 'test_image',
+        })
+
+        NearImage({
+            'image': 'test_image_2',
+            'certainty': 0.7
+        })
+
+    def test___str__(self):
+        """
+        Test the `__str__` method.
+        """
+
+        near_object = NearImage({
+            'image': 'test_image',
+        })
+        self.assertEqual(str(near_object), 'nearImage: {image: test_image} ')
+
+        near_object = NearImage({
+            'image': 'test_image',
+            'certainty': 0.7
+        })
+        self.assertEqual(str(near_object), 'nearImage: {image: test_image certainty: 0.7} ')
 
 
 class TestWhereFilter(unittest.TestCase):
