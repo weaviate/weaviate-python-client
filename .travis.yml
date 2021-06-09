@@ -75,3 +75,13 @@ jobs:
         - /bin/bash ci/start_weaviate.sh
       script:
         - python -m integration.client_functions
+
+env:
+  global:
+  - secure: TyQfT2keBQgcp0s7sGQ/288+pDIqhnWgbS5ifqvw4i9bQTg0iwbxHS6LgSvPrlPhATDst51WxuEzJtXK2Ccm0TqV1toJT3t9Js2rrEdPKBxCmTgWfZ+gFrtKaQE/OccwYq/X0mb7m0PumV3DBsUn8/YNGbTivJDRVdVcL0slZ39FqjK8fyz42MV33F4qANnjtGo1Buw+RksmSV+HcfZNsA7OXEqOlkuZDWN71HLfsni6dF14OCelPWQeybtYz6IOoOT2l39GG38YZ74p3SMQPtsmvk5RDeYvi494pUZhbEYHVhZpvhsjpbB2OCq+nV63oVgzrSyzbLv5TyMoA69Ltj9yJVio2KCEPicAp7mZQLLk6O+JUUUEx1ldJQLhvAn8Ok8ucbf2oX47IOePQhTEpaDp1N/5RoBMTR9ojPIesJZL8+158aLlbzuh/E4aoDvxTwlx1E3LvEYciRfHKSMR1eJQsNhKqnpOMv3SdgybVUYyF/M4PjmW7GwJbWCGVJ4b+Wr2Pqsi/ZKE1u7O1ApSPcqDqDvwn5n+yFm8rOMQNUnq5ovet8TuOiu/fo8fmE8zC2ICBo1yeO1iNP/S5nVPLmYQlZKj39V7VrUsc4wtcRVRoOx4AoJnsOzJ/5Pz48Dej0adbQJk28XBm1AvwOOsewCBWySom5GZisdbzLoJv2s=
+  - secure: bMWVQhZO0pHvT9G2DRvsnFn0MbMtz8UU2X3UILhpauBA5MLsvgCE86rdbxDQuruT8vO1MGdqOhtBhTBA+sr9P9TtBCT7yfAxN0Sqkrro9GnCLLW41a3LoyU/DJ6pmI39ntO05hSjb6CXlff+XozjhO+SCf28YAu2o6Uy5oMC1X24eWzX243l31RfXUjtvIIRC9inghDTwPgnK4JUKG4cxBc5qeU5AdWiMmQmd+AtrzCzu1DVcmZbS8xBq/UwBMeZTOjthZHXIyLAyu3GQfAOqhdL/6wnsiiUVM14imDfkVcr18Rp1rimp1gY8JrRiJIY4/nXT+6MJo/fFn+ILR/ks/fQCpcfB62MvjPny5yKtCRtXq4Rxrs7b27x2bjt4vaD7DdIEWUHEw6H7jI8eKQeBgpJuU8APqngR5dfMHMNwZh6wbxQTZoZlcuogTOy40pzeZ0FkxVCKjeF3rHd9weVw9NeN7M9TmxGzJgwXX8DzJcVoeaeIg3PkaRz7dM8ONF5rc8ro62oU1O5iwc8eLxHpa4qgRyQRPeYroo8FqRtLaR/u0oZPqIPfEHd0KmjEy7FfEgu8lNlTS3sQBdhFCJAj5ORBuCa4qyc1QIyiEufa0Km1BfmRrq+6vRbrFNuWRI+mHdf0IXOHXuL0MzAkMby8JuINFumWr8+Z/CK1B3ortM=
+
+before_script:
+  # login to docker at the very beginning, so we don't run into rate-limiting
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+
