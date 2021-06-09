@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "Download the Weaviate docker-compose file"
-curl -s -o docker-compose.yml "https://configuration.semi.technology/v2/docker-compose/docker-compose.yml?contextionary_compound_splitting=false&contextionary_language=en&contextionary_model=0.16.0&enterprise_usage_collector=false&media_type=text&qna_module=false&runtime=docker-compose&text_module=text2vec-contextionary&weaviate_version=v1.3.0"
+curl -s -o docker-compose.yml "https://configuration.semi.technology/v2/docker-compose/docker-compose.yml?contextionary_compound_splitting=false&contextionary_language=en&contextionary_model=0.16.0&enterprise_usage_collector=false&media_type=text&qna_module=false&runtime=docker-compose&text_module=text2vec-contextionary&weaviate_version=v1.4.0"
 
 echo "Run Docker compose"
 nohup docker-compose up -d

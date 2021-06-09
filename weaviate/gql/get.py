@@ -322,7 +322,7 @@ class GetBuilder(GraphQL):
             Whether to encode the `content["image"]` to base64 and convert to string. If True, the
             `content["image"]` can be an image path or a file opened in binary read mode. If False,
             the `content["image"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
-            string that looks like this: b'BASE64ENCODED` but simple 'BASE64ENCODED`).
+            string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
             By default True.
 
         Examples
