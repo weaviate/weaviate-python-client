@@ -2,7 +2,7 @@
 GraphQL `Get` command.
 """
 from typing import List, Union, Optional
-from weaviate.gql.filter import WhereFilter, NearText, NearVector, GraphQL, NearObject, Filter
+from weaviate.gql.filter import Where, NearText, NearVector, GraphQL, NearObject, Filter
 from weaviate.gql.filter import Ask, NearImage
 from weaviate.connect import Connection
 from weaviate.util import image_encoder_b64
@@ -48,7 +48,7 @@ class GetBuilder(GraphQL):
 
         self._class_name = class_name
         self._properties = properties
-        self._where: Optional[WhereFilter] = None  # To store the where filter if it is added
+        self._where: Optional[Where] = None  # To store the where filter if it is added
         self._limit: Optional[str] = None  # To store the limit filter if it is added
         self._near_ask: Optional[Filter] = None # To store the `near`/`ask` clause if it is added
         self._contains_filter = False  # true if any filter is added
@@ -124,7 +124,7 @@ class GetBuilder(GraphQL):
             Updated GetBuilder.
         """
 
-        self._where = WhereFilter(content)
+        self._where = Where(content)
         self._contains_filter = True
         return self
 

@@ -40,6 +40,7 @@ class WCS(weaviate.connect.Connection):
         self.auth_expires = 0  # unix time when auth expires
         self.auth_bearer = 0
         self.auth_client_secret = auth_client_secret
+        self.session = requests.Session()
         self.dev = dev
         if dev:
             url = 'https://dev.wcs.api.semi.technology'
@@ -57,6 +58,13 @@ class WCS(weaviate.connect.Connection):
             self._refresh_authentication()
         else:
             raise ValueError("No login credentials provided.")
+
+    def __del__(self):
+        """
+        Destructor for Connection class instance.
+        """
+
+        self.session.close()
 
     def create(self,
             cluster_name: str=None,
@@ -141,7 +149,7 @@ class WCS(weaviate.connect.Connection):
         data_to_send = json.dumps(config).encode("utf-8")
 
         try:
-            response = requests.post(
+            response = self.session.post(
                 url=self.url,
                 data=data_to_send,
                 headers=self._get_request_header(),
@@ -216,7 +224,7 @@ class WCS(weaviate.connect.Connection):
         """
 
         try:
-            response = requests.get(
+            response = self.session.get(
                 url=self.url + '/list',
                 headers=self._get_request_header(),
                 timeout=self._timeout_config,
@@ -257,7 +265,7 @@ class WCS(weaviate.connect.Connection):
         """
 
         try:
-            response = requests.get(
+            response = self.session.get(
                 url=f'{self.url}/{cluster_name}',
                 headers=self._get_request_header(),
                 timeout=self._timeout_config
@@ -289,7 +297,7 @@ class WCS(weaviate.connect.Connection):
         """
 
         try:
-            response = requests.delete(
+            response = self.session.delete(
                 url=f'{self.url}/{cluster_name}',
                 headers=self._get_request_header(),
                 timeout=self._timeout_config

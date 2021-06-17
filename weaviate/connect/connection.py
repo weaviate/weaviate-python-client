@@ -41,10 +41,11 @@ class Connection:
         self.auth_expires = 0  # unix time when auth expires
         self.auth_bearer = 0
         self.auth_client_secret = auth_client_secret
+        self.session = requests.Session()
 
         self.is_authentication_required = False
         try:
-            request = requests.get(
+            request = self.session.get(
                 self.url + "/.well-known/openid-configuration",
                 headers={"content-type": "application/json"},
                 timeout=(30, 45)
@@ -59,6 +60,13 @@ class Connection:
                 else:
                     raise ValueError("No login credentials provided. The weaviate instance at "
                         f"{url} requires login credential, use argument 'auth_client_secret'.")
+
+    def __del__(self):
+        """
+        Destructor for Connection class instance.
+        """
+
+        self.session.close()
 
     # Requests a new bearer
     def _refresh_authentication(self) -> None:
@@ -86,7 +94,7 @@ class Connection:
         if self.auth_expires < get_epoch_time():
             # collect data for the request
             try:
-                request = requests.get(
+                request = self.session.get(
                     self.url + "/.well-known/openid-configuration",
                     headers={"content-type": "application/json"},
                     timeout=(30, 45)
@@ -222,35 +230,35 @@ class Connection:
         request_url = self.url+path
 
         if rest_method == REST_METHOD_GET:
-            response = requests.get(
+            response = self.session.get(
                 url=request_url,
                 headers=self._get_request_header(),
                 timeout=self._timeout_config,
                 params=params
                 )
         elif rest_method == REST_METHOD_PUT:
-            response = requests.put(
+            response = self.session.put(
                 url=request_url,
                 json=weaviate_object,
                 headers=self._get_request_header(),
                 timeout=self._timeout_config
                 )
         elif rest_method == REST_METHOD_POST:
-            response = requests.post(
+            response = self.session.post(
                 url=request_url,
                 json=weaviate_object,
                 headers=self._get_request_header(),
                 timeout=self._timeout_config
                 )
         elif rest_method == REST_METHOD_PATCH:
-            response = requests.patch(
+            response = self.session.patch(
                 url=request_url,
                 json=weaviate_object,
                 headers=self._get_request_header(),
                 timeout=self._timeout_config
                 )
         elif rest_method == REST_METHOD_DELETE:
-            response = requests.delete(
+            response = self.session.delete(
                 url=request_url,
                 json=weaviate_object,
                 headers=self._get_request_header(),

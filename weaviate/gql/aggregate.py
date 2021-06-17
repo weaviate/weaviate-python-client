@@ -4,7 +4,7 @@ GraphQL `Aggregate` command.
 import json
 from typing import List, Optional
 from weaviate.connect import Connection
-from .filter import WhereFilter, GraphQL
+from .filter import Where, GraphQL
 
 class AggregateBuilder(GraphQL):
     """
@@ -27,7 +27,7 @@ class AggregateBuilder(GraphQL):
         self._class_name = class_name
         self._with_meta_count = False
         self._fields: List[str] = []
-        self._where: Optional[WhereFilter] = None
+        self._where: Optional[Where] = None
         self._group_by_properties: Optional[List[str]] = None
         self._uses_filter = False
 
@@ -134,7 +134,7 @@ class AggregateBuilder(GraphQL):
             Updated AggregateBuilder.
         """
 
-        self._where = WhereFilter(content)
+        self._where = Where(content)
         self._uses_filter = True
         return self
 

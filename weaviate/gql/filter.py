@@ -356,14 +356,14 @@ class NearImage(Filter):
         return near_image + '} '
 
 
-class WhereFilter(Filter):
+class Where(Filter):
     """
-    WhereFilter class used to filter weaviate objects.
+    Where filter class used to filter weaviate objects.
     """
 
     def __init__(self, content: dict):
         """
-        Initialize a WhereFilter class instance.
+        Initialize a Where filter class instance.
 
         Parameters
         ----------
@@ -392,7 +392,7 @@ class WhereFilter(Filter):
 
     def _parse_filter(self, content: dict) -> None:
         """
-        Set filter fields for the WhereFilter.
+        Set filter fields for the Where filter.
 
         Parameters
         ----------
@@ -416,7 +416,7 @@ class WhereFilter(Filter):
 
     def _parse_operator(self, content: dict) -> None:
         """
-        Set operator fields for the WhereFilter.
+        Set operator fields for the Where filter.
 
         Parameters
         ----------
@@ -436,7 +436,7 @@ class WhereFilter(Filter):
         self.operator = _content["operator"]
         self.operands = []
         for operand in _content["operands"]:
-            self.operands.append(WhereFilter(operand))
+            self.operands.append(Where(operand))
 
     def __str__(self):
         if self.is_filter:
