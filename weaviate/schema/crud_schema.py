@@ -261,7 +261,7 @@ class Schema:
         weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
-        
+
         class_schema = self.get(class_name)
         new_class_schema = _update_nested_dict(class_schema, config)
         check_class(new_class_schema)
@@ -369,7 +369,8 @@ class Schema:
         path = '/schema'
         if class_name is not None:
             if not isinstance(class_name, str):
-                raise TypeError(f"'class_name' argument must be of type `str`! Given type: {type(class_name)}")
+                raise TypeError("'class_name' argument must be of type `str`! "
+                    f"Given type: {type(class_name)}")
             path = f'/schema/{class_name}'
 
         try:

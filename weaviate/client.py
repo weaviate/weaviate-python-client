@@ -15,7 +15,7 @@ class Client:
     A python native weaviate Client class that encapsulates Weaviate functionalities in one object.
     A Client instance creates all the needed objects to interact with Weaviate, and connects all of
     them to the same Weaviate instance. See below the Attributes of the Client instance. For the
-    per attribute functionality see that attribute's documentation. 
+    per attribute functionality see that attribute's documentation.
 
     Attributes
     ----------
@@ -181,7 +181,7 @@ class Client:
         ----------
         timeout_config : tuple(int, int) or list[int, int]
             For Setter only: Timeout config as a tuple of (retries, time out seconds).
-        
+
         Returns
         -------
         tuple

@@ -89,7 +89,7 @@ class GetBuilder(GraphQL):
         >>> content = {
         ...     'path': ["wordCount"],    # Path to the property that should be used
         ...     'operator': 'GreaterThan',  # operator
-        ...     'valueInt': 1000          # value (which is always = to the type of the path property)
+        ...     'valueInt': 1000       # value (which is always = to the type of the path property)
         ... }
 
         Or
@@ -445,7 +445,7 @@ class GetBuilder(GraphQL):
         ----------
         content : dict
             The content of the `ask` filter to set. See examples below.
-        
+
         Examples
         --------
         Content full prototype:

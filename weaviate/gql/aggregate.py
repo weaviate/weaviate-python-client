@@ -95,15 +95,15 @@ class AggregateBuilder(GraphQL):
         This is a complete `where` filter but it does not have to be like this all the time.
 
         Single operand:
-        
+
         >>> content = {
         ...     'path': ["wordCount"],    # Path to the property that should be used
         ...     'operator': 'GreaterThan',  # operator
-        ...     'valueInt': 1000          # value (which is always = to the type of the path property)
+        ...     'valueInt': 1000       # value (which is always = to the type of the path property)
         ... }
-        
+
         Or
-        
+
         >>> content = {
         ...     'path': ["id"],
         ...     'operator': 'Equal',

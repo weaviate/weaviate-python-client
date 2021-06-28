@@ -61,7 +61,7 @@ class Reference:
         Examples
         --------
         Assume we have two classes, Author and Book.
-        
+
         >>> # Create the objects first
         >>> client.data_object.create(
         ...     data_object = {'name': 'Ray Bradbury'},
@@ -275,7 +275,7 @@ class Reference:
         Examples
         --------
         Assume we have two classes, Author and Book.
-        
+
         >>> # Create the objects first
         >>> client.data_object.create(
         ...     data_object = {'name': 'Ray Bradbury'},

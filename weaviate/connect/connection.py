@@ -278,7 +278,7 @@ class Connection:
         ----------
         timeout_config : tuple(int, int) or list[int, int]
             For Setter only: Timeout config as a tuple of (retries, time out seconds).
-        
+
         Returns
         -------
         tuple

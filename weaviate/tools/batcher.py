@@ -237,7 +237,7 @@ class Batcher:
         reference_keys = set(['from_object_uuid', 'from_object_class_name', 'from_property_name',\
                 'to_object_uuid'])
 
-        if kwargs.keys() == reference_keys: 
+        if kwargs.keys() == reference_keys:
             with self._commit_lock:
                 self._last_update = time.time()
                 self._reference_batch.add(**kwargs)
@@ -254,7 +254,7 @@ class Batcher:
                 self._objects_batch.add(**kwargs)
                 self._update_batch_if_necessary()
             return
-        
+
         raise TypeError("Wrong arguments for adding data to batcher!\n"
             f"Accepted arguments for references: {reference_keys}\n"
             f"Accepted arguments for objects: {all_object_keys}! 'uuid' and 'vector' - optional\n")

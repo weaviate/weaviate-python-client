@@ -108,16 +108,16 @@ class WCS(weaviate.connect.Connection):
 
         Contextionary:
 
-        >>> { 
+        >>> {
         ...     "name": "text2vec-contextionary",
         ...     "tag": "en0.16.0-v1.0.0" # this is the default tag
         ... }
 
         Transformers:
 
-        >>> { 
+        >>> {
         ...     "name": "text2vec-transformers",
-        ...     "tag": "distilbert-base-uncased" # or another transformer model from 
+        ...     "tag": "distilbert-base-uncased" # or another transformer model from
         ...                                         # https://huggingface.co/models
         ... }
 
