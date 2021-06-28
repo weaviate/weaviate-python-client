@@ -44,7 +44,7 @@ class TestBatch(unittest.TestCase):
             weaviate_object={"fields": ["ALL"], "objects": []}
         )
 
-        ## test ReadTimeout
+        ## test ReadTimeout, nr_retries = 0
         mock_connection = mock_run_rest(side_effect = ReadTimeout('Test!'))
         mock_connection.timeout_config = (2, 100)
         batch = Batch(mock_connection)
@@ -56,6 +56,21 @@ class TestBatch(unittest.TestCase):
             rest_method=REST_METHOD_POST,
             weaviate_object=[]
         )
+        self.assertEqual(mock_connection.run_rest.call_count, 1)
+
+        ## test ReadTimeout, nr_retries = 3
+        mock_connection = mock_run_rest(side_effect = ReadTimeout('Test!'))
+        mock_connection.timeout_config = (2, 100)
+        batch = Batch(mock_connection)
+        with self.assertRaises(ReadTimeout) as error:
+            batch.create(ReferenceBatchRequest(), 3)
+        check_startswith_error_message(self, error, read_timeout_error_message)
+        mock_connection.run_rest.assert_called_with(
+            path="/batch/references",
+            rest_method=REST_METHOD_POST,
+            weaviate_object=[]
+        )
+        self.assertEqual(mock_connection.run_rest.call_count, 4)
 
         ## test status_code != 200
         mock_connection = mock_run_rest(status_code=204)
@@ -71,7 +86,7 @@ class TestBatch(unittest.TestCase):
 
         # valid calls
 
-        ## test status_code == 200
+        ## test status_code == 200, nr_retries = 0
         mock_connection = mock_run_rest(status_code=200)
         batch = Batch(mock_connection)
         batch.create(ReferenceBatchRequest())
@@ -80,6 +95,18 @@ class TestBatch(unittest.TestCase):
             rest_method=REST_METHOD_POST,
             weaviate_object=[]
         )
+        self.assertEqual(mock_connection.run_rest.call_count, 1)
+
+        # nr_retries = 3, and no exception raised
+        mock_connection = mock_run_rest(status_code=200)
+        batch = Batch(mock_connection)
+        batch.create(ReferenceBatchRequest(), 3)
+        mock_connection.run_rest.assert_called_with(
+            path="/batch/references",
+            rest_method=REST_METHOD_POST,
+            weaviate_object=[]
+        )
+        self.assertEqual(mock_connection.run_rest.call_count, 1)
 
     @patch('weaviate.batch.crud_batch.Batch.create')
     def test_create_objects(self, mock_create):
@@ -116,7 +143,8 @@ class TestBatch(unittest.TestCase):
         obj = ObjectsBatchRequest()
         batch.create_objects(obj)
         mock_create.assert_called_with(
-            batch_request=obj
+            batch_request=obj,
+            nr_retries=0
         )
 
     @patch('weaviate.batch.crud_batch.Batch.create')
@@ -154,5 +182,6 @@ class TestBatch(unittest.TestCase):
         obj = ReferenceBatchRequest()
         batch.create_references(obj)
         mock_create.assert_called_with(
-            batch_request=obj
+            batch_request=obj,
+            nr_retries=0
         )
