@@ -1,6 +1,7 @@
 import sys
 from typing import Union, Optional
 from weaviate.connect import Connection, REST_METHOD_POST, REST_METHOD_GET, REST_METHOD_DELETE
+from weaviate.connect import REST_METHOD_PUT
 from weaviate.util import _get_dict_from_object, _is_sub_schema
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
 from weaviate.schema.validate_schema import validate_schema, check_class
@@ -242,9 +243,49 @@ class Schema:
             return False
         return True
 
-    def get(self) -> dict:
+    def update_config(self, class_name: str, config: dict) -> None:
+        """
+        Update a schema configuration for a specific class.
+
+        Parameters
+        ----------
+        class_name : str
+            The class for which to update the schema configuration.
+        config : dict
+            The configurations to update (MUST follow schema format).
+
+        Raises
+        ------
+        requests.exceptions.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.exceptions.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        """
+
+        class_schema = self.get(class_name)
+        new_class_schema = _update_nested_dict(class_schema, config)
+        check_class(new_class_schema)
+
+        path = "/schema/" + class_name
+        try:
+            response = self._connection.run_rest(path, REST_METHOD_PUT, new_class_schema)
+        except RequestsConnectionError as conn_err:
+            message = str(conn_err)\
+                    + ' Connection error, class schema configuration could not be updated.'
+            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException("Update class schema configuration", response)
+
+
+    def get(self, class_name: str = None) -> dict:
         """
         Get the schema from weaviate.
+
+        Parameters
+        ----------
+        class_name : str, optional
+            The class for which to return the schema. If NOT provided the whole schema is returned,
+            otherwise only the schema of this class is returned. By default None.
 
         Returns
         -------
@@ -291,6 +332,32 @@ class Schema:
             ]
         }
 
+        >>> client.schema.get('Animal')
+        {
+            "class": "Animal",
+            "description": "An Animal",
+            "invertedIndexConfig": {
+                "cleanupIntervalSeconds": 60
+            },
+            "properties": [
+                {
+                "dataType": [
+                    "string"
+                ],
+                "description": "The animal type",
+                "name": "type"
+                }
+            ],
+            "vectorIndexConfig": {
+                "cleanupIntervalSeconds": 300,
+                "maxConnections": 64,
+                "efConstruction": 128,
+                "vectorCacheMaxObjects": 500000
+            },
+            "vectorIndexType": "hnsw",
+            "vectorizer": "text2vec-contextionary"
+        }
+
         Raises
         ------
         requests.exceptions.ConnectionError
@@ -299,8 +366,15 @@ class Schema:
             If weaviate reports a none OK status.
         """
 
+        path = '/schema'
+        if class_name is not None:
+            if not isinstance(class_name, str):
+                raise TypeError("'class_name' argument must be of type `str`! "
+                    f"Given type: {type(class_name)}")
+            path = f'/schema/{class_name}'
+
         try:
-            response = self._connection.run_rest("/schema", REST_METHOD_GET)
+            response = self._connection.run_rest(path, REST_METHOD_GET)
         except RequestsConnectionError as conn_err:
             message = str(conn_err) + ' Connection error, schema could not be retrieved.'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
@@ -478,3 +552,30 @@ def _get_primitive_properties(properties_list: list) -> list:
             continue
         primitive_properties.append(property_)
     return primitive_properties
+
+def _update_nested_dict(dict_1: dict, dict_2: dict) -> dict:
+    """
+    Update `dict_1` with elements from `dict_2` in a nested manner.
+    If a value of a key is a dict, it is going to be updated and not replaced by a the whole dict.
+
+    Parameters
+    ----------
+    dict_1 : dict
+        The dictionary to be updated.
+    dict_2 : dict
+        The dictionary that contains values to be updated.
+
+    Returns
+    -------
+    dict
+        The updated `dict_1`.
+    """
+    for key, value in dict_2.items():
+        if key not in dict_1:
+            dict_1[key] = value
+            continue
+        if isinstance(value, dict):
+            _update_nested_dict(dict_1[key], value)
+        else:
+            dict_1.update({key : value})
+    return dict_1

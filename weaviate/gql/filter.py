@@ -9,7 +9,7 @@ from typing import Optional
 from abc import ABC, abstractmethod
 from weaviate.connect import REST_METHOD_POST, Connection
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
-from weaviate.util import get_vector, image_encoder_b64
+from weaviate.util import get_vector
 
 class GraphQL(ABC):
     """
@@ -84,7 +84,7 @@ class Filter(ABC):
             The content of the `Filter` clause.
         """
 
-        
+
         if not isinstance(content, dict):
             raise TypeError(f"{self.__class__.__name__} filter is expected to "
                 f"be type dict but was {type(content)}")
@@ -159,7 +159,7 @@ class NearText(Filter):
 
 class NearVector(Filter):
     """
-    NearVector class used to filter weaviate objects. 
+    NearVector class used to filter weaviate objects.
     """
 
     def __init__(self, content: dict):
@@ -301,7 +301,7 @@ class Ask(Filter):
             elif not isinstance(content['properties'], list):
                 raise TypeError("'properties' should be of type list or str! Given type: "
                     + str(type(content['properties'])))
-        
+
     def __str__(self):
         ask = f'ask: {{question: \"{self._content["question"]}\"'
         if 'certainty' in self._content:
@@ -339,8 +339,8 @@ class NearImage(Filter):
 
         if 'image' not in content:
             raise ValueError('"content" is missing the mandatory key "image"!')
-        elif not isinstance(content['image'], str):
-            raise TypeError('the "image" value should be of type str, given ' 
+        if not isinstance(content['image'], str):
+            raise TypeError('the "image" value should be of type str, given '
                                 f'{type(content["image"])}')
 
         if "certainty" in content:
@@ -356,14 +356,14 @@ class NearImage(Filter):
         return near_image + '} '
 
 
-class WhereFilter(Filter):
+class Where(Filter):
     """
-    WhereFilter class used to filter weaviate objects.
+    Where filter class used to filter weaviate objects.
     """
 
     def __init__(self, content: dict):
         """
-        Initialize a WhereFilter class instance.
+        Initialize a Where filter class instance.
 
         Parameters
         ----------
@@ -392,7 +392,7 @@ class WhereFilter(Filter):
 
     def _parse_filter(self, content: dict) -> None:
         """
-        Set filter fields for the WhereFilter.
+        Set filter fields for the Where filter.
 
         Parameters
         ----------
@@ -416,7 +416,7 @@ class WhereFilter(Filter):
 
     def _parse_operator(self, content: dict) -> None:
         """
-        Set operator fields for the WhereFilter.
+        Set operator fields for the Where filter.
 
         Parameters
         ----------
@@ -436,7 +436,7 @@ class WhereFilter(Filter):
         self.operator = _content["operator"]
         self.operands = []
         for operand in _content["operands"]:
-            self.operands.append(WhereFilter(operand))
+            self.operands.append(Where(operand))
 
     def __str__(self):
         if self.is_filter:

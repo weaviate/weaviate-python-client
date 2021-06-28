@@ -4,7 +4,7 @@ import os
 from unittest.mock import patch, Mock
 import weaviate
 from test.util import replace_connection, mock_run_rest, check_error_message, check_startswith_error_message
-from weaviate.connect import REST_METHOD_POST, REST_METHOD_DELETE, REST_METHOD_GET
+from weaviate.connect import REST_METHOD_POST, REST_METHOD_DELETE, REST_METHOD_GET, REST_METHOD_PUT
 from weaviate.exceptions import SchemaValidationException, RequestsConnectionError, UnexpectedStatusCodeException
 
 company_test_schema = {
@@ -173,6 +173,40 @@ class TestSchema(unittest.TestCase):
         mock_primitive.assert_called_with(company_test_schema["classes"][0])
         mock_complex.assert_called_with(company_test_schema["classes"][0])
 
+    @patch('weaviate.schema.crud_schema.Schema.get')
+    def test_update_config(self, mock_schema):
+        """
+        Test the `update_config` method.
+        """
+
+        # invalid calls
+        requests_error_message = 'Test! Connection error, class schema configuration could not be updated.'
+        unexpected_error_msg = 'Update class schema configuration'
+        
+        mock_schema.return_value = {'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 2}}
+        mock_conn = mock_run_rest(side_effect=RequestsConnectionError("Test!"))
+        replace_connection(self.client, mock_conn)
+        with self.assertRaises(RequestsConnectionError) as error:
+            self.client.schema.update_config("Test", {'vectorIndexConfig': {'test2': 'Test2'}})
+        check_error_message(self, error, requests_error_message)
+        mock_conn.run_rest.assert_called_with("/schema/Test", REST_METHOD_PUT, {'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 'Test2'}})
+        
+        mock_schema.return_value = {'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 2}}
+        mock_conn = mock_run_rest(status_code=404)
+        replace_connection(self.client, mock_conn)
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
+            self.client.schema.update_config("Test", {'vectorIndexConfig': {'test3': True}})
+        check_startswith_error_message(self, error, unexpected_error_msg)
+        mock_conn.run_rest.assert_called_with("/schema/Test", REST_METHOD_PUT, {'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 2, 'test3': True}})
+
+        # valid calls
+        mock_schema.return_value = {'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 2}}
+        mock_conn = mock_run_rest()
+        replace_connection(self.client, mock_conn)
+        self.client.schema.update_config("Test", {})
+        mock_conn.run_rest.assert_called_with("/schema/Test", REST_METHOD_PUT, {'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 2}})
+
+
     def test_get(self):
         """
         Test the `get` method.
@@ -180,6 +214,8 @@ class TestSchema(unittest.TestCase):
 
         # invalid calls
         requests_error_message = 'Test! Connection error, schema could not be retrieved.'
+        unexpected_error_msg = "Get schema"
+        type_error_msg = lambda dt: f"'class_name' argument must be of type `str`! Given type: {dt}"
 
         mock_conn = mock_run_rest(side_effect=RequestsConnectionError("Test!"))
         replace_connection(self.client, mock_conn)
@@ -191,14 +227,21 @@ class TestSchema(unittest.TestCase):
         replace_connection(self.client, mock_conn)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             self.client.schema.get()
-        check_startswith_error_message(self, error, "Get schema")
+        check_startswith_error_message(self, error, unexpected_error_msg)
 
-        # valid calls
         connection_mock_file = mock_run_rest(status_code=200, return_json={'Test': 'OK!'})
         replace_connection(self.client, connection_mock_file)  # Replace connection with mock
+        with self.assertRaises(TypeError) as error:
+            self.client.schema.get(1234)
+        check_error_message(self, error, type_error_msg(int))
+
+        # valid calls
 
         self.assertEqual(self.client.schema.get(), {'Test': 'OK!'})
         connection_mock_file.run_rest.assert_called_with("/schema", REST_METHOD_GET)  # See if mock has been called
+
+        self.assertEqual(self.client.schema.get("Artist"), {'Test': 'OK!'})
+        connection_mock_file.run_rest.assert_called_with("/schema/Artist", REST_METHOD_GET)  # See if mock has been called
 
     def test_contains(self):
         """
