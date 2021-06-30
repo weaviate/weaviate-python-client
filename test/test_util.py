@@ -394,52 +394,42 @@ class TestUtil(unittest.TestCase):
         """
 
         # incalid calls 
-        type_error_message = "'timeout_config' should be either a tuple or a list!"
+        type_error_message = "'timeout_config' should be a tuple!"
         value_error_message = "'timeout_config' must be of length 2!"
-        value_types_error_message = "'timeout_config' must be tuple of int"
-        ## wrong type, None
+        value_types_error_message = "'timeout_config' must be tuple of real numbers"
+        ## wrong type
         with self.assertRaises(TypeError) as error:
-            _get_valid_timeout_config(None)
+            _get_valid_timeout_config(True)
         check_error_message(self, error, type_error_message)
 
-        ## wrong type, not list or tuple
         with self.assertRaises(TypeError) as error:
             _get_valid_timeout_config("(2, 13)")
         check_error_message(self, error, type_error_message)
 
-        ## worng tuple length 3
+        ## wrong tuple length 3
         with self.assertRaises(ValueError) as error:
             _get_valid_timeout_config((1,2,3))
         check_error_message(self, error, value_error_message)
 
-        with self.assertRaises(ValueError) as error:
-            _get_valid_timeout_config([1, 2, 3])
-        check_error_message(self, error, value_error_message)
-
-        with self.assertRaises(ValueError) as error:
-            _get_valid_timeout_config(tuple([1]))
-        check_error_message(self, error, value_error_message)
-
-        with self.assertRaises(ValueError) as error:
-            _get_valid_timeout_config([1])
-        check_error_message(self, error, value_error_message)
-
         ## wrong value types
         with self.assertRaises(TypeError) as error:
-            _get_valid_timeout_config([1, 10.123])
+            _get_valid_timeout_config(("1", 10))
         check_error_message(self, error, value_types_error_message)
 
         with self.assertRaises(TypeError) as error:
-            _get_valid_timeout_config(["1", 10])
+            _get_valid_timeout_config(("1", "10"))
         check_error_message(self, error, value_types_error_message)
 
         with self.assertRaises(TypeError) as error:
-            _get_valid_timeout_config(["1", "10"])
+            _get_valid_timeout_config((True, False))
         check_error_message(self, error, value_types_error_message)
 
         # valid calls
-        _get_valid_timeout_config((2, 20))
-        _get_valid_timeout_config([20, 10])
+        self.assertEqual(_get_valid_timeout_config((2, 20)), (2, 20))
+        self.assertEqual(_get_valid_timeout_config((3.5, 2.34)), (3.5, 2.34))
+        self.assertEqual(_get_valid_timeout_config(4.32), 4.32)
+        self.assertIsNone(_get_valid_timeout_config(None))
+        
 
     def test_image_encoder_b64(self):
         """

@@ -74,7 +74,7 @@ class TestConnection(unittest.TestCase):
         mock_session.get.side_effect = None
         mock_response = Mock(status_code=400)
         mock_session.get.return_value = mock_response
-        connection = Connection('test_url', timeout_config=[3, 23])
+        connection = Connection('test_url', timeout_config=(3, 23))
         self.check_connection_attributes(connection, timeout_config=(3, 23))
         mock_session.get.assert_called_with(
             "test_url/v1/.well-known/openid-configuration",
@@ -189,9 +189,9 @@ class TestConnection(unittest.TestCase):
         mock_session = mock_requests.Session.return_value = Mock()
         connection = Connection('test_url', None, None)
         mock_session.reset_mock() # reset 'requests' mock because it is called in the `__init__`
-        self.check_connection_attributes(connection) # befor the `_refresh_authentication` call
+        self.check_connection_attributes(connection, timeout_config=None) # before the `_refresh_authentication` call
         connection._refresh_authentication()
-        self.check_connection_attributes(connection) # after the `_refresh_authentication` call
+        self.check_connection_attributes(connection, timeout_config=None) # after the `_refresh_authentication` call
         mock_get_epoch_time.assert_called()
         mock_session.get.assert_not_called()
         mock_set_bearer.assert_not_called()

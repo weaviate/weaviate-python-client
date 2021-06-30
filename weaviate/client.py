@@ -1,4 +1,5 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
+from numbers import Real
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
 from .connect import Connection, REST_METHOD_GET
 from .classification import Classification
@@ -36,7 +37,7 @@ class Client:
     def __init__(self,
             url: str,
             auth_client_secret: AuthCredentials=None,
-            timeout_config: Optional[Tuple[int, int]]=None
+            timeout_config: Union[Tuple[Real, Real], Real, None]=(2, 20)
         ):
         """
         Initialize a Client class instance.
@@ -47,9 +48,11 @@ class Client:
             The URL to the weaviate instance.
         auth_client_secret : weaviate.AuthCredentials, optional
             Authentication client secret, by default None.
-        timeout_config : tuple(int, int), optional
-            Set the timeout config as a tuple of (retries, time out seconds),
-            by default None.
+        timeout_config : tuple(Real, Real) or Real or None, optional
+            Set the timeout configuration for all requests to the Weaviate server. It can be a
+            real number or, a tuple of two real numbers: (connect timeout, read timeout).
+            If only one real number is passed then both connect and read timeout will be set to
+            that value, by default (2, 20).
 
         Examples
         --------
@@ -179,26 +182,25 @@ class Client:
 
         Parameters
         ----------
-        timeout_config : tuple(int, int) or list[int, int]
-            For Setter only: Timeout config as a tuple of (retries, time out seconds).
+        timeout_config : tuple(Real, Real) or Real or None, optional
+            For Getter only: Set the timeout configuration for all requests to the Weaviate server.
+            It can be a real number or, a tuple of two real numbers: 
+                    (connect timeout, read timeout).
+            If only one real number is passed then both connect and read timeout will be set to
+            that value.
 
         Returns
         -------
         tuple
-            For Getter only: Timeout config as a tuple of (retries, time out seconds).
+            For Getter only: Requests Timeout configuration.
         """
 
         return self._connection.timeout_config
 
     @timeout_config.setter
-    def timeout_config(self, timeout_config: Optional[Tuple[int, int]]):
+    def timeout_config(self, timeout_config: Union[Tuple[Real, Real], Real, None]):
         """
-        Setter for `timeout_config`.
-
-        Parameters
-        ----------
-        timeout_config : tuple(int, int) or list[int, int]
-            Timeout config as a tuple of (retries, time out seconds).
+        Setter for `timeout_config`. (docstring should be only in the Getter)
         """
 
         self._connection.timeout_config = timeout_config

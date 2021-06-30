@@ -5,6 +5,7 @@ import os
 import json
 import base64
 from typing import Union, Sequence, Tuple, List
+from numbers import Real
 from io import BufferedReader
 import validators
 import requests
@@ -387,14 +388,17 @@ def _compare_properties(sub_set: list, set_: list) -> bool:
     return True
 
 
-def _get_valid_timeout_config(timeout_config: Union[Tuple[int, int], List[int]]):
+def _get_valid_timeout_config(timeout_config: Union[Tuple[Real, Real], Real, None]):
     """
     Validate and return TimeOut configuration.
 
     Parameters
     ----------
-    timeout_config : tuple of int or list of int
-        Set the timeout config as a tuple of (retries, time out seconds).
+    timeout_config : tuple(Real, Real) or Real or None, optional
+            Set the timeout configuration for all requests to the Weaviate server. It can be a
+            real number or, a tuple of two real numbers: (connect timeout, read timeout).
+            If only one real number is passed then both connect and read timeout will be set to
+            that value.
 
     Raises
     ------
@@ -404,11 +408,18 @@ def _get_valid_timeout_config(timeout_config: Union[Tuple[int, int], List[int]])
         If 'timeout_config' is not a tuple of 2.
     """
 
-    if not isinstance(timeout_config, (tuple, list)):
-        raise TypeError("'timeout_config' should be either a tuple or a list!")
+
+    if timeout_config is None:
+        return None
+
+    if isinstance(timeout_config, Real) and not isinstance(timeout_config, bool):
+        return timeout_config
+
+    if not isinstance(timeout_config, tuple):
+        raise TypeError("'timeout_config' should be a tuple!")
     if len(timeout_config) != 2:
         raise ValueError("'timeout_config' must be of length 2!")
-    if not (isinstance(timeout_config[0], int) and isinstance(timeout_config[1], int)):
-        raise TypeError("'timeout_config' must be tuple of int")
-
-    return tuple(timeout_config)
+    if not (isinstance(timeout_config[0], Real) and isinstance(timeout_config[1], Real)) or\
+        (isinstance(timeout_config[0], bool) and isinstance(timeout_config[1], bool)):
+        raise TypeError("'timeout_config' must be tuple of real numbers")
+    return timeout_config
