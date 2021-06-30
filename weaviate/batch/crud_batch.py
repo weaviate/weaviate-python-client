@@ -22,7 +22,7 @@ class Batch:
 
         self._connection = connection
 
-    def create(self, batch_request: BatchRequest, nr_retries: int = 0) -> list:
+    def create(self, batch_request: BatchRequest, timeout_retries: int=0) -> list:
         """
         Create data in batches, either Objects or References. This does NOT guarantee
         that each batch item (only Objects) is added/created. This can lead to a successfull
@@ -152,9 +152,9 @@ class Batch:
             Contains all the data objects that should be added in one batch.
             Note: Should be a sub-class of BatchRequest since BatchRequest
             is just an abstract class, e.g. ObjectsBatchRequest, ReferenceBatchRequest
-        nr_retries : int, optional
-            Number of times to retry to call the `.create` method of this object instance.
-            By default 0.
+        timeout_retries : int, optional
+            Number of times to retry to call the `.create` method of this object instance if a
+            Timeout error occurs. By default 0.
 
         Returns
         -------
@@ -181,7 +181,7 @@ class Batch:
         path = f"/batch/{data_object_type}"
 
         try:
-            for i in range(nr_retries + 1):
+            for i in range(timeout_retries + 1):
                 try:
                     response = self._connection.run_rest(
                         path=path,
@@ -189,10 +189,10 @@ class Batch:
                         weaviate_object=batch_request.get_request_body()
                         )
                 except ReadTimeout:
-                    if i == nr_retries:
+                    if i == timeout_retries:
                         raise
                     print('[ERROR] Batch ReadTimeout Exception occurred! Retring in 1s. '
-                        f'[{i+1}/{nr_retries}]')
+                        f'[{i+1}/{timeout_retries}]')
                     time.sleep(1)
                 else:
                     break
@@ -211,7 +211,7 @@ class Batch:
         raise UnexpectedStatusCodeException(f"Create {data_object_type} in batch", response)
 
     def create_objects(self,
-            objects_batch_request: ObjectsBatchRequest, nr_retries: int = 0) -> list:
+            objects_batch_request: ObjectsBatchRequest, timeout_retries: int=0) -> list:
         """
         Creates multiple Objects at once in weaviate. This does not guarantee
         that each batch item is added/created. This can lead to a successfull batch creation
@@ -283,9 +283,9 @@ class Batch:
         ----------
         objects_batch_request : weaviate.batch.ObjectsBatchRequest
             The batch of objects that should be added.
-        nr_retries : int, optional
-            Number of times to retry to call the `.create` method of this object instance.
-            By default 0.
+        timeout_retries : int, optional
+            Number of times to retry to call the `.create` method of this object instance if a
+            Timeout error occurs. By default 0.
 
         Returns
         -------
@@ -306,11 +306,11 @@ class Batch:
 
         return self.create(
             batch_request=objects_batch_request,
-            nr_retries=nr_retries
+            timeout_retries=timeout_retries
             )
 
     def create_references(self,
-            reference_batch_request: ReferenceBatchRequest, nr_retries: int = 0) -> list:
+            reference_batch_request: ReferenceBatchRequest, timeout_retries: int = 0) -> list:
         """
         Creates multiple References at once in weaviate.
         Adding References in batch is faster but it ignors validations like class name
@@ -373,9 +373,9 @@ class Batch:
         ----------
         reference_batch_request : weaviate.batch.ReferenceBatchRequest
             Contains all the references that should be added in one batch.
-        nr_retries : int, optional
-            Number of times to retry to call the `.create` method of this object instance.
-            By default 0.
+        timeout_retries : int, optional
+            Number of times to retry to call the `.create` method of this object instance if a
+            Timeout error occurs. By default 0.
 
         Returns
         -------
@@ -396,5 +396,5 @@ class Batch:
 
         return self.create(
             batch_request=reference_batch_request,
-            nr_retries=nr_retries
+            timeout_retries=timeout_retries
             )

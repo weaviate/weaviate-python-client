@@ -44,7 +44,7 @@ class TestBatch(unittest.TestCase):
             weaviate_object={"fields": ["ALL"], "objects": []}
         )
 
-        ## test ReadTimeout, nr_retries = 0
+        ## test ReadTimeout, timeout_retries = 0
         mock_connection = mock_run_rest(side_effect = ReadTimeout('Test!'))
         mock_connection.timeout_config = (2, 100)
         batch = Batch(mock_connection)
@@ -58,7 +58,7 @@ class TestBatch(unittest.TestCase):
         )
         self.assertEqual(mock_connection.run_rest.call_count, 1)
 
-        ## test ReadTimeout, nr_retries = 3
+        ## test ReadTimeout, timeout_retries = 3
         mock_connection = mock_run_rest(side_effect = ReadTimeout('Test!'))
         mock_connection.timeout_config = (2, 100)
         batch = Batch(mock_connection)
@@ -86,7 +86,7 @@ class TestBatch(unittest.TestCase):
 
         # valid calls
 
-        ## test status_code == 200, nr_retries = 0
+        ## test status_code == 200, timeout_retries = 0
         mock_connection = mock_run_rest(status_code=200)
         batch = Batch(mock_connection)
         batch.create(ReferenceBatchRequest())
@@ -97,7 +97,7 @@ class TestBatch(unittest.TestCase):
         )
         self.assertEqual(mock_connection.run_rest.call_count, 1)
 
-        # nr_retries = 3, and no exception raised
+        # timeout_retries = 3, and no exception raised
         mock_connection = mock_run_rest(status_code=200)
         batch = Batch(mock_connection)
         batch.create(ReferenceBatchRequest(), 3)
@@ -144,7 +144,7 @@ class TestBatch(unittest.TestCase):
         batch.create_objects(obj)
         mock_create.assert_called_with(
             batch_request=obj,
-            nr_retries=0
+            timeout_retries=0
         )
 
     @patch('weaviate.batch.crud_batch.Batch.create')
@@ -183,5 +183,5 @@ class TestBatch(unittest.TestCase):
         batch.create_references(obj)
         mock_create.assert_called_with(
             batch_request=obj,
-            nr_retries=0
+            timeout_retries=0
         )
