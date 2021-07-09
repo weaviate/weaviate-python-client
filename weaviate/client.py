@@ -37,7 +37,7 @@ class Client:
     def __init__(self,
             url: str,
             auth_client_secret: AuthCredentials=None,
-            timeout_config: Union[Tuple[Real, Real], Real, None]=(2, 20)
+            timeout_config: Union[Tuple[Real, Real], Real]=(2, 20)
         ):
         """
         Initialize a Client class instance.
@@ -48,7 +48,7 @@ class Client:
             The URL to the weaviate instance.
         auth_client_secret : weaviate.AuthCredentials, optional
             Authentication client secret, by default None.
-        timeout_config : tuple(Real, Real) or Real or None, optional
+        timeout_config : tuple(Real, Real) or Real, optional
             Set the timeout configuration for all requests to the Weaviate server. It can be a
             real number or, a tuple of two real numbers: (connect timeout, read timeout).
             If only one real number is passed then both connect and read timeout will be set to
@@ -176,13 +176,13 @@ class Client:
         raise UnexpectedStatusCodeException("Meta endpoint", response)
 
     @property
-    def timeout_config(self):
+    def timeout_config(self) -> Tuple[Real, Real]:
         """
         Getter/setter for `timeout_config`.
 
         Parameters
         ----------
-        timeout_config : tuple(Real, Real) or Real or None, optional
+        timeout_config : tuple(Real, Real) or Real, optional
             For Getter only: Set the timeout configuration for all requests to the Weaviate server.
             It can be a real number or, a tuple of two real numbers: 
                     (connect timeout, read timeout).
@@ -191,14 +191,14 @@ class Client:
 
         Returns
         -------
-        tuple
+        Tuple[Real, Real]
             For Getter only: Requests Timeout configuration.
         """
 
         return self._connection.timeout_config
 
     @timeout_config.setter
-    def timeout_config(self, timeout_config: Union[Tuple[Real, Real], Real, None]):
+    def timeout_config(self, timeout_config: Union[Tuple[Real, Real], Real]):
         """
         Setter for `timeout_config`. (docstring should be only in the Getter)
         """

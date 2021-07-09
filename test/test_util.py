@@ -393,11 +393,17 @@ class TestUtil(unittest.TestCase):
         Test the `_get_valid_timeout_config` function.
         """
 
-        # incalid calls 
-        type_error_message = "'timeout_config' should be a tuple!"
+        # incalid calls
+        negative_num_error_message = "'timeout_config' cannot be non-positive number/s!"
+        type_error_message = "'timeout_config' should be a (or tuple of) positive real number/s!"
         value_error_message = "'timeout_config' must be of length 2!"
         value_types_error_message = "'timeout_config' must be tuple of real numbers"
+
         ## wrong type
+        with self.assertRaises(TypeError) as error:
+            _get_valid_timeout_config(None)
+        check_error_message(self, error, type_error_message)
+
         with self.assertRaises(TypeError) as error:
             _get_valid_timeout_config(True)
         check_error_message(self, error, type_error_message)
@@ -413,6 +419,10 @@ class TestUtil(unittest.TestCase):
 
         ## wrong value types
         with self.assertRaises(TypeError) as error:
+            _get_valid_timeout_config((None, None))
+        check_error_message(self, error, value_types_error_message)
+
+        with self.assertRaises(TypeError) as error:
             _get_valid_timeout_config(("1", 10))
         check_error_message(self, error, value_types_error_message)
 
@@ -424,11 +434,35 @@ class TestUtil(unittest.TestCase):
             _get_valid_timeout_config((True, False))
         check_error_message(self, error, value_types_error_message)
 
+        ## non-positive numbers
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config(0)
+        check_error_message(self, error, negative_num_error_message)
+
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config(-1)
+        check_error_message(self, error, negative_num_error_message)
+        
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config(-4.134)
+        check_error_message(self, error, negative_num_error_message)
+
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config((-3.5, 1.5))
+        check_error_message(self, error, negative_num_error_message)
+
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config((3, -1.5))
+        check_error_message(self, error, negative_num_error_message)
+
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config((0, 0))
+        check_error_message(self, error, negative_num_error_message)
+
         # valid calls
         self.assertEqual(_get_valid_timeout_config((2, 20)), (2, 20))
         self.assertEqual(_get_valid_timeout_config((3.5, 2.34)), (3.5, 2.34))
-        self.assertEqual(_get_valid_timeout_config(4.32), 4.32)
-        self.assertIsNone(_get_valid_timeout_config(None))
+        self.assertEqual(_get_valid_timeout_config(4.32), (4.32, 4.32))
         
 
     def test_image_encoder_b64(self):
