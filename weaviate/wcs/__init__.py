@@ -2,7 +2,6 @@
 Module used to automatically submit batches to Weaviate.
 """
 
-__all__ = ['Batcher', 'WCS']
+__all__ = ['WCS']
 
-from .batcher import Batcher
 from .wcs import WCS
