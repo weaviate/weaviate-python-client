@@ -1,3 +1,6 @@
+"""
+WCS class definition.
+"""
 import time
 from typing import Optional, List, Union
 import json

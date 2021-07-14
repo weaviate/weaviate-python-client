@@ -1,3 +1,6 @@
+"""
+Client class definition.
+"""
 from typing import Optional, Tuple, Union
 from numbers import Real
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
@@ -184,7 +187,7 @@ class Client:
         ----------
         timeout_config : tuple(Real, Real) or Real, optional
             For Getter only: Set the timeout configuration for all requests to the Weaviate server.
-            It can be a real number or, a tuple of two real numbers: 
+            It can be a real number or, a tuple of two real numbers:
                     (connect timeout, read timeout).
             If only one real number is passed then both connect and read timeout will be set to
             that value.

@@ -1,3 +1,6 @@
+"""
+Property class definition.
+"""
 import sys
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
 from weaviate.schema.validate_schema import check_property

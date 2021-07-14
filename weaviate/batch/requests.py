@@ -1,3 +1,6 @@
+"""
+BatchRequest class definitions.
+"""
 import copy
 from abc import ABC, abstractmethod
 from typing import List, Sequence

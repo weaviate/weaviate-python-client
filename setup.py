@@ -1,9 +1,9 @@
-from setuptools import setup
 from builtins import open
+from os import path
+from setuptools import setup
 from weaviate.version import __version__
 
 # read the contents of your README file
-from os import path
 this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
@@ -19,7 +19,6 @@ setup(
   packages=[
     "weaviate",
     "weaviate.connect",
-    "weaviate.tools",
     "weaviate.schema",
     "weaviate.schema.properties",
     "weaviate.batch",
@@ -27,7 +26,8 @@ setup(
     "weaviate.contextionary",
     "weaviate.data",
     "weaviate.data.references",
-    "weaviate.gql"
+    "weaviate.gql",
+    "weaviate.wcs",
   ],
   python_requires='>=3.6',
   install_requires=[

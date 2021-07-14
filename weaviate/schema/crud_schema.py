@@ -1,3 +1,6 @@
+"""
+Schema class definition.
+"""
 import sys
 from typing import Union, Optional
 from weaviate.connect import Connection, REST_METHOD_POST, REST_METHOD_GET, REST_METHOD_DELETE

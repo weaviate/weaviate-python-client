@@ -1,3 +1,6 @@
+"""
+DataObject class definition.
+"""
 import sys
 from typing import Union, Optional, List, Sequence
 import validators

@@ -1,3 +1,6 @@
+"""
+Batch class definitions.
+"""
 import sys
 import time
 from numbers import Real
@@ -15,7 +18,7 @@ class Batch:
     and one for references. The initial value is None/batch_size and is updated with every batch
     create methods. The values can be accessed with the getters: `recommended_num_objects` and
     `recommended_num_references`.
-    
+
     This class can be used in 3 ways:
 
     Case I: Everything should be done by the user, i.e. the user should add the
@@ -26,7 +29,7 @@ class Batch:
 
     Case II: Batch auto-creates when full. This can be achieved by setting the Batch instance's
         batch_size set to a positive integer (see docs for the `configure` or `__call__` method).
-        The batch_size in this case corresponds to the sum of added objects and references. 
+        The batch_size in this case corresponds to the sum of added objects and references.
         This case does not require the user to create the batch/s, but it can be done. Also to
         create non-full batches (last batche/s) that do not meet the requirement to be auto-created
         use the `flush` method. Can be used in a context manager, see below.
@@ -34,7 +37,7 @@ class Batch:
     Case III: Similar to Case II but uses dynamic batching, i.e. auto-creates either objects or
         references when one of them reached the `recommended_num_objects` or
         `recommended_num_references` respectively. See docs for the `configure` or `__call__`
-        method on how to enable it.
+        method for how to enable it.
 
     Context-manager support: Can be use with the `with` statement. When it exists the context-
         manager it calls the `flush` method for you. Can be combined with `configure`/`__call__`
@@ -43,7 +46,8 @@ class Batch:
 
     def __init__(self, connection: Connection):
         """
-        Initialize a Batch class instance. This defaults to a 
+        Initialize a Batch class instance. This defaults to manual creation configuration.
+        See docs for the `configure` or `__call__` method for different types of configurations.
 
         Parameters
         ----------
@@ -76,7 +80,7 @@ class Batch:
             dynamic: bool=False
         ) -> 'Batch':
         """
-        Configure the instance to your needs. (`__call__` and `configure` methods are the same). 
+        Configure the instance to your needs. (`__call__` and `configure` methods are the same).
 
         Parameters
         ----------
@@ -162,7 +166,7 @@ class Batch:
             have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
             `torch.Tensor` and `tf.Tensor`,
             by default None.
-        
+
         Raises
         ------
         TypeError
@@ -220,7 +224,7 @@ class Batch:
             self._auto_create()
 
     def _create_data(self,
-            data_type: str, 
+            data_type: str,
             batch_request: BatchRequest,
         ) -> Response:
         """
@@ -434,7 +438,7 @@ class Batch:
             Setter ONLY: The new value for the batch_size. If NOT None it will try to auto-create
             the existing data if it meets the requirements. If previous value was None then it will
             be set to new value and will change the batching type to auto-create with dynamic set
-            to False. See the documentation for `configure` or `__call__` for more info. 
+            to False. See the documentation for `configure` or `__call__` for more info.
 
         Returns
         -------
@@ -494,7 +498,7 @@ class Batch:
     @dynamic.setter
     def dynamic(self, value: bool) -> None:
 
-        if self._batching_type == None:
+        if self._batching_type is None:
             return
 
         _check_bool(value, 'dynamic')
@@ -553,7 +557,7 @@ class Batch:
         -------
         Real
             Getter ONLY: The `creation_time` value.
-        
+
         Raises
         ------
         TypeError
@@ -659,7 +663,7 @@ def _check_non_negative(value: Real, arg_name: str, data_type: type) -> None:
     if not isinstance(value, data_type) or isinstance(value, bool):
         raise TypeError(f"'{arg_name}' must be of type {data_type}.")
     if value < 0:
-        raise ValueError(f"'{arg_name}' must be positive, i.e. greater or equal that zero (>=0).") 
+        raise ValueError(f"'{arg_name}' must be positive, i.e. greater or equal that zero (>=0).")
 
 
 def _check_bool(value: bool, arg_name):

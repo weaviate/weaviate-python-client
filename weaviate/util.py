@@ -276,7 +276,7 @@ def get_vector(vector: Sequence) -> list:
         # if vector is already a list
         return vector
     try:
-        # if vecor is numpy.ndarray or torch.Tensor
+        # if vetcor is numpy.ndarray or torch.Tensor
         return vector.squeeze().tolist()
     except AttributeError:
         try:

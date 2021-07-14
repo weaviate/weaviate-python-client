@@ -1,3 +1,6 @@
+"""
+Classification class definition.
+"""
 import sys
 import validators
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError

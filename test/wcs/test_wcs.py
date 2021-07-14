@@ -1,17 +1,15 @@
 import unittest
 from unittest.mock import patch, Mock
 import json
-import requests
-from requests import RequestException
 from weaviate import AuthClientPassword, AuthClientCredentials
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
-from weaviate.tools import WCS
+from weaviate.wcs import WCS
 from test.util import check_error_message, check_startswith_error_message
 
 
 class TestWCS(unittest.TestCase):
 
-    @patch('weaviate.tools.wcs.WCS._set_bearer')
+    @patch('weaviate.wcs.wcs.WCS._set_bearer')
     def test___init__(self, mock_set_bearer):
         """
         Test the `__init__` method.
@@ -54,8 +52,8 @@ class TestWCS(unittest.TestCase):
             'https://auth.dev.wcs.api.semi.technology/auth/realms/SeMI/.well-known/openid-configuration'
         )
 
-    @patch('weaviate.tools.wcs.WCS._set_bearer')
-    @patch('weaviate.tools.wcs.WCS.get_cluster_config')
+    @patch('weaviate.wcs.wcs.WCS._set_bearer')
+    @patch('weaviate.wcs.wcs.WCS.get_cluster_config')
     def test_is_ready(self, mock_get_cluster_config, mock_set_bearer):
         """
         Test the `is_ready` method.
@@ -72,9 +70,9 @@ class TestWCS(unittest.TestCase):
         mock_get_cluster_config.assert_called_with('test_name2')
 
 
-    @patch('weaviate.tools.wcs.requests')
-    @patch('weaviate.tools.wcs.WCS._set_bearer')
-    @patch('weaviate.tools.wcs.WCS.get_cluster_config')
+    @patch('weaviate.wcs.wcs.requests')
+    @patch('weaviate.wcs.wcs.WCS._set_bearer')
+    @patch('weaviate.wcs.wcs.WCS.get_cluster_config')
     def test_create(self, mock_get_cluster_config, mock_set_bearer, mock_requests):
         """
         Test the `create` method.
@@ -249,8 +247,8 @@ class TestWCS(unittest.TestCase):
         )
         self.assertEqual(result, 'https://my-url.semi.network')
 
-    @patch('weaviate.tools.wcs.WCS._set_bearer')
-    @patch('weaviate.tools.wcs.requests')
+    @patch('weaviate.wcs.wcs.WCS._set_bearer')
+    @patch('weaviate.wcs.wcs.requests')
     def test_get_clusters(self, mock_requests, mock_set_bearer):
         """
         Test the `get_clusters` method.
@@ -310,8 +308,8 @@ class TestWCS(unittest.TestCase):
             }
         )
 
-    @patch('weaviate.tools.wcs.WCS._set_bearer')
-    @patch('weaviate.tools.wcs.requests')
+    @patch('weaviate.wcs.wcs.WCS._set_bearer')
+    @patch('weaviate.wcs.wcs.requests')
     def test_get_cluster_config(self, mock_requests, mock_set_bearer):
         """
         Test the `get_cluster_config` method.
@@ -362,8 +360,8 @@ class TestWCS(unittest.TestCase):
             timeout=(2, 20),
         )
 
-    @patch('weaviate.tools.wcs.WCS._set_bearer')
-    @patch('weaviate.tools.wcs.requests')
+    @patch('weaviate.wcs.wcs.WCS._set_bearer')
+    @patch('weaviate.wcs.wcs.requests')
     def test_delete(self, mock_requests, mock_set_bearer):
         """
         Test the `delete` method.

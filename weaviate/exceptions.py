@@ -28,6 +28,8 @@ class UnexpectedStatusCodeException(Exception):
             The request response of which the status code was unexpected.
         """
 
+        super().__init__()
+
         # Set error message
 
         try:
