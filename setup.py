@@ -1,9 +1,11 @@
-from setuptools import setup
 from builtins import open
-from weaviate.version import __version__
-
 # read the contents of your README file
 from os import path
+
+from setuptools import setup
+
+from weaviate.version import __version__
+
 this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
@@ -20,4 +22,5 @@ setup(name="weaviate-client",
       install_requires=[
         "requests>=2.23.0",
         "validators>=0.18.2",
-        "tqdm>=4.59.0"]),
+        "tqdm>=4.59.0",
+        "python-dateutil>=2.8.1"]),
