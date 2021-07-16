@@ -14,7 +14,7 @@ TYPE_MAPPINGS = {
 
 def validate_data_object(data_object: dict, properties: list):
     """
-    Takes in a properties list and produces a schema from it.
+    Takes in a properties list and produces a validation schema from it.
     For each item in the data_object this validates whether the types match those specified in the schema
     """
     schema = _create_schema_from_properties(properties)
