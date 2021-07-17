@@ -167,6 +167,8 @@ class ObjectsBatchRequest(BatchRequest):
             have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
             `torch.Tensor` and `tf.Tensor`,
             by default None.
+        validate_data: bool, optional
+            If True, validate the data_object against the client's schema.
 
         Examples
         --------
