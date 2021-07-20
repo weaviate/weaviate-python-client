@@ -187,11 +187,11 @@ class TestConnection(unittest.TestCase):
         mock_get_epoch_time.return_value = -2
 
         mock_session = mock_requests.Session.return_value = Mock()
-        connection = Connection('test_url', None, None)
+        connection = Connection('test_url', None)
         mock_session.reset_mock() # reset 'requests' mock because it is called in the `__init__`
-        self.check_connection_attributes(connection, timeout_config=None) # before the `_refresh_authentication` call
+        self.check_connection_attributes(connection, timeout_config=(2, 20)) # before the `_refresh_authentication` call
         connection._refresh_authentication()
-        self.check_connection_attributes(connection, timeout_config=None) # after the `_refresh_authentication` call
+        self.check_connection_attributes(connection, timeout_config=(2, 20)) # after the `_refresh_authentication` call
         mock_get_epoch_time.assert_called()
         mock_session.get.assert_not_called()
         mock_set_bearer.assert_not_called()

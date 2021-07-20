@@ -1,3 +1,6 @@
+"""
+Reference class definition.
+"""
 import sys
 from typing import Union, List
 from weaviate.connect import REST_METHOD_DELETE, REST_METHOD_PUT, REST_METHOD_POST, Connection

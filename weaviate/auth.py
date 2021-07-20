@@ -1,3 +1,6 @@
+"""
+Authentication class definitions.
+"""
 import base64
 import copy
 from abc import ABC, abstractmethod

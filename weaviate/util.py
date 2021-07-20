@@ -4,7 +4,8 @@ Helper functions!
 import os
 import json
 import base64
-from typing import Union, Sequence, Tuple, List
+import uuid
+from typing import Union, Sequence, Tuple, Any
 from numbers import Real
 from io import BufferedReader
 import validators
@@ -275,7 +276,7 @@ def get_vector(vector: Sequence) -> list:
         # if vector is already a list
         return vector
     try:
-        # if vecor is numpy.ndarray or torch.Tensor
+        # if vetcor is numpy.ndarray or torch.Tensor
         return vector.squeeze().tolist()
     except AttributeError:
         try:
@@ -406,20 +407,43 @@ def _get_valid_timeout_config(timeout_config: Union[Tuple[Real, Real], Real, Non
         If arguments are of a wrong data type.
     ValueError
         If 'timeout_config' is not a tuple of 2.
+    ValueError
+        If 'timeout_config' is/contains negative number/s.
     """
 
 
-    if timeout_config is None:
-        return None
-
     if isinstance(timeout_config, Real) and not isinstance(timeout_config, bool):
-        return timeout_config
+        if timeout_config <= 0.0:
+            raise ValueError("'timeout_config' cannot be non-positive number/s!")
+        return (timeout_config, timeout_config)
 
     if not isinstance(timeout_config, tuple):
-        raise TypeError("'timeout_config' should be a tuple!")
+        raise TypeError("'timeout_config' should be a (or tuple of) positive real number/s!")
     if len(timeout_config) != 2:
         raise ValueError("'timeout_config' must be of length 2!")
     if not (isinstance(timeout_config[0], Real) and isinstance(timeout_config[1], Real)) or\
         (isinstance(timeout_config[0], bool) and isinstance(timeout_config[1], bool)):
         raise TypeError("'timeout_config' must be tuple of real numbers")
+    if timeout_config[0] <= 0.0 or timeout_config[1] <= 0.0:
+        raise ValueError("'timeout_config' cannot be non-positive number/s!")
     return timeout_config
+
+def generate_uuid5(identifier: Any, namespace: Any = "") -> str:
+    """
+    Generate an UUIDv5, may be used to consistently generate the same UUID for a specific
+    identifier and namespace.
+
+    Parameters
+    ----------
+    identifier : Any
+        The identifier/object that should be used as basis for the UUID.
+    namespace : Any, optional
+        Allows to namespace the identifier, by default ""
+
+    Returns
+    -------
+    str
+        The UUID as a string.
+    """
+
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, str(namespace) + str(identifier)))

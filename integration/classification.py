@@ -22,7 +22,7 @@ schema = {
         },
         {
             "class": "Message",
-            "description": "a message from writen by a person",
+            "description": "a message from written by a person",
             "properties": [
                 {
                     "name": "content",
@@ -74,14 +74,14 @@ def contextual(client: weaviate.Client):
     client.data_object.create(
         {
             "name": "negative",
-            "description": "A negaitve, bad, sad or disrupting message."
+            "description": "A negative, bad, sad or disrupting message."
         },
         "Label"
     )
 
     client.data_object.create(
         {
-            "content": "ALERT: So now we find out that the entire oponent “hit squad” illegally wiped their phones clean just prior to the investigation of them, all using the same really dumb reason for this “accident”, just like other people smashing her phones with a hammer, & DELETING THEIR EMAILS!"
+            "content": "ALERT: So now we find out that the entire opponent “hit squad” illegally wiped their phones clean just prior to the investigation of them, all using the same really dumb reason for this “accident”, just like other people smashing her phones with a hammer, & DELETING THEIR EMAILS!"
         },
         "Message"
     )

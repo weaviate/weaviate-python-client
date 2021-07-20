@@ -1,3 +1,6 @@
+"""
+ConfigBuilder class definition.
+"""
 import sys
 import time
 from typing import Dict, Any
@@ -12,7 +15,7 @@ class ConfigBuilder:
 
     def __init__(self, connection: Connection, classification: 'Classification'):
         """
-        Initialize a ConfiBuilder class instance.
+        Initialize a ConfigBuilder class instance.
 
         Parameters
         ----------

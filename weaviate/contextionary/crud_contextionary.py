@@ -1,3 +1,6 @@
+"""
+Contextionary class definition.
+"""
 import sys
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.connect import REST_METHOD_POST, REST_METHOD_GET, Connection
