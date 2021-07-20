@@ -58,17 +58,17 @@ class IntegrationTestCrud:
 
     def _create_objects_batch(self):
         print("Create a batch with data.")
-        objects_batch = weaviate.batch.ObjectsBatchRequest()
+        
 
-        objects_batch.add({"name": "John Rawls"}, "Person")
-        objects_batch.add({"name": "Emanuel Kant"}, "Person")
-        objects_batch.add({"name": "Plato"}, "Person")
-        objects_batch.add({"name": "Pull-up"}, "Exercise")
-        objects_batch.add({"name": "Squat"}, "Exercise")
-        objects_batch.add({"name": "Star jump"}, "Exercise")
+        self.client.batch.add_data_object({"name": "John Rawls"}, "Person")
+        self.client.batch.add_data_object({"name": "Emanuel Kant"}, "Person")
+        self.client.batch.add_data_object({"name": "Plato"}, "Person")
+        self.client.batch.add_data_object({"name": "Pull-up"}, "Exercise")
+        self.client.batch.add_data_object({"name": "Squat"}, "Exercise")
+        self.client.batch.add_data_object({"name": "Star jump"}, "Exercise")
 
         print("Load batch.")
-        self.client.batch.create(objects_batch)
+        self.client.batch.create_objects()
 
     def _create_objects(self):
         print("Load a single objects.")
@@ -95,13 +95,12 @@ class IntegrationTestCrud:
                                     "1c9cd584-88fe-5010-83d0-017cb3fcb446")
 
         print("Add reference to object in batch.")
-        reference_batch = weaviate.batch.ReferenceBatchRequest()
 
         for chemist in self.chemists:
-            reference_batch.add("577887c1-4c6b-5594-aa62-f0c17883d9bf", "Group", "members",
+            self.client.batch.add_reference("577887c1-4c6b-5594-aa62-f0c17883d9bf", "Group", "members",
                                           chemist)
 
-        self.client.batch.create_references(reference_batch)
+        self.client.batch.create_references()
 
     def _validate_data_loading(self):
         print("Validate if loading was successful")
