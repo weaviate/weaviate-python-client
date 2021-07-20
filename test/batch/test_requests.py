@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch
-from weaviate import ReferenceBatchRequest, ObjectsBatchRequest
+from weaviate.batch.requests import ReferenceBatchRequest, ObjectsBatchRequest
 from test.util import check_error_message
 
 class TestBatchReferencesObject(unittest.TestCase):

@@ -64,8 +64,12 @@ class ReferenceBatchRequest(BatchRequest):
             If 'uuid' is not valid or cannot be extracted.
         """
 
-        if not isinstance(from_object_class_name, str) or not isinstance(from_object_uuid, str) or\
-            not isinstance(from_property_name, str) or not isinstance(to_object_uuid, str):
+        if (
+            not isinstance(from_object_class_name, str)
+            or not isinstance(from_object_uuid, str) 
+            or not isinstance(from_property_name, str)
+            or not isinstance(to_object_uuid, str)
+        ):
             raise TypeError('All arguments must be of type string')
 
         from_object_uuid = get_valid_uuid(from_object_uuid)
@@ -73,9 +77,14 @@ class ReferenceBatchRequest(BatchRequest):
 
         self._items.append(
             {
-            'from': f'weaviate://localhost/{from_object_class_name}/{from_object_uuid}/' +
-                        f'{from_property_name}',
-            'to': f'weaviate://localhost/{to_object_uuid}'
+            'from': 'weaviate://localhost/'
+                + from_object_class_name
+                + '/'
+                + from_object_uuid
+                + '/'
+                + from_property_name,
+            'to': 'weaviate://localhost/'
+                + to_object_uuid,
             }
         )
         self.size += 1
@@ -161,8 +170,6 @@ class ObjectsBatchRequest(BatchRequest):
         """
 
         return {
-            "fields": [
-                "ALL"
-            ],
+            "fields": ["ALL"],
             "objects": self._items
         }

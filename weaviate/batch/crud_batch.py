@@ -267,7 +267,7 @@ class Batch:
                     if i == self._timeout_retries:
                         raise
                     print('[ERROR] Batch ReadTimeout Exception occurred! Retring in 1s. '
-                        f'[{i+1}/{self._timeout_retries}]')
+                        f'[{i+1}/{self._timeout_retries}]', file=sys.stderr)
                     time.sleep(1)
                 else:
                     break
@@ -276,10 +276,12 @@ class Batch:
                         + ' Connection error, batch was not added to weaviate.'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
         except ReadTimeout:
-            message = (f"The {data_type}' creation was cancelled because it took "
+            message = (
+                f"The '{data_type}' creation was cancelled because it took "
                 f"longer than the configured timeout of {self._connection.timeout_config[1]}s. "
                 f"Try reducing the batch size (currently {batch_request.size}) to a lower value. "
-                "Aim to on average complete batch request within less than 10s")
+                "Aim to on average complete batch request within less than 10s"
+            )
             raise ReadTimeout(message) from None
         if response.status_code == 200:
             return response
@@ -314,7 +316,7 @@ class Batch:
                 batch_request=self._objects_batch,
             )
             obj_per_second = self._objects_batch.size / response.elapsed.total_seconds()
-            self._recommended_num_objects = obj_per_second * self._creation_time
+            self._recommended_num_objects = round(obj_per_second * self._creation_time)
             self._objects_batch = ObjectsBatchRequest()
             return response.json()
         return []
@@ -350,8 +352,8 @@ class Batch:
                 data_type='references',
                 batch_request=self._reference_batch,
             )
-            ref_per_second = self._objects_batch.size / response.elapsed.total_seconds()
-            self._recommended_num_references = ref_per_second * self._creation_time
+            ref_per_second = self._reference_batch.size / response.elapsed.total_seconds()
+            self._recommended_num_references = round(ref_per_second * self._creation_time)
             self._reference_batch = ReferenceBatchRequest()
             return response.json()
         return []
@@ -370,8 +372,10 @@ class Batch:
                 self.flush()
             return
         if self._batching_type == 'dynamic':
-            if self.num_objects() >= self._recommended_num_objects or\
-                self.num_references() >= self._recommended_num_references:
+            if (
+                self.num_objects() >= self._recommended_num_objects
+                or self.num_references() >= self._recommended_num_references
+            ):
                 self.flush()
             return
         # just in case
@@ -385,7 +389,7 @@ class Batch:
 
         result_objects = self.create_objects()
         result_references = self.create_references()
-        if self._callback is None:
+        if self._callback is not None:
             self._callback(result_objects)
             self._callback(result_references)
 
@@ -439,6 +443,8 @@ class Batch:
             the existing data if it meets the requirements. If previous value was None then it will
             be set to new value and will change the batching type to auto-create with dynamic set
             to False. See the documentation for `configure` or `__call__` for more info.
+            If recommended_num_objects is None then it is initialized with the new value of the
+            batch_size (same for references).
 
         Returns
         -------
@@ -468,6 +474,10 @@ class Batch:
         self._batch_size = value
         if self._batching_type is None:
             self._batching_type = 'fixed'
+        if self._recommended_num_objects is None:
+            self._recommended_num_objects = value
+        if self._recommended_num_references is None:
+            self._recommended_num_references = value
         self._auto_create()
 
     @property
@@ -493,7 +503,7 @@ class Batch:
             Setter ONLY: If the new value is not of type bool.
         """
 
-        return self._batch_size == 'dynamic'
+        return self._batching_type == 'dynamic'
 
     @dynamic.setter
     def dynamic(self, value: bool) -> None:
@@ -573,9 +583,13 @@ class Batch:
 
         _check_positive_num(value, 'creation_time', Real)
         if self._recommended_num_references is not None:
-            self._recommended_num_references *= value / self._create_data
+            self._recommended_num_references = round(
+                self._recommended_num_references * value / self._creation_time
+            )
         if self._recommended_num_objects is not None:
-            self._recommended_num_objects *= value / self._create_data
+            self._recommended_num_objects = round(
+                self._recommended_num_objects * value / self._creation_time
+            )
         self._creation_time = value
         if self._batching_type:
             self._auto_create()
