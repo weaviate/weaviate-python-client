@@ -483,6 +483,9 @@ class Schema:
         if "moduleConfig" in weaviate_class:
             schema_class["moduleConfig"] = weaviate_class["moduleConfig"]
 
+        if "shardingConfig" in weaviate_class:
+            schema_class["shardingConfig"] = weaviate_class["shardingConfig"]
+
         if "properties" in weaviate_class:
             schema_class["properties"] = _get_primitive_properties(
                                                     weaviate_class["properties"])

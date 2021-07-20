@@ -55,12 +55,12 @@ def check_class(class_definition: dict) -> None:
     for key in class_definition.keys():
         # Check if key is known
         if key not in ["class", "vectorIndexType", "vectorIndexConfig", "moduleConfig",\
-            "description", "vectorizer", "properties", "invertedIndexConfig"]:
+            "description", "vectorizer", "properties", "invertedIndexConfig", "shardingConfig"]:
             raise SchemaValidationException(f'"{key}" is not a known class definition key.')
         # check if key is right type
         if key in ["class", "vectorIndexType", "description", "vectorizer"]:
             _check_key_type(key, class_definition[key], str)
-        if key in ["vectorIndexConfig", "moduleConfig", "invertedIndexConfig"]:
+        if key in ["vectorIndexConfig", "moduleConfig", "invertedIndexConfig", "shardingConfig"]:
             _check_key_type(key, class_definition[key], dict)
         if key in ["properties"]:
             _check_key_type(key, class_definition[key], list)
