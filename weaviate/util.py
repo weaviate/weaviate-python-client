@@ -428,10 +428,10 @@ def _get_valid_timeout_config(timeout_config: Union[Tuple[Real, Real], Real, Non
         raise ValueError("'timeout_config' cannot be non-positive number/s!")
     return timeout_config
 
-def generate_uuid(identifier: Any, namespace: Any = "") -> str:
+def generate_uuid5(identifier: Any, namespace: Any = "") -> str:
     """
-    Generate an UUID, may be used to consistently generate the same UUID for a specific identifier
-    and namespace.
+    Generate an UUIDv5, may be used to consistently generate the same UUID for a specific
+    identifier and namespace.
 
     Parameters
     ----------

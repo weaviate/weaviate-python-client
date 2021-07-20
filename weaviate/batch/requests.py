@@ -66,7 +66,7 @@ class ReferenceBatchRequest(BatchRequest):
 
         if (
             not isinstance(from_object_class_name, str)
-            or not isinstance(from_object_uuid, str) 
+            or not isinstance(from_object_uuid, str)
             or not isinstance(from_property_name, str)
             or not isinstance(to_object_uuid, str)
         ):

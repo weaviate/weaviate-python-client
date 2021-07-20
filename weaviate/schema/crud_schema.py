@@ -556,6 +556,7 @@ def _get_primitive_properties(properties_list: list) -> list:
         primitive_properties.append(property_)
     return primitive_properties
 
+
 def _update_nested_dict(dict_1: dict, dict_2: dict) -> dict:
     """
     Update `dict_1` with elements from `dict_2` in a nested manner.

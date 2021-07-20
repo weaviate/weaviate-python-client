@@ -40,14 +40,9 @@ __all__ = [
     'ObjectAlreadyExistsException',
     'AuthenticationFailedException',
     'SchemaValidationException',
-    'ReferenceBatchRequest',
-    'ObjectsBatchRequest',
-    'Classification',
 ]
 
 from .auth import AuthClientCredentials, AuthClientPassword
 from .exceptions import *
-from .batch import ReferenceBatchRequest, ObjectsBatchRequest
-from .classification import Classification
 from .client import Client
 from .version import __version__
