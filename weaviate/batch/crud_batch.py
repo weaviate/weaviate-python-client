@@ -42,6 +42,97 @@ class Batch:
     Context-manager support: Can be use with the `with` statement. When it exists the context-
         manager it calls the `flush` method for you. Can be combined with `configure`/`__call__`
         method, in order to set it to the desired Case.
+
+    Examples
+    --------
+    Here are examples for each CASE described above. Here `client` is an instance of the
+    `weaviate.Client`.
+
+    >>> object_1 = '154cbccd-89f4-4b29-9c1b-001a3339d89d'
+    >>> object_2 = '154cbccd-89f4-4b29-9c1b-001a3339d89c'
+    >>> object_3 = '254cbccd-89f4-4b29-9c1b-001a3339d89a'
+    >>> object_4 = '254cbccd-89f4-4b29-9c1b-001a3339d89b'
+
+    For Case I:
+    
+    >>> client.batch.shape
+    (0, 0)
+    >>> client.batch.add_data_object({}, 'MyClass')
+    >>> client.batch.add_data_object({}, 'MyClass')
+    >>> client.batch.add_reference(object_1, 'MyClass', 'myProp', object_2)
+    >>> client.batch.shape
+    (2, 1)
+    >>> client.batch.create_objects()
+    >>> client.batch.shape
+    (0, 1)
+    >>> client.batch.create_references()
+    >>> client.batch.shape
+    (0, 0)
+    >>> client.batch.add_data_object({}, 'MyClass')
+    >>> client.batch.add_reference(object_3, 'MyClass', 'myProp', object_4)
+    >>> client.batch.shape
+    (1, 1)
+    >>> client.batch.flush()
+    >>> client.batch.shape
+    (0, 0)
+
+    Or with a context manager:
+
+    >>> with client.batch as batch:
+    ...     batch.add_data_object({}, 'MyClass')
+    ...     batch.add_reference(object_3, 'MyClass', 'myProp', object_4)
+    >>> # flush was called
+    >>> client.batch.shape
+    (0, 0)
+
+    For Case II:
+
+    >>> client.batch(batch_size=3)
+    >>> client.batch.shape
+    (0, 0)
+    >>> client.batch.add_data_object({}, 'MyClass')
+    >>> client.batch.add_reference(object_1, 'MyClass', 'myProp', object_2)
+    >>> client.batch.shape
+    (1, 1)
+    >>> client.batch.add_data_object({}, 'MyClass') # sum of data_objects and references reached
+    >>> client.batch.shape
+    (0, 0)
+
+    Or with a context manager and `__call__` method:
+
+    >>> with client.batch(batch_size=3) as batch:
+    ...     batch.add_data_object({}, 'MyClass')
+    ...     batch.add_reference(object_3, 'MyClass', 'myProp', object_4)
+    ...     batch.add_data_object({}, 'MyClass')
+    ...     batch.add_reference(object_1, 'MyClass', 'myProp', object_4)
+    >>> # flush was called
+    >>> client.batch.shape
+    (0, 0)
+
+    Or with a context manager and setter:
+
+    >>> client.batch.batch_size = 3
+    >>> with client.batch as batch:
+    ...     batch.add_data_object({}, 'MyClass')
+    ...     batch.add_reference(object_3, 'MyClass', 'myProp', object_4)
+    ...     batch.add_data_object({}, 'MyClass')
+    ...     batch.add_reference(object_1, 'MyClass', 'myProp', object_4)
+    >>> # flush was called
+    >>> client.batch.shape
+    (0, 0)
+
+    For Case II:
+    Same as Case II but you need to configure or enable 'dynamic' batching.
+
+    >>> client.batch.configure(batch_size=3, dynamic=True) # 'batch_size' must be an valid int
+
+    Or:
+
+    >>> client.batch.batch_size = 3 
+    >>> client.batch.dynamic = True
+
+    See the documentation of the `configure`( or `__call__`) and the setters for more information
+    on how/why and what you need to configure/set in order to use a particular Case. 
     """
 
     def __init__(self, connection: Connection):
@@ -81,6 +172,8 @@ class Batch:
         ) -> 'Batch':
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
+        NOTE: It has default values and if you want to change only one use a setter instead, or
+        provide all the configurations.
 
         Parameters
         ----------
@@ -295,7 +388,68 @@ class Batch:
 
         Examples
         --------
-        TODO
+        Here `client` is an instance of the `weaviate.Client`.
+
+        Add objects to the object batch.
+
+        >>> client.batch.add_data_object({}, 'NonExistingClass')
+        >>> client.batch.add_data_object({}, 'ExistingClass')
+
+        Note that 'NonExistingClass' is not present in the client's schema and 'ExistingObject'
+        is present and has no proprieties. 'client.batch.add_data_object' does not raise an
+        exception because the objects added meet the required criteria (See the documentation of
+        the 'weaviate.Batch.add_data_object' method for more information).
+
+        >>> result = client.batch.create_objects(batch)
+
+        Successful batch creation even if one data object is inconsistent with the client's schema.
+        We can find out more about what objects were successfully created by analyzing the 'result'
+        variable.
+
+        >>> import json
+        >>> print(json.dumps(result, indent=4))
+        [
+            {
+                "class": "NonExistingClass",
+                "creationTimeUnix": 1614852753747,
+                "id": "154cbccd-89f4-4b29-9c1b-001a3339d89a",
+                "properties": {},
+                "deprecations": null,
+                "result": {
+                    "errors": {
+                        "error": [
+                            {
+                                "message": "class 'NonExistingClass' not present in schema,
+                                                            class NonExistingClass not present"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "class": "ExistingClass",
+                "creationTimeUnix": 1614852753746,
+                "id": "b7b1cfbe-20da-496c-b932-008d35805f26",
+                "properties": {},
+                "vector": [
+                    -0.05244319,
+                    ...
+                    0.076136276
+                ],
+                "deprecations": null,
+                "result": {}
+            }
+        ]
+
+
+        As it can be noticed the first object from the batch was not added/created, but the batch
+        was successfully created. The batch creation can be successful even if all the objects were
+        NOT created. Check the status of the batch objects to find which object and why creation
+        failed. Alternatively use 'client.data_object.create' for Object creation that throw an
+        error if data item is inconsistent or creation/addition failed.
+
+        To check the results of batch creation when using the auto-creation Batch, use a 'callback'
+        (see the docs `configure` or `__call__` method for more information).
 
         Returns
         -------
@@ -327,12 +481,60 @@ class Batch:
         Adding References in batch is faster but it ignors validations like class name
         and property name, resulting in a SUCCESSFUL reference creation of a nonexistent object
         types and/or a nonexistent properties. If the consistency of the References is wanted
-        use 'Client().data_object.reference.add' to have additional validation against the
+        use 'client.data_object.reference.add' to have additional validation against the
         weaviate schema. See Examples below.
 
         Examples
         --------
-        TODO
+        Here `client` is an instance of the `weaviate.Client`.
+
+        Object that does not exist in weaviate.
+
+        >>> object_1 = '154cbccd-89f4-4b29-9c1b-001a3339d89d'
+
+        Objects that exist in weaviate.
+        
+        >>> object_2 = '154cbccd-89f4-4b29-9c1b-001a3339d89c'
+        >>> object_3 = '254cbccd-89f4-4b29-9c1b-001a3339d89a'
+        >>> object_4 = '254cbccd-89f4-4b29-9c1b-001a3339d89b'
+
+        >>> client.batch.add_reference(object_1, 'NonExistingClass', 'existsWith', object_2)
+        >>> client.batch.add_reference(object_3, 'ExistingClass', 'existsWith', object_4)
+
+        Both references were added to the batch request without error because they meet the
+        required citeria (See the documentation of the 'weaviate.Batch.add_reference' method
+        for more information).
+
+        >>> result = client.batch.create_references()
+
+        As it can be noticed the reference batch creation is successful (no error thrown). Now we
+        can inspect the 'result'.
+
+        >>> import json
+        >>> print(result, indent=4))
+        [
+            {
+                "from": "weaviate://localhost/NonExistingClass/
+                                                154cbccd-89f4-4b29-9c1b-001a3339d89a/existsWith",
+                "to": "weaviate://localhost/154cbccd-89f4-4b29-9c1b-001a3339d89b",
+                "result": {
+                    "status": "SUCCESS"
+                }
+            },
+            {
+                "from": "weaviate://localhost/ExistingClass/
+                                                254cbccd-89f4-4b29-9c1b-001a3339d89a/existsWith",
+                "to": "weaviate://localhost/254cbccd-89f4-4b29-9c1b-001a3339d89b",
+                "result": {
+                    "status": "SUCCESS"
+                }
+            }
+        ]
+
+        Both references were added successfully but one of them is corrupted (links two objects
+        of nonexisting class and one of the objects is not yet created). To make use of the
+        validation, crete each references individually (see the client.data_object.reference.add
+        method).
 
         Returns
         -------
