@@ -1,5 +1,8 @@
+Changelog
+=========
+
 Version 3.0.0
-==============
+-------------
 
 - ``weaviate.tools`` module is REMOVED.
     - ``Batcher`` class is REMOVED.
