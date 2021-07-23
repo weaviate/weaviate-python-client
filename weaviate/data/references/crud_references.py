@@ -4,7 +4,7 @@ Reference class definition.
 import sys
 from typing import Union, List
 from weaviate.connect import REST_METHOD_DELETE, REST_METHOD_PUT, REST_METHOD_POST, Connection
-from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+from weaviate import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.util import get_valid_uuid
 
 
@@ -123,9 +123,9 @@ class Reference:
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         TypeError
             If parameter has the wrong type.
@@ -231,9 +231,9 @@ class Reference:
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         TypeError
             If the parameters are of the wrong type.
@@ -318,9 +318,9 @@ class Reference:
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         TypeError
             If the parameters are of the wrong type.
@@ -361,9 +361,9 @@ class Reference:
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         TypeError
             If the parameters are of the wrong type.

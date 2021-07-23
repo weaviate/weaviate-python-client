@@ -3,7 +3,7 @@ Classification class definition.
 """
 import sys
 import validators
-from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
 from weaviate.connect import REST_METHOD_GET, Connection
 from .config_builder import ConfigBuilder
 
@@ -56,9 +56,9 @@ class Classification:
         ------
         ValueError
             If not a proper uuid.
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 

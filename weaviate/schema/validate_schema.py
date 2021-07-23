@@ -2,7 +2,7 @@
 Schema validation module.
 """
 from typing import Any
-from weaviate.exceptions import SchemaValidationException
+from weaviate import SchemaValidationException
 
 
 def validate_schema(schema: dict) -> None:
@@ -16,7 +16,7 @@ def validate_schema(schema: dict) -> None:
 
     Raises
     ------
-    weaviate.exceptions.SchemaValidationException
+    weaviate.SchemaValidationException
         If the schema could not be validated against the standard format.
     """
 
@@ -43,7 +43,7 @@ def check_class(class_definition: dict) -> None:
 
     Raises
     ------
-    weaviate.exceptions.SchemaValidationException
+    weaviate.SchemaValidationException
         If the class could not be validated against the standard class format.
     """
 
@@ -81,9 +81,8 @@ def check_property(class_property: dict) -> None:
 
     Raises
     ------
-    weaviate.exceptions.SchemaValidationException
-        If the class property could not be validated against\
-        the standard class property format.
+    weaviate.SchemaValidationException
+        If the class property could not be validated against the standard class property format.
     """
 
     # mandatory fields
@@ -127,7 +126,7 @@ def _check_key_type(key: str, value: Any, expected_type: Any) -> None:
 
     Raises
     ------
-    weaviate.exceptions.SchemaValidationException
+    weaviate.SchemaValidationException
         If the 'value' is of wrong data type.
     """
 

@@ -3,7 +3,7 @@ Client class definition.
 """
 from typing import Optional, Tuple, Union
 from numbers import Real
-from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
 from .connect import Connection, REST_METHOD_GET
 from .classification import Classification
 from .schema import Schema
@@ -147,7 +147,7 @@ class Client:
 
         Raises
         ------
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -167,7 +167,7 @@ class Client:
 
         Raises
         ------
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 

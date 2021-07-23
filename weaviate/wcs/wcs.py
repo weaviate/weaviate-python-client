@@ -8,7 +8,7 @@ import sys
 import requests
 from tqdm import tqdm
 import weaviate
-from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+from weaviate import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.auth import AuthCredentials
 
 
@@ -131,9 +131,9 @@ class WCS(weaviate.connect.Connection):
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If creating the weaviate cluster failed for a different reason,
             more information is given in the exception.
         """
@@ -219,9 +219,9 @@ class WCS(weaviate.connect.Connection):
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If getting the weaviate clusters failed for a different reason,
             more information is given in the exception.
         """
@@ -260,9 +260,9 @@ class WCS(weaviate.connect.Connection):
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If getting the weaviate cluster failed for a different reason,
             more information is given in the exception.
         """
@@ -292,9 +292,9 @@ class WCS(weaviate.connect.Connection):
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If deleting the weaviate cluster failed for a different reason,
             more information is given in the exception.
         """

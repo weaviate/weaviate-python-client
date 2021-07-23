@@ -7,7 +7,7 @@ from typing import Tuple, Optional, Union
 from numbers import Real
 import requests
 from requests import RequestException
-from weaviate.exceptions import AuthenticationFailedException
+from weaviate import AuthenticationFailedException
 from weaviate.connect.constants import *
 from weaviate.auth import AuthCredentials
 from weaviate.util import _get_valid_timeout_config
@@ -78,19 +78,19 @@ class Connection:
 
         Raises
         ------
-        weaviate.exceptions.AuthenticationFailedException
+        weaviate.AuthenticationFailedException
             If cannot connect to weaviate.
-        weaviate.exceptions.AuthenticationFailedException
+        weaviate.AuthenticationFailedException
             If cannot authenticate http status not ok.
-        weaviate.exceptions.AuthenticationFailedException
+        weaviate.AuthenticationFailedException
             If cannot connect to the third party authentication service.
-        weaviate.exceptions.AuthenticationFailedException
+        weaviate.AuthenticationFailedException
             If status not OK in connection to the third party authentication service.
-        weaviate.exceptions.AuthenticationFailedException
+        weaviate.AuthenticationFailedException
             If the grant_types supported by the thirdparty authentication service are insufficient.
-        weaviate.exceptions.AuthenticationFailedException
+        weaviate.AuthenticationFailedException
             If unable to get a OAuth token from server.
-        weaviate.exceptions.AuthenticationFailedException
+        weaviate.AuthenticationFailedException
             If authentication access denied.
         """
 
@@ -125,7 +125,7 @@ class Connection:
 
         Raises
         ------
-        weaviate.exceptions.AuthenticationFailedException
+        weaviate.AuthenticationFailedException
             If authentication failed.
         """
 
@@ -223,7 +223,7 @@ class Connection:
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the request could not be made.
             (from requests.'method' calls)
         """

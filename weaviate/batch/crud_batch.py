@@ -6,7 +6,7 @@ import time
 from numbers import Real
 from typing import Tuple, Callable, Optional, Sequence
 from requests import ReadTimeout, Response
-from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+from weaviate import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.connect import REST_METHOD_POST, Connection
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest
 
@@ -15,7 +15,10 @@ class Batch:
     Batch class used to add multiple objects or object references at once into weaviate.
     To add data to the Batch use these methods of this class: `add_data_object` and
     `add_reference`. This object also stores 2 recommended batch size variables, one for objects
-    and one for references. The initial value is None/batch_size and is updated with every batch
+    and one for references. The recommended batch size is updated with every batch creation, and
+    is the number of data objects/references that can be sent/processed by the Weaviate server in
+    `creation_time` interval (see `configure` or `__call__` method on how to set this value, by
+    default it is set to 10). The initial value is None/batch_size and is updated with every batch
     create methods. The values can be accessed with the getters: `recommended_num_objects` and
     `recommended_num_references`.
 
@@ -185,7 +188,7 @@ class Batch:
             auto-create; 2) in case `dynamic` is True -> the initial value for both
             `recommended_num_objects` and `recommended_num_references`, by default None
         creation_time : Real, optional
-            The time interval it should take to Batch to be created, used ONLY for computing
+            The time interval it should take the Batch to be created, used ONLY for computing
             `recommended_num_objects` and `recommended_num_references`, by default 10
         timeout_retries : int, optional
             Number of times to retry to create a Batch that failed with TimeOut error, by default 0
@@ -342,9 +345,9 @@ class Batch:
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -458,9 +461,9 @@ class Batch:
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -543,9 +546,9 @@ class Batch:
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 

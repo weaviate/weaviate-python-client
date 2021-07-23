@@ -10,9 +10,9 @@ from weaviate.connect import REST_METHOD_PUT
 from weaviate.connect import REST_METHOD_GET
 from weaviate.connect import REST_METHOD_DELETE
 from weaviate.connect import Connection
-from weaviate.exceptions import ObjectAlreadyExistsException
-from weaviate.exceptions import RequestsConnectionError
-from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate import ObjectAlreadyExistsException
+from weaviate import RequestsConnectionError
+from weaviate import UnexpectedStatusCodeException
 from weaviate.util import _get_dict_from_object, get_vector, get_valid_uuid
 from weaviate.data.references import Reference
 
@@ -93,12 +93,12 @@ class DataObject:
             If argument is of wrong type.
         ValueError
             If argument contains an invalid value.
-        weaviate.exceptions.ObjectAlreadyExistsException
+        weaviate.ObjectAlreadyExistsException
             If an object with the given uuid already exists within weaviate.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If creating the object in Weaviate failed for a different reason,
             more information is given in the exception.
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
         """
 
@@ -214,9 +214,9 @@ class DataObject:
             If argument is of wrong type.
         ValueError
             If argument contains an invalid value.
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none successful status.
         """
 
@@ -317,9 +317,9 @@ class DataObject:
             If argument is of wrong type.
         ValueError
             If argument contains an invalid value.
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -392,9 +392,9 @@ class DataObject:
             If argument is of wrong type.
         ValueError
             If argument contains an invalid value.
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -436,9 +436,9 @@ class DataObject:
             If argument is of wrong type.
         ValueError
             If argument contains an invalid value.
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -484,9 +484,9 @@ class DataObject:
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         TypeError
             If parameter has the wrong type.
@@ -538,9 +538,9 @@ class DataObject:
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         TypeError
             If parameter has the wrong type.
@@ -616,9 +616,9 @@ class DataObject:
             If argument is of wrong type.
         ValueError
             If argument contains an invalid value.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If validating the object against Weaviate failed with a different reason.
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
         """
 

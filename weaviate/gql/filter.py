@@ -8,7 +8,7 @@ from copy import deepcopy
 from typing import Optional
 from abc import ABC, abstractmethod
 from weaviate.connect import REST_METHOD_POST, Connection
-from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
 from weaviate.util import get_vector
 
 class GraphQL(ABC):
@@ -51,9 +51,9 @@ class GraphQL(ABC):
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 

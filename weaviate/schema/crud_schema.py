@@ -6,7 +6,7 @@ from typing import Union, Optional
 from weaviate.connect import Connection, REST_METHOD_POST, REST_METHOD_GET, REST_METHOD_DELETE
 from weaviate.connect import REST_METHOD_PUT
 from weaviate.util import _get_dict_from_object, _is_sub_schema
-from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
 from weaviate.schema.validate_schema import validate_schema, check_class
 from weaviate.schema.properties import Property
 
@@ -78,11 +78,11 @@ class Schema:
             If the 'schema' is neither a string nor a dict.
         ValueError
             If 'schema' can not be converted into a weaviate schema.
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
-        weaviate.exceptions.SchemaValidationException
+        weaviate.SchemaValidationException
             If the 'schema' could not be validated against the standard format.
         """
 
@@ -132,11 +132,11 @@ class Schema:
             If the 'schema_class' is neither a string nor a dict.
         ValueError
             If 'schema_class' can not be converted into a weaviate schema.
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
-        weaviate.exceptions.SchemaValidationException
+        weaviate.SchemaValidationException
             If the 'schema_class' could not be validated against the standard format.
         """
 
@@ -163,9 +163,9 @@ class Schema:
         ------
         TypeError
             If 'class_name' argument not of type str.
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -259,9 +259,9 @@ class Schema:
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -363,9 +363,9 @@ class Schema:
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -396,9 +396,9 @@ class Schema:
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -456,9 +456,9 @@ class Schema:
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
