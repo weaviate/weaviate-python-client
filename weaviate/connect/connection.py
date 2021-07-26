@@ -1,9 +1,13 @@
+"""
+Connection class definition.
+"""
 import datetime
 import time
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Union
+from numbers import Real
 import requests
 from requests import RequestException
-from weaviate.exceptions import AuthenticationFailedException
+from weaviate import AuthenticationFailedException
 from weaviate.connect.constants import *
 from weaviate.auth import AuthCredentials
 from weaviate.util import _get_valid_timeout_config
@@ -16,7 +20,7 @@ class Connection:
     def __init__(self,
             url: str,
             auth_client_secret: Optional[AuthCredentials]=None,
-            timeout_config: Optional[Tuple[int, int]]=None
+            timeout_config: Union[Tuple[Real, Real], Real]=(2, 20)
         ):
         """
         Initialize a Connection class instance.
@@ -27,16 +31,16 @@ class Connection:
             URL to a running weaviate instance.
         auth_client_secret : weaviate.auth.AuthCredentials, optional
             User login credentials to a weaviate instance, by default None
-        timeout_config : tuple(int, int), optional
-            Set the timeout config as a tuple of (retries, time out seconds),
-            by default None.
+        timeout_config : tuple(Real, Real) or Real, optional
+            Set the timeout configuration for all requests to the Weaviate server. It can be a
+            real number or, a tuple of two real numbers: (connect timeout, read timeout).
+            If only one real number is passed then both connect and read timeout will be set to
+            that value, by default (2, 20).
         """
 
+        self.session = requests.Session()
         self.url = url + WEAVIATE_REST_API_VERSION_PATH  # e.g. http://localhost:80/v1
-        if timeout_config is None:
-            self._timeout_config = (2, 20)
-        else:
-            self.timeout_config = timeout_config # this uses the setter
+        self.timeout_config = timeout_config # this uses the setter
 
         self.auth_expires = 0  # unix time when auth expires
         self.auth_bearer = 0
@@ -44,7 +48,7 @@ class Connection:
 
         self.is_authentication_required = False
         try:
-            request = requests.get(
+            request = self.session.get(
                 self.url + "/.well-known/openid-configuration",
                 headers={"content-type": "application/json"},
                 timeout=(30, 45)
@@ -60,6 +64,13 @@ class Connection:
                     raise ValueError("No login credentials provided. The weaviate instance at "
                         f"{url} requires login credential, use argument 'auth_client_secret'.")
 
+    def __del__(self):
+        """
+        Destructor for Connection class instance.
+        """
+
+        self.session.close()
+
     # Requests a new bearer
     def _refresh_authentication(self) -> None:
         """
@@ -67,26 +78,26 @@ class Connection:
 
         Raises
         ------
-        weaviate.exceptions.AuthenticationFailedException
+        weaviate.AuthenticationFailedException
             If cannot connect to weaviate.
-        weaviate.exceptions.AuthenticationFailedException
+        weaviate.AuthenticationFailedException
             If cannot authenticate http status not ok.
-        weaviate.exceptions.AuthenticationFailedException
+        weaviate.AuthenticationFailedException
             If cannot connect to the third party authentication service.
-        weaviate.exceptions.AuthenticationFailedException
+        weaviate.AuthenticationFailedException
             If status not OK in connection to the third party authentication service.
-        weaviate.exceptions.AuthenticationFailedException
+        weaviate.AuthenticationFailedException
             If the grant_types supported by the thirdparty authentication service are insufficient.
-        weaviate.exceptions.AuthenticationFailedException
+        weaviate.AuthenticationFailedException
             If unable to get a OAuth token from server.
-        weaviate.exceptions.AuthenticationFailedException
+        weaviate.AuthenticationFailedException
             If authentication access denied.
         """
 
         if self.auth_expires < get_epoch_time():
             # collect data for the request
             try:
-                request = requests.get(
+                request = self.session.get(
                     self.url + "/.well-known/openid-configuration",
                     headers={"content-type": "application/json"},
                     timeout=(30, 45)
@@ -114,7 +125,7 @@ class Connection:
 
         Raises
         ------
-        weaviate.exceptions.AuthenticationFailedException
+        weaviate.AuthenticationFailedException
             If authentication failed.
         """
 
@@ -212,7 +223,7 @@ class Connection:
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the request could not be made.
             (from requests.'method' calls)
         """
@@ -222,35 +233,35 @@ class Connection:
         request_url = self.url+path
 
         if rest_method == REST_METHOD_GET:
-            response = requests.get(
+            response = self.session.get(
                 url=request_url,
                 headers=self._get_request_header(),
                 timeout=self._timeout_config,
                 params=params
                 )
         elif rest_method == REST_METHOD_PUT:
-            response = requests.put(
+            response = self.session.put(
                 url=request_url,
                 json=weaviate_object,
                 headers=self._get_request_header(),
                 timeout=self._timeout_config
                 )
         elif rest_method == REST_METHOD_POST:
-            response = requests.post(
+            response = self.session.post(
                 url=request_url,
                 json=weaviate_object,
                 headers=self._get_request_header(),
                 timeout=self._timeout_config
                 )
         elif rest_method == REST_METHOD_PATCH:
-            response = requests.patch(
+            response = self.session.patch(
                 url=request_url,
                 json=weaviate_object,
                 headers=self._get_request_header(),
                 timeout=self._timeout_config
                 )
         elif rest_method == REST_METHOD_DELETE:
-            response = requests.delete(
+            response = self.session.delete(
                 url=request_url,
                 json=weaviate_object,
                 headers=self._get_request_header(),
@@ -262,32 +273,31 @@ class Connection:
         return response
 
     @property
-    def timeout_config(self):
+    def timeout_config(self) -> Tuple[Real, Real]:
         """
         Getter/setter for `timeout_config`.
 
         Parameters
         ----------
-        timeout_config : tuple(int, int) or list[int, int]
-            For Setter only: Timeout config as a tuple of (retries, time out seconds).
-        
+        timeout_config : tuple(Real, Real) or Real, optional
+            For Getter only: Set the timeout configuration for all requests to the Weaviate server.
+            It can be a real number or, a tuple of two real numbers:
+                    (connect timeout, read timeout).
+            If only one real number is passed then both connect and read timeout will be set to
+            that value.
+
         Returns
         -------
-        tuple
-            For Getter only: Timeout config as a tuple of (retries, time out seconds).
+        Tuple[Real, Real]
+            For Getter only: Requests Timeout configuration.
         """
 
         return self._timeout_config
 
     @timeout_config.setter
-    def timeout_config(self, timeout_config: Optional[Tuple[int, int]]):
+    def timeout_config(self, timeout_config: Union[Tuple[Real, Real], Real]):
         """
-        Setter for `timeout_config`.
-
-        Parameters
-        ----------
-        timeout_config : tuple(int, int) or list[int, int]
-            Timeout config as a tuple/list of (retries, time out seconds).
+        Setter for `timeout_config`. (docstring should be only in the Getter)
         """
 
         self._timeout_config = _get_valid_timeout_config(timeout_config)

@@ -1,5 +1,9 @@
-from typing import Optional, Tuple
-from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+"""
+Client class definition.
+"""
+from typing import Optional, Tuple, Union
+from numbers import Real
+from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
 from .connect import Connection, REST_METHOD_GET
 from .classification import Classification
 from .schema import Schema
@@ -15,7 +19,7 @@ class Client:
     A python native weaviate Client class that encapsulates Weaviate functionalities in one object.
     A Client instance creates all the needed objects to interact with Weaviate, and connects all of
     them to the same Weaviate instance. See below the Attributes of the Client instance. For the
-    per attribute functionality see that attribute's documentation. 
+    per attribute functionality see that attribute's documentation.
 
     Attributes
     ----------
@@ -36,7 +40,7 @@ class Client:
     def __init__(self,
             url: str,
             auth_client_secret: AuthCredentials=None,
-            timeout_config: Optional[Tuple[int, int]]=None
+            timeout_config: Union[Tuple[Real, Real], Real]=(2, 20)
         ):
         """
         Initialize a Client class instance.
@@ -47,9 +51,11 @@ class Client:
             The URL to the weaviate instance.
         auth_client_secret : weaviate.AuthCredentials, optional
             Authentication client secret, by default None.
-        timeout_config : tuple(int, int), optional
-            Set the timeout config as a tuple of (retries, time out seconds),
-            by default None.
+        timeout_config : tuple(Real, Real) or Real, optional
+            Set the timeout configuration for all requests to the Weaviate server. It can be a
+            real number or, a tuple of two real numbers: (connect timeout, read timeout).
+            If only one real number is passed then both connect and read timeout will be set to
+            that value, by default (2, 20).
 
         Examples
         --------
@@ -141,7 +147,7 @@ class Client:
 
         Raises
         ------
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -161,7 +167,7 @@ class Client:
 
         Raises
         ------
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 
@@ -173,32 +179,31 @@ class Client:
         raise UnexpectedStatusCodeException("Meta endpoint", response)
 
     @property
-    def timeout_config(self):
+    def timeout_config(self) -> Tuple[Real, Real]:
         """
         Getter/setter for `timeout_config`.
 
         Parameters
         ----------
-        timeout_config : tuple(int, int) or list[int, int]
-            For Setter only: Timeout config as a tuple of (retries, time out seconds).
-        
+        timeout_config : tuple(Real, Real) or Real, optional
+            For Getter only: Set the timeout configuration for all requests to the Weaviate server.
+            It can be a real number or, a tuple of two real numbers:
+                    (connect timeout, read timeout).
+            If only one real number is passed then both connect and read timeout will be set to
+            that value.
+
         Returns
         -------
-        tuple
-            For Getter only: Timeout config as a tuple of (retries, time out seconds).
+        Tuple[Real, Real]
+            For Getter only: Requests Timeout configuration.
         """
 
         return self._connection.timeout_config
 
     @timeout_config.setter
-    def timeout_config(self, timeout_config: Optional[Tuple[int, int]]):
+    def timeout_config(self, timeout_config: Union[Tuple[Real, Real], Real]):
         """
-        Setter for `timeout_config`.
-
-        Parameters
-        ----------
-        timeout_config : tuple(int, int) or list[int, int]
-            Timeout config as a tuple of (retries, time out seconds).
+        Setter for `timeout_config`. (docstring should be only in the Getter)
         """
 
         self._connection.timeout_config = timeout_config

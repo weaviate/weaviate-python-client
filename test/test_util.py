@@ -393,53 +393,77 @@ class TestUtil(unittest.TestCase):
         Test the `_get_valid_timeout_config` function.
         """
 
-        # incalid calls 
-        type_error_message = "'timeout_config' should be either a tuple or a list!"
+        # incalid calls
+        negative_num_error_message = "'timeout_config' cannot be non-positive number/s!"
+        type_error_message = "'timeout_config' should be a (or tuple of) positive real number/s!"
         value_error_message = "'timeout_config' must be of length 2!"
-        value_types_error_message = "'timeout_config' must be tuple of int"
-        ## wrong type, None
+        value_types_error_message = "'timeout_config' must be tuple of real numbers"
+
+        ## wrong type
         with self.assertRaises(TypeError) as error:
             _get_valid_timeout_config(None)
         check_error_message(self, error, type_error_message)
 
-        ## wrong type, not list or tuple
+        with self.assertRaises(TypeError) as error:
+            _get_valid_timeout_config(True)
+        check_error_message(self, error, type_error_message)
+
         with self.assertRaises(TypeError) as error:
             _get_valid_timeout_config("(2, 13)")
         check_error_message(self, error, type_error_message)
 
-        ## worng tuple length 3
+        ## wrong tuple length 3
         with self.assertRaises(ValueError) as error:
             _get_valid_timeout_config((1,2,3))
         check_error_message(self, error, value_error_message)
 
-        with self.assertRaises(ValueError) as error:
-            _get_valid_timeout_config([1, 2, 3])
-        check_error_message(self, error, value_error_message)
-
-        with self.assertRaises(ValueError) as error:
-            _get_valid_timeout_config(tuple([1]))
-        check_error_message(self, error, value_error_message)
-
-        with self.assertRaises(ValueError) as error:
-            _get_valid_timeout_config([1])
-        check_error_message(self, error, value_error_message)
-
         ## wrong value types
         with self.assertRaises(TypeError) as error:
-            _get_valid_timeout_config([1, 10.123])
+            _get_valid_timeout_config((None, None))
         check_error_message(self, error, value_types_error_message)
 
         with self.assertRaises(TypeError) as error:
-            _get_valid_timeout_config(["1", 10])
+            _get_valid_timeout_config(("1", 10))
         check_error_message(self, error, value_types_error_message)
 
         with self.assertRaises(TypeError) as error:
-            _get_valid_timeout_config(["1", "10"])
+            _get_valid_timeout_config(("1", "10"))
         check_error_message(self, error, value_types_error_message)
+
+        with self.assertRaises(TypeError) as error:
+            _get_valid_timeout_config((True, False))
+        check_error_message(self, error, value_types_error_message)
+
+        ## non-positive numbers
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config(0)
+        check_error_message(self, error, negative_num_error_message)
+
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config(-1)
+        check_error_message(self, error, negative_num_error_message)
+        
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config(-4.134)
+        check_error_message(self, error, negative_num_error_message)
+
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config((-3.5, 1.5))
+        check_error_message(self, error, negative_num_error_message)
+
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config((3, -1.5))
+        check_error_message(self, error, negative_num_error_message)
+
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config((0, 0))
+        check_error_message(self, error, negative_num_error_message)
 
         # valid calls
-        _get_valid_timeout_config((2, 20))
-        _get_valid_timeout_config([20, 10])
+        self.assertEqual(_get_valid_timeout_config((2, 20)), (2, 20))
+        self.assertEqual(_get_valid_timeout_config((3.5, 2.34)), (3.5, 2.34))
+        self.assertEqual(_get_valid_timeout_config(4.32), (4.32, 4.32))
+        
 
     def test_image_encoder_b64(self):
         """
@@ -488,3 +512,9 @@ class TestUtil(unittest.TestCase):
         with open('integration/weaviate-logo.png', 'rb') as file:
             self.assertEqual(decoded, file.read())
             self.assertIsInstance(decoded, bytes)
+    @patch('weaviate.util.uuid')
+    def test_generate_uuid5(self, mock_uuid):
+
+        result  = generate_uuid5('TestID!', 'Test!')
+        self.assertIsInstance(result, str)
+        mock_uuid.uuid5.assert_called()

@@ -4,7 +4,7 @@ GraphQL query module.
 import sys
 from typing import List, Union
 from weaviate.connect import REST_METHOD_POST, Connection
-from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
 from .get import GetBuilder
 from .aggregate import AggregateBuilder
 
@@ -124,14 +124,14 @@ class Query:
         },
         "errors": null
         }
-        
+
         Raises
         ------
         TypeError
             If 'gql_query' is not of type str.
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 

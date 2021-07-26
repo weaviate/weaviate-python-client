@@ -1,7 +1,7 @@
-weaviate.tools
+weaviate.wcs
 ==============
 
-.. automodule:: weaviate.tools
+.. automodule:: weaviate.wcs
    :members:
    :undoc-members:
    :show-inheritance:

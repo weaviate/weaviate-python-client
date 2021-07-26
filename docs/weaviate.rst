@@ -22,5 +22,5 @@ Subpackages
    weaviate.exceptions
    weaviate.gql
    weaviate.schema
-   weaviate.tools
+   weaviate.wcs
    weaviate.util

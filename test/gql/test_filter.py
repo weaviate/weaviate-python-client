@@ -1,5 +1,5 @@
 import unittest
-from weaviate.gql.filter import NearText, NearVector, NearObject, NearImage, WhereFilter, Ask
+from weaviate.gql.filter import NearText, NearVector, NearObject, NearImage, Where, Ask
 from test.util import check_error_message, check_startswith_error_message
 
 
@@ -520,7 +520,7 @@ class TestNearImage(unittest.TestCase):
         self.assertEqual(str(near_object), 'nearImage: {image: test_image certainty: 0.7} ')
 
 
-class TestWhereFilter(unittest.TestCase):
+class TestWhere(unittest.TestCase):
 
     def test___init__(self):
         """
@@ -528,53 +528,53 @@ class TestWhereFilter(unittest.TestCase):
         """
 
         # test exceptions
-        content_error_message = lambda dt: f"WhereFilter is expected to be type dict but was {dt}"
-        content_key_error_message = "Filter is missing required fileds `path` or `operands`. Given: "
+        content_error_message = lambda dt: f"Where filter is expected to be type dict but was {dt}"
+        content_key_error_message = "Filter is missing required fields `path` or `operands`. Given: "
         path_key_error = "Filter is missing required filed `operator`. Given: "
-        dtype_error_message = "Filter is missing required fileds: "
+        dtype_error_message = "Filter is missing required fields: "
 
         with self.assertRaises(TypeError) as error:
-            WhereFilter(None)
+            Where(None)
         check_error_message(self, error, content_error_message(type(None)))
 
         with self.assertRaises(TypeError) as error:
-            WhereFilter("filter")
+            Where("filter")
         check_error_message(self, error, content_error_message(str))
 
         with self.assertRaises(ValueError) as error:
-            WhereFilter({})
+            Where({})
         check_startswith_error_message(self, error, content_key_error_message)
 
         with self.assertRaises(ValueError) as error:
-            WhereFilter({"path": "some_path"})
+            Where({"path": "some_path"})
         check_startswith_error_message(self, error, path_key_error)
 
         with self.assertRaises(ValueError) as error:
-            WhereFilter({"path": "some_path", "operator": "Like"})
+            Where({"path": "some_path", "operator": "Like"})
         check_startswith_error_message(self, error, dtype_error_message)
 
         with self.assertRaises(ValueError) as error:
-            WhereFilter({"operands": "some_path"})
+            Where({"operands": "some_path"})
         check_startswith_error_message(self, error, path_key_error)
 
         with self.assertRaises(TypeError) as error:
-            WhereFilter({"operands": "some_path", "operator": "Like"})
+            Where({"operands": "some_path", "operator": "Like"})
         check_error_message(self, error, content_error_message(str))
 
         with self.assertRaises(TypeError) as error:
-            WhereFilter({"operands": ["some_path"], "operator": "Like"})
+            Where({"operands": ["some_path"], "operator": "Like"})
         check_error_message(self, error, content_error_message(str))
 
         
         # test valid calls
-        WhereFilter(
+        Where(
             {
                 "path": "hasTheOneRing",
                 "operator" : "Equal",
                 "valueBoolean" : False
             }
         )
-        WhereFilter(
+        Where(
             {
                 "operands": [{
                     "path": "hasTheOneRing",
@@ -600,7 +600,7 @@ class TestWhereFilter(unittest.TestCase):
             "operator": "Equal",
             "valueString": "A"
         }
-        result = str(WhereFilter(test_filter))
+        result = str(Where(test_filter))
         self.assertEqual('where: {path: ["name"] operator: Equal valueString: "A"} ', result)
 
         test_filter = {
@@ -617,7 +617,7 @@ class TestWhereFilter(unittest.TestCase):
                 }
             ]
         }
-        result = str(WhereFilter(test_filter))
+        result = str(Where(test_filter))
         self.assertEqual(
             'where: {operator: Or operands: [{path: ["name"] operator: Equal valueString: "Alan Truing"}, {path: ["name"] operator: Equal valueString: "John von Neumann"}]} ',
             result
@@ -625,27 +625,27 @@ class TestWhereFilter(unittest.TestCase):
 
         # test dataTypes
         test_filter = helper_get_test_filter("valueText", "Test")
-        result = str(WhereFilter(test_filter))
+        result = str(Where(test_filter))
         self.assertEqual('where: {path: ["name"] operator: Equal valueText: "Test"} ', result)
 
         test_filter = helper_get_test_filter("valueString", "Test")
-        result = str(WhereFilter(test_filter))
+        result = str(Where(test_filter))
         self.assertEqual('where: {path: ["name"] operator: Equal valueString: "Test"} ', result)
 
         test_filter = helper_get_test_filter("valueInt", 1)
-        result = str(WhereFilter(test_filter))
+        result = str(Where(test_filter))
         self.assertEqual('where: {path: ["name"] operator: Equal valueInt: 1} ', result)
 
         test_filter = helper_get_test_filter("valueNumber", 1.4)
-        result = str(WhereFilter(test_filter))
+        result = str(Where(test_filter))
         self.assertEqual('where: {path: ["name"] operator: Equal valueNumber: 1.4} ', result)
 
         test_filter = helper_get_test_filter("valueBoolean", True)
-        result = str(WhereFilter(test_filter))
+        result = str(Where(test_filter))
         self.assertEqual('where: {path: ["name"] operator: Equal valueBoolean: true} ', result)
 
         test_filter = helper_get_test_filter("valueDate", "test-2021-02-02")
-        result = str(WhereFilter(test_filter))
+        result = str(Where(test_filter))
         self.assertEqual('where: {path: ["name"] operator: Equal valueDate: "test-2021-02-02"} ', result)
 
         geo_range = {
@@ -658,11 +658,11 @@ class TestWhereFilter(unittest.TestCase):
             }
         }
         test_filter = helper_get_test_filter("valueGeoRange", geo_range)
-        result = str(WhereFilter(test_filter))
+        result = str(Where(test_filter))
         self.assertEqual('where: {path: ["name"] operator: Equal valueGeoRange: {"geoCoordinates": {"latitude": 51.51, "longitude": -0.09}, "distance": {"max": 2000}}} ', str(result))
 
 
-class TestWhereFilter(unittest.TestCase):
+class TestAskFilter(unittest.TestCase):
 
     def test___init__(self):
         """

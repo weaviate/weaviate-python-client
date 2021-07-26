@@ -1,5 +1,8 @@
+"""
+Contextionary class definition.
+"""
 import sys
-from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+from weaviate import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.connect import REST_METHOD_POST, REST_METHOD_GET, Connection
 
 
@@ -54,9 +57,9 @@ class Contextionary:
             If an argument is not of an appropriate type.
         ValueError
             If 'weight' is outside the interval [0.0; 1.0].
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If text2vec-contextionary could not be extended.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If the network connection to weaviate fails.
         """
 
@@ -142,11 +145,11 @@ class Contextionary:
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
         Exception
             Unexpected exception that should be reported in an issue.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         AttributeError
         """

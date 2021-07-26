@@ -1,10 +1,10 @@
 import unittest
 from unittest.mock import patch, Mock
 import requests
-from weaviate.classification.classify import Classification, ConfigBuilder
+from weaviate.classification.classification import Classification, ConfigBuilder
 from weaviate.connect import REST_METHOD_POST
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
-from test.util import replace_connection, mock_run_rest, check_error_message, check_startswith_error_message
+from test.util import mock_run_rest, check_error_message, check_startswith_error_message
 
 
 class TestClassification(unittest.TestCase):
@@ -50,7 +50,7 @@ class TestClassification(unittest.TestCase):
         result = Classification(mock_conn).get("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92")
         self.assertEqual(result, 'OK!')
 
-    @patch('weaviate.classification.classify.Classification._check_status')
+    @patch('weaviate.classification.classification.Classification._check_status')
     def test_is_complete(self, mock_check_status):
         """
         Test the `is_complete` method.
@@ -61,7 +61,7 @@ class TestClassification(unittest.TestCase):
         self.assertEqual(result, 'OK!')
         mock_check_status.assert_called_with("Test!", "completed")
 
-    @patch('weaviate.classification.classify.Classification._check_status')
+    @patch('weaviate.classification.classification.Classification._check_status')
     def test_is_failed(self, mock_check_status):
         """
         Test the `is_failed` method.
@@ -72,7 +72,7 @@ class TestClassification(unittest.TestCase):
         self.assertEqual(result, 'OK!')
         mock_check_status.assert_called_with("Test!", "failed")
     
-    @patch('weaviate.classification.classify.Classification._check_status')
+    @patch('weaviate.classification.classification.Classification._check_status')
     def test_is_running(self, mock_check_status):
         """
         Test the `is_running` method.
@@ -83,7 +83,7 @@ class TestClassification(unittest.TestCase):
         self.assertEqual(result, 'OK!')
         mock_check_status.assert_called_with("Test!", "running")
 
-    @patch('weaviate.classification.classify.Classification.get')
+    @patch('weaviate.classification.classification.Classification.get')
     def test__check_status(self, mock_get):
         """
         Test the `_check_status` method.

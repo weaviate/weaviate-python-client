@@ -1,3 +1,6 @@
+"""
+BatchRequest class definitions.
+"""
 import copy
 from abc import ABC, abstractmethod
 from typing import List, Sequence
@@ -9,11 +12,9 @@ class BatchRequest(ABC):
     BatchRequest abstract class used as a interface for batch requests.
     """
 
-    @abstractmethod
-    def __len__(self):
-        """
-        This method should me implemented by all inheriting classes.
-        """
+    def __init__(self):
+        self._items = []
+        self.size = 0
 
     @abstractmethod
     def add(self, *args, **kwargs):
@@ -30,50 +31,30 @@ class BatchRequest(ABC):
 
 class ReferenceBatchRequest(BatchRequest):
     """
-    Collect references to add them in one request to weaviate.
+    Collect Weaviate-object references to add them in one request to Weaviate.
     Caution this request will miss some validations to be faster.
     """
 
-    def __init__(self):
-        self._from_object_class_names = []
-        self._from_object_ids = []
-        self._from_object_properties = []
-        self._to_object_ids = []
-
-    def __len__(self):
-        return len(self._from_object_class_names)
-
     def add(self,
-            from_object_uuid: str,
             from_object_class_name: str,
+            from_object_uuid: str,
             from_property_name: str,
             to_object_uuid: str
         ) -> None:
         """
-        Add one reference to this batch. Does NOT validate the consistency of the reference against
-        the client's schema. Checks the arguments' type and UUIDs' format.
+        Add one Weaviate-object reference to this batch. Does NOT validate the consistency of the
+        reference against the class schema. Checks the arguments' type and UUIDs' format.
 
         Parameters
         ----------
-        from_object_uuid : str
-            The UUID or URL of the object that should reference another object.
         from_object_class_name : str
             The name of the class that should reference another object.
+        from_object_uuid : str
+            The UUID or URL of the object that should reference another object.
         from_property_name : str
             The name of the property that contains the reference.
         to_object_uuid : str
             The UUID or URL of the object that is actually referenced.
-
-        Examples
-        --------
-        >>> # assuming that the 'Guitarist' class has only the 'name' property.
-        >>> ref_batch_req = ReferenceBatchRequest()
-        >>> ref_batch_req.add(
-        ...     from_object_uuid = 'c125010f-7909-4101-bff4-0bdd43de55a2',
-        ...     from_object_class_name = 'Guitarist`,
-        ...     from_property_name = 'hasGuitar',
-        ...     to_object_uuid = '33906fda-0e81-4e13-b196-4334c69076ba'
-        ... )
 
         Raises
         ------
@@ -83,39 +64,43 @@ class ReferenceBatchRequest(BatchRequest):
             If 'uuid' is not valid or cannot be extracted.
         """
 
-        if not isinstance(from_object_class_name, str) or not isinstance(from_object_uuid, str) or\
-            not isinstance(from_property_name, str) or not isinstance(to_object_uuid, str):
+        if (
+            not isinstance(from_object_class_name, str)
+            or not isinstance(from_object_uuid, str)
+            or not isinstance(from_property_name, str)
+            or not isinstance(to_object_uuid, str)
+        ):
             raise TypeError('All arguments must be of type string')
 
         from_object_uuid = get_valid_uuid(from_object_uuid)
         to_object_uuid = get_valid_uuid(to_object_uuid)
 
-        self._from_object_class_names.append(from_object_class_name)
-        self._from_object_ids.append(from_object_uuid)
-        self._from_object_properties.append(from_property_name)
-        self._to_object_ids.append(to_object_uuid)
+        self._items.append(
+            {
+            'from': 'weaviate://localhost/'
+                + from_object_class_name
+                + '/'
+                + from_object_uuid
+                + '/'
+                + from_property_name,
+            'to': 'weaviate://localhost/'
+                + to_object_uuid,
+            }
+        )
+        self.size += 1
 
     def get_request_body(self) -> List[dict]:
         """
         Get request body as a list of dictionaries, where each dictionary
-        is a weaviate-schema reference.
+        is a Weaviate-object reference.
 
         Returns
         -------
-        list
-            A list of references as dictionaries.
+        List[dict]
+            A list of Weaviate-objects references as dictionaries.
         """
 
-        batch_body = []
-        for i in range(len(self)):
-            batch_body.append(
-                {
-                "from": "weaviate://localhost/" + self._from_object_class_names[i] + "/"
-                    + self._from_object_ids[i] + "/" + self._from_object_properties[i],
-                "to": "weaviate://localhost/" + self._to_object_ids[i]
-                }
-            )
-        return batch_body
+        return self._items
 
 
 class ObjectsBatchRequest(BatchRequest):
@@ -124,15 +109,9 @@ class ObjectsBatchRequest(BatchRequest):
     Caution this batch will not be validated through weaviate.
     """
 
-    def __init__(self):
-        self._objects = []
-
-    def __len__(self):
-        return len(self._objects)
-
     def add(self,
-            data_object: dict,
             class_name: str,
+            data_object: dict,
             uuid: str=None,
             vector: Sequence=None
         ) -> None:
@@ -142,10 +121,10 @@ class ObjectsBatchRequest(BatchRequest):
 
         Parameters
         ----------
-        data_object : dict
-            Object to be added as a dict datatype.
         class_name : str
             The name of the class this object belongs to.
+        data_object : dict
+            Object to be added as a dict datatype.
         uuid : str, optional
             UUID of the object as a string, by default None
         vector: Sequence, optional
@@ -153,24 +132,6 @@ class ObjectsBatchRequest(BatchRequest):
             have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
             `torch.Tensor` and `tf.Tensor`,
             by default None.
-
-        Examples
-        --------
-        >>> # assuming that the 'Guitarist' class has only the 'name' primitive property.
-        >>> object_batch_req = ObjectsBatchRequest()
-        >>> object_batch_req.add(
-        ...     data_object = {'name`: 'David Gilmour`},
-        ...     class_name = 'Guitarist`,
-        ... )
-        >>> object_batch_req.add(
-        ...     data_object = {'name`: 'Jimmy Page`},
-        ...     class_name = 'Guitarist`,
-        ...     uuid = '2ceee10c-9155-11eb-a8b3-0242ac130003
-        ... )
-
-        >>> # assuming no vectorizer module provided
-        >>> embedding = my_neural_network(some_data_object)
-        >>> object_batch_req.add(vector=embedding)
 
         Raises
         ------
@@ -195,11 +156,12 @@ class ObjectsBatchRequest(BatchRequest):
         if vector is not None:
             batch_item["vector"] = get_vector(vector)
 
-        self._objects.append(batch_item)
+        self._items.append(batch_item)
+        self.size += 1
 
     def get_request_body(self) -> dict:
         """
-        Get the request body as it is needed for weaviate
+        Get the request body as it is needed for the Weaviate server.
 
         Returns
         -------
@@ -208,8 +170,6 @@ class ObjectsBatchRequest(BatchRequest):
         """
 
         return {
-            "fields": [
-                "ALL"
-            ],
-            "objects": self._objects
+            "fields": ["ALL"],
+            "objects": self._items
         }

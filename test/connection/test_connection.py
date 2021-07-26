@@ -59,10 +59,11 @@ class TestConnection(unittest.TestCase):
         auth_error_message = ("No login credentials provided. The weaviate instance at "
                         "test_url requires login credential, use argument 'auth_client_secret'.")
         # requests error
-        mock_requests.get.side_effect = Exception('Test!')
+        mock_session = mock_requests.Session.return_value = Mock()
+        mock_session.get.side_effect = Exception('Test!')
         connection = Connection('test_url')
         self.check_connection_attributes(connection)
-        mock_requests.get.assert_called_with(
+        mock_session.get.assert_called_with(
             "test_url/v1/.well-known/openid-configuration",
             headers={"content-type": "application/json"},
             timeout=(30, 45)
@@ -70,12 +71,12 @@ class TestConnection(unittest.TestCase):
         mock_refresh_authentication.assert_not_called()
 
         # non 200 status_code return
-        mock_requests.get.side_effect = None
+        mock_session.get.side_effect = None
         mock_response = Mock(status_code=400)
-        mock_requests.get.return_value = mock_response
-        connection = Connection('test_url', timeout_config=[3, 23])
+        mock_session.get.return_value = mock_response
+        connection = Connection('test_url', timeout_config=(3, 23))
         self.check_connection_attributes(connection, timeout_config=(3, 23))
-        mock_requests.get.assert_called_with(
+        mock_session.get.assert_called_with(
             "test_url/v1/.well-known/openid-configuration",
             headers={"content-type": "application/json"},
             timeout=(30, 45)
@@ -83,13 +84,13 @@ class TestConnection(unittest.TestCase):
         mock_refresh_authentication.assert_not_called()
 
         # 200 status_code return and no auth provided
-        mock_requests.get.side_effect = None
+        mock_session.get.side_effect = None
         mock_response = Mock(status_code=200)
-        mock_requests.get.return_value = mock_response
+        mock_session.get.return_value = mock_response
         with self.assertRaises(ValueError) as error:
             Connection('test_url')
         check_error_message(self, error, auth_error_message)
-        mock_requests.get.assert_called_with(
+        mock_session.get.assert_called_with(
             "test_url/v1/.well-known/openid-configuration",
             headers={"content-type": "application/json"},
             timeout=(30, 45)
@@ -98,12 +99,12 @@ class TestConnection(unittest.TestCase):
         # 200 status_code return and auth provided
         with patch("weaviate.connect.connection.isinstance") as mock_func: # mock is instance method
             mock_func.return_value = True # isinstance returns True for any calls
-            mock_requests.get.side_effect = None
+            mock_session.get.side_effect = None
             mock_response = Mock(status_code=200)
-            mock_requests.get.return_value = mock_response
+            mock_session.get.return_value = mock_response
             connection = Connection('test_url')
             self.check_connection_attributes(connection, is_authentication_required=True)
-            mock_requests.get.assert_called_with(
+            mock_session.get.assert_called_with(
                 "test_url/v1/.well-known/openid-configuration",
                 headers={"content-type": "application/json"},
                 timeout=(30, 45)
@@ -116,13 +117,14 @@ class TestConnection(unittest.TestCase):
         Test the `run_rest` method.
         """
 
+        mock_session = mock_requests.Session.return_value = Mock()
         connection = Connection("http://weaviate:1234")
 
-        mock_requests.get.return_value = "GET"
-        mock_requests.put.return_value = "PUT"
-        mock_requests.post.return_value = "POST"
-        mock_requests.patch.return_value = "PATCH"
-        mock_requests.delete.return_value = "DELETE"
+        mock_session.get.return_value = "GET"
+        mock_session.put.return_value = "PUT"
+        mock_session.post.return_value = "POST"
+        mock_session.patch.return_value = "PATCH"
+        mock_session.delete.return_value = "DELETE"
 
         # GET method
         self.assertEqual(
@@ -184,13 +186,14 @@ class TestConnection(unittest.TestCase):
         # test the un-expired connection
         mock_get_epoch_time.return_value = -2
 
-        connection = Connection('test_url', None, None)
-        mock_requests.reset_mock() # reset 'requests' mock because it is called in the `__init__`
-        self.check_connection_attributes(connection) # befor the `_refresh_authentication` call
+        mock_session = mock_requests.Session.return_value = Mock()
+        connection = Connection('test_url', None)
+        mock_session.reset_mock() # reset 'requests' mock because it is called in the `__init__`
+        self.check_connection_attributes(connection, timeout_config=(2, 20)) # before the `_refresh_authentication` call
         connection._refresh_authentication()
-        self.check_connection_attributes(connection) # after the `_refresh_authentication` call
+        self.check_connection_attributes(connection, timeout_config=(2, 20)) # after the `_refresh_authentication` call
         mock_get_epoch_time.assert_called()
-        mock_requests.get.assert_not_called()
+        mock_session.get.assert_not_called()
         mock_set_bearer.assert_not_called()
 
         # error messages
@@ -205,34 +208,34 @@ class TestConnection(unittest.TestCase):
         # test the expired connection
         ## requests.get exception (get data)
         connection = Connection('test_url', auth_client_secret=None)
-        mock_requests.get.configure_mock(side_effect=RequestException('Test!'))
+        mock_session.get.configure_mock(side_effect=RequestException('Test!'))
         with self.assertRaises(AuthenticationFailedException) as error:
             connection._refresh_authentication()
         
         check_error_message(self, error, data_error_message)
-        mock_requests.get.assert_called_with("test_url/v1/.well-known/openid-configuration", **get_kwargs)
+        mock_session.get.assert_called_with("test_url/v1/.well-known/openid-configuration", **get_kwargs)
         mock_set_bearer.assert_not_called()
 
         ## bad status_code (get data)
         mock_get_epoch_time.reset_mock() # reset mock.called
         ### reset 'requests' mock because it is called in the `__init__`
-        mock_requests.get.reset_mock(side_effect=True, return_value=True)
+        mock_session.get.reset_mock(side_effect=True, return_value=True)
         connection = Connection('test_url', auth_client_secret=None)
-        mock_requests.get.return_value = Mock(status_code=404)
+        mock_session.get.return_value = Mock(status_code=404)
         with self.assertRaises(AuthenticationFailedException) as error:
             connection._refresh_authentication()
         check_error_message(self, error, data_status_code_error_message)
-        mock_requests.get.assert_called_with("test_url/v1/.well-known/openid-configuration", **get_kwargs)
+        mock_session.get.assert_called_with("test_url/v1/.well-known/openid-configuration", **get_kwargs)
         mock_set_bearer.assert_not_called()
 
         # valid call
         mock_get_epoch_time.reset_mock() # reset mock.called
         ## reset 'requests' mock because it is called in the `__init__`
-        mock_requests.get.reset_mock(side_effect=True, return_value=True)
+        mock_session.get.reset_mock(side_effect=True, return_value=True)
         connection = Connection('test_url', auth_client_secret=None)
-        mock_requests.get.return_value = Mock(**{'status_code': 200, 'json.return_value': {'clientId': 'Test1!', 'href': 'Test2!'}})
+        mock_session.get.return_value = Mock(**{'status_code': 200, 'json.return_value': {'clientId': 'Test1!', 'href': 'Test2!'}})
         connection._refresh_authentication()
-        mock_requests.get.assert_called_with("test_url/v1/.well-known/openid-configuration", **get_kwargs)
+        mock_session.get.assert_called_with("test_url/v1/.well-known/openid-configuration", **get_kwargs)
         mock_set_bearer.assert_called_with(client_id='Test1!', href='Test2!')
 
     @patch("weaviate.connect.connection.requests")

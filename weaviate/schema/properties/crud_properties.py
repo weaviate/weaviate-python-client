@@ -1,5 +1,8 @@
+"""
+Property class definition.
+"""
 import sys
-from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
 from weaviate.schema.validate_schema import check_property
 from weaviate.util import _get_dict_from_object
 from weaviate.connect import Connection, REST_METHOD_POST #, REST_METHOD_DELETE
@@ -51,9 +54,9 @@ class Property:
             If 'schema_class_name' is of wrong type.
         weaviate.exceptions.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.SchemaValidationException
+        weaviate.SchemaValidationException
             If the 'schema_property' is not valid.
         """
 
@@ -93,9 +96,9 @@ class Property:
     #         If argument/s is/are of wrong type/s.
     #     weaviate.exceptions.UnexpectedStatusCodeException
     #         If weaviate reports a none OK status.
-    #     requests.exceptions.ConnectionError
+    #     requests.ConnectionError
     #         If the network connection to weaviate fails.
-    #     weaviate.exceptions.SchemaValidationException
+    #     weaviate.SchemaValidationException
     #         If the 'schema_property' is not valid.
     #     """
 

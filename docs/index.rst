@@ -55,9 +55,17 @@ Support
 - Use the ``weaviate`` tag on `Stackoverflow <https://stackoverflow.com/questions/tagged/weaviate>`_  for questions.
 - For bugs and/or problems with the package submit a Github `issue <https://github.com/semi-technologies/weaviate-python-client/issues>`_.
 
+Changelog
+---------
+.. toctree::
+   :maxdepth: 2
+
+   changelog
+
 Indices and tables
 ==================
 
 * :ref:`genindex`
 * :ref:`search`
+
 .. * :ref:`modindex`

@@ -1,3 +1,6 @@
+"""
+WCS class definition.
+"""
 import time
 from typing import Optional, List, Union
 import json
@@ -5,7 +8,7 @@ import sys
 import requests
 from tqdm import tqdm
 import weaviate
-from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+from weaviate import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.auth import AuthCredentials
 
 
@@ -40,6 +43,7 @@ class WCS(weaviate.connect.Connection):
         self.auth_expires = 0  # unix time when auth expires
         self.auth_bearer = 0
         self.auth_client_secret = auth_client_secret
+        self.session = requests.Session()
         self.dev = dev
         if dev:
             url = 'https://dev.wcs.api.semi.technology'
@@ -57,6 +61,13 @@ class WCS(weaviate.connect.Connection):
             self._refresh_authentication()
         else:
             raise ValueError("No login credentials provided.")
+
+    def __del__(self):
+        """
+        Destructor for Connection class instance.
+        """
+
+        self.session.close()
 
     def create(self,
             cluster_name: str=None,
@@ -100,16 +111,16 @@ class WCS(weaviate.connect.Connection):
 
         Contextionary:
 
-        >>> { 
+        >>> {
         ...     "name": "text2vec-contextionary",
         ...     "tag": "en0.16.0-v1.0.0" # this is the default tag
         ... }
 
         Transformers:
 
-        >>> { 
+        >>> {
         ...     "name": "text2vec-transformers",
-        ...     "tag": "distilbert-base-uncased" # or another transformer model from 
+        ...     "tag": "distilbert-base-uncased" # or another transformer model from
         ...                                         # https://huggingface.co/models
         ... }
 
@@ -120,9 +131,9 @@ class WCS(weaviate.connect.Connection):
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If creating the weaviate cluster failed for a different reason,
             more information is given in the exception.
         """
@@ -141,7 +152,7 @@ class WCS(weaviate.connect.Connection):
         data_to_send = json.dumps(config).encode("utf-8")
 
         try:
-            response = requests.post(
+            response = self.session.post(
                 url=self.url,
                 data=data_to_send,
                 headers=self._get_request_header(),
@@ -208,15 +219,15 @@ class WCS(weaviate.connect.Connection):
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If getting the weaviate clusters failed for a different reason,
             more information is given in the exception.
         """
 
         try:
-            response = requests.get(
+            response = self.session.get(
                 url=self.url + '/list',
                 headers=self._get_request_header(),
                 timeout=self._timeout_config,
@@ -249,15 +260,15 @@ class WCS(weaviate.connect.Connection):
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If getting the weaviate cluster failed for a different reason,
             more information is given in the exception.
         """
 
         try:
-            response = requests.get(
+            response = self.session.get(
                 url=f'{self.url}/{cluster_name}',
                 headers=self._get_request_header(),
                 timeout=self._timeout_config
@@ -281,15 +292,15 @@ class WCS(weaviate.connect.Connection):
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             If deleting the weaviate cluster failed for a different reason,
             more information is given in the exception.
         """
 
         try:
-            response = requests.delete(
+            response = self.session.delete(
                 url=f'{self.url}/{cluster_name}',
                 headers=self._get_request_header(),
                 timeout=self._timeout_config

@@ -1,17 +1,15 @@
 import unittest
 from unittest.mock import patch, Mock
 import json
-import requests
-from requests import RequestException
 from weaviate import AuthClientPassword, AuthClientCredentials
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
-from weaviate.tools import WCS
+from weaviate.wcs import WCS
 from test.util import check_error_message, check_startswith_error_message
 
 
 class TestWCS(unittest.TestCase):
 
-    @patch('weaviate.tools.wcs.WCS._set_bearer')
+    @patch('weaviate.wcs.wcs.WCS._set_bearer')
     def test___init__(self, mock_set_bearer):
         """
         Test the `__init__` method.
@@ -54,8 +52,8 @@ class TestWCS(unittest.TestCase):
             'https://auth.dev.wcs.api.semi.technology/auth/realms/SeMI/.well-known/openid-configuration'
         )
 
-    @patch('weaviate.tools.wcs.WCS._set_bearer')
-    @patch('weaviate.tools.wcs.WCS.get_cluster_config')
+    @patch('weaviate.wcs.wcs.WCS._set_bearer')
+    @patch('weaviate.wcs.wcs.WCS.get_cluster_config')
     def test_is_ready(self, mock_get_cluster_config, mock_set_bearer):
         """
         Test the `is_ready` method.
@@ -72,14 +70,15 @@ class TestWCS(unittest.TestCase):
         mock_get_cluster_config.assert_called_with('test_name2')
 
 
-    @patch('weaviate.tools.wcs.requests')
-    @patch('weaviate.tools.wcs.WCS._set_bearer')
-    @patch('weaviate.tools.wcs.WCS.get_cluster_config')
+    @patch('weaviate.wcs.wcs.requests')
+    @patch('weaviate.wcs.wcs.WCS._set_bearer')
+    @patch('weaviate.wcs.wcs.WCS.get_cluster_config')
     def test_create(self, mock_get_cluster_config, mock_set_bearer, mock_requests):
         """
         Test the `create` method.
         """
 
+        mock_session = mock_requests.Session.return_value = Mock()
         wcs = WCS(AuthClientPassword('test_user', 'test_pass'), dev=True)
         wcs.auth_bearer = 'test_auth'
         progress = lambda name, prog = 99: {
@@ -122,25 +121,25 @@ class TestWCS(unittest.TestCase):
         check_error_message(self, error, type_error_message)
 
         # connection error
-        mock_requests.post.side_effect = RequestsConnectionError('Test!')
+        mock_session.post.side_effect = RequestsConnectionError('Test!')
         with self.assertRaises(RequestsConnectionError) as error:
             wcs.create(cluster_name='Test_name', cluster_type='test_type')
         check_error_message(self, error, connection_error_message)
-        mock_requests.post.assert_called_with(
+        mock_session.post.assert_called_with(
             url='https://dev.wcs.api.semi.technology/v1/clusters',
             data=json.dumps({'id': 'Test_name', 'configuration': {'tier': 'test_type', "requiresAuthentication": False, 'modules': []}}).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
             timeout=(2, 20)
         )
 
-        mock_requests.post.side_effect = None
-        mock_requests.post.return_value = Mock(status_code=404)
+        mock_session.post.side_effect = None
+        mock_session.post.return_value = Mock(status_code=404)
 
         # unexpected error
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             wcs.create(config=config)
         check_startswith_error_message(self, error, unexpected_error_message)
-        mock_requests.post.assert_called_with(
+        mock_session.post.assert_called_with(
             url='https://dev.wcs.api.semi.technology/v1/clusters',
             data=json.dumps(config).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
@@ -148,9 +147,9 @@ class TestWCS(unittest.TestCase):
         )
 
         # valid calls
-        mock_requests.post.return_value = Mock(status_code=400, text='Cluster already exists!')
+        mock_session.post.return_value = Mock(status_code=400, text='Cluster already exists!')
         result = wcs.create(cluster_name='my-url')
-        mock_requests.post.assert_called_with(
+        mock_session.post.assert_called_with(
             url='https://dev.wcs.api.semi.technology/v1/clusters',
             data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', "requiresAuthentication": False, 'modules': []}}).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
@@ -158,9 +157,9 @@ class TestWCS(unittest.TestCase):
         )
         self.assertEqual(result, 'https://my-url.semi.network')
 
-        mock_requests.post.return_value = Mock(status_code=400, text='Cluster already exists!')
+        mock_session.post.return_value = Mock(status_code=400, text='Cluster already exists!')
         result = wcs.create(cluster_name='my-url', module='test')
-        mock_requests.post.assert_called_with(
+        mock_session.post.assert_called_with(
             url='https://dev.wcs.api.semi.technology/v1/clusters',
             data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', "requiresAuthentication": False, 'modules': [{'name': 'test'}]}}).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
@@ -168,9 +167,9 @@ class TestWCS(unittest.TestCase):
         )
         self.assertEqual(result, 'https://my-url.semi.network')
 
-        mock_requests.post.return_value = Mock(status_code=400, text='Cluster already exists!')
+        mock_session.post.return_value = Mock(status_code=400, text='Cluster already exists!')
         result = wcs.create(cluster_name='my-url', module='test', with_auth=True)
-        mock_requests.post.assert_called_with(
+        mock_session.post.assert_called_with(
             url='https://dev.wcs.api.semi.technology/v1/clusters',
             data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', "requiresAuthentication": True, 'modules': [{'name': 'test'}]}}).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
@@ -178,9 +177,9 @@ class TestWCS(unittest.TestCase):
         )
         self.assertEqual(result, 'https://my-url.semi.network')
 
-        mock_requests.post.return_value = Mock(status_code=400, text='Cluster already exists!')
+        mock_session.post.return_value = Mock(status_code=400, text='Cluster already exists!')
         result = wcs.create(cluster_name='my-url', module={'name': 'test', 'tag': 'test_tag'})
-        mock_requests.post.assert_called_with(
+        mock_session.post.assert_called_with(
             url='https://dev.wcs.api.semi.technology/v1/clusters',
             data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', "requiresAuthentication": False, 'modules': [{'name': 'test', 'tag': 'test_tag'}]}}).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
@@ -190,9 +189,9 @@ class TestWCS(unittest.TestCase):
 
         post_return = Mock(status_code=202)
         post_return.json.return_value = {'id': 'test_id'}
-        mock_requests.post.return_value = post_return
+        mock_session.post.return_value = post_return
         result = wcs.create(config=config, wait_for_completion=False)
-        mock_requests.post.assert_called_with(
+        mock_session.post.assert_called_with(
             url='https://dev.wcs.api.semi.technology/v1/clusters',
             data=json.dumps(config).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
@@ -202,9 +201,9 @@ class TestWCS(unittest.TestCase):
 
         mock_get_cluster_config.reset_mock()
         mock_get_cluster_config.side_effect = lambda x: progress('weaviate', 100) if mock_get_cluster_config.call_count == 2 else progress('weaviate')
-        mock_requests.post.return_value = Mock(status_code=202)
+        mock_session.post.return_value = Mock(status_code=202)
         result = wcs.create(cluster_name='weaviate', wait_for_completion=True)
-        mock_requests.post.assert_called_with(
+        mock_session.post.assert_called_with(
             url='https://dev.wcs.api.semi.technology/v1/clusters',
             data=json.dumps({'id': 'weaviate', 'configuration': {'tier': 'sandbox', "requiresAuthentication": False, 'modules': []}}).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
@@ -218,9 +217,9 @@ class TestWCS(unittest.TestCase):
 
         mock_get_cluster_config.side_effect = progress
 
-        mock_requests.post.return_value = Mock(status_code=400, text='Cluster already exists!')
+        mock_session.post.return_value = Mock(status_code=400, text='Cluster already exists!')
         result = wcs.create(cluster_name='my-url')
-        mock_requests.post.assert_called_with(
+        mock_session.post.assert_called_with(
             url='https://wcs.api.semi.technology/v1/clusters',
             data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', "requiresAuthentication": False}}).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
@@ -228,9 +227,9 @@ class TestWCS(unittest.TestCase):
         )
         self.assertEqual(result, 'https://my-url.semi.network')
 
-        mock_requests.post.return_value = Mock(status_code=400, text='Cluster already exists!')
+        mock_session.post.return_value = Mock(status_code=400, text='Cluster already exists!')
         result = wcs.create(cluster_name='my-url', with_auth=True)
-        mock_requests.post.assert_called_with(
+        mock_session.post.assert_called_with(
             url='https://wcs.api.semi.technology/v1/clusters',
             data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', "requiresAuthentication": True}}).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
@@ -238,9 +237,9 @@ class TestWCS(unittest.TestCase):
         )
         self.assertEqual(result, 'https://my-url.semi.network')
 
-        mock_requests.post.return_value = Mock(status_code=400, text='Cluster already exists!')
+        mock_session.post.return_value = Mock(status_code=400, text='Cluster already exists!')
         result = wcs.create(cluster_name='my-url', module='test')
-        mock_requests.post.assert_called_with(
+        mock_session.post.assert_called_with(
             url='https://wcs.api.semi.technology/v1/clusters',
             data=json.dumps({'id': 'my-url', 'configuration': {'tier': 'sandbox', "requiresAuthentication": False}}).encode("utf-8"),
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_auth'},
@@ -248,13 +247,14 @@ class TestWCS(unittest.TestCase):
         )
         self.assertEqual(result, 'https://my-url.semi.network')
 
-    @patch('weaviate.tools.wcs.WCS._set_bearer')
-    @patch('weaviate.tools.wcs.requests')
+    @patch('weaviate.wcs.wcs.WCS._set_bearer')
+    @patch('weaviate.wcs.wcs.requests')
     def test_get_clusters(self, mock_requests, mock_set_bearer):
         """
         Test the `get_clusters` method.
         """
 
+        mock_session = mock_requests.Session.return_value = Mock()
         wcs = WCS(AuthClientCredentials('test_secret_token'))
         wcs.auth_bearer = 'test_bearer'
 
@@ -265,11 +265,11 @@ class TestWCS(unittest.TestCase):
         unexpected_error_message = 'Checking WCS instance'
 
         # connection error
-        mock_requests.get.side_effect = RequestsConnectionError('Test!')
+        mock_session.get.side_effect = RequestsConnectionError('Test!')
         with self.assertRaises(RequestsConnectionError) as error:
             wcs.get_clusters('test@semi.technology')
         check_startswith_error_message(self, error, connection_error_message)
-        mock_requests.get.assert_called_with(
+        mock_session.get.assert_called_with(
             url='https://wcs.api.semi.technology/v1/clusters/list',
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_bearer'},
             timeout=(2, 20),
@@ -279,12 +279,12 @@ class TestWCS(unittest.TestCase):
         )
 
         # unexpected error
-        mock_requests.get.side_effect = None
-        mock_requests.get.return_value = Mock(status_code=400)
+        mock_session.get.side_effect = None
+        mock_session.get.return_value = Mock(status_code=400)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             wcs.get_clusters('test@semi.technology')
         check_startswith_error_message(self, error, unexpected_error_message)
-        mock_requests.get.assert_called_with(
+        mock_session.get.assert_called_with(
             url='https://wcs.api.semi.technology/v1/clusters/list',
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_bearer'},
             timeout=(2, 20),
@@ -296,10 +296,10 @@ class TestWCS(unittest.TestCase):
         # valid calls
         return_mock = Mock(status_code=200)
         return_mock.json.return_value = {'clusterIDs': 'test!'}
-        mock_requests.get.return_value = return_mock
+        mock_session.get.return_value = return_mock
         result = wcs.get_clusters('test@semi.technology')
         self.assertEqual(result, 'test!')
-        mock_requests.get.assert_called_with(
+        mock_session.get.assert_called_with(
             url='https://wcs.api.semi.technology/v1/clusters/list',
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_bearer'},
             timeout=(2, 20),
@@ -308,13 +308,14 @@ class TestWCS(unittest.TestCase):
             }
         )
 
-    @patch('weaviate.tools.wcs.WCS._set_bearer')
-    @patch('weaviate.tools.wcs.requests')
+    @patch('weaviate.wcs.wcs.WCS._set_bearer')
+    @patch('weaviate.wcs.wcs.requests')
     def test_get_cluster_config(self, mock_requests, mock_set_bearer):
         """
         Test the `get_cluster_config` method.
         """
 
+        mock_session = mock_requests.Session.return_value = Mock()
         wcs = WCS(AuthClientCredentials('test_secret_token'))
         wcs.auth_bearer = 'test_bearer'
 
@@ -325,23 +326,23 @@ class TestWCS(unittest.TestCase):
         unexpected_error_message = 'Checking WCS instance'
 
         ## connection error
-        mock_requests.get.side_effect = RequestsConnectionError('Test!')
+        mock_session.get.side_effect = RequestsConnectionError('Test!')
         with self.assertRaises(RequestsConnectionError) as error:
             wcs.get_cluster_config('test_name')
         check_startswith_error_message(self, error, connection_error_message)
-        mock_requests.get.assert_called_with(
+        mock_session.get.assert_called_with(
             url='https://wcs.api.semi.technology/v1/clusters/test_name',
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_bearer'},
             timeout=(2, 20),
         )
 
         ## unexpected error
-        mock_requests.get.side_effect = None
-        mock_requests.get.return_value = Mock(status_code=400)
+        mock_session.get.side_effect = None
+        mock_session.get.return_value = Mock(status_code=400)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             wcs.get_cluster_config('test_name')
         check_startswith_error_message(self, error, unexpected_error_message)
-        mock_requests.get.assert_called_with(
+        mock_session.get.assert_called_with(
             url='https://wcs.api.semi.technology/v1/clusters/test_name',
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_bearer'},
             timeout=(2, 20),
@@ -350,22 +351,23 @@ class TestWCS(unittest.TestCase):
         # valid calls
         return_mock = Mock(status_code=200)
         return_mock.json.return_value = {'clusterIDs': 'test!'}
-        mock_requests.get.return_value = return_mock
+        mock_session.get.return_value = return_mock
         result = wcs.get_cluster_config('test_name')
         self.assertEqual(result, {'clusterIDs': 'test!'})
-        mock_requests.get.assert_called_with(
+        mock_session.get.assert_called_with(
             url='https://wcs.api.semi.technology/v1/clusters/test_name',
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_bearer'},
             timeout=(2, 20),
         )
 
-    @patch('weaviate.tools.wcs.WCS._set_bearer')
-    @patch('weaviate.tools.wcs.requests')
+    @patch('weaviate.wcs.wcs.WCS._set_bearer')
+    @patch('weaviate.wcs.wcs.requests')
     def test_delete(self, mock_requests, mock_set_bearer):
         """
         Test the `delete` method.
         """
 
+        mock_session = mock_requests.Session.return_value = Mock()
         wcs = WCS(AuthClientCredentials('test_secret_token'))
         wcs.auth_bearer = 'test_bearer'
 
@@ -376,32 +378,32 @@ class TestWCS(unittest.TestCase):
         unexpected_error_message = 'Deleting WCS instance'
 
         ## connection error
-        mock_requests.delete.side_effect = RequestsConnectionError('Test!')
+        mock_session.delete.side_effect = RequestsConnectionError('Test!')
         with self.assertRaises(RequestsConnectionError) as error:
             wcs.delete('test_name')
         check_startswith_error_message(self, error, connection_error_message)
-        mock_requests.delete.assert_called_with(
+        mock_session.delete.assert_called_with(
             url='https://wcs.api.semi.technology/v1/clusters/test_name',
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_bearer'},
             timeout=(2, 20),
         )
 
         ## unexpected error
-        mock_requests.delete.side_effect = None
-        mock_requests.delete.return_value = Mock(status_code=400)
+        mock_session.delete.side_effect = None
+        mock_session.delete.return_value = Mock(status_code=400)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             wcs.delete('test_name')
         check_startswith_error_message(self, error, unexpected_error_message)
-        mock_requests.delete.assert_called_with(
+        mock_session.delete.assert_called_with(
             url='https://wcs.api.semi.technology/v1/clusters/test_name',
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_bearer'},
             timeout=(2, 20),
         )
 
         # valid calls
-        mock_requests.delete.return_value = Mock(status_code=200)
+        mock_session.delete.return_value = Mock(status_code=200)
         self.assertIsNone(wcs.delete('test_name'))
-        mock_requests.delete.assert_called_with(
+        mock_session.delete.assert_called_with(
             url='https://wcs.api.semi.technology/v1/clusters/test_name',
             headers={"content-type": "application/json", 'Authorization': 'Bearer test_bearer'},
             timeout=(2, 20),
