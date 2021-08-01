@@ -24,20 +24,23 @@ class Batch:
 
     This class can be used in 3 ways:
 
-    Case I: Everything should be done by the user, i.e. the user should add the
+    Case I: 
+        Everything should be done by the user, i.e. the user should add the
         objects/object-references and create them whenever the user wants. To create one of the
         data type use these methods of this class: `create_objects`, `create_references` and
         `flush`. This case has the Batch instance's batch_size set to None (see docs for the
         `configure` or `__call__` method). Can be used in a context manager, see below.
 
-    Case II: Batch auto-creates when full. This can be achieved by setting the Batch instance's
+    Case II: 
+        Batch auto-creates when full. This can be achieved by setting the Batch instance's
         batch_size set to a positive integer (see docs for the `configure` or `__call__` method).
         The batch_size in this case corresponds to the sum of added objects and references.
         This case does not require the user to create the batch/s, but it can be done. Also to
         create non-full batches (last batche/s) that do not meet the requirement to be auto-created
         use the `flush` method. Can be used in a context manager, see below.
 
-    Case III: Similar to Case II but uses dynamic batching, i.e. auto-creates either objects or
+    Case III: 
+        Similar to Case II but uses dynamic batching, i.e. auto-creates either objects or
         references when one of them reached the `recommended_num_objects` or
         `recommended_num_references` respectively. See docs for the `configure` or `__call__`
         method for how to enable it.
@@ -124,7 +127,7 @@ class Batch:
     >>> client.batch.shape
     (0, 0)
 
-    For Case II:
+    For Case III:
     Same as Case II but you need to configure or enable 'dynamic' batching.
 
     >>> client.batch.configure(batch_size=3, dynamic=True) # 'batch_size' must be an valid int
