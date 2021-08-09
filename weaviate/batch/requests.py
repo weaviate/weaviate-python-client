@@ -4,6 +4,8 @@ BatchRequest class definitions.
 import copy
 from abc import ABC, abstractmethod
 from typing import List, Sequence
+
+from weaviate.batch.validate import validate_data_object
 from weaviate.util import get_valid_uuid, get_vector
 
 
@@ -35,12 +37,31 @@ class ReferenceBatchRequest(BatchRequest):
     Caution this request will miss some validations to be faster.
     """
 
+<<<<<<< HEAD
     def add(self,
             from_object_class_name: str,
             from_object_uuid: str,
             from_property_name: str,
             to_object_uuid: str
         ) -> None:
+=======
+    def __init__(self):
+        self._from_object_class_names = []
+        self._from_object_ids = []
+        self._from_object_properties = []
+        self._to_object_ids = []
+
+    def __len__(self):
+        return len(self._from_object_class_names)
+
+    def add(
+        self,
+        from_object_uuid: str,
+        from_object_class_name: str,
+        from_property_name: str,
+        to_object_uuid: str,
+    ) -> None:
+>>>>>>> 8a35ccc67717abe70c1fdf144497b98d61511d99
         """
         Add one Weaviate-object reference to this batch. Does NOT validate the consistency of the
         reference against the class schema. Checks the arguments' type and UUIDs' format.
@@ -132,6 +153,8 @@ class ObjectsBatchRequest(BatchRequest):
             have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
             `torch.Tensor` and `tf.Tensor`,
             by default None.
+        validate_data: bool, optional
+            If True, validate the data_object against the client's schema.
 
         Raises
         ------
@@ -141,6 +164,16 @@ class ObjectsBatchRequest(BatchRequest):
             If 'uuid' is not of a propper form.
         """
 
+        if validate_data and self.schema:
+            for entry in self.schema["classes"]:
+                if entry["class"] == class_name:
+                    schema = entry
+                    validate_data_object(data_object, schema["properties"])
+                else:
+                    pass
+        else:
+            pass
+
         if not isinstance(data_object, dict):
             raise TypeError("Object must be of type dict")
         if not isinstance(class_name, str):
@@ -148,7 +181,7 @@ class ObjectsBatchRequest(BatchRequest):
 
         batch_item = {
             "class": class_name,
-            "properties": copy.deepcopy(data_object)
+            "properties": copy.deepcopy(data_object),
         }
         if uuid is not None:
             batch_item["id"] = get_valid_uuid(uuid)
