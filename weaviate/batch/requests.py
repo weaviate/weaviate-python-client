@@ -4,7 +4,6 @@ BatchRequest class definitions.
 import copy
 from abc import ABC, abstractmethod
 from typing import List, Sequence
-
 from weaviate.util import get_valid_uuid, get_vector
 
 
@@ -133,7 +132,6 @@ class ObjectsBatchRequest(BatchRequest):
             have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
             `torch.Tensor` and `tf.Tensor`,
             by default None.
-            
         Raises
         ------
         TypeError
@@ -148,7 +146,7 @@ class ObjectsBatchRequest(BatchRequest):
 
         batch_item = {
             "class": class_name,
-            "properties": copy.deepcopy(data_object),
+            "properties": copy.deepcopy(data_object)
         }
         if uuid is not None:
             batch_item["id"] = get_valid_uuid(uuid)
