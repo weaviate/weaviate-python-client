@@ -140,7 +140,7 @@ class ObjectsBatchRequest(BatchRequest):
         ValueError
             If 'uuid' is not of a propper form.
         """
-
+        
         if not isinstance(data_object, dict):
             raise TypeError("Object must be of type dict")
         if not isinstance(class_name, str):
