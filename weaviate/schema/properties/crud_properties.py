@@ -5,7 +5,7 @@ import sys
 from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
 from weaviate.schema.validate_schema import check_property
 from weaviate.util import _get_dict_from_object
-from weaviate.connect import Connection, REST_METHOD_POST #, REST_METHOD_DELETE
+from weaviate.connect import Connection
 
 
 class Property:
@@ -70,7 +70,10 @@ class Property:
 
         path = f"/schema/{schema_class_name}/properties"
         try:
-            response = self._connection.run_rest(path, REST_METHOD_POST, loaded_schema_property)
+            response = self._connection.post(
+                path=path,
+                weaviate_object=loaded_schema_property
+            )
         except RequestsConnectionError as conn_err:
             message = str(conn_err) + (' Connection error, property may not have '
                                         'been created properly.')
@@ -109,7 +112,9 @@ class Property:
 
     #     path = f"/schema/{schema_class_name}/properties/{schema_property_name}"
     #     try:
-    #         response = self._connection.run_rest(path, REST_METHOD_DELETE)
+    #         response = self._connection.delete(
+    #             path=path
+    #          )
     #     except RequestsConnectionError as conn_err:
     #         message = str(conn_err) + (' Connection error, property may not have '
     #                                     'been deleted properly.')

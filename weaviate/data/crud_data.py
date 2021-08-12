@@ -4,11 +4,6 @@ DataObject class definition.
 import sys
 from typing import Union, Optional, List, Sequence
 import validators
-from weaviate.connect import REST_METHOD_POST
-from weaviate.connect import REST_METHOD_PATCH
-from weaviate.connect import REST_METHOD_PUT
-from weaviate.connect import REST_METHOD_GET
-from weaviate.connect import REST_METHOD_DELETE
 from weaviate.connect import Connection
 from weaviate import ObjectAlreadyExistsException
 from weaviate import RequestsConnectionError
@@ -119,7 +114,10 @@ class DataObject:
 
         path = "/objects"
         try:
-            response = self._connection.run_rest(path, REST_METHOD_POST, weaviate_obj)
+            response = self._connection.post(
+                path=path,
+                weaviate_object=weaviate_obj
+            )
         except RequestsConnectionError as conn_err:
             message = str(conn_err)\
                     + ' Connection error, object was not added to weaviate.'
@@ -241,7 +239,10 @@ class DataObject:
         path = f"/objects/{uuid}"
 
         try:
-            response = self._connection.run_rest(path, REST_METHOD_PATCH, weaviate_obj)
+            response = self._connection.patch(
+                path=path,
+                weaviate_object=weaviate_obj
+            )
         except RequestsConnectionError as conn_err:
             message = str(conn_err) + ' Connection error, object was not updated(REST PATCH).'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
@@ -336,7 +337,10 @@ class DataObject:
 
         path = f"/objects/{uuid}"
         try:
-            response = self._connection.run_rest(path, REST_METHOD_PUT, weaviate_obj)
+            response = self._connection.put(
+                path=path,
+                weaviate_object=weaviate_obj
+            )
         except RequestsConnectionError as conn_err:
             message = str(conn_err) + ' Connection error, object was not replaced(REST PUT).'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
@@ -500,7 +504,9 @@ class DataObject:
             raise ValueError("UUID does not have proper form")
 
         try:
-            response = self._connection.run_rest("/objects/" + uuid, REST_METHOD_DELETE)
+            response = self._connection.delete(
+                path="/objects/" + uuid,
+            )
         except RequestsConnectionError as conn_err:
             message = str(conn_err)\
                     + ' Connection error, object could not be deleted.'
@@ -641,7 +647,10 @@ class DataObject:
 
         path = "/objects/validate"
         try:
-            response = self._connection.run_rest(path, REST_METHOD_POST, weaviate_obj)
+            response = self._connection.post(
+                path=path,
+                weaviate_object=weaviate_obj
+            )
         except RequestsConnectionError as conn_err:
             message = str(conn_err)\
                     + ' Connection error, object was not validated against weaviate.'
@@ -698,7 +707,10 @@ class DataObject:
         else:
             path = "/objects"
 
-        return self._connection.run_rest(path, REST_METHOD_GET, params=params)
+        return self._connection.get(
+            path=path,
+            params=params
+        )
 
 
 def _get_params(additional_properties: Optional[List[str]], with_vector: bool) -> dict:

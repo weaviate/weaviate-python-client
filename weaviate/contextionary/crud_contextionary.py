@@ -3,7 +3,7 @@ Contextionary class definition.
 """
 import sys
 from weaviate import RequestsConnectionError, UnexpectedStatusCodeException
-from weaviate.connect import REST_METHOD_POST, REST_METHOD_GET, Connection
+from weaviate.connect import Connection
 
 
 class Contextionary:
@@ -80,11 +80,10 @@ class Contextionary:
         }
 
         try:
-            response = self._connection.run_rest(
-                "/modules/text2vec-contextionary/extensions",
-                REST_METHOD_POST,
-                extension
-                )
+            response = self._connection.post(
+                path="/modules/text2vec-contextionary/extensions",
+                weaviate_object=extension,
+            )
         except RequestsConnectionError as conn_err:
             message = str(conn_err)\
                     + ' Connection error, text2vec-contextionary could not be extended.'
@@ -156,7 +155,9 @@ class Contextionary:
 
         path = "/modules/text2vec-contextionary/concepts/" + concept
         try:
-            response = self._connection.run_rest(path, REST_METHOD_GET)
+            response = self._connection.get(
+                path=path
+            )
         except RequestsConnectionError as conn_err:
             message = str(conn_err)\
                     + ' Connection error, text2vec-contextionary vector was not retrieved.'

@@ -3,7 +3,7 @@ GraphQL query module.
 """
 import sys
 from typing import List, Union
-from weaviate.connect import REST_METHOD_POST, Connection
+from weaviate.connect import Connection
 from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
 from .get import GetBuilder
 from .aggregate import AggregateBuilder
@@ -141,7 +141,10 @@ class Query:
         json_query = {"query": gql_query}
 
         try:
-            response = self._connection.run_rest("/graphql", REST_METHOD_POST, json_query)
+            response = self._connection.post(
+                path="/graphql",
+                weaviate_object=json_query
+            )
         except RequestsConnectionError as conn_err:
             message = str(conn_err) + ' Connection error, query not executed.'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])

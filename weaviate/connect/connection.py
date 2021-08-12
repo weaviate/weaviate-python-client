@@ -8,7 +8,6 @@ from numbers import Real
 import requests
 from requests import RequestException
 from weaviate import AuthenticationFailedException
-from weaviate.connect.constants import *
 from weaviate.auth import AuthCredentials
 from weaviate.util import _get_valid_timeout_config
 
@@ -36,40 +35,60 @@ class Connection:
             real number or, a tuple of two real numbers: (connect timeout, read timeout).
             If only one real number is passed then both connect and read timeout will be set to
             that value, by default (2, 20).
+
+        Raises
+        ------
+        ValueError
+            If no authentication credentials provided but the Weaviate server has an OpenID
+            configured.
         """
 
-        self.session = requests.Session()
-        self.url = url + WEAVIATE_REST_API_VERSION_PATH  # e.g. http://localhost:80/v1
-        self.timeout_config = timeout_config # this uses the setter
+        self._api_version_path = '/v1'
+        self._session = requests.Session()
+        self.url = url  # e.g. http://localhost:80
+        self._timeout_config = timeout_config # this uses the setter
 
-        self.auth_expires = 0  # unix time when auth expires
-        self.auth_bearer = 0
-        self.auth_client_secret = auth_client_secret
+        self._auth_expires = 0  # unix time when auth expires
+        self._auth_bearer = None
+        self._auth_client_secret = auth_client_secret
 
-        self.is_authentication_required = False
-        try:
-            request = self.session.get(
-                self.url + "/.well-known/openid-configuration",
-                headers={"content-type": "application/json"},
-                timeout=(30, 45)
+        self._is_authentication_required = False
+
+        self._log_in()
+
+    def _log_in(self) -> None:
+        """
+        Log in to the Weaviate server only if the Weaviate server has an OpenID configured.
+
+        Raises
+        ------
+        ValueError
+            If no authentication credentials provided but the Weaviate server has an OpenID
+            configured.
+        """
+
+        response = self._session.get(
+            self.url + self._api_version_path + "/.well-known/openid-configuration",
+            headers={"content-type": "application/json"},
+            timeout=self._timeout_config
+        )
+
+        if response.status_code == 200:
+            if isinstance(self._auth_client_secret, AuthCredentials):
+                self._is_authentication_required = True
+                self._refresh_authentication()
+            else:
+                raise ValueError(
+                    "No login credentials provided. The weaviate instance at "
+                    f"{self.url} requires login credential, use argument 'auth_client_secret'."
                 )
-        except Exception:
-            pass
-        else:
-            if request.status_code == 200:
-                if isinstance(auth_client_secret, AuthCredentials):
-                    self.is_authentication_required = True
-                    self._refresh_authentication()
-                else:
-                    raise ValueError("No login credentials provided. The weaviate instance at "
-                        f"{url} requires login credential, use argument 'auth_client_secret'.")
 
     def __del__(self):
         """
         Destructor for Connection class instance.
         """
 
-        self.session.close()
+        self._session.close()
 
     # Requests a new bearer
     def _refresh_authentication(self) -> None:
@@ -94,11 +113,11 @@ class Connection:
             If authentication access denied.
         """
 
-        if self.auth_expires < get_epoch_time():
+        if self._auth_expires < _get_epoch_time():
             # collect data for the request
             try:
-                request = self.session.get(
-                    self.url + "/.well-known/openid-configuration",
+                request = self._session.get(
+                    self.url + self._api_version_path + "/.well-known/openid-configuration",
                     headers={"content-type": "application/json"},
                     timeout=(30, 45)
                     )
@@ -150,7 +169,7 @@ class Connection:
                 "The grant_types supported by the thirdparty authentication service are "
                 "insufficient. Please add 'client_credentials'.")
 
-        request_body = self.auth_client_secret.get_credentials()
+        request_body = self._auth_client_secret.get_credentials()
         request_body["client_id"] = client_id
 
         # try the request
@@ -172,9 +191,9 @@ class Connection:
             raise AuthenticationFailedException(
                 "Authentication access denied. Are the credentials correct?"
             )
-        self.auth_bearer = request.json()['access_token']
+        self._auth_bearer = request.json()['access_token']
         # -2 for some lagtime
-        self.auth_expires = int(get_epoch_time() + request.json()['expires_in'] - 2)
+        self._auth_expires = int(_get_epoch_time() + request.json()['expires_in'] - 2)
 
     def _get_request_header(self) -> dict:
         """
@@ -188,31 +207,164 @@ class Connection:
 
         header = {"content-type": "application/json"}
 
-        if self.is_authentication_required:
+        if self._is_authentication_required:
             self._refresh_authentication()
-            header["Authorization"] = "Bearer " + self.auth_bearer
+            header["Authorization"] = "Bearer " + self._auth_bearer
 
         return header
 
-    def run_rest(self,
+    def delete(self,
             path: str,
-            rest_method: int,
             weaviate_object: dict=None,
-            params: dict=None
         ) -> requests.Response:
         """
-        Make a request to the weaviate instance.
+        Make a DELETE request to the Weaviate server instance.
 
         Parameters
         ----------
         path : str
-            Sub-path to the weaviate resources. Must be a valid weaviate sub-path.
-            e.g. /meta or /objects, without version.
-        rest_method : int
-            Type of the rest API request. Is defined through a constant given in
-            the package e.g. REST_METHOD_GET.
+            Sub-path to the Weaviate resources. Must be a valid Weaviate sub-path.
+            e.g. '/meta' or '/objects', without version.
         weaviate_object : dict, optional
-            Object is used as payload, by default None
+            Object is used as payload for DELETE request. By default None.
+
+        Returns
+        -------
+        requests.Response
+            The response, if request was successful.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the DELETE request could not be made.
+        """
+
+        request_url = self.url + self._api_version_path + path
+
+        return self._session.delete(
+            url=request_url,
+            json=weaviate_object,
+            headers=self._get_request_header(),
+            timeout=self._timeout_config
+        )
+
+    def patch(self,
+            path: str,
+            weaviate_object: dict,
+        ) -> requests.Response:
+        """
+        Make a PATCH request to the Weaviate server instance.
+
+        Parameters
+        ----------
+        path : str
+            Sub-path to the Weaviate resources. Must be a valid Weaviate sub-path.
+            e.g. '/meta' or '/objects', without version.
+        weaviate_object : dict
+            Object is used as payload for PATCH request.
+
+        Returns
+        -------
+        requests.Response
+            The response, if request was successful.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the PATCH request could not be made.
+        """
+
+        request_url = self.url + self._api_version_path + path
+
+        return self._session.patch(
+            url=request_url,
+            json=weaviate_object,
+            headers=self._get_request_header(),
+            timeout=self._timeout_config
+        )
+
+    def post(self,
+            path: str,
+            weaviate_object: dict,
+        ) -> requests.Response:
+        """
+        Make a POST request to the Weaviate server instance.
+
+        Parameters
+        ----------
+        path : str
+            Sub-path to the Weaviate resources. Must be a valid Weaviate sub-path.
+            e.g. '/meta' or '/objects', without version.
+        weaviate_object : dict
+            Object is used as payload for POST request.
+
+        Returns
+        -------
+        requests.Response
+            The response, if request was successful.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the POST request could not be made.
+        """
+
+        request_url = self.url + self._api_version_path + path
+
+        return self._session.post(
+            url=request_url,
+            json=weaviate_object,
+            headers=self._get_request_header(),
+            timeout=self._timeout_config
+        )
+
+    def put(self,
+            path: str,
+            weaviate_object: dict,
+        ) -> requests.Response:
+        """
+        Make a PUT request to the Weaviate server instance.
+
+        Parameters
+        ----------
+        path : str
+            Sub-path to the Weaviate resources. Must be a valid Weaviate sub-path.
+            e.g. '/meta' or '/objects', without version.
+        weaviate_object : dict
+            Object is used as payload for PUT request.
+
+        Returns
+        -------
+        requests.Response
+            The response, if request was successful.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the PUT request could not be made.
+        """
+
+        request_url = self.url + self._api_version_path + path
+
+        return self._session.put(
+            url=request_url,
+            json=weaviate_object,
+            headers=self._get_request_header(),
+            timeout=self._timeout_config
+        )
+
+    def get(self,
+            path: str,
+            params: dict=None,
+        ) -> requests.Response:
+        """
+        Make a GET request to the Weaviate server instance.
+
+        Parameters
+        ----------
+        path : str
+            Sub-path to the Weaviate resources. Must be a valid Weaviate sub-path.
+            e.g. '/meta' or '/objects', without version.
         params : dict, optional
             Additional request parameters, by default None
 
@@ -224,53 +376,19 @@ class Connection:
         Raises
         ------
         requests.ConnectionError
-            If the request could not be made.
-            (from requests.'method' calls)
+            If the GET request could not be made.
         """
 
         if params is None:
             params = {}
-        request_url = self.url+path
+        request_url = self.url + self._api_version_path + path
 
-        if rest_method == REST_METHOD_GET:
-            response = self.session.get(
-                url=request_url,
-                headers=self._get_request_header(),
-                timeout=self._timeout_config,
-                params=params
-                )
-        elif rest_method == REST_METHOD_PUT:
-            response = self.session.put(
-                url=request_url,
-                json=weaviate_object,
-                headers=self._get_request_header(),
-                timeout=self._timeout_config
-                )
-        elif rest_method == REST_METHOD_POST:
-            response = self.session.post(
-                url=request_url,
-                json=weaviate_object,
-                headers=self._get_request_header(),
-                timeout=self._timeout_config
-                )
-        elif rest_method == REST_METHOD_PATCH:
-            response = self.session.patch(
-                url=request_url,
-                json=weaviate_object,
-                headers=self._get_request_header(),
-                timeout=self._timeout_config
-                )
-        elif rest_method == REST_METHOD_DELETE:
-            response = self.session.delete(
-                url=request_url,
-                json=weaviate_object,
-                headers=self._get_request_header(),
-                timeout=self._timeout_config
-                )
-        else:
-            print("Not yet implemented rest method called")
-            response = None
-        return response
+        return self._session.get(
+            url=request_url,
+            headers=self._get_request_header(),
+            timeout=self._timeout_config,
+            params=params,
+        )
 
     @property
     def timeout_config(self) -> Tuple[Real, Real]:
@@ -302,7 +420,7 @@ class Connection:
 
         self._timeout_config = _get_valid_timeout_config(timeout_config)
 
-def get_epoch_time() -> int:
+def _get_epoch_time() -> int:
     """
     Get the current epoch time as an integer.
 

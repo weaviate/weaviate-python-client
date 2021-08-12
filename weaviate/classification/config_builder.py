@@ -5,7 +5,7 @@ import sys
 import time
 from typing import Dict, Any
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
-from weaviate.connect import REST_METHOD_POST, Connection
+from weaviate.connect import Connection
 
 
 class ConfigBuilder:
@@ -263,7 +263,10 @@ class ConfigBuilder:
         """
 
         try:
-            response = self._connection.run_rest("/classifications", REST_METHOD_POST, self._config)
+            response = self._connection.post(
+                path='/classifications',
+                weaviate_object=self._config
+            )
         except RequestsConnectionError as conn_err:
             message = str(conn_err)\
                         + ' Connection error, classification may not started.'

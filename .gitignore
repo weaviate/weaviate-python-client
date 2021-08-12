@@ -1,6 +1,6 @@
 .idea
 dist/
-Weaviate_client.egg-info
+Weaviate_client.egg-info/
 **/__pycache__
 tmp
 build/

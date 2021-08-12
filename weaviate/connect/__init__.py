@@ -6,4 +6,3 @@ Weaviate and run REST requests.
 __all__ = ['Connection']
 
 from .connection import Connection
-from .constants import *

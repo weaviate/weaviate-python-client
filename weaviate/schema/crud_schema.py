@@ -3,8 +3,7 @@ Schema class definition.
 """
 import sys
 from typing import Union, Optional
-from weaviate.connect import Connection, REST_METHOD_POST, REST_METHOD_GET, REST_METHOD_DELETE
-from weaviate.connect import REST_METHOD_PUT
+from weaviate.connect import Connection
 from weaviate.util import _get_dict_from_object, _is_sub_schema
 from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
 from weaviate.schema.validate_schema import validate_schema, check_class
@@ -174,7 +173,9 @@ class Schema:
 
         path = f"/schema/{class_name}"
         try:
-            response = self._connection.run_rest(path, REST_METHOD_DELETE)
+            response = self._connection.delete(
+                path=path
+            )
         except RequestsConnectionError as conn_err:
             message = str(conn_err) + ' Connection error, during deletion of class.'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
@@ -271,7 +272,10 @@ class Schema:
 
         path = "/schema/" + class_name
         try:
-            response = self._connection.run_rest(path, REST_METHOD_PUT, new_class_schema)
+            response = self._connection.put(
+                path=path,
+                weaviate_object=new_class_schema
+            )
         except RequestsConnectionError as conn_err:
             message = str(conn_err)\
                     + ' Connection error, class schema configuration could not be updated.'
@@ -377,7 +381,9 @@ class Schema:
             path = f'/schema/{class_name}'
 
         try:
-            response = self._connection.run_rest(path, REST_METHOD_GET)
+            response = self._connection.get(
+                path=path
+            )
         except RequestsConnectionError as conn_err:
             message = str(conn_err) + ' Connection error, schema could not be retrieved.'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
@@ -424,7 +430,10 @@ class Schema:
 
             path = "/schema/" + schema_class["class"] + "/properties"
             try:
-                response = self._connection.run_rest(path, REST_METHOD_POST, schema_property)
+                response = self._connection.post(
+                    path=path,
+                   weaviate_object=schema_property
+                )
             except RequestsConnectionError as conn_err:
                 message = str(conn_err)\
                         + ' Connection error, property may not have been created properly.'
@@ -492,7 +501,10 @@ class Schema:
 
         # Add the item
         try:
-            response = self._connection.run_rest("/schema", REST_METHOD_POST, schema_class)
+            response = self._connection.post(
+                path="/schema",
+                weaviate_object=schema_class
+            )
         except RequestsConnectionError as conn_err:
             message = str(conn_err) + ' Connection error, class may not have been created properly.'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])

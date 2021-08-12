@@ -4,7 +4,7 @@ Classification class definition.
 import sys
 import validators
 from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
-from weaviate.connect import REST_METHOD_GET, Connection
+from weaviate.connect import Connection
 from .config_builder import ConfigBuilder
 
 class Classification:
@@ -66,8 +66,9 @@ class Classification:
             raise ValueError("Given UUID does not have a proper form")
 
         try:
-            response = self._connection.run_rest("/classifications/" + classification_uuid,\
-                                                                         REST_METHOD_GET)
+            response = self._connection.get(
+                path='/classifications/' + classification_uuid,
+            )
         except RequestsConnectionError as conn_err:
             message = str(conn_err)\
                     + ' Connection error, classification status could not be retrieved.'

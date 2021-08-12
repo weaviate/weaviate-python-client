@@ -2,8 +2,8 @@
 Reference class definition.
 """
 import sys
-from typing import Union, List
-from weaviate.connect import REST_METHOD_DELETE, REST_METHOD_PUT, REST_METHOD_POST, Connection
+from typing import Union
+from weaviate.connect import Connection
 from weaviate import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.util import get_valid_uuid
 
@@ -13,23 +13,6 @@ class Reference:
     """
     Reference class used to manipulate references within objects.
     """
-
-    # This is a class private variable that contains implemented
-    # methods and their respective REST method and Success return code.
-    _methods_to_rest = {
-        "add" : {
-            "rest" : REST_METHOD_POST,
-            "success_code": 200,
-        },
-        "update" : {
-            "rest" : REST_METHOD_PUT,
-            "success_code" : 200,
-        },
-        "delete" : {
-            "rest" : REST_METHOD_DELETE,
-            "success_code" : 204
-        }
-    }
 
     def __init__(self, connection: Connection):
         """
@@ -133,12 +116,29 @@ class Reference:
             If uuid is not properly formed.
         """
 
-        self._try_run_rest(
-            from_uuid=from_uuid,
-            from_property_name=from_property_name,
-            to_uuid_s=to_uuid,
-            method="delete"
-        )
+
+        # Validate arguments
+        from_uuid = get_valid_uuid(from_uuid)
+        to_uuid = get_valid_uuid(to_uuid)
+        _validate_property_name(from_property_name)
+
+        # Create the beacon
+        beacon = _get_beacon(to_uuid)
+
+        path = f"/objects/{from_uuid}/references/{from_property_name}"
+        try:
+            response = self._connection.delete(
+                path=path,
+                weaviate_object=beacon
+            )
+        except RequestsConnectionError as conn_err:
+            message = str(conn_err)\
+                    + ' Connection error, did not delete reference.'
+            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+
+        if response.status_code == 204:
+            return
+        raise UnexpectedStatusCodeException("Delete property reference to object", response)
 
     def update(self,
             from_uuid: str,
@@ -241,12 +241,31 @@ class Reference:
             If the parameters are of the wrong value.
         """
 
-        self._try_run_rest(
-            from_uuid=from_uuid,
-            from_property_name=from_property_name,
-            to_uuid_s=to_uuids,
-            method="update"
-        )
+        if not isinstance(to_uuids, list):
+            to_uuids = [to_uuids]
+
+        # Validate and create Beacon
+        from_uuid = get_valid_uuid(from_uuid)
+        _validate_property_name(from_property_name)
+        beacons = []
+        for to_uuid in to_uuids:
+            to_uuid = get_valid_uuid(to_uuid)
+            beacons.append(_get_beacon(to_uuid))
+
+        path = f"/objects/{from_uuid}/references/{from_property_name}"
+        try:
+            response = self._connection.put(
+                path=path,
+                weaviate_object=beacons
+            )
+        except RequestsConnectionError as conn_err:
+            message = str(conn_err)\
+                    + ' Connection error, did not update reference.'
+            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+
+        if response.status_code == 200:
+            return
+        raise UnexpectedStatusCodeException("Update property reference to object", response)
 
     def add(self,
             from_uuid: str,
@@ -328,87 +347,26 @@ class Reference:
             If the parameters are of the wrong value.
         """
 
-        self._try_run_rest(
-            from_uuid=from_uuid,
-            from_property_name=from_property_name,
-            to_uuid_s=to_uuid,
-            method="add"
-        )
-
-    def _try_run_rest(self,
-            from_uuid: str,
-            from_property_name: str,
-            to_uuid_s: Union[str, List[str]],
-            method: str
-        ) -> None:
-        """
-        Try to run a rest method based on the 'method' argument.
-
-        Parameters
-        ----------
-        from_uuid : str
-            The ID of the object that should have the reference as part
-            of its properties. Should be a plane UUID or an URL.
-        from_property_name : str
-            The name of the property within the object.
-        to_uuid_s : Union[str, List[str]]
-            The UUID/s of the object/s that should be referenced.
-            It can be a string or a list of strings. List of string is only
-            used for the 'update' method.
-        method : str
-            REST call method, check self._methods_to_rest to see what methods
-            are available at the moment.
-
-        Raises
-        ------
-        requests.ConnectionError
-            If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
-        TypeError
-            If the parameters are of the wrong type.
-        ValueError
-            If the parameters are of the wrong value.
-        """
-
-        if method not in self._methods_to_rest.keys():
-            raise ValueError(f"'{method}' not supported!")
-
         # Validate and create Beacon
-        _from_uuid = get_valid_uuid(from_uuid)
+        from_uuid = get_valid_uuid(from_uuid)
+        to_uuid = get_valid_uuid(to_uuid)
         _validate_property_name(from_property_name)
+        beacons = _get_beacon(to_uuid)
 
-        # Validate 'to_uuid_s' and create the respective beacon/s
-        beacons = []
-        if method == "update":
-            # Update works with a list of 'to_uuids' so it needs a separate check.
-            if not isinstance(to_uuid_s, list):
-                to_uuid_s = [to_uuid_s]
-
-            for to_uuid in to_uuid_s:
-                _to_uuid = get_valid_uuid(to_uuid)
-                beacons.append(_get_beacon(_to_uuid))
-        else:
-            # Other methods take just a UUID as a str
-            _to_uuid = get_valid_uuid(to_uuid_s)
-            beacons = _get_beacon(_to_uuid)
-
-        # Try to Run REST method
-        path = f"/objects/{_from_uuid}/references/{from_property_name}"
+        path = f"/objects/{from_uuid}/references/{from_property_name}"
         try:
-            response = self._connection.run_rest(
+            response = self._connection.post(
                 path=path,
-                rest_method=self._methods_to_rest[method]["rest"],
                 weaviate_object=beacons
-                )
+            )
         except RequestsConnectionError as conn_err:
             message = str(conn_err)\
-                    + f' Connection error, did not {method} reference.'
+                    + ' Connection error, did not add reference.'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
 
-        if response.status_code == self._methods_to_rest[method]["success_code"]:
+        if response.status_code == 200:
             return
-        raise UnexpectedStatusCodeException(f"{method} property reference to object", response)
+        raise UnexpectedStatusCodeException("Add property reference to object", response)
 
 
 def _get_beacon(to_uuid: str) -> dict:

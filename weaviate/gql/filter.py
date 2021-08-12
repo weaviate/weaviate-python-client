@@ -7,7 +7,7 @@ import sys
 from copy import deepcopy
 from typing import Optional
 from abc import ABC, abstractmethod
-from weaviate.connect import REST_METHOD_POST, Connection
+from weaviate.connect import Connection
 from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
 from weaviate.util import get_vector
 
@@ -60,7 +60,10 @@ class GraphQL(ABC):
         query = self.build()
 
         try:
-            response = self._connection.run_rest("/graphql", REST_METHOD_POST, {"query": query})
+            response = self._connection.post(
+                path="/graphql",
+                weaviate_object={"query": query}
+            )
         except RequestsConnectionError as conn_err:
             message = str(conn_err) + ' Connection error, query was not successful.'
             raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
