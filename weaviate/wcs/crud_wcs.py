@@ -2,17 +2,17 @@
 WCS class definition.
 """
 import time
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Dict, Tuple
+from numbers import Real
 import json
 import sys
-import requests
 from tqdm import tqdm
-import weaviate
+from weaviate.connect import Connection
 from weaviate import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.auth import AuthCredentials
 
 
-class WCS(weaviate.connect.Connection):
+class WCS(Connection):
     """
     WCS class used to create/delete WCS cluster instances.
 
@@ -23,9 +23,11 @@ class WCS(weaviate.connect.Connection):
         environment.
     """
 
-    is_authentication_required = True
-
-    def __init__(self, auth_client_secret: AuthCredentials, dev: bool=False):
+    def __init__(self,
+            auth_client_secret: AuthCredentials,
+            timeout_config: Union[Tuple[Real, Real], Real]=(2, 20),
+            dev: bool=False
+        ):
         """
         Initialize a WCS class instance.
 
@@ -37,19 +39,19 @@ class WCS(weaviate.connect.Connection):
             Whether to use the development environment, i.e. https://dev.console.semi.technology/.
             If False uses the production environment, i.e. https://console.semi.technology/.
             By default False.
+        timeout_config : tuple(Real, Real) or Real, optional
+            Set the timeout configuration for all requests to the Weaviate server. It can be a
+            real number or, a tuple of two real numbers: (connect timeout, read timeout).
+            If only one real number is passed then both connect and read timeout will be set to
+            that value, by default (2, 20).
         """
 
-        self._timeout_config = (2, 20)
-        self.auth_expires = 0  # unix time when auth expires
-        self.auth_bearer = 0
-        self.auth_client_secret = auth_client_secret
-        self.session = requests.Session()
         self.dev = dev
+
         if dev:
             url = 'https://dev.wcs.api.semi.technology'
         else:
             url = 'https://wcs.api.semi.technology'
-        self.url = url + '/v1/clusters'
 
         auth_path = (url.replace('://', '://auth.') +
             '/auth/realms/SeMI/.well-known/openid-configuration')
@@ -57,57 +59,69 @@ class WCS(weaviate.connect.Connection):
         # make _refresh_authentication method to point to _set_bearer method.
         self._refresh_authentication = lambda: self._set_bearer('wcs', auth_path)
 
-        if isinstance(auth_client_secret, AuthCredentials):
+        super().__init__(
+            url=url,
+            auth_client_secret=auth_client_secret,
+            timeout_config=timeout_config
+        )
+        self._is_authentication_required = True
+
+    def _log_in(self) -> None:
+        """
+        TODO
+
+        Raises
+        ------
+        ValueError
+            [description]
+        """
+        if isinstance(self._auth_client_secret, AuthCredentials):
             self._refresh_authentication()
         else:
             raise ValueError("No login credentials provided.")
-
-    def __del__(self):
-        """
-        Destructor for Connection class instance.
-        """
-
-        self.session.close()
 
     def create(self,
             cluster_name: str=None,
             cluster_type: str='sandbox',
             with_auth: bool=False,
-            module: Optional[Union[str, dict]]=None,
+            modules: Optional[Union[str, dict, list]]=None,
             config: dict=None,
             wait_for_completion: bool=True
         ) -> str:
         """
-        Create the cluster and return a Weaviate Client instance that is connected to that cluster.
+        Create the cluster and return The Weaviate server URL.
 
         Parameters
         ----------
         cluster_name : str, optional
-            Name of the weaviate cluster, if None a random one is going to be generated,
-            by default None
+            Name of the weaviate cluster to be created, if None a random one is going to be
+            generated, by default None.
         cluster_type : str, optional
-            Cluster type, by default 'sandbox'.
+            Cluster type/tier, by default 'sandbox'.
         with_auth : bool, optional
             Enable the authentication to the cluster about to be created,
             by default False.
-        module: str or dict, optional
-            The vectorizer module to use. Supported only on DEV environment WCS.
-            The module configuration looks like this:
-            {"name": MODULE_NAME, "tag": MODULE_TAG}
-            See examples below.
+        modules: str or dict or list, optional
+            The modules to use, can have multiple modules. One module should look like this:
+            >>> {
+            ...     "name": "string", # required
+            ...     "repo": "string", # optional
+            ...     "tag": "string", # optional
+            ...     "inferenceUrl": "string" # optional
+            ... }
+            See the Examples for additional information.
         config : dict, optional
-            Cluster configuration. If it is NOT None then `cluster_name`, `cluster_type`,
-            `module` are ignored and the whole cluster configuration should be in this argument,
-            by default None
+            Cluster configuration. If NOT None then `cluster_name`, `cluster_type`, `module` are
+            ignored and the whole cluster configuration should be in this argument,
+            by default None. See the Examples below for the complete configuration schema.
         wait_for_completion : bool, optional
             Whether to wait until the cluster is built,
             by default True
 
         Examples
         --------
-        If the `module` is str then it is going to be used as the MODULE_NAME with a default tag
-        for that given MODULE_NAME. If `module` is a dict then it should have the above
-        structure.
+        If the `modules` is string then it is going to be used as the MODULE_NAME with a default tag
+        for that given MODULE_NAME. If `module` is a dict then it should have the below structure.
 
         Contextionary:
 
@@ -124,10 +138,46 @@ class WCS(weaviate.connect.Connection):
         ...                                         # https://huggingface.co/models
         ... }
 
+        Both the examples above use the 'semitechnologies' repo (which is the default one).
+        The `modlues` also can be a list of individual module configuration that conforms to the
+        above description.
+
+        The COMPLETE `config` argument looks like this:
+
+        >>> {
+        ...     "email": "user@example.com",
+        ...     "configuration": {
+        ...         "requiresAuthentication": true,
+        ...         "c11yTag": "string",
+        ...         "tier": "string",
+        ...         "supportLevel": "string",
+        ...         "region": "string",
+        ...         "release": {
+        ...             "chart": "latest",
+        ...             "weaviate": "latest"
+        ...         },
+        ...         "modules": [
+        ...             {
+        ...                 "name": "string",
+        ...                 "repo": "string",
+        ...                 "tag": "string",
+        ...                 "inferenceUrl": "string"
+        ...             }
+        ...         ],
+        ...         "backup": {
+        ...             "activated": false
+        ...         },
+        ...         "restore": {
+        ...             "name": "string"
+        ...         }
+        ...     },
+        ...     "id": "string"
+        ... }
+
         Returns
         -------
         str
-            The URL of the create cluster.
+            The URL of the create Weaviate server cluster.
 
         Raises
         ------
@@ -136,6 +186,14 @@ class WCS(weaviate.connect.Connection):
         weaviate.UnexpectedStatusCodeException
             If creating the weaviate cluster failed for a different reason,
             more information is given in the exception.
+        TypeError
+            If `modules` argument is of a wrong type.
+        KeyError
+            If one of the `modules` does not conform to the module schema.
+        TypeError
+            In case `modules` is a list and one module has a wrong type.
+        TypeError
+            In case one of the modules is of type dict and the values are not of type 'str'.
         """
 
         if config is None:
@@ -146,17 +204,14 @@ class WCS(weaviate.connect.Connection):
                     'requiresAuthentication': with_auth
                 }
             }
-            if self.dev:
-                config['configuration']['modules'] = _get_module_config(module)
+            config['configuration']['modules'] = _get_modules_config(modules)
 
         data_to_send = json.dumps(config).encode("utf-8")
 
         try:
-            response = self.session.post(
-                url=self.url,
-                data=data_to_send,
-                headers=self._get_request_header(),
-                timeout=self._timeout_config
+            response = self.post(
+                path='/clusters',
+                weaviate_object=data_to_send
             )
         except RequestsConnectionError as conn_err:
             message = str(conn_err)\
@@ -173,13 +228,13 @@ class WCS(weaviate.connect.Connection):
             cluster_name = response.json()['id']
 
         if wait_for_completion is True:
-            pbar = tqdm(total=100)
+            progress_bar = tqdm(total=100)
             progress = 0
             while progress != 100:
                 time.sleep(2.0)
                 progress = self.get_cluster_config(cluster_name)["status"]["state"]["percentage"]
-                pbar.update(progress - pbar.n)
-            pbar.close()
+                progress_bar.update(progress - progress_bar.n)
+            progress_bar.close()
 
         return 'https://' + self.get_cluster_config(cluster_name)['meta']['PublicURL']
 
@@ -203,14 +258,9 @@ class WCS(weaviate.connect.Connection):
             return True
         return False
 
-    def get_clusters(self, email: str) -> Optional[List[str]]:
+    def get_clusters(self) -> Optional[List[str]]:
         """
-        Lists all weaviate clusters registered with the 'email'.
-
-        Parameters
-        ----------
-        email : str
-            The email for which to get cluster names.
+        Lists all weaviate clusters registered with the this account.
 
         Returns
         -------
@@ -227,12 +277,10 @@ class WCS(weaviate.connect.Connection):
         """
 
         try:
-            response = self.session.get(
-                url=self.url + '/list',
-                headers=self._get_request_header(),
-                timeout=self._timeout_config,
+            response = self.get(
+                path=self.url + '/clusters/list',
                 params={
-                    'email': email
+                    'email': self._auth_client_secret.get_credentials()['username']
                 }
             )
         except RequestsConnectionError as conn_err:
@@ -268,10 +316,8 @@ class WCS(weaviate.connect.Connection):
         """
 
         try:
-            response = self.session.get(
-                url=f'{self.url}/{cluster_name}',
-                headers=self._get_request_header(),
-                timeout=self._timeout_config
+            response = self.get(
+                path=self.url + '/clusters/' + cluster_name,
             )
         except RequestsConnectionError as conn_err:
             message = str(conn_err)\
@@ -281,14 +327,14 @@ class WCS(weaviate.connect.Connection):
             return response.json()
         raise UnexpectedStatusCodeException('Checking WCS instance', response)
 
-    def delete(self, cluster_name: str) -> None:
+    def delete_cluster(self, cluster_name: str) -> None:
         """
-        Delete the WCS instance.
+        Delete the WCS Weaviate cluster instance.
 
         Parameters
         ----------
         cluster_name : str
-            Name of the weaviate cluster.
+            Name of the Weaviate cluster.
 
         Raises
         ------
@@ -300,10 +346,8 @@ class WCS(weaviate.connect.Connection):
         """
 
         try:
-            response = self.session.delete(
-                url=f'{self.url}/{cluster_name}',
-                headers=self._get_request_header(),
-                timeout=self._timeout_config
+            response = self.delete(
+                path=self.url + '/clusters/' + cluster_name,
             )
         except RequestsConnectionError as conn_err:
             message = str(conn_err)\
@@ -314,44 +358,93 @@ class WCS(weaviate.connect.Connection):
             return
         raise UnexpectedStatusCodeException('Deleting WCS instance', response)
 
-def _get_module_config(module: Optional[Union[str, dict]]) -> list:
+
+def _get_modules_config(modules: Optional[Union[str, dict, list]]) -> List[Dict[str, str]]:
     """
-    Get an WCS module configuration format.
+    Get an WCS modules configuration format.
 
     Parameters
     ----------
-    module : Optional[str, dict]
-        The module information from which to construct the module configuration.
+    modules : Optional[str, dict, list]
+        The modules information from which to construct the modules configuration.
 
-    Resurns
+    Returns
     -------
-    list
-        The module configuration as a list.
+    List[Dict[str, str]]
+        The modules configuration as a list.
 
     Raises
     ------
-    KeyError
-        If `module` is of type dict and does not contain the required key 'name' and the optional
-        'tag' key only.
     TypeError
-        If `module` is of a wrong type.
+        If `modules` argument is of a wrong type.
+    KeyError
+        If one of the `modules` does not conform to the module schema.
+    TypeError
+        In case `modules` is a list and one module has a wrong type.
+    TypeError
+        In case one of the modules is of type dict and the values are not of type 'str'.
     """
 
-    if module is None:
+    def get_module_dict(module: Union[Dict[str, str], str]) -> Dict[str, str]:
+        """
+        Local function to validate each module configuration.
+
+        Parameters
+        ----------
+        _module : Union[dict, str]
+            The module configuration to be validated.
+
+        Returns
+        -------
+        Dict[str, str]
+            The configuration of the module as a dictionary.
+        """
+
+        if isinstance(module, str):
+            # only module name
+            return {
+                'name': module
+            }
+
+        if isinstance(module, dict):
+            # module config
+            if (
+                'name' not in module
+                or not set(module).issubset(['name', 'tag', 'repo', 'inferenceUrl'])
+            ):
+                raise KeyError(
+                    "A module should have a required key: 'name',  and optional keys: 'tag', "
+                    f"'repo' and/or 'inferenceUrl'! Given keys: {module.keys()}"
+                )
+            for key, value in module.items():
+                if not isinstance(value, str):
+                    raise TypeError(
+                        "The type of each value of the module's dict should be 'str'! "
+                        f"The key '{key}' has type: {type(value)}"
+                        )
+            return module
+
+        raise TypeError(
+            "Wrong type for one of the modules. Should be either 'str' or 'dict' but given: "
+            f"{type(module)}"
+        )
+
+    if modules is None:
         # no module
         return []
 
-    if isinstance(module, str):
-        # only module name
+    if isinstance(modules, (str, dict)):
         return [
-            {
-                'name': module
-            }
+            get_module_dict(modules)
         ]
+    if isinstance(modules, list):
+        to_return = []
+        for _module in modules:
+            to_return.append(
+                get_module_dict(_module)
+            )
+        return to_return
 
-    if isinstance(module, dict):
-        # module config
-        if 'name' in module and set(module).issubset(['name', 'tag']):
-            return [module]
-        raise KeyError("`module` should have a required 'name' key and an optional 'tag' key!")
-    raise TypeError('Wrong type for `module`, accepted types are str, dict and None!')
+    raise TypeError(
+        "Wrong type for the `modules` argument. Accepted types are: NoneType, 'str', 'dict' or "
+        f"`list` but given: {type(modules)}")
