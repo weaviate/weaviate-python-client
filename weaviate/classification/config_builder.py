@@ -1,7 +1,6 @@
 """
 ConfigBuilder class definition.
 """
-import sys
 import time
 from typing import Dict, Any
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
@@ -256,9 +255,9 @@ class ConfigBuilder:
 
         Raises
         ------
-        requests.exceptions.ConnectionError
+        requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeException
             Unexpected error.
         """
 
@@ -268,9 +267,7 @@ class ConfigBuilder:
                 weaviate_object=self._config
             )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err)\
-                        + ' Connection error, classification may not started.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('Classification may not started.') from conn_err
         if response.status_code == 201:
             return response.json()
         raise UnexpectedStatusCodeException("Start classification", response)

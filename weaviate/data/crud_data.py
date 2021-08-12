@@ -1,7 +1,6 @@
 """
 DataObject class definition.
 """
-import sys
 from typing import Union, Optional, List, Sequence
 import validators
 from weaviate.connect import Connection
@@ -119,10 +118,7 @@ class DataObject:
                 weaviate_object=weaviate_obj
             )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err)\
-                    + ' Connection error, object was not added to weaviate.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
-
+            raise RequestsConnectionError('Object was not added to Weaviate.') from conn_err
         if response.status_code == 200:
             return str(response.json()["id"])
 
@@ -132,11 +128,6 @@ class DataObject:
                 object_does_already_exist = True
         except KeyError:
             pass
-        except Exception as error:
-            message = str(error)\
-                    + ' Unexpected exception please report this exception in an issue.'
-            raise type(error)(message).with_traceback(sys.exc_info()[2])
-
         if object_does_already_exist:
             raise ObjectAlreadyExistsException(str(uuid))
         raise UnexpectedStatusCodeException("Creating object", response)
@@ -244,8 +235,7 @@ class DataObject:
                 weaviate_object=weaviate_obj
             )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err) + ' Connection error, object was not updated(REST PATCH).'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('Object was not updated.') from conn_err
         if response.status_code == 204:
             # Successful merge
             return
@@ -342,8 +332,7 @@ class DataObject:
                 weaviate_object=weaviate_obj
             )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err) + ' Connection error, object was not replaced(REST PUT).'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('Object was not replaced.') from conn_err
         if response.status_code == 200:
             # Successful update
             return
@@ -449,9 +438,7 @@ class DataObject:
         try:
             response = self._get_response(uuid, additional_properties, with_vector)
         except RequestsConnectionError as conn_err:
-            message = str(conn_err) + ' Connection error when getting object/s'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
-
+            raise RequestsConnectionError('Could not get object/s.') from conn_err
         if response.status_code == 200:
             return response.json()
         if uuid is not None and response.status_code == 404:
@@ -508,9 +495,7 @@ class DataObject:
                 path="/objects/" + uuid,
             )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err)\
-                    + ' Connection error, object could not be deleted.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('Object could not be deleted.') from conn_err
         if response.status_code == 204:
             # Successfully deleted
             return
@@ -652,9 +637,8 @@ class DataObject:
                 weaviate_object=weaviate_obj
             )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err)\
-                    + ' Connection error, object was not validated against weaviate.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('Object was not validated against weaviate.')\
+                from conn_err
 
         result: dict = {
             "error": None

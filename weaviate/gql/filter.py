@@ -3,7 +3,6 @@ GraphQL filters for `Get` and `Aggregate` commands.
 GraphQL abstract class for GraphQL commands to inherit from.
 """
 import json
-import sys
 from copy import deepcopy
 from typing import Optional
 from abc import ABC, abstractmethod
@@ -65,8 +64,7 @@ class GraphQL(ABC):
                 weaviate_object={"query": query}
             )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err) + ' Connection error, query was not successful.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('Query was not successful.') from conn_err
         if response.status_code == 200:
             return response.json()  # success
         raise UnexpectedStatusCodeException("Query was not successful", response)

@@ -1,12 +1,10 @@
 """
 Reference class definition.
 """
-import sys
 from typing import Union
 from weaviate.connect import Connection
 from weaviate import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.util import get_valid_uuid
-
 
 
 class Reference:
@@ -132,10 +130,7 @@ class Reference:
                 weaviate_object=beacon
             )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err)\
-                    + ' Connection error, did not delete reference.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
-
+            raise RequestsConnectionError('Reference was not deleted.') from conn_err
         if response.status_code == 204:
             return
         raise UnexpectedStatusCodeException("Delete property reference to object", response)
@@ -259,10 +254,7 @@ class Reference:
                 weaviate_object=beacons
             )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err)\
-                    + ' Connection error, did not update reference.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
-
+            raise RequestsConnectionError('Reference was not updated.') from conn_err
         if response.status_code == 200:
             return
         raise UnexpectedStatusCodeException("Update property reference to object", response)
@@ -360,10 +352,7 @@ class Reference:
                 weaviate_object=beacons
             )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err)\
-                    + ' Connection error, did not add reference.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
-
+            raise RequestsConnectionError('Reference was not added.') from conn_err
         if response.status_code == 200:
             return
         raise UnexpectedStatusCodeException("Add property reference to object", response)

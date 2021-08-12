@@ -370,9 +370,7 @@ class Batch:
                 else:
                     break
         except RequestsConnectionError as conn_err:
-            message = str(conn_err)\
-                        + ' Connection error, batch was not added to weaviate.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('Batch was not added to weaviate.') from conn_err
         except ReadTimeout:
             message = (
                 f"The '{data_type}' creation was cancelled because it took "

@@ -1,7 +1,6 @@
 """
 Classification class definition.
 """
-import sys
 import validators
 from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
 from weaviate.connect import Connection
@@ -70,9 +69,8 @@ class Classification:
                 path='/classifications/' + classification_uuid,
             )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err)\
-                    + ' Connection error, classification status could not be retrieved.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('Classification status could not be retrieved.')\
+                from conn_err
         if response.status_code == 200:
             return response.json()
         raise UnexpectedStatusCodeException("Get classification status", response)

@@ -1,7 +1,6 @@
 """
 Schema class definition.
 """
-import sys
 from typing import Union, Optional
 from weaviate.connect import Connection
 from weaviate.util import _get_dict_from_object, _is_sub_schema
@@ -177,8 +176,7 @@ class Schema:
                 path=path
             )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err) + ' Connection error, during deletion of class.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('Deletion of class.') from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Delete class from schema", response)
 
@@ -277,9 +275,8 @@ class Schema:
                 weaviate_object=new_class_schema
             )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err)\
-                    + ' Connection error, class schema configuration could not be updated.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('Class schema configuration could not be updated.')\
+                from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Update class schema configuration", response)
 
@@ -385,8 +382,7 @@ class Schema:
                 path=path
             )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err) + ' Connection error, schema could not be retrieved.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('Schema could not be retrieved.') from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Get schema", response)
         return response.json()
@@ -435,9 +431,8 @@ class Schema:
                    weaviate_object=schema_property
                 )
             except RequestsConnectionError as conn_err:
-                message = str(conn_err)\
-                        + ' Connection error, property may not have been created properly.'
-                raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+                raise RequestsConnectionError('Property may not have been created properly.')\
+                    from conn_err
             if response.status_code != 200:
                 raise UnexpectedStatusCodeException("Add properties to classes", response)
 
@@ -506,8 +501,8 @@ class Schema:
                 weaviate_object=schema_class
             )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err) + ' Connection error, class may not have been created properly.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('Class may not have been created properly.')\
+                from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Create class", response)
 
