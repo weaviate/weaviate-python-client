@@ -1,7 +1,7 @@
 """
 Contextionary class definition.
 """
-from weaviate import RequestsConnectionError, UnexpectedStatusCodeException
+from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.connect import Connection
 
 

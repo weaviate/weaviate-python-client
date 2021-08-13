@@ -7,7 +7,7 @@ from numbers import Real
 import json
 from tqdm import tqdm
 from weaviate.connect import Connection
-from weaviate import RequestsConnectionError, UnexpectedStatusCodeException
+from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.auth import AuthCredentials
 
 

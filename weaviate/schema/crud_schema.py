@@ -4,7 +4,7 @@ Schema class definition.
 from typing import Union, Optional
 from weaviate.connect import Connection
 from weaviate.util import _get_dict_from_object, _is_sub_schema
-from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
+from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
 from weaviate.schema.validate_schema import validate_schema, check_class
 from weaviate.schema.properties import Property
 

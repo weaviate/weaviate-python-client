@@ -3,7 +3,7 @@ Reference class definition.
 """
 from typing import Union
 from weaviate.connect import Connection
-from weaviate import RequestsConnectionError, UnexpectedStatusCodeException
+from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.util import get_valid_uuid
 
 

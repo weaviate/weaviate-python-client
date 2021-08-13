@@ -1,7 +1,7 @@
 """
 Property class definition.
 """
-from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
+from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
 from weaviate.schema.validate_schema import check_property
 from weaviate.util import _get_dict_from_object
 from weaviate.connect import Connection

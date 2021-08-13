@@ -2,7 +2,7 @@
 Classification class definition.
 """
 import validators
-from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
+from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
 from weaviate.connect import Connection
 from .config_builder import ConfigBuilder
 

@@ -3,7 +3,8 @@ Client class definition.
 """
 from typing import Optional, Tuple, Union
 from numbers import Real
-from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
+from .auth import AuthCredentials
+from .exceptions import UnexpectedStatusCodeException, RequestsConnectionError
 from .connect import Connection
 from .classification import Classification
 from .schema import Schema
@@ -11,7 +12,6 @@ from .contextionary import Contextionary
 from .batch import Batch
 from .data import DataObject
 from .gql import Query
-from .auth import AuthCredentials
 
 
 class Client:

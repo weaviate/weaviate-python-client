@@ -6,7 +6,7 @@ import time
 from numbers import Real
 from typing import Tuple, Callable, Optional, Sequence
 from requests import ReadTimeout, Response
-from weaviate import RequestsConnectionError, UnexpectedStatusCodeException
+from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.connect import Connection
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest
 

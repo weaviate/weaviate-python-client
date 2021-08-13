@@ -7,7 +7,7 @@ from copy import deepcopy
 from typing import Optional
 from abc import ABC, abstractmethod
 from weaviate.connect import Connection
-from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
+from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
 from weaviate.util import get_vector
 
 class GraphQL(ABC):

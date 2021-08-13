@@ -7,7 +7,7 @@ from typing import Tuple, Optional, Union
 from numbers import Real
 import requests
 from requests import RequestException
-from weaviate import AuthenticationFailedException
+from weaviate.exceptions import AuthenticationFailedException
 from weaviate.auth import AuthCredentials
 from weaviate.util import _get_valid_timeout_config
 

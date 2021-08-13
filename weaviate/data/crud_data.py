@@ -4,9 +4,11 @@ DataObject class definition.
 from typing import Union, Optional, List, Sequence
 import validators
 from weaviate.connect import Connection
-from weaviate import ObjectAlreadyExistsException
-from weaviate import RequestsConnectionError
-from weaviate import UnexpectedStatusCodeException
+from weaviate.exceptions import (
+    ObjectAlreadyExistsException,
+    RequestsConnectionError,
+    UnexpectedStatusCodeException
+)
 from weaviate.util import _get_dict_from_object, get_vector, get_valid_uuid
 from weaviate.data.references import Reference
 
