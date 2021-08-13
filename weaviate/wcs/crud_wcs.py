@@ -133,8 +133,7 @@ class WCS(Connection):
 
         >>> {
         ...     "name": "text2vec-transformers",
-        ...     "tag": "distilbert-base-uncased" # or another transformer model from
-        ...                                         # https://huggingface.co/models
+        ...     "tag": "sentence-transformers-paraphrase-MiniLM-L6-v2"
         ... }
 
         Both the examples above use the 'semitechnologies' repo (which is the default one).
@@ -186,6 +185,8 @@ class WCS(Connection):
             If creating the weaviate cluster failed for a different reason,
             more information is given in the exception.
         TypeError
+            If `config` is neither None nor of type 'dict'.
+        TypeError
             If `modules` argument is of a wrong type.
         KeyError
             If one of the `modules` does not conform to the module schema.
@@ -204,13 +205,17 @@ class WCS(Connection):
                 }
             }
             config['configuration']['modules'] = _get_modules_config(modules)
-
-        data_to_send = json.dumps(config).encode("utf-8")
+        else:
+            if not isinstance(config, dict):
+                raise TypeError(
+                    "The `config` argument must be either None or of type 'dict', given: "
+                    f"{type(config)}"
+                )
 
         try:
             response = self.post(
                 path='/clusters',
-                weaviate_object=data_to_send
+                weaviate_object=config
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError('WCS cluster was not created.') from conn_err
@@ -275,7 +280,7 @@ class WCS(Connection):
 
         try:
             response = self.get(
-                path=self.url + '/clusters/list',
+                path='/clusters/list',
                 params={
                     'email': self._auth_client_secret.get_credentials()['username']
                 }
@@ -298,7 +303,8 @@ class WCS(Connection):
         Returns
         -------
         dict
-            Details in a JSON format.
+            Details in a JSON format. If no cluster with such name was found then an empty
+            dictionary is returned.
 
         Raises
         ------
@@ -311,12 +317,14 @@ class WCS(Connection):
 
         try:
             response = self.get(
-                path=self.url + '/clusters/' + cluster_name,
+                path='/clusters/' + cluster_name,
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError('WCS cluster info was not fetched.') from conn_err
         if response.status_code == 200:
             return response.json()
+        if response.status_code == 404:
+            return {}
         raise UnexpectedStatusCodeException('Checking WCS instance', response)
 
     def delete_cluster(self, cluster_name: str) -> None:
@@ -339,11 +347,11 @@ class WCS(Connection):
 
         try:
             response = self.delete(
-                path=self.url + '/clusters/' + cluster_name,
+                path='/clusters/' + cluster_name,
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError('WCS cluster was not deleted.') from conn_err
-        if response.status_code == 200:
+        if response.status_code == 200 or response.status_code == 404:
             return
         raise UnexpectedStatusCodeException('Deleting WCS instance', response)
 
