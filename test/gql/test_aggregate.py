@@ -1,9 +1,7 @@
 import unittest
-from unittest.mock import Mock
-import weaviate
 from weaviate.gql.aggregate import AggregateBuilder
-from weaviate.exceptions import RequestsConnectionError
-from test.util import mock_run_rest, replace_connection, check_error_message, check_startswith_error_message
+from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+from test.util import mock_connection_method, check_error_message, check_startswith_error_message
 
 
 class TestAggregateBuilder(unittest.TestCase):
@@ -67,19 +65,19 @@ class TestAggregateBuilder(unittest.TestCase):
         """
 
         # test exceptions
-        requests_error_message ='Test Connection error, query was not successful.'
+        requests_error_message ='Query was not successful.'
 
         # requests.exceptions.ConnectionError
-        mock_obj = mock_run_rest(side_effect=RequestsConnectionError("Test"))
+        mock_obj = mock_connection_method('post', side_effect=RequestsConnectionError("Test"))
         self.aggregate._connection = mock_obj
-        with self.assertRaises(weaviate.RequestsConnectionError) as error:            
+        with self.assertRaises(RequestsConnectionError) as error:            
             self.aggregate.do()
         check_error_message(self, error, requests_error_message)
 
         # weaviate.UnexpectedStatusCodeException
-        mock_obj = mock_run_rest(status_code=204)
+        mock_obj = mock_connection_method('post', status_code=204)
         self.aggregate._connection = mock_obj
-        with self.assertRaises(weaviate.UnexpectedStatusCodeException) as error:
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
             self.aggregate.do()
         check_startswith_error_message(self, error, "Query was not successful")
 
@@ -97,10 +95,10 @@ class TestAggregateBuilder(unittest.TestCase):
             .with_where(filter)
         expected_gql_clause = '{Aggregate{Object(where: {path: ["name"] operator: Equal valueString: "B"} groupBy: ["name"]){groupedBy { value }name { count }}}}'
 
-        mock_obj = mock_run_rest(status_code=200, return_json={"status": "OK!"})
+        mock_obj = mock_connection_method('post', status_code=200, return_json={"status": "OK!"})
         self.aggregate._connection = mock_obj
         self.assertEqual(self.aggregate.do(), {"status": "OK!"})
-        mock_obj.run_rest.assert_called_with(
-            "/graphql",
-            weaviate.connect.REST_METHOD_POST,
-            {'query' : expected_gql_clause})
+        mock_obj.post.assert_called_with(
+            path="/graphql",
+            weaviate_object={'query' : expected_gql_clause}
+        )
