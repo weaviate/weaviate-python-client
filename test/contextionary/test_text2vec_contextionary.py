@@ -1,9 +1,8 @@
 import unittest
 from unittest.mock import Mock
-import weaviate
-from weaviate.connect import REST_METHOD_POST, REST_METHOD_GET
+from weaviate.contextionary import Contextionary
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
-from test.util import mock_run_rest, replace_connection, check_error_message, check_startswith_error_message
+from test.util import mock_connection_method, check_error_message, check_startswith_error_message
 
 
 class TestText2VecContextionary(unittest.TestCase):
@@ -13,7 +12,7 @@ class TestText2VecContextionary(unittest.TestCase):
         Test `extend` method.
         """
 
-        client = weaviate.Client("http://weaviate:8080")
+        contextionary = Contextionary(Mock())
 
         some_concept = {
             "concept" : "lsd",
@@ -25,65 +24,65 @@ class TestText2VecContextionary(unittest.TestCase):
         definition_type_error_message = "Definition must be string"
         weight_type_error_message = "Weight must be float"
         weight_value_error_message = "Weight out of limits 0.0 <= weight <= 1.0"
-        requests_error_message = 'Test! Connection error, text2vec-contextionary could not be extended.'
+        requests_error_message = 'text2vec-contextionary could not be extended.'
         unexpected_error_message = "Extend text2vec-contextionary"
 
         ## test exceptions
         with self.assertRaises(TypeError) as error:
-            client.contextionary.extend(concept=None, definition=some_concept["definition"], weight=1.0)
+            contextionary.extend(concept=None, definition=some_concept["definition"], weight=1.0)
         check_error_message(self, error, concept_type_error_message)
 
         with self.assertRaises(TypeError) as error:
-            client.contextionary.extend(concept=some_concept["concept"], definition=None, weight=1.0)
+            contextionary.extend(concept=some_concept["concept"], definition=None, weight=1.0)
         check_error_message(self, error, definition_type_error_message)
 
         with self.assertRaises(TypeError) as error:
-            client.contextionary.extend(**some_concept, weight=None)
+            contextionary.extend(**some_concept, weight=None)
         check_error_message(self, error, weight_type_error_message)
 
         with self.assertRaises(ValueError) as error:
-            client.contextionary.extend(**some_concept, weight=1.1)
+            contextionary.extend(**some_concept, weight=1.1)
         check_error_message(self, error, weight_value_error_message)
 
         with self.assertRaises(ValueError) as error:
-            client.contextionary.extend(**some_concept, weight=-1.0)
+            contextionary.extend(**some_concept, weight=-1.0)
         check_error_message(self, error, weight_value_error_message)
 
         ## test UnexpectedStatusCodeException
-        connection_mock = mock_run_rest(status_code=404)
-        replace_connection(client, connection_mock)
+        contextionary = Contextionary(
+            mock_connection_method('post', status_code=404)
+        )
         with self.assertRaises(UnexpectedStatusCodeException) as error:
-            client.contextionary.extend(**some_concept)
+            contextionary.extend(**some_concept)
         check_startswith_error_message(self, error, unexpected_error_message)
 
         ## test requests error
-        connection_mock = mock_run_rest(side_effect=RequestsConnectionError("Test!"))
-        replace_connection(client, connection_mock)
-        with self.assertRaises(weaviate.RequestsConnectionError) as error:
-            client.contextionary.extend(**some_concept)
+        contextionary = Contextionary(
+            mock_connection_method('post', side_effect=RequestsConnectionError("Test!"))
+        )
+        with self.assertRaises(RequestsConnectionError) as error:
+            contextionary.extend(**some_concept)
         check_error_message(self, error, requests_error_message)
         
         ## test valid call without specifying 'weight'
         some_concept["weight"] = 1.0
-        connection_mock = mock_run_rest(status_code=200)
-        replace_connection(client, connection_mock)
-        client.contextionary.extend(**some_concept)
-        connection_mock.run_rest.assert_called_with(
-            "/modules/text2vec-contextionary/extensions",
-            REST_METHOD_POST,
-            some_concept
+        connection_mock = mock_connection_method('post', status_code=200)
+        contextionary = Contextionary(connection_mock)
+        contextionary.extend(**some_concept)
+        connection_mock.post.assert_called_with(
+            path="/modules/text2vec-contextionary/extensions",
+            weaviate_object=some_concept,
         )
 
         ## test valid call with specifying 'weight as error'
-        connection_mock = mock_run_rest(status_code=200)
-        replace_connection(client, connection_mock)
-        # add weigth to 'some_concept'
+        connection_mock = mock_connection_method('post', status_code=200)
+        contextionary = Contextionary(connection_mock)
+        # add weight to 'some_concept'
         some_concept["weight"] = .1234
-        client.contextionary.extend(**some_concept)
-        connection_mock.run_rest.assert_called_with(
-            "/modules/text2vec-contextionary/extensions",
-            REST_METHOD_POST,
-            some_concept
+        contextionary.extend(**some_concept)
+        connection_mock.post.assert_called_with(
+            path="/modules/text2vec-contextionary/extensions",
+            weaviate_object=some_concept,
         )
 
     def test_get_concept_vector(self):
@@ -91,38 +90,32 @@ class TestText2VecContextionary(unittest.TestCase):
         Test `get_concept_vector` method.
         """
 
-        client = weaviate.Client("http://citadelofricks.city:6969")
-
         # test valid call
-        connection_mock = mock_run_rest(return_json={"A": "B"})
-        replace_connection(client, connection_mock)
-        self.assertEqual("B", client.contextionary.get_concept_vector("sauce")["A"])
-        connection_mock.run_rest.assert_called_with(
-            "/modules/text2vec-contextionary/concepts/sauce",
-            REST_METHOD_GET,
+        connection_mock = mock_connection_method('get', return_json={"A": "B"})
+        contextionary = Contextionary(connection_mock)
+        self.assertEqual("B", contextionary.get_concept_vector("sauce")["A"])
+        connection_mock.get.assert_called_with(
+            path="/modules/text2vec-contextionary/concepts/sauce",
         )
 
         # test exceptions
 
         # error messages
-        requests_error_message = 'Test! Connection error, text2vec-contextionary vector was not retrieved.'
+        requests_error_message = 'text2vec-contextionary vector was not retrieved.'
         unexpected_exception_error_message = "text2vec-contextionary vector"
-        unexpected_error_message = 'Test Unexpected exception please report this exception in an issue.'
 
         ## test UnexpectedStatusCodeException
-        replace_connection(client, mock_run_rest(status_code=404))
+        contextionary = Contextionary(
+            mock_connection_method('get', status_code=404)
+        )
         with self.assertRaises(UnexpectedStatusCodeException) as error:
-            client.contextionary.get_concept_vector("Palantir")
+            contextionary.get_concept_vector("Palantir")
         check_startswith_error_message(self, error, unexpected_exception_error_message)
 
         ## test requests error
-        replace_connection(client, mock_run_rest(side_effect=RequestsConnectionError("Test!")))
+        contextionary = Contextionary(
+            mock_connection_method('get', side_effect=RequestsConnectionError("Test!"))
+        )
         with self.assertRaises(RequestsConnectionError) as error:
-            client.contextionary.get_concept_vector("Palantir")
+            contextionary.get_concept_vector("Palantir")
         check_error_message(self, error, requests_error_message)
-
-        ## test unexpected error
-        replace_connection(client, mock_run_rest(side_effect=Exception("Test")))
-        with self.assertRaises(Exception) as error:
-            client.contextionary.get_concept_vector("Palantir")
-        check_error_message(self, error, unexpected_error_message)
