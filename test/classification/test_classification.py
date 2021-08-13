@@ -1,10 +1,8 @@
 import unittest
 from unittest.mock import patch, Mock
-import requests
 from weaviate.classification.classification import Classification, ConfigBuilder
-from weaviate.connect import REST_METHOD_POST
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
-from test.util import mock_run_rest, check_error_message, check_startswith_error_message
+from test.util import mock_connection_method, check_error_message, check_startswith_error_message
 
 
 class TestClassification(unittest.TestCase):
@@ -23,7 +21,7 @@ class TestClassification(unittest.TestCase):
 
         # error messages
         uuid_value_error = "Given UUID does not have a proper form"
-        requests_error_message = 'Test! Connection error, classification status could not be retrieved.'
+        requests_error_message = 'Classification status could not be retrieved.'
         unexpected_error_message = "Get classification status"
 
         # invalid calls
@@ -35,18 +33,18 @@ class TestClassification(unittest.TestCase):
             Classification(None).get('123')
         check_error_message(self, error, uuid_value_error)
 
-        mock_conn = mock_run_rest(side_effect=RequestsConnectionError('Test!'))
+        mock_conn = mock_connection_method('get', side_effect=RequestsConnectionError('Test!'))
         with self.assertRaises(RequestsConnectionError) as error:
             Classification(mock_conn).get("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92")
         check_error_message(self, error, requests_error_message)
 
-        mock_conn = mock_run_rest(status_code=404)
+        mock_conn = mock_connection_method('get', status_code=404)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             Classification(mock_conn).get("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92")
         check_startswith_error_message(self, error, unexpected_error_message)
 
         # valid calls
-        mock_conn = mock_run_rest(return_json='OK!', status_code=200)
+        mock_conn = mock_connection_method('get', return_json='OK!', status_code=200)
         result = Classification(mock_conn).get("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92")
         self.assertEqual(result, 'OK!')
 
@@ -411,29 +409,38 @@ class TestConfigBuilder(unittest.TestCase):
         """
 
         # error messages
-        requests_error_message = 'Test! Connection error, classification may not started.'
+        requests_error_message = 'Classification may not started.'
         unexpected_error_message = "Start classification"
 
         # invalid calls
-        mock_conn = mock_run_rest(side_effect=RequestsConnectionError('Test!'))
+        mock_conn = mock_connection_method('post', side_effect=RequestsConnectionError('Test!'))
         config = ConfigBuilder(mock_conn, None)
         with self.assertRaises(RequestsConnectionError) as error:
             config._start()
         check_error_message(self, error, requests_error_message)
-        mock_conn.run_rest.assert_called_with("/classifications", REST_METHOD_POST, {})
+        mock_conn.post.assert_called_with(
+            path="/classifications",
+            weaviate_object={}
+        )
 
-        mock_conn = mock_run_rest(status_code=200)
+        mock_conn = mock_connection_method('post', status_code=200)
         config = ConfigBuilder(mock_conn, None).with_class_name('Test!')
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             config._start()
         check_startswith_error_message(self, error, unexpected_error_message)
-        mock_conn.run_rest.assert_called_with("/classifications", REST_METHOD_POST, {'class': 'Test!'})
+        mock_conn.post.assert_called_with(
+            path="/classifications", 
+            weaviate_object={'class': 'Test!'}
+        )
 
         # valid calls
-        mock_conn = mock_run_rest(status_code=201, return_json='OK!')
+        mock_conn = mock_connection_method('post', status_code=201, return_json='OK!')
         config = ConfigBuilder(mock_conn, None).with_class_name('TestClass').with_type('TestType')
         self.assertEqual(config._start(), 'OK!')
-        mock_conn.run_rest.assert_called_with("/classifications", REST_METHOD_POST, {'class': 'TestClass', 'type': 'TestType'})
+        mock_conn.post.assert_called_with(
+            path="/classifications",
+            weaviate_object={'class': 'TestClass', 'type': 'TestType'}
+        )
 
 
     @patch('weaviate.classification.config_builder.ConfigBuilder._start')
