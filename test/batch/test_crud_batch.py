@@ -1,13 +1,11 @@
 import unittest
-from unittest import mock
 from unittest.mock import Mock, patch
 from numbers import Real
+from test.util import mock_connection_method, check_error_message, check_startswith_error_message
 from requests import ReadTimeout
 from weaviate.batch.requests import ObjectsBatchRequest, ReferenceBatchRequest
-from weaviate.batch import Batch 
-from weaviate.connect import REST_METHOD_POST
+from weaviate.batch import Batch
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
-from test.util import mock_run_rest, check_error_message, check_startswith_error_message
 
 class TestBatch(unittest.TestCase):
 
@@ -181,7 +179,7 @@ class TestBatch(unittest.TestCase):
         ## messages
         type_error = f"'batch_size' must be of type {int}."
         value_error = "'batch_size' must be positive, i.e. greater that zero (>0)."
-        
+
         with self.assertRaises(TypeError) as error:
             batch.batch_size = False
         check_error_message(self, error, type_error)
@@ -225,7 +223,7 @@ class TestBatch(unittest.TestCase):
             recom_num_ref=10
         )
         mock_auto_create.assert_not_called()
-        
+
     @patch('weaviate.batch.crud_batch.Batch._auto_create')
     def test_dynamic(self, mock_auto_create):
         """
@@ -270,7 +268,7 @@ class TestBatch(unittest.TestCase):
         # test exceptions
         ## messages
         type_error = "'dynamic' must be of type bool."
-        
+
         with self.assertRaises(TypeError) as error:
             batch.dynamic = 0
         check_error_message(self, error, type_error)
@@ -333,7 +331,7 @@ class TestBatch(unittest.TestCase):
         ## messages
         type_error = f"'creation_time' must be of type {Real}."
         value_error = "'creation_time' must be positive, i.e. greater that zero (>0)."
-        
+
         with self.assertRaises(TypeError) as error:
             batch.creation_time = True
         check_error_message(self, error, type_error)
@@ -457,7 +455,7 @@ class TestBatch(unittest.TestCase):
         """
         Test `flush` method.
         """
-        
+
         batch = Batch(Mock())
 
         #######################################################################
@@ -544,7 +542,7 @@ class TestBatch(unittest.TestCase):
         value_error = f'Unsupported batching type "{None}"'
         batch = Batch(Mock())
         with self.assertRaises(ValueError) as error:
-            batch._auto_create() # This should never be called like this, we do it for test purposes
+            batch._auto_create() # This should not be called like this, only for test purposes
         check_error_message(self, error, value_error)
 
     @patch('weaviate.batch.crud_batch.Batch._auto_create')
@@ -565,13 +563,13 @@ class TestBatch(unittest.TestCase):
         self.assertEqual(batch._objects_batch.add.call_count, 2)
         mock_auto_create.assert_not_called()
 
-        batch._batching_type = 'fixed' # This should never be called like this, we do it for test purposes
+        batch._batching_type = 'fixed' # This should not be called like this, only for test purposes
         batch.add_data_object({}, 'Test')
         self.assertEqual(batch._objects_batch.add.call_count, 3)
         mock_auto_create.assert_called()
         mock_auto_create.reset_mock()
 
-        batch._batching_type = 'dynamic' # This should never be called like this, we do it for test purposes
+        batch._batching_type = 'dynamic' # This should not be called like this, only for test purposes
         batch.add_data_object({}, 'Test')
         self.assertEqual(batch._objects_batch.add.call_count, 4)
         mock_auto_create.assert_called()
@@ -706,34 +704,32 @@ class TestBatch(unittest.TestCase):
 
         #######################################################################
         # test status_code == 200, timeout_retries = 0
-        mock_connection = mock_run_rest(status_code=200)
+        mock_connection = mock_connection_method('post', status_code=200)
         batch = Batch(mock_connection)
         batch._create_data('references', ReferenceBatchRequest())
-        mock_connection.run_rest.assert_called_with(
+        mock_connection.post.assert_called_with(
             path="/batch/references",
-            rest_method=REST_METHOD_POST,
-            weaviate_object=[]
+            weaviate_object=[],
         )
-        self.assertEqual(mock_connection.run_rest.call_count, 1)
+        self.assertEqual(mock_connection.post.call_count, 1)
 
         #######################################################################
         # timeout_retries = 2, and no exception raised
-        mock_connection = mock_run_rest(status_code=200)
+        mock_connection = mock_connection_method('post', status_code=200)
         batch = Batch(mock_connection)
         batch.timeout_retries = 2
         batch._create_data('references', ReferenceBatchRequest())
-        mock_connection.run_rest.assert_called_with(
+        mock_connection.post.assert_called_with(
             path="/batch/references",
-            rest_method=REST_METHOD_POST,
-            weaviate_object=[]
+            weaviate_object=[],
         )
-        self.assertEqual(mock_connection.run_rest.call_count, 1)
+        self.assertEqual(mock_connection.post.call_count, 1)
 
         #######################################################################
         # test errors
         #######################################################################
         ## error messages
-        requests_error_message = 'Test! Connection error, batch was not added to weaviate.'
+        requests_error_message = 'Batch was not added to weaviate.'
         read_timeout_error_message = lambda data_type: (f"The '{data_type}' creation was cancelled because it took "
                 "longer than the configured timeout of 100s. "
                 "Try reducing the batch size (currently 0) to a lower value. "
@@ -743,56 +739,52 @@ class TestBatch(unittest.TestCase):
 
         #######################################################################
         ## test RequestsConnectionError
-        mock_connection = mock_run_rest(side_effect=RequestsConnectionError('Test!'))
+        mock_connection = mock_connection_method('post', side_effect=RequestsConnectionError('Test!'))
         batch = Batch(mock_connection)
         with self.assertRaises(RequestsConnectionError) as error:
             batch._create_data('objects', ObjectsBatchRequest())
-        check_startswith_error_message(self, error, requests_error_message)
-        mock_connection.run_rest.assert_called_with(
+        check_error_message(self, error, requests_error_message)
+        mock_connection.post.assert_called_with(
             path="/batch/objects",
-            rest_method=REST_METHOD_POST,
-            weaviate_object={"fields": ["ALL"], "objects": []}
+            weaviate_object={"fields": ["ALL"], "objects": []},
         )
 
         ## test ReadTimeout, timeout_retries = 0
-        mock_connection = mock_run_rest(side_effect = ReadTimeout('Test!'))
+        mock_connection = mock_connection_method('post', side_effect = ReadTimeout('Test!'))
         mock_connection.timeout_config = (2, 100)
         batch = Batch(mock_connection)
         with self.assertRaises(ReadTimeout) as error:
             batch._create_data('references', ReferenceBatchRequest())
         check_startswith_error_message(self, error, read_timeout_error_message('references'))
-        mock_connection.run_rest.assert_called_with(
+        mock_connection.post.assert_called_with(
             path="/batch/references",
-            rest_method=REST_METHOD_POST,
-            weaviate_object=[]
+            weaviate_object=[],
         )
-        self.assertEqual(mock_connection.run_rest.call_count, 1)
+        self.assertEqual(mock_connection.post.call_count, 1)
 
         ## test ReadTimeout, timeout_retries = 3
-        mock_connection = mock_run_rest(side_effect = ReadTimeout('Test!'))
+        mock_connection = mock_connection_method('post', side_effect = ReadTimeout('Test!'))
         mock_connection.timeout_config = (2, 100)
         batch = Batch(mock_connection)
         batch.timeout_retries = 3
         with self.assertRaises(ReadTimeout) as error:
             batch._create_data('objects', ObjectsBatchRequest())
         check_startswith_error_message(self, error, read_timeout_error_message('objects'))
-        mock_connection.run_rest.assert_called_with(
+        mock_connection.post.assert_called_with(
             path="/batch/objects",
-            rest_method=REST_METHOD_POST,
-            weaviate_object={'fields' : ['ALL'], 'objects': []}
+            weaviate_object={'fields' : ['ALL'], 'objects': []},
         )
-        self.assertEqual(mock_connection.run_rest.call_count, 4)
+        self.assertEqual(mock_connection.post.call_count, 4)
 
         ## test status_code != 200
-        mock_connection = mock_run_rest(status_code=204)
+        mock_connection = mock_connection_method('post', status_code=204)
         batch = Batch(mock_connection)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             batch._create_data('references', ReferenceBatchRequest())
         check_startswith_error_message(self, error, unexpected_error_message('references'))
-        mock_connection.run_rest.assert_called_with(
+        mock_connection.post.assert_called_with(
             path="/batch/references",
-            rest_method=REST_METHOD_POST,
-            weaviate_object=[]
+            weaviate_object=[],
         )
 
     @patch('weaviate.batch.crud_batch.Batch._auto_create')
@@ -1116,3 +1108,107 @@ class TestBatch(unittest.TestCase):
             recom_num_obj=200, # does not change if not None
         )
         mock_auto_create.assert_not_called()
+
+ 
+    def test_pop_methods(self):
+        """
+        Test the `pop_object` and the `pop_reference`.
+        """
+
+        batch = Batch(Mock())
+
+        # mock BatchRequests
+        mock_obj = Mock()
+        mock_ref = Mock()
+        batch._objects_batch = mock_obj
+        batch._reference_batch = mock_ref
+
+        mock_obj.pop.assert_not_called()
+        mock_ref.pop.assert_not_called()
+
+        # pop object default value
+        batch.pop_object()
+        mock_obj.pop.assert_called_with(-1)
+        mock_ref.pop.assert_not_called()
+        # reset mock objects
+        mock_obj.reset_mock()
+        mock_ref.reset_mock()
+
+        # pop object at index
+        batch.pop_object(10)
+        mock_obj.pop.assert_called_with(10)
+        mock_ref.pop.assert_not_called()
+        # reset mock objects
+        mock_obj.reset_mock()
+        mock_ref.reset_mock()
+
+        # pop reference default value
+        batch.pop_reference()
+        mock_obj.pop.assert_not_called()
+        mock_ref.pop.assert_called_with(-1)
+        # reset mock objects
+        mock_obj.reset_mock()
+        mock_ref.reset_mock()
+
+        # pop reference at index
+        batch.pop_reference(9)
+        mock_obj.pop.assert_not_called()
+        mock_ref.pop.assert_called_with(9)
+
+    def test_empty_methods(self):
+        """
+        Test the `empty_objects` and the `empty_references`.
+        """
+
+        batch = Batch(Mock())
+
+        # mock BatchRequests
+        mock_obj = Mock()
+        mock_ref = Mock()
+        batch._objects_batch = mock_obj
+        batch._reference_batch = mock_ref
+
+        mock_obj.empty.assert_not_called()
+        mock_ref.empty.assert_not_called()
+
+        # empty objects
+        batch.empty_objects()
+        mock_obj.empty.assert_called()
+        mock_ref.empty.assert_not_called()
+        # reset mock objects
+        mock_obj.reset_mock()
+        mock_ref.reset_mock()
+
+        # empty references
+        batch.empty_references()
+        mock_obj.empty.assert_not_called()
+        mock_ref.empty.assert_called()
+
+    def test_is_empty_methods(self):
+        """
+        Test the `is_empty_objects` and the `is_empty_references`.
+        """
+
+        batch = Batch(Mock())
+
+        # mock BatchRequests
+        mock_obj = Mock()
+        mock_ref = Mock()
+        batch._objects_batch = mock_obj
+        batch._reference_batch = mock_ref
+
+        mock_obj.is_empty.assert_not_called()
+        mock_ref.is_empty.assert_not_called()
+
+        # check if is_empty objects
+        batch.is_empty_objects()
+        mock_obj.is_empty.assert_called()
+        mock_ref.is_empty.assert_not_called()
+        # reset mock objects
+        mock_obj.reset_mock()
+        mock_ref.reset_mock()
+
+        # check if is_empty reference
+        batch.is_empty_references()
+        mock_obj.is_empty.assert_not_called()
+        mock_ref.is_empty.assert_called()
