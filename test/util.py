@@ -1,5 +1,5 @@
+from typing import Union, Any, Callable, Optional
 from unittest.mock import Mock
-import weaviate
 
 
 def replace_connection(client, connection):
@@ -25,44 +25,75 @@ def replace_connection(client, connection):
     client.query._connection = connection
 
 
-def mock_run_rest(return_json=None, status_code=200, side_effect=None) -> Mock:
+def mock_connection_method(
+        rest_method: str,
+        return_json: Union[list, dict, None]=None,
+        status_code: int=200,
+        side_effect: Union[Exception, Callable, None]=None,
+        connection_mock: Optional[Mock]=None,
+    ) -> Mock:
     """
-    Mock `run_rest` call, i.e. the `.json()` return value, the `status_code` attribute
-    and also the raised exception when called.
+    Mock the Connection class by mocking its public method/s.
 
     Parameters
     ----------
-    mock : unittest.mock.Mock
-        The mock to add the method to (this is call by reference
-        so this object will be edited).
-    return_json : any
-        The return value of the `.json()` method.
-    status_code : int
-        The code it should return.
-    side_effect : Exception()
-        An instance of an exception to be raised when the `run_rest` is called.
-        If side_effect is provided the other arguments are not used.
+    rest_method : str
+        The REST method to mock, accepted values: 'delete', 'post', 'put', 'patch' and 'get'.
+        NOTE: It is case insensitive.
+    return_json : [Union[list, dict, None], optional
+        The return value of the `.json()` method on the response of the `rest_method` method.
+        By default None.
+    status_code : int, optional
+        The code the `rest_method` should return, by default 200.
+    side_effect : Union[Exception, Callable, None], optional
+        The side effect of the `rest_method`. If `side_effect` is not None the other arguments are
+        not used, by default None.
+    connection_mock : Optional[Mock], optional
+        The already mocked Connection object to add on top a new mocked method or to overwrite an
+        existing one. If None start from a new mocked Connection, by default None.
 
     Returns
     -------
-    unittest.mock.Mock
-        The mock object for the `run_rest`.
+    Mock
+        The mocked Connection object.
+
+    Raises
+    ------
+    ValueError
+        If `rest_method` does not have an accepted value.
     """
 
-    connection_mock = Mock()    
-    if side_effect is not None:
-        connection_mock.run_rest.side_effect = side_effect
-    else: 
-        # Create mock
-        return_value_mock = Mock()
-        # mock the json() method and set its return value
-        return_value_mock.json.return_value = return_json
-        # Set status code
-        return_value_mock.configure_mock(status_code=status_code)
-        # Add the return value to the given mock
-        # set return object to mock object
-        connection_mock.run_rest.return_value = return_value_mock 
+    if connection_mock is None:
+        connection_mock = Mock()
 
+    if rest_method.lower() == 'delete':
+        rest_method_mock = connection_mock.delete
+    elif rest_method.lower() == 'post':
+        rest_method_mock = connection_mock.post
+    elif rest_method.lower() == 'put':
+        rest_method_mock = connection_mock.put
+    elif rest_method.lower() == 'patch':
+        rest_method_mock = connection_mock.patch
+    elif rest_method.lower() == 'get':
+        rest_method_mock = connection_mock.get
+    else:
+        raise ValueError(
+            "Wrong value for `rest_method`! Accepted values: 'delete', 'post', 'put', 'patch' and"
+            f" 'get', but got: {rest_method}"
+        )
+
+    if side_effect is None:
+        # Create mock
+        rest_method_return_mock = Mock()
+        # mock the json() method and set its return value
+        rest_method_return_mock.json.return_value = return_json
+        # Set status code
+        rest_method_return_mock.configure_mock(status_code=status_code)
+        # set the return value of the given REST method
+        rest_method_mock.return_value = rest_method_return_mock
+    else:
+        # set the side effect for the given REST method
+        rest_method_mock.side_effect = side_effect
     return connection_mock
 
 
