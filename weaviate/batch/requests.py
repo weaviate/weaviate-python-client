@@ -14,7 +14,50 @@ class BatchRequest(ABC):
 
     def __init__(self):
         self._items = []
-        self.size = 0
+
+    def __len__(self):
+        return len(self._items)
+
+    def is_empty(self) -> bool:
+        """
+        Check if BatchRequest is empty.
+
+        Returns
+        -------
+        bool
+            Whether the BatchRequest is empty.
+        """
+
+        return len(self._items) == 0
+
+    def empty(self) -> None:
+        """
+        Remove all the items from the BatchRequest.
+        """
+
+        self._items = []
+
+    def pop(self, index: int=-1) -> dict:
+        """
+        Remove and return item at index (default last).
+
+        Parameters
+        ----------
+        index : int, optional
+            The index of the item to pop, by default -1 (last item).
+
+        Returns
+        -------
+        dict
+            The popped item.
+
+        Raises
+        -------
+        IndexError
+            If batch is empty or index is out of range.
+        """
+
+        return self._items.pop(index)
 
     @abstractmethod
     def add(self, *args, **kwargs):
@@ -87,7 +130,6 @@ class ReferenceBatchRequest(BatchRequest):
                 + to_object_uuid,
             }
         )
-        self.size += 1
 
     def get_request_body(self) -> List[dict]:
         """
@@ -110,8 +152,8 @@ class ObjectsBatchRequest(BatchRequest):
     """
 
     def add(self,
-            class_name: str,
             data_object: dict,
+            class_name: str,
             uuid: str=None,
             vector: Sequence=None
         ) -> None:
@@ -157,7 +199,6 @@ class ObjectsBatchRequest(BatchRequest):
             batch_item["vector"] = get_vector(vector)
 
         self._items.append(batch_item)
-        self.size += 1
 
     def get_request_body(self) -> dict:
         """
