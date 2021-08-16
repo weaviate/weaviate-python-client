@@ -4,11 +4,14 @@ WCS class definition.
 import time
 from typing import Optional, List, Union, Dict, Tuple
 from numbers import Real
-import json
 from tqdm import tqdm
 from weaviate.connect import Connection
-from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
-from weaviate.auth import AuthCredentials
+from weaviate.exceptions import (
+    RequestsConnectionError,
+    UnexpectedStatusCodeException,
+    AuthenticationFailedException,
+)
+from weaviate.auth import AuthClientPassword
 
 
 class WCS(Connection):
@@ -22,8 +25,22 @@ class WCS(Connection):
         environment.
     """
 
+    # def __getattr__(self, attr_name):
+    #     if attr_name in ('delete', 'get', 'post', 'put', 'patch'):
+    #         raise AttributeError
+    #     if attr_name in ('_delete', '_get', '_post', '_put', '_patch'):
+    #         attr_name = attr_name[1:]
+    #     return super().__getattr__(attr_name)
+
+    # def __getattribute__(self, attr_name):
+    #     if attr_name in ('delete', 'get', 'post', 'put', 'patch'):
+    #         raise AttributeError
+    #     if attr_name in ('_delete', '_get', '_post', '_put', '_patch'):
+    #         attr_name = attr_name[1:]
+    #     return super().__getattribute__(attr_name)
+
     def __init__(self,
-            auth_client_secret: AuthCredentials,
+            auth_client_secret: AuthClientPassword,
             timeout_config: Union[Tuple[Real, Real], Real]=(2, 20),
             dev: bool=False
         ):
@@ -32,7 +49,7 @@ class WCS(Connection):
 
         Parameters
         ----------
-        auth_client_secret : AuthCredentials
+        auth_client_secret : AuthClientPassword
             Authentication credentials for the WCS.
         dev : bool, optional
             Whether to use the development environment, i.e. https://dev.console.semi.technology/.
@@ -44,6 +61,8 @@ class WCS(Connection):
             If only one real number is passed then both connect and read timeout will be set to
             that value, by default (2, 20).
         """
+
+
 
         self.dev = dev
 
@@ -74,10 +93,13 @@ class WCS(Connection):
         ValueError
             [description]
         """
-        if isinstance(self._auth_client_secret, AuthCredentials):
+        if isinstance(self._auth_client_secret, AuthClientPassword):
             self._refresh_authentication()
         else:
-            raise ValueError("No login credentials provided.")
+            raise AuthenticationFailedException(
+                "No login credentials provided, or wrong type of credentials! "
+                "Accepted type of credentials: weaviate.auth.AuthClientPassword"
+            )
 
     def create(self,
             cluster_name: str=None,
@@ -444,4 +466,5 @@ def _get_modules_config(modules: Optional[Union[str, dict, list]]) -> List[Dict[
 
     raise TypeError(
         "Wrong type for the `modules` argument. Accepted types are: NoneType, 'str', 'dict' or "
-        f"`list` but given: {type(modules)}")
+        f"`list` but given: {type(modules)}"
+    )

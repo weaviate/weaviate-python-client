@@ -2,29 +2,6 @@ from typing import Union, Any, Callable, Optional
 from unittest.mock import Mock
 
 
-def replace_connection(client, connection):
-    """
-    Replace connection with a mocked one.
-
-    Parameters
-    ----------
-    weaviate : weaviate.Client
-        The weaviate client object for which to mock connection.
-    connection : unittest.mock.Mock
-        The mock connection.
-    """
-
-    client._connection = connection
-    client.classification._connection = connection
-    client.schema._connection = connection
-    client.schema.property._connection = connection
-    client.contextionary._connection = connection
-    client.batch._connection = connection
-    client.data_object._connection = connection
-    client.data_object.reference._connection = connection
-    client.query._connection = connection
-
-
 def mock_connection_method(
         rest_method: str,
         return_json: Union[list, dict, None]=None,
