@@ -4,11 +4,6 @@ import requests
 from requests import RequestException
 from weaviate.exceptions import AuthenticationFailedException
 from weaviate.connect import Connection
-from weaviate.connect import REST_METHOD_GET
-from weaviate.connect import REST_METHOD_POST
-from weaviate.connect import REST_METHOD_PUT
-from weaviate.connect import REST_METHOD_PATCH
-from weaviate.connect import REST_METHOD_DELETE
 from weaviate.util import _get_valid_timeout_config as valid_cnfg
 from test.util import check_error_message
 
@@ -17,10 +12,10 @@ class TestConnection(unittest.TestCase):
 
     def check_connection_attributes(self,
             connection: Connection,
-            url='test_url/v1',
+            url='test_url',
             timeout_config=(2, 20),
             auth_expires=0,
-            auth_bearer=0,
+            auth_bearer=None,
             auth_client_secret=None,
             is_authentication_required=False
         ):
@@ -34,19 +29,17 @@ class TestConnection(unittest.TestCase):
         if timeout_config != 'skip':
             self.assertEqual(connection.timeout_config, timeout_config)
         if auth_expires != 'skip':
-            self.assertEqual(connection.auth_expires, auth_expires)
+            self.assertEqual(connection._auth_expires, auth_expires)
         if auth_bearer != 'skip':
-            self.assertEqual(connection.auth_bearer, auth_bearer)
+            self.assertEqual(connection._auth_bearer, auth_bearer)
         if auth_client_secret != 'skip':
-            if auth_client_secret is None:
-                self.assertIsNone(connection.auth_client_secret)
-            else:
-                self.assertEqual(connection.auth_client_secret, auth_client_secret)
+            if auth_client_secret is not None:
+                self.assertEqual(connection._auth_client_secret, auth_client_secret)
         if is_authentication_required != 'skip':
             if is_authentication_required is True:
-                self.assertTrue(connection.is_authentication_required)
+                self.assertTrue(connection._is_authentication_required)
             else:
-                self.assertFalse(connection.is_authentication_required)
+                self.assertFalse(connection._is_authentication_required)
 
     @patch("weaviate.connect.connection.Connection._refresh_authentication")
     @patch("weaviate.connect.connection.requests")
@@ -56,19 +49,13 @@ class TestConnection(unittest.TestCase):
         """
 
         # error messages
-        auth_error_message = ("No login credentials provided. The weaviate instance at "
-                        "test_url requires login credential, use argument 'auth_client_secret'.")
+        auth_error_message = (
+            "No login credentials provided. The weaviate instance at "
+            "test_url requires login credential, use argument 'auth_client_secret'."
+        )
+
         # requests error
         mock_session = mock_requests.Session.return_value = Mock()
-        mock_session.get.side_effect = Exception('Test!')
-        connection = Connection('test_url')
-        self.check_connection_attributes(connection)
-        mock_session.get.assert_called_with(
-            "test_url/v1/.well-known/openid-configuration",
-            headers={"content-type": "application/json"},
-            timeout=(30, 45)
-        )
-        mock_refresh_authentication.assert_not_called()
 
         # non 200 status_code return
         mock_session.get.side_effect = None
@@ -79,7 +66,7 @@ class TestConnection(unittest.TestCase):
         mock_session.get.assert_called_with(
             "test_url/v1/.well-known/openid-configuration",
             headers={"content-type": "application/json"},
-            timeout=(30, 45)
+            timeout=(3, 23)
         )
         mock_refresh_authentication.assert_not_called()
 
@@ -93,7 +80,7 @@ class TestConnection(unittest.TestCase):
         mock_session.get.assert_called_with(
             "test_url/v1/.well-known/openid-configuration",
             headers={"content-type": "application/json"},
-            timeout=(30, 45)
+            timeout=(2, 20)
         )
 
         # 200 status_code return and auth provided
@@ -107,76 +94,93 @@ class TestConnection(unittest.TestCase):
             mock_session.get.assert_called_with(
                 "test_url/v1/.well-known/openid-configuration",
                 headers={"content-type": "application/json"},
-                timeout=(30, 45)
+                timeout=(2, 20)
             )
             mock_refresh_authentication.assert_called()
 
     @patch("weaviate.connect.connection.requests")
-    def test_run_rest(self, mock_requests):
+    def test_all_requests_methods(self, mock_requests):
         """
-        Test the `run_rest` method.
+        Test the all requests methods ('get', 'put', 'patch', 'post', 'delete').
         """
 
         mock_session = mock_requests.Session.return_value = Mock()
         connection = Connection("http://weaviate:1234")
 
-        mock_session.get.return_value = "GET"
-        mock_session.put.return_value = "PUT"
-        mock_session.post.return_value = "POST"
-        mock_session.patch.return_value = "PATCH"
-        mock_session.delete.return_value = "DELETE"
-
         # GET method
-        self.assertEqual(
-            connection.run_rest("path", REST_METHOD_GET, {}, None),
-            "GET"
+        connection.get("/get", {'test': None}),
+        mock_session.get.assert_called_with(
+            url='http://weaviate:1234/v1/get',
+            headers={"content-type": "application/json"},
+            timeout=(2, 20),
+            params={'test': None},
         )
-        # PUT method
-        self.assertEqual(
-            connection.run_rest("path", REST_METHOD_PUT, {}, {}),
-            "PUT"
-        )
-        # POST method
-        self.assertEqual(
-            connection.run_rest("path", REST_METHOD_POST, {}, {}),
-            "POST"
-        )
-        # PATCH method
-        self.assertEqual(
-            connection.run_rest("path", REST_METHOD_PATCH, {}, {}),
-            "PATCH"
-        )
-        # DELETE method
-        self.assertEqual(
-            connection.run_rest("path", REST_METHOD_DELETE, {}, {}),
-            "DELETE"
-        )
-        
-        self.assertIsNone(connection.run_rest("path", 12, {}, {}))
+        mock_session.reset_mock()
 
+        # PUT method
+        connection.put("/put", {'PUT': 'test'}),
+        mock_session.put.assert_called_with(
+            url='http://weaviate:1234/v1/put',
+            json={'PUT': 'test'},
+            headers={"content-type": "application/json"},
+            timeout=(2, 20),
+        )
+        mock_session.reset_mock()
+
+        # POST method
+        connection.post("/post", {'POST': 'TeST!'}),
+        mock_session.post.assert_called_with(
+            url='http://weaviate:1234/v1/post',
+            json={'POST': 'TeST!'},
+            headers={"content-type": "application/json"},
+            timeout=(2, 20),
+        )
+        mock_session.reset_mock()
+
+        # PATCH method
+        connection.patch("/patch", {'PATCH': 'teST'}),
+        mock_session.patch.assert_called_with(
+            url='http://weaviate:1234/v1/patch',
+            json={'PATCH': 'teST'},
+            headers={"content-type": "application/json"},
+            timeout=(2, 20),
+        )
+        mock_session.reset_mock()
+
+        # DELETE method
+        connection.delete("/delete", {'DELETE': 'TESt'}),
+        mock_session.delete.assert_called_with(
+            url='http://weaviate:1234/v1/delete',
+            json={'DELETE': 'TESt'},
+            headers={"content-type": "application/json"},
+            timeout=(2, 20),
+        )
+
+    @patch('weaviate.connect.connection.Connection._log_in', Mock())
     @patch("weaviate.connect.connection.Connection._refresh_authentication")
     def test__get_request_header(self, mock_refresh_authentication):
         """
         Test the `_get_request_header` method.
         """
 
-        connection = Connection('test_url')
+        connection = Connection('http://test_url')
 
         # with no auth
-        connection.is_authentication_required = False
+        connection._is_authentication_required = False
         result = connection._get_request_header()
         self.assertEqual(result, {"content-type": "application/json"})
         mock_refresh_authentication.assert_not_called()
 
         # with auth
-        connection.is_authentication_required = True
-        connection.auth_bearer = 'test'
+        connection._is_authentication_required = True
+        connection._auth_bearer = 'test'
         result = connection._get_request_header()
         self.assertEqual(result, {"content-type": "application/json", "Authorization": "Bearer test"})
         mock_refresh_authentication.assert_called()
 
+    @patch('weaviate.connect.connection.Connection._log_in', Mock())
     @patch("weaviate.connect.connection.requests")
-    @patch("weaviate.connect.connection.get_epoch_time")
+    @patch("weaviate.connect.connection._get_epoch_time")
     @patch("weaviate.connect.connection.Connection._set_bearer")
     def test__refresh_authentication(self, mock_set_bearer, mock_get_epoch_time, mock_requests):
         """
@@ -238,6 +242,7 @@ class TestConnection(unittest.TestCase):
         mock_session.get.assert_called_with("test_url/v1/.well-known/openid-configuration", **get_kwargs)
         mock_set_bearer.assert_called_with(client_id='Test1!', href='Test2!')
 
+    @patch('weaviate.connect.connection.Connection._log_in', Mock())
     @patch("weaviate.connect.connection.requests")
     @patch("weaviate.connect.connection.Connection._refresh_authentication")
     def test__set_bearer(self, mock_refresh_authentication, mock_requests):
@@ -279,10 +284,10 @@ class TestConnection(unittest.TestCase):
             mock_requests.configure_mock(**kwargs['requests'])
             self.check_connection_attributes(
                 connection,
-                url=kwargs.get("url", 'test_url') + '/v1',
+                url=kwargs.get("url", 'test_url'),
                 timeout_config=kwargs.get("timeout_config", (2, 20)),
                 auth_expires=kwargs.get("auth_expires", 0),
-                auth_bearer=kwargs.get("auth_bearer", 0),
+                auth_bearer=kwargs.get("auth_bearer", None),
                 auth_client_secret=kwargs.get("auth_client_secret", None),
                 is_authentication_required=kwargs.get("is_authentication_required", False),
                 )
@@ -302,10 +307,10 @@ class TestConnection(unittest.TestCase):
                 check_error_message(self, error, message)
             self.check_connection_attributes(
                 connection,
-                url=kwargs.get("url", 'test_url/v1'),
+                url=kwargs.get("url", 'test_url'),
                 timeout_config=kwargs.get("timeout_config", (2, 20)),
                 auth_expires=kwargs.get("auth_expires", 0),
-                auth_bearer=kwargs.get("auth_bearer", 0),
+                auth_bearer=kwargs.get("auth_bearer", None),
                 auth_client_secret=kwargs.get("auth_client_secret", None),
                 is_authentication_required=kwargs.get("is_authentication_required", False),
                 )
@@ -446,12 +451,14 @@ class TestConnection(unittest.TestCase):
             auth_bearer='TestBearer!'
         )
 
-    def test_timeout_config(self):
+    @patch('weaviate.connect.connection.Connection._log_in')
+    def test_timeout_config(self, mock_log_in):
         """
         Test the setter and getter of `timeout_config`.
         """
 
-        connection = Connection('test_url')
+        connection = Connection('http://test_url')
+        mock_log_in.assert_called()
 
         # default one
         self.assertEqual(connection.timeout_config, (2, 20))
@@ -468,19 +475,16 @@ class TestConnection(unittest.TestCase):
         """
 
         import datetime
-        import time
-        from weaviate.connect.connection import get_epoch_time
-
-        from time import mktime
+        from weaviate.connect.connection import _get_epoch_time
 
         zero_epoch = datetime.datetime.fromtimestamp(0)
         mock_datetime.datetime.utcnow.return_value = zero_epoch
-        self.assertEqual(get_epoch_time(), 0)
+        self.assertEqual(_get_epoch_time(), 0)
 
         epoch = datetime.datetime.fromtimestamp(110.56)
         mock_datetime.datetime.utcnow.return_value = epoch
-        self.assertEqual(get_epoch_time(), 111)
+        self.assertEqual(_get_epoch_time(), 111)
 
         epoch = datetime.datetime.fromtimestamp(110.46)
         mock_datetime.datetime.utcnow.return_value = epoch
-        self.assertEqual(get_epoch_time(), 110)
+        self.assertEqual(_get_epoch_time(), 110)
