@@ -1,6 +1,5 @@
 import unittest
 from unittest.mock import patch, Mock
-import json
 from weaviate.auth import AuthClientPassword
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError, AuthenticationFailedException
 from weaviate.wcs import WCS

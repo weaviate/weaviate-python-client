@@ -1,6 +1,5 @@
 import unittest
 from unittest.mock import patch, Mock
-import requests
 from requests import RequestException
 from weaviate.exceptions import AuthenticationFailedException
 from weaviate.connect import Connection
@@ -107,13 +106,23 @@ class TestConnection(unittest.TestCase):
         mock_session = mock_requests.Session.return_value = Mock()
         connection = Connection("http://weaviate:1234")
 
-        # GET method
+        # GET method with param
         connection.get("/get", {'test': None}),
         mock_session.get.assert_called_with(
             url='http://weaviate:1234/v1/get',
             headers={"content-type": "application/json"},
             timeout=(2, 20),
             params={'test': None},
+        )
+        mock_session.reset_mock()
+
+        # GET method without param
+        connection.get("/get"),
+        mock_session.get.assert_called_with(
+            url='http://weaviate:1234/v1/get',
+            headers={"content-type": "application/json"},
+            timeout=(2, 20),
+            params={},
         )
         mock_session.reset_mock()
 

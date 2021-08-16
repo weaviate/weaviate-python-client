@@ -355,7 +355,7 @@ class Connection:
 
     def get(self,
             path: str,
-            params: dict={},
+            params: dict=None,
         ) -> requests.Response:
         """
         Make a GET request to the Weaviate server instance.
@@ -366,7 +366,7 @@ class Connection:
             Sub-path to the Weaviate resources. Must be a valid Weaviate sub-path.
             e.g. '/meta' or '/objects', without version.
         params : dict, optional
-            Additional request parameters, by default empty dict {}
+            Additional request parameters, by default None
 
         Returns
         -------
@@ -379,6 +379,8 @@ class Connection:
             If the GET request could not be made.
         """
 
+        if params is None:
+            params = {}
         request_url = self.url + self._api_version_path + path
 
         return self._session.get(
