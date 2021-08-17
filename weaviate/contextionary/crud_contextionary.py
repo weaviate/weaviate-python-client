@@ -1,9 +1,8 @@
 """
 Contextionary class definition.
 """
-import sys
-from weaviate import RequestsConnectionError, UnexpectedStatusCodeException
-from weaviate.connect import REST_METHOD_POST, REST_METHOD_GET, Connection
+from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+from weaviate.connect import Connection
 
 
 class Contextionary:
@@ -80,15 +79,13 @@ class Contextionary:
         }
 
         try:
-            response = self._connection.run_rest(
-                "/modules/text2vec-contextionary/extensions",
-                REST_METHOD_POST,
-                extension
-                )
+            response = self._connection.post(
+                path="/modules/text2vec-contextionary/extensions",
+                weaviate_object=extension,
+            )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err)\
-                    + ' Connection error, text2vec-contextionary could not be extended.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('text2vec-contextionary could not be extended.')\
+                from conn_err
         if response.status_code == 200:
             # Successfully extended
             return
@@ -147,24 +144,18 @@ class Contextionary:
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        Exception
-            Unexpected exception that should be reported in an issue.
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
-        AttributeError
         """
 
         path = "/modules/text2vec-contextionary/concepts/" + concept
         try:
-            response = self._connection.run_rest(path, REST_METHOD_GET)
+            response = self._connection.get(
+                path=path
+            )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err)\
-                    + ' Connection error, text2vec-contextionary vector was not retrieved.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
-        except Exception as error:
-            message = str(error)\
-                    + ' Unexpected exception please report this exception in an issue.'
-            raise type(error)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('text2vec-contextionary vector was not retrieved.')\
+                from conn_err
         else:
             if response.status_code == 200:
                 return response.json()

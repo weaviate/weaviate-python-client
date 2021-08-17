@@ -1,14 +1,20 @@
+"""
+Test the 'weaviate.batch.requests' functions/classes.
+"""
 import unittest
 from unittest.mock import patch
-from weaviate.batch.requests import ReferenceBatchRequest, ObjectsBatchRequest
 from test.util import check_error_message
+from weaviate.batch.requests import ReferenceBatchRequest, ObjectsBatchRequest
 
-class TestBatchReferencesObject(unittest.TestCase):
+class TestBatchReferences(unittest.TestCase):
+    """
+    Test the `ReferenceBatchRequest` class.
+    """
 
-    @patch('weaviate.batch.requests.get_valid_uuid', side_effect=lambda x: x) 
+    @patch('weaviate.batch.requests.get_valid_uuid', side_effect=lambda x: x)
     def test_add_and_get_request_body(self, mock_get_valid_uuid):
         """
-        Test the `add` and the 'get_request_body' method.
+        Test the all the ReferenceBatchRequest's methods.
         """
 
         batch = ReferenceBatchRequest()
@@ -39,11 +45,11 @@ class TestBatchReferencesObject(unittest.TestCase):
         # valid calls
         #######################################################################
         batch = ReferenceBatchRequest()
-        
+
         #######################################################################
         # test initial values
-        self.assertEqual(batch.size, 0)
-        self.assertEqual(len(batch._items), 0)
+        self.assertEqual(len(batch), 0)
+        self.assertTrue(batch.is_empty())
         self.assertEqual(mock_get_valid_uuid.call_count, 0)
 
         #######################################################################
@@ -53,12 +59,12 @@ class TestBatchReferencesObject(unittest.TestCase):
             "UUID_1",
             "a",
             "UUID_2")
-        self.assertEqual(batch.size, 1)
-        self.assertEqual(len(batch._items), 1)
+        self.assertEqual(len(batch), 1)
+        self.assertFalse(batch.is_empty())
         expected_item_1 = {
             'from': 'weaviate://localhost/Alpha/UUID_1/a',
             'to': 'weaviate://localhost/UUID_2'
-            }
+        }
         self.assertEqual(batch.get_request_body(), [expected_item_1])
         self.assertEqual(mock_get_valid_uuid.call_count, 2)
 
@@ -69,23 +75,69 @@ class TestBatchReferencesObject(unittest.TestCase):
             "UUID_2",
             "b",
             "UUID_3")
-        self.assertEqual(batch.size, 2)
-        self.assertEqual(len(batch._items), 2)
+        self.assertEqual(len(batch), 2)
+        self.assertFalse(batch.is_empty())
         expected_item_2 = {
             'from': 'weaviate://localhost/Beta/UUID_2/b',
             'to': 'weaviate://localhost/UUID_3'
-            }
+        }
         self.assertEqual(batch.get_request_body(), [expected_item_1, expected_item_2])
         self.assertEqual(mock_get_valid_uuid.call_count, 4)
 
+        #######################################################################
+        # pop first reference
+        self.assertEqual(batch.pop(0), expected_item_1)
+        self.assertEqual(len(batch), 1)
 
-class TestAddObjects(unittest.TestCase):
+        #######################################################################
+        # add one reference and pop it pop last reference
+        batch.add(
+            "Beta",
+            "UUID_3",
+            "b",
+            "UUID_4")
+        expected_item_3 = {
+            'from': 'weaviate://localhost/Beta/UUID_3/b',
+            'to': 'weaviate://localhost/UUID_4'
+        }
+        self.assertEqual(len(batch), 2)
+        self.assertFalse(batch.is_empty())
+        self.assertEqual(batch.pop(), expected_item_3)
+        self.assertEqual(len(batch), 1)
+        self.assertFalse(batch.is_empty())
 
-    @patch('weaviate.batch.requests.get_vector', side_effect=lambda x: x) 
-    @patch('weaviate.batch.requests.get_valid_uuid', side_effect=lambda x: x) 
+        #######################################################################
+        # add 2 more references and then empty the batch
+        batch.add(
+            "Beta",
+            "UUID_4",
+            "b",
+            "UUID_5"
+        )
+        batch.add(
+            "Beta",
+            "UUID_5",
+            "b",
+            "UUID_4"
+        )
+        self.assertEqual(len(batch), 3)
+        self.assertFalse(batch.is_empty())
+        batch.empty()
+        self.assertEqual(len(batch), 0)
+        self.assertTrue(batch.is_empty())
+
+
+
+class TestBatchObjects(unittest.TestCase):
+    """
+    Test the `ObjectsBatchRequest` class.
+    """
+
+    @patch('weaviate.batch.requests.get_vector', side_effect=lambda x: x)
+    @patch('weaviate.batch.requests.get_valid_uuid', side_effect=lambda x: x)
     def test_add_and_get_request_body(self, mock_get_valid_uuid, mock_get_vector):
         """
-        Test the `add` and the 'get_request_body' method.
+        Test the all the ObjectsBatchRequest's methods.
         """
 
         batch = ObjectsBatchRequest()
@@ -99,29 +151,41 @@ class TestAddObjects(unittest.TestCase):
         #######################################################################
         # wrong data_object
         with self.assertRaises(TypeError) as error:
-            batch.add("Class", None)
+            batch.add(
+                data_object=None,
+                class_name="Class",
+            )
         check_error_message(self, error, data_type_error_message)
 
         with self.assertRaises(TypeError) as error:
-            batch.add("Class", 224345)
+            batch.add(
+                data_object=224345,
+                class_name="Class",
+            )
         check_error_message(self, error, data_type_error_message)
 
         #######################################################################
         # wrong class_name
         with self.assertRaises(TypeError) as error:
-            batch.add(None, {'name': 'Optimus Prime'})
+            batch.add(
+                data_object={'name': 'Optimus Prime'},
+                class_name=None,
+            )
         check_error_message(self, error, class_type_error_message)
 
         with self.assertRaises(TypeError) as error:
-            batch.add(["Transformer"], {'name': 'Optimus Prime'})
+            batch.add(
+                data_object={'name': 'Optimus Prime'},
+                class_name=["Transformer"],
+            )
         check_error_message(self, error, class_type_error_message)
 
         #######################################################################
         # valid calls
         #######################################################################
         ## test initial values
-        self.assertEqual(batch.size, 0)
-        self.assertEqual(len(batch._items), 0)
+        self.assertEqual(len(batch), 0)
+        self.assertTrue(batch.is_empty())
         self.assertEqual(mock_get_valid_uuid.call_count, 0)
         self.assertEqual(mock_get_vector.call_count, 0)
         expected_return = {
@@ -142,9 +206,12 @@ class TestAddObjects(unittest.TestCase):
             'class': "Philosopher",
             'properties': {"name": "Socrates"}
         })
-        batch.add(obj['class'], obj['properties'])
-        self.assertEqual(batch.size, 1)
-        self.assertEqual(len(batch._items), 1)
+        batch.add(
+            data_object=obj['properties'],
+            class_name=obj['class'],
+        )
+        self.assertEqual(len(batch), 1)
+        self.assertFalse(batch.is_empty())
         self.assertEqual(mock_get_valid_uuid.call_count, 0)
         self.assertEqual(mock_get_vector.call_count, 0)
         self.assertEqual(batch.get_request_body(), expected_return)
@@ -164,9 +231,13 @@ class TestAddObjects(unittest.TestCase):
             'properties': {"name": "Marie Curie"},
             'id': "d087b7c6-a115-5c89-8cb2-f25bdeb9bf92"
         })
-        batch.add(obj['class'], obj['properties'], obj['id'])
-        self.assertEqual(batch.size, 2)
-        self.assertEqual(len(batch._items), 2)
+        batch.add(
+            data_object=obj['properties'],
+            class_name=obj['class'],
+            uuid=obj['id'],
+        )
+        self.assertEqual(len(batch), 2)
+        self.assertFalse(batch.is_empty())
         self.assertEqual(mock_get_valid_uuid.call_count, 1)
         self.assertEqual(mock_get_vector.call_count, 0)
         self.assertEqual(batch.get_request_body(), expected_return)
@@ -186,9 +257,13 @@ class TestAddObjects(unittest.TestCase):
             'properties': {"name": "Stephen King"},
             'vector': [1, 2, 3]
         })
-        batch.add(obj['class'], obj['properties'], vector=obj['vector'])
-        self.assertEqual(batch.size, 3)
-        self.assertEqual(len(batch._items), 3)
+        batch.add(
+            data_object=obj['properties'],
+            class_name=obj['class'],
+            vector=obj['vector'],
+        )
+        self.assertEqual(len(batch), 3)
+        self.assertFalse(batch.is_empty())
         self.assertEqual(mock_get_valid_uuid.call_count, 1)
         self.assertEqual(mock_get_vector.call_count, 1)
         self.assertEqual(batch.get_request_body(), expected_return)
@@ -210,12 +285,41 @@ class TestAddObjects(unittest.TestCase):
             'id': "d087b7c6-a115-5c89-8cb2-f25bdeb9bf93",
             'vector': [1, 2, 3]
         })
-        batch.add(obj['class'], obj['properties'], obj['id'], obj['vector'])
-        self.assertEqual(batch.size, 4)
-        self.assertEqual(len(batch._items), 4)
+        batch.add(
+            data_object=obj['properties'],
+            class_name=obj['class'],
+            uuid=obj['id'],
+            vector=obj['vector'],
+        )
+        self.assertEqual(len(batch), 4)
+        self.assertFalse(batch.is_empty())
         self.assertEqual(mock_get_valid_uuid.call_count, 2)
         self.assertEqual(mock_get_vector.call_count, 2)
         self.assertEqual(batch.get_request_body(), expected_return)
         ## change obj and check if batch does not reflect this change
         obj['properties']['name'] = 'Test'
         self.assertEqual(batch.get_request_body(), expected_return)
+
+        #######################################################################
+        # pop one object with index=1
+
+        self.assertEqual(batch.pop(0), expected_return['objects'][0])
+        self.assertEqual(len(batch), 3)
+        self.assertFalse(batch.is_empty())
+        expected_return['objects'] = expected_return['objects'][1:]
+
+        #######################################################################
+        # pop last object
+
+        self.assertEqual(batch.pop(), expected_return['objects'][-1])
+        self.assertEqual(len(batch), 2)
+        self.assertFalse(batch.is_empty())
+        expected_return['objects'] = expected_return['objects'][:-1]
+
+        #######################################################################
+        # empty the batch request
+
+        self.assertFalse(batch.is_empty())
+        batch.empty()
+        self.assertEqual(len(batch), 0)
+        self.assertTrue(batch.is_empty())

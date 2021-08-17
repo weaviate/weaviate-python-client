@@ -1,10 +1,9 @@
 """
 Classification class definition.
 """
-import sys
 import validators
-from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
-from weaviate.connect import REST_METHOD_GET, Connection
+from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+from weaviate.connect import Connection
 from .config_builder import ConfigBuilder
 
 class Classification:
@@ -66,12 +65,12 @@ class Classification:
             raise ValueError("Given UUID does not have a proper form")
 
         try:
-            response = self._connection.run_rest("/classifications/" + classification_uuid,\
-                                                                         REST_METHOD_GET)
+            response = self._connection.get(
+                path='/classifications/' + classification_uuid,
+            )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err)\
-                    + ' Connection error, classification status could not be retrieved.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('Classification status could not be retrieved.')\
+                from conn_err
         if response.status_code == 200:
             return response.json()
         raise UnexpectedStatusCodeException("Get classification status", response)

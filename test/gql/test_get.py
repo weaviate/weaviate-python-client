@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 from weaviate.gql.get import GetBuilder
 from test.util import check_error_message
 
@@ -49,7 +49,7 @@ class TestGetBuilder(unittest.TestCase):
 
     def test_build_with_where(self):
         """
-        Thest the ` with_where` method.
+        Test the ` with_where` method.
         """
 
         filter = {

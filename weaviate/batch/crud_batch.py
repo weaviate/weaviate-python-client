@@ -6,8 +6,8 @@ import time
 from numbers import Real
 from typing import Tuple, Callable, Optional, Sequence
 from requests import ReadTimeout, Response
-from weaviate import RequestsConnectionError, UnexpectedStatusCodeException
-from weaviate.connect import REST_METHOD_POST, Connection
+from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+from weaviate.connect import Connection
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest
 
 class Batch:
@@ -24,14 +24,14 @@ class Batch:
 
     This class can be used in 3 ways:
 
-    Case I: 
+    Case I:
         Everything should be done by the user, i.e. the user should add the
         objects/object-references and create them whenever the user wants. To create one of the
         data type use these methods of this class: `create_objects`, `create_references` and
         `flush`. This case has the Batch instance's batch_size set to None (see docs for the
         `configure` or `__call__` method). Can be used in a context manager, see below.
 
-    Case II: 
+    Case II:
         Batch auto-creates when full. This can be achieved by setting the Batch instance's
         batch_size set to a positive integer (see docs for the `configure` or `__call__` method).
         The batch_size in this case corresponds to the sum of added objects and references.
@@ -39,7 +39,7 @@ class Batch:
         create non-full batches (last batche/s) that do not meet the requirement to be auto-created
         use the `flush` method. Can be used in a context manager, see below.
 
-    Case III: 
+    Case III:
         Similar to Case II but uses dynamic batching, i.e. auto-creates either objects or
         references when one of them reached the `recommended_num_objects` or
         `recommended_num_references` respectively. See docs for the `configure` or `__call__`
@@ -60,7 +60,7 @@ class Batch:
     >>> object_4 = '254cbccd-89f4-4b29-9c1b-001a3339d89b'
 
     For Case I:
-    
+
     >>> client.batch.shape
     (0, 0)
     >>> client.batch.add_data_object({}, 'MyClass')
@@ -134,11 +134,11 @@ class Batch:
 
     Or:
 
-    >>> client.batch.batch_size = 3 
+    >>> client.batch.batch_size = 3
     >>> client.batch.dynamic = True
 
     See the documentation of the `configure`( or `__call__`) and the setters for more information
-    on how/why and what you need to configure/set in order to use a particular Case. 
+    on how/why and what you need to configure/set in order to use a particular Case.
     """
 
     def __init__(self, connection: Connection):
@@ -357,11 +357,10 @@ class Batch:
         try:
             for i in range(self._timeout_retries + 1):
                 try:
-                    response = self._connection.run_rest(
-                        path=f'/batch/{data_type}',
-                        rest_method=REST_METHOD_POST,
+                    response = self._connection.post(
+                        path='/batch/' + data_type,
                         weaviate_object=batch_request.get_request_body()
-                        )
+                    )
                 except ReadTimeout:
                     if i == self._timeout_retries:
                         raise
@@ -371,14 +370,12 @@ class Batch:
                 else:
                     break
         except RequestsConnectionError as conn_err:
-            message = str(conn_err)\
-                        + ' Connection error, batch was not added to weaviate.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('Batch was not added to weaviate.') from conn_err
         except ReadTimeout:
             message = (
                 f"The '{data_type}' creation was cancelled because it took "
                 f"longer than the configured timeout of {self._connection.timeout_config[1]}s. "
-                f"Try reducing the batch size (currently {batch_request.size}) to a lower value. "
+                f"Try reducing the batch size (currently {len(batch_request)}) to a lower value. "
                 "Aim to on average complete batch request within less than 10s"
             )
             raise ReadTimeout(message) from None
@@ -470,12 +467,12 @@ class Batch:
             If weaviate reports a none OK status.
         """
 
-        if self._objects_batch.size != 0:
+        if len(self._objects_batch) != 0:
             response = self._create_data(
                 data_type='objects',
                 batch_request=self._objects_batch,
             )
-            obj_per_second = self._objects_batch.size / response.elapsed.total_seconds()
+            obj_per_second = len(self._objects_batch) / response.elapsed.total_seconds()
             self._recommended_num_objects = round(obj_per_second * self._creation_time)
             self._objects_batch = ObjectsBatchRequest()
             return response.json()
@@ -499,7 +496,7 @@ class Batch:
         >>> object_1 = '154cbccd-89f4-4b29-9c1b-001a3339d89d'
 
         Objects that exist in weaviate.
-        
+
         >>> object_2 = '154cbccd-89f4-4b29-9c1b-001a3339d89c'
         >>> object_3 = '254cbccd-89f4-4b29-9c1b-001a3339d89a'
         >>> object_4 = '254cbccd-89f4-4b29-9c1b-001a3339d89b'
@@ -555,12 +552,12 @@ class Batch:
             If weaviate reports a none OK status.
         """
 
-        if self._reference_batch.size != 0:
+        if len(self._reference_batch) != 0:
             response = self._create_data(
                 data_type='references',
                 batch_request=self._reference_batch,
             )
-            ref_per_second = self._reference_batch.size / response.elapsed.total_seconds()
+            ref_per_second = len(self._reference_batch) / response.elapsed.total_seconds()
             self._recommended_num_references = round(ref_per_second * self._creation_time)
             self._reference_batch = ReferenceBatchRequest()
             return response.json()
@@ -611,7 +608,7 @@ class Batch:
             The number of objects in the batch.
         """
 
-        return self._objects_batch.size
+        return len(self._objects_batch)
 
     def num_references(self) -> int:
         """
@@ -623,7 +620,89 @@ class Batch:
             The number of references in the batch.
         """
 
-        return self._reference_batch.size
+        return len(self._reference_batch)
+
+    def pop_object(self, index: int=-1) -> dict:
+        """
+        Remove and return the object at index (default last).
+
+        Parameters
+        ----------
+        index : int, optional
+            The index of the object to pop, by default -1 (last item).
+
+        Returns
+        -------
+        dict
+            The popped object.
+
+        Raises
+        -------
+        IndexError
+            If batch is empty or index is out of range.
+        """
+
+        return self._objects_batch.pop(index)
+
+    def pop_reference(self, index: int=-1) -> dict:
+        """
+        Remove and return the reference at index (default last).
+
+        Parameters
+        ----------
+        index : int, optional
+            The index of the reference to pop, by default -1 (last item).
+
+        Returns
+        -------
+        dict
+            The popped reference.
+
+        Raises
+        -------
+        IndexError
+            If batch is empty or index is out of range.
+        """
+
+        return self._reference_batch.pop(index)
+
+    def empty_objects(self) -> None:
+        """
+        Remove all the objects from the batch.
+        """
+
+        self._objects_batch.empty()
+
+    def empty_references(self) -> None:
+        """
+        Remove all the references from the batch.
+        """
+
+        self._reference_batch.empty()
+
+    def is_empty_objects(self) -> bool:
+        """
+        Check if batch contains any objects.
+
+        Returns
+        -------
+        bool
+            Whether the Batch object list is empty.
+        """
+
+        return self._objects_batch.is_empty()
+
+    def is_empty_references(self) -> bool:
+        """
+        Check if batch contains any references.
+
+        Returns
+        -------
+        bool
+            Whether the Batch reference list is empty.
+        """
+
+        return self._reference_batch.is_empty()
 
     @property
     def shape(self) -> Tuple[int, int]:
@@ -637,7 +716,7 @@ class Batch:
             i.e. returns (number of objects, number of references).
         """
 
-        return (self._objects_batch.size, self._reference_batch.size)
+        return (len(self._objects_batch), len(self._reference_batch))
 
     @property
     def batch_size(self) -> Optional[int]:

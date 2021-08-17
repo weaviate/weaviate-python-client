@@ -2,7 +2,7 @@
 Schema validation module.
 """
 from typing import Any
-from weaviate import SchemaValidationException
+from weaviate.exceptions import SchemaValidationException
 
 
 def validate_schema(schema: dict) -> None:

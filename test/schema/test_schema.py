@@ -1,10 +1,9 @@
 import unittest
-import copy
 import os
 from unittest.mock import patch, Mock
-import weaviate
-from test.util import replace_connection, mock_run_rest, check_error_message, check_startswith_error_message
-from weaviate.connect import REST_METHOD_POST, REST_METHOD_DELETE, REST_METHOD_GET, REST_METHOD_PUT
+from weaviate.connect import connection
+from weaviate.schema import Schema
+from test.util import mock_connection_method, check_error_message, check_startswith_error_message
 from weaviate.exceptions import SchemaValidationException, RequestsConnectionError, UnexpectedStatusCodeException
 
 company_test_schema = {
@@ -137,22 +136,20 @@ schema_company_local = { # NOTE: should be the same as file schema_company.json
 
 class TestSchema(unittest.TestCase):
 
-    def setUp(self):
-        
-        self.client = weaviate.Client("http://localhost:8080")
-
     def test_create(self):
         """
         Test the `create` method.
         """
 
+        schema = Schema(Mock())
+
         # mock function calls
         mock_primitive = Mock()
         mock_complex = Mock()
-        self.client.schema._create_classes_with_primitives = mock_primitive
-        self.client.schema._create_complex_properties_from_classes = mock_complex
+        schema._create_classes_with_primitives = mock_primitive
+        schema._create_complex_properties_from_classes = mock_complex
 
-        self.client.schema.create("test/schema/schema_company.json") # with read from file
+        schema.create("test/schema/schema_company.json") # with read from file
 
         mock_primitive.assert_called_with(schema_company_local["classes"])
         mock_complex.assert_called_with(schema_company_local["classes"])
@@ -162,13 +159,15 @@ class TestSchema(unittest.TestCase):
         Test the `create_class` method.
         """
 
+        schema = Schema(Mock())
+
         # mock function calls
         mock_primitive = Mock()
         mock_complex = Mock()
-        self.client.schema._create_class_with_premitives = mock_primitive
-        self.client.schema._create_complex_properties_from_class = mock_complex
+        schema._create_class_with_premitives = mock_primitive
+        schema._create_complex_properties_from_class = mock_complex
 
-        self.client.schema.create_class(company_test_schema["classes"][0])
+        schema.create_class(company_test_schema["classes"][0])
 
         mock_primitive.assert_called_with(company_test_schema["classes"][0])
         mock_complex.assert_called_with(company_test_schema["classes"][0])
@@ -180,32 +179,40 @@ class TestSchema(unittest.TestCase):
         """
 
         # invalid calls
-        requests_error_message = 'Test! Connection error, class schema configuration could not be updated.'
+        requests_error_message = 'Class schema configuration could not be updated.'
         unexpected_error_msg = 'Update class schema configuration'
         
         mock_schema.return_value = {'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 2}}
-        mock_conn = mock_run_rest(side_effect=RequestsConnectionError("Test!"))
-        replace_connection(self.client, mock_conn)
+        mock_conn = mock_connection_method('put', side_effect=RequestsConnectionError("Test!"))
+        schema = Schema(mock_conn)
         with self.assertRaises(RequestsConnectionError) as error:
-            self.client.schema.update_config("Test", {'vectorIndexConfig': {'test2': 'Test2'}})
+            schema.update_config("Test", {'vectorIndexConfig': {'test2': 'Test2'}})
         check_error_message(self, error, requests_error_message)
-        mock_conn.run_rest.assert_called_with("/schema/Test", REST_METHOD_PUT, {'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 'Test2'}})
+        mock_conn.put.assert_called_with(
+            path="/schema/Test",
+            weaviate_object={'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 'Test2'}}
+        )
         
         mock_schema.return_value = {'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 2}}
-        mock_conn = mock_run_rest(status_code=404)
-        replace_connection(self.client, mock_conn)
+        mock_conn = mock_connection_method('put', status_code=404)
+        schema = Schema(mock_conn)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
-            self.client.schema.update_config("Test", {'vectorIndexConfig': {'test3': True}})
+            schema.update_config("Test", {'vectorIndexConfig': {'test3': True}})
         check_startswith_error_message(self, error, unexpected_error_msg)
-        mock_conn.run_rest.assert_called_with("/schema/Test", REST_METHOD_PUT, {'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 2, 'test3': True}})
+        mock_conn.put.assert_called_with(
+            path="/schema/Test",
+            weaviate_object={'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 2, 'test3': True}}
+        )
 
         # valid calls
         mock_schema.return_value = {'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 2}}
-        mock_conn = mock_run_rest()
-        replace_connection(self.client, mock_conn)
-        self.client.schema.update_config("Test", {})
-        mock_conn.run_rest.assert_called_with("/schema/Test", REST_METHOD_PUT, {'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 2}})
-
+        mock_conn = mock_connection_method('put')
+        schema = Schema(mock_conn)
+        schema.update_config("Test", {})
+        mock_conn.put.assert_called_with(
+            path="/schema/Test",
+            weaviate_object={'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 2}}
+        )
 
     def test_get(self):
         """
@@ -213,35 +220,39 @@ class TestSchema(unittest.TestCase):
         """
 
         # invalid calls
-        requests_error_message = 'Test! Connection error, schema could not be retrieved.'
+        requests_error_message = 'Schema could not be retrieved.'
         unexpected_error_msg = "Get schema"
         type_error_msg = lambda dt: f"'class_name' argument must be of type `str`! Given type: {dt}"
 
-        mock_conn = mock_run_rest(side_effect=RequestsConnectionError("Test!"))
-        replace_connection(self.client, mock_conn)
+        mock_conn = mock_connection_method('get', side_effect=RequestsConnectionError("Test!"))
+        schema = Schema(mock_conn)
         with self.assertRaises(RequestsConnectionError) as error:
-            self.client.schema.get()
+            schema.get()
         check_error_message(self, error, requests_error_message)
 
-        mock_conn = mock_run_rest(status_code=404)
-        replace_connection(self.client, mock_conn)
+        mock_conn = mock_connection_method('get', status_code=404)
+        schema = Schema(mock_conn)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
-            self.client.schema.get()
+            schema.get()
         check_startswith_error_message(self, error, unexpected_error_msg)
 
-        connection_mock_file = mock_run_rest(status_code=200, return_json={'Test': 'OK!'})
-        replace_connection(self.client, connection_mock_file)  # Replace connection with mock
+        connection_mock_file = mock_connection_method('get', status_code=200, return_json={'Test': 'OK!'})
+        schema = Schema(connection_mock_file)
         with self.assertRaises(TypeError) as error:
-            self.client.schema.get(1234)
+            schema.get(1234)
         check_error_message(self, error, type_error_msg(int))
 
         # valid calls
 
-        self.assertEqual(self.client.schema.get(), {'Test': 'OK!'})
-        connection_mock_file.run_rest.assert_called_with("/schema", REST_METHOD_GET)  # See if mock has been called
+        self.assertEqual(schema.get(), {'Test': 'OK!'})
+        connection_mock_file.get.assert_called_with(
+            path="/schema",
+        )
 
-        self.assertEqual(self.client.schema.get("Artist"), {'Test': 'OK!'})
-        connection_mock_file.run_rest.assert_called_with("/schema/Artist", REST_METHOD_GET)  # See if mock has been called
+        self.assertEqual(schema.get("Artist"), {'Test': 'OK!'})
+        connection_mock_file.get.assert_called_with(
+            path="/schema/Artist"
+        )
 
     def test_contains(self):
         """
@@ -251,19 +262,25 @@ class TestSchema(unittest.TestCase):
         # If a schema is present it should return true otherwise false
         # 1. test schema is present:
 
-        replace_connection(self.client, mock_run_rest(return_json=persons_return_test_schema))
-        self.assertTrue(self.client.schema.contains())
+        schema = Schema(
+            mock_connection_method('get', return_json=persons_return_test_schema)
+        )
+        self.assertTrue(schema.contains())
 
         # 2. test no schema is present:
 
-        replace_connection(self.client, mock_run_rest(return_json={"classes": []}))
-        self.assertFalse(self.client.schema.contains())
+        schema = Schema(
+            mock_connection_method('get', return_json={"classes": []})
+        )
+        self.assertFalse(schema.contains())
 
         # 3. test with 'schema' argument
         ## Test weaviate.schema.contains specific schema.
     
-        replace_connection(self.client, mock_run_rest(return_json=persons_return_test_schema))
-        self.assertFalse(self.client.schema.contains(company_test_schema))
+        schema = Schema(
+            mock_connection_method('get', return_json=persons_return_test_schema)
+        )
+        self.assertFalse(schema.contains(company_test_schema))
         subset_schema = {
             "classes": [
                 {
@@ -279,67 +296,82 @@ class TestSchema(unittest.TestCase):
                 }
             ]
         }
-        self.assertTrue(self.client.schema.contains(subset_schema))
+        self.assertTrue(schema.contains(subset_schema))
 
         ## Test weaviate.schema.contains schema from file.
 
-        replace_connection(self.client, mock_run_rest(return_json=persons_return_test_schema))
+        schema = Schema(
+            mock_connection_method('get', return_json=persons_return_test_schema)
+        )
         schema_json_file = os.path.join(os.path.dirname(__file__), "schema_company.json")
-        self.assertFalse(self.client.schema.contains(schema_json_file))
+        self.assertFalse(schema.contains(schema_json_file))
 
-        replace_connection(self.client, mock_run_rest(return_json=company_test_schema))
-        self.assertTrue(self.client.schema.contains(schema_json_file))
+        schema = Schema(
+            mock_connection_method('get', return_json=company_test_schema)
+        )
+        self.assertTrue(schema.contains(schema_json_file))
 
     def test_delete_class_input(self):
         """
         Test the 'delete_class` method.
         """
 
+        schema = Schema(Mock())
+
         # invalid calls
         type_error_message = lambda t: f"Class name was {t} instead of str"
-        requests_error_message = 'Test! Connection error, during deletion of class.'
+        requests_error_message = 'Deletion of class.'
 
         with self.assertRaises(TypeError) as error:
-            self.client.schema.delete_class(1)
+            schema.delete_class(1)
         check_error_message(self, error, type_error_message(int))
 
-        replace_connection(self.client, mock_run_rest(side_effect=RequestsConnectionError('Test!')))
+        schema = Schema(
+            mock_connection_method('delete', side_effect=RequestsConnectionError('Test!'))
+        )
         with self.assertRaises(RequestsConnectionError) as error:
-            self.client.schema.delete_class("uuid")
+            schema.delete_class("uuid")
         check_error_message(self, error, requests_error_message)
 
-        replace_connection(self.client, mock_run_rest(status_code=404))
+        schema = Schema(
+            mock_connection_method('delete', status_code=404)
+        )
         with self.assertRaises(UnexpectedStatusCodeException) as error:
-            self.client.schema.delete_class("uuid")
+            schema.delete_class("uuid")
         check_startswith_error_message(self, error, "Delete class from schema")
 
         # valid calls
-        mock_conn = mock_run_rest(status_code=200)
-        replace_connection(self.client, mock_conn)
-        self.client.schema.delete_class("uuid")
-        mock_conn.run_rest.assert_called_with("/schema/uuid", REST_METHOD_DELETE)
-
+        mock_conn = mock_connection_method('delete', status_code=200)
+        schema = Schema(mock_conn)
+        schema.delete_class("uuid")
+        mock_conn.delete.assert_called_with(
+            path="/schema/uuid"
+        )
 
     def test_delete_everything(self):
         """
         Test the `delete_all` method.
         """
 
-        mock_get = mock_run_rest(return_json=company_test_schema)
-        replace_connection(self.client, mock_get)
+        mock_connection = mock_connection_method('get', return_json=company_test_schema)
+        mock_connection = mock_connection_method('delete', connection_mock=mock_connection)
+        schema = Schema(mock_connection)
 
-        self.client.schema.delete_all()
-        self.assertEqual(mock_get.run_rest.call_count, 2 + 1) # + 1 is for the getting the schema
+        schema.delete_all()
+        self.assertEqual(mock_connection.get.call_count, 1)
+        self.assertEqual(mock_connection.delete.call_count, 2)
 
     def test__create_complex_properties_from_classes(self):
         """
         Test the `_create_complex_properties_from_classes` method.
         """
 
-        mock_complex = Mock()
-        self.client.schema._create_complex_properties_from_class = mock_complex
+        schema = Schema(Mock())
 
-        self.client.schema._create_complex_properties_from_classes(list("Test!"))
+        mock_complex = Mock()
+        schema._create_complex_properties_from_class = mock_complex
+
+        schema._create_complex_properties_from_classes(list("Test!"))
         self.assertEqual(mock_complex.call_count, 5)
 
     def test__create_complex_properties_from_class(self):
@@ -348,22 +380,22 @@ class TestSchema(unittest.TestCase):
         """
         
         # valid calls
-        test_func = self.client.schema._create_complex_properties_from_class
 
         def helper_test(nr_calls=1):
-            mock_rest = mock_run_rest()
-            replace_connection(self.client, mock_rest)
-            test_func(properties)
-            self.assertEqual(mock_rest.run_rest.call_count, nr_calls)
-            mock_rest.run_rest.assert_called_with(
-                "/schema/" + properties["class"] + "/properties",
-                REST_METHOD_POST,
-                properties['properties'][0])
+            mock_rest = mock_connection_method('post')
+            schema = Schema(mock_rest)
+            schema._create_complex_properties_from_class(properties)
+            self.assertEqual(mock_rest.post.call_count, nr_calls)
+            mock_rest.post.assert_called_with(
+                path="/schema/" + properties["class"] + "/properties",
+                weaviate_object=properties['properties'][0]
+            )
 
         # no `properties` key
-        mock_rest = mock_run_rest()
-        replace_connection(self.client, mock_rest)
-        test_func({})
+        mock_rest = mock_connection_method('post')
+        schema = Schema(mock_rest)
+
+        schema._create_complex_properties_from_class({})
         self.assertEqual(mock_rest.run_rest.call_count, 0)
 
         # no COMPLEX properties
@@ -372,8 +404,8 @@ class TestSchema(unittest.TestCase):
                 {'dataType': ["text"]}
             ]
         }
-        test_func(properties)
-        self.assertEqual(mock_rest.run_rest.call_count, 0)
+        schema._create_complex_properties_from_class(properties)
+        self.assertEqual(mock_rest.post.call_count, 0)
 
         properties = {
             'properties':[
@@ -381,8 +413,8 @@ class TestSchema(unittest.TestCase):
                 {'dataType': ['string']}
             ]
         }
-        test_func(properties)
-        self.assertEqual(mock_rest.run_rest.call_count, 0)
+        schema._create_complex_properties_from_class(properties)
+        self.assertEqual(mock_rest.post.call_count, 0)
 
         properties = {
             'class' : 'TestClass',
@@ -395,10 +427,10 @@ class TestSchema(unittest.TestCase):
                 
             ]
         }
-        mock_rest = mock_run_rest()
-        replace_connection(self.client, mock_rest)
-        test_func(properties)
-        self.assertEqual(mock_rest.run_rest.call_count, 1)
+        mock_rest = mock_connection_method('post')
+        schema = Schema(mock_rest)
+        schema._create_complex_properties_from_class(properties)
+        self.assertEqual(mock_rest.post.call_count, 1)
 
         properties = {
             'class' : 'TestClass',
@@ -424,18 +456,18 @@ class TestSchema(unittest.TestCase):
         helper_test(3)
 
         # invalid calls
-        requests_error_message = 'TEST1 Connection error, property may not have been created properly.'
+        requests_error_message = 'Property may not have been created properly.'
 
-        mock_rest = mock_run_rest(side_effect=RequestsConnectionError('TEST1'))
-        replace_connection(self.client, mock_rest)
+        mock_rest = mock_connection_method('post', side_effect=RequestsConnectionError('TEST1'))
+        schema = Schema(mock_rest)
         with self.assertRaises(RequestsConnectionError) as error:
-            test_func(properties)
+            schema._create_complex_properties_from_class(properties)
         check_error_message(self, error, requests_error_message)
 
-        mock_rest = mock_run_rest(status_code=404)
-        replace_connection(self.client, mock_rest)
+        mock_rest = mock_connection_method('post', status_code=404)
+        schema = Schema(mock_rest)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
-            test_func(properties)
+            schema._create_complex_properties_from_class(properties)
         check_startswith_error_message(self, error, "Add properties to classes")
 
     def test__create_class_with_premitives(self):
@@ -444,16 +476,15 @@ class TestSchema(unittest.TestCase):
         """
         
         # valid calls
-        test_func = self.client.schema._create_class_with_premitives
-        def helper_test():
-            mock_rest = mock_run_rest()
-            replace_connection(self.client, mock_rest)
-            test_func(test_class)
-            self.assertEqual(mock_rest.run_rest.call_count, 1)
-            mock_rest.run_rest.assert_called_with(
-                "/schema",
-                REST_METHOD_POST,
-                test_class_call)
+        def helper_test(test_class, test_class_call):
+            mock_rest = mock_connection_method('post')
+            schema = Schema(mock_rest)
+            schema._create_class_with_premitives(test_class)
+            self.assertEqual(mock_rest.post.call_count, 1)
+            mock_rest.post.assert_called_with(
+                path="/schema",
+                weaviate_object=test_class_call,
+            )
 
         test_class = {
             "class": "TestClass",
@@ -480,54 +511,58 @@ class TestSchema(unittest.TestCase):
                 },
             ]
         }
-        helper_test()
+        helper_test(test_class, test_class_call)
 
         test_class['description'] = 'description'
         test_class_call['description'] = 'description'
-        helper_test()
+        helper_test(test_class, test_class_call)
         
         test_class['description'] = 'description'
         test_class_call['description'] = 'description'
-        helper_test()
+        helper_test(test_class, test_class_call)
 
         test_class['vectorIndexType'] = 'vectorIndexType'
         test_class_call['vectorIndexType'] = 'vectorIndexType'
-        helper_test()
+        helper_test(test_class, test_class_call)
 
         test_class['vectorIndexConfig'] = {'vectorIndexConfig': 'vectorIndexConfig'}
         test_class_call['vectorIndexConfig'] = {'vectorIndexConfig': 'vectorIndexConfig'}
-        helper_test()
+        helper_test(test_class, test_class_call)
 
         test_class['vectorizer'] = 'test_vectorizer'
         test_class_call['vectorizer'] = 'test_vectorizer'
-        helper_test()
+        helper_test(test_class, test_class_call)
 
         test_class['moduleConfig'] = {'moduleConfig': 'moduleConfig'}
         test_class_call['moduleConfig'] = {'moduleConfig': 'moduleConfig'}
-        helper_test()
+        helper_test(test_class, test_class_call)
 
-        # multiple properties do not imply multimple `run_rest` calls
+        test_class['shardingConfig'] = {'shardingConfig': 'shardingConfig'}
+        test_class_call['shardingConfig'] = {'shardingConfig': 'shardingConfig'}
+        helper_test(test_class, test_class_call)
+
+        # multiple properties do not imply multiple `run_rest` calls
         test_class['properties'].append(test_class['properties'][0]) # add another property
         test_class['properties'].append(test_class['properties'][0]) # add another property
         test_class_call['properties'].append(test_class['properties'][0]) # add another property
         test_class_call['properties'].append(test_class['properties'][0]) # add another property
-        helper_test()
+        helper_test(test_class, test_class_call)
 
         
 
         # invalid calls
-        requests_error_message = 'TEST1 Connection error, class may not have been created properly.'
+        requests_error_message = 'Class may not have been created properly.'
 
-        mock_rest = mock_run_rest(side_effect=RequestsConnectionError('TEST1'))
-        replace_connection(self.client, mock_rest)
+        mock_rest = mock_connection_method('post', side_effect=RequestsConnectionError('TEST1'))
+        schema = Schema(mock_rest)
         with self.assertRaises(RequestsConnectionError) as error:
-            test_func(test_class)
+            schema._create_class_with_premitives(test_class)
         check_error_message(self, error, requests_error_message)
 
-        mock_rest = mock_run_rest(status_code=404)
-        replace_connection(self.client, mock_rest)
+        mock_rest = mock_connection_method('post', status_code=404)
+        schema = Schema(mock_rest)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
-            test_func(test_class)
+            schema._create_class_with_premitives(test_class)
         check_startswith_error_message(self, error, "Create class")
 
     def test__create_classes_with_primitives(self):
@@ -535,10 +570,12 @@ class TestSchema(unittest.TestCase):
         Test the `_create_classes_with_primitives` method.
         """
 
-        mock_primitive = Mock()
-        self.client.schema._create_class_with_premitives = mock_primitive
+        schema = Schema(Mock())
 
-        self.client.schema._create_classes_with_primitives(list("Test!!"))
+        mock_primitive = Mock()
+        schema._create_class_with_premitives = mock_primitive
+
+        schema._create_classes_with_primitives(list("Test!!"))
         self.assertEqual(mock_primitive.call_count, 6) 
 
     def test__property_is_primitive(self):
@@ -546,35 +583,41 @@ class TestSchema(unittest.TestCase):
         Test the `_property_is_primitive` function.
         """
 
+        from weaviate.schema.crud_schema import _property_is_primitive
+
         test_types_list = ["NOT Primitive", "Neither this one", "Nor This!"]
-        self.assertFalse(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        self.assertFalse(_property_is_primitive(test_types_list))
         test_types_list = ["NOT Primitive", "boolean", "text"]
-        self.assertFalse(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        self.assertFalse(_property_is_primitive(test_types_list))
         test_types_list = ["text"]
-        self.assertTrue(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        self.assertTrue(_property_is_primitive(test_types_list))
         test_types_list = ["int"]
-        self.assertTrue(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        self.assertTrue(_property_is_primitive(test_types_list))
         test_types_list = ["number"]
-        self.assertTrue(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        self.assertTrue(_property_is_primitive(test_types_list))
         test_types_list = ["string"]
-        self.assertTrue(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        self.assertTrue(_property_is_primitive(test_types_list))
         test_types_list = ["boolean"]
-        self.assertTrue(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        self.assertTrue(_property_is_primitive(test_types_list))
         test_types_list = ["date"]
-        self.assertTrue(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        self.assertTrue(_property_is_primitive(test_types_list))
         test_types_list = ["geoCoordinates"]
-        self.assertTrue(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        self.assertTrue(_property_is_primitive(test_types_list))
         test_types_list = ["blob"]
-        self.assertTrue(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
-        test_types_list = ["string", "int", "boolean", "number", "date", "text", "geoCoordinates", "blob"]
-        self.assertTrue(weaviate.schema.crud_schema._property_is_primitive(test_types_list))
+        self.assertTrue(_property_is_primitive(test_types_list))
+        test_types_list = ["phoneNumber"]
+        self.assertTrue(_property_is_primitive(test_types_list))
+        test_types_list = ["string", "int", "boolean", "number", "date", "text", "geoCoordinates", "blob", "phoneNumber"]
+        self.assertTrue(_property_is_primitive(test_types_list))
 
     def test__get_primitive_properties(self):
         """
         Test the `_get_primitive_properties` function.
         """
 
-        test_func = weaviate.schema.crud_schema._get_primitive_properties
+        from weaviate.schema.crud_schema import _get_primitive_properties
+
+        test_func = _get_primitive_properties
 
         properties_list = []
         self.assertEqual(test_func(properties_list), properties_list)

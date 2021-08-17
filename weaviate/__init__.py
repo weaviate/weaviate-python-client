@@ -42,7 +42,7 @@ __all__ = [
     'SchemaValidationException',
 ]
 
-from .auth import AuthClientCredentials, AuthClientPassword
-from .exceptions import *
-from .client import Client
 from .version import __version__
+from .exceptions import *
+from .auth import AuthClientCredentials, AuthClientPassword
+from .client import Client

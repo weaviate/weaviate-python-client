@@ -3,15 +3,15 @@ Client class definition.
 """
 from typing import Optional, Tuple, Union
 from numbers import Real
-from weaviate import UnexpectedStatusCodeException, RequestsConnectionError
-from .connect import Connection, REST_METHOD_GET
+from .auth import AuthCredentials
+from .exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+from .connect import Connection
 from .classification import Classification
 from .schema import Schema
 from .contextionary import Contextionary
 from .batch import Batch
 from .data import DataObject
 from .gql import Query
-from .auth import AuthCredentials
 
 
 class Client:
@@ -113,7 +113,7 @@ class Client:
         """
 
         try:
-            response = self._connection.run_rest("/.well-known/ready", REST_METHOD_GET)
+            response = self._connection.get(path="/.well-known/ready")
             if response.status_code == 200:
                 return True
             return False
@@ -131,7 +131,7 @@ class Client:
             False otherwise.
         """
 
-        response = self._connection.run_rest("/.well-known/live", REST_METHOD_GET)
+        response = self._connection.get(path="/.well-known/live")
         if response.status_code == 200:
             return True
         return False
@@ -151,7 +151,7 @@ class Client:
             If weaviate reports a none OK status.
         """
 
-        response = self._connection.run_rest("/meta", REST_METHOD_GET)
+        response = self._connection.get(path="/meta")
         if response.status_code == 200:
             return response.json()
         raise UnexpectedStatusCodeException("Meta endpoint", response)
@@ -171,7 +171,7 @@ class Client:
             If weaviate reports a none OK status.
         """
 
-        response = self._connection.run_rest("/.well-known/openid-configuration", REST_METHOD_GET)
+        response = self._connection.get(path="/.well-known/openid-configuration")
         if response.status_code == 200:
             return response.json()
         if response.status_code == 404:

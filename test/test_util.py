@@ -512,9 +512,9 @@ class TestUtil(unittest.TestCase):
         with open('integration/weaviate-logo.png', 'rb') as file:
             self.assertEqual(decoded, file.read())
             self.assertIsInstance(decoded, bytes)
-    @patch('weaviate.util.uuid')
+    @patch('weaviate.util.uuid_lib')
     def test_generate_uuid5(self, mock_uuid):
 
-        result  = generate_uuid5('TestID!', 'Test!')
+        result = generate_uuid5('TestID!', 'Test!')
         self.assertIsInstance(result, str)
         mock_uuid.uuid5.assert_called()

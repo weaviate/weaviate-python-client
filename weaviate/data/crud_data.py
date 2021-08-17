@@ -1,18 +1,14 @@
 """
 DataObject class definition.
 """
-import sys
 from typing import Union, Optional, List, Sequence
 import validators
-from weaviate.connect import REST_METHOD_POST
-from weaviate.connect import REST_METHOD_PATCH
-from weaviate.connect import REST_METHOD_PUT
-from weaviate.connect import REST_METHOD_GET
-from weaviate.connect import REST_METHOD_DELETE
 from weaviate.connect import Connection
-from weaviate import ObjectAlreadyExistsException
-from weaviate import RequestsConnectionError
-from weaviate import UnexpectedStatusCodeException
+from weaviate.exceptions import (
+    ObjectAlreadyExistsException,
+    RequestsConnectionError,
+    UnexpectedStatusCodeException
+)
 from weaviate.util import _get_dict_from_object, get_vector, get_valid_uuid
 from weaviate.data.references import Reference
 
@@ -119,12 +115,12 @@ class DataObject:
 
         path = "/objects"
         try:
-            response = self._connection.run_rest(path, REST_METHOD_POST, weaviate_obj)
+            response = self._connection.post(
+                path=path,
+                weaviate_object=weaviate_obj
+            )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err)\
-                    + ' Connection error, object was not added to weaviate.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
-
+            raise RequestsConnectionError('Object was not added to Weaviate.') from conn_err
         if response.status_code == 200:
             return str(response.json()["id"])
 
@@ -134,11 +130,6 @@ class DataObject:
                 object_does_already_exist = True
         except KeyError:
             pass
-        except Exception as error:
-            message = str(error)\
-                    + ' Unexpected exception please report this exception in an issue.'
-            raise type(error)(message).with_traceback(sys.exc_info()[2])
-
         if object_does_already_exist:
             raise ObjectAlreadyExistsException(str(uuid))
         raise UnexpectedStatusCodeException("Creating object", response)
@@ -241,10 +232,12 @@ class DataObject:
         path = f"/objects/{uuid}"
 
         try:
-            response = self._connection.run_rest(path, REST_METHOD_PATCH, weaviate_obj)
+            response = self._connection.patch(
+                path=path,
+                weaviate_object=weaviate_obj
+            )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err) + ' Connection error, object was not updated(REST PATCH).'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('Object was not updated.') from conn_err
         if response.status_code == 204:
             # Successful merge
             return
@@ -336,10 +329,12 @@ class DataObject:
 
         path = f"/objects/{uuid}"
         try:
-            response = self._connection.run_rest(path, REST_METHOD_PUT, weaviate_obj)
+            response = self._connection.put(
+                path=path,
+                weaviate_object=weaviate_obj
+            )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err) + ' Connection error, object was not replaced(REST PUT).'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('Object was not replaced.') from conn_err
         if response.status_code == 200:
             # Successful update
             return
@@ -445,9 +440,7 @@ class DataObject:
         try:
             response = self._get_response(uuid, additional_properties, with_vector)
         except RequestsConnectionError as conn_err:
-            message = str(conn_err) + ' Connection error when getting object/s'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
-
+            raise RequestsConnectionError('Could not get object/s.') from conn_err
         if response.status_code == 200:
             return response.json()
         if uuid is not None and response.status_code == 404:
@@ -500,11 +493,11 @@ class DataObject:
             raise ValueError("UUID does not have proper form")
 
         try:
-            response = self._connection.run_rest("/objects/" + uuid, REST_METHOD_DELETE)
+            response = self._connection.delete(
+                path="/objects/" + uuid,
+            )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err)\
-                    + ' Connection error, object could not be deleted.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('Object could not be deleted.') from conn_err
         if response.status_code == 204:
             # Successfully deleted
             return
@@ -641,11 +634,13 @@ class DataObject:
 
         path = "/objects/validate"
         try:
-            response = self._connection.run_rest(path, REST_METHOD_POST, weaviate_obj)
+            response = self._connection.post(
+                path=path,
+                weaviate_object=weaviate_obj
+            )
         except RequestsConnectionError as conn_err:
-            message = str(conn_err)\
-                    + ' Connection error, object was not validated against weaviate.'
-            raise type(conn_err)(message).with_traceback(sys.exc_info()[2])
+            raise RequestsConnectionError('Object was not validated against weaviate.')\
+                from conn_err
 
         result: dict = {
             "error": None
@@ -698,7 +693,10 @@ class DataObject:
         else:
             path = "/objects"
 
-        return self._connection.run_rest(path, REST_METHOD_GET, params=params)
+        return self._connection.get(
+            path=path,
+            params=params
+        )
 
 
 def _get_params(additional_properties: Optional[List[str]], with_vector: bool) -> dict:

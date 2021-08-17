@@ -4,7 +4,7 @@ Helper functions!
 import os
 import json
 import base64
-import uuid
+import uuid as uuid_lib
 from typing import Union, Sequence, Tuple, Any
 from numbers import Real
 from io import BufferedReader
@@ -446,4 +446,4 @@ def generate_uuid5(identifier: Any, namespace: Any = "") -> str:
         The UUID as a string.
     """
 
-    return str(uuid.uuid5(uuid.NAMESPACE_DNS, str(namespace) + str(identifier)))
+    return str(uuid_lib.uuid5(uuid_lib.NAMESPACE_DNS, str(namespace) + str(identifier)))
