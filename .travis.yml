@@ -6,6 +6,7 @@ language: python
 branches:
   only:
     - main
+    - development
 
 jobs:
   include:
