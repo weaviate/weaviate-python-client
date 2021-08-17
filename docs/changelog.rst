@@ -3,24 +3,24 @@ Changelog
 
 Version 3.1.0
 -------------
-- | New :class:`~weaviate.batch.Batch` methods:
+- New :class:`~weaviate.batch.Batch` methods:
     - | :meth:`~weaviate.batch.Batch.pop_object` / :meth:`~weaviate.batch.Batch.pop_reference` to remove and return an added object/reference
         from the :class:`~weaviate.batch.Batch` at position ``index`` (by default ``-1``).
     - |  :meth:`~weaviate.batch.Batch.empty_objects` / :meth:`~weaviate.batch.Batch.empty_references` to remove all the existing objects/references
         from the :class:`~weaviate.batch.Batch` instance.
     - |  :meth:`~weaviate.batch.Batch.is_empty_objects` / :meth:`~weaviate.batch.Batch.is_empty_references` to check there are any objects/references
         in the :class:`~weaviate.batch.Batch` instance.
-- | Fixes in :class:`~weaviate.wcs.WCS` class:
-    - | Authentication only with :class:`~weaviate.auth.AuthClientPassword`.
+- Fixes in :class:`~weaviate.wcs.WCS` class:
+    - Authentication only with :class:`~weaviate.auth.AuthClientPassword`.
     - | The :meth:`~weaviate.wcs.WCS.create` argument ``module`` is renamed to ``modules`` and can also be a list of modules to enable for the WCS cluster.
-        The argument can be used on the `PROD <https://console.semi.technology/ >`_ WCS too.
-    - | The :meth:`~weaviate.wcs.WCS.get_cluster_config` does not raise an exception if the cluster does not exist but returns a empty configuration.
-    - | The :meth:`~weaviate.wcs.WCS.delete_cluster` does not raise an exception if the cluster does not exist.
+        The argument can be used on the `PROD <https://console.semi.technology/>`_ WCS too.
+    - The :meth:`~weaviate.wcs.WCS.get_cluster_config` does not raise an exception if the cluster does not exist but returns a empty configuration.
+    - The :meth:`~weaviate.wcs.WCS.delete_cluster` does not raise an exception if the cluster does not exist.
 
-- | Add ``phoneNumber`` to the Weaviate's primitive types. Thanks to GitHub user `@cdpierse <https://github.com/cdpierse>`_.
-- | Bug fix in :class:`~weaviate.connect.Connection`.
-- | Fix ``ConnectionError`` handling.
-- | Optimization in ``weaviate.batch.requests`` and ``weaviate.connect.connection``.
+- Add ``phoneNumber`` to the Weaviate's primitive types. Thanks to GitHub user `@cdpierse <https://github.com/cdpierse>`_.
+- Bug fix in :class:`~weaviate.connect.Connection`.
+- Fix ``ConnectionError`` handling.
+- Optimization in ``weaviate.batch.requests`` and ``weaviate.connect.connection``.
 
 
 Version 3.0.0
