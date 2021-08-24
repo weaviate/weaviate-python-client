@@ -63,6 +63,17 @@ class TestWCS(unittest.TestCase):
 
         wcs = WCS(AuthClientPassword('test_user', 'test_pass'))
 
+        # invalid calls
+        ## error messages
+        value_error_msg = "No cluster with name: 'test_name'. Check the name again!"
+
+        mock_get_cluster_config.return_value = {}
+        with self.assertRaises(ValueError) as error:
+            wcs.is_ready('TEST_NAME')
+        check_error_message(self, error, value_error_msg)
+        mock_get_cluster_config.assert_called_with('test_name')
+
+        # valid calls
         mock_get_cluster_config.return_value = {'status': {'state': {'percentage' : 99}}}
         self.assertEqual(wcs.is_ready('test_name'), False)
         mock_get_cluster_config.assert_called_with('test_name')
@@ -70,7 +81,6 @@ class TestWCS(unittest.TestCase):
         mock_get_cluster_config.return_value = {'status': {'state': {'percentage' : 100}}}
         self.assertEqual(wcs.is_ready('test_name2'), True)
         mock_get_cluster_config.assert_called_with('test_name2')
-
 
     @patch('weaviate.wcs.crud_wcs.WCS._set_bearer', Mock())
     @patch('weaviate.wcs.crud_wcs.WCS.post')
@@ -158,7 +168,7 @@ class TestWCS(unittest.TestCase):
         mock_post.assert_called_with(
             path='/clusters',
             weaviate_object={
-                'id': 'Test_name',
+                'id': 'test_name',
                 'configuration': {
                     'tier': 'test_type',
                     "requiresAuthentication": False,
@@ -190,16 +200,16 @@ class TestWCS(unittest.TestCase):
         self.assertEqual(result, 'https://my-url.semi.network')
 
         mock_post.return_value = Mock(status_code=400, text='Cluster already exists!')
-        result = wcs.create(cluster_name='my-url', modules='test')
+        result = wcs.create(cluster_name='my-cluster', modules='test')
         mock_post.assert_called_with(
             path='/clusters',
-            weaviate_object={'id': 'my-url', 'configuration': {'tier': 'sandbox', "requiresAuthentication": False, 'modules': [{'name': 'test'}]}},
+            weaviate_object={'id': 'my-cluster', 'configuration': {'tier': 'sandbox', "requiresAuthentication": False, 'modules': [{'name': 'test'}]}},
         )
-        self.assertEqual(result, 'https://my-url.semi.network')
+        self.assertEqual(result, 'https://my-cluster.semi.network')
 
         mock_post.return_value = Mock(status_code=400, text='Cluster already exists!')
         modules = ['test', {'name': 'test2', 'repo': 'test_repo', 'tag': 'TAG', 'inferenceUrl': 'URL'}]
-        result = wcs.create(cluster_name='my-url', modules=modules, with_auth=True)
+        result = wcs.create(cluster_name='My-url', modules=modules, with_auth=True)
         mock_post.assert_called_with(
             path='/clusters',
             weaviate_object={
@@ -241,6 +251,7 @@ class TestWCS(unittest.TestCase):
         mock_get_cluster_config.reset_mock()
         mock_get_cluster_config.side_effect = lambda x: progress('weaviate', 100) if mock_get_cluster_config.call_count == 2 else progress('weaviate')
         mock_post.return_value = Mock(status_code=202)
+        mock_post.return_value.json.return_value = {'id': 'weaviate'}
         result = wcs.create(cluster_name='weaviate', wait_for_completion=True)
         mock_post.assert_called_with(
             path='/clusters',
@@ -355,6 +366,15 @@ class TestWCS(unittest.TestCase):
             path='/clusters/test_name',
         )
 
+        return_mock = Mock(status_code=200)
+        return_mock.json.return_value = {'clusterIDs': 'test!'}
+        mock_get.return_value = return_mock
+        result = wcs.get_cluster_config('Test_Name')
+        self.assertEqual(result, {'clusterIDs': 'test!'})
+        mock_get.assert_called_with(
+            path='/clusters/test_name',
+        )
+
         return_mock = Mock(status_code=404)
         return_mock.json.return_value = {'clusterIDs': 'test!'}
         mock_get.return_value = return_mock
@@ -408,6 +428,12 @@ class TestWCS(unittest.TestCase):
 
         mock_delete.return_value = Mock(status_code=404)
         self.assertIsNone(wcs.delete_cluster('test_name'))
+        mock_delete.assert_called_with(
+            path='/clusters/test_name',
+        )
+
+        mock_delete.return_value = Mock(status_code=404)
+        self.assertIsNone(wcs.delete_cluster('TesT_naMe'))
         mock_delete.assert_called_with(
             path='/clusters/test_name',
         )
