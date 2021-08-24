@@ -1,8 +1,17 @@
 Changelog
 =========
 
+Version 3.1.1
+-------------
+
+- Fixes in :class:`~weaviate.wcs.WCS` class:
+    - | Make :class:`~weaviate.wcs.WCS`'s methods' argument ``cluster_name`` case insensitive (lowercased inside the method) to match Weaviate Cloud Service'
+        naming convention, this fixes the error when Weaviate Cloud Service lowercases the ``cluster_name`` but the users are not aware of this and get the exception
+        `KeyError`. 
+
 Version 3.1.0
 -------------
+
 - New :class:`~weaviate.batch.Batch` methods:
     - | :meth:`~weaviate.batch.Batch.pop_object` / :meth:`~weaviate.batch.Batch.pop_reference` to remove and return an added object/reference
         from the :class:`~weaviate.batch.Batch` at position ``index`` (by default ``-1``).

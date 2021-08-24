@@ -86,12 +86,12 @@ class WCS(Connection):
 
     def _log_in(self) -> None:
         """
-        TODO
+        Log in to WCS.
 
         Raises
         ------
-        ValueError
-            [description]
+        weaviate.AuthenticationFailedException
+            If no login credentials provided, or wrong type of credentials!
         """
         if isinstance(self._auth_client_secret, AuthClientPassword):
             self._refresh_authentication()
@@ -115,10 +115,11 @@ class WCS(Connection):
         Parameters
         ----------
         cluster_name : str, optional
-            Name of the weaviate cluster to be created, if None a random one is going to be
+            The name of the weaviate cluster to be created, if None a random one is going to be
             generated, by default None.
+            NOTE: Case insensitive. The created cluster's name is always lowercased.
         cluster_type : str, optional
-            Cluster type/tier, by default 'sandbox'.
+            the cluster type/tier, by default 'sandbox'.
         with_auth : bool, optional
             Enable the authentication to the cluster about to be created,
             by default False.
@@ -132,8 +133,8 @@ class WCS(Connection):
             ... }
             See the Examples for additional information.
         config : dict, optional
-            Cluster configuration. If NOT None then `cluster_name`, `cluster_type`, `module` are
-            ignored and the whole cluster configuration should be in this argument,
+            the cluster configuration. If NOT None then `cluster_name`, `cluster_type`, `module`
+            are ignored and the whole cluster configuration should be in this argument,
             by default None. See the Examples below for the complete configuration schema.
         wait_for_completion : bool, optional
             Whether to wait until the cluster is built,
@@ -218,6 +219,9 @@ class WCS(Connection):
             In case one of the modules is of type dict and the values are not of type 'str'.
         """
 
+        if cluster_name is not None:
+            cluster_name = cluster_name.lower()
+
         if config is None:
             config = {
                 'id': cluster_name,
@@ -233,6 +237,8 @@ class WCS(Connection):
                     "The `config` argument must be either None or of type 'dict', given: "
                     f"{type(config)}"
                 )
+            if 'id' in config:
+                cluster_name = config['id'].lower()
 
         try:
             response = self.post(
@@ -248,8 +254,7 @@ class WCS(Connection):
         if response.status_code != 202:
             raise UnexpectedStatusCodeException('Creating WCS instance', response)
 
-        if cluster_name is None:
-            cluster_name = response.json()['id']
+        cluster_name = response.json()['id']
 
         if wait_for_completion is True:
             progress_bar = tqdm(total=100)
@@ -269,7 +274,8 @@ class WCS(Connection):
         Parameters
         ----------
         cluster_name : str
-            Name of the weaviate cluster.
+            The name of the weaviate server cluster.
+            NOTE: Case insensitive. The WCS cluster's name is always lowercased.
 
         Returns
         -------
@@ -277,7 +283,10 @@ class WCS(Connection):
             True if cluster is created and ready to use, False otherwise.
         """
 
+        cluster_name = cluster_name.lower()
         response = self.get_cluster_config(cluster_name)
+        if response == {}:
+            raise ValueError(f"No cluster with name: '{cluster_name}'. Check the name again!")
         if response["status"]["state"]["percentage"] == 100:
             return True
         return False
@@ -320,7 +329,8 @@ class WCS(Connection):
         Parameters
         ----------
         cluster_name : str
-            Name of the weaviate cluster.
+            The name of the weaviate server cluster.
+            NOTE: Case insensitive. The WCS cluster's name is always lowercased.
 
         Returns
         -------
@@ -339,7 +349,7 @@ class WCS(Connection):
 
         try:
             response = self.get(
-                path='/clusters/' + cluster_name,
+                path='/clusters/' + cluster_name.lower(),
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError('WCS cluster info was not fetched.') from conn_err
@@ -356,7 +366,8 @@ class WCS(Connection):
         Parameters
         ----------
         cluster_name : str
-            Name of the Weaviate cluster.
+            The name of the weaviate server cluster.
+            NOTE: Case insensitive. The WCS cluster's name is always lowercased.
 
         Raises
         ------
@@ -369,7 +380,7 @@ class WCS(Connection):
 
         try:
             response = self.delete(
-                path='/clusters/' + cluster_name,
+                path='/clusters/' + cluster_name.lower(),
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError('WCS cluster was not deleted.') from conn_err
