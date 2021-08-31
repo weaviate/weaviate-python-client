@@ -2,9 +2,9 @@
 WCS class definition.
 """
 import time
+import sys
 from typing import Optional, List, Union, Dict, Tuple
 from numbers import Real
-from tqdm import tqdm
 from weaviate.connect import Connection
 from weaviate.exceptions import (
     RequestsConnectionError,
@@ -12,6 +12,12 @@ from weaviate.exceptions import (
     AuthenticationFailedException,
 )
 from weaviate.auth import AuthClientPassword
+try:
+    get_ipython
+except:
+    from tqdm import tqdm
+else:
+    from tqdm.notebook import tqdm
 
 
 class WCS(Connection):
@@ -257,12 +263,25 @@ class WCS(Connection):
         cluster_name = response.json()['id']
 
         if wait_for_completion is True:
-            progress_bar = tqdm(total=100)
+            title_bar = tqdm(
+                bar_format='{desc}',
+                desc='Creating cluster:',
+                leave=True,
+            )
+            progress_bar = tqdm(
+                total=100.0,
+                bar_format='{percentage:3.0f}% |{bar}|[{elapsed}<{remaining}, ' '{rate_fmt}{postfix}]',
+                leave=True,
+                unit='%'
+            )
             progress = 0
             while progress != 100:
                 time.sleep(2.0)
-                progress = self.get_cluster_config(cluster_name)["status"]["state"]["percentage"]
+                progress_state = self.get_cluster_config(cluster_name)["status"]["state"]
+                progress = progress_state["percentage"]
                 progress_bar.update(progress - progress_bar.n)
+                title_bar.set_description(progress_state.get('message'))
+            title_bar.close()
             progress_bar.close()
 
         return 'https://' + self.get_cluster_config(cluster_name)['meta']['PublicURL']
