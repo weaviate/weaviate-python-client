@@ -38,7 +38,7 @@ Updates in :mod:`~weaviate.gql` sub-package:
         )
         # the question should be corrected to 'When was the last financial crisis?'
 
-- | New method :meth:`~weaviate.gql.get.GetConfig.with_additional` is added to GET the `_additional` properties. Usage example:
+- | New method :meth:`~weaviate.gql.get.GetBuilder.with_additional` is added to GET the `_additional` properties. Usage example:
 
 .. code-block:: python
 
