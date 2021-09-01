@@ -2,9 +2,9 @@
 WCS class definition.
 """
 import time
-import sys
 from typing import Optional, List, Union, Dict, Tuple
 from numbers import Real
+from tqdm.auto import tqdm
 from weaviate.connect import Connection
 from weaviate.exceptions import (
     RequestsConnectionError,
@@ -12,12 +12,6 @@ from weaviate.exceptions import (
     AuthenticationFailedException,
 )
 from weaviate.auth import AuthClientPassword
-try:
-    get_ipython
-except:
-    from tqdm import tqdm
-else:
-    from tqdm.notebook import tqdm
 
 
 class WCS(Connection):
@@ -270,9 +264,11 @@ class WCS(Connection):
             )
             progress_bar = tqdm(
                 total=100.0,
-                bar_format='{percentage:3.0f}% |{bar}|[{elapsed}<{remaining}, ' '{rate_fmt}{postfix}]',
                 leave=True,
-                unit='%'
+                unit='%',
+                bar_format=(
+                    '{percentage:3.0f}% |{bar}|[{elapsed}<{remaining}, {rate_fmt}{postfix}]'
+                ),
             )
             progress = 0
             while progress != 100:

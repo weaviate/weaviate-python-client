@@ -2,9 +2,9 @@
 GraphQL filters for `Get` and `Aggregate` commands.
 GraphQL abstract class for GraphQL commands to inherit from.
 """
-import json
+from json import dumps
 from copy import deepcopy
-from typing import Optional
+from typing import Any
 from abc import ABC, abstractmethod
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
@@ -88,7 +88,8 @@ class Filter(ABC):
 
         if not isinstance(content, dict):
             raise TypeError(f"{self.__class__.__name__} filter is expected to "
-                f"be type dict but was {type(content)}")
+                f"be type dict but is {type(content)}")
+        self._content = deepcopy(content)
 
     @abstractmethod
     def __str__(self) -> str:
@@ -122,39 +123,44 @@ class NearText(Filter):
 
         super().__init__(content)
 
-        _content = deepcopy(content)
-        _check_concept(_content)
-        self.concepts = _content["concepts"]
-        self.certainty: Optional[float] = None
-        self.move_to: Optional[dict] = None
-        self.move_away_from: Optional[dict] = None
+        _check_concept(self._content)
 
-        if "certainty" in _content:
-            _check_certainty_type(_content["certainty"])
-            self.certainty = _content["certainty"]
+        if "certainty" in self._content:
+            _check_type(
+                var_name='certainty',
+                value=self._content["certainty"],
+                dtype=float
+            )
 
-        if "moveTo" in _content:
-            _check_direction_clause(_content["moveTo"])
-            self.move_to = _content["moveTo"]
+        if "moveTo" in self._content:
+            _check_direction_clause(self._content["moveTo"])
 
-        if "moveAwayFrom" in _content:
-            _check_direction_clause(_content["moveAwayFrom"])
-            self.move_away_from = _content["moveAwayFrom"]
+        if "moveAwayFrom" in self._content:
+            _check_direction_clause(self._content["moveAwayFrom"])
+
+        if "autocorrect" in self._content:
+            _check_type(
+                var_name='autocorrect',
+                value=self._content["autocorrect"],
+                dtype=bool
+            )
 
     def __str__(self):
-        near_text = f'nearText: {{concepts: {json.dumps(self.concepts)}'
-        if self.certainty is not None:
-            near_text += f' certainty: {str(self.certainty)}'
-        if self.move_to is not None:
+        near_text = f'nearText: {{concepts: {dumps(self._content["concepts"])}'
+        if 'certainty' in self._content:
+            near_text += f' certainty: {self._content["certainty"]}'
+        if 'moveTo' in self._content:
             near_text += (
-                f' moveTo: {{concepts: {json.dumps(self.move_to["concepts"])} ' +\
-                f'force: {self.move_to["force"]}}}'
+                f' moveTo: {{concepts: {dumps(self._content["moveTo"]["concepts"])}'
+                f' force: {self._content["moveTo"]["force"]}}}'
             )
-        if self.move_away_from is not None:
+        if 'moveAwayFrom' in self._content:
             near_text += (
-                f' moveAwayFrom: {{concepts: {json.dumps(self.move_away_from["concepts"])} ' +\
-                        f'force: {self.move_away_from["force"]}}}'
+                f' moveAwayFrom: {{concepts: {dumps(self._content["moveAwayFrom"]["concepts"])}'
+                f' force: {self._content["moveAwayFrom"]["force"]}}}'
             )
+        if 'autocorrect' in self._content:
+            near_text += f' autocorrect: {_bool_to_str(self._content["autocorrect"])}'
         return near_text + '} '
 
 
@@ -176,7 +182,7 @@ class NearVector(Filter):
         ------
         TypeError
             If 'content' is not of type dict.
-        ValueError
+        KeyError
             If 'content' does not contain "vector".
         TypeError
             If 'content["vector"]' is not of type list.
@@ -188,22 +194,23 @@ class NearVector(Filter):
 
         super().__init__(content)
 
-        _content = deepcopy(content)
-        if "vector" not in content:
-            raise ValueError("No 'vector' key in `content` argument.")
-        self.vector = get_vector(_content['vector'])
-        self.certainty: Optional[float] = None
+        if "vector" not in self._content:
+            raise KeyError("No 'vector' key in `content` argument.")
 
         # Check optional fields
+        if "certainty" in self._content:
+            _check_type(
+                var_name='certainty',
+                value=self._content["certainty"],
+                dtype=float
+            )
 
-        if "certainty" in _content:
-            _check_certainty_type(_content["certainty"])
-            self.certainty = _content["certainty"]
+        self._content['vector'] = get_vector(self._content['vector'])
 
     def __str__(self):
-        near_vector = f'nearVector: {{vector: {json.dumps(self.vector)}'
-        if self.certainty is not None:
-            near_vector += f' certainty: {self.certainty}'
+        near_vector = f'nearVector: {{vector: {dumps(self._content["vector"])}'
+        if 'certainty' in self._content:
+            near_vector += f' certainty: {self._content["certainty"]}'
         return near_vector + '} '
 
 
@@ -233,22 +240,26 @@ class NearObject(Filter):
 
         super().__init__(content)
 
-        if ('id' in content) == ('beacon' in content):
+        if ('id' in self._content) and ('beacon' in self._content):
             raise ValueError("The 'content' argument should contain EITHER `id` OR `beacon`!")
 
-        if 'id' in content:
+        if 'id' in self._content:
             self.obj_id = 'id'
         else:
             self.obj_id = 'beacon'
 
-        if not isinstance(content[self.obj_id], str):
-            raise TypeError("The 'id'/'beacon' should be of type string! Given type"
-                + str(type(content[self.obj_id])))
+        _check_type(
+            var_name=self.obj_id,
+            value=self._content[self.obj_id],
+            dtype=str
+        )
 
-        if "certainty" in content:
-            _check_certainty_type(content["certainty"])
-
-        self._content = deepcopy(content)
+        if "certainty" in self._content:
+            _check_type(
+                var_name='certainty',
+                value=self._content["certainty"],
+                dtype=float
+            )
 
     def __str__(self):
 
@@ -284,31 +295,45 @@ class Ask(Filter):
 
         super().__init__(content)
 
-        if 'question' not in content:
+        if 'question' not in self._content:
             raise ValueError('Mandatory "question" key not present in the "content"!')
 
-        if not isinstance(content['question'], str):
-            raise TypeError('"question" key value should be of the type str. Given: '
-                + str(type(content["question"])))
+        _check_type(
+            var_name='question',
+            value=self._content["question"],
+            dtype=str
+        )
+        if 'certainty' in self._content:
+            _check_type(
+                var_name='certainty',
+                value=self._content["certainty"],
+                dtype=float
+            )
 
-        if 'certainty' in content:
-            _check_certainty_type(content["certainty"])
+        if "autocorrect" in self._content:
+            _check_type(
+                var_name='autocorrect',
+                value=self._content["autocorrect"],
+                dtype=bool
+            )
 
-        self._content = deepcopy(content)
-
-        if 'properties' in content:
-            if isinstance(content['properties'], str):
-                self._content['properties'] = [content['properties']]
-            elif not isinstance(content['properties'], list):
-                raise TypeError("'properties' should be of type list or str! Given type: "
-                    + str(type(content['properties'])))
+        if 'properties' in self._content:
+            _check_type(
+                var_name='properties',
+                value=self._content["properties"],
+                dtype=(list, str)
+            )
+            if isinstance(self._content['properties'], str):
+                self._content['properties'] = [self._content['properties']]
 
     def __str__(self):
         ask = f'ask: {{question: \"{self._content["question"]}\"'
         if 'certainty' in self._content:
             ask += f' certainty: {self._content["certainty"]}'
         if 'properties' in self._content:
-            ask += f' properties: {json.dumps(self._content["properties"])}'
+            ask += f' properties: {dumps(self._content["properties"])}'
+        if 'autocorrect' in self._content:
+            ask += f' autocorrect: {_bool_to_str(self._content["autocorrect"])}'
         return ask + '} '
 
 
@@ -338,17 +363,20 @@ class NearImage(Filter):
 
         super().__init__(content)
 
-        if 'image' not in content:
+        if 'image' not in self._content:
             raise ValueError('"content" is missing the mandatory key "image"!')
-        if not isinstance(content['image'], str):
-            raise TypeError('the "image" value should be of type str, given '
-                                f'{type(content["image"])}')
 
-        if "certainty" in content:
-            _check_certainty_type(content["certainty"])
-
-        self._content = deepcopy(content)
-
+        _check_type(
+            var_name='image',
+            value=self._content["image"],
+            dtype=str
+        )
+        if "certainty" in self._content:
+            _check_type(
+                var_name='certainty',
+                value=self._content["certainty"],
+                dtype=float
+            )
 
     def __str__(self):
         near_image = f'nearImage: {{image: {self._content["image"]}'
@@ -381,15 +409,15 @@ class Where(Filter):
 
         super().__init__(content)
 
-        if "path" in content:
+        if "path" in self._content:
             self.is_filter = True
-            self._parse_filter(content)
-        elif "operands" in content:
+            self._parse_filter(self._content)
+        elif "operands" in self._content:
             self.is_filter = False
-            self._parse_operator(content)
+            self._parse_operator(self._content)
         else:
             raise ValueError("Filter is missing required fields `path` or `operands`."
-                f" Given: {content}")
+                f" Given: {self._content}")
 
     def _parse_filter(self, content: dict) -> None:
         """
@@ -410,7 +438,7 @@ class Where(Filter):
             raise ValueError("Filter is missing required filed `operator`. "
                 f"Given: {content}")
 
-        self.path = json.dumps(content["path"])
+        self.path = dumps(content["path"])
         self.operator = content["operator"]
         self.value_type = _find_value_type(content)
         self.value = content[self.value_type]
@@ -445,11 +473,9 @@ class Where(Filter):
             if self.value_type in ["valueInt", "valueNumber"]:
                 gql += f'{self.value}}}'
             elif self.value_type == "valueBoolean":
-                bool_value = str(self.value).lower()
-                gql += f'{bool_value}}}'
+                gql += f'{_bool_to_str(self.value)}}}'
             elif self.value_type == "valueGeoRange":
-                geo_value = json.dumps(self.value)
-                gql += f'{geo_value}}}'
+                gql += f'{dumps(self.value)}}}'
             else:
                 gql += f'"{self.value}"}}'
             return gql + ' '
@@ -460,6 +486,26 @@ class Where(Filter):
             operands_str.append(str(operand)[7:-1])
         operands = ", ".join(operands_str)
         return f'where: {{operator: {self.operator} operands: [{operands}]}} '
+
+
+def _bool_to_str(value: bool) -> str:
+    """
+    Convert a bool value to string (lowercased) to match `json` formatting.
+
+    Parameters
+    ----------
+    value : bool
+        The value to be converted
+
+    Returns
+    -------
+    str
+        The string interpretation of the value in `json` format.
+    """
+
+    if value is True:
+        return 'true'
+    return 'false'
 
 
 def _check_direction_clause(direction: dict) -> dict:
@@ -481,8 +527,11 @@ def _check_direction_clause(direction: dict) -> dict:
         If no "force" key in the 'direction'.
     """
 
-    if not isinstance(direction, dict):
-        raise TypeError(f"`move` clause should be dict but was {type(direction)}")
+    _check_type(
+        var_name='moveXXX',
+        value=direction,
+        dtype=dict
+    )
 
     if ('concepts' not in direction) and ('objects' not in direction):
         raise ValueError("The 'move' clause should contain `concepts` OR/AND `objects`!")
@@ -493,8 +542,11 @@ def _check_direction_clause(direction: dict) -> dict:
         _check_objects(direction)
     if not "force" in direction:
         raise ValueError("'move' clause needs to state a 'force'")
-    if not isinstance(direction["force"], float):
-        raise TypeError(f"'force' should be float but was {type(direction['force'])}")
+    _check_type(
+        var_name='force',
+        value=direction["force"],
+        dtype=float
+    )
 
 
 def _check_concept(content: dict) -> None:
@@ -517,8 +569,11 @@ def _check_concept(content: dict) -> None:
     if "concepts" not in content:
         raise ValueError("No concepts in content")
 
-    if not isinstance(content["concepts"], (list, str)):
-        raise TypeError(f"Concepts must be of type list or str, not {type(content['concepts'])}")
+    _check_type(
+        var_name='concepts',
+        value=content["concepts"],
+        dtype=(list, str),
+    )
     if isinstance(content["concepts"], str):
         content["concepts"] = [content["concepts"]]
 
@@ -540,8 +595,11 @@ def _check_objects(content: dict) -> None:
         If the value of the  "concepts" is of wrong type.
     """
 
-    if not isinstance(content["objects"], (list, dict)):
-        raise TypeError(f"'objects' must be of type list or dict, not {type(content['objects'])}")
+    _check_type(
+        var_name='objects',
+        value=content["objects"],
+        dtype=(list, dict)
+    )
     if isinstance(content["objects"], dict):
         content["objects"] = [content["objects"]]
 
@@ -551,19 +609,29 @@ def _check_objects(content: dict) -> None:
                 '`beacon`!')
 
 
-def _check_certainty_type(certainty: float) -> None:
+def _check_type(var_name: str, value: Any, dtype: type) -> None:
     """
     Check 'certainty
 
     Parameters
     ----------
-    certainty : float
-        Certainty value to check if it is of type float.
+    var_name : str
+        The variable name for which to check the type (used for error message)!
+    value : Any
+        The value for which to check the type.
+    dtype : type
+        The expected data type of the `value`.
+
+    Raises
+    ------
+    TypeError
+        If the `value` type does not match the expected `dtype`.
     """
 
-    if not isinstance(certainty, float):
-        raise TypeError("certainty is expected to be a float but was "
-            f"{type(certainty)}")
+    if not isinstance(value, dtype):
+        raise TypeError(
+            f"'{var_name}' key-value is expected to be of type {dtype} but is {type(value)}!"
+        )
 
 
 def _find_value_type(content: dict) -> str:
