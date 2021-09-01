@@ -23,27 +23,31 @@ class TestNearText(unittest.TestCase):
             The "moveTo" or the "moveAwayFrom" clause name.
         """
 
-        type_error_message = f"`move` clause should be dict but was {str}"
-        concepts_objects_error_message = "The 'move' clause should contain `concepts` OR/AND `objects`!"
-        objects_type_error_message = lambda dt: f"'objects' must be of type list or dict, not {dt}"
-        object_value_error_message = 'Each object from the `move` clause should have ONLY `id` OR `beacon`!'
-        concept_value_error_message = f"Concepts must be of type list or str, not {set}"
-        force_error_message = "'move' clause needs to state a 'force'"
-        force_type_error_message = f"'force' should be float but was {bool}"
+        type_error_msg = lambda dt: f"'moveXXX' key-value is expected to be of type <class 'dict'> but is {dt}!"
+        concepts_objects_error_msg = "The 'move' clause should contain `concepts` OR/AND `objects`!"
+        objects_type_error_msg = lambda dt: f"'objects' key-value is expected to be of type (<class 'list'>, <class 'dict'>) but is {dt}!"
+        object_value_error_msg = 'Each object from the `move` clause should have ONLY `id` OR `beacon`!'
+        concept_value_error_msg = lambda dt: (
+            f"'concepts' key-value is expected to be of type (<class 'list'>, <class 'str'>) but is {dt}!"
+        )
+        force_error_msg = "'move' clause needs to state a 'force'"
+        force_type_error_msg = lambda dt: (
+            f"'force' key-value is expected to be of type <class 'float'> but is {dt}!"
+        )
 
         with self.assertRaises(TypeError) as error:
             NearText({
                 "concepts": "Some_concept",
                 move: "0.5"
             })
-        check_error_message(self, error, type_error_message)
+        check_error_message(self, error, type_error_msg(str))
 
         with self.assertRaises(ValueError) as error:
             NearText({
                 "concepts": "Some_concept",
                 move: {}
             })
-        check_error_message(self, error, concepts_objects_error_message)
+        check_error_message(self, error, concepts_objects_error_msg)
 
         with self.assertRaises(TypeError) as error:
             NearText({
@@ -52,7 +56,7 @@ class TestNearText(unittest.TestCase):
                     "concepts" : set("something")
                 }
             })
-        check_error_message(self, error, concept_value_error_message)
+        check_error_message(self, error, concept_value_error_msg(set))
 
         with self.assertRaises(ValueError) as error:
             NearText({
@@ -61,7 +65,7 @@ class TestNearText(unittest.TestCase):
                     "concepts" : "something",
                 }
             })
-        check_error_message(self, error, force_error_message)
+        check_error_message(self, error, force_error_msg)
 
         with self.assertRaises(TypeError) as error:
             NearText({
@@ -70,7 +74,7 @@ class TestNearText(unittest.TestCase):
                     "objects" : 1234,
                 }
             })
-        check_error_message(self, error, objects_type_error_message(int))
+        check_error_message(self, error, objects_type_error_msg(int))
 
         with self.assertRaises(ValueError) as error:
             NearText({
@@ -79,7 +83,7 @@ class TestNearText(unittest.TestCase):
                     "objects" : {},
                 }
             })
-        check_error_message(self, error, object_value_error_message)
+        check_error_message(self, error, object_value_error_msg)
 
         with self.assertRaises(ValueError) as error:
             NearText({
@@ -88,7 +92,7 @@ class TestNearText(unittest.TestCase):
                     "objects" : {'id': 1, 'beacon': 2},
                 }
             })
-        check_error_message(self, error, object_value_error_message)
+        check_error_message(self, error, object_value_error_msg)
 
         with self.assertRaises(ValueError) as error:
             NearText({
@@ -97,7 +101,7 @@ class TestNearText(unittest.TestCase):
                     "objects" : {'test_id': 1},
                 }
             })
-        check_error_message(self, error, object_value_error_message)
+        check_error_message(self, error, object_value_error_msg)
 
         with self.assertRaises(TypeError) as error:
             NearText({
@@ -108,7 +112,7 @@ class TestNearText(unittest.TestCase):
                     "force": True
                 }
             })
-        check_error_message(self, error, force_type_error_message)
+        check_error_message(self, error, force_type_error_msg(bool))
 
     def test___init__(self):
         """
@@ -116,23 +120,30 @@ class TestNearText(unittest.TestCase):
         """
 
         # invalid calls
-        content_error_message = f"NearText filter is expected to be type dict but was {list}"
-        concept_error_message = "No concepts in content"
-        concept_value_error_message = f"Concepts must be of type list or str, not {set}"
-        certainty_error_message = ("certainty is expected to be a float but was "
-                    f"{str}")
+        content_error_msg = f"NearText filter is expected to be type dict but is {list}"
+        concept_error_msg = "No concepts in content"
+        concept_value_error_msg = lambda actual_type:(
+            f"'concepts' key-value is expected to be of type (<class 'list'>, <class 'str'>) but is {actual_type}!"
+        ) 
+        certainty_error_msg = lambda dtype: (
+            f"'certainty' key-value is expected to be of type <class 'float'> but is {dtype}!"
+        )
+        autocorrect_error_msg = lambda dtype: (
+            f"'autocorrect' key-value is expected to be of type <class 'bool'> but is {dtype}!"
+        )
+
         ## test "concepts"
         with self.assertRaises(TypeError) as error:
             NearText(["concepts", "Some_concept"])
-        check_error_message(self, error, content_error_message)
+        check_error_message(self, error, content_error_msg)
 
         with self.assertRaises(ValueError) as error:
             NearText({"INVALID": "Some_concept"})
-        check_error_message(self, error, concept_error_message)
+        check_error_message(self, error, concept_error_msg)
 
         with self.assertRaises(TypeError) as error:
             NearText({"concepts" : set("Some_concept")})
-        check_error_message(self, error, concept_value_error_message)
+        check_error_message(self, error, concept_value_error_msg(set))
 
         ## test "certainty"
         with self.assertRaises(TypeError) as error:
@@ -140,7 +151,15 @@ class TestNearText(unittest.TestCase):
                 "concepts": "Some_concept",
                 "certainty": "0.5"
             })
-        check_error_message(self, error, certainty_error_message)
+        check_error_message(self, error, certainty_error_msg(str))
+
+        ## test "certainty"
+        with self.assertRaises(TypeError) as error:
+            NearText({
+                "concepts": "Some_concept",
+                "autocorrect": [True]
+            })
+        check_error_message(self, error, autocorrect_error_msg(list))
 
         ## test "moveTo"
         self.move_x_test_case("moveTo")
@@ -167,6 +186,13 @@ class TestNearText(unittest.TestCase):
         NearText(
             {
                 "concepts": "Some_concept",
+                "certainty": 0.75,
+                "autocorrect": True
+            }
+        )
+        NearText(
+            {
+                "concepts": "Some_concept",
                 "moveTo": {
                     "concepts": "moveToConcepts",
                     "force": 0.75
@@ -193,7 +219,8 @@ class TestNearText(unittest.TestCase):
                 "moveTo": {
                     "concepts": "moveToConcepts",
                     "force": 0.75
-                }
+                },
+                "autocorrect": False,
             }
         )
 
@@ -209,7 +236,8 @@ class TestNearText(unittest.TestCase):
                     "concepts": "moveToConcepts",
                     "objects": [{'id': "test_id"}, {'beacon': 'Test_beacon'}],
                     "force": 0.75
-                }
+                },
+                "autocorrect": True,
             }
         )
 
@@ -241,6 +269,20 @@ class TestNearText(unittest.TestCase):
         near_text = NearText(
             {
                 "concepts": "Some_concept",
+                "autocorrect": True
+            }
+        )
+        self.assertEqual(str(near_text), 'nearText: {concepts: ["Some_concept"] autocorrect: true} ')
+        near_text = NearText(
+            {
+                "concepts": "Some_concept",
+                "autocorrect": False
+            }
+        )
+        self.assertEqual(str(near_text), 'nearText: {concepts: ["Some_concept"] autocorrect: false} ')
+        near_text = NearText(
+            {
+                "concepts": "Some_concept",
                 "moveTo": {
                     "concepts": "moveToConcepts",
                     "force": 0.75
@@ -269,10 +311,11 @@ class TestNearText(unittest.TestCase):
                 "moveTo": {
                     "concepts": "moveToConcepts",
                     "force": 0.25
-                }
+                },
+                "autocorrect": True
             }
         )
-        self.assertEqual(str(near_text), 'nearText: {concepts: ["Some_concept"] certainty: 0.95 moveTo: {concepts: ["moveToConcepts"] force: 0.25} moveAwayFrom: {concepts: ["moveAwayFromConcepts"] force: 0.75}} ')
+        self.assertEqual(str(near_text), 'nearText: {concepts: ["Some_concept"] certainty: 0.95 moveTo: {concepts: ["moveToConcepts"] force: 0.25} moveAwayFrom: {concepts: ["moveAwayFromConcepts"] force: 0.75} autocorrect: true} ')
 
         # test it with references of objects
         concepts = ["con1", "con2"]
@@ -300,27 +343,28 @@ class TestNearVector(unittest.TestCase):
         """
 
         # test exceptions
-        content_error_message = ("NearVector filter is expected to "
-                f"be type dict but was {list}")
-        vector_error_message = "No 'vector' key in `content` argument."
-        vector_value_error_message = ("The type of the 'vector' argument is not supported!\n"
+        content_error_msg = ("NearVector filter is expected to "
+                f"be type dict but is {list}")
+        vector_error_msg = '"No \'vector\' key in `content` argument."'
+        vector_value_error_msg = ("The type of the 'vector' argument is not supported!\n"
                 "Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` "
                 "and `tf.Tensor`")
-        certainty_error_message = ("certainty is expected to be a float but was "
-                    f"{str}")
+        certainty_error_msg = lambda dtype: (
+            f"'certainty' key-value is expected to be of type <class 'float'> but is {dtype}!"
+        )
 
         ## test "concepts"
         with self.assertRaises(TypeError) as error:
             NearVector(["concepts", "Some_concept"])
-        check_error_message(self, error, content_error_message)
+        check_error_message(self, error, content_error_msg)
 
-        with self.assertRaises(ValueError) as error:
+        with self.assertRaises(KeyError) as error:
             NearVector({"INVALID": "Some_concept"})
-        check_error_message(self, error, vector_error_message)
+        check_error_message(self, error, vector_error_msg)
 
         with self.assertRaises(TypeError) as error:
             NearVector({"vector" : set("Some_concept")})
-        check_error_message(self, error, vector_value_error_message)
+        check_error_message(self, error, vector_value_error_msg)
 
         ## test "certainty"
         with self.assertRaises(TypeError) as error:
@@ -328,7 +372,7 @@ class TestNearVector(unittest.TestCase):
                 "vector": [1., 2., 3., 4.],
                 "certainty": "0.5"
             })
-        check_error_message(self, error, certainty_error_message)
+        check_error_message(self, error, certainty_error_msg(str))
 
         # test valid calls
         NearVector(
@@ -373,40 +417,44 @@ class TestNearObject(unittest.TestCase):
         # invalid calls
 
         ## error messages 
-        content_error_message = lambda dt: f"NearObject filter is expected to be type dict but was {dt}"
-        beacon_id_error_message = "The 'content' argument should contain EITHER `id` OR `beacon`!"
-        beacon_id_type_error_message = lambda dt: ("The 'id'/'beacon' should be of type string! Given type" + str(dt))
-        certainty_error_message = lambda dt: f"certainty is expected to be a float but was {dt}"
+        content_error_msg = lambda dt: f"NearObject filter is expected to be type dict but is {dt}"
+        beacon_id_error_msg = "The 'content' argument should contain EITHER `id` OR `beacon`!"
+        beacon_id_type_error_msg = lambda what, dt: (
+            f"'{what}' key-value is expected to be of type <class 'str'> but is {dt}!"    
+        )
+        certainty_error_msg = lambda dtype: (
+            f"'certainty' key-value is expected to be of type <class 'float'> but is {dtype}!"
+        )
 
         with self.assertRaises(TypeError) as error:
             NearObject(123)
-        check_error_message(self, error, content_error_message(int))
+        check_error_message(self, error, content_error_msg(int))
 
         with self.assertRaises(ValueError) as error:
             NearObject({
                 'id': 123,
                 'beacon': 456
             })
-        check_error_message(self, error, beacon_id_error_message)
+        check_error_message(self, error, beacon_id_error_msg)
 
         with self.assertRaises(TypeError) as error:
             NearObject({
                 'id': 123,
             })
-        check_error_message(self, error, beacon_id_type_error_message(int))
+        check_error_message(self, error, beacon_id_type_error_msg('id', int))
 
         with self.assertRaises(TypeError) as error:
             NearObject({
                 'beacon': {123},
             })
-        check_error_message(self, error, beacon_id_type_error_message(set))
+        check_error_message(self, error, beacon_id_type_error_msg('beacon', set))
 
         with self.assertRaises(TypeError) as error:
             NearObject({
                 'beacon': 'test_beacon',
                 'certainty': False
             })
-        check_error_message(self, error, certainty_error_message(bool))
+        check_error_message(self, error, certainty_error_msg(bool))
 
         # valid calls
 
@@ -457,40 +505,42 @@ class TestNearImage(unittest.TestCase):
         # invalid calls
 
         ## error messages 
-        content_error_message = lambda dt: f"NearImage filter is expected to be type dict but was {dt}"
-        image_key_error_message = '"content" is missing the mandatory key "image"!'
-        image_value_error_message = lambda dt: f'the "image" value should be of type str, given {dt}'
-        certainty_error_message = lambda dt: f"certainty is expected to be a float but was {dt}"
+        content_error_msg = lambda dt: f"NearImage filter is expected to be type dict but is {dt}"
+        image_key_error_msg = '"content" is missing the mandatory key "image"!'
+        image_value_error_msg = lambda dt: f"'image' key-value is expected to be of type <class 'str'> but is {dt}!"
+        certainty_error_msg = lambda dtype: (
+            f"'certainty' key-value is expected to be of type <class 'float'> but is {dtype}!"
+        )
 
         with self.assertRaises(TypeError) as error:
             NearImage(123)
-        check_error_message(self, error, content_error_message(int))
+        check_error_message(self, error, content_error_msg(int))
 
         with self.assertRaises(ValueError) as error:
             NearImage({
                 'id': 'image_path.png',
                 'certainty': 456
             })
-        check_error_message(self, error, image_key_error_message)
+        check_error_message(self, error, image_key_error_msg)
 
         with self.assertRaises(TypeError) as error:
             NearImage({
                 'image': True
             })
-        check_error_message(self, error, image_value_error_message(bool))
+        check_error_message(self, error, image_value_error_msg(bool))
 
         with self.assertRaises(TypeError) as error:
             NearImage({
                 'image': b'True'
             })
-        check_error_message(self, error, image_value_error_message(bytes))
+        check_error_message(self, error, image_value_error_msg(bytes))
 
         with self.assertRaises(TypeError) as error:
             NearImage({
                 'image': 'the_encoded_image',
                 'certainty': False
             })
-        check_error_message(self, error, certainty_error_message(bool))
+        check_error_message(self, error, certainty_error_msg(bool))
 
         # valid calls
 
@@ -528,22 +578,22 @@ class TestWhere(unittest.TestCase):
         """
 
         # test exceptions
-        content_error_message = lambda dt: f"Where filter is expected to be type dict but was {dt}"
-        content_key_error_message = "Filter is missing required fields `path` or `operands`. Given: "
+        content_error_msg = lambda dt: f"Where filter is expected to be type dict but is {dt}"
+        content_key_error_msg = "Filter is missing required fields `path` or `operands`. Given: "
         path_key_error = "Filter is missing required filed `operator`. Given: "
-        dtype_error_message = "Filter is missing required fields: "
+        dtype_error_msg = "Filter is missing required fields: "
 
         with self.assertRaises(TypeError) as error:
             Where(None)
-        check_error_message(self, error, content_error_message(type(None)))
+        check_error_message(self, error, content_error_msg(type(None)))
 
         with self.assertRaises(TypeError) as error:
             Where("filter")
-        check_error_message(self, error, content_error_message(str))
+        check_error_message(self, error, content_error_msg(str))
 
         with self.assertRaises(ValueError) as error:
             Where({})
-        check_startswith_error_message(self, error, content_key_error_message)
+        check_startswith_error_message(self, error, content_key_error_msg)
 
         with self.assertRaises(ValueError) as error:
             Where({"path": "some_path"})
@@ -551,7 +601,7 @@ class TestWhere(unittest.TestCase):
 
         with self.assertRaises(ValueError) as error:
             Where({"path": "some_path", "operator": "Like"})
-        check_startswith_error_message(self, error, dtype_error_message)
+        check_startswith_error_message(self, error, dtype_error_msg)
 
         with self.assertRaises(ValueError) as error:
             Where({"operands": "some_path"})
@@ -559,11 +609,11 @@ class TestWhere(unittest.TestCase):
 
         with self.assertRaises(TypeError) as error:
             Where({"operands": "some_path", "operator": "Like"})
-        check_error_message(self, error, content_error_message(str))
+        check_error_message(self, error, content_error_msg(str))
 
         with self.assertRaises(TypeError) as error:
             Where({"operands": ["some_path"], "operator": "Like"})
-        check_error_message(self, error, content_error_message(str))
+        check_error_message(self, error, content_error_msg(str))
 
         
         # test valid calls
@@ -671,34 +721,42 @@ class TestAskFilter(unittest.TestCase):
 
         # test exceptions
         ## error messages
-        content_type_message = lambda dt: f"Ask filter is expected to be type dict but was {dt}"
-        question_value_message = 'Mandatory "question" key not present in the "content"!'
-        question_type_message = lambda dt: f'"question" key value should be of the type str. Given: {dt}'
-        certainty_type_message = lambda dt: f"certainty is expected to be a float but was {dt}"
-        properties_type_message = lambda dt: f"'properties' should be of type list or str! Given type: {dt}"
+        content_type_msg = lambda dt: f"Ask filter is expected to be type dict but is {dt}"
+        question_value_msg = 'Mandatory "question" key not present in the "content"!'
+        question_type_msg = lambda dt: f"'question' key-value is expected to be of type <class 'str'> but is {dt}!"
+        certainty_type_msg = lambda dt: f"'certainty' key-value is expected to be of type <class 'float'> but is {dt}!"
+        properties_type_msg = lambda dt: f"'properties' key-value is expected to be of type (<class 'list'>, <class 'str'>) but is {dt}!"
+        autocorrect_type_msg = lambda dt: f"'autocorrect' key-value is expected to be of type <class 'bool'> but is {dt}!"
 
         with self.assertRaises(TypeError) as error:
             Ask(None)
-        check_error_message(self, error, content_type_message(type(None)))
+        check_error_message(self, error, content_type_msg(type(None)))
 
         with self.assertRaises(ValueError) as error:
             Ask({
                 'certainty': 0.1
             })
-        check_error_message(self, error, question_value_message)
+        check_error_message(self, error, question_value_msg)
 
         with self.assertRaises(TypeError) as error:
             Ask({
                 'question': ["Who is the president of USA?"]
             })
-        check_error_message(self, error, question_type_message(list))
+        check_error_message(self, error, question_type_msg(list))
 
         with self.assertRaises(TypeError) as error:
             Ask({
                 'question': "Who is the president of USA?",
                 'certainty': '1.0'
             })
-        check_error_message(self, error, certainty_type_message(str))
+        check_error_message(self, error, certainty_type_msg(str))
+
+        with self.assertRaises(TypeError) as error:
+            Ask({
+                'question': "Who is the president of USA?",
+                'autocorrect': {'True'}
+            })
+        check_error_message(self, error, autocorrect_type_msg(set))
 
         with self.assertRaises(TypeError) as error:
             Ask({
@@ -706,7 +764,7 @@ class TestAskFilter(unittest.TestCase):
                 'certainty': 0.8,
                 'properties': ('prop1', "prop2")
             })
-        check_error_message(self, error, properties_type_message(tuple))
+        check_error_message(self, error, properties_type_msg(tuple))
 
         # valid calls
 
@@ -757,5 +815,33 @@ class TestAskFilter(unittest.TestCase):
                 f"ask: {{question: \"{content['question']}\""
                 f' certainty: {content["certainty"]}'
                 f' properties: [\"prop1\", \"prop2\"]}} '
+            )
+        )
+
+        content = {
+            'question': "Who is the president of USA?",
+            'certainty': 0.8,
+            'properties': ['prop1', "prop2"],
+            'autocorrect': True
+        }
+        ask = Ask(content=content)
+        self.assertEqual(
+            str(ask),
+            (
+                f"ask: {{question: \"{content['question']}\""
+                f' certainty: {content["certainty"]}'
+                ' properties: [\"prop1\", \"prop2\"] autocorrect: true} '
+            )
+        )
+
+        content = {
+            'question': "Who is the president of USA?",
+            'autocorrect': False
+        }
+        ask = Ask(content=content)
+        self.assertEqual(
+            str(ask),
+            (
+                f"ask: {{question: \"{content['question']}\" autocorrect: false}} "
             )
         )

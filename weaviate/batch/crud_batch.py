@@ -21,6 +21,8 @@ class Batch:
     default it is set to 10). The initial value is None/batch_size and is updated with every batch
     create methods. The values can be accessed with the getters: `recommended_num_objects` and
     `recommended_num_references`.
+    NOTE: If the UUID of one of the objects already exists then the existing object will be
+    replaced by the new object.
 
     This class can be used in 3 ways:
 
@@ -251,6 +253,8 @@ class Batch:
         ) -> None:
         """
         Add one object to this batch.
+        NOTE: If the UUID of one of the objects already exists then the existing object will be
+        replaced by the new object.
 
         Parameters
         ----------
@@ -388,6 +392,8 @@ class Batch:
         Creates multiple Objects at once in Weaviate. This does not guarantee that each batch item
         is added/created to the Weaviate server. This can lead to a successfull batch creation but
         unsuccessfull per batch item creation. See the example bellow.
+        NOTE: If the UUID of one of the objects already exists then the existing object will be
+        replaced by the new object.
 
         Examples
         --------
@@ -967,7 +973,7 @@ def _check_non_negative(value: Real, arg_name: str, data_type: type) -> None:
         raise ValueError(f"'{arg_name}' must be positive, i.e. greater or equal that zero (>=0).")
 
 
-def _check_bool(value: bool, arg_name):
+def _check_bool(value: bool, arg_name: str) -> None:
     """
     Check if bool.
 

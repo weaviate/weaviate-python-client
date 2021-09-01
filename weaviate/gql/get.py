@@ -1,7 +1,8 @@
 """
 GraphQL `Get` command.
 """
-from typing import List, Union, Optional
+from json import dumps
+from typing import List, Union, Optional, Dict, Tuple
 from weaviate.gql.filter import Where, NearText, NearVector, GraphQL, NearObject, Filter
 from weaviate.gql.filter import Ask, NearImage
 from weaviate.connect import Connection
@@ -25,7 +26,7 @@ class GetBuilder(GraphQL):
         ----------
         class_name : str
             Class name of the objects to interact with.
-        properties : list of str or str
+        properties : str or list of str
             Properties of the objects to interact with.
         connection : weaviate.connect.Connection
             Connection object to an active and running Weaviate instance.
@@ -45,9 +46,17 @@ class GetBuilder(GraphQL):
                 f"list of str but was {type(properties)}")
         if isinstance(properties, str):
             properties = [properties]
+        for prop in properties:
+            if not isinstance(prop, str):
+                raise TypeError(
+                    "All the `properties` must be of type `str`!"
+                )
 
-        self._class_name = class_name
-        self._properties = properties
+        self._class_name: str = class_name
+        self._properties: List[str] = properties
+        self._additional: dict = {'__one_level': set()}
+        # '__one_level' refers to the additional properties that are just a single word, not a dict
+        # thus '__one_level', only one level of complexity
         self._where: Optional[Where] = None  # To store the where filter if it is added
         self._limit: Optional[str] = None  # To store the limit filter if it is added
         self._near_ask: Optional[Filter] = None # To store the `near`/`ask` clause if it is added
@@ -121,7 +130,7 @@ class GetBuilder(GraphQL):
         Returns
         -------
         weaviate.gql.get.GetBuilder
-            Updated GetBuilder.
+            The updated GetBuilder.
         """
 
         self._where = Where(content)
@@ -132,6 +141,7 @@ class GetBuilder(GraphQL):
         """
         Set `nearText` filter. This filter can be used with text modules (text2vec).
         E.g.: text2vec-contextionary, text2vec-transformers.
+        NOTE: The 'autocorrect' field is enabled only with the `text-spellcheck` Weaviate module.
 
         Parameters
         ----------
@@ -152,7 +162,8 @@ class GetBuilder(GraphQL):
         ...     'moveTo': { # Optional
         ...         'concepts': <list of str or str>,
         ...         'force': <float>
-        ...     }
+        ...     },
+        ...     'autocorrect': <bool>, # Optional
         ... }
 
         Full content:
@@ -167,7 +178,8 @@ class GetBuilder(GraphQL):
         ...     'moveTo': {
         ...         'concepts': ["haute couture"],
         ...         'force': 0.85
-        ...     }
+        ...     },
+        ...     'autocorrect': True
         ... }
 
         Partial content:
@@ -190,7 +202,7 @@ class GetBuilder(GraphQL):
         Returns
         -------
         weaviate.gql.get.GetBuilder
-            Updated GetBuilder.
+            The updated GetBuilder.
 
         Raises
         ------
@@ -254,7 +266,7 @@ class GetBuilder(GraphQL):
         Returns
         -------
         weaviate.gql.get.GetBuilder
-            Updated GetBuilder.
+            The updated GetBuilder.
 
         Raises
         ------
@@ -295,7 +307,7 @@ class GetBuilder(GraphQL):
         Returns
         -------
         weaviate.gql.get.GetBuilder
-            Updated GetBuilder.
+            The updated GetBuilder.
 
         Raises
         ------
@@ -392,7 +404,7 @@ class GetBuilder(GraphQL):
         Returns
         -------
         weaviate.gql.get.GetBuilder
-            Updated GetBuilder.
+            The updated GetBuilder.
 
         Raises
         ------
@@ -421,7 +433,7 @@ class GetBuilder(GraphQL):
         Returns
         -------
         weaviate.gql.get.GetBuilder
-            Updated GetBuilder.
+            The updated GetBuilder.
 
         Raises
         ------
@@ -440,6 +452,7 @@ class GetBuilder(GraphQL):
         """
         Ask a question for which weaviate will retreive the answer from your data.
         This filter can be used only with QnA module: qna-transformers.
+        NOTE: The 'autocorrect' field is enabled only with the `text-spellcheck` Weaviate module.
 
         Parameters
         ----------
@@ -453,7 +466,8 @@ class GetBuilder(GraphQL):
         >>> content = {
         ...     'question' : <str>,
         ...     'certainty': <float>, # Optional
-        ...     'properties': <list of str or str>
+        ...     'properties': <list of str or str> # Optional
+        ...     'autocorrect': <bool>, # Optional
         ... }
 
         Full content:
@@ -462,6 +476,7 @@ class GetBuilder(GraphQL):
         ...     'question' : "What is the NLP?",
         ...     'certainty': 0.7,
         ...     'properties': ['body'] # search the answer in these properties only.
+        ...     'autocorrect': True
         ... }
 
         Minimal content:
@@ -473,7 +488,7 @@ class GetBuilder(GraphQL):
         Returns
         -------
         weaviate.gql.get.GetBuilder
-            Updated GetBuilder.
+            The updated GetBuilder.
         """
 
         if self._near_ask is not None:
@@ -481,6 +496,162 @@ class GetBuilder(GraphQL):
                 " with a 'ask' filter!")
         self._near_ask = Ask(content)
         self._contains_filter = True
+        return self
+
+    def with_additional(self,
+            properties: Union[List, str, Dict[str, Union[List[str], str]],Tuple[dict, dict]]
+        ) -> 'GetBuilder':
+        """
+        Add additional properties (i.e. properties from `_additional` clause). See Examples below.
+        If the the 'properties' is of data type `str` or `list` of `str` then the method is
+        idempotent, if it is of type `dict` or `tuple` then the exiting property is going to be
+        replaced. To set the setting of one of the additional property use the `tuple` data type
+        where `properties` look like this (clause: dict, settings: dict) where the 'settings' are
+        the properties inside the '(...)' of the clause. See Examples for more information.
+
+        Parameters
+        ----------
+        properties : str, list of str, dict[str, str], dict[str, list of str] or tuple[dict, dict]
+            The additional properties to include in the query. Can be property name as `str`,
+            a list of property names, a dictionary (clause without settings) where the value is a
+            `str` or list of `str`, or a `tuple` of 2 elements:
+                (clause: Dict[str, str or list[str]], settings: Dict[str, Any])
+            where the 'clause' is the property and all its sub-properties and the 'settings' is the
+            setting of the property, i.e. everything that is inside the `(...)` right after the
+            property name. See Examples below.
+
+        Examples
+        --------
+
+        >>> # single additional property
+        >>> client.query\
+        ...     .get('Article', ['title', 'author'])\
+        ...     .with_additional('id']) # argument as `str`
+        >>> # multiple additional property
+        >>> client.query\
+        ...     .get('Article', ['title', 'author'])\
+        ...     .with_additional(['id', 'certainty']) # argument as `List[str]`
+        >>> # additional properties as clause
+        >>> client.query\
+        ...     .get('Article', ['title', 'author'])\
+        ...     .with_additional(
+        ...         {
+        ...             'classification' : ['basedOn', 'classifiedFields', 'completed', 'id']
+        ...         }
+        ...     ) # argument as `dict[str, List[str]]`
+        >>> # or
+        >>> client.query\
+        ...     .get('Article', ['title', 'author'])\
+        ...     .with_additional(
+        ...         {
+        ...             'classification' : 'completed'
+        ...         }
+        ...     ) # argument as `dict[str, str]`
+
+        Consider the following GraphQL clause:
+        >>> {
+        ...     _additional {
+        ...         token(
+        ...             properties: ["content"], # is required
+        ...             limit: 10, # optional, int
+        ...             certainty: 0.8 # optional, float
+        ...         ) {
+        ...             certainty
+        ...             endPosition
+        ...             entity
+        ...             property
+        ...             startPosition
+        ...             word
+        ...         }
+        ...     }
+        ... }
+
+        Then the python translation of this is the following:
+        >>> clause = {
+        ...     'token': [ # if only one, can be passes as `str`
+        ...         'certainty',
+        ...         'endPosition',
+        ...         'entity',
+        ...         'property',
+        ...         'startPosition',
+        ...         'word',
+        ...     ]
+        ... }
+        >>> settings = {
+        ...     'properties': ["content"], # is required
+        ...     'limit': 10, # optional, int
+        ...     'certainty': 0.8 # optional, float
+        ... }
+        >>> client.query\
+        ...     .get('Article', ['title', 'author'])\
+        ...     .with_additional(
+        ...         (clause, settings)
+        ...     ) # argument as `Tuple[Dict[str, List[str]], Dict[str, Any]]`
+
+
+
+        Returns
+        -------
+        weaviate.gql.get.GetBuilder
+            The updated GetBuilder.
+
+        Raises
+        ------
+        TypeError
+            If one of the property is not of a correct data type.
+        """
+
+
+        if isinstance(properties, str):
+            self._additional['__one_level'].add(properties)
+            return self
+
+        if isinstance(properties, list):
+            for prop in properties:
+                if not isinstance(prop, str):
+                    raise TypeError(
+                        "If type of 'properties' is `list` then all items must be of type `str`!"
+                    )
+                self._additional['__one_level'].add(prop)
+            return self
+
+        if isinstance(properties, tuple):
+            self._tuple_to_dict(properties)
+            return self
+
+        if not isinstance(properties, dict):
+            raise TypeError(
+                "The 'properties' argument must be either of type `str`, `list`, `dict` or "
+                f"`tuple`! Given: {type(properties)}"
+            )
+
+        # only `dict` type here
+        for key, values in properties.items():
+            if not isinstance(key, str):
+                raise TypeError(
+                    "If type of 'properties' is `dict` then all keys must be of type `str`!"
+                )
+            self._additional[key] = set()
+            if isinstance(values, str):
+                self._additional[key].add(values)
+                continue
+            if not isinstance(values, list):
+                raise TypeError(
+                    "If type of 'properties' is `dict` then all the values must be either of type "
+                    f"`str` or `list` of `str`! Given: {type(values)}!"
+                )
+            if len(values) == 0:
+                raise ValueError(
+                    "If type of 'properties' is `dict` and a value is of type `list` then at least"
+                    " one element should be present!"
+                )
+            for value in values:
+                if not isinstance(value, str):
+                    raise TypeError(
+                        "If type of 'properties' is `dict` and a value is of type `list` then all "
+                        "items must be of type `str`!"
+                    )
+                self._additional[key].add(value)
         return self
 
     def build(self) -> str:
@@ -493,16 +664,134 @@ class GetBuilder(GraphQL):
             The GraphQL query as a string.
         """
 
-        query = f'{{Get{{{self._class_name}'
+        query = '{Get{' + self._class_name
         if self._contains_filter:
             query += '('
             if self._where is not None:
-                query = query + str(self._where)
+                query += str(self._where)
             if self._limit is not None:
-                query = query + self._limit
+                query += self._limit
             if self._near_ask is not None:
-                query = query + str(self._near_ask)
+                query += str(self._near_ask)
             query += ')'
-        query = query + f'{{{" ".join(self._properties)}}}}}}}'
 
-        return query
+        properties = " ".join(self._properties) + self._additional_to_str()
+        if len(properties) != 0:
+            query += '{' + properties + '}'
+        return query + '}}'
+
+    def _additional_to_str(self) -> str:
+        """
+        Convert `self._additional` attribute to a `str`.
+
+        Returns
+        -------
+        str
+            The converted self._additional.
+        """
+
+        str_to_return = ' _additional {'
+
+        has_values = False
+        for one_level in sorted(self._additional['__one_level']):
+            has_values = True
+            str_to_return += one_level + ' '
+
+        for key, values in sorted(self._additional.items(), key=lambda key_value: key_value[0]):
+            if key == '__one_level':
+                continue
+            has_values = True
+            str_to_return += key + ' {'
+            for value in sorted(values):
+                str_to_return += value + ' '
+            str_to_return += '} '
+
+        if has_values is False:
+            return ''
+        return str_to_return + '}'
+
+    def _tuple_to_dict(self, tuple_value: tuple) -> None:
+        """
+        Convert the tuple data type argument to a dictionary.
+
+        Parameters
+        ----------
+        tuple_value : tuple
+            The tuple value as (clause: <dict>, settings: <dict>).
+
+        Raises
+        ------
+        ValueError
+            If 'tuple_value' does not have exactly 2 elements.
+        TypeError
+            If the configuration of the 'tuple_value' is not correct.
+        """
+
+        if len(tuple_value) != 2:
+            raise ValueError(
+                "If type of 'properties' is `tuple` then it should have length 2: "
+                "(clause: <dict>, settings: <dict>)"
+            )
+
+        clause, settings = tuple_value
+        if not isinstance(clause, dict) or not isinstance(settings, dict):
+            raise TypeError(
+                "If type of 'properties' is `tuple` then it should have this data type: "
+                "(<dict>, <dict>)"
+            )
+        if len(clause) != 1:
+            raise ValueError(
+                "If type of 'properties' is `tuple` then the 'clause' (first element) should "
+                f"have only one key. Given: {len(clause)}"
+            )
+        if len(settings) == 0:
+            raise ValueError(
+                "If type of 'properties' is `tuple` then the 'settings' (second element) should "
+                f"have at least one key. Given: {len(settings)}"
+            )
+
+        clause_key, values = list(clause.items())[0]
+
+        if not isinstance(clause_key, str):
+            raise TypeError(
+                "If type of 'properties' is `tuple` then first element's key should be of type "
+                "`str`!"
+            )
+
+        clause_with_settings = clause_key + '('
+        try:
+            for key, value in sorted(settings.items(), key=lambda key_value: key_value[0]):
+                if not isinstance(key, str):
+                    raise TypeError(
+                        "If type of 'properties' is `tuple` then the second elements (<dict>) "
+                        "should have all the keys of type `str`!"
+                    )
+                clause_with_settings += key + ': ' + dumps(value) + ' '
+        except TypeError:
+            raise TypeError(
+                "If type of 'properties' is `tuple` then the second elements (<dict>) "
+                "should have all the keys of type `str`!"
+            ) from None
+        clause_with_settings += ')'
+
+        self._additional[clause_with_settings] = set()
+        if isinstance(values, str):
+            self._additional[clause_with_settings].add(values)
+            return
+        if not isinstance(values, list):
+            raise TypeError(
+                "If type of 'properties' is `tuple` then first element's dict values must be "
+                f"either of type `str` or `list` of `str`! Given: {type(values)}!"
+            )
+        if len(values) == 0:
+            raise ValueError(
+                "If type of 'properties' is `tuple` and first element's dict value is of type "
+                "`list` then at least one element should be present!"
+            )
+        for value in values:
+            if not isinstance(value, str):
+                raise TypeError(
+                    "If type of 'properties' is `tuple` and first element's dict value is of type "
+                    " `list` then all items must be of type `str`!"
+                )
+            self._additional[clause_with_settings].add(value)

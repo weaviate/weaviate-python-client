@@ -1,6 +1,100 @@
 Changelog
 =========
 
+Version 3.2.0
+-------------
+
+Fixes/updates in :class:`~weaviate.wcs.WCS` class:
+
+- Fixed progress bar for :meth:`~weaviate.wcs.WCS.create`, it is being updated in Notebooks too, instead of printing each iteration on new line.
+- Method :meth:`~weaviate.wcs.WCS.create` now prints the creation status above the bar.
+
+Updates in :mod:`~weaviate.gql` sub-package:
+
+- | New key-value ``autocorrect: <bool>`` introduced for the :class:`~weaviate.gql.filter.NearText` and :class:`~weaviate.gql.filter.Ask` filters.
+    The ``autocorrect`` is enabled only if Weaviate server has the ``text-spellcheck`` module enabled. If ``autocorrect`` is ``True`` the query is
+    corrected before the query is made. Usage example:
+
+.. code-block:: python
+
+    # with 'nearText' filter
+    client.query\
+        .get('Article', ['title', 'author'])\
+        .near_text(
+            {
+                'concepts': ['Ecconomy'],
+                'autocorrect': True
+            }
+        )
+        # the concept should be corrected to 'Economy'
+    # with 'ask' filter
+    client.query\
+        .get('Article', ['title', 'author'])\
+        .with_ask(
+            {
+                'question': 'When was the last financial crysis?',
+                'autocorrect': True
+            }
+        )
+        # the question should be corrected to 'When was the last financial crisis?'
+
+- | New method :meth:`~weaviate.gql.get.GetConfig.with_additional` is added to GET the `_additional` properties. Usage example:
+
+.. code-block:: python
+
+    # single additional property
+    client.query\
+        .get('Article', ['title', 'author'])\
+        .with_additional('id']) # argument as `str`
+    # multiple additional property
+    client.query\
+        .get('Article', ['title', 'author'])\
+        .with_additional(['id', 'certainty']) # argument as `List[str]`
+    # additional properties as clause
+    client.query\
+        .get('Article', ['title', 'author'])\
+        .with_additional(
+            {
+                'classification' : [
+                    'basedOn',
+                    'classifiedFields',
+                    'completed',
+                    'id',
+                    'scope'
+                ]
+            }
+        ) # argument as `Dict[str, List[str]]`
+    # or
+    client.query\
+        .get('Article', ['title', 'author'])\
+        .with_additional(
+            {
+                'classification' : 'completed'
+            }
+        ) # argument as `dict[str, str]`
+    # additional properties as clause and clause settings
+    clause = {
+        'token': [
+            'certainty',
+            'endPosition',
+            'entity',
+            'property',
+            'startPosition',
+            'word',
+        ]
+    }
+    settings = {
+        'properties': ["content"], # is required
+        'limit': 10, # optional, int
+        'certainty': 0.8 # optional, float
+    }
+    client.query\
+        .get('Article', ['title', 'author'])\
+        .with_additional(
+            (clause, settings)
+        ) # argument as `Tuple[Dict[str, List[str]], Dict[str, Any]]`
+
+
 Version 3.1.1
 -------------
 
@@ -48,3 +142,5 @@ Version 3.0.0
     used anymore. This is due to the new :class:`~weaviate.batch.Batch` class implementation.
 - | New :class:`~weaviate.schema.Schema` field is ADDED, `"shardingConfig"`. It can bu used with Weaviate version >= 1.6.0.
 - | New method :meth:`~weaviate.schema.Schema.update_config` used to update mutable schema configuration (like `efConstruction`, ...).
+
+
