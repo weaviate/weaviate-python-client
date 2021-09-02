@@ -6,7 +6,7 @@ tmp
 build/
 docs/_build
 *.pyc
-docker-compose.yml
+./docker-compose.yml
 .DS_Store
 .ipynb_checkpoints
 *.ipynb

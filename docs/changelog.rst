@@ -42,15 +42,63 @@ Updates in :mod:`~weaviate.gql` sub-package:
 
 .. code-block:: python
 
-    # single additional property
+    # single additional property with this GraphQL query
+    '''
+    {
+        Get {
+            Article {
+                title
+                author
+                _additional {
+                    id
+                }
+            }
+        }
+    }
+    '''
     client.query\
         .get('Article', ['title', 'author'])\
-        .with_additional('id']) # argument as `str`
-    # multiple additional property
+        .with_additional('id') # argument as `str`
+
+    # multiple additional property with this GraphQL query
+    '''
+    {
+        Get {
+            Article {
+                title
+                author
+                _additional {
+                    id
+                    certainty
+                }
+            }
+        }
+    }
+    '''
     client.query\
         .get('Article', ['title', 'author'])\
         .with_additional(['id', 'certainty']) # argument as `List[str]`
-    # additional properties as clause
+
+    # additional properties as clause with this GraphQL query
+    '''
+    {
+        Get {
+            Article {
+                title
+                author
+                _additional {
+                    classification {
+                        basedOn
+                        classifiedFields
+                        completed
+                        id
+                        scope
+                    }
+                }
+            }
+        }
+    }
+    '''
     client.query\
         .get('Article', ['title', 'author'])\
         .with_additional(
@@ -64,15 +112,56 @@ Updates in :mod:`~weaviate.gql` sub-package:
                 ]
             }
         ) # argument as `Dict[str, List[str]]`
-    # or
+
+    # or with this GraphQL query
+    '''
+    {
+        Get {
+            Article {
+                title
+                author
+                _additional {
+                    classification {
+                        completed
+                    }
+                }
+            }
+        }
+    }
+    '''
     client.query\
         .get('Article', ['title', 'author'])\
         .with_additional(
             {
                 'classification' : 'completed'
             }
-        ) # argument as `dict[str, str]`
-    # additional properties as clause and clause settings
+        ) # argument as `Dict[str, str]`
+
+    # additional properties as clause and clause settings with this GraphQL query
+    '''
+    {
+        Get {
+            Article {
+                title
+                author
+                _additional {
+                    token (
+                        properties: ["content"]
+                        limit: 10
+                        certainty: 0.8
+                    ) {
+                        certainty
+                        endPosition
+                        entity
+                        property
+                        startPosition
+                        word
+                    }
+                }
+            }
+        }
+    }
+    '''
     clause = {
         'token': [
             'certainty',
@@ -84,15 +173,18 @@ Updates in :mod:`~weaviate.gql` sub-package:
         ]
     }
     settings = {
-        'properties': ["content"], # is required
-        'limit': 10, # optional, int
-        'certainty': 0.8 # optional, float
+        'properties': ["content"],  # is required
+        'limit': 10,                # optional, int
+        'certainty': 0.8            # optional, float
     }
     client.query\
         .get('Article', ['title', 'author'])\
         .with_additional(
             (clause, settings)
         ) # argument as `Tuple[Dict[str, List[str]], Dict[str, Any]]`
+
+    # if the desired clause does not match any example above, then the clause can always
+    # be converted to string before passing it to the `.with_additional` method
 
 
 Version 3.1.1
