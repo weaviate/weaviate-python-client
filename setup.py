@@ -31,8 +31,8 @@ setup(
   ],
   python_requires='>=3.6',
   install_requires=[
-    "requests>=2.23.0,<2.26.0",
+    "requests>=2.23.0,<2.27.0",
     "validators>=0.18.2,<0.19.0",
-    "tqdm>=4.59.0,<4.62.0"
+    "tqdm>=4.59.0,<5.0.0"
   ]
 )

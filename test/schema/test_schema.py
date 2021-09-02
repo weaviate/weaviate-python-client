@@ -607,7 +607,17 @@ class TestSchema(unittest.TestCase):
         self.assertTrue(_property_is_primitive(test_types_list))
         test_types_list = ["phoneNumber"]
         self.assertTrue(_property_is_primitive(test_types_list))
-        test_types_list = ["string", "int", "boolean", "number", "date", "text", "geoCoordinates", "blob", "phoneNumber"]
+        test_types_list = ["int[]", "number[]", "text[]", "string[]"]
+        self.assertTrue(_property_is_primitive(test_types_list))
+        test_types_list = ["int()"]
+        self.assertFalse(_property_is_primitive(test_types_list))
+        test_types_list = ["number()"]
+        self.assertFalse(_property_is_primitive(test_types_list))
+        test_types_list = ["text()"]
+        self.assertFalse(_property_is_primitive(test_types_list))
+        test_types_list = ["string()"]
+        self.assertFalse(_property_is_primitive(test_types_list))
+        test_types_list = ["string", "int", "boolean", "number", "date", "text", "geoCoordinates", "blob", "phoneNumber", "int[]", "number[]", "text[]", "string[]"]
         self.assertTrue(_property_is_primitive(test_types_list))
 
     def test__get_primitive_properties(self):

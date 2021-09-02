@@ -9,8 +9,23 @@ from weaviate.schema.validate_schema import validate_schema, check_class
 from weaviate.schema.properties import Property
 
 
-_PRIMITIVE_WEAVIATE_TYPES_SET = set(["string", "int", "boolean", "number", "date", "text",\
-                                    "geoCoordinates", "blob", "phoneNumber"])
+_PRIMITIVE_WEAVIATE_TYPES_SET = set(
+    [
+        "string",
+        "string[]",
+        "int",
+        "int[]",
+        "boolean",
+        "number",
+        "number[]",
+        "date",
+        "text",
+        "text[]",
+        "geoCoordinates",
+        "blob",
+        "phoneNumber"
+    ]
+)
 
 
 class Schema:
