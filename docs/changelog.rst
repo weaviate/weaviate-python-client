@@ -1,9 +1,13 @@
 Changelog
 =========
 
+Version 3.2.2
+-------------
+This patch adds support for `array` data types: ``boolean[]``, ``date[]``.
+
 Version 3.2.1
 -------------
-This patch adds support for ```array``` data types: `int[]`, `number[]`, `text[]`, `string[]`.
+This patch adds support for `array` data types: ``int[]``, ``number[]``, ``text[]``, ``string[]``.
 
 Version 3.2.0
 -------------
