@@ -475,24 +475,24 @@ class TestNearObject(unittest.TestCase):
         near_object = NearObject({
             'id': 'test_id',
         })
-        self.assertEqual(str(near_object), 'nearObject: {id: test_id} ')
+        self.assertEqual(str(near_object), 'nearObject: {id: "test_id"} ')
 
         near_object = NearObject({
             'id': 'test_id',
             'certainty': 0.7
         })
-        self.assertEqual(str(near_object), 'nearObject: {id: test_id certainty: 0.7} ')
+        self.assertEqual(str(near_object), 'nearObject: {id: "test_id" certainty: 0.7} ')
 
         near_object = NearObject({
             'beacon': 'test_beacon',
         })
-        self.assertEqual(str(near_object), 'nearObject: {beacon: test_beacon} ')
+        self.assertEqual(str(near_object), 'nearObject: {beacon: "test_beacon"} ')
 
         near_object = NearObject({
             'beacon': 'test_beacon',
             'certainty': 0.0
         })
-        self.assertEqual(str(near_object), 'nearObject: {beacon: test_beacon certainty: 0.0} ')
+        self.assertEqual(str(near_object), 'nearObject: {beacon: "test_beacon" certainty: 0.0} ')
 
 
 class TestNearImage(unittest.TestCase):
