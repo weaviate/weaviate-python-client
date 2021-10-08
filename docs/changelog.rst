@@ -1,6 +1,10 @@
 Changelog
 =========
 
+Version 3.2.3
+-------------
+This patch fixes the :meth:`~weaviate.gql.get.GetBuilder.with_near_object`. It uses now explicit string literals for ``id``/``beacon`` in `nearoOject` clauses.
+
 Version 3.2.2
 -------------
 This patch adds support for `array` data types: ``boolean[]``, ``date[]``.
