@@ -263,7 +263,7 @@ class NearObject(Filter):
 
     def __str__(self):
 
-        near_object = f'nearObject: {{{self.obj_id}: {self._content[self.obj_id]}'
+        near_object = f'nearObject: {{{self.obj_id}: "{self._content[self.obj_id]}"'
         if 'certainty' in self._content:
             near_object += f' certainty: {self._content["certainty"]}'
         return near_object + '} '

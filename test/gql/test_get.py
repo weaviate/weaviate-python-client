@@ -130,7 +130,7 @@ class TestGetBuilder(unittest.TestCase):
 
         # valid calls
         query = GetBuilder("Person", "name", None).with_near_object(near_object).build()
-        self.assertEqual('{Get{Person(nearObject: {id: test_id certainty: 0.55} ){name}}}', query)
+        self.assertEqual('{Get{Person(nearObject: {id: "test_id" certainty: 0.55} ){name}}}', query)
 
         # invalid calls
         near_error_msg = "Cannot use multiple 'near' filters, or a 'near' filter along with a 'ask' filter!"
