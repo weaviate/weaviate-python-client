@@ -1,8 +1,9 @@
 import unittest
+from copy import deepcopy
 from unittest.mock import patch, Mock
 from weaviate.util import * 
 from weaviate.util import  _get_dict_from_object, _is_sub_schema, _get_valid_timeout_config
-from test.util import check_startswith_error_message, check_error_message
+from test.util import check_error_message
 
 
 schema_set = {
@@ -383,6 +384,13 @@ class TestUtil(unittest.TestCase):
         self.assertTrue(_is_sub_schema(schema_set, schema_set))
         self.assertTrue(_is_sub_schema(schema_sub_set, schema_set))
         self.assertTrue(_is_sub_schema({}, schema_set))
+
+        schema_set_copy = deepcopy(schema_set)
+        for schema_class in schema_set_copy['classes']:
+            schema_class['class'] = schema_class['class'].lower()
+        self.assertTrue(_is_sub_schema(schema_set_copy, schema_set))
+        self.assertTrue(_is_sub_schema(schema_set, schema_set_copy))
+        self.assertTrue(_is_sub_schema(schema_set_copy, schema_set_copy))
 
         self.assertFalse(_is_sub_schema(disjoint_set, schema_set))
         self.assertFalse(_is_sub_schema(partial_set, schema_set))

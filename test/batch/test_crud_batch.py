@@ -557,21 +557,56 @@ class TestBatch(unittest.TestCase):
 
         batch.add_data_object({}, 'Test')
         self.assertEqual(batch._objects_batch.add.call_count, 1)
+        batch._objects_batch.add.assert_called_with(
+            class_name='Test',
+            data_object={},
+            uuid=None,
+            vector=None,
+        )
         mock_auto_create.assert_not_called()
 
         batch.add_data_object({}, 'Test')
         self.assertEqual(batch._objects_batch.add.call_count, 2)
+        batch._objects_batch.add.assert_called_with(
+            class_name='Test',
+            data_object={},
+            uuid=None,
+            vector=None,
+        )
         mock_auto_create.assert_not_called()
 
         batch._batching_type = 'fixed' # This should not be called like this, only for test purposes
         batch.add_data_object({}, 'Test')
         self.assertEqual(batch._objects_batch.add.call_count, 3)
+        batch._objects_batch.add.assert_called_with(
+            class_name='Test',
+            data_object={},
+            uuid=None,
+            vector=None,
+        )
         mock_auto_create.assert_called()
         mock_auto_create.reset_mock()
 
         batch._batching_type = 'dynamic' # This should not be called like this, only for test purposes
         batch.add_data_object({}, 'Test')
         self.assertEqual(batch._objects_batch.add.call_count, 4)
+        batch._objects_batch.add.assert_called_with(
+            class_name='Test',
+            data_object={},
+            uuid=None,
+            vector=None,
+        )
+        mock_auto_create.assert_called()
+        mock_auto_create.reset_mock()
+
+        batch.add_data_object({}, 'test')
+        self.assertEqual(batch._objects_batch.add.call_count, 5)
+        batch._objects_batch.add.assert_called_with(
+            class_name='Test',
+            data_object={},
+            uuid=None,
+            vector=None,
+        )
         mock_auto_create.assert_called()
         mock_auto_create.reset_mock()
 
@@ -592,6 +627,12 @@ class TestBatch(unittest.TestCase):
             'f0153f24-3923-4046-919b-6a3e8fd37392'
         )
         self.assertEqual(batch._reference_batch.add.call_count, 1)
+        batch._reference_batch.add.assert_called_with(
+            from_object_class_name='Test',
+            from_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37391',
+            from_property_name='test',
+            to_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37392',
+        )
         mock_auto_create.assert_not_called()
 
         batch.add_reference(
@@ -601,6 +642,12 @@ class TestBatch(unittest.TestCase):
             'f0153f24-3923-4046-919b-6a3e8fd37394'
         )
         self.assertEqual(batch._reference_batch.add.call_count, 2)
+        batch._reference_batch.add.assert_called_with(
+            from_object_class_name='Test',
+            from_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37393',
+            from_property_name='test',
+            to_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37394',
+        )
         mock_auto_create.assert_not_called()
 
         batch._batching_type = 'fixed' # This should never be called like this, we do it for test purposes
@@ -611,6 +658,12 @@ class TestBatch(unittest.TestCase):
             'f0153f24-3923-4046-919b-6a3e8fd37397'
         )
         self.assertEqual(batch._reference_batch.add.call_count, 3)
+        batch._reference_batch.add.assert_called_with(
+            from_object_class_name='Test',
+            from_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37396',
+            from_property_name='test',
+            to_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37397',
+        )
         mock_auto_create.assert_called()
         mock_auto_create.reset_mock()
 
@@ -622,6 +675,28 @@ class TestBatch(unittest.TestCase):
             'f0153f24-3923-4046-919b-6a3e8fd37399'
         )
         self.assertEqual(batch._reference_batch.add.call_count, 4)
+        batch._reference_batch.add.assert_called_with(
+            from_object_class_name='Test',
+            from_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37390',
+            from_property_name='test',
+            to_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37399',
+        )
+        mock_auto_create.assert_called()
+        mock_auto_create.reset_mock()
+
+        batch.add_reference(
+            'f0153f24-3923-4046-919b-6a3e8fd37395',
+            'test',
+            'test',
+            'f0153f24-3923-4046-919b-6a3e8fd37319'
+        )
+        self.assertEqual(batch._reference_batch.add.call_count, 5)
+        batch._reference_batch.add.assert_called_with(
+            from_object_class_name='Test',
+            from_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37395',
+            from_property_name='test',
+            to_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37319',
+        )
         mock_auto_create.assert_called()
         mock_auto_create.reset_mock()
 

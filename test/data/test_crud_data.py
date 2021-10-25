@@ -132,6 +132,18 @@ class TestDataObject(unittest.TestCase):
         mock_get_vector.assert_called()
         mock_get_valid_uuid.assert_called()
 
+        reset()
+        # uncapitalized class_names should be capitalized
+        uuid = data_object.create(object_, "karaokeSongs", id_, vector)
+        self.assertEqual(uuid, "0")
+        connection_mock.post.assert_called_with(
+            path="/objects", 
+            weaviate_object=rest_object
+        )
+        mock_get_dict_from_object.assert_called()
+        mock_get_vector.assert_called()
+        mock_get_valid_uuid.assert_called()
+
     @patch('weaviate.data.crud_data._get_dict_from_object', side_effect=lambda x:x)
     @patch('weaviate.data.crud_data.get_vector', side_effect=lambda x:x)
     def test_update(self, mock_get_vector, mock_get_dict_from_object):
@@ -204,6 +216,22 @@ class TestDataObject(unittest.TestCase):
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
 
+        ### with uncapitalized class_name
+        connection_mock = mock_connection_method('patch', status_code=204)
+        data_object = DataObject(connection_mock)
+        data_object.update({"A": "B"}, "class", "ae6d51d6-b4ea-5a03-a808-6aae990bdebf")
+        weaviate_obj = {
+            "id": "ae6d51d6-b4ea-5a03-a808-6aae990bdebf",
+            "class": "Class",
+            "properties": {"A": "B"}
+        }
+        connection_mock.patch.assert_called_with(
+            path="/objects/ae6d51d6-b4ea-5a03-a808-6aae990bdebf",
+            weaviate_object=weaviate_obj
+        )
+        mock_get_dict_from_object.assert_called()
+        mock_get_vector.assert_not_called()
+
         ## with vector argument
         connection_mock = mock_connection_method('patch', status_code=204)
         data_object = DataObject(connection_mock)
@@ -260,6 +288,22 @@ class TestDataObject(unittest.TestCase):
         connection_mock = mock_connection_method('put')
         data_object = DataObject(connection_mock)
         data_object.replace({"A": 2}, "Hero", "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
+        weaviate_obj = {
+            "id": "27be9d8d-1da1-4d52-821f-bc7e2a25247d",
+            "class": "Hero",
+            "properties": {"A": 2}
+        }
+        connection_mock.put.assert_called_with(
+            path="/objects/27be9d8d-1da1-4d52-821f-bc7e2a25247d",
+            weaviate_object=weaviate_obj
+        )
+        mock_get_dict_from_object.assert_called()
+        mock_get_vector.assert_not_called()
+
+        ### with uncapitalized class_name
+        connection_mock = mock_connection_method('put')
+        data_object = DataObject(connection_mock)
+        data_object.replace({"A": 2}, "hero", "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
         weaviate_obj = {
             "id": "27be9d8d-1da1-4d52-821f-bc7e2a25247d",
             "class": "Hero",
@@ -506,6 +550,25 @@ class TestDataObject(unittest.TestCase):
         data_object = DataObject(connection_mock)
 
         response = data_object.validate({"A": 2}, "Hero", "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
+        self.assertEqual(response, {'error': None, 'valid': True})
+
+        weaviate_obj = {
+            "id": "27be9d8d-1da1-4d52-821f-bc7e2a25247d",
+            "class": "Hero",
+            "properties": {"A": 2}
+        }
+        connection_mock.post.assert_called_with(
+            path="/objects/validate",
+            weaviate_object=weaviate_obj
+        )
+        mock_get_dict_from_object.assert_called()
+        mock_get_vector.assert_not_called()
+
+        ### with uncapitalized class_name
+        connection_mock = mock_connection_method('post', status_code=200)
+        data_object = DataObject(connection_mock)
+
+        response = data_object.validate({"A": 2}, "hero", "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
         self.assertEqual(response, {'error': None, 'valid': True})
 
         weaviate_obj = {

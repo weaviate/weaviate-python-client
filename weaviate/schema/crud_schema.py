@@ -3,7 +3,7 @@ Schema class definition.
 """
 from typing import Union, Optional
 from weaviate.connect import Connection
-from weaviate.util import _get_dict_from_object, _is_sub_schema
+from weaviate.util import _get_dict_from_object, _is_sub_schema, _capitalize_first_letter
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
 from weaviate.schema.validate_schema import validate_schema, check_class
 from weaviate.schema.properties import Property
@@ -187,7 +187,7 @@ class Schema:
         if not isinstance(class_name, str):
             raise TypeError(f"Class name was {type(class_name)} instead of str")
 
-        path = f"/schema/{class_name}"
+        path = f"/schema/{_capitalize_first_letter(class_name)}"
         try:
             response = self._connection.delete(
                 path=path
@@ -281,6 +281,7 @@ class Schema:
             If weaviate reports a none OK status.
         """
 
+        class_name = _capitalize_first_letter(class_name)
         class_schema = self.get(class_name)
         new_class_schema = _update_nested_dict(class_schema, config)
         check_class(new_class_schema)
@@ -296,7 +297,6 @@ class Schema:
                 from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Update class schema configuration", response)
-
 
     def get(self, class_name: str = None) -> dict:
         """
@@ -392,7 +392,7 @@ class Schema:
             if not isinstance(class_name, str):
                 raise TypeError("'class_name' argument must be of type `str`! "
                     f"Given type: {type(class_name)}")
-            path = f'/schema/{class_name}'
+            path = f'/schema/{_capitalize_first_letter(class_name)}'
 
         try:
             response = self._connection.get(
@@ -428,9 +428,11 @@ class Schema:
 
             if _property_is_primitive(property_["dataType"]):
                 continue
+
             # create the property object
+            ## All complex dataTypes should be capitalized.
             schema_property = {
-                "dataType": property_["dataType"],
+                "dataType": [_capitalize_first_letter(dtype) for dtype in  property_["dataType"]],
                 "description": property_["description"],
                 "name": property_["name"]
             }
@@ -441,7 +443,7 @@ class Schema:
             if "moduleConfig" in property_:
                 schema_property["moduleConfig"] = property_["moduleConfig"]
 
-            path = "/schema/" + schema_class["class"] + "/properties"
+            path = "/schema/" + _capitalize_first_letter(schema_class["class"]) + "/properties"
             try:
                 response = self._connection.post(
                     path=path,
@@ -485,7 +487,7 @@ class Schema:
 
         # Create the class
         schema_class = {
-            "class": weaviate_class['class'],
+            "class": _capitalize_first_letter(weaviate_class['class']),
             "properties": []
         }
 

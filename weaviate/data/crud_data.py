@@ -9,7 +9,12 @@ from weaviate.exceptions import (
     RequestsConnectionError,
     UnexpectedStatusCodeException
 )
-from weaviate.util import _get_dict_from_object, get_vector, get_valid_uuid
+from weaviate.util import (
+    _get_dict_from_object,
+    get_vector,
+    get_valid_uuid,
+    _capitalize_first_letter,
+)
 from weaviate.data.references import Reference
 
 
@@ -104,7 +109,7 @@ class DataObject:
         loaded_data_object = _get_dict_from_object(data_object)
 
         weaviate_obj = {
-            "class": class_name,
+            "class": _capitalize_first_letter(class_name),
             "properties": loaded_data_object
         }
         if uuid is not None:
@@ -222,7 +227,7 @@ class DataObject:
 
         weaviate_obj = {
             "id": uuid,
-            "class": class_name,
+            "class": _capitalize_first_letter(class_name),
             "properties": object_dict
         }
 
@@ -320,7 +325,7 @@ class DataObject:
 
         weaviate_obj = {
             "id": uuid,
-            "class": class_name,
+            "class": _capitalize_first_letter(class_name),
             "properties": parsed_object
         }
 
@@ -620,7 +625,7 @@ class DataObject:
             raise TypeError(f"Expected class_name of type `str` but was: {type(class_name)}")
 
         weaviate_obj = {
-            "class": class_name,
+            "class": _capitalize_first_letter(class_name),
             "properties": loaded_data_object
         }
 

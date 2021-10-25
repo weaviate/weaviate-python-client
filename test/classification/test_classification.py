@@ -154,7 +154,15 @@ class TestConfigBuilder(unittest.TestCase):
         self.assertEqual(config._config, {})
         self.assertFalse(config._wait_for_completion)
 
+        # Correct class name format (capitalized)
         result = config.with_class_name('TestClass')
+
+        self.assertEqual(config._config, {'class': 'TestClass'})
+        self.assertFalse(config._wait_for_completion)
+        self.assertIs(result, config)
+
+        # Incorrect class name format (capitalized), should be capitalized by the client
+        result = config.with_class_name('testClass')
 
         self.assertEqual(config._config, {'class': 'TestClass'})
         self.assertFalse(config._wait_for_completion)

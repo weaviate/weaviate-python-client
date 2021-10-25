@@ -351,7 +351,10 @@ def _compare_class_sets(sub_set: list, set_: list) -> bool:
     for sub_set_class in sub_set:
         found = False
         for set_class in set_:
-            if sub_set_class["class"] == set_class["class"]:
+            if (
+                _capitalize_first_letter(sub_set_class["class"]) == \
+                _capitalize_first_letter(set_class["class"])
+            ):
                 if _compare_properties(sub_set_class["properties"], set_class["properties"]):
                     found = True
                     break
@@ -447,3 +450,23 @@ def generate_uuid5(identifier: Any, namespace: Any = "") -> str:
     """
 
     return str(uuid_lib.uuid5(uuid_lib.NAMESPACE_DNS, str(namespace) + str(identifier)))
+
+
+def _capitalize_first_letter(string: str) -> str:
+    """
+    Capitalize only the first letter of the `string`.
+
+    Parameters
+    ----------
+    string : str
+        The string to be capitalized.
+
+    Returns
+    -------
+    str
+        The capitalized string.
+    """
+
+    if len(string) == 1:
+        return string.capitalize()
+    return string[0].capitalize() + string[1:]

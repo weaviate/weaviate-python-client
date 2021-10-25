@@ -8,6 +8,7 @@ from typing import Tuple, Callable, Optional, Sequence
 from requests import ReadTimeout, Response
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.connect import Connection
+from weaviate.util import _capitalize_first_letter
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest
 
 class Batch:
@@ -169,9 +170,9 @@ class Batch:
         self._batching_type = None
 
         # expose a function alias for __call__
-        self.configure = self.__call__
+        self.__call__ = self.configure
 
-    def __call__(self,
+    def configure(self,
             batch_size: Optional[int]=None,
             creation_time: Real=10,
             timeout_retries: int=0,
@@ -279,7 +280,7 @@ class Batch:
         """
 
         self._objects_batch.add(
-            class_name=class_name,
+            class_name=_capitalize_first_letter(class_name),
             data_object=data_object,
             uuid=uuid,
             vector=vector,
@@ -317,7 +318,7 @@ class Batch:
         """
 
         self._reference_batch.add(
-            from_object_class_name=from_object_class_name,
+            from_object_class_name=_capitalize_first_letter(from_object_class_name),
             from_object_uuid=from_object_uuid,
             from_property_name=from_property_name,
             to_object_uuid=to_object_uuid,
