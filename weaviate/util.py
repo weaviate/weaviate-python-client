@@ -328,7 +328,7 @@ def _is_sub_schema(sub_schema: dict, schema: dict) -> bool:
     """
 
     schema_classes = schema.get("classes", [])
-    if 'classes' in sub_schema: 
+    if 'classes' in sub_schema:
         sub_schema_classes = sub_schema["classes"]
     else:
         sub_schema_classes = [sub_schema]

@@ -169,10 +169,60 @@ class Batch:
         self._timeout_retries = 0
         self._batching_type = None
 
-        # expose a function alias for __call__
-        self.__call__ = self.configure
-
     def configure(self,
+            batch_size: Optional[int]=None,
+            creation_time: Real=10,
+            timeout_retries: int=0,
+            callback: Optional[Callable[[dict], None]]=None,
+            dynamic: bool=False
+        ) -> 'Batch':
+        """
+        Configure the instance to your needs. (`__call__` and `configure` methods are the same).
+        NOTE: It has default values and if you want to change only one use a setter instead, or
+        provide all the configurations.
+
+        Parameters
+        ----------
+        batch_size : Optional[int], optional
+            The batch size to be use. This value sets the Batch functionality, if `batch_size` is
+            None then no auto-creation is done (`callback` and `dynamic` are ignored). If it is a
+            positive number auto-creation is enabled and the value represents: 1) in case `dynamic`
+            is False -> the number of data in the Batch (sum of objects and references) when to
+            auto-create; 2) in case `dynamic` is True -> the initial value for both
+            `recommended_num_objects` and `recommended_num_references`, by default None
+        creation_time : Real, optional
+            The time interval it should take the Batch to be created, used ONLY for computing
+            `recommended_num_objects` and `recommended_num_references`, by default 10
+        timeout_retries : int, optional
+            Number of times to retry to create a Batch that failed with TimeOut error, by default 0
+        callback : Optional[Callable[[dict], None]], optional
+            A callback function on the results of each (objects and references) batch types. It is
+            used only when `batch_size` is NOT None, by default None
+        dynamic : bool, optional
+            Whether to use dynamic batching or not, by default False
+
+        Returns
+        -------
+        Batch
+            Updated self.
+
+        Raises
+        ------
+        TypeError
+            If one of the arguments is of a wrong type.
+        ValueError
+            If the value of one of the arguments is wrong.
+        """
+
+        return self.__call__(
+            batch_size=batch_size,
+            creation_time=creation_time,
+            timeout_retries=timeout_retries,
+            callback=callback,
+            dynamic=dynamic,
+        )
+
+    def __call__(self,
             batch_size: Optional[int]=None,
             creation_time: Real=10,
             timeout_retries: int=0,
