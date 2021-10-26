@@ -1,8 +1,22 @@
 import unittest
 from copy import deepcopy
 from unittest.mock import patch, Mock
-from weaviate.util import * 
-from weaviate.util import  _get_dict_from_object, _is_sub_schema, _get_valid_timeout_config
+from weaviate.util import  (
+    generate_uuid5,
+    image_decoder_b64,
+    image_encoder_b64,
+    generate_local_beacon,
+    is_object_url,
+    is_weaviate_object_url,
+    get_vector,
+    get_valid_uuid,
+    get_domain_from_weaviate_url,
+    _get_dict_from_object,
+    _is_sub_schema,
+    _get_valid_timeout_config,
+
+)
+from weaviate import SchemaValidationException
 from test.util import check_error_message
 
 
@@ -382,8 +396,8 @@ class TestUtil(unittest.TestCase):
         """
 
         self.assertTrue(_is_sub_schema(schema_set, schema_set))
+        self.assertTrue(_is_sub_schema(schema_set['classes'][0], schema_set))
         self.assertTrue(_is_sub_schema(schema_sub_set, schema_set))
-        self.assertTrue(_is_sub_schema({}, schema_set))
 
         schema_set_copy = deepcopy(schema_set)
         for schema_class in schema_set_copy['classes']:
@@ -392,9 +406,18 @@ class TestUtil(unittest.TestCase):
         self.assertTrue(_is_sub_schema(schema_set, schema_set_copy))
         self.assertTrue(_is_sub_schema(schema_set_copy, schema_set_copy))
 
+        self.assertFalse(_is_sub_schema({'class': 'A'}, schema_set))
         self.assertFalse(_is_sub_schema(disjoint_set, schema_set))
         self.assertFalse(_is_sub_schema(partial_set, schema_set))
         self.assertFalse(_is_sub_schema(schema_set_extended_prop, schema_set))
+
+        # invalid calls
+
+        invalid_sub_schema_msg = "The sub schema class/es MUST have a 'class' keyword each!"
+
+        with self.assertRaises(SchemaValidationException) as error:
+            _is_sub_schema({}, schema_set)
+        check_error_message(self, error, invalid_sub_schema_msg)
 
     def test__get_valid_timeout_config(self):
         """
