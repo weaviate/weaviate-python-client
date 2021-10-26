@@ -1,6 +1,10 @@
 Changelog
 =========
 
+Version 3.2.5
+-------------
+This patch fixes the ``'Batch' object is not callable`` error.
+
 Version 3.2.4
 -------------
 | All ``class_name`` and cross-refs ``dataType`` are implicitly capitalized. (This functionality is added because if ``class_name`` is not capitalized
