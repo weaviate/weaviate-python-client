@@ -1,6 +1,16 @@
 Changelog
 =========
 
+Version 3.2.4
+-------------
+| All ``class_name`` and cross-refs ``dataType`` are implicitly capitalized. (This functionality is added because if ``class_name`` is not capitalized
+    then Weaviate server does it for you, and this was leading to errors where the client and server have different configurations.)
+
+Fixes/updates in :class:`~weaviate.schema.crud_schema.Schema` class:
+
+- | This patch fixes the :meth:`~weaviate.schema.crud_schema.Schema.contains` to accept separate class schemas as argument
+    i.e. it does not expect to have only this format: ``{"classes": [CLASS_1, CLASS_2, ...]}``; now it is possible to pass just ``CLASS_X`` as well.
+
 Version 3.2.3
 -------------
 This patch fixes the :meth:`~weaviate.gql.get.GetBuilder.with_near_object`. It uses now explicit string literals for ``id``/``beacon`` in `nearoOject` clauses.
