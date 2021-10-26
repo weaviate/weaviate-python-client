@@ -102,3 +102,14 @@ class TestAggregateBuilder(unittest.TestCase):
             path="/graphql",
             weaviate_object={'query' : expected_gql_clause}
         )
+
+    def test_uncapitalized_class_name(self):
+        """
+        Test the uncapitalized class_name.
+        """
+
+        aggregate = AggregateBuilder('Test', None)
+        self.assertEqual(aggregate._class_name, 'Test')
+
+        aggregate = AggregateBuilder('test', None)
+        self.assertEqual(aggregate._class_name, 'Test')

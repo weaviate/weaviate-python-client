@@ -64,3 +64,10 @@ class TestCRUDProperty(unittest.TestCase):
             path="/schema/TestThing/properties",
             weaviate_object=test_prop,
         )
+
+        property.create("testThing", test_prop)
+
+        connection_mock.post.assert_called_with(
+            path="/schema/TestThing/properties",
+            weaviate_object=test_prop,
+        )

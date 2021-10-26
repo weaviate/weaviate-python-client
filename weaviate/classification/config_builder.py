@@ -5,6 +5,7 @@ import time
 from typing import Dict, Any
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
 from weaviate.connect import Connection
+from weaviate.util import _capitalize_first_letter
 
 
 class ConfigBuilder:
@@ -85,7 +86,7 @@ class ConfigBuilder:
             Updated ConfigBuilder.
         """
 
-        self._config["class"] = class_name
+        self._config["class"] = _capitalize_first_letter(class_name)
         return self
 
     def with_classify_properties(self, classify_properties: list) -> 'ConfigBuilder':

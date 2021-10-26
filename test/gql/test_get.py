@@ -534,3 +534,14 @@ class TestGetBuilder(unittest.TestCase):
             .with_limit(2)\
             .build()
         self.assertEqual('{Get{Person(where: {operator: Or operands: [{path: ["name"] operator: Equal valueString: "Alan Turing"}, {path: ["name"] operator: Equal valueString: "John von Neumann"}]} limit: 2 nearText: {concepts: ["computer"] certainty: 0.3 moveTo: {concepts: ["science"] force: 0.1} moveAwayFrom: {concepts: ["airplane"] force: 0.2}} ){name uuid}}}', query)
+
+    def test_uncapitalized_class_name(self):
+        """
+        Test the uncapitalized class_name.
+        """
+
+        get = GetBuilder('Test', ['prop'], None)
+        self.assertEqual(get._class_name, 'Test')
+
+        get = GetBuilder('test', ['prop'], None)
+        self.assertEqual(get._class_name, 'Test')

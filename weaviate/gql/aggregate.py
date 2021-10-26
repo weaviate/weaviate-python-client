@@ -4,6 +4,7 @@ GraphQL `Aggregate` command.
 import json
 from typing import List, Optional
 from weaviate.connect import Connection
+from weaviate.util import _capitalize_first_letter
 from .filter import Where, GraphQL
 
 class AggregateBuilder(GraphQL):
@@ -24,7 +25,7 @@ class AggregateBuilder(GraphQL):
         """
 
         super().__init__(connection)
-        self._class_name = class_name
+        self._class_name = _capitalize_first_letter(class_name)
         self._with_meta_count = False
         self._fields: List[str] = []
         self._where: Optional[Where] = None

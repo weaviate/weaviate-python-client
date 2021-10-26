@@ -1,10 +1,11 @@
 import unittest
 import os
+from copy import deepcopy
 from unittest.mock import patch, Mock
-from weaviate.connect import connection
 from weaviate.schema import Schema
 from test.util import mock_connection_method, check_error_message, check_startswith_error_message
-from weaviate.exceptions import SchemaValidationException, RequestsConnectionError, UnexpectedStatusCodeException
+from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+from weaviate.util import _capitalize_first_letter
 
 company_test_schema = {
     "classes": 
@@ -214,6 +215,16 @@ class TestSchema(unittest.TestCase):
             weaviate_object={'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 2}}
         )
 
+        # with uncapitalized class_name
+        mock_schema.return_value = {'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 2}}
+        mock_conn = mock_connection_method('put')
+        schema = Schema(mock_conn)
+        schema.update_config("test", {})
+        mock_conn.put.assert_called_with(
+            path="/schema/Test",
+            weaviate_object={'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 2}}
+        )
+
     def test_get(self):
         """
         Test the `get` method.
@@ -250,6 +261,12 @@ class TestSchema(unittest.TestCase):
         )
 
         self.assertEqual(schema.get("Artist"), {'Test': 'OK!'})
+        connection_mock_file.get.assert_called_with(
+            path="/schema/Artist"
+        )
+
+        # with uncapitalized class_name
+        self.assertEqual(schema.get("artist"), {'Test': 'OK!'})
         connection_mock_file.get.assert_called_with(
             path="/schema/Artist"
         )
@@ -343,9 +360,17 @@ class TestSchema(unittest.TestCase):
         # valid calls
         mock_conn = mock_connection_method('delete', status_code=200)
         schema = Schema(mock_conn)
-        schema.delete_class("uuid")
+        schema.delete_class("Test")
         mock_conn.delete.assert_called_with(
-            path="/schema/uuid"
+            path="/schema/Test"
+        )
+
+        # with uncapitalized class_name
+        mock_conn = mock_connection_method('delete', status_code=200)
+        schema = Schema(mock_conn)
+        schema.delete_class("test")
+        mock_conn.delete.assert_called_with(
+            path="/schema/Test"
         )
 
     def test_delete_everything(self):
@@ -386,9 +411,12 @@ class TestSchema(unittest.TestCase):
             schema = Schema(mock_rest)
             schema._create_complex_properties_from_class(properties)
             self.assertEqual(mock_rest.post.call_count, nr_calls)
+            properties_copy = deepcopy(properties['properties'])
+            for prop in properties_copy:
+                prop['dataType'] = [_capitalize_first_letter(dt) for dt in prop['dataType']]
             mock_rest.post.assert_called_with(
-                path="/schema/" + properties["class"] + "/properties",
-                weaviate_object=properties['properties'][0]
+                path="/schema/" + _capitalize_first_letter(properties["class"]) + "/properties",
+                weaviate_object=properties_copy[0]
             )
 
         # no `properties` key
@@ -416,6 +444,7 @@ class TestSchema(unittest.TestCase):
         schema._create_complex_properties_from_class(properties)
         self.assertEqual(mock_rest.post.call_count, 0)
 
+        # COMPLEX properties
         properties = {
             'class' : 'TestClass',
             'properties':[
@@ -454,6 +483,22 @@ class TestSchema(unittest.TestCase):
         properties['properties'].append(properties['properties'][0]) # add another property
         properties['properties'].append(properties['properties'][0]) # add another property
         helper_test(3)
+
+        # with uncapitalized class_name
+        properties['class'] = 'testClass'
+        helper_test(3)
+
+        properties = {
+            'class' : 'testClass',
+            'properties':[
+                {
+                    'dataType': ["test", 'myTest'],
+                    'description': "test description",
+                    'name': 'test_prop'
+                },
+                
+            ]
+        }
 
         # invalid calls
         requests_error_message = 'Property may not have been created properly.'
@@ -548,6 +593,9 @@ class TestSchema(unittest.TestCase):
         test_class_call['properties'].append(test_class['properties'][0]) # add another property
         helper_test(test_class, test_class_call)
 
+        # with uncapitalized class_name
+        test_class['class'] = 'testClass'
+        helper_test(test_class, test_class_call)
         
 
         # invalid calls
