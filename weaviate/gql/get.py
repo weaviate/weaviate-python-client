@@ -67,6 +67,7 @@ class GetBuilder(GraphQL):
         # thus '__one_level', only one level of complexity
         self._where: Optional[Where] = None  # To store the where filter if it is added
         self._limit: Optional[str] = None  # To store the limit filter if it is added
+        self._offset: Optional[str] = None  # To store the offset filter if it is added
         self._near_ask: Optional[Filter] = None # To store the `near`/`ask` clause if it is added
         self._contains_filter = False  # true if any filter is added
 
@@ -435,7 +436,7 @@ class GetBuilder(GraphQL):
 
         Parameters
         ----------
-        limit : dict
+        limit : int
             The max number of objects returned.
 
         Returns
@@ -453,6 +454,34 @@ class GetBuilder(GraphQL):
             raise ValueError('limit cannot be non-positive (limit >=1).')
 
         self._limit = f'limit: {limit} '
+        self._contains_filter = True
+        return self
+
+    def with_offset(self, offset: int) -> 'GetBuilder':
+        """
+        The offset of objects returned, i.e. the starting index of the returned objects should be
+        used in conjunction with the `with_limit` method.
+
+        Parameters
+        ----------
+        offset : int
+            The offset used for the returned objects.
+
+        Returns
+        -------
+        weaviate.gql.get.GetBuilder
+            The updated GetBuilder.
+
+        Raises
+        ------
+        ValueError
+            If 'offset' is non-positive.
+        """
+
+        if offset < 1:
+            raise ValueError('offset cannot be non-positive (offset >=1).')
+
+        self._offset = f'offset: {offset} '
         self._contains_filter = True
         return self
 
@@ -751,6 +780,8 @@ class GetBuilder(GraphQL):
                 query += str(self._where)
             if self._limit is not None:
                 query += self._limit
+            if self._offset is not None:
+                query += self._offset
             if self._near_ask is not None:
                 query += str(self._near_ask)
             query += ')'
