@@ -1,6 +1,17 @@
 Changelog
 =========
 
+Version 3.3.0
+-------------
+| This minor version adds a new :meth:`~weaviate.gql.get.GetBuilder.with_offset` for the ``Get`` queries. This method should be used 
+    with the :meth:`~weaviate.gql.get.GetBuilder.with_limit`. This new feature (introduced in weaviate version ``1.8.0``) allows to
+    use pagination functionality with the ``Get`` queries. The ``offset`` represents the start index of the objects to be returned,
+    and the number of objects is specified by the :meth:`~weaviate.gql.get.GetBuilder.with_limit` method.
+    
+| For example, to list the
+    first ten results, set ``limit: 10``. Then, to "display the second page of 10", set ``offset: 10, limit: 10`` and so on. E.g. 
+    to show the 9th page of 10 results, set ``offset: 80, limit: 10`` to effectively display results 81-90.
+
 Version 3.2.5
 -------------
 This patch fixes the ``'Batch' object is not callable`` error.

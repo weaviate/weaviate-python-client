@@ -652,8 +652,10 @@ class Batch:
         result_objects = self.create_objects()
         result_references = self.create_references()
         if self._callback is not None:
-            self._callback(result_objects)
-            self._callback(result_references)
+            if result_objects:
+                self._callback(result_objects)
+            if result_references:
+                self._callback(result_references)
 
     def num_objects(self) -> int:
         """

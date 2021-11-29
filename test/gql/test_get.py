@@ -51,6 +51,25 @@ class TestGetBuilder(unittest.TestCase):
             GetBuilder("A", ["str"], None).with_limit(-1)
         check_error_message(self, error, limit_error_msg)
 
+    def test_build_with_offset(self):
+        """
+        Test the `with_limit` method.
+        """
+
+        # valid calls
+        query = GetBuilder("Person", "name", None).with_offset(20).build()
+        self.assertEqual('{Get{Person(offset: 20 ){name}}}', query)
+
+        # invalid calls
+        limit_error_msg = 'offset cannot be non-positive (offset >=1).'
+        with self.assertRaises(ValueError) as error:
+            GetBuilder("A", ["str"], None).with_offset(0)
+        check_error_message(self, error, limit_error_msg)
+
+        with self.assertRaises(ValueError) as error:
+            GetBuilder("A", ["str"], None).with_offset(-1)
+        check_error_message(self, error, limit_error_msg)
+
     def test_build_with_where(self):
         """
         Test the ` with_where` method.
@@ -532,8 +551,9 @@ class TestGetBuilder(unittest.TestCase):
             .with_near_text(near_text)\
             .with_where(filter)\
             .with_limit(2)\
+            .with_offset(10)\
             .build()
-        self.assertEqual('{Get{Person(where: {operator: Or operands: [{path: ["name"] operator: Equal valueString: "Alan Turing"}, {path: ["name"] operator: Equal valueString: "John von Neumann"}]} limit: 2 nearText: {concepts: ["computer"] certainty: 0.3 moveTo: {concepts: ["science"] force: 0.1} moveAwayFrom: {concepts: ["airplane"] force: 0.2}} ){name uuid}}}', query)
+        self.assertEqual('{Get{Person(where: {operator: Or operands: [{path: ["name"] operator: Equal valueString: "Alan Turing"}, {path: ["name"] operator: Equal valueString: "John von Neumann"}]} limit: 2 offset: 10 nearText: {concepts: ["computer"] certainty: 0.3 moveTo: {concepts: ["science"] force: 0.1} moveAwayFrom: {concepts: ["airplane"] force: 0.2}} ){name uuid}}}', query)
 
     def test_uncapitalized_class_name(self):
         """
