@@ -21,7 +21,7 @@ A python native client for easy interaction with a Weaviate instance.
 
 The client is tested for python 3.6 and higher.
 
-Visit the official `SeMi Technology <https://www.semi.technology/>`_ website for more information about the Weaviate and how to use it in production.
+Visit the official `SeMi Technology <https://weaviate.io/>`_ website for more information about the Weaviate and how to use it in production.
 
 Check out our `Command Line Interface (CLI) tool <https://pypi.org/project/weaviate-cli/>`_ for interacting with a Weaviate instance directly from your Terminal.
 
@@ -40,7 +40,7 @@ Documentation
 -------------
 
 - `Documentation <https://weaviate-python-client.rtfd.io>`_
-- Examples on how to use `weaviate-python` can also be found `here <https://www.semi.technology/developers/weaviate/current/client-libraries/python.html>`_.
+- Examples on how to use `weaviate-python` can also be found `here <https://weaviate.io/developers/weaviate/current/client-libraries/python.html>`_.
 
 Support
 -------
