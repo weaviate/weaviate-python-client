@@ -20,18 +20,19 @@ class TestClassification(unittest.TestCase):
         """
 
         # error messages
-        uuid_value_error = "Given UUID does not have a proper form"
+        uuid_type_error = lambda dt: f"'uuid' must be of type str or uuid.UUID, but was: {dt}"
+        value_error = "Not valid 'uuid' or 'uuid' can not be extracted from value"
         requests_error_message = 'Classification status could not be retrieved.'
         unexpected_error_message = "Get classification status"
 
         # invalid calls
-        with self.assertRaises(ValueError) as error:
+        with self.assertRaises(TypeError) as error:
             Classification(None).get(123)
-        check_error_message(self, error, uuid_value_error)
+        check_error_message(self, error, uuid_type_error(int))
 
         with self.assertRaises(ValueError) as error:
             Classification(None).get('123')
-        check_error_message(self, error, uuid_value_error)
+        check_error_message(self, error, value_error)
 
         mock_conn = mock_connection_method('get', side_effect=RequestsConnectionError('Test!'))
         with self.assertRaises(RequestsConnectionError) as error:

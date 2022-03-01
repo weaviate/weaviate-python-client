@@ -1,5 +1,6 @@
 import unittest
 from copy import deepcopy
+import uuid as uuid_lib
 from unittest.mock import patch, Mock
 from weaviate.util import  (
     generate_uuid5,
@@ -183,7 +184,7 @@ class TestUtil(unittest.TestCase):
         Test the `generate_local_beacon` function.
         """
 
-        type_error_message = "Expected to_object_uuid of type str"
+        type_error_message = "Expected to_object_uuid of type str or uuid.UUID"
         value_error_message = "Uuid does not have the propper form"
         # wrong data type
         with self.assertRaises(TypeError) as error:
@@ -199,6 +200,18 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(beacon["beacon"], "weaviate://localhost/fcf33178-1b5d-5174-b2e7-04a2129dd35a")
 
         beacon = generate_local_beacon("fcf33178-1b5d-5174-b2e7-04a2129dd35b")
+        self.assertTrue("beacon" in beacon)
+        self.assertEqual(beacon["beacon"], "weaviate://localhost/fcf33178-1b5d-5174-b2e7-04a2129dd35b")
+
+        beacon = generate_local_beacon("fcf331781b5d5174b2e704a2129dd35b")
+        self.assertTrue("beacon" in beacon)
+        self.assertEqual(beacon["beacon"], "weaviate://localhost/fcf33178-1b5d-5174-b2e7-04a2129dd35b")
+
+        beacon = generate_local_beacon(uuid_lib.UUID("fcf33178-1b5d-5174-b2e7-04a2129dd35b"))
+        self.assertTrue("beacon" in beacon)
+        self.assertEqual(beacon["beacon"], "weaviate://localhost/fcf33178-1b5d-5174-b2e7-04a2129dd35b")
+        
+        beacon = generate_local_beacon(uuid_lib.UUID("fcf331781b5d5174b2e704a2129dd35b"))
         self.assertTrue("beacon" in beacon)
         self.assertEqual(beacon["beacon"], "weaviate://localhost/fcf33178-1b5d-5174-b2e7-04a2129dd35b")
 
@@ -314,11 +327,20 @@ class TestUtil(unittest.TestCase):
         result = get_valid_uuid("http://otherhost_2:8080/v1/objects/1c9cd584-88fe-5010-83d0-017cb3fcb446")
         self.assertEqual(result, "1c9cd584-88fe-5010-83d0-017cb3fcb446")
 
+        result = get_valid_uuid("http://otherhost_2:8080/v1/objects/1c9cd58488fe501083d0017cb3fcb446")
+        self.assertEqual(result, "1c9cd584-88fe-5010-83d0-017cb3fcb446")
+
         result = get_valid_uuid("1c9cd584-88fe-5010-83d0-017cb3fcb446")
         self.assertEqual(result, "1c9cd584-88fe-5010-83d0-017cb3fcb446")
 
+        result = get_valid_uuid("1c9cd58488fe501083d0017cb3fcb446")
+        self.assertEqual(result, "1c9cd584-88fe-5010-83d0-017cb3fcb446")
+
+        result = get_valid_uuid(uuid_lib.UUID("1c9cd58488fe501083d0017cb3fcb446"))
+        self.assertEqual(result, "1c9cd584-88fe-5010-83d0-017cb3fcb446")
+
         # invalid formats
-        type_error_message = "'uuid' must be of type str but was: "
+        type_error_message = "'uuid' must be of type str or uuid.UUID, but was: "
         value_error_message = "Not valid 'uuid' or 'uuid' can not be extracted from value"
         ## neither an object URL nor a weaviate object URL
         with self.assertRaises(ValueError) as error:

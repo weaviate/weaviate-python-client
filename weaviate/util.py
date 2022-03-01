@@ -70,13 +70,13 @@ def image_decoder_b64(encoded_image: str) -> bytes:
     return base64.b64decode(encoded_image.encode('utf-8'))
 
 
-def generate_local_beacon(to_uuid: str) -> dict:
+def generate_local_beacon(to_uuid: Union[str, uuid_lib.UUID]) -> dict:
     """
     Generates a beacon with the given uuid.
 
     Parameters
     ----------
-    to_uuid : str
+    to_uuid : str or uuid.UUID
         The UUID for which to create a local beacon.
 
     Returns
@@ -92,11 +92,18 @@ def generate_local_beacon(to_uuid: str) -> dict:
         If the 'to_uuid' is not valid.
     """
 
-    if not isinstance(to_uuid, str):
-        raise TypeError("Expected to_object_uuid of type str")
-    if not validators.uuid(to_uuid):
-        raise ValueError("Uuid does not have the propper form")
-    return {"beacon": "weaviate://localhost/" + to_uuid}
+
+    if isinstance(to_uuid, str):
+        try:
+            uuid = str(uuid_lib.UUID(to_uuid))
+        except ValueError:
+            raise ValueError("Uuid does not have the propper form") from None
+    elif isinstance(to_uuid, uuid_lib.UUID):
+        uuid = str(to_uuid)
+    else:
+        raise TypeError("Expected to_object_uuid of type str or uuid.UUID")
+    
+    return {"beacon": "weaviate://localhost/" + uuid}
 
 
 def _get_dict_from_object(object_: Union[str, dict]) -> dict:
@@ -176,7 +183,9 @@ def is_weaviate_object_url(url: str) -> bool:
     if split[0] != "localhost":
         if not validators.domain(split[0]):
             return False
-    if not validators.uuid(split[1]):
+    try:
+        uuid_lib.UUID(split[1])
+    except ValueError:
         return False
     return True
 
@@ -202,7 +211,9 @@ def is_object_url(url: str) -> bool:
     split = url.split("/")
     if len(split) < 3:
         return False
-    if not validators.uuid(split[-1]):
+    try:
+        uuid_lib.UUID(split[-1])
+    except ValueError:
         return False
     if not split[-2] == "objects":
         return False
@@ -211,13 +222,13 @@ def is_object_url(url: str) -> bool:
     return True
 
 
-def get_valid_uuid(uuid: str) -> str:
+def get_valid_uuid(uuid: Union[str, uuid_lib.UUID]) -> str:
     """
     Validate and extract the UUID.
 
     Parameters
     ----------
-    uuid : str
+    uuid : str or uuid.UUID
         The UUID to be validated and extracted.
         Should be in the form of an UUID or in form of an URL (weaviate 'beacon' or 'href').
         E.g.
@@ -240,16 +251,21 @@ def get_valid_uuid(uuid: str) -> str:
         If 'uuid' is not valid or cannot be extracted.
     """
 
+    if isinstance(uuid, uuid_lib.UUID):
+        return str(uuid)
+
     if not isinstance(uuid, str):
-        raise TypeError("'uuid' must be of type str but was: " + str(type(uuid)))
+        raise TypeError("'uuid' must be of type str or uuid.UUID, but was: " + str(type(uuid)))
 
     _is_weaviate_url = is_weaviate_object_url(uuid)
     _is_object_url = is_object_url(uuid)
     _uuid = uuid
     if _is_weaviate_url or _is_object_url:
         _uuid = uuid.split("/")[-1]
-    if not validators.uuid(_uuid):
-        raise ValueError("Not valid 'uuid' or 'uuid' can not be extracted from value")
+    try:
+        _uuid = str(uuid_lib.UUID(_uuid))
+    except ValueError:
+        raise ValueError("Not valid 'uuid' or 'uuid' can not be extracted from value") from None
     return _uuid
 
 
