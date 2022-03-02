@@ -10,7 +10,7 @@ class TestReference(unittest.TestCase):
     def setUp(self):
         self.uuid_1 = "b36268d4-a6b5-5274-985f-45f13ce0c642"
         self.uuid_2 = "a36268d4-a6b5-5274-985f-45f13ce0c642"
-        self.uuid_error_message = f"'uuid' must be of type str but was: {int}"
+        self.uuid_error_message = f"'uuid' must be of type str or uuid.UUID, but was: {int}"
         self.valid_uuid_error_message = "Not valid 'uuid' or 'uuid' can not be extracted from value"
         self.name_error_message = lambda p: f"from_property_name must be of type 'str' but was: {p}"
 

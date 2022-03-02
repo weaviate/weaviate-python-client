@@ -1,8 +1,9 @@
 """
 Classification class definition.
 """
-import validators
+
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+from weaviate.util import get_valid_uuid
 from weaviate.connect import Connection
 from .config_builder import ConfigBuilder
 
@@ -61,8 +62,7 @@ class Classification:
             If weaviate reports a none OK status.
         """
 
-        if not validators.uuid(classification_uuid):
-            raise ValueError("Given UUID does not have a proper form")
+        classification_uuid = get_valid_uuid(classification_uuid)
 
         try:
             response = self._connection.get(

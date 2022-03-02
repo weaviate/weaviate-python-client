@@ -1,6 +1,10 @@
 Changelog
 =========
 
+Version 3.3.1
+-------------
+| This patch version allows using UUIDs in hex format too i.e. UUIDs without hyphens.
+
 Version 3.3.0
 -------------
 | This minor version adds a new :meth:`~weaviate.gql.get.GetBuilder.with_offset` for the ``Get`` queries. This method should be used 
