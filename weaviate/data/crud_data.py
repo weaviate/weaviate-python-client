@@ -1,8 +1,9 @@
 """
 DataObject class definition.
 """
+import uuid as uuid_lib
 from typing import Union, Optional, List, Sequence
-import validators
+from requests import Response
 from weaviate.connect import Connection
 from weaviate.exceptions import (
     ObjectAlreadyExistsException,
@@ -44,7 +45,7 @@ class DataObject:
     def create(self,
             data_object: Union[dict, str],
             class_name: str,
-            uuid: str=None,
+            uuid: Union[str, uuid_lib.UUID, None]=None,
             vector: Sequence=None
         ) -> str:
         """
@@ -57,7 +58,7 @@ class DataObject:
             If type is str it should be either an URL or a file.
         class_name : str
             Class name associated with the object given.
-        uuid : str, optional
+        uuid : str, uuid.UUID or None, optional
             Object will be created under this uuid if it is provided.
             Otherwise weaviate will generate a uuid for this object,
             by default None.
@@ -142,7 +143,7 @@ class DataObject:
     def update(self,
             data_object: Union[dict, str],
             class_name: str,
-            uuid: str,
+            uuid: Union[str, uuid_lib.UUID],
             vector: Sequence=None
         ) -> None:
         """
@@ -158,7 +159,7 @@ class DataObject:
             If type is str it should be either an URL or a file.
         class_name : str
             The class name of the object.
-        uuid : str
+        uuid : str or uuid.UUID
             The ID of the object that should be changed.
         vector: Sequence, optional
             The embedding of the object that should be updated. Used only class objects that do not
@@ -218,10 +219,8 @@ class DataObject:
 
         if not isinstance(class_name, str):
             raise TypeError("Class must be type str")
-        if not isinstance(uuid, str):
-            raise TypeError("UUID must be type str")
-        if not validators.uuid(uuid):
-            raise ValueError("Not a proper UUID")
+
+        uuid = get_valid_uuid(uuid)
 
         object_dict = _get_dict_from_object(data_object)
 
@@ -251,7 +250,7 @@ class DataObject:
     def replace(self,
             data_object: Union[dict, str],
             class_name: str,
-            uuid: str,
+            uuid: Union[str, uuid_lib.UUID],
             vector: Sequence=None
         ) -> None:
         """
@@ -265,7 +264,7 @@ class DataObject:
             or a python dict describing the new values.
         class_name : str
             Name of the class of the object that should be updated.
-        uuid : str
+        uuid : str or uuid.UUID
             The UUID of the object that should be changed.
         vector: Sequence, optional
             The embedding of the object that should be replaced. Used only class objects that do not
@@ -322,6 +321,7 @@ class DataObject:
         """
 
         parsed_object = _get_dict_from_object(data_object)
+        uuid = get_valid_uuid(uuid)
 
         weaviate_obj = {
             "id": uuid,
@@ -346,7 +346,7 @@ class DataObject:
         raise UnexpectedStatusCodeException("Replace object", response)
 
     def get_by_id(self,
-            uuid: str,
+            uuid: Union[str, uuid_lib.UUID],
             additional_properties: List[str]=None,
             with_vector: bool=False
         ) -> Optional[dict]:
@@ -355,7 +355,7 @@ class DataObject:
 
         Parameters
         ----------
-        uuid : str
+        uuid : str or uuid.UUID
             The identifier of the object that should be retrieved.
         additional_properties : list of str, optional
             List of additional properties that should be included in the request,
@@ -405,7 +405,7 @@ class DataObject:
         )
 
     def get(self,
-            uuid:str=None,
+            uuid: Union[str, uuid_lib.UUID, None]=None,
             additional_properties: List[str]=None,
             with_vector: bool=False
         ) -> List[dict]:
@@ -416,7 +416,7 @@ class DataObject:
 
         Parameters
         ----------
-        uuid : str, optional
+        uuid : str, uuid.UUID or None, optional
             The identifier of the object that should be retrieved.
         additional_properties : list of str, optional
             list of additional properties that should be included in the request,
@@ -452,13 +452,13 @@ class DataObject:
             return None
         raise UnexpectedStatusCodeException("Get object/s", response)
 
-    def delete(self, uuid: str) -> None:
+    def delete(self, uuid: Union[str, uuid_lib.UUID]) -> None:
         """
         Delete an existing object from weaviate.
 
         Parameters
         ----------
-        uuid : str
+        uuid : str or uuid.UUID
             The ID of the object that should be deleted.
 
         Examples
@@ -492,10 +492,7 @@ class DataObject:
             If uuid is not properly formed.
         """
 
-        if not isinstance(uuid, str):
-            raise TypeError("UUID must be type str")
-        if not validators.uuid(uuid):
-            raise ValueError("UUID does not have proper form")
+        uuid = get_valid_uuid(uuid)
 
         try:
             response = self._connection.delete(
@@ -508,13 +505,13 @@ class DataObject:
             return
         raise UnexpectedStatusCodeException("Delete object", response)
 
-    def exists(self, uuid: str) -> bool:
+    def exists(self, uuid: Union[str, uuid_lib.UUID]) -> bool:
         """
         Check if the object exist in weaviate.
 
         Parameters
         ----------
-        uuid : str
+        uuid : str or uuid.UUID
             The UUID of the object that may or may not exist within weaviate.
 
         Examples
@@ -557,7 +554,7 @@ class DataObject:
     def validate(self,
             data_object: Union[dict, str],
             class_name: str,
-            uuid: str=None,
+            uuid: Union[str, uuid_lib.UUID, None]=None,
             vector: Sequence=None
         ) -> dict:
         """
@@ -570,7 +567,7 @@ class DataObject:
             If type is str it should be either an URL or a file.
         class_name : str
             Name of the class of the object that should be validated.
-        uuid : str, optional
+        uuid : str, uuid.UUID or None, optional
             The UUID of the object that should be validated against weaviate.
             by default None.
         vector: Sequence, optional
@@ -630,9 +627,7 @@ class DataObject:
         }
 
         if uuid is not None:
-            if not isinstance(uuid, str):
-                raise TypeError("UUID must be of type `str`")
-            weaviate_obj['id'] = uuid
+            weaviate_obj['id'] = get_valid_uuid(uuid)
 
         if vector is not None:
             weaviate_obj['vector'] = get_vector(vector)
@@ -661,10 +656,10 @@ class DataObject:
         raise UnexpectedStatusCodeException("Validate object", response)
 
     def _get_response(self,
-            uuid:str,
+            uuid: Union[str, uuid_lib.UUID],
             additional_properties: List[str],
             with_vector: bool
-        ) -> List[dict]:
+        ) -> Response:
         """
         Gets object from weaviate as a requests.Response type. If 'uuid' is None, all objects are
         returned. If 'uuid' is specified the result is the same as for `get_by_uuid` method.
@@ -694,7 +689,7 @@ class DataObject:
         params = _get_params(additional_properties, with_vector)
 
         if uuid is not None:
-            path = "/objects/" + uuid
+            path = "/objects/" + get_valid_uuid(uuid)
         else:
             path = "/objects"
 

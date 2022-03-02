@@ -154,8 +154,8 @@ class TestDataObject(unittest.TestCase):
 
         # error messages
         class_type_error_message = "Class must be type str"
-        uuid_type_error_message = "UUID must be type str"
-        uuid_value_error_message = "Not a proper UUID"
+        uuid_type_error_message = lambda dt: f"'uuid' must be of type str or uuid.UUID, but was: {dt}"
+        uuid_value_error_message = "Not valid 'uuid' or 'uuid' can not be extracted from value"
         requests_error_message = 'Object was not updated.'
         unexpected_error_message = "Update of the object not successful"
         
@@ -167,7 +167,7 @@ class TestDataObject(unittest.TestCase):
 
         with self.assertRaises(TypeError) as error:
             data_object.update({"A": "B"}, "Class", 1238234)
-        check_error_message(self, error, uuid_type_error_message)
+        check_error_message(self, error, uuid_type_error_message(int))
         mock_get_dict_from_object.assert_not_called()
         mock_get_vector.assert_not_called()
 
@@ -341,14 +341,14 @@ class TestDataObject(unittest.TestCase):
         data_object = DataObject(Mock())
 
         # error messages
-        uuid_type_error_message = "UUID must be type str"
-        uuid_value_error_message = "UUID does not have proper form"
+        uuid_type_error_message = lambda dt: f"'uuid' must be of type str or uuid.UUID, but was: {dt}"
+        uuid_value_error_message = "Not valid 'uuid' or 'uuid' can not be extracted from value"
         requests_error_message = 'Object could not be deleted.'
         unexpected_error_message = "Delete object"
 
         with self.assertRaises(TypeError) as error:
             data_object.delete(4)
-        check_error_message(self, error, uuid_type_error_message)
+        check_error_message(self, error, uuid_type_error_message(int))
 
         with self.assertRaises(ValueError) as error:
             data_object.delete("Hallo World")
@@ -449,10 +449,10 @@ class TestDataObject(unittest.TestCase):
         mock_get_params.return_value = {'include': "test1,test2"}
         connection_mock = mock_connection_method('get', return_json=return_value_get, status_code=200)
         data_object = DataObject(connection_mock)
-        result = data_object.get(uuid="TestUUID")
+        result = data_object.get(uuid="1d420c9c98cb11ec9db61e008a366d49")
         self.assertEqual(result, return_value_get)
         connection_mock.get.assert_called_with(
-            path="/objects/TestUUID",
+            path="/objects/1d420c9c-98cb-11ec-9db6-1e008a366d49",
             params={'include': "test1,test2"}
         )
 
@@ -460,10 +460,10 @@ class TestDataObject(unittest.TestCase):
         mock_get_params.return_value = {'include': "test1,test2"}
         connection_mock = mock_connection_method('get', return_json=return_value_get, status_code=404)
         data_object = DataObject(connection_mock)
-        result = data_object.get(uuid="TestUUID")
+        result = data_object.get(uuid="1d420c9c-98cb-11ec-9db6-1e008a366d49")
         self.assertIsNone(result)
         connection_mock.get.assert_called_with(
-            path="/objects/TestUUID",
+            path="/objects/1d420c9c-98cb-11ec-9db6-1e008a366d49",
             params={'include': "test1,test2"}
         )
 
@@ -508,7 +508,7 @@ class TestDataObject(unittest.TestCase):
         data_object = DataObject(Mock())
 
         # error messages
-        uuid_type_error_message = "UUID must be of type `str`"
+        uuid_type_error_message = lambda dt: f"'uuid' must be of type str or uuid.UUID, but was: {dt}"
         class_name_error_message = lambda dt: f"Expected class_name of type `str` but was: {dt}"
         requests_error_message = 'Object was not validated against weaviate.'
         unexpected_error_message = "Validate object"
@@ -516,7 +516,7 @@ class TestDataObject(unittest.TestCase):
         # test exceptions
         with self.assertRaises(TypeError) as error:
             data_object.validate({}, "Name", 1)
-        check_error_message(self, error, uuid_type_error_message)
+        check_error_message(self, error, uuid_type_error_message(int))
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
 
