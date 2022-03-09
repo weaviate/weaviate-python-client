@@ -1,6 +1,10 @@
 Changelog
 =========
 
+Version 3.3.3
+-------------
+| This patch version fixes the nearImage filter requests. 
+
 Version 3.3.2
 -------------
 | This patch version allows using UUIDs in hex format for :class:`~weaviate.data.DataObject` too i.e. UUIDs without hyphens.
