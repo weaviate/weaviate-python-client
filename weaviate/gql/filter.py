@@ -379,7 +379,7 @@ class NearImage(Filter):
             )
 
     def __str__(self):
-        near_image = f'nearImage: {{image: {self._content["image"]}'
+        near_image = f'nearImage: {{image: "{self._content["image"]}"'
         if 'certainty' in self._content:
             near_image += f' certainty: {self._content["certainty"]}'
         return near_image + '} '

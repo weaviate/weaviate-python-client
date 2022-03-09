@@ -179,12 +179,12 @@ class TestGetBuilder(unittest.TestCase):
         # valid calls
         ## encode False
         query = GetBuilder("Person", "name", None).with_near_image(near_image, encode=False).build()
-        self.assertEqual('{Get{Person(nearImage: {image: test_image certainty: 0.55} ){name}}}', query)
+        self.assertEqual('{Get{Person(nearImage: {image: "test_image" certainty: 0.55} ){name}}}', query)
         mock_image_encoder_b64.assert_not_called()
 
         ## encode True
         query = GetBuilder("Person", "name", None).with_near_image(near_image, encode=True).build()
-        self.assertEqual('{Get{Person(nearImage: {image: test_call certainty: 0.55} ){name}}}', query)
+        self.assertEqual('{Get{Person(nearImage: {image: "test_call" certainty: 0.55} ){name}}}', query)
         mock_image_encoder_b64.assert_called()
 
         # invalid calls

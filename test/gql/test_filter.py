@@ -561,13 +561,13 @@ class TestNearImage(unittest.TestCase):
         near_object = NearImage({
             'image': 'test_image',
         })
-        self.assertEqual(str(near_object), 'nearImage: {image: test_image} ')
+        self.assertEqual(str(near_object), 'nearImage: {image: "test_image"} ')
 
         near_object = NearImage({
             'image': 'test_image',
             'certainty': 0.7
         })
-        self.assertEqual(str(near_object), 'nearImage: {image: test_image certainty: 0.7} ')
+        self.assertEqual(str(near_object), 'nearImage: {image: "test_image" certainty: 0.7} ')
 
 
 class TestWhere(unittest.TestCase):
