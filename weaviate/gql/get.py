@@ -649,6 +649,7 @@ class GetBuilder(GraphQL):
         ...     ) # argument as `Dict[str, str]`
 
         Consider the following GraphQL clause:
+
         >>> '''
         ... {
         ...     Get {
@@ -675,6 +676,7 @@ class GetBuilder(GraphQL):
         ... '''
 
         Then the python translation of this is the following:
+
         >>> clause = {
         ...     'token': [ # if only one, can be passes as `str`
         ...         'certainty',
