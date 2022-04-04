@@ -5,6 +5,32 @@ from typing import Any
 from weaviate.exceptions import SchemaValidationException
 
 
+CLASS_KEYS = set(
+    [
+        "class",
+        "vectorIndexType",
+        "vectorIndexConfig",
+        "moduleConfig",
+        "description",
+        "vectorizer",
+        "properties",
+        "invertedIndexConfig",
+        "shardingConfig",
+    ]
+)
+
+PROPERTY_KEYS = set(
+    [
+        "dataType",
+        "name",
+        "moduleConfig",
+        "description",
+        "indexInverted",
+        "tokenization",
+    ]
+)
+
+
 def validate_schema(schema: dict) -> None:
     """
     Validate schema.
@@ -54,8 +80,7 @@ def check_class(class_definition: dict) -> None:
     # check optional keys
     for key in class_definition.keys():
         # Check if key is known
-        if key not in ["class", "vectorIndexType", "vectorIndexConfig", "moduleConfig",\
-            "description", "vectorizer", "properties", "invertedIndexConfig", "shardingConfig"]:
+        if key not in CLASS_KEYS:
             raise SchemaValidationException(f'"{key}" is not a known class definition key.')
         # check if key is right type
         if key in ["class", "vectorIndexType", "description", "vectorizer"]:
@@ -93,13 +118,13 @@ def check_property(class_property: dict) -> None:
 
     for key in class_property:
         # check for misspelled and/or non-existent properties
-        if key not in ["dataType", "name", "moduleConfig", "description", "indexInverted"]:
+        if key not in PROPERTY_KEYS:
             raise SchemaValidationException(f'Property "{key}" is not known.')
 
         # Test types
         if key in ["dataType"]:
             _check_key_type(key, class_property[key], list)
-        if key in ["name", "description"]:
+        if key in ["name", "description", "tokenization"]:
             _check_key_type(key, class_property[key], str)
         if key in ["indexInverted"]:
             _check_key_type(key, class_property[key], bool)

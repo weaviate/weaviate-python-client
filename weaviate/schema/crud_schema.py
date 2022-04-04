@@ -5,7 +5,12 @@ from typing import Union, Optional
 from weaviate.connect import Connection
 from weaviate.util import _get_dict_from_object, _is_sub_schema, _capitalize_first_letter
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
-from weaviate.schema.validate_schema import validate_schema, check_class
+from weaviate.schema.validate_schema import (
+    validate_schema,
+    check_class,
+    CLASS_KEYS,
+    PROPERTY_KEYS,
+)
 from weaviate.schema.properties import Property
 
 
@@ -404,6 +409,159 @@ class Schema:
             raise UnexpectedStatusCodeException("Get schema", response)
         return response.json()
 
+    def get_class_shards(self, class_name: str) -> list:
+        """
+        Get the status of all shards in an index.
+
+        Parameters
+        ----------
+        class_name : str
+            The class for which to return the status of all shards in an index.
+
+        Returns
+        -------
+        list
+            The list of shards configuration.
+
+        Examples
+        --------
+        Schema contains a single class: Article
+
+        >>> client.schema.get_class_shards('Article')
+        [{'name': '2rPgsA2yngW3', 'status': 'READY'}]
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        """
+
+        if not isinstance(class_name, str):
+            raise TypeError(
+                "'class_name' argument must be of type `str`! "
+                f"Given type: {type(class_name)}."
+            )
+        path = f'/schema/{_capitalize_first_letter(class_name)}/shards'
+
+        try:
+            response = self._connection.get(
+                path=path
+            )
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                "Class shards' status could not be retrieved due to connection error."
+            ) from conn_err
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException("Get shards' status", response)
+        return response.json()
+
+    def update_class_shard(self,
+            class_name: str,
+            status: str,
+            shard_name: Optional[str]=None,
+        ) -> list:
+        """
+        Get the status of all shards in an index.
+
+        Parameters
+        ----------
+        class_name : str
+            The class for which to update the status of all shards in an index.
+        status : str
+            The new status of the shard. The available options are: 'READY' and 'READONLY'.
+        shard_name : str or None, optional
+            The shard name for which to update the status of the class of the shard. If None then
+            all the shards are going to be updated to the 'status'. By default None.
+
+        Returns
+        -------
+        list
+            The updated statuses.
+
+        Examples
+        --------
+        Schema contains a single class: Article
+
+        >>> client.schema.get_class_shards('Article')
+        [{'name': 'node1', 'status': 'READY'}, {'name': 'node2', 'status': 'READY'}]
+
+        For a specific shard:
+
+        >>> client.schema.update_class_shard('Article', 'READONLY', 'node2')
+        {'status': 'READONLY'}
+        >>> client.schema.get_class_shards('Article')
+        [{'name': 'node1', 'status': 'READY'}, {'name': 'node2', 'status': 'READONLY'}]
+
+        For all shards of the class:
+
+        >>> client.schema.update_class_shard('Article', 'READONLY')
+        [{'status': 'READONLY'},{'status': 'READONLY'}]
+        >>> client.schema.get_class_shards('Article')
+        [{'name': 'node1', 'status': 'READONLY'}, {'name': 'node2', 'status': 'READONLY'}]
+        
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        """
+
+        if not isinstance(class_name, str):
+            raise TypeError(
+                "'class_name' argument must be of type `str`! "
+                f"Given type: {type(class_name)}."
+            )
+        if not isinstance(shard_name, str) and shard_name is not None:
+            raise TypeError(
+                "'shard_name' argument must be of type `str`! "
+                f"Given type: {type(shard_name)}."
+            )
+        if not isinstance(status, str):
+            raise TypeError(
+                "'status' argument must be of type `str`! "
+                f"Given type: {type(status)}."
+            )
+
+        if shard_name is None:
+            shards_config = self.get_class_shards(
+                class_name=class_name,
+            )
+            shard_names = [shard_config['name'] for shard_config in shards_config]
+        else:
+            shard_names = [shard_name]
+        
+        data = {'status': status}
+
+        to_return = []
+
+        for _shard_name in shard_names:
+            path = f'/schema/{_capitalize_first_letter(class_name)}/shards/{_shard_name}'
+            try:
+                response = self._connection.put(
+                    path=path,
+                    weaviate_object=data,
+                )
+            except RequestsConnectionError as conn_err:
+                raise RequestsConnectionError(
+                    f"Class shards' status could not be updated for shard '{_shard_name}' due to "
+                    "connection error."
+                ) from conn_err
+            if response.status_code != 200:
+                raise UnexpectedStatusCodeException(
+                    f"Update shard '{_shard_name}' status",
+                    response,
+                )
+            to_return.append(response.json())
+
+        if shard_name is None:
+            return to_return
+        return to_return[0]
+
+
     def _create_complex_properties_from_class(self, schema_class: dict) -> None:
         """
         Add crossreferences to already existing class.
@@ -433,15 +591,12 @@ class Schema:
             ## All complex dataTypes should be capitalized.
             schema_property = {
                 "dataType": [_capitalize_first_letter(dtype) for dtype in  property_["dataType"]],
-                "description": property_["description"],
                 "name": property_["name"]
             }
 
-            if "indexInverted" in property_:
-                schema_property["indexInverted"] = property_["indexInverted"]
-
-            if "moduleConfig" in property_:
-                schema_property["moduleConfig"] = property_["moduleConfig"]
+            for property_field in PROPERTY_KEYS - set(["name", "dataType"]):
+                if property_field in property_:
+                    schema_property[property_field] = property_[property_field]
 
             path = "/schema/" + _capitalize_first_letter(schema_class["class"]) + "/properties"
             try:
@@ -491,27 +646,14 @@ class Schema:
             "properties": []
         }
 
-        if "description" in weaviate_class:
-            schema_class['description'] = weaviate_class['description']
-
-        if "vectorIndexType" in weaviate_class:
-            schema_class['vectorIndexType'] = weaviate_class['vectorIndexType']
-
-        if "vectorIndexConfig" in weaviate_class:
-            schema_class['vectorIndexConfig'] = weaviate_class['vectorIndexConfig']
-
-        if "vectorizer" in weaviate_class:
-            schema_class['vectorizer'] = weaviate_class['vectorizer']
-
-        if "moduleConfig" in weaviate_class:
-            schema_class["moduleConfig"] = weaviate_class["moduleConfig"]
-
-        if "shardingConfig" in weaviate_class:
-            schema_class["shardingConfig"] = weaviate_class["shardingConfig"]
+        for class_field in CLASS_KEYS - set(["class", "properties"]):
+            if class_field in weaviate_class:
+                schema_class[class_field] = weaviate_class[class_field]
 
         if "properties" in weaviate_class:
             schema_class["properties"] = _get_primitive_properties(
-                                                    weaviate_class["properties"])
+                weaviate_class["properties"]
+            )
 
         # Add the item
         try:

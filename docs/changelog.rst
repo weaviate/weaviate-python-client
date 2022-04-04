@@ -1,6 +1,16 @@
 Changelog
 =========
 
+Version 3.4.0
+-------------
+| This minor version fixes the bug in setting the Schema's ``invertedIndexConfig`` field.
+
+| New method :meth:`~weaviate.schema.Schema.get_class_shards` to get all shards configuration of a particular class.
+
+| New method :meth:`~weaviate.schema.Schema.update_class_shard` to update one/all shard/s configuration of a particular class.
+
+| Support for new Property field: ``tokenization``.
+
 Version 3.3.3
 -------------
 | This patch version fixes the nearImage filter requests. 
