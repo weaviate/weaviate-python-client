@@ -53,10 +53,12 @@ def mock_connection_method(
         rest_method_mock = connection_mock.patch
     elif rest_method.lower() == 'get':
         rest_method_mock = connection_mock.get
+    elif rest_method.lower() == 'head':
+        rest_method_mock = connection_mock.head
     else:
         raise ValueError(
-            "Wrong value for `rest_method`! Accepted values: 'delete', 'post', 'put', 'patch' and"
-            f" 'get', but got: {rest_method}"
+            "Wrong value for `rest_method`! Accepted values: 'delete', 'post', 'put', 'patch', "
+            f"'get' and 'head', but got: {rest_method}"
         )
 
     if side_effect is None:

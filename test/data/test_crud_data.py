@@ -467,36 +467,47 @@ class TestDataObject(unittest.TestCase):
             params={'include': "test1,test2"}
         )
 
-    @patch('weaviate.data.crud_data.DataObject._get_response')
-    def test_exists(self, mock_get_response):
+    def test_exists(self):
         """
         Test the `exists` method.
         """
 
-        data_object = DataObject(Mock())
-
         # error messages
+        requests_error_message = 'Could not check if object exist.'
         unexpected_error_message = "Object exists"
+
         # test exceptions
-        mock_obj = Mock(status_code=300)
-        mock_get_response.return_value = mock_obj
+
+        data_object = DataObject(
+            mock_connection_method('head', side_effect=RequestsConnectionError("Test!"))
+        )
+        with self.assertRaises(RequestsConnectionError) as error:
+            data_object.exists(uuid="1d420c9c98cb11ec9db61e008a366d49")
+        check_error_message(self, error, requests_error_message)
+        
+        data_object = DataObject(
+            mock_connection_method('head', status_code=204)
+        )
         with self.assertRaises(UnexpectedStatusCodeException) as error:
-            data_object.exists("some_id")
+            data_object.exists(uuid="1d420c9c98cb11ec9db61e008a366d49")
         check_startswith_error_message(self, error, unexpected_error_message)
-        mock_get_response.assert_called()
 
         # test valid calls
-        ## status_code 200
-        mock_obj = Mock(status_code=200)
-        mock_get_response.return_value = mock_obj
-        result = data_object.exists("73802305-c0da-427e-b21c-d6779a22f35f")
+        connection_mock = mock_connection_method('head', status_code=200)
+        data_object = DataObject(connection_mock)
+        result = data_object.exists(uuid="1d420c9c98cb11ec9db61e008a366d49")
         self.assertEqual(result, True)
+        connection_mock.head.assert_called_with(
+            path="/objects/1d420c9c-98cb-11ec-9db6-1e008a366d49",
+        )
 
-        ## status_code 200
-        mock_obj = Mock(status_code=404)
-        mock_get_response.return_value = mock_obj
-        result = data_object.exists("73802305-c0da-427e-b21c-d6779a22f35f")
+        connection_mock = mock_connection_method('head', status_code=404)
+        data_object = DataObject(connection_mock)
+        result = data_object.exists(uuid="1d420c9c-98cb-11ec-9db6-1e008a366d49")
         self.assertEqual(result, False)
+        connection_mock.head.assert_called_with(
+            path="/objects/1d420c9c-98cb-11ec-9db6-1e008a366d49",
+        )
 
     @patch('weaviate.data.crud_data._get_dict_from_object', side_effect=lambda x:x)
     @patch('weaviate.data.crud_data.get_vector', side_effect=lambda x:x)

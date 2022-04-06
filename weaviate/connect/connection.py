@@ -390,6 +390,36 @@ class Connection:
             params=params,
         )
 
+    def head(self, path: str) -> requests.Response:
+        """
+        Make a HEAD request to the server.
+
+        Parameters
+        ----------
+        path : str
+            Sub-path to the resources. Must be a valid sub-path.
+            e.g. '/meta' or '/objects', without version.
+
+        Returns
+        -------
+        requests.Response
+            The response to the request.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the HEAD request could not be made.
+        """
+
+        request_url = self.url + self._api_version_path + path 
+
+        return self._session.head(
+            url=request_url,
+            headers=self._get_request_header(),
+            timeout=self._timeout_config,
+
+        )
+
     @property
     def timeout_config(self) -> Tuple[Real, Real]:
         """

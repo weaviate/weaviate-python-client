@@ -1,6 +1,10 @@
 Changelog
 =========
 
+Version 3.4.1
+-------------
+| this patch version fixes bug in :meth:`~weaviate.data.DataObject.exists`.
+
 Version 3.4.0
 -------------
 | This minor version fixes the bug in setting the Schema's ``invertedIndexConfig`` field.
