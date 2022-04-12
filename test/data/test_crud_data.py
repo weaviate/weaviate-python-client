@@ -486,14 +486,14 @@ class TestDataObject(unittest.TestCase):
         check_error_message(self, error, requests_error_message)
         
         data_object = DataObject(
-            mock_connection_method('head', status_code=204)
+            mock_connection_method('head', status_code=200)
         )
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             data_object.exists(uuid="1d420c9c98cb11ec9db61e008a366d49")
         check_startswith_error_message(self, error, unexpected_error_message)
 
         # test valid calls
-        connection_mock = mock_connection_method('head', status_code=200)
+        connection_mock = mock_connection_method('head', status_code=204)
         data_object = DataObject(connection_mock)
         result = data_object.exists(uuid="1d420c9c98cb11ec9db61e008a366d49")
         self.assertEqual(result, True)

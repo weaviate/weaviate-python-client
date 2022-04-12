@@ -1,6 +1,10 @@
 Changelog
 =========
 
+Version 3.4.2
+-------------
+| this patch version fixes another bug in :meth:`~weaviate.data.DataObject.exists`.
+
 Version 3.4.1
 -------------
 | this patch version fixes bug in :meth:`~weaviate.data.DataObject.exists`.
