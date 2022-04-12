@@ -562,7 +562,7 @@ class DataObject:
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError('Could not check if object exist.') from conn_err
 
-        if response.status_code == 200:
+        if response.status_code == 204:
             return True
         if response.status_code == 404:
             return False
