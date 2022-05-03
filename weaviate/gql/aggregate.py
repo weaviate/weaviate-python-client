@@ -5,7 +5,14 @@ import json
 from typing import List, Optional
 from weaviate.connect import Connection
 from weaviate.util import _capitalize_first_letter
-from .filter import Where, GraphQL
+from .filter import (
+    Where,
+    GraphQL,
+    Filter,
+    NearObject,
+    NearText,
+    NearVector,
+)
 
 class AggregateBuilder(GraphQL):
     """
@@ -25,12 +32,14 @@ class AggregateBuilder(GraphQL):
         """
 
         super().__init__(connection)
-        self._class_name = _capitalize_first_letter(class_name)
-        self._with_meta_count = False
+        self._class_name: str = _capitalize_first_letter(class_name)
+        self._object_limit: Optional[int] = None
+        self._with_meta_count: bool = False
         self._fields: List[str] = []
         self._where: Optional[Where] = None
         self._group_by_properties: Optional[List[str]] = None
-        self._uses_filter = False
+        self._uses_filter: bool = False
+        self._near: Optional[Filter] = None
 
     def with_meta_count(self) -> 'AggregateBuilder':
         """
@@ -43,6 +52,24 @@ class AggregateBuilder(GraphQL):
         """
 
         self._with_meta_count = True
+        return self
+
+    def with_object_limit(self, limit: int) -> 'AggregateBuilder':
+        """
+        Set objectLimit to limit vector search results only when with near<MEDIA> filter.
+
+        Parameters
+        ----------
+        limit : int
+            The object limit.
+
+        Returns
+        -------
+        weaviate.gql.aggregate.AggregateBuilder
+            Updated AggregateBuilder.
+        """
+
+        self._object_limit = limit
         return self
 
     def with_fields(self, field: str) -> 'AggregateBuilder':
@@ -161,6 +188,188 @@ class AggregateBuilder(GraphQL):
         self._uses_filter = True
         return self
 
+    def with_near_text(self, content: dict) -> 'AggregateBuilder':
+        """
+        Set `nearText` filter. This filter can be used with text modules (text2vec).
+        E.g.: text2vec-contextionary, text2vec-transformers.
+        NOTE: The 'autocorrect' field is enabled only with the `text-spellcheck` Weaviate module.
+
+        Parameters
+        ----------
+        content : dict
+            The content of the `nearText` filter to set. See examples below.
+
+        Examples
+        --------
+        Content full prototype:
+
+        >>> content = {
+        ...     'concepts': <list of str or str>,
+        ...     'certainty': <float>, # Optional
+        ...     'moveAwayFrom': { # Optional
+        ...         'concepts': <list of str or str>,
+        ...         'force': <float>
+        ...     },
+        ...     'moveTo': { # Optional
+        ...         'concepts': <list of str or str>,
+        ...         'force': <float>
+        ...     },
+        ...     'autocorrect': <bool>, # Optional
+        ... }
+
+        Full content:
+
+        >>> content = {
+        ...     'concepts': ["fashion"],
+        ...     'certainty': 0.7,
+        ...     'moveAwayFrom': {
+        ...         'concepts': ["finance"],
+        ...         'force': 0.45
+        ...     },
+        ...     'moveTo': {
+        ...         'concepts': ["haute couture"],
+        ...         'force': 0.85
+        ...     },
+        ...     'autocorrect': True
+        ... }
+
+        Partial content:
+
+        >>> content = {
+        ...     'concepts': ["fashion"],
+        ...     'certainty': 0.7,
+        ...     'moveTo': {
+        ...         'concepts': ["haute couture"],
+        ...         'force': 0.85
+        ...     }
+        ... }
+
+        Minimal content:
+
+        >>> content = {
+        ...     'concepts': "fashion"
+        ... }
+
+        Returns
+        -------
+        weaviate.gql.aggregate.AggregateBuilder
+            Updated AggregateBuilder.
+
+        Raises
+        ------
+        AttributeError
+            If another 'near' filter was already set.
+        """
+
+        if self._near is not None:
+            raise AttributeError("Cannot use multiple 'near' filters.")
+        self._near = NearText(content)
+        self._uses_filter = True
+        return self
+
+    def with_near_vector(self, content: dict) -> 'AggregateBuilder':
+        """
+        Set `nearVector` filter.
+
+        Parameters
+        ----------
+        content : dict
+            The content of the `nearVector` filter to set. See examples below.
+
+        Examples
+        --------
+        Content full prototype:
+
+        >>> content = {
+        ...     'vector' : <list of float>,
+        ...     'certainty': <float> # Optional
+        ... }
+
+        NOTE: Supported types for 'vector' are `list`, 'numpy.ndarray`, `torch.Tensor`
+                and `tf.Tensor`.
+
+        Full content:
+
+        >>> content = {
+        ...     'vector' : [.1, .2, .3, .5],
+        ...     'certainty': 0.75
+        ... }
+
+        Minimal content:
+
+        >>> content = {
+        ...     'vector' : [.1, .2, .3, .5]
+        ... }
+
+        Or
+
+        >>> content = {
+        ...     'vector' : torch.tensor([.1, .2, .3, .5])
+        ... }
+
+        Or
+
+        >>> content = {
+        ...     'vector' : torch.tensor([[.1, .2, .3, .5]]) # it is going to be squeezed.
+        ... }
+
+        Returns
+        -------
+        weaviate.gql.aggregate.AggregateBuilder
+            Updated AggregateBuilder.
+
+        Raises
+        ------
+        AttributeError
+            If another 'near' filter was already set.
+        """
+
+        if self._near is not None:
+            raise AttributeError("Cannot use multiple 'near' filters.")
+        self._near = NearVector(content)
+        self._uses_filter = True
+        return self
+
+    def with_near_object(self, content: dict) -> 'AggregateBuilder':
+        """
+        Set `nearObject` filter.
+
+        Parameters
+        ----------
+        content : dict
+            The content of the `nearObject` filter to set. See examples below.
+
+        Examples
+        --------
+        Content prototype:
+
+        >>> {
+        ...     'id': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf",
+        ...     'certainty': 0.7 # Optional
+        ... }
+        >>> # alternatively
+        >>> {
+        ...     'beacon': "weaviate://localhost/e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf"
+        ...     'certainty': 0.7 # Optional
+        ... }
+
+        Returns
+        -------
+        weaviate.gql.aggregate.AggregateBuilder
+            Updated AggregateBuilder.
+
+        Raises
+        ------
+        AttributeError
+            If another 'near' filter was already set.
+        """
+
+        if self._near is not None:
+            raise AttributeError("Cannot use multiple 'near' filters.")
+        self._near = NearObject(content)
+        self._uses_filter = True
+        return self
+
     def build(self) -> str:
         """
         Build the query and return the string.
@@ -177,11 +386,14 @@ class AggregateBuilder(GraphQL):
         # Filter
         if self._uses_filter:
             query += "("
-        if self._where is not None:
-            query += str(self._where)
-        if self._group_by_properties is not None:
-            query += f"groupBy: {json.dumps(self._group_by_properties)}"
-        if self._uses_filter:
+            if self._where is not None:
+                query += str(self._where)
+            if self._group_by_properties is not None:
+                query += f"groupBy: {json.dumps(self._group_by_properties)}"
+            if self._near is not None:
+                query += str(self._near)
+            if self._object_limit:
+                query += f"objectLimit: {self._object_limit}"
             query += ")"
 
         # Body

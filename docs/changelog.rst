@@ -1,6 +1,23 @@
 Changelog
 =========
 
+Version 3.5.0
+-------------
+This minor version contains functionality for the new features introduced in Weaviate ``v1.13.0``.
+
+- | New :class:`~weaviate.batch.Batch` method :meth:`~weaviate.batch.Batch.delete_objects` to delete all objects that match a particular expression (``where`` filter).
+
+- | New :class:`~weaviate.gql.get.GetBuilder` method :meth:`~weaviate.gql.get.GetBuilder.with_sort` that allows sorting data on a particular field/s.
+
+- | New :class:`~weaviate.gql.aggregate.AggregateBuilder` method :meth:`~weaviate.gql.aggregate.AggregateBuilder.with_near_text` that allows to 
+    aggregate data that is matching ``nearText`` filter.
+
+- | New :class:`~weaviate.gql.aggregate.AggregateBuilder` method :meth:`~weaviate.gql.aggregate.AggregateBuilder.with_near_object` that allows to 
+    aggregate data that is matching ``nearObject`` filter.
+
+- | New :class:`~weaviate.gql.aggregate.AggregateBuilder` method :meth:`~weaviate.gql.aggregate.AggregateBuilder.with_near_vector` that allows to 
+    aggregate data that is matching ``nearVector`` filter.
+
 Version 3.4.2
 -------------
 | this patch version fixes another bug in :meth:`~weaviate.data.DataObject.exists`.
