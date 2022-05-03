@@ -580,7 +580,7 @@ class TestWhere(unittest.TestCase):
         # test exceptions
         content_error_msg = lambda dt: f"Where filter is expected to be type dict but is {dt}"
         content_key_error_msg = "Filter is missing required fields `path` or `operands`. Given: "
-        path_key_error = "Filter is missing required filed `operator`. Given: "
+        path_key_error = "Filter is missing required field `operator`. Given: "
         dtype_error_msg = "Filter is missing required fields: "
 
         with self.assertRaises(TypeError) as error:

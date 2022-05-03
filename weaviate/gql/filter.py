@@ -4,7 +4,7 @@ GraphQL abstract class for GraphQL commands to inherit from.
 """
 from json import dumps
 from copy import deepcopy
-from typing import Any
+from typing import Any, Union
 from abc import ABC, abstractmethod
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
@@ -385,6 +385,101 @@ class NearImage(Filter):
         return near_image + '} '
 
 
+
+class Sort(Filter):
+    """
+    Sort filter class used to sort weaviate objects.
+    """
+
+    def __init__(self, content: Union[dict, list]):
+        """
+        Initialize a Where filter class instance.
+
+        Parameters
+        ----------
+        content : list or dict
+            The content of the `sort` filter clause or a single clause.
+
+        Raises
+        ------
+        TypeError
+            If 'content' is not of type dict.
+        ValueError
+            If a mandatory key is missing in the filter content.
+        """
+
+        # content is a empty list because it is going to the the list with sort clauses.
+
+        super().__init__(content={'sort': []})
+
+        self.add(content=content)
+
+    def add(self, content: Union[dict, list]) -> None:
+        """
+        Add more sort clauses to the already existing sort clauses.
+
+        Parameters
+        ----------
+        content : list or dict
+            The content of the `sort` filter clause or a single clause to be added to the already
+            existing ones.
+
+        Raises
+        ------
+        TypeError
+            If 'content' is not of type dict.
+        ValueError
+            If a mandatory key is missing in the filter content.
+        """
+
+        if isinstance(content, dict):
+            content = [content]
+
+        if not isinstance(content, list):
+            raise TypeError(
+                f"'content' must be of type dict or list. Given type: {type(content)}."
+            )
+
+        if len(content) == 0:
+            raise ValueError(
+                "'content' cannot be an empty list."
+            )
+
+        for clause in content:
+            if 'path' not in clause or 'order' not in clause:
+                raise ValueError(
+                    "One of the sort clause is missing required fields: 'path' and/or 'order'."
+                )
+
+            _check_type(
+                var_name='path',
+                value=clause["path"],
+                dtype=list,
+            )
+            _check_type(
+                var_name='order',
+                value=clause["order"],
+                dtype=str,
+            )
+            
+            self._content['sort'].append(
+                {
+                    'path': clause['path'],
+                    'order': clause['order'],
+                }
+            )
+
+
+    def __str__(self) -> str:
+        
+        sort = f'sort: ['
+        for clause in self._content['sort']:
+            sort += f"{{ path: {dumps(clause['path'])} order: {clause['order']} }} "
+        
+        sort += ']'
+        return sort
+
+
 class Where(Filter):
     """
     Where filter class used to filter weaviate objects.
@@ -435,7 +530,7 @@ class Where(Filter):
         """
 
         if "operator" not in content:
-            raise ValueError("Filter is missing required filed `operator`. "
+            raise ValueError("Filter is missing required field `operator`. "
                 f"Given: {content}")
 
         self.path = dumps(content["path"])
@@ -459,7 +554,7 @@ class Where(Filter):
         """
 
         if "operator" not in content:
-            raise ValueError("Filter is missing required filed `operator`."
+            raise ValueError("Filter is missing required field `operator`."
                 f" Given: {content}")
         _content = deepcopy(content)
         self.operator = _content["operator"]

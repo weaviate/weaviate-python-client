@@ -11,7 +11,8 @@ from weaviate.gql.filter import (
     NearObject,
     Filter,
     Ask,
-    NearImage
+    NearImage,
+    Sort,
 )
 from weaviate.connect import Connection
 from weaviate.util import image_encoder_b64, _capitalize_first_letter
@@ -70,6 +71,7 @@ class GetBuilder(GraphQL):
         self._offset: Optional[str] = None  # To store the offset filter if it is added
         self._near_ask: Optional[Filter] = None # To store the `near`/`ask` clause if it is added
         self._contains_filter = False  # true if any filter is added
+        self._sort: Optional[Sort] = None
 
     def with_where(self, content: dict) -> 'GetBuilder':
         """
@@ -765,6 +767,70 @@ class GetBuilder(GraphQL):
                 self._additional[key].add(value)
         return self
 
+    def with_sort(self, content: Union[list, dict]) -> 'GetBuilder':
+        """
+        Sort objects based on specific field/s. Multiple sort fields can be used, the objects are
+        going to be sorted according to order of the sort configs passed. This method can be called
+        multiple times and it does not overwrite the last entry but appends it to the previous
+        ones, see examples below.
+
+        Parameters
+        ----------
+        content : Union[list, dict]
+            The content of the Sort filter. Can be a single Sort configuration or a list of
+            configurations.
+
+        Examples
+        --------
+        The `content` should have this form:
+
+        >>> content = {
+        ...     'path': ['name']       # Path to the property that should be used
+        ...     'order': 'asc'         # Sort order, possible values: asc, desc 
+        ... }
+        >>> client.query.get('Author', ['name', 'address'])\
+        ...     .with_sort(content)
+
+        Or a list of sort configurations:
+
+        >>> content = [
+        ...     {
+        ...         'path': ['name']        # Path to the property that should be used
+        ...         'order': 'asc'          # Sort order, possible values: asc, desc 
+        ...     },
+        ...         'path': ['address']     # Path to the property that should be used
+        ...         'order': 'desc'         # Sort order, possible values: asc, desc 
+        ...     }
+        ... ]
+
+        If we have a list we can add it in 2 ways.
+        Pass the list:
+
+        >>> client.query.get('Author', ['name', 'address'])\
+        ...     .with_sort(content)
+
+        Or one configuration at a time:
+
+        >>> client.query.get('Author', ['name', 'address'])\
+        ...     .with_sort(content[0])
+        ...     .with_sort(content[1])
+
+        It is possible to call this method multiple times with lists only too.
+
+
+        Returns
+        -------
+        weaviate.gql.get.GetBuilder
+            The updated GetBuilder.
+        """
+
+        if self._sort is None:
+            self._sort = Sort(content=content)
+            self._contains_filter = True
+        else:
+            self._sort.add(content=content)
+        return self
+
     def build(self) -> str:
         """
         Build query filter as a string.
@@ -786,6 +852,8 @@ class GetBuilder(GraphQL):
                 query += self._offset
             if self._near_ask is not None:
                 query += str(self._near_ask)
+            if self._sort is not None:
+                query += str(self._sort)
             query += ')'
 
         properties = " ".join(self._properties) + self._additional_to_str()

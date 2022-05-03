@@ -10,6 +10,8 @@ from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeExc
 from weaviate.connect import Connection
 from weaviate.util import _capitalize_first_letter
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest
+from ..gql.filter import Where
+
 
 class Batch:
     """
@@ -571,7 +573,7 @@ class Batch:
         can inspect the 'result'.
 
         >>> import json
-        >>> print(result, indent=4))
+        >>> print(json.dumps(result, indent=4))
         [
             {
                 "from": "weaviate://localhost/NonExistingClass/
@@ -656,6 +658,118 @@ class Batch:
                 self._callback(result_objects)
             if result_references:
                 self._callback(result_references)
+
+    def delete_objects(self, class_name: str, where: dict, output: str='minimal', dry_run: bool=False) -> dict:
+        """
+        Delete objects that match the 'match' in batch.
+
+        Parameters
+        ----------
+        class_name : str
+            The class name for which to delete objects.
+        where : dict
+            The content of the `where` filter used to match objects that should be deleted.
+        output : str, optional
+            The control of the verbosity of the output, possible values:
+            - "minimal" : The result only includes counts. Information about objects is omitted if
+            the deletes were successful. Only if an error occurred will the object be described.
+            - "verbose" : The result lists all affected objects with their ID and deletion status,
+            including both successful and unsuccessful deletes.
+            By default "minimal"
+        dry_run : bool, optional
+            If True, objects will not be deleted yet, but merely listed, by default False
+
+        Examples
+        --------
+
+        If we want to delete all the data objects that contain the word 'weather' we can do it like
+        this:
+
+        >>> result = client.batch.delete_objects(
+        ...     class_name='Dataset',
+        ...     output='verbose',
+        ...     dry_run=False,
+        ...     where={
+        ...         'operator': 'Equal',
+        ...         'path': ['description'],
+        ...         'valueText': 'weather'
+        ...     }
+        ... )
+        >>> print(json.dumps(result, indent=4))
+        {
+            "dryRun": false,
+            "match": {
+                "class": "Dataset",
+                "where": {
+                    "operands": null,
+                    "operator": "Equal",
+                    "path": [
+                        "description"
+                    ],
+                    "valueText": "weather"
+                }
+            },
+            "output": "verbose",
+            "results": {
+                "failed": 0,
+                "limit": 10000,
+                "matches": 2,
+                "objects": [
+                    {
+                        "id": "1eb28f69-c66e-5411-bad4-4e14412b65cd",
+                        "status": "SUCCESS"
+                    },
+                    {
+                        "id": "da217bdd-4c7c-5568-9576-ebefe17688ba",
+                        "status": "SUCCESS"
+                    }
+                ],
+                "successful": 2
+            }
+        }
+
+        Returns
+        -------
+        dict
+            The result/status of the batch delete.
+        """
+
+        if not isinstance(class_name, str):
+            raise TypeError(
+                f"'class_name' must be of type str. Given type: {type(class_name)}."
+            )
+        if not isinstance(where, dict):
+            raise TypeError(
+                f"'where' must be of type dict. Given type: {type(class_name)}."
+            )
+        if not isinstance(output, str):
+            raise TypeError(
+                f"'output' must be of type str. Given type: {type(class_name)}."
+            )
+        if not isinstance(dry_run, bool):
+            raise TypeError(
+                f"'dry_run' must be of type bool. Given type: {type(class_name)}."
+            )
+
+        payload = {
+            "match": {
+                "class": class_name,
+                "where": where,
+            },
+            "output": output,
+            "dryRun": dry_run,
+        }
+        
+        try:
+            response = self._connection.delete(
+                path='/batch/objects',
+                weaviate_object=payload,
+            )
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError('Batch delete was not successful.') from conn_err
+        if response.status_code == 200:
+            return response.json()
+        raise UnexpectedStatusCodeException(f"Delete in batch", response)
 
     def num_objects(self) -> int:
         """
