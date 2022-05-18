@@ -317,6 +317,13 @@ class Ask(Filter):
                 dtype=bool
             )
 
+        if "rerank" in self._content:
+            _check_type(
+                var_name='rerank',
+                value=self._content["rerank"],
+                dtype=bool
+            )
+
         if 'properties' in self._content:
             _check_type(
                 var_name='properties',
@@ -327,13 +334,15 @@ class Ask(Filter):
                 self._content['properties'] = [self._content['properties']]
 
     def __str__(self):
-        ask = f'ask: {{question: \"{self._content["question"]}\"'
+        ask = f'ask: {{question: {dumps(self._content["question"])}'
         if 'certainty' in self._content:
             ask += f' certainty: {self._content["certainty"]}'
         if 'properties' in self._content:
             ask += f' properties: {dumps(self._content["properties"])}'
         if 'autocorrect' in self._content:
             ask += f' autocorrect: {_bool_to_str(self._content["autocorrect"])}'
+        if 'rerank' in self._content:
+            ask += f' rerank: {_bool_to_str(self._content["rerank"])}'
         return ask + '} '
 
 

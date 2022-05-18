@@ -1,6 +1,15 @@
 Changelog
 =========
 
+Version 3.5.1
+-------------
+This patch version fixes:
+
+- | the `rerank` not being set bug in :meth:`~weaviate.gql.get.GetBuilder.with_ask`.
+
+- | the bug when using double quotes(`"`) in `question` field in :meth:`~weaviate.gql.get.GetBuilder.with_ask`.
+
+
 Version 3.5.0
 -------------
 This minor version contains functionality for the new features introduced in Weaviate ``v1.13.0``.
@@ -20,11 +29,11 @@ This minor version contains functionality for the new features introduced in Wea
 
 Version 3.4.2
 -------------
-| this patch version fixes another bug in :meth:`~weaviate.data.DataObject.exists`.
+| This patch version fixes another bug in :meth:`~weaviate.data.DataObject.exists`.
 
 Version 3.4.1
 -------------
-| this patch version fixes bug in :meth:`~weaviate.data.DataObject.exists`.
+| This patch version fixes bug in :meth:`~weaviate.data.DataObject.exists`.
 
 Version 3.4.0
 -------------

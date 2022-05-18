@@ -787,6 +787,19 @@ class TestAskFilter(unittest.TestCase):
             )
         )
 
+        content = {
+            'question': 'Who is the president of "USA"?',
+            'certainty': 0.8,
+        }
+        ask = Ask(content=content)
+        self.assertEqual(
+            str(ask),
+            (
+                f"ask: {{question: \"Who is the president of \\\"USA\\\"?\""
+                f' certainty: {content["certainty"]}}} '
+            )
+        )
+
 
         content = {
             'question': "Who is the president of USA?",
@@ -843,5 +856,36 @@ class TestAskFilter(unittest.TestCase):
             str(ask),
             (
                 f"ask: {{question: \"{content['question']}\" autocorrect: false}} "
+            )
+        )
+
+        content = {
+            'question': "Who is the president of USA?",
+            'certainty': 0.8,
+            'properties': ['prop1', "prop2"],
+            'autocorrect': True,
+            'rerank': True,
+        }
+        ask = Ask(content=content)
+        self.assertEqual(
+            str(ask),
+            (
+                f"ask: {{question: \"{content['question']}\""
+                f' certainty: {content["certainty"]}'
+                ' properties: [\"prop1\", \"prop2\"] autocorrect: true'
+                ' rerank: true} '
+            )
+        )
+
+        content = {
+            'question': "Who is the president of USA?",
+            'rerank': False,
+        }
+        ask = Ask(content=content)
+        self.assertEqual(
+            str(ask),
+            (
+                f"ask: {{question: \"{content['question']}\""
+                ' rerank: false} '
             )
         )
