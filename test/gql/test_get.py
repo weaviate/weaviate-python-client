@@ -99,7 +99,7 @@ class TestGetBuilder(unittest.TestCase):
 
         # valid calls
         query = GetBuilder("Person", "name", None).with_near_text(near_text).build()
-        self.assertEqual('{Get{Person(nearText: {concepts: ["computer"] moveTo: {concepts: ["science"] force: 0.5} autocorrect: true} ){name}}}', query)
+        self.assertEqual('{Get{Person(nearText: {concepts: ["computer"] moveTo: {force: 0.5 concepts: ["science"]} autocorrect: true} ){name}}}', query)
 
         # invalid calls
         near_error_msg = "Cannot use multiple 'near' filters, or a 'near' filter along with a 'ask' filter!"
@@ -553,7 +553,7 @@ class TestGetBuilder(unittest.TestCase):
             .with_limit(2)\
             .with_offset(10)\
             .build()
-        self.assertEqual('{Get{Person(where: {operator: Or operands: [{path: ["name"] operator: Equal valueString: "Alan Turing"}, {path: ["name"] operator: Equal valueString: "John von Neumann"}]} limit: 2 offset: 10 nearText: {concepts: ["computer"] certainty: 0.3 moveTo: {concepts: ["science"] force: 0.1} moveAwayFrom: {concepts: ["airplane"] force: 0.2}} ){name uuid}}}', query)
+        self.assertEqual('{Get{Person(where: {operator: Or operands: [{path: ["name"] operator: Equal valueString: "Alan Turing"}, {path: ["name"] operator: Equal valueString: "John von Neumann"}]} limit: 2 offset: 10 nearText: {concepts: ["computer"] certainty: 0.3 moveTo: {force: 0.1 concepts: ["science"]} moveAwayFrom: {force: 0.2 concepts: ["airplane"]}} ){name uuid}}}', query)
 
     def test_uncapitalized_class_name(self):
         """

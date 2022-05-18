@@ -289,7 +289,53 @@ class TestNearText(unittest.TestCase):
                 }
             }
         )
-        self.assertEqual(str(near_text), 'nearText: {concepts: ["Some_concept"] moveTo: {concepts: ["moveToConcepts"] force: 0.75}} ')
+        self.assertEqual(str(near_text), 'nearText: {concepts: ["Some_concept"] moveTo: {force: 0.75 concepts: ["moveToConcepts"]}} ')
+        near_text = NearText(
+            {
+                "concepts": "Some_concept",
+                "moveTo": {
+                    "concepts": "moveToConcepts",
+                    "force": 0.75,
+                    'objects': {'id': 'SOME_ID'}
+                }
+            }
+        )
+        self.assertEqual(str(near_text), 'nearText: {concepts: ["Some_concept"] moveTo: {force: 0.75 concepts: ["moveToConcepts"] objects: [{id: "SOME_ID"} ]}} ')
+
+        near_text = NearText(
+            {
+                "concepts": "Some_concept",
+                "moveTo": {
+                    "force": 0.75,
+                    'objects': [{'id': 'SOME_ID'}, {'beacon': 'SOME_BEACON'}]
+                }
+            }
+        )
+        self.assertEqual(str(near_text), 'nearText: {concepts: ["Some_concept"] moveTo: {force: 0.75 objects: [{id: "SOME_ID"} {beacon: "SOME_BEACON"} ]}} ')
+
+        near_text = NearText(
+            {
+                "concepts": "Some_concept",
+                "moveAwayFrom": {
+                    "concepts": "moveAwayFromConcepts",
+                    "force": 0.75,
+                    'objects': {'id': 'SOME_ID'}
+                }
+            }
+        )
+        self.assertEqual(str(near_text), 'nearText: {concepts: ["Some_concept"] moveAwayFrom: {force: 0.75 concepts: ["moveAwayFromConcepts"] objects: [{id: "SOME_ID"} ]}} ')
+
+        near_text = NearText(
+            {
+                "concepts": "Some_concept",
+                "moveAwayFrom": {
+                    "force": 0.75,
+                    'objects': [{'id': 'SOME_ID'}, {'beacon': 'SOME_BEACON'}]
+                }
+            }
+        )
+        self.assertEqual(str(near_text), 'nearText: {concepts: ["Some_concept"] moveAwayFrom: {force: 0.75 objects: [{id: "SOME_ID"} {beacon: "SOME_BEACON"} ]}} ')
+        
         near_text = NearText(
             {
                 "concepts": "Some_concept",
@@ -299,7 +345,7 @@ class TestNearText(unittest.TestCase):
                 }
             }
         )
-        self.assertEqual(str(near_text), 'nearText: {concepts: ["Some_concept"] moveAwayFrom: {concepts: ["moveAwayFromConcepts"] force: 0.25}} ')
+        self.assertEqual(str(near_text), 'nearText: {concepts: ["Some_concept"] moveAwayFrom: {force: 0.25 concepts: ["moveAwayFromConcepts"]}} ')
         near_text = NearText(
             {
                 "concepts": "Some_concept",
@@ -315,7 +361,7 @@ class TestNearText(unittest.TestCase):
                 "autocorrect": True
             }
         )
-        self.assertEqual(str(near_text), 'nearText: {concepts: ["Some_concept"] certainty: 0.95 moveTo: {concepts: ["moveToConcepts"] force: 0.25} moveAwayFrom: {concepts: ["moveAwayFromConcepts"] force: 0.75} autocorrect: true} ')
+        self.assertEqual(str(near_text), 'nearText: {concepts: ["Some_concept"] certainty: 0.95 moveTo: {force: 0.25 concepts: ["moveToConcepts"]} moveAwayFrom: {force: 0.75 concepts: ["moveAwayFromConcepts"]} autocorrect: true} ')
 
         # test it with references of objects
         concepts = ["con1", "con2"]
@@ -332,7 +378,7 @@ class TestNearText(unittest.TestCase):
         )
         concepts.append("con3") # should not be appended to the nearText clause
         move["force"] = 2.00 # should not be appended to the nearText clause
-        self.assertEqual(str(near_text), 'nearText: {concepts: ["con1", "con2"] moveTo: {concepts: ["moveToConcepts"] force: 0.75}} ')
+        self.assertEqual(str(near_text), 'nearText: {concepts: ["con1", "con2"] moveTo: {force: 0.75 concepts: ["moveToConcepts"]}} ')
 
 
 class TestNearVector(unittest.TestCase):
@@ -787,6 +833,19 @@ class TestAskFilter(unittest.TestCase):
             )
         )
 
+        content = {
+            'question': 'Who is the president of "USA"?',
+            'certainty': 0.8,
+        }
+        ask = Ask(content=content)
+        self.assertEqual(
+            str(ask),
+            (
+                f"ask: {{question: \"Who is the president of \\\"USA\\\"?\""
+                f' certainty: {content["certainty"]}}} '
+            )
+        )
+
 
         content = {
             'question': "Who is the president of USA?",
@@ -843,5 +902,36 @@ class TestAskFilter(unittest.TestCase):
             str(ask),
             (
                 f"ask: {{question: \"{content['question']}\" autocorrect: false}} "
+            )
+        )
+
+        content = {
+            'question': "Who is the president of USA?",
+            'certainty': 0.8,
+            'properties': ['prop1', "prop2"],
+            'autocorrect': True,
+            'rerank': True,
+        }
+        ask = Ask(content=content)
+        self.assertEqual(
+            str(ask),
+            (
+                f"ask: {{question: \"{content['question']}\""
+                f' certainty: {content["certainty"]}'
+                ' properties: [\"prop1\", \"prop2\"] autocorrect: true'
+                ' rerank: true} '
+            )
+        )
+
+        content = {
+            'question': "Who is the president of USA?",
+            'rerank': False,
+        }
+        ask = Ask(content=content)
+        self.assertEqual(
+            str(ask),
+            (
+                f"ask: {{question: \"{content['question']}\""
+                ' rerank: false} '
             )
         )
