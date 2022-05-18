@@ -9,6 +9,8 @@ This patch version fixes:
 
 - | the bug when using double quotes(`"`) in `question` field in :meth:`~weaviate.gql.get.GetBuilder.with_ask`.
 
+- | the bug where `nearText` filter checks for objects in `moveXXX` clause but never sets it.
+
 
 Version 3.5.0
 -------------

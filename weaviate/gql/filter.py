@@ -150,15 +150,21 @@ class NearText(Filter):
         if 'certainty' in self._content:
             near_text += f' certainty: {self._content["certainty"]}'
         if 'moveTo' in self._content:
-            near_text += (
-                f' moveTo: {{concepts: {dumps(self._content["moveTo"]["concepts"])}'
-                f' force: {self._content["moveTo"]["force"]}}}'
-            )
+            move_to = self._content['moveTo']
+            near_text +=f' moveTo: {{force: {move_to["force"]}'
+            if 'concepts' in move_to:
+                near_text += f' concepts: {dumps(move_to["concepts"])}'
+            if 'objects' in move_to:
+                near_text += _move_clause_objects_to_str(move_to['objects'])
+            near_text += '}'
         if 'moveAwayFrom' in self._content:
-            near_text += (
-                f' moveAwayFrom: {{concepts: {dumps(self._content["moveAwayFrom"]["concepts"])}'
-                f' force: {self._content["moveAwayFrom"]["force"]}}}'
-            )
+            move_away_from = self._content['moveAwayFrom']
+            near_text += f' moveAwayFrom: {{force: {move_away_from["force"]}'
+            if 'concepts' in move_away_from:
+                near_text += f' concepts: {dumps(move_away_from["concepts"])}'
+            if 'objects' in move_away_from:
+                near_text += _move_clause_objects_to_str(move_away_from['objects'])
+            near_text += '}'
         if 'autocorrect' in self._content:
             near_text += f' autocorrect: {_bool_to_str(self._content["autocorrect"])}'
         return near_text + '} '
@@ -707,6 +713,11 @@ def _check_objects(content: dict) -> None:
     if isinstance(content["objects"], dict):
         content["objects"] = [content["objects"]]
 
+    if len(content["objects"]) ==  0:
+        raise ValueError(
+            "'moveXXX' clause specifies 'objects' but no value provided."
+        )
+
     for obj in content["objects"]:
         if len(obj) != 1 or ('id' not in obj and 'beacon' not in obj):
             raise ValueError('Each object from the `move` clause should have ONLY `id` OR '
@@ -775,3 +786,29 @@ def _find_value_type(content: dict) -> str:
     else:
         raise ValueError(f"Filter is missing required fields: {content}")
     return to_return
+
+
+def _move_clause_objects_to_str(objects: list) -> str:
+    """
+    _summary_
+
+    Parameters
+    ----------
+    objects : list
+        _description_
+
+    Returns
+    -------
+    str
+        _description_
+    """
+
+    to_return = ' objects: ['
+    for obj in objects:
+        if 'id' in obj:
+            id_beacon = 'id'
+        else:
+            id_beacon = 'beacon'
+        to_return += f'{{{id_beacon}: {dumps(obj[id_beacon])}}} '
+    
+    return to_return + ']'
