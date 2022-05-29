@@ -375,7 +375,7 @@ def _compare_class_sets(sub_set: list, set_: list) -> bool:
                     "The sub schema class/es MUST have a 'class' keyword each!"
                 )
             if (
-                    _capitalize_first_letter(sub_set_class["class"]) == \
+                    _capitalize_first_letter(sub_set_class["class"]) ==
                     _capitalize_first_letter(set_class["class"])
             ):
                 if _compare_properties(sub_set_class["properties"], set_class["properties"]):
@@ -394,7 +394,7 @@ def _compare_properties(sub_set: list, set_: list) -> bool:
     ----------
     sub_set : list
         The smaller set that should be contained in the 'set'.
-    schema : dict
+    set_ : list
         The set for which to check if 'sub_set' is a part of.
 
     Returns
