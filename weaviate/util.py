@@ -46,8 +46,10 @@ def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
     elif isinstance(image_or_image_path, BufferedReader):
         content = image_or_image_path.read()
     else:
-        raise TypeError('"image_or_image_path" should be a image path or a binary read file'
-                        ' (io.BufferedReader)')
+        raise TypeError(
+            '"image_or_image_path" should be a image path or a binary read file'
+            ' (io.BufferedReader)'
+        )
     return base64.b64encode(content).decode("utf-8")
 
 
@@ -166,7 +168,7 @@ def is_weaviate_object_url(url: str) -> bool:
     Returns
     -------
     bool
-        True if 'input' ie the 'url' is a Weaviate object URL.
+        True if the 'url' is a Weaviate object URL.
         False otherwise.
     """
 
@@ -202,7 +204,7 @@ def is_object_url(url: str) -> bool:
     Returns
     -------
     bool
-        True if the 'input' ie the 'url' is a valid path to an object.
+        True if the 'url' is a valid path to an object.
         False otherwise.
     """
 
@@ -490,8 +492,6 @@ def _capitalize_first_letter(string: str) -> str:
         The capitalized string.
     """
 
-    # if len(string) == 1:
-    #     return string.capitalize()
-    # return string[0].capitalize() + string[1:]
-
-    return string.capitalize()
+    if len(string) == 1:
+        return string.capitalize()
+    return string[0].capitalize() + string[1:]
