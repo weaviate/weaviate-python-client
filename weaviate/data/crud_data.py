@@ -43,11 +43,11 @@ class DataObject:
         self.reference = Reference(self._connection)
 
     def create(self,
-               data_object: Union[dict, str],
-               class_name: str,
-               uuid: Union[str, uuid_lib.UUID, None] = None,
-               vector: Sequence = None
-               ) -> str:
+            data_object: Union[dict, str],
+            class_name: str,
+            uuid: Union[str, uuid_lib.UUID, None]=None,
+            vector: Sequence=None
+        ) -> str:
         """
         Takes a dict describing the object and adds it to weaviate.
 
@@ -141,11 +141,11 @@ class DataObject:
         raise UnexpectedStatusCodeException("Creating object", response)
 
     def update(self,
-               data_object: Union[dict, str],
-               class_name: str,
-               uuid: Union[str, uuid_lib.UUID],
-               vector: Sequence = None
-               ) -> None:
+            data_object: Union[dict, str],
+            class_name: str,
+            uuid: Union[str, uuid_lib.UUID],
+            vector: Sequence=None
+        ) -> None:
         """
         Update the given object with the already existing object in weaviate.
         Overwrites only the specified fields, the unspecified ones remain unchanged.
@@ -248,11 +248,11 @@ class DataObject:
         raise UnexpectedStatusCodeException("Update of the object not successful", response)
 
     def replace(self,
-                data_object: Union[dict, str],
-                class_name: str,
-                uuid: Union[str, uuid_lib.UUID],
-                vector: Sequence = None
-                ) -> None:
+            data_object: Union[dict, str],
+            class_name: str,
+            uuid: Union[str, uuid_lib.UUID],
+            vector: Sequence=None
+        ) -> None:
         """
         Replace an already existing object with the given data object.
         This method replaces the whole object.
@@ -346,10 +346,10 @@ class DataObject:
         raise UnexpectedStatusCodeException("Replace object", response)
 
     def get_by_id(self,
-                  uuid: Union[str, uuid_lib.UUID],
-                  additional_properties: List[str] = None,
-                  with_vector: bool = False
-                  ) -> Optional[dict]:
+            uuid: Union[str, uuid_lib.UUID],
+            additional_properties: List[str]=None,
+            with_vector: bool=False
+        ) -> Optional[dict]:
         """
         Get an object as dict.
 
@@ -405,10 +405,10 @@ class DataObject:
         )
 
     def get(self,
-            uuid: Union[str, uuid_lib.UUID, None] = None,
-            additional_properties: List[str] = None,
-            with_vector: bool = False
-            ) -> List[dict]:
+            uuid: Union[str, uuid_lib.UUID, None]=None,
+            additional_properties: List[str]=None,
+            with_vector: bool=False
+        ) -> List[dict]:
         """
         Gets objects from weaviate, the maximum number of objects returned is 100.
         If 'uuid' is None, all objects are returned. If 'uuid' is specified the result is the same
@@ -569,11 +569,11 @@ class DataObject:
         raise UnexpectedStatusCodeException("Object exists", response)
 
     def validate(self,
-                 data_object: Union[dict, str],
-                 class_name: str,
-                 uuid: Union[str, uuid_lib.UUID, None] = None,
-                 vector: Sequence = None
-                 ) -> dict:
+            data_object: Union[dict, str],
+            class_name: str,
+            uuid: Union[str, uuid_lib.UUID, None]=None,
+            vector: Sequence=None
+        ) -> dict:
         """
         Validate an object against weaviate.
 
@@ -699,8 +699,10 @@ def _get_params(additional_properties: Optional[List[str]], with_vector: bool) -
     params = {}
     if additional_properties:
         if not isinstance(additional_properties, list):
-            raise TypeError("Additional properties must be of type list "
-                            f"but are {type(additional_properties)}")
+            raise TypeError(
+                "Additional properties must be of type list "
+                f"but are {type(additional_properties)}"
+            )
         params['include'] = ",".join(additional_properties)
 
     if with_vector:
