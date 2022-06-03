@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 
 class AuthCredentials(ABC):
     """
-    Base class for getting the grand type and credentials.
+    Base class for getting the grant type and credentials.
     """
 
     def __init__(self):
@@ -22,13 +22,13 @@ class AuthCredentials(ABC):
 class AuthClientCredentials(AuthCredentials):
     """
     Using a client secret for authentication.
-    In case of grand type client credentials.
+    In case of grant type client credentials.
     """
 
     def __init__(self, client_secret: str):
         """
         Using a client secret for authentication.
-        In case of grand type client credentials.
+        In case of grant type client credentials.
 
         Parameters
         ----------
@@ -61,13 +61,13 @@ class AuthClientCredentials(AuthCredentials):
 class AuthClientPassword(AuthCredentials):
     """
     Using username and password for authentication.
-    In case of grand type password.
+    In case of grant type password.
     """
 
     def __init__(self, username: str, password: str) -> None:
         """
         Using username and password for authentication.
-        In case of grand type password.
+        In case of grant type password.
 
         Parameters
         ----------

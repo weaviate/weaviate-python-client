@@ -37,7 +37,6 @@ def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
         If the argument is of a wrong data type.
     """
 
-
     if isinstance(image_or_image_path, str):
         if not os.path.isfile(image_or_image_path):
             raise ValueError("No file found at location " + image_or_image_path)
@@ -47,8 +46,10 @@ def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
     elif isinstance(image_or_image_path, BufferedReader):
         content = image_or_image_path.read()
     else:
-        raise TypeError('"image_or_image_path" should be a image path or a binary read file'
-            ' (io.BufferedReader)')
+        raise TypeError(
+            '"image_or_image_path" should be a image path or a binary read file'
+            ' (io.BufferedReader)'
+        )
     return base64.b64encode(content).decode("utf-8")
 
 
@@ -92,24 +93,23 @@ def generate_local_beacon(to_uuid: Union[str, uuid_lib.UUID]) -> dict:
         If the 'to_uuid' is not valid.
     """
 
-
     if isinstance(to_uuid, str):
         try:
             uuid = str(uuid_lib.UUID(to_uuid))
         except ValueError:
-            raise ValueError("Uuid does not have the propper form") from None
+            raise ValueError("Uuid does not have the proper form") from None
     elif isinstance(to_uuid, uuid_lib.UUID):
         uuid = str(to_uuid)
     else:
         raise TypeError("Expected to_object_uuid of type str or uuid.UUID")
-    
+
     return {"beacon": "weaviate://localhost/" + uuid}
 
 
 def _get_dict_from_object(object_: Union[str, dict]) -> dict:
     """
     Takes an object that should describe a dict
-    e.g. a schema or a object and tries to retrieve the dict.
+    e.g. a schema or an object and tries to retrieve the dict.
 
     Parameters
     ----------
@@ -162,13 +162,13 @@ def is_weaviate_object_url(url: str) -> bool:
 
     Parameters
     ----------
-    input : str
+    url : str
         The URL to be validated.
 
     Returns
     -------
     bool
-        True if 'input' is a Weaviate object URL.
+        True if the 'url' is a Weaviate object URL.
         False otherwise.
     """
 
@@ -198,13 +198,13 @@ def is_object_url(url: str) -> bool:
 
     Parameters
     ----------
-    input : str
+    url : str
         The URL to be validated.
 
     Returns
     -------
     bool
-        True if the 'input' is a valid path to an object.
+        True if the 'url' is a valid path to an object.
         False otherwise.
     """
 
@@ -302,8 +302,8 @@ def get_vector(vector: Sequence) -> list:
             return vector.numpy().squeeze().tolist()
         except AttributeError:
             raise TypeError("The type of the 'vector' argument is not supported!\n"
-                "Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` "
-                "and `tf.Tensor`") from None
+                            "Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` "
+                            "and `tf.Tensor`") from None
 
 
 def get_domain_from_weaviate_url(url: str) -> str:
@@ -359,7 +359,7 @@ def _compare_class_sets(sub_set: list, set_: list) -> bool:
     ----------
     sub_set : list
         The smaller set that should be contained in the 'set'.
-    schema : dict
+    set_ : list
         The set for which to check if 'sub_set' is a part of.
 
     Returns
@@ -377,8 +377,8 @@ def _compare_class_sets(sub_set: list, set_: list) -> bool:
                     "The sub schema class/es MUST have a 'class' keyword each!"
                 )
             if (
-                _capitalize_first_letter(sub_set_class["class"]) == \
-                _capitalize_first_letter(set_class["class"])
+                    _capitalize_first_letter(sub_set_class["class"]) ==
+                    _capitalize_first_letter(set_class["class"])
             ):
                 if _compare_properties(sub_set_class["properties"], set_class["properties"]):
                     found = True
@@ -396,7 +396,7 @@ def _compare_properties(sub_set: list, set_: list) -> bool:
     ----------
     sub_set : list
         The smaller set that should be contained in the 'set'.
-    schema : dict
+    set_ : list
         The set for which to check if 'sub_set' is a part of.
 
     Returns
@@ -439,7 +439,6 @@ def _get_valid_timeout_config(timeout_config: Union[Tuple[Real, Real], Real, Non
         If 'timeout_config' is/contains negative number/s.
     """
 
-
     if isinstance(timeout_config, Real) and not isinstance(timeout_config, bool):
         if timeout_config <= 0.0:
             raise ValueError("'timeout_config' cannot be non-positive number/s!")
@@ -449,12 +448,13 @@ def _get_valid_timeout_config(timeout_config: Union[Tuple[Real, Real], Real, Non
         raise TypeError("'timeout_config' should be a (or tuple of) positive real number/s!")
     if len(timeout_config) != 2:
         raise ValueError("'timeout_config' must be of length 2!")
-    if not (isinstance(timeout_config[0], Real) and isinstance(timeout_config[1], Real)) or\
-        (isinstance(timeout_config[0], bool) and isinstance(timeout_config[1], bool)):
+    if not (isinstance(timeout_config[0], Real) and isinstance(timeout_config[1], Real)) or \
+            (isinstance(timeout_config[0], bool) and isinstance(timeout_config[1], bool)):
         raise TypeError("'timeout_config' must be tuple of real numbers")
     if timeout_config[0] <= 0.0 or timeout_config[1] <= 0.0:
         raise ValueError("'timeout_config' cannot be non-positive number/s!")
     return timeout_config
+
 
 def generate_uuid5(identifier: Any, namespace: Any = "") -> str:
     """

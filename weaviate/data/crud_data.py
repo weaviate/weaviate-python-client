@@ -55,12 +55,12 @@ class DataObject:
         ----------
         data_object : dict or str
             Object to be added.
-            If type is str it should be either an URL or a file.
+            If type is str it should be either a URL or a file.
         class_name : str
             Class name associated with the object given.
         uuid : str, uuid.UUID or None, optional
             Object will be created under this uuid if it is provided.
-            Otherwise weaviate will generate a uuid for this object,
+            Otherwise, weaviate will generate a uuid for this object,
             by default None.
         vector: Sequence, optional
             The embedding of the object that should be created. Used only class objects that do not
@@ -105,7 +105,7 @@ class DataObject:
         """
 
         if not isinstance(class_name, str):
-            raise TypeError("Expected class_name of type str but was: "\
+            raise TypeError("Expected class_name of type str but was: " \
                             + str(type(class_name)))
         loaded_data_object = _get_dict_from_object(data_object)
 
@@ -656,7 +656,7 @@ class DataObject:
                 weaviate_object=weaviate_obj
             )
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Object was not validated against weaviate.')\
+            raise RequestsConnectionError('Object was not validated against weaviate.') \
                 from conn_err
 
         result: dict = {
@@ -699,8 +699,10 @@ def _get_params(additional_properties: Optional[List[str]], with_vector: bool) -
     params = {}
     if additional_properties:
         if not isinstance(additional_properties, list):
-            raise TypeError("Additional properties must be of type list "
-                f"but are {type(additional_properties)}")
+            raise TypeError(
+                "Additional properties must be of type list "
+                f"but are {type(additional_properties)}"
+            )
         params['include'] = ",".join(additional_properties)
 
     if with_vector:
