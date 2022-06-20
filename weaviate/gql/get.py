@@ -480,8 +480,8 @@ class GetBuilder(GraphQL):
             If 'offset' is non-positive.
         """
 
-        if offset < 1:
-            raise ValueError('offset cannot be non-positive (offset >=1).')
+        if offset < 0:
+            raise ValueError('offset cannot be non-positive (offset >=0).')
 
         self._offset = f'offset: {offset} '
         self._contains_filter = True
@@ -489,7 +489,7 @@ class GetBuilder(GraphQL):
 
     def with_ask(self, content: dict) -> 'GetBuilder':
         """
-        Ask a question for which weaviate will retreive the answer from your data.
+        Ask a question for which weaviate will retrieve the answer from your data.
         This filter can be used only with QnA module: qna-transformers.
         NOTE: The 'autocorrect' field is enabled only with the `text-spellcheck` Weaviate module.
 
@@ -786,7 +786,7 @@ class GetBuilder(GraphQL):
 
         >>> content = {
         ...     'path': ['name']       # Path to the property that should be used
-        ...     'order': 'asc'         # Sort order, possible values: asc, desc 
+        ...     'order': 'asc'         # Sort order, possible values: asc, desc
         ... }
         >>> client.query.get('Author', ['name', 'address'])\
         ...     .with_sort(content)
@@ -796,10 +796,10 @@ class GetBuilder(GraphQL):
         >>> content = [
         ...     {
         ...         'path': ['name']        # Path to the property that should be used
-        ...         'order': 'asc'          # Sort order, possible values: asc, desc 
+        ...         'order': 'asc'          # Sort order, possible values: asc, desc
         ...     },
         ...         'path': ['address']     # Path to the property that should be used
-        ...         'order': 'desc'         # Sort order, possible values: asc, desc 
+        ...         'order': 'desc'         # Sort order, possible values: asc, desc
         ...     }
         ... ]
 

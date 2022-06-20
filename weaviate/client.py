@@ -12,6 +12,8 @@ from .contextionary import Contextionary
 from .batch import Batch
 from .data import DataObject
 from .gql import Query
+from .util import deprecation
+from .version import __version__
 
 
 class Client:
@@ -84,10 +86,10 @@ class Client:
         """
 
         if not isinstance(url, str):
-            raise TypeError("URL is expected to be string but is " + str(type(url)))
-        if url.endswith("/"):
-            # remove trailing slash
-            url = url[:-1]
+            raise TypeError(
+                f"URL is expected to be string but is {type(url)}"
+            )
+        url = url.strip("/")
 
         self._connection = Connection(
             url=url,
@@ -100,6 +102,16 @@ class Client:
         self.batch = Batch(self._connection)
         self.data_object = DataObject(self._connection)
         self.query = Query(self._connection)
+
+        self._set_server_version()
+
+        if self._connection.server_version < '1.14':
+            deprecation(
+                f"You are using the Weaviate Python Client version {__version__} which introduced "
+                "the new changes/features of the Weaviate Server 1.14.x. If you want to make use "
+                "of the new changes/features of the Weaviate Server 1.14.x using this Python "
+                "Client version, upgrade the Weaviate Server version."
+            )
 
     def is_ready(self) -> bool:
         """
@@ -207,3 +219,10 @@ class Client:
         """
 
         self._connection.timeout_config = timeout_config
+
+    def _set_server_version(self):
+        """
+        Set Weaviate Server version.
+        """
+
+        self._connection.server_version = self.get_meta()['version']

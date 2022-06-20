@@ -118,7 +118,7 @@ class ReferenceBatchRequest(BatchRequest):
         from_object_uuid = get_valid_uuid(from_object_uuid)
         to_object_uuid = get_valid_uuid(to_object_uuid)
 
-        self._items.append(
+        self._items.append( # TODO: fix it
             {
             'from': 'weaviate://localhost/'
                 + from_object_class_name
@@ -180,7 +180,7 @@ class ObjectsBatchRequest(BatchRequest):
         TypeError
             If an argument passed is not of an appropriate type.
         ValueError
-            If 'uuid' is not of a propper form.
+            If 'uuid' is not of a proper form.
         """
 
         if not isinstance(data_object, dict):

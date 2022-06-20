@@ -4,6 +4,7 @@ Helper functions!
 import os
 import json
 import base64
+import warnings
 import uuid as uuid_lib
 from typing import Union, Sequence, Tuple, Any
 from numbers import Real
@@ -151,8 +152,10 @@ def _get_dict_from_object(object_: Union[str, dict]) -> dict:
         # Object is file
         with open(object_, 'r') as file:
             return json.load(file)
-    raise TypeError("Argument is not of the supported types. Supported types are "
-                    "url or file path as string or schema as dict.")
+    raise TypeError(
+        "Argument is not of the supported types. Supported types are "
+        "url or file path as string or schema as dict."
+    )
 
 
 def is_weaviate_object_url(url: str) -> bool:
@@ -294,16 +297,17 @@ def get_vector(vector: Sequence) -> list:
         # if vector is already a list
         return vector
     try:
-        # if vetcor is numpy.ndarray or torch.Tensor
+        # if vector is numpy.ndarray or torch.Tensor
         return vector.squeeze().tolist()
     except AttributeError:
         try:
             # if vector is tf.Tensor
             return vector.numpy().squeeze().tolist()
         except AttributeError:
-            raise TypeError("The type of the 'vector' argument is not supported!\n"
-                            "Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` "
-                            "and `tf.Tensor`") from None
+            raise TypeError(
+                "The type of the 'vector' argument is not supported!\n"
+                "Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`"
+            ) from None
 
 
 def get_domain_from_weaviate_url(url: str) -> str:
@@ -495,3 +499,16 @@ def _capitalize_first_letter(string: str) -> str:
     if len(string) == 1:
         return string.capitalize()
     return string[0].capitalize() + string[1:]
+
+
+def deprecation(message: str) -> None:
+    """
+    Show deprecation message.
+
+    Parameters
+    ----------
+    message : str
+        The deprecation message to show.
+    """
+
+    warnings.warn(message, DeprecationWarning, stacklevel=2)

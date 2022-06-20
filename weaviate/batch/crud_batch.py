@@ -10,7 +10,6 @@ from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeExc
 from weaviate.connect import Connection
 from weaviate.util import _capitalize_first_letter
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest
-from ..gql.filter import Where
 
 
 class Batch:
@@ -41,7 +40,7 @@ class Batch:
         batch_size set to a positive integer (see docs for the `configure` or `__call__` method).
         The batch_size in this case corresponds to the sum of added objects and references.
         This case does not require the user to create the batch/s, but it can be done. Also to
-        create non-full batches (last batche/s) that do not meet the requirement to be auto-created
+        create non-full batches (last batch/es) that do not meet the requirement to be auto-created
         use the `flush` method. Can be used in a context manager, see below.
 
     Case III:
@@ -328,7 +327,7 @@ class Batch:
         TypeError
             If an argument passed is not of an appropriate type.
         ValueError
-            If 'uuid' is not of a propper form.
+            If 'uuid' is not of a proper form.
         """
 
         self._objects_batch.add(
@@ -385,8 +384,8 @@ class Batch:
         ) -> Response:
         """
         Create data in batches, either Objects or References. This does NOT guarantee
-        that each batch item (only Objects) is added/created. This can lead to a successfull
-        batch creation but unsuccessfull per batch item creation. See the Examples below.
+        that each batch item (only Objects) is added/created. This can lead to a successful
+        batch creation but unsuccessful per batch item creation. See the Examples below.
 
         Parameters
         ----------
@@ -421,9 +420,11 @@ class Batch:
                 except ReadTimeout:
                     if i == self._timeout_retries:
                         raise
-                    print('[ERROR] Batch ReadTimeout Exception occurred! Retring in 1s. '
-                        f'[{i+1}/{self._timeout_retries}]', file=sys.stderr)
-                    time.sleep(1)
+                    print(
+                        f'[ERROR] Batch ReadTimeout Exception occurred! Retrying in {(i+1)*2}s. '
+                        f'[{i+1}/{self._timeout_retries}]', file=sys.stderr
+                    )
+                    time.sleep((i+1)*2)
                 else:
                     break
         except RequestsConnectionError as conn_err:
@@ -443,8 +444,8 @@ class Batch:
     def create_objects(self) -> list:
         """
         Creates multiple Objects at once in Weaviate. This does not guarantee that each batch item
-        is added/created to the Weaviate server. This can lead to a successfull batch creation but
-        unsuccessfull per batch item creation. See the example bellow.
+        is added/created to the Weaviate server. This can lead to a successful batch creation but
+        unsuccessful per batch item creation. See the example bellow.
         NOTE: If the UUID of one of the objects already exists then the existing object will be
         replaced by the new object.
 
@@ -540,7 +541,7 @@ class Batch:
     def create_references(self) -> list:
         """
         Creates multiple References at once in Weaviate.
-        Adding References in batch is faster but it ignors validations like class name
+        Adding References in batch is faster but it ignores validations like class name
         and property name, resulting in a SUCCESSFUL reference creation of a nonexistent object
         types and/or a nonexistent properties. If the consistency of the References is wanted
         use 'client.data_object.reference.add' to have additional validation against the
@@ -564,7 +565,7 @@ class Batch:
         >>> client.batch.add_reference(object_3, 'ExistingClass', 'existsWith', object_4)
 
         Both references were added to the batch request without error because they meet the
-        required citeria (See the documentation of the 'weaviate.Batch.add_reference' method
+        required criteria (See the documentation of the 'weaviate.Batch.add_reference' method
         for more information).
 
         >>> result = client.batch.create_references()
@@ -659,7 +660,12 @@ class Batch:
             if result_references:
                 self._callback(result_references)
 
-    def delete_objects(self, class_name: str, where: dict, output: str='minimal', dry_run: bool=False) -> dict:
+    def delete_objects(self,
+            class_name: str,
+            where: dict,
+            output: str='minimal',
+            dry_run: bool=False,
+        ) -> dict:
         """
         Delete objects that match the 'match' in batch.
 
@@ -769,7 +775,7 @@ class Batch:
             raise RequestsConnectionError('Batch delete was not successful.') from conn_err
         if response.status_code == 200:
             return response.json()
-        raise UnexpectedStatusCodeException(f"Delete in batch", response)
+        raise UnexpectedStatusCodeException("Delete in batch", response)
 
     def num_objects(self) -> int:
         """
@@ -1059,7 +1065,7 @@ class Batch:
         """
         Setter and Getter for `timeout_retries`.
 
-        Propreties
+        Properties
         ----------
         value : int
             Setter ONLY: The new value for `timeout_retries`.

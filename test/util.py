@@ -8,6 +8,7 @@ def mock_connection_method(
         status_code: int=200,
         side_effect: Union[Exception, Callable, None]=None,
         connection_mock: Optional[Mock]=None,
+        server_version: str='1.13.2,'
     ) -> Mock:
     """
     Mock the Connection class by mocking its public method/s.
@@ -73,6 +74,8 @@ def mock_connection_method(
     else:
         # set the side effect for the given REST method
         rest_method_mock.side_effect = side_effect
+
+    connection_mock.server_version = server_version
     return connection_mock
 
 

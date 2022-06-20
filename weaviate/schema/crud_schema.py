@@ -500,7 +500,7 @@ class Schema:
         [{'status': 'READONLY'},{'status': 'READONLY'}]
         >>> client.schema.get_class_shards('Article')
         [{'name': 'node1', 'status': 'READONLY'}, {'name': 'node2', 'status': 'READONLY'}]
-        
+
 
         Raises
         ------
@@ -533,7 +533,7 @@ class Schema:
             shard_names = [shard_config['name'] for shard_config in shards_config]
         else:
             shard_names = [shard_name]
-        
+
         data = {'status': status}
 
         to_return = []

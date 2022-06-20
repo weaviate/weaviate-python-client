@@ -185,7 +185,7 @@ class TestUtil(unittest.TestCase):
         """
 
         type_error_message = "Expected to_object_uuid of type str or uuid.UUID"
-        value_error_message = "Uuid does not have the propper form"
+        value_error_message = "Uuid does not have the proper form"
         # wrong data type
         with self.assertRaises(TypeError) as error:
             generate_local_beacon(None)

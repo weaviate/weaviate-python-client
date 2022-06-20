@@ -12,14 +12,16 @@ class TestReference(unittest.TestCase):
         self.uuid_2 = "a36268d4-a6b5-5274-985f-45f13ce0c642"
         self.uuid_error_message = f"'uuid' must be of type str or uuid.UUID, but was: {int}"
         self.valid_uuid_error_message = "Not valid 'uuid' or 'uuid' can not be extracted from value"
-        self.name_error_message = lambda p: f"from_property_name must be of type 'str' but was: {p}"
+        self.name_error_message = lambda p: f"'from_property_name' must be of type 'str'. Given type: {p}"
 
     def test_delete(self):
         """
         Test `delete` method`.
         """
 
-        reference = Reference(Mock())
+        connection_mock = Mock()
+        connection_mock.server_version = '1.13.2'
+        reference = Reference(connection_mock)
 
         # error messages
         unexpected_error_msg = 'Delete property reference to object'
@@ -89,7 +91,10 @@ class TestReference(unittest.TestCase):
         """
         Test the `add` method.
         """
-        reference = Reference(Mock())
+
+        connection_mock = Mock()
+        connection_mock.server_version = '1.13.2'
+        reference = Reference(connection_mock)
 
         # error messages
         unexpected_error_msg = 'Add property reference to object'
@@ -180,7 +185,9 @@ class TestReference(unittest.TestCase):
         Test the `update` method.
         """
 
-        reference = Reference(Mock())
+        connection_mock = Mock()
+        connection_mock.server_version = '1.13.2'
+        reference = Reference(connection_mock)
 
         # error messages
         unexpected_error_msg = 'Update property reference to object'

@@ -399,7 +399,7 @@ class WCS(Connection):
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError('WCS cluster was not deleted.') from conn_err
-        if response.status_code == 200 or response.status_code == 404:
+        if response.status_code in (200, 404):
             return
         raise UnexpectedStatusCodeException('Deleting WCS instance', response)
 

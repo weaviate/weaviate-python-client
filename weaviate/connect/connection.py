@@ -44,6 +44,7 @@ class Connection:
         """
 
         self._api_version_path = '/v1'
+        self._server_version = None
         self._session = requests.Session()
         self.url = url  # e.g. http://localhost:80
         self._timeout_config = timeout_config # this uses the setter
@@ -106,7 +107,7 @@ class Connection:
         weaviate.AuthenticationFailedException
             If status not OK in connection to the third party authentication service.
         weaviate.AuthenticationFailedException
-            If the grant_types supported by the thirdparty authentication service are insufficient.
+            If grant_types supported by the third-party authentication service are insufficient.
         weaviate.AuthenticationFailedException
             If unable to get a OAuth token from server.
         weaviate.AuthenticationFailedException
@@ -158,16 +159,19 @@ class Connection:
         except RequestException as error:
             raise AuthenticationFailedException(
                 "Can't connect to the third party authentication service. "
-                "Check that it is running.") from error
+                "Check that it is running."
+            ) from error
         if request_third_part.status_code != 200:
             raise AuthenticationFailedException(
-                "Status not OK in connection to the third party authentication service.")
+                "Status not OK in connection to the third party authentication service."
+            )
 
         # Validate third part auth info
         if 'client_credentials' not in request_third_part.json()['grant_types_supported']:
             raise AuthenticationFailedException(
-                "The grant_types supported by the thirdparty authentication service are "
-                "insufficient. Please add 'client_credentials'.")
+                "The grant_types supported by the third-party authentication service are "
+                "insufficient. Please add 'client_credentials'."
+            )
 
         request_body = self._auth_client_secret.get_credentials()
         request_body["client_id"] = client_id
@@ -182,7 +186,8 @@ class Connection:
         except RequestException:
             raise AuthenticationFailedException(
                 "Unable to get a OAuth token from server. Are the credentials "
-                "and URLs correct?") from None
+                "and URLs correct?"
+            ) from None
 
         # sleep to process
         time.sleep(0.125)
@@ -192,7 +197,7 @@ class Connection:
                 "Authentication access denied. Are the credentials correct?"
             )
         self._auth_bearer = request.json()['access_token']
-        # -2 for some lagtime
+        # -2 for some lag time
         self._auth_expires = int(_get_epoch_time() + request.json()['expires_in'] - 2)
 
     def _get_request_header(self) -> dict:
@@ -411,7 +416,7 @@ class Connection:
             If the HEAD request could not be made.
         """
 
-        request_url = self.url + self._api_version_path + path 
+        request_url = self.url + self._api_version_path + path
 
         return self._session.head(
             url=request_url,
@@ -428,7 +433,7 @@ class Connection:
         Parameters
         ----------
         timeout_config : tuple(Real, Real) or Real, optional
-            For Getter only: Set the timeout configuration for all requests to the Weaviate server.
+            For Setter only: Set the timeout configuration for all requests to the Weaviate server.
             It can be a real number or, a tuple of two real numbers:
                     (connect timeout, read timeout).
             If only one real number is passed then both connect and read timeout will be set to
@@ -449,6 +454,38 @@ class Connection:
         """
 
         self._timeout_config = _get_valid_timeout_config(timeout_config)
+
+    @property
+    def server_version(self) -> Tuple[Real, Real]:
+        """
+        Getter/setter for Weaviate `server_version`.
+
+        Parameters
+        ----------
+        server_version : str
+            For Setter only: The Weaviate server version gotten from the `Client.get_meta()`.
+
+        Returns
+        -------
+        str
+            For Getter only: Weaviate server version.
+        """
+
+        return self._server_version
+
+    @server_version.setter
+    def server_version(self, server_version: Union[Tuple[Real, Real], Real]):
+        """
+        Setter for `server_version`. (docstring should be only in the Getter)
+        """
+
+        if not isinstance(server_version, str):
+            raise TypeError(
+                f"'server_version' must be of type str. Given type: {type(server_version)}."
+            )
+
+        self._server_version = server_version
+
 
 def _get_epoch_time() -> int:
     """

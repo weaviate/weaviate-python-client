@@ -269,7 +269,7 @@ class TestConnection(unittest.TestCase):
         add_info_error_message = ("Can't connect to the third party authentication service. "
             "Check that it is running.")
         add_info_status_code_error_message = "Status not OK in connection to the third party authentication service."
-        credentials_error_message = ("The grant_types supported by the thirdparty authentication service are "
+        credentials_error_message = ("The grant_types supported by the third-party authentication service are "
             "insufficient. Please add 'client_credentials'.")
         oauth_error_message = ("Unable to get a OAuth token from server. Are the credentials "
             "and URLs correct?")

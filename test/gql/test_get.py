@@ -60,12 +60,11 @@ class TestGetBuilder(unittest.TestCase):
         query = GetBuilder("Person", "name", None).with_offset(20).build()
         self.assertEqual('{Get{Person(offset: 20 ){name}}}', query)
 
-        # invalid calls
-        limit_error_msg = 'offset cannot be non-positive (offset >=1).'
-        with self.assertRaises(ValueError) as error:
-            GetBuilder("A", ["str"], None).with_offset(0)
-        check_error_message(self, error, limit_error_msg)
+        query = GetBuilder("Person", "name", None).with_offset(0).build()
+        self.assertEqual('{Get{Person(offset: 0 ){name}}}', query)
 
+        # invalid calls
+        limit_error_msg = 'offset cannot be non-positive (offset >=0).'
         with self.assertRaises(ValueError) as error:
             GetBuilder("A", ["str"], None).with_offset(-1)
         check_error_message(self, error, limit_error_msg)

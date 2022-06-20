@@ -476,7 +476,7 @@ class Sort(Filter):
                 value=clause["order"],
                 dtype=str,
             )
-            
+
             self._content['sort'].append(
                 {
                     'path': clause['path'],
@@ -486,11 +486,11 @@ class Sort(Filter):
 
 
     def __str__(self) -> str:
-        
-        sort = f'sort: ['
+
+        sort = 'sort: ['
         for clause in self._content['sort']:
             sort += f"{{ path: {dumps(clause['path'])} order: {clause['order']} }} "
-        
+
         sort += ']'
         return sort
 
@@ -810,5 +810,5 @@ def _move_clause_objects_to_str(objects: list) -> str:
         else:
             id_beacon = 'beacon'
         to_return += f'{{{id_beacon}: {dumps(obj[id_beacon])}}} '
-    
+
     return to_return + ']'

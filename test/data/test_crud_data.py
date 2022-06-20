@@ -338,7 +338,9 @@ class TestDataObject(unittest.TestCase):
         Test the `delete` method.
         """
 
-        data_object = DataObject(Mock())
+        connection_mock = Mock()
+        connection_mock.server_version = '1.13.2'
+        data_object = DataObject(connection_mock)
 
         # error messages
         uuid_type_error_message = lambda dt: f"'uuid' must be of type str or uuid.UUID, but was: {dt}"
@@ -392,6 +394,7 @@ class TestDataObject(unittest.TestCase):
         )
         mock_get.assert_called_with(
             uuid="UUID",
+            class_name=None,
             additional_properties=["Test", "list"],
             with_vector=True
         )
@@ -403,6 +406,7 @@ class TestDataObject(unittest.TestCase):
         )
         mock_get.assert_called_with(
             uuid="UUID2",
+            class_name=None,
             additional_properties=["Test"],
             with_vector=False
         )
