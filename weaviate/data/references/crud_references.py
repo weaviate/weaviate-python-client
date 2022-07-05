@@ -33,10 +33,11 @@ class Reference:
             from_property_name: str,
             to_uuid: str,
             from_class_name: Optional[str]=None,
+            to_class_name: Optional[str]=None,
         ) -> None:
         """
-        Remove a reference to another object. Equal to removing one
-        direction of an edge from the graph.
+        Remove a reference to another object. Equal to removing one direction of an edge from the
+        graph.
 
         Parameters
         ----------
@@ -47,9 +48,17 @@ class Reference:
         to_uuid : str
             The UUID of the referenced object.
         from_class_name : Optional[str], optional
-            The class name of the object for which to delete the reference, this is included in
-            Weaviate v1.14.0, where all objects are namespaced by class name. If None it uses the
-            old APIs, this will be required in the future releases. By default None.
+            The class name of the object for which to delete the reference (with UUID `from_uuid`),
+            it is included in Weaviate 1.14.0, where all objects are namespaced by class name.
+            STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
+            versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
+            by default None
+        to_class_name : Optional[str], optional
+            The referenced object class name to which to delete the reference (with UUID `to_uuid`),
+            it is included in Weaviate 1.14.0, where all objects are namespaced by class name.
+            STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
+            versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
+            by default None            
 
         Examples
         --------
@@ -57,23 +66,28 @@ class Reference:
 
         >>> # Create the objects first
         >>> client.data_object.create(
-        ...     data_object = {'name': 'Ray Bradbury'},
-        ...     class_name = 'Author',
-        ...     uuid = 'e067f671-1202-42c6-848b-ff4d1eb804ab'
+        ...     data_object={'name': 'Ray Bradbury'},
+        ...     class_name='Author',
+        ...     uuid='e067f671-1202-42c6-848b-ff4d1eb804ab'
         ... )
         >>> client.data_object.create(
-        ...     data_object = {'title': 'The Martian Chronicles'},
-        ...     class_name = 'Book',
-        ...     uuid = 'a9c1b714-4f8a-4b01-a930-38b046d69d2d'
+        ...     data_object={'title': 'The Martian Chronicles'},
+        ...     class_name='Book',
+        ...     uuid='a9c1b714-4f8a-4b01-a930-38b046d69d2d'
         ... )
         >>> # Add the cross references
         >>> ## Author -> Book
         >>> client.data_object.reference.add(
-        ...     from_uuid = 'e067f671-1202-42c6-848b-ff4d1eb804ab', # Author UUID
-        ...     from_property_name = 'wroteBooks',
-        ...     to_uuid = 'a9c1b714-4f8a-4b01-a930-38b046d69d2d' # Book UUID
+        ...     from_uuid='e067f671-1202-42c6-848b-ff4d1eb804ab',
+        ...     from_property_name='wroteBooks',
+        ...     to_uuid='a9c1b714-4f8a-4b01-a930-38b046d69d2d',
+        ...     from_class_name='Author', # ONLY with Weaviate >= 1.14.0
+        ...     to_class_name='Book', # ONLY with Weaviate >= 1.14.0
         ... )
-        >>> client.data_object.get('e067f671-1202-42c6-848b-ff4d1eb804ab') # Author UUID
+        >>> client.data_object.get(
+        ...     uuid='e067f671-1202-42c6-848b-ff4d1eb804ab',
+        ...     class_name='Author', # ONLY with Weaviate >= 1.14.0
+        ... )
         {
             "additional": {},
             "class": "Author",
@@ -93,11 +107,16 @@ class Reference:
         }
         >>> # delete the reference
         >>> client.data_object.reference.delete(
-        ...     from_uuid = 'e067f671-1202-42c6-848b-ff4d1eb804ab', # Author UUID
-        ...     from_property_name = 'wroteBooks',
-        ...     to_uuid = 'a9c1b714-4f8a-4b01-a930-38b046d69d2d' # Book UUID
+        ...     from_uuid='e067f671-1202-42c6-848b-ff4d1eb804ab',
+        ...     from_property_name='wroteBooks',
+        ...     to_uuid='a9c1b714-4f8a-4b01-a930-38b046d69d2d',
+        ...     from_class_name='Author', # ONLY with Weaviate >= 1.14.0
+        ...     to_class_name='Book', # ONLY with Weaviate >= 1.14.0
         ... )
-        >>> >>> client.data_object.get('e067f671-1202-42c6-848b-ff4d1eb804ab') # Author UUID
+        >>> >>> client.data_object.get(
+        ...     uuid='e067f671-1202-42c6-848b-ff4d1eb804ab',
+        ...     class_name='Author', # ONLY with Weaviate >= 1.14.0
+        ... )
         {
             "additional": {},
             "class": "Author",
@@ -123,35 +142,60 @@ class Reference:
             If uuid is not properly formed.
         """
 
-        # Validate arguments
         is_server_version_14 = (self._connection.server_version >= '1.14')
 
-        if from_class_name is None and is_server_version_14:
+        if (from_class_name is None or to_class_name is None) and is_server_version_14:
             deprecation(
-                "Weaviate Server version >= 1.14.x is using class namespaced APIs, please specify "
-                "the `from_class_name` argument for this. The non-class namespaced APIs (None "
-                "value for `from_class_name`) are going to be deprecated in the future versions "
-                "of the Weaviate Server and Weaviate Python Client."
+                "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
+                "APIs and beacons, please set the `from_class_name` AND `to_class_name` arguments "
+                "for this. The non-class namespaced APIs and beacons (None value for "
+                "`from_class_name` AND `to_class_name`) are going to be removed in future "
+                "versions of the Weaviate Server and Weaviate Python Client."
             )
         if from_class_name is not None:
             if not is_server_version_14:
                 deprecation(
-                    "Weaviate Server version < 1.14.x does not support class namespaced APIs. The "
-                    "non-class namespaced APIs calls are going to be made instead (None value for "
-                    "`class_name`). The non-class namespaced APIs are going to be deprecated "
-                    "in the future versions of the Weaviate Server and Weaviate Python Client. "
-                    "Please upgrade your Weaviate Server version."
+                    "Weaviate Server version < 1.14.x does not support class namespaced APIs. "
+                    "The non-class namespaced APIs calls are going to be made instead "
+                    "(None value for `from_class_name`). The non-class namespaced APIs and "
+                    "beacons are going to be removed in future versions of the Weaviate Server "
+                    "and Weaviate Python Client. Please upgrade your Weaviate Server version."
                 )
-            if not isinstance(from_class_name, str):
-                raise TypeError(
-                    f"'class_name' must be of type str. Given type: {type(from_class_name)}"
+            _validate_string_arguments(
+                argument=from_class_name,
+                argument_name='from_class_name',
+            )
+        if to_class_name is not None:
+            if not is_server_version_14:
+                deprecation(
+                    "Weaviate Server version < 1.14.x does not support class namespaced beacons. "
+                    "The non-class namespaced beacons are going to be constructed instead "
+                    "(None value for `to_class_name`). The non-class namespaced APIs and "
+                    "beacons are going to be removed in future versions of the Weaviate Server "
+                    "and Weaviate Python Client. Please upgrade your Weaviate Server version."
                 )
+            _validate_string_arguments(
+                argument=to_class_name,
+                argument_name='to_class_name',
+            )
+
+        # Validate and create Beacon
         from_uuid = get_valid_uuid(from_uuid)
         to_uuid = get_valid_uuid(to_uuid)
-        _validate_property_name(from_property_name)
+        _validate_string_arguments(
+            argument=from_property_name,
+            argument_name='from_property_name',
+        )
 
-        # Create the beacon
-        beacon = _get_beacon(to_uuid)
+        if to_class_name and is_server_version_14:
+            beacon = _get_beacon(
+                to_uuid=to_uuid,
+                class_name=_capitalize_first_letter(to_class_name),
+            )
+        else:
+            beacon = _get_beacon(
+                to_uuid=to_uuid,
+            )
 
         if from_class_name and is_server_version_14:
             _class_name = _capitalize_first_letter(from_class_name)
@@ -175,6 +219,7 @@ class Reference:
             from_property_name: str,
             to_uuids: Union[list, str],
             from_class_name: Optional[str]=None,
+            to_class_names: Union[list, str, None]=None,
         ) -> None:
         """
         Allows to update all references in that property with a new set of references.
@@ -200,9 +245,19 @@ class Reference:
             ['fc7eb129-f138-457f-b727-1b29db191a67', ...]
             If `str` it is converted internally into a list of str.
         from_class_name : Optional[str], optional
-            The class name of the object for which to update the reference, this is included in
-            Weaviate v1.14.0, where all objects are namespaced by class name. If None it uses the
-            old APIs, this will be required in the future releases. By default None.
+            The class name of the object for which to delete the reference (with UUID `from_uuid`),
+            it is included in Weaviate 1.14.0, where all objects are namespaced by class name.
+            STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
+            versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
+            by default None
+        to_class_names : Union[list, str, None], optional
+            The referenced objects class name to which to delete the reference (with UUID `to_uuid`),
+            it is included in Weaviate 1.14.0, where all objects are namespaced by class name.
+            It can be a single class name (assumes all `to_uuids` are of the same class) or a list
+            of class names where for each UUID in `to_uuids` we have a class name.
+            STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
+            versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
+            by default None 
 
         Examples
         --------
@@ -211,7 +266,10 @@ class Reference:
         to this list 3,4,9. After the update, the data object 1.wroteBooks is now 3,4,9, but no
         longer contains 7.
 
-        >>> client.data_object.get('e067f671-1202-42c6-848b-ff4d1eb804ab') # Author UUID
+        >>> client.data_object.get(
+        ...     uuid='e067f671-1202-42c6-848b-ff4d1eb804ab'
+        ...     class_name='Author', # ONLY with Weaviate >= 1.14.0
+        ... )
         {
             "additional": {},
             "class": "Author",
@@ -232,14 +290,19 @@ class Reference:
         Currently there is only one `Book` reference.
         Update all the references of the Author for property name `wroteBooks`.
         >>> client.data_object.reference.update(
-        ...     from_uuid = 'e067f671-1202-42c6-848b-ff4d1eb804ab', # Author UUID
+        ...     from_uuid = 'e067f671-1202-42c6-848b-ff4d1eb804ab',
         ...     from_property_name = 'wroteBooks',
         ...     to_uuids = [
         ...         '8429f68f-860a-49ea-a50b-1f8789515882',
         ...         '3e2e6795-298b-47e9-a2cb-3d8a77a24d8a'
-        ...     ]
+        ...     ],
+        ...     from_class_name='Author', # ONLY with Weaviate >= 1.14.0
+        ...     to_class_name='Book', # ONLY with Weaviate >= 1.14.0
         ... )
-        >>> client.data_object.get('e067f671-1202-42c6-848b-ff4d1eb804ab') # Author UUID
+        >>> client.data_object.get(
+        ...     uuid='e067f671-1202-42c6-848b-ff4d1eb804ab'
+        ...     class_name='Author', # ONLY with Weaviate >= 1.14.0
+        ... )
         {
             "additional": {},
             "class": "Author",
@@ -278,37 +341,84 @@ class Reference:
 
         is_server_version_14 = (self._connection.server_version >= '1.14')
 
-        if from_class_name is None and is_server_version_14:
+        if (from_class_name is None or to_class_names is None) and is_server_version_14:
             deprecation(
-                "Weaviate Server version >= 1.14.x is using class namespaced APIs, please specify "
-                "the `from_class_name` argument for this. The non-class namespaced APIs (None "
-                "value for `from_class_name`) are going to be deprecated in the future versions "
-                "of the Weaviate Server and Weaviate Python Client."
+                "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
+                "APIs and beacons, please set the `from_class_name` AND `to_class_name` arguments "
+                "for this. The non-class namespaced APIs and beacons (None value for "
+                "`from_class_name` AND `to_class_name`) are going to be removed in future "
+                "versions of the Weaviate Server and Weaviate Python Client."
             )
         if from_class_name is not None:
             if not is_server_version_14:
                 deprecation(
-                    "Weaviate Server version < 1.14.x does not support class namespaced APIs. The "
-                    "non-class namespaced APIs calls are going to be made instead (None value for "
-                    "`class_name`). The non-class namespaced APIs are going to be deprecated "
-                    "in the future versions of the Weaviate Server and Weaviate Python Client. "
-                    "Please upgrade your Weaviate Server version."
+                    "Weaviate Server version < 1.14.x does not support class namespaced APIs. "
+                    "The non-class namespaced APIs calls are going to be made instead "
+                    "(None value for `from_class_name`). The non-class namespaced APIs and "
+                    "beacons are going to be removed in future versions of the Weaviate Server "
+                    "and Weaviate Python Client. Please upgrade your Weaviate Server version."
                 )
-            if not isinstance(from_class_name, str):
-                raise TypeError(
-                    f"'class_name' must be of type str. Given type: {type(from_class_name)}"
+            _validate_string_arguments(
+                argument=from_class_name,
+                argument_name='from_class_name',
+            )
+        if to_class_names is not None:
+            if not is_server_version_14:
+                deprecation(
+                    "Weaviate Server version < 1.14.x does not support class namespaced beacons. "
+                    "The non-class namespaced beacons are going to be constructed instead "
+                    "(None value for `to_class_name`). The non-class namespaced APIs and "
+                    "beacons are going to be removed in future versions of the Weaviate Server "
+                    "and Weaviate Python Client. Please upgrade your Weaviate Server version."
                 )
+
+            if not isinstance(to_class_names, list):
+                _validate_string_arguments(
+                    argument=to_class_names,
+                    argument_name='to_class_names',
+                )
+            else:
+                for to_class_name in to_class_names:
+                    if not isinstance(to_class_name, str):
+                        raise TypeError(
+                            "'to_class_names' must be of type str of List[str]. "
+                            f"Found element of type: {type(to_class_name)}"
+                        )
+                if len(to_class_names) == 0:
+                    to_class_names = None
 
         if not isinstance(to_uuids, list):
             to_uuids = [to_uuids]
+        if isinstance(to_class_names, str):
+            to_class_names = [to_class_names] * len(to_uuids)
+        if to_class_names is not None and len(to_uuids) != len(to_class_names):
+            raise ValueError(
+                "'to_class_names' and 'to_uuids' have different lengths, they must match."
+            )
 
         # Validate and create Beacon
         from_uuid = get_valid_uuid(from_uuid)
-        _validate_property_name(from_property_name)
+        _validate_string_arguments(
+            argument=from_property_name,
+            argument_name='from_property_name',
+        )
         beacons = []
-        for to_uuid in to_uuids:
-            to_uuid = get_valid_uuid(to_uuid)
-            beacons.append(_get_beacon(to_uuid))
+
+        if to_class_names and is_server_version_14:
+            for to_uuid, to_class_name in zip(to_uuids, to_class_names):
+                to_uuid = get_valid_uuid(to_uuid)
+                beacon = _get_beacon(
+                    to_uuid=to_uuid,
+                    class_name=_capitalize_first_letter(to_class_name),
+                )
+                beacons.append(beacon)
+        else:
+            for to_uuid in to_uuids:
+                to_uuid = get_valid_uuid(to_uuid)
+                beacon = _get_beacon(
+                    to_uuid=to_uuid,
+                )
+                beacons.append(beacon)
 
         if from_class_name and is_server_version_14:
             _class_name = _capitalize_first_letter(from_class_name)
@@ -319,7 +429,7 @@ class Reference:
         try:
             response = self._connection.put(
                 path=path,
-                weaviate_object=beacons
+                weaviate_object=beacons,
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError('Reference was not updated.') from conn_err
@@ -332,6 +442,7 @@ class Reference:
             from_property_name: str,
             to_uuid: str,
             from_class_name: Optional[str]=None,
+            to_class_name: Optional[str]=None,
         ) -> None:
         """
         Allows to link an object to an object uni-directionally.
@@ -355,9 +466,17 @@ class Reference:
             or
             'fc7eb129-f138-457f-b727-1b29db191a67'
         from_class_name : Optional[str], optional
-            The class name of the object for which to add the reference, this is included in
-            Weaviate v1.14.0, where all objects are namespaced by class name. If None it uses the
-            old APIs, this will be required in the future releases. By default None.
+            The class name of the object for which to delete the reference (with UUID `from_uuid`),
+            it is included in Weaviate 1.14.0, where all objects are namespaced by class name.
+            STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
+            versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
+            by default None
+        to_class_name : Optional[str], optional
+            The referenced object class name to which to delete the reference (with UUID `to_uuid`),
+            it is included in Weaviate 1.14.0, where all objects are namespaced by class name.
+            STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
+            versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
+            by default None 
 
         Examples
         --------
@@ -365,23 +484,28 @@ class Reference:
 
         >>> # Create the objects first
         >>> client.data_object.create(
-        ...     data_object = {'name': 'Ray Bradbury'},
-        ...     class_name = 'Author',
-        ...     uuid = 'e067f671-1202-42c6-848b-ff4d1eb804ab'
+        ...     data_object={'name': 'Ray Bradbury'},
+        ...     class_name='Author',
+        ...     uuid='e067f671-1202-42c6-848b-ff4d1eb804ab'
         ... )
         >>> client.data_object.create(
-        ...     data_object = {'title': 'The Martian Chronicles'},
-        ...     class_name = 'Book',
-        ...     uuid = 'a9c1b714-4f8a-4b01-a930-38b046d69d2d'
+        ...     data_object={'title': 'The Martian Chronicles'},
+        ...     class_name='Book',
+        ...     uuid='a9c1b714-4f8a-4b01-a930-38b046d69d2d'
         ... )
         >>> # Add the cross references
         >>> ## Author -> Book
         >>> client.data_object.reference.add(
-        ...     from_uuid = 'e067f671-1202-42c6-848b-ff4d1eb804ab', # Author UUID
-        ...     from_property_name = 'wroteBooks',
-        ...     to_uuid = 'a9c1b714-4f8a-4b01-a930-38b046d69d2d' # Book UUID
+        ...     from_uuid='e067f671-1202-42c6-848b-ff4d1eb804ab',
+        ...     from_property_name='wroteBooks',
+        ...     to_uuid='a9c1b714-4f8a-4b01-a930-38b046d69d2d',
+        ...     from_class_name='Author', # ONLY with Weaviate >= 1.14.0
+        ...     to_class_name='Book', # ONLY with Weaviate >= 1.14.0
         ... )
-        >>> client.data_object.get('e067f671-1202-42c6-848b-ff4d1eb804ab') # Author UUID
+        >>> client.data_object.get(
+        ...     uuid='e067f671-1202-42c6-848b-ff4d1eb804ab',
+        ...     class_name='Author', # ONLY with Weaviate >= 1.14.0
+        ... )
         {
             "additional": {},
             "class": "Author",
@@ -414,32 +538,58 @@ class Reference:
 
         is_server_version_14 = (self._connection.server_version >= '1.14')
 
-        if from_class_name is None and is_server_version_14:
+        if (from_class_name is None or to_class_name is None) and is_server_version_14:
             deprecation(
-                "Weaviate Server version >= 1.14.x is using class namespaced APIs, please specify "
-                "the `from_class_name` argument for this. The non-class namespaced APIs (None "
-                "value for `from_class_name`) are going to be deprecated in the future versions "
-                "of the Weaviate Server and Weaviate Python Client."
+                "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
+                "APIs and beacons, please set the `from_class_name` AND `to_class_name` arguments "
+                "for this. The non-class namespaced APIs and beacons (None value for "
+                "`from_class_name` AND `to_class_name`) are going to be removed in future "
+                "versions of the Weaviate Server and Weaviate Python Client."
             )
         if from_class_name is not None:
             if not is_server_version_14:
                 deprecation(
-                    "Weaviate Server version < 1.14.x does not support class namespaced APIs. The "
-                    "non-class namespaced APIs calls are going to be made instead (None value for "
-                    "`class_name`). The non-class namespaced APIs are going to be deprecated "
-                    "in the future versions of the Weaviate Server and Weaviate Python Client. "
-                    "Please upgrade your Weaviate Server version."
+                    "Weaviate Server version < 1.14.x does not support class namespaced APIs. "
+                    "The non-class namespaced APIs calls are going to be made instead "
+                    "(None value for `from_class_name`). The non-class namespaced APIs and "
+                    "beacons are going to be removed in future versions of the Weaviate Server "
+                    "and Weaviate Python Client. Please upgrade your Weaviate Server version."
                 )
-            if not isinstance(from_class_name, str):
-                raise TypeError(
-                    f"'class_name' must be of type str. Given type: {type(from_class_name)}"
+            _validate_string_arguments(
+                argument=from_class_name,
+                argument_name='from_class_name',
+            )
+        if to_class_name is not None:
+            if not is_server_version_14:
+                deprecation(
+                    "Weaviate Server version < 1.14.x does not support class namespaced beacons. "
+                    "The non-class namespaced beacons are going to be constructed instead "
+                    "(None value for `to_class_name`). The non-class namespaced APIs and "
+                    "beacons are going to be removed in future versions of the Weaviate Server "
+                    "and Weaviate Python Client. Please upgrade your Weaviate Server version."
                 )
+            _validate_string_arguments(
+                argument=to_class_name,
+                argument_name='to_class_name',
+            )
 
         # Validate and create Beacon
         from_uuid = get_valid_uuid(from_uuid)
         to_uuid = get_valid_uuid(to_uuid)
-        _validate_property_name(from_property_name)
-        beacons = _get_beacon(to_uuid)
+        _validate_string_arguments(
+            argument=from_property_name,
+            argument_name='from_property_name',
+        )
+
+        if to_class_name and is_server_version_14:
+            beacon = _get_beacon(
+                to_uuid=to_uuid,
+                class_name=_capitalize_first_letter(to_class_name),
+            )
+        else:
+            beacon = _get_beacon(
+                to_uuid=to_uuid,
+            )
 
         if from_class_name and is_server_version_14:
             _class_name = _capitalize_first_letter(from_class_name)
@@ -450,7 +600,7 @@ class Reference:
         try:
             response = self._connection.post(
                 path=path,
-                weaviate_object=beacons
+                weaviate_object=beacon,
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError('Reference was not added.') from conn_err
@@ -459,7 +609,7 @@ class Reference:
         raise UnexpectedStatusCodeException("Add property reference to object", response)
 
 
-def _get_beacon(to_uuid: str) -> dict:
+def _get_beacon(to_uuid: str, class_name: Optional[str]=None) -> dict:
     """
     Get a weaviate-style beacon.
 
@@ -467,6 +617,9 @@ def _get_beacon(to_uuid: str) -> dict:
     ----------
     to_uuid : str
         The UUID to create beacon for.
+    class_name : Optional[str], optional
+        The class name of the `to_uuid` object. Used with Weaviate >= 1.14.0.
+        For Weaviate < 1.14.0 use None value.
 
     Returns
     -------
@@ -474,27 +627,33 @@ def _get_beacon(to_uuid: str) -> dict:
         Weaviate-style beacon as a dict.
     """
 
+    if class_name is None:
+        return {
+            "beacon": f"weaviate://localhost/{to_uuid}"
+        }
     return {
-        "beacon": f"weaviate://localhost/{to_uuid}" # TODO: fix it
+        "beacon": f"weaviate://localhost/{class_name}/{to_uuid}"
     }
 
 
-def _validate_property_name(property_name: str) -> None:
+def _validate_string_arguments(argument: str, argument_name: str) -> None:
     """
-    Validate the property name.
+    Validate string arguments.
 
     Parameters
     ----------
-    property_name : str
-        Property name to be validated.
+    argument : str
+        Argument value to be validated.
+    argument_name : str
+        Argument name to be included in error message.
 
     Raises
     ------
     TypeError
-        If 'property_name' is not of type str.
+        If 'argument' is not of type str.
     """
 
-    if not isinstance(property_name, str):
+    if not isinstance(argument, str):
         raise TypeError(
-            f"'from_property_name' must be of type 'str'. Given type: {type(property_name)}"
+            f"'{argument_name}' must be of type 'str'. Given type: {type(argument)}"
         )

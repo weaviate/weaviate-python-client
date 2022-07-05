@@ -107,7 +107,7 @@ class Client:
 
         if self._connection.server_version < '1.14':
             deprecation(
-                f"You are using the Weaviate Python Client version {__version__} which introduced "
+                f"You are using the Weaviate Python Client version {__version__} which introduces "
                 "the new changes/features of the Weaviate Server 1.14.x. If you want to make use "
                 "of the new changes/features of the Weaviate Server 1.14.x using this Python "
                 "Client version, upgrade the Weaviate Server version."

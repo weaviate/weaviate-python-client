@@ -8,7 +8,7 @@ from typing import Tuple, Callable, Optional, Sequence
 from requests import ReadTimeout, Response
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.connect import Connection
-from weaviate.util import _capitalize_first_letter
+from weaviate.util import _capitalize_first_letter, deprecation
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest
 
 
@@ -344,7 +344,8 @@ class Batch:
             from_object_uuid: str,
             from_object_class_name: str,
             from_property_name: str,
-            to_object_uuid: str
+            to_object_uuid: str,
+            to_object_class_name: Optional[str]=None,
         ) -> None:
         """
         Add one reference to this batch.
@@ -359,6 +360,13 @@ class Batch:
             The name of the property that contains the reference.
         to_object_uuid : str
             The UUID or URL of the object that is actually referenced.
+        to_object_class_name : Optional[str], optional
+            The referenced object class name to which to add the reference (with UUID 
+            `to_object_uuid`), it is included in Weaviate 1.14.0, where all objects are namespaced
+            by class name.
+            STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
+            versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
+            by default None
 
         Raises
         ------
@@ -368,11 +376,42 @@ class Batch:
             If 'uuid' is not valid or cannot be extracted.
         """
 
+        is_server_version_14 = (self._connection.server_version >= '1.14')
+
+        if to_object_class_name is None and is_server_version_14:
+            deprecation(
+                "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
+                "beacons, please specify the `to_object_class_name` argument for this. The "
+                "non-class namespaced beacons (None value for `to_object_class_name`) are going "
+                "to be removed in the future versions of the Weaviate Server and Weaviate Python "
+                "Client."
+            )
+        if to_object_class_name is not None:
+            if not is_server_version_14:
+                deprecation(
+                    "Weaviate Server version < 1.14.x does not support class namespaced APIs. The "
+                    "non-class namespaced APIs calls are going to be made instead (None value for "
+                    "`class_name`). The non-class namespaced APIs are going to be removed in "
+                    "future versions of the Weaviate Server and Weaviate Python Client. "
+                    "Please upgrade your Weaviate Server version."
+                )
+                to_object_class_name = None
+            if is_server_version_14:
+                if not isinstance(to_object_class_name, str):
+                    raise TypeError(
+                        "'to_object_class_name' must be of type str or None. "
+                        f"Given type: {type(to_object_class_name)}"
+                    )
+                else:
+                    to_object_class_name = _capitalize_first_letter(to_object_class_name)
+            
+
         self._reference_batch.add(
             from_object_class_name=_capitalize_first_letter(from_object_class_name),
             from_object_uuid=from_object_uuid,
             from_property_name=from_property_name,
             to_object_uuid=to_object_uuid,
+            to_object_class_name=to_object_class_name,
         )
 
         if self._batching_type:

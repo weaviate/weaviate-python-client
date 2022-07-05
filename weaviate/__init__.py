@@ -42,7 +42,13 @@ __all__ = [
     'SchemaValidationException',
 ]
 
+import sys
 from .version import __version__
 from .exceptions import *
 from .auth import AuthClientCredentials, AuthClientPassword
 from .client import Client
+
+
+if not sys.warnoptions:
+    import warnings
+    warnings.simplefilter("default")

@@ -6,7 +6,7 @@ import json
 import base64
 import warnings
 import uuid as uuid_lib
-from typing import Union, Sequence, Tuple, Any
+from typing import Union, Sequence, Tuple, Any, Optional
 from numbers import Real
 from io import BufferedReader
 import validators
@@ -72,14 +72,20 @@ def image_decoder_b64(encoded_image: str) -> bytes:
     return base64.b64decode(encoded_image.encode('utf-8'))
 
 
-def generate_local_beacon(to_uuid: Union[str, uuid_lib.UUID]) -> dict:
+def generate_local_beacon(
+        to_uuid: Union[str, uuid_lib.UUID],
+        class_name: Optional[str]=None,
+    ) -> dict:
     """
-    Generates a beacon with the given uuid.
+    Generates a beacon with the given uuid and class name (only for Weaviate >= 1.14.0).
 
     Parameters
     ----------
     to_uuid : str or uuid.UUID
         The UUID for which to create a local beacon.
+    class_name : Optional[str], optional
+        The class name of the `to_uuid` object. Used with Weaviate >= 1.14.0.
+        For Weaviate < 1.14.0 use None value.
 
     Returns
     -------
@@ -104,7 +110,13 @@ def generate_local_beacon(to_uuid: Union[str, uuid_lib.UUID]) -> dict:
     else:
         raise TypeError("Expected to_object_uuid of type str or uuid.UUID")
 
-    return {"beacon": "weaviate://localhost/" + uuid}
+    if class_name is None:
+        return {
+            "beacon": f"weaviate://localhost/{to_uuid}"
+        }
+    return {
+        "beacon": f"weaviate://localhost/{class_name}/{to_uuid}"
+    }
 
 
 def _get_dict_from_object(object_: Union[str, dict]) -> dict:

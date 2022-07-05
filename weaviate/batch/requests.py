@@ -3,7 +3,7 @@ BatchRequest class definitions.
 """
 import copy
 from abc import ABC, abstractmethod
-from typing import List, Sequence
+from typing import List, Sequence, Optional
 from weaviate.util import get_valid_uuid, get_vector
 
 
@@ -82,7 +82,8 @@ class ReferenceBatchRequest(BatchRequest):
             from_object_class_name: str,
             from_object_uuid: str,
             from_property_name: str,
-            to_object_uuid: str
+            to_object_uuid: str,
+            to_object_class_name: Optional[str]=None,
         ) -> None:
         """
         Add one Weaviate-object reference to this batch. Does NOT validate the consistency of the
@@ -98,6 +99,13 @@ class ReferenceBatchRequest(BatchRequest):
             The name of the property that contains the reference.
         to_object_uuid : str
             The UUID or URL of the object that is actually referenced.
+        to_object_class_name : Optional[str], optional
+            The referenced object class name to which to add the reference (with UUID 
+            `to_object_uuid`), it is included in Weaviate 1.14.0, where all objects are namespaced
+            by class name.
+            STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
+            versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
+            by default None
 
         Raises
         ------
@@ -114,11 +122,17 @@ class ReferenceBatchRequest(BatchRequest):
             or not isinstance(to_object_uuid, str)
         ):
             raise TypeError('All arguments must be of type string')
+        
+        if to_object_class_name is not None:
+            to_beacon = f'weaviate://localhost/{to_object_class_name}/{to_object_uuid}'
+        else:
+            to_beacon = f'weaviate://localhost/{to_object_uuid}'
+
 
         from_object_uuid = get_valid_uuid(from_object_uuid)
         to_object_uuid = get_valid_uuid(to_object_uuid)
 
-        self._items.append( # TODO: fix it
+        self._items.append(
             {
             'from': 'weaviate://localhost/'
                 + from_object_class_name
@@ -126,8 +140,7 @@ class ReferenceBatchRequest(BatchRequest):
                 + from_object_uuid
                 + '/'
                 + from_property_name,
-            'to': 'weaviate://localhost/'
-                + to_object_uuid,
+            'to': to_beacon
             }
         )
 
