@@ -8,7 +8,7 @@ from typing import Any, Union
 from abc import ABC, abstractmethod
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
-from weaviate.util import get_vector
+from weaviate.util import get_vector, deprecation
 
 class GraphQL(ABC):
     """
@@ -225,7 +225,7 @@ class NearObject(Filter):
     NearObject class used to filter weaviate objects.
     """
 
-    def __init__(self, content: dict):
+    def __init__(self, content: dict, is_server_version_14: bool):
         """
         Initialize a NearVector class instance.
 
@@ -233,6 +233,8 @@ class NearObject(Filter):
         ----------
         content : list
             The content of the `nearVector` clause.
+        is_server_version_14 : bool
+            Whether the Server version is >= 1.14.0.
 
         Raises
         ------
@@ -253,6 +255,14 @@ class NearObject(Filter):
             self.obj_id = 'id'
         else:
             self.obj_id = 'beacon'
+            if is_server_version_14 and len(self._content['beacon'].strip('/').split('/')) == 4:
+                deprecation(
+                    "Based on the number of '/' in the beacon it seems that the beacon is not "
+                    "class namespaced. Weaviate version >= 1.14.0 STRONGLY recommends using class "
+                    "namespaced beacons. Non=class namespaced beacons will be removed in future "
+                    "versions. Class namespaced beacons look like this: "
+                    "'weaviate://localhost/{CLASS_NAME}/{UUID}'"
+                )
 
         _check_type(
             var_name=self.obj_id,

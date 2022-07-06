@@ -84,8 +84,9 @@ class Contextionary:
                 weaviate_object=extension,
             )
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('text2vec-contextionary could not be extended.')\
-                from conn_err
+            raise RequestsConnectionError(
+                'text2vec-contextionary could not be extended.'
+            ) from conn_err
         if response.status_code == 200:
             # Successfully extended
             return
@@ -154,8 +155,9 @@ class Contextionary:
                 path=path
             )
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('text2vec-contextionary vector was not retrieved.')\
-                from conn_err
+            raise RequestsConnectionError(
+                'text2vec-contextionary vector was not retrieved.'
+            ) from conn_err
         else:
             if response.status_code == 200:
                 return response.json()

@@ -326,10 +326,14 @@ class GetBuilder(GraphQL):
             If another 'near' filter was already set.
         """
 
+        is_server_version_14 = (self._connection.server_version >= '1.14')
+
         if self._near_ask is not None:
-            raise AttributeError("Cannot use multiple 'near' filters, or a 'near' filter along"
-                " with a 'ask' filter!")
-        self._near_ask = NearObject(content)
+            raise AttributeError(
+                "Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!"
+            )
+        self._near_ask = NearObject(content, is_server_version_14)
         self._contains_filter = True
         return self
 
@@ -363,7 +367,7 @@ class GetBuilder(GraphQL):
         ...     'image': "my_image_path.png",
         ...     'certainty': 0.7 # Optional
         ... }
-        >>> query = client.query.get('Image', 'description')\
+        >>> query = client.query.get('Image', 'description')\\
         ...     .with_near_image(content, encode=True) # <- encode MUST be set to True
 
         OR
@@ -373,7 +377,7 @@ class GetBuilder(GraphQL):
         ...     'image': my_image_file,
         ...     'certainty': 0.7 # Optional
         ... }
-        >>> query = client.query.get('Image', 'description')\
+        >>> query = client.query.get('Image', 'description')\\
         ...     .with_near_image(content, encode=True) # <- encode MUST be set to True
         >>> my_image_file.close()
 
@@ -385,7 +389,7 @@ class GetBuilder(GraphQL):
         ...     'image': encoded_image,
         ...     'certainty': 0.7 # Optional
         ... }
-        >>> query = client.query.get('Image', 'description')\
+        >>> query = client.query.get('Image', 'description')\\
         ...     .with_near_image(content, encode=False) # <- encode MUST be set to False
 
         OR
@@ -397,7 +401,7 @@ class GetBuilder(GraphQL):
         ...     'image': encoded_image,
         ...     'certainty': 0.7 # Optional
         ... }
-        >>> query = client.query.get('Image', 'description')\
+        >>> query = client.query.get('Image', 'description')\\
         ...     .with_near_image(content, encode=False) # <- encode MUST be set to False
 
         Encode Image yourself:
@@ -409,7 +413,7 @@ class GetBuilder(GraphQL):
         ...     'image': encoded_image,
         ...     'certainty': 0.7 # Optional
         ... }
-        >>> query = client.query.get('Image', 'description')\
+        >>> query = client.query.get('Image', 'description')\\
         ...     .with_near_image(content, encode=False) # <- encode MUST be set to False
 
         Returns
@@ -576,8 +580,8 @@ class GetBuilder(GraphQL):
         ...     }
         ... }
         ... '''
-        >>> client.query\
-        ...     .get('Article', ['title', 'author'])\
+        >>> client.query\\
+        ...     .get('Article', ['title', 'author'])\\
         ...     .with_additional('id']) # argument as `str`
 
         >>> # multiple additional property with this GraphQL query
@@ -595,8 +599,8 @@ class GetBuilder(GraphQL):
         ...     }
         ... }
         ... '''
-        >>> client.query\
-        ...     .get('Article', ['title', 'author'])\
+        >>> client.query\\
+        ...     .get('Article', ['title', 'author'])\\
         ...     .with_additional(['id', 'certainty']) # argument as `List[str]`
 
         >>> # additional properties as clause with this GraphQL query
@@ -619,8 +623,8 @@ class GetBuilder(GraphQL):
         ...     }
         ... }
         ... '''
-        >>> client.query\
-        ...     .get('Article', ['title', 'author'])\
+        >>> client.query\\
+        ...     .get('Article', ['title', 'author'])\\
         ...     .with_additional(
         ...         {
         ...             'classification' : ['basedOn', 'classifiedFields', 'completed', 'id']
@@ -642,8 +646,8 @@ class GetBuilder(GraphQL):
         ...     }
         ... }
         ... '''
-        >>> client.query\
-        ...     .get('Article', ['title', 'author'])\
+        >>> client.query\\
+        ...     .get('Article', ['title', 'author'])\\
         ...     .with_additional(
         ...         {
         ...             'classification' : 'completed'
@@ -694,8 +698,8 @@ class GetBuilder(GraphQL):
         ...     'limit': 10,                # optional, int
         ...     'certainty': 0.8            # optional, float
         ... }
-        >>> client.query\
-        ...     .get('Article', ['title', 'author'])\
+        >>> client.query\\
+        ...     .get('Article', ['title', 'author'])\\
         ...     .with_additional(
         ...         (clause, settings)
         ...     ) # argument as `Tuple[Dict[str, List[str]], Dict[str, Any]]`
@@ -788,7 +792,7 @@ class GetBuilder(GraphQL):
         ...     'path': ['name']       # Path to the property that should be used
         ...     'order': 'asc'         # Sort order, possible values: asc, desc
         ... }
-        >>> client.query.get('Author', ['name', 'address'])\
+        >>> client.query.get('Author', ['name', 'address'])\\
         ...     .with_sort(content)
 
         Or a list of sort configurations:
@@ -806,12 +810,12 @@ class GetBuilder(GraphQL):
         If we have a list we can add it in 2 ways.
         Pass the list:
 
-        >>> client.query.get('Author', ['name', 'address'])\
+        >>> client.query.get('Author', ['name', 'address'])\\
         ...     .with_sort(content)
 
         Or one configuration at a time:
 
-        >>> client.query.get('Author', ['name', 'address'])\
+        >>> client.query.get('Author', ['name', 'address'])\\
         ...     .with_sort(content[0])
         ...     .with_sort(content[1])
 

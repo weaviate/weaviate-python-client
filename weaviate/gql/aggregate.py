@@ -349,7 +349,7 @@ class AggregateBuilder(GraphQL):
         ... }
         >>> # alternatively
         >>> {
-        ...     'beacon': "weaviate://localhost/e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf"
+        ...     'beacon': "weaviate://localhost/Book/e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf"
         ...     'certainty': 0.7 # Optional
         ... }
 
@@ -364,9 +364,11 @@ class AggregateBuilder(GraphQL):
             If another 'near' filter was already set.
         """
 
+        is_server_version_14 = (self._connection.server_version >= '1.14')
+
         if self._near is not None:
             raise AttributeError("Cannot use multiple 'near' filters.")
-        self._near = NearObject(content)
+        self._near = NearObject(content, is_server_version_14)
         self._uses_filter = True
         return self
 

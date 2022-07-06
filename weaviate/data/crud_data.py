@@ -105,8 +105,9 @@ class DataObject:
         """
 
         if not isinstance(class_name, str):
-            raise TypeError("Expected class_name of type str but was: " \
-                            + str(type(class_name)))
+            raise TypeError(
+                f"Expected class_name of type str but was: {type(class_name)}"
+            )
         loaded_data_object = _get_dict_from_object(data_object)
 
         weaviate_obj = {
@@ -794,8 +795,9 @@ class DataObject:
                 weaviate_object=weaviate_obj
             )
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Object was not validated against weaviate.') \
-                from conn_err
+            raise RequestsConnectionError(
+                'Object was not validated against weaviate.'
+            ) from conn_err
 
         result: dict = {
             "error": None

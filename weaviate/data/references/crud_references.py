@@ -98,8 +98,8 @@ class Reference:
                 "name": "Ray Bradbury",
                 "wroteBooks": [
                 {
-                    "beacon": "weaviate://localhost/a9c1b714-4f8a-4b01-a930-38b046d69d2d",
-                    "href": "/v1/objects/a9c1b714-4f8a-4b01-a930-38b046d69d2d"
+                    "beacon": "weaviate://localhost/Book/a9c1b714-4f8a-4b01-a930-38b046d69d2d",
+                    "href": "/v1/objects/Book/a9c1b714-4f8a-4b01-a930-38b046d69d2d"
                 }
                 ]
             },
@@ -231,7 +231,7 @@ class Reference:
             The object that should have the reference as part of its properties.
             Should be in the form of an UUID or in form of an URL.
             E.g.
-            'http://localhost:8080/v1/objects/fc7eb129-f138-457f-b727-1b29db191a67'
+            'http://localhost:8080/v1/objects/Book/fc7eb129-f138-457f-b727-1b29db191a67'
             or
             'fc7eb129-f138-457f-b727-1b29db191a67'
         from_property_name : str
@@ -240,7 +240,7 @@ class Reference:
             The UUIDs of the objects that should be referenced.
             Should be a list of str in the form of an UUID or str in form of an URL.
             E.g.
-            ['http://localhost:8080/v1/objects/fc7eb129-f138-457f-b727-1b29db191a67', ...]
+            ['http://localhost:8080/v1/objects/Book/fc7eb129-f138-457f-b727-1b29db191a67', ...]
             or
             ['fc7eb129-f138-457f-b727-1b29db191a67', ...]
             If `str` it is converted internally into a list of str.
@@ -280,8 +280,8 @@ class Reference:
                 "name": "Ray Bradbury",
                 "wroteBooks": [
                 {
-                    "beacon": "weaviate://localhost/a9c1b714-4f8a-4b01-a930-38b046d69d2d",
-                    "href": "/v1/objects/a9c1b714-4f8a-4b01-a930-38b046d69d2d"
+                    "beacon": "weaviate://localhost/Book/a9c1b714-4f8a-4b01-a930-38b046d69d2d",
+                    "href": "/v1/objects/Book/a9c1b714-4f8a-4b01-a930-38b046d69d2d"
                 }
                 ]
             },
@@ -313,12 +313,12 @@ class Reference:
                 "name": "Ray Bradbury",
                 "wroteBooks": [
                 {
-                    "beacon": "weaviate://localhost/8429f68f-860a-49ea-a50b-1f8789515882",
-                    "href": "/v1/objects/8429f68f-860a-49ea-a50b-1f8789515882"
+                    "beacon": "weaviate://localhost/Book/8429f68f-860a-49ea-a50b-1f8789515882",
+                    "href": "/v1/objects/Book/8429f68f-860a-49ea-a50b-1f8789515882"
                 },
                 {
-                    "beacon": "weaviate://localhost/3e2e6795-298b-47e9-a2cb-3d8a77a24d8a",
-                    "href": "/v1/objects/3e2e6795-298b-47e9-a2cb-3d8a77a24d8a"
+                    "beacon": "weaviate://localhost/Book/3e2e6795-298b-47e9-a2cb-3d8a77a24d8a",
+                    "href": "/v1/objects/Book/3e2e6795-298b-47e9-a2cb-3d8a77a24d8a"
                 }
                 ]
             },
@@ -453,7 +453,7 @@ class Reference:
             The ID of the object that should have the reference as part
             of its properties. Should be a plane UUID or an URL.
             E.g.
-            'http://localhost:8080/v1/objects/fc7eb129-f138-457f-b727-1b29db191a67'
+            'http://localhost:8080/v1/objects/Book/fc7eb129-f138-457f-b727-1b29db191a67'
             or
             'fc7eb129-f138-457f-b727-1b29db191a67'
         from_property_name : str
@@ -462,7 +462,7 @@ class Reference:
             The UUID of the object that should be referenced.
             Should be a plane UUID or an URL.
             E.g.
-            'http://localhost:8080/v1/objects/fc7eb129-f138-457f-b727-1b29db191a67'
+            'http://localhost:8080/v1/objects/Book/fc7eb129-f138-457f-b727-1b29db191a67'
             or
             'fc7eb129-f138-457f-b727-1b29db191a67'
         from_class_name : Optional[str], optional
@@ -516,8 +516,8 @@ class Reference:
                 "name": "Ray Bradbury",
                 "wroteBooks": [
                 {
-                    "beacon": "weaviate://localhost/a9c1b714-4f8a-4b01-a930-38b046d69d2d",
-                    "href": "/v1/objects/a9c1b714-4f8a-4b01-a930-38b046d69d2d"
+                    "beacon": "weaviate://localhost/Book/a9c1b714-4f8a-4b01-a930-38b046d69d2d",
+                    "href": "/v1/objects/Book/a9c1b714-4f8a-4b01-a930-38b046d69d2d"
                 }
                 ]
             },

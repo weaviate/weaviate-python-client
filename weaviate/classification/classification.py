@@ -69,8 +69,9 @@ class Classification:
                 path='/classifications/' + classification_uuid,
             )
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Classification status could not be retrieved.')\
-                from conn_err
+            raise RequestsConnectionError(
+                'Classification status could not be retrieved.'
+            ) from conn_err
         if response.status_code == 200:
             return response.json()
         raise UnexpectedStatusCodeException("Get classification status", response)

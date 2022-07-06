@@ -298,8 +298,9 @@ class Schema:
                 weaviate_object=new_class_schema
             )
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Class schema configuration could not be updated.')\
-                from conn_err
+            raise RequestsConnectionError(
+                'Class schema configuration could not be updated.'
+            ) from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Update class schema configuration", response)
 
@@ -605,8 +606,9 @@ class Schema:
                    weaviate_object=schema_property
                 )
             except RequestsConnectionError as conn_err:
-                raise RequestsConnectionError('Property may not have been created properly.')\
-                    from conn_err
+                raise RequestsConnectionError(
+                    'Property may not have been created properly.'
+                ) from conn_err
             if response.status_code != 200:
                 raise UnexpectedStatusCodeException("Add properties to classes", response)
 
@@ -662,8 +664,9 @@ class Schema:
                 weaviate_object=schema_class
             )
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Class may not have been created properly.')\
-                from conn_err
+            raise RequestsConnectionError(
+                'Class may not have been created properly.'
+            ) from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Create class", response)
 

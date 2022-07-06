@@ -173,7 +173,7 @@ def _get_dict_from_object(object_: Union[str, dict]) -> dict:
 def is_weaviate_object_url(url: str) -> bool:
     """
     Checks if the input follows a normal Weaviate 'beacon' like this:
-    'weaviate://localhost/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'
+    'weaviate://localhost/ClassName/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'
 
     Parameters
     ----------
@@ -193,13 +193,13 @@ def is_weaviate_object_url(url: str) -> bool:
         return False
     url = url[11:]
     split = url.split("/")
-    if len(split) != 2:
+    if len(split) not in (2, 3):
         return False
     if split[0] != "localhost":
         if not validators.domain(split[0]):
             return False
     try:
-        uuid_lib.UUID(split[1])
+        uuid_lib.UUID(split[-1])
     except ValueError:
         return False
     return True
@@ -230,9 +230,9 @@ def is_object_url(url: str) -> bool:
         uuid_lib.UUID(split[-1])
     except ValueError:
         return False
-    if not split[-2] == "objects":
+    if not split[-2] == "objects" or not split[-3] == "objects":
         return False
-    if not split[-3] == "v1":
+    if not split[-3] == "v1" or not split[-4] == "v1":
         return False
     return True
 
