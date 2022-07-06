@@ -431,7 +431,7 @@ class TestDataObject(unittest.TestCase):
         check_error_message(self, error, requests_error_message)
         
         data_object = DataObject(
-            mock_connection_method('get', status_code=204)
+            mock_connection_method('get', status_code=405)
         )
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             data_object.get()
@@ -455,17 +455,6 @@ class TestDataObject(unittest.TestCase):
         data_object = DataObject(connection_mock)
         result = data_object.get(uuid="1d420c9c98cb11ec9db61e008a366d49")
         self.assertEqual(result, return_value_get)
-        connection_mock.get.assert_called_with(
-            path="/objects/1d420c9c-98cb-11ec-9db6-1e008a366d49",
-            params={'include': "test1,test2"}
-        )
-
-        return_value_get = {"my_key": '12341'}
-        mock_get_params.return_value = {'include': "test1,test2"}
-        connection_mock = mock_connection_method('get', return_json=return_value_get, status_code=404)
-        data_object = DataObject(connection_mock)
-        result = data_object.get(uuid="1d420c9c-98cb-11ec-9db6-1e008a366d49")
-        self.assertIsNone(result)
         connection_mock.get.assert_called_with(
             path="/objects/1d420c9c-98cb-11ec-9db6-1e008a366d49",
             params={'include': "test1,test2"}
@@ -651,7 +640,7 @@ class TestDataObject(unittest.TestCase):
             _get_params("Test", False)
         check_error_message(self, error, type_error_message(str))
 
-        self.assertEqual(_get_params(["test1","test2"], False), {'include': ["test1","test2"]})
+        self.assertEqual(_get_params(["test1","test2"], False), {'include': "test1,test2"})
         self.assertEqual(_get_params(None, True), {'include': "vector"})
         self.assertEqual(_get_params([], True), {'include': "vector"})
-        self.assertEqual(_get_params(["test1","test2"], True), {'include': ["test1","test2","vector"]})
+        self.assertEqual(_get_params(["test1","test2"], True), {'include': "test1,test2,vector"})

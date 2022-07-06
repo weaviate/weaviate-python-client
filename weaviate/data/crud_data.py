@@ -516,6 +516,8 @@ class DataObject:
             raise RequestsConnectionError('Could not get object/s.') from conn_err
         if response.status_code == 200:
             return response.json()
+        if response.status_code == 404:
+            return None
         raise UnexpectedStatusCodeException("Get object/s", response)
 
     def delete(self,
@@ -611,7 +613,7 @@ class DataObject:
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError('Object could not be deleted.') from conn_err
-        if response.status_code in (204, 404):
+        if response.status_code == 204:
             # Successfully deleted
             return
         raise UnexpectedStatusCodeException("Delete object", response)
@@ -841,15 +843,13 @@ def _get_params(additional_properties: Optional[List[str]], with_vector: bool) -
     params = {}
     if additional_properties:
         if not isinstance(additional_properties, list):
-            raise TypeError(
-                "Additional properties must be of type list "
-                f"but are {type(additional_properties)}"
-            )
-        params['include'] = additional_properties.copy()
+            raise TypeError("Additional properties must be of type list "
+                f"but are {type(additional_properties)}")
+        params['include'] = ",".join(additional_properties)
 
     if with_vector:
         if 'include' in params:
-            params['include'].append('vector')
+            params['include'] = params['include'] + ',vector'
         else:
             params['include'] = 'vector'
     return params
