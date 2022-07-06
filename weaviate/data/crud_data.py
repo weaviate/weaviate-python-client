@@ -499,7 +499,8 @@ class DataObject:
             if uuid is not None:
                 path = f"/objects/{_capitalize_first_letter(class_name)}"
             else:
-                params['classname'] = _capitalize_first_letter(class_name)
+                path = "/objects"
+                params['class'] = _capitalize_first_letter(class_name)
         else:
             path = "/objects"
 
@@ -612,7 +613,7 @@ class DataObject:
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError('Object could not be deleted.') from conn_err
-        if response.status_code == 204:
+        if response.status_code in (204, 404):
             # Successfully deleted
             return
         raise UnexpectedStatusCodeException("Delete object", response)
