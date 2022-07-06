@@ -516,8 +516,6 @@ class DataObject:
             raise RequestsConnectionError('Could not get object/s.') from conn_err
         if response.status_code == 200:
             return response.json()
-        if uuid is not None and response.status_code == 404:
-            return None
         raise UnexpectedStatusCodeException("Get object/s", response)
 
     def delete(self,

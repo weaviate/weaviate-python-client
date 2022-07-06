@@ -223,16 +223,21 @@ def is_object_url(url: str) -> bool:
         False otherwise.
     """
 
-    split = url.split("/")
-    if len(split) < 3:
+    v1_split = url.split("/v1/")
+
+    if len(v1_split) != 2:
         return False
+
+    split = v1_split[1].split("/")
+
+    if len(split) not in (2, 3):
+        return False
+
     try:
         uuid_lib.UUID(split[-1])
     except ValueError:
         return False
-    if not split[-2] == "objects" or not split[-3] == "objects":
-        return False
-    if not split[-3] == "v1" or not split[-4] == "v1":
+    if not split[0] == "objects":
         return False
     return True
 

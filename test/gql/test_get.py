@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from weaviate.gql.get import GetBuilder
 from test.util import check_error_message
 
@@ -122,7 +122,9 @@ class TestGetBuilder(unittest.TestCase):
         }
 
         # valid calls
-        query = GetBuilder("Person", "name", None).with_near_vector(near_vector).build()
+        mock_connection = Mock()
+        mock_connection.server_version = '1.14.0'
+        query = GetBuilder("Person", "name", mock_connection).with_near_vector(near_vector).build()
         self.assertEqual('{Get{Person(nearVector: {vector: [1, 2, 3, 4, 5, 6, 7, 8, 9] certainty: 0.55} ){name}}}', query)
 
         # invalid calls
@@ -133,7 +135,7 @@ class TestGetBuilder(unittest.TestCase):
             "certainty": 0.55
         }
         with self.assertRaises(AttributeError) as error:
-            GetBuilder("Person", "name", None).with_near_object(near_object).with_near_vector(near_vector)
+            GetBuilder("Person", "name", mock_connection).with_near_object(near_object).with_near_vector(near_vector)
         check_error_message(self, error, near_error_msg)
 
     def test_build_near_object(self):
@@ -147,7 +149,9 @@ class TestGetBuilder(unittest.TestCase):
         }
 
         # valid calls
-        query = GetBuilder("Person", "name", None).with_near_object(near_object).build()
+        mock_connection = Mock()
+        mock_connection.server_version = '1.14.0'
+        query = GetBuilder("Person", "name", mock_connection).with_near_object(near_object).build()
         self.assertEqual('{Get{Person(nearObject: {id: "test_id" certainty: 0.55} ){name}}}', query)
 
         # invalid calls
@@ -161,7 +165,7 @@ class TestGetBuilder(unittest.TestCase):
             },
         }
         with self.assertRaises(AttributeError) as error:
-            GetBuilder("Person", "name", None).with_near_text(near_text).with_near_object(near_object)
+            GetBuilder("Person", "name", mock_connection).with_near_text(near_text).with_near_object(near_object)
         check_error_message(self, error, near_error_msg)
     
     @patch('weaviate.gql.get.image_encoder_b64', side_effect=lambda x: 'test_call')

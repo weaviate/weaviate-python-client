@@ -362,7 +362,7 @@ class TestDataObject(unittest.TestCase):
             data_object.delete("b36268d4-a6b5-5274-985f-45f13ce0c642")
         check_error_message(self, error, requests_error_message)
 
-        connection_mock = mock_connection_method('delete', status_code=404)
+        connection_mock = mock_connection_method('delete', status_code=405)
         data_object = DataObject(connection_mock)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             data_object.delete("b36268d4-a6b5-5274-985f-45f13ce0c642")
@@ -651,7 +651,7 @@ class TestDataObject(unittest.TestCase):
             _get_params("Test", False)
         check_error_message(self, error, type_error_message(str))
 
-        self.assertEqual(_get_params(["test1","test2"], False), {'include': "test1,test2"})
+        self.assertEqual(_get_params(["test1","test2"], False), {'include': ["test1","test2"]})
         self.assertEqual(_get_params(None, True), {'include': "vector"})
         self.assertEqual(_get_params([], True), {'include': "vector"})
-        self.assertEqual(_get_params(["test1","test2"], True), {'include': "test1,test2,vector"})
+        self.assertEqual(_get_params(["test1","test2"], True), {'include': ["test1","test2","vector"]})

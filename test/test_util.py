@@ -277,7 +277,7 @@ class TestUtil(unittest.TestCase):
         ## wrong path, additional '/thing'
         self.assertFalse(
             is_weaviate_object_url("weaviate://localhost/things/f61b-b524-45e0-9bbe-2c1550bf73d2"))
-        ## worng domain format
+        ## wrong domain format
         self.assertFalse(
             is_weaviate_object_url("weaviate://some-INVALID-domain/28f3f61b-b524-45e0-9bbe-2c1550bf73d2"))
         # wrong UUID format
