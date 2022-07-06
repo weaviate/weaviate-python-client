@@ -120,7 +120,7 @@ class IntegrationTestCrud:
         print("Test Delete")
         self.client.data_object.delete(self.chemists[2])  # Delete Walter White not a real chemist just a legend
         time.sleep(1.1)
-        if self.client.data_object.get_by_id(self.chemists[2]) is not None:
+        if self.client.data_object.exists(self.chemists[2]):
             raise TestFailedException("Thing was not correctly deleted")
 
     def _delete_references(self):
@@ -144,6 +144,7 @@ class IntegrationTestCrud:
         self.client.data_object.create({"name": "George Floyd"}, "Person", "452e3031-bdaa-4468-9980-aed60d0258bf")
         time.sleep(2.0)
         person = self.client.data_object.get_by_id("452e3031-bdaa-4468-9980-aed60d0258bf", ["interpretation"], with_vector=True)
+        print(person)
 
         if "vector" not in person:
             raise TestFailedException("additional property _vector not in person")

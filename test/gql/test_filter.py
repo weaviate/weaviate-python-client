@@ -473,45 +473,45 @@ class TestNearObject(unittest.TestCase):
         )
 
         with self.assertRaises(TypeError) as error:
-            NearObject(123)
+            NearObject(123, is_server_version_14=False)
         check_error_message(self, error, content_error_msg(int))
 
         with self.assertRaises(ValueError) as error:
             NearObject({
                 'id': 123,
                 'beacon': 456
-            })
+            }, is_server_version_14=False)
         check_error_message(self, error, beacon_id_error_msg)
 
         with self.assertRaises(TypeError) as error:
             NearObject({
                 'id': 123,
-            })
+            }, is_server_version_14=False)
         check_error_message(self, error, beacon_id_type_error_msg('id', int))
 
         with self.assertRaises(TypeError) as error:
             NearObject({
                 'beacon': {123},
-            })
+            }, is_server_version_14=False)
         check_error_message(self, error, beacon_id_type_error_msg('beacon', set))
 
         with self.assertRaises(TypeError) as error:
             NearObject({
                 'beacon': 'test_beacon',
                 'certainty': False
-            })
+            }, is_server_version_14=False)
         check_error_message(self, error, certainty_error_msg(bool))
 
         # valid calls
 
         NearObject({
             'id': 'test_id',
-        })
+        }, is_server_version_14=False)
 
         NearObject({
             'beacon': 'test_beacon',
             'certainty': 0.7
-        })
+        }, is_server_version_14=False)
 
     def test___str__(self):
         """
@@ -520,24 +520,24 @@ class TestNearObject(unittest.TestCase):
 
         near_object = NearObject({
             'id': 'test_id',
-        })
+        }, is_server_version_14=False)
         self.assertEqual(str(near_object), 'nearObject: {id: "test_id"} ')
 
         near_object = NearObject({
             'id': 'test_id',
             'certainty': 0.7
-        })
+        }, is_server_version_14=False)
         self.assertEqual(str(near_object), 'nearObject: {id: "test_id" certainty: 0.7} ')
 
         near_object = NearObject({
             'beacon': 'test_beacon',
-        })
+        }, is_server_version_14=False)
         self.assertEqual(str(near_object), 'nearObject: {beacon: "test_beacon"} ')
 
         near_object = NearObject({
             'beacon': 'test_beacon',
             'certainty': 0.0
-        })
+        }, is_server_version_14=False)
         self.assertEqual(str(near_object), 'nearObject: {beacon: "test_beacon" certainty: 0.0} ')
 
 

@@ -185,7 +185,7 @@ class TestUtil(unittest.TestCase):
         """
 
         type_error_message = "Expected to_object_uuid of type str or uuid.UUID"
-        value_error_message = "Uuid does not have the propper form"
+        value_error_message = "Uuid does not have the proper form"
         # wrong data type
         with self.assertRaises(TypeError) as error:
             generate_local_beacon(None)
@@ -277,7 +277,7 @@ class TestUtil(unittest.TestCase):
         ## wrong path, additional '/thing'
         self.assertFalse(
             is_weaviate_object_url("weaviate://localhost/things/f61b-b524-45e0-9bbe-2c1550bf73d2"))
-        ## worng domain format
+        ## wrong domain format
         self.assertFalse(
             is_weaviate_object_url("weaviate://some-INVALID-domain/28f3f61b-b524-45e0-9bbe-2c1550bf73d2"))
         # wrong UUID format

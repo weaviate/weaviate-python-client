@@ -1,6 +1,35 @@
 Changelog
 =========
 
+Version 3.6.0
+-------------
+This minor version includes:
+
+- New function in :func:`~weaviate.util.check_batch_result` used to print errors from batch creation.
+
+- New function argument ``class_name`` for :func:`~weaviate.util.generate_local_beacon`, used ONLY with Weaviate Server version >= ``1.14.0`` 
+    (defaults to ``None`` for backwards compatibility).
+
+- | :func:`~weaviate.util.check_batch_result` is the default ``callback`` function for :class:`~weaviate.batch.Batch` 
+    (:meth:`~weaviate.batch.Batch.configure` and :meth:`~weaviate.batch.Batch.__call__`) (instead of ``None``).
+
+- | New method argument ``to_object_class_name``  for :meth:`~weaviate.batch.Batch.add_reference`, used ONLY with Weaviate Server version >= ``1.14.0`` 
+    (defaults to ``None`` for backwards compatibility).
+
+- Support for ``distance`` in GraphQL filters (only with Weaviate server >= ``1.14.0``).
+
+- For :class:`~weaviate.data.DataObject`:
+    - | New method argument ``class_name`` for :meth:`~weaviate.data.DataObject.get_by_id`, :meth:`~weaviate.data.DataObject.get`, :meth:`~weaviate.data.DataObject.delete`
+        :meth:`~weaviate.data.DataObject.exists`, used ONLY with Weaviate Server version >= ``1.14.0`` (defaults to ``None`` for backwards compatibility).
+    - Deprecation Warning if Weaviate Server version >= 1.14.0 and ``class_name`` is ``None`` OR if Weaviate Server version < 1.14.0 and ``class_name`` is NOT ``None``.
+
+- For :class:`~weaviate.data.references.Reference`:
+    - | New method arguments ``from_class_name`` and ``to_class_name`` (``to_class_names`` for :meth:`~weaviate.data.references.Reference.update`) for 
+        :meth:`~weaviate.data.references.Reference.add`, :meth:`~weaviate.data.references.Reference.delete`,
+        :meth:`~weaviate.data.references.Reference.update`, used ONLY with Weaviate Server version >= ``1.14.0`` (defaults to ``None`` for backwards compatibility).
+    - Deprecation Warning if Weaviate Server version >= 1.14.0 and ``class_name`` is ``None`` OR if Weaviate Server version < 1.14.0 and ``class_name`` is NOT ``None``.
+
+
 Version 3.5.1
 -------------
 This patch version fixes:

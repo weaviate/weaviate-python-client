@@ -389,7 +389,9 @@ class TestBatch(unittest.TestCase):
         Test the `shape`, `num_objects` and `num_references` property/methods.
         """
 
-        batch = Batch(Mock())
+        mock_connection = Mock()
+        mock_connection.server_version = '1.14.0'
+        batch = Batch(mock_connection)
 
         self.assertEqual(batch.num_objects(), 0)
         self.assertEqual(batch.num_references(), 0)
@@ -481,7 +483,9 @@ class TestBatch(unittest.TestCase):
         Test `_auto_create` method through `add_*` methods.
         """
 
-        batch = Batch(Mock())
+        mock_connection = Mock()
+        mock_connection.server_version = '1.14.0'
+        batch = Batch(mock_connection)
         batch.batch_size = 2 # this enables auto_create with batching `fixed`
 
         #######################################################################
@@ -513,7 +517,9 @@ class TestBatch(unittest.TestCase):
 
         #######################################################################
         # batching_type 'dynamic'
-        batch = Batch(Mock())
+        mock_connection = Mock()
+        mock_connection.server_version = '1.14.0'
+        batch = Batch(mock_connection)
         batch.batch_size = 2 # this enables auto_create with batching `fixed`
         batch.dynamic = True # NOTE: recommended are set to 2 when we set the batch_size to 2
         batch.add_data_object({}, 'Test')
@@ -616,7 +622,9 @@ class TestBatch(unittest.TestCase):
         Test `add_reference` method.
         """
 
-        batch = Batch(Mock())
+        mock_connection = Mock()
+        mock_connection.server_version = '1.14.0'
+        batch = Batch(mock_connection)
         batch._reference_batch = Mock() # to test if the add method is called
 
 
@@ -632,6 +640,7 @@ class TestBatch(unittest.TestCase):
             from_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37391',
             from_property_name='test',
             to_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37392',
+            to_object_class_name=None,
         )
         mock_auto_create.assert_not_called()
 
@@ -647,6 +656,7 @@ class TestBatch(unittest.TestCase):
             from_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37393',
             from_property_name='test',
             to_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37394',
+            to_object_class_name=None,
         )
         mock_auto_create.assert_not_called()
 
@@ -663,6 +673,7 @@ class TestBatch(unittest.TestCase):
             from_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37396',
             from_property_name='test',
             to_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37397',
+            to_object_class_name=None,
         )
         mock_auto_create.assert_called()
         mock_auto_create.reset_mock()
@@ -680,6 +691,7 @@ class TestBatch(unittest.TestCase):
             from_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37390',
             from_property_name='test',
             to_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37399',
+            to_object_class_name=None,
         )
         mock_auto_create.assert_called()
         mock_auto_create.reset_mock()
@@ -696,6 +708,7 @@ class TestBatch(unittest.TestCase):
             from_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37395',
             from_property_name='test',
             to_object_uuid='f0153f24-3923-4046-919b-6a3e8fd37319',
+            to_object_class_name=None,
         )
         mock_auto_create.assert_called()
         mock_auto_create.reset_mock()
@@ -737,7 +750,9 @@ class TestBatch(unittest.TestCase):
         Test `create_references` method.
         """
 
-        batch = Batch(Mock())
+        mock_connection = Mock()
+        mock_connection.server_version = '1.14.0'
+        batch = Batch(mock_connection)
         ## mock the requests.Response object
         mock_response = Mock()
         mock_response.json.return_value = 'Test'

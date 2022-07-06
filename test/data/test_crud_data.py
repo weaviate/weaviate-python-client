@@ -338,7 +338,9 @@ class TestDataObject(unittest.TestCase):
         Test the `delete` method.
         """
 
-        data_object = DataObject(Mock())
+        connection_mock = Mock()
+        connection_mock.server_version = '1.13.2'
+        data_object = DataObject(connection_mock)
 
         # error messages
         uuid_type_error_message = lambda dt: f"'uuid' must be of type str or uuid.UUID, but was: {dt}"
@@ -360,7 +362,7 @@ class TestDataObject(unittest.TestCase):
             data_object.delete("b36268d4-a6b5-5274-985f-45f13ce0c642")
         check_error_message(self, error, requests_error_message)
 
-        connection_mock = mock_connection_method('delete', status_code=404)
+        connection_mock = mock_connection_method('delete', status_code=405)
         data_object = DataObject(connection_mock)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             data_object.delete("b36268d4-a6b5-5274-985f-45f13ce0c642")
@@ -392,6 +394,7 @@ class TestDataObject(unittest.TestCase):
         )
         mock_get.assert_called_with(
             uuid="UUID",
+            class_name=None,
             additional_properties=["Test", "list"],
             with_vector=True
         )
@@ -403,6 +406,7 @@ class TestDataObject(unittest.TestCase):
         )
         mock_get.assert_called_with(
             uuid="UUID2",
+            class_name=None,
             additional_properties=["Test"],
             with_vector=False
         )
@@ -427,7 +431,7 @@ class TestDataObject(unittest.TestCase):
         check_error_message(self, error, requests_error_message)
         
         data_object = DataObject(
-            mock_connection_method('get', status_code=204)
+            mock_connection_method('get', status_code=405)
         )
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             data_object.get()
@@ -451,17 +455,6 @@ class TestDataObject(unittest.TestCase):
         data_object = DataObject(connection_mock)
         result = data_object.get(uuid="1d420c9c98cb11ec9db61e008a366d49")
         self.assertEqual(result, return_value_get)
-        connection_mock.get.assert_called_with(
-            path="/objects/1d420c9c-98cb-11ec-9db6-1e008a366d49",
-            params={'include': "test1,test2"}
-        )
-
-        return_value_get = {"my_key": '12341'}
-        mock_get_params.return_value = {'include': "test1,test2"}
-        connection_mock = mock_connection_method('get', return_json=return_value_get, status_code=404)
-        data_object = DataObject(connection_mock)
-        result = data_object.get(uuid="1d420c9c-98cb-11ec-9db6-1e008a366d49")
-        self.assertIsNone(result)
         connection_mock.get.assert_called_with(
             path="/objects/1d420c9c-98cb-11ec-9db6-1e008a366d49",
             params={'include': "test1,test2"}

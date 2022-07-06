@@ -205,7 +205,9 @@ class AggregateBuilder(GraphQL):
 
         >>> content = {
         ...     'concepts': <list of str or str>,
-        ...     'certainty': <float>, # Optional
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
         ...     'moveAwayFrom': { # Optional
         ...         'concepts': <list of str or str>,
         ...         'force': <float>
@@ -221,7 +223,7 @@ class AggregateBuilder(GraphQL):
 
         >>> content = {
         ...     'concepts': ["fashion"],
-        ...     'certainty': 0.7,
+        ...     'certainty': 0.7, # or 'distance' instead
         ...     'moveAwayFrom': {
         ...         'concepts': ["finance"],
         ...         'force': 0.45
@@ -237,7 +239,7 @@ class AggregateBuilder(GraphQL):
 
         >>> content = {
         ...     'concepts': ["fashion"],
-        ...     'certainty': 0.7,
+        ...     'certainty': 0.7, # or 'distance' instead
         ...     'moveTo': {
         ...         'concepts': ["haute couture"],
         ...         'force': 0.85
@@ -282,7 +284,9 @@ class AggregateBuilder(GraphQL):
 
         >>> content = {
         ...     'vector' : <list of float>,
-        ...     'certainty': <float> # Optional
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
         ... }
 
         NOTE: Supported types for 'vector' are `list`, 'numpy.ndarray`, `torch.Tensor`
@@ -292,7 +296,7 @@ class AggregateBuilder(GraphQL):
 
         >>> content = {
         ...     'vector' : [.1, .2, .3, .5],
-        ...     'certainty': 0.75
+        ...     'certainty': 0.75, # or 'distance' instead
         ... }
 
         Minimal content:
@@ -343,14 +347,22 @@ class AggregateBuilder(GraphQL):
         --------
         Content prototype:
 
+        >>> content = {
+        ...     'id': <str>, # OR 'beacon'
+        ...     'beacon': <str>, # OR 'id'
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'    
+        ... }
+
         >>> {
         ...     'id': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf",
-        ...     'certainty': 0.7 # Optional
+        ...     'certainty': 0.7 # or 'distance' instead
         ... }
         >>> # alternatively
         >>> {
-        ...     'beacon': "weaviate://localhost/e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf"
-        ...     'certainty': 0.7 # Optional
+        ...     'beacon': "weaviate://localhost/Book/e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf"
+        ...     'certainty': 0.7 # or 'distance' instead
         ... }
 
         Returns
@@ -364,9 +376,11 @@ class AggregateBuilder(GraphQL):
             If another 'near' filter was already set.
         """
 
+        is_server_version_14 = (self._connection.server_version >= '1.14')
+
         if self._near is not None:
             raise AttributeError("Cannot use multiple 'near' filters.")
-        self._near = NearObject(content)
+        self._near = NearObject(content, is_server_version_14)
         self._uses_filter = True
         return self
 

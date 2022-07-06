@@ -11,6 +11,7 @@ class UnexpectedStatusCodeException(Exception):
     Is raised in case the status code returned from Weaviate is
     not handled in the client implementation and suggests an error.
     """
+
     def __init__(self, message: str, response: Response):
         """
         Is raised in case the status code returned from Weaviate is
@@ -57,6 +58,7 @@ class AuthenticationFailedException(Exception):
     """
     Authentication Failed Exception.
     """
+
 
 class SchemaValidationException(Exception):
     """

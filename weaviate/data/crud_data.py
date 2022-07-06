@@ -3,7 +3,6 @@ DataObject class definition.
 """
 import uuid as uuid_lib
 from typing import Union, Optional, List, Sequence
-from requests import Response
 from weaviate.connect import Connection
 from weaviate.exceptions import (
     ObjectAlreadyExistsException,
@@ -15,6 +14,7 @@ from weaviate.util import (
     get_vector,
     get_valid_uuid,
     _capitalize_first_letter,
+    deprecation,
 )
 from weaviate.data.references import Reference
 
@@ -46,7 +46,7 @@ class DataObject:
             data_object: Union[dict, str],
             class_name: str,
             uuid: Union[str, uuid_lib.UUID, None]=None,
-            vector: Sequence=None
+            vector: Optional[Sequence]=None,
         ) -> str:
         """
         Takes a dict describing the object and adds it to weaviate.
@@ -55,14 +55,14 @@ class DataObject:
         ----------
         data_object : dict or str
             Object to be added.
-            If type is str it should be either an URL or a file.
+            If type is str it should be either a URL or a file.
         class_name : str
             Class name associated with the object given.
         uuid : str, uuid.UUID or None, optional
             Object will be created under this uuid if it is provided.
-            Otherwise weaviate will generate a uuid for this object,
+            Otherwise, weaviate will generate a uuid for this object,
             by default None.
-        vector: Sequence, optional
+        vector: Sequence or None, optional
             The embedding of the object that should be created. Used only class objects that do not
             have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
             `torch.Tensor` and `tf.Tensor`,
@@ -105,8 +105,9 @@ class DataObject:
         """
 
         if not isinstance(class_name, str):
-            raise TypeError("Expected class_name of type str but was: "\
-                            + str(type(class_name)))
+            raise TypeError(
+                f"Expected class_name of type str but was: {type(class_name)}"
+            )
         loaded_data_object = _get_dict_from_object(data_object)
 
         weaviate_obj = {
@@ -144,7 +145,7 @@ class DataObject:
             data_object: Union[dict, str],
             class_name: str,
             uuid: Union[str, uuid_lib.UUID],
-            vector: Sequence=None
+            vector: Optional[Sequence]=None,
         ) -> None:
         """
         Update the given object with the already existing object in weaviate.
@@ -161,7 +162,7 @@ class DataObject:
             The class name of the object.
         uuid : str or uuid.UUID
             The ID of the object that should be changed.
-        vector: Sequence, optional
+        vector: Sequence or None, optional
             The embedding of the object that should be updated. Used only class objects that do not
             have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
             `torch.Tensor` and `tf.Tensor`,
@@ -226,14 +227,19 @@ class DataObject:
 
         weaviate_obj = {
             "id": uuid,
-            "class": _capitalize_first_letter(class_name),
             "properties": object_dict
         }
 
         if vector is not None:
             weaviate_obj['vector'] = get_vector(vector)
 
-        path = f"/objects/{uuid}"
+        is_server_version_14 = (self._connection.server_version >= '1.14')
+
+        if is_server_version_14:
+            path = f"/objects/{_capitalize_first_letter(class_name)}/{uuid}"
+        else:
+            weaviate_obj["class"] = _capitalize_first_letter(class_name)
+            path = f"/objects/{uuid}"
 
         try:
             response = self._connection.patch(
@@ -251,7 +257,7 @@ class DataObject:
             data_object: Union[dict, str],
             class_name: str,
             uuid: Union[str, uuid_lib.UUID],
-            vector: Sequence=None
+            vector: Optional[Sequence]=None,
         ) -> None:
         """
         Replace an already existing object with the given data object.
@@ -266,7 +272,7 @@ class DataObject:
             Name of the class of the object that should be updated.
         uuid : str or uuid.UUID
             The UUID of the object that should be changed.
-        vector: Sequence, optional
+        vector: Sequence or None, optional
             The embedding of the object that should be replaced. Used only class objects that do not
             have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
             `torch.Tensor` and `tf.Tensor`,
@@ -325,14 +331,20 @@ class DataObject:
 
         weaviate_obj = {
             "id": uuid,
-            "class": _capitalize_first_letter(class_name),
             "properties": parsed_object
         }
 
         if vector is not None:
             weaviate_obj['vector'] = get_vector(vector)
 
-        path = f"/objects/{uuid}"
+        is_server_version_14 = (self._connection.server_version >= '1.14')
+
+        if is_server_version_14:
+            path = f"/objects/{_capitalize_first_letter(class_name)}/{uuid}"
+        else:
+            weaviate_obj["class"] = _capitalize_first_letter(class_name)
+            path = f"/objects/{uuid}"
+
         try:
             response = self._connection.put(
                 path=path,
@@ -348,7 +360,8 @@ class DataObject:
     def get_by_id(self,
             uuid: Union[str, uuid_lib.UUID],
             additional_properties: List[str]=None,
-            with_vector: bool=False
+            with_vector: bool=False,
+            class_name: Optional[str]=None,
         ) -> Optional[dict]:
         """
         Get an object as dict.
@@ -363,10 +376,18 @@ class DataObject:
         with_vector: bool
             If True the `vector` property will be returned too,
             by default False.
+        class_name : Optional[str], optional
+            The class name of the object with UUID `uuid`. Introduced in Weaviate version v1.14.0.
+            STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
+            versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
+            by default None
 
         Examples
         --------
-        >>> client.data_object.get_by_id("d842a0f4-ad8c-40eb-80b4-bfefc7b1b530")
+        >>> client.data_object.get_by_id(
+        ...     uuid="d842a0f4-ad8c-40eb-80b4-bfefc7b1b530",
+        ...     class_name='Author', # ONLY with Weaviate >= 1.14.0
+        ... )
         {
             "additional": {},
             "class": "Author",
@@ -401,13 +422,15 @@ class DataObject:
         return self.get(
             uuid=uuid,
             additional_properties=additional_properties,
-            with_vector=with_vector
+            with_vector=with_vector,
+            class_name=class_name,
         )
 
     def get(self,
             uuid: Union[str, uuid_lib.UUID, None]=None,
             additional_properties: List[str]=None,
-            with_vector: bool=False
+            with_vector: bool=False,
+            class_name: Optional[str]=None,
         ) -> List[dict]:
         """
         Gets objects from weaviate, the maximum number of objects returned is 100.
@@ -423,7 +446,12 @@ class DataObject:
             by default None
         with_vector: bool
             If True the `vector` property will be returned too,
-            by default False.
+            by default False
+        class_name : Optional[str], optional
+            The class name of the object with UUID `uuid`. Introduced in Weaviate version v1.14.0.
+            STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
+            versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
+            by default None
 
         Returns
         -------
@@ -442,12 +470,42 @@ class DataObject:
             If weaviate reports a none OK status.
         """
 
+        is_server_version_14 = (self._connection.server_version >= '1.14')
+
+        if class_name is None and is_server_version_14 and uuid is not None:
+            deprecation(
+                "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
+                "APIs, please specify the `class_name` argument for this. The non-class "
+                "namespaced APIs (None value for `class_name`) are going to be removed in the "
+                "future versions of the Weaviate Server and Weaviate Python Client."
+            )
+        if class_name is not None and uuid is not None:
+            if not is_server_version_14:
+                deprecation(
+                    "Weaviate Server version < 1.14.x does not support class namespaced APIs. The "
+                    "non-class namespaced APIs calls are going to be made instead (None value for "
+                    "`class_name`). The non-class namespaced APIs are going to be removed in "
+                    "future versions of the Weaviate Server and Weaviate Python Client. "
+                    "Please upgrade your Weaviate Server version."
+                )
+            if not isinstance(class_name, str):
+                raise TypeError(
+                    f"'class_name' must be of type str. Given type: {type(class_name)}"
+                )
+
         params = _get_params(additional_properties, with_vector)
 
-        if uuid is not None:
-            path = "/objects/" + get_valid_uuid(uuid)
+        if class_name and is_server_version_14:
+            if uuid is not None:
+                path = f"/objects/{_capitalize_first_letter(class_name)}"
+            else:
+                path = "/objects"
+                params['class'] = _capitalize_first_letter(class_name)
         else:
             path = "/objects"
+
+        if uuid is not None:
+            path += "/" + get_valid_uuid(uuid)
 
         try:
             response = self._connection.get(
@@ -458,11 +516,14 @@ class DataObject:
             raise RequestsConnectionError('Could not get object/s.') from conn_err
         if response.status_code == 200:
             return response.json()
-        if uuid is not None and response.status_code == 404:
+        if response.status_code == 404:
             return None
         raise UnexpectedStatusCodeException("Get object/s", response)
 
-    def delete(self, uuid: Union[str, uuid_lib.UUID]) -> None:
+    def delete(self,
+            uuid: Union[str, uuid_lib.UUID],
+            class_name: Optional[str]=None,
+        ) -> None:
         """
         Delete an existing object from weaviate.
 
@@ -470,10 +531,18 @@ class DataObject:
         ----------
         uuid : str or uuid.UUID
             The ID of the object that should be deleted.
+        class_name : Optional[str], optional
+            The class name of the object with UUID `uuid`. Introduced in Weaviate version v1.14.0.
+            STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
+            versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
+            by default None
 
         Examples
         --------
-        >>> client.data_object.get("d842a0f4-ad8c-40eb-80b4-bfefc7b1b530")
+        >>> client.data_object.get(
+        ...     uuid="d842a0f4-ad8c-40eb-80b4-bfefc7b1b530",
+        ...     class_name='Author', # ONLY with Weaviate >= 1.14.0
+        ... )
         {
             "additional": {},
             "class": "Author",
@@ -486,8 +555,14 @@ class DataObject:
             },
             "vectorWeights": null
         }
-        >>> client.data_object.delete("d842a0f4-ad8c-40eb-80b4-bfefc7b1b530")
-        >>> client.data_object.get("d842a0f4-ad8c-40eb-80b4-bfefc7b1b530")
+        >>> client.data_object.delete(
+        ...     uuid="d842a0f4-ad8c-40eb-80b4-bfefc7b1b530",
+        ...     class_name='Author', # ONLY with Weaviate >= 1.14.0
+        ... )
+        >>> client.data_object.get(
+        ...     uuid="d842a0f4-ad8c-40eb-80b4-bfefc7b1b530",
+        ...     class_name='Author', # ONLY with Weaviate >= 1.14.0
+        ... )
         None
 
         Raises
@@ -504,9 +579,37 @@ class DataObject:
 
         uuid = get_valid_uuid(uuid)
 
+        is_server_version_14 = (self._connection.server_version >= '1.14')
+
+        if class_name is None and is_server_version_14:
+            deprecation(
+                "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
+                "APIs, please specify the `class_name` argument for this. The non-class "
+                "namespaced APIs (None value for `class_name`) are going to be removed in the "
+                "future versions of the Weaviate Server and Weaviate Python Client."
+            )
+        if class_name is not None:
+            if not is_server_version_14:
+                deprecation(
+                    "Weaviate Server version < 1.14.x does not support class namespaced APIs. The "
+                    "non-class namespaced APIs calls are going to be made instead (None value for "
+                    "`class_name`). The non-class namespaced APIs are going to be removed in "
+                    "future versions of the Weaviate Server and Weaviate Python Client. "
+                    "Please upgrade your Weaviate Server version."
+                )
+            if not isinstance(class_name, str):
+                raise TypeError(
+                    f"'class_name' must be of type str. Given type: {type(class_name)}"
+                )
+
+        if class_name and is_server_version_14:
+            path = f"/objects/{_capitalize_first_letter(class_name)}/{uuid}"
+        else:
+            path = f"/objects/{uuid}"
+
         try:
             response = self._connection.delete(
-                path="/objects/" + uuid,
+                path=path,
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError('Object could not be deleted.') from conn_err
@@ -515,25 +618,39 @@ class DataObject:
             return
         raise UnexpectedStatusCodeException("Delete object", response)
 
-    def exists(self, uuid: Union[str, uuid_lib.UUID]) -> bool:
+    def exists(self,
+            uuid: Union[str, uuid_lib.UUID],
+            class_name: Optional[str]=None,
+        ) -> bool:
         """
         Check if the object exist in weaviate.
 
         Parameters
         ----------
         uuid : str or uuid.UUID
-            The UUID of the object that may or may not exist within weaviate.
+            The UUID of the object that may or may not exist within Weaviate.
+        class_name : Optional[str], optional
+            The class name of the object with UUID `uuid`. Introduced in Weaviate version 1.14.0.
+            STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
+            versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < 1.14.0,
+            by default None
 
         Examples
         --------
-        >>> client.data_object.exists('e067f671-1202-42c6-848b-ff4d1eb804ab')
+        >>> client.data_object.exists(
+        ...     uuid='e067f671-1202-42c6-848b-ff4d1eb804ab',
+        ...     class_name='Author',  # ONLY with Weaviate >= 1.14.0
+        ... )
         False
         >>> client.data_object.create(
         ...     data_object = {'name': 'Andrzej Sapkowski', 'age': 72},
         ...     class_name = 'Author',
         ...     uuid = 'e067f671-1202-42c6-848b-ff4d1eb804ab'
         ... )
-        >>> client.data_object.exists('e067f671-1202-42c6-848b-ff4d1eb804ab')
+        >>> client.data_object.exists(
+        ...     uuid='e067f671-1202-42c6-848b-ff4d1eb804ab',
+        ...     class_name='Author', # ONLY with Weaviate >= 1.14.0
+        ... )
         True
 
         Returns
@@ -553,7 +670,33 @@ class DataObject:
             If uuid is not properly formed.
         """
 
-        path = "/objects/" + get_valid_uuid(uuid)
+        is_server_version_14 = (self._connection.server_version >= '1.14')
+
+        if class_name is None and is_server_version_14:
+            deprecation(
+                "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
+                "APIs, please specify the `class_name` argument for this. The non-class "
+                "namespaced APIs (None value for `class_name`) are going to be removed in the "
+                "future versions of the Weaviate Server and Weaviate Python Client."
+            )
+        if class_name is not None:
+            if not is_server_version_14:
+                deprecation(
+                    "Weaviate Server version < 1.14.x does not support class namespaced APIs. The "
+                    "non-class namespaced APIs calls are going to be made instead (None value for "
+                    "`class_name`). The non-class namespaced APIs are going to be removed in "
+                    "future versions of the Weaviate Server and Weaviate Python Client. "
+                    "Please upgrade your Weaviate Server version."
+                )
+            if not isinstance(class_name, str):
+                raise TypeError(
+                    f"'class_name' must be of type str. Given type: {type(class_name)}"
+                )
+
+        if class_name and is_server_version_14:
+            path = f"/objects/{_capitalize_first_letter(class_name)}/{get_valid_uuid(uuid)}"
+        else:
+            path = f"/objects/{get_valid_uuid(uuid)}"
 
         try:
             response = self._connection.head(
@@ -656,8 +799,9 @@ class DataObject:
                 weaviate_object=weaviate_obj
             )
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Object was not validated against weaviate.')\
-                from conn_err
+            raise RequestsConnectionError(
+                'Object was not validated against weaviate.'
+            ) from conn_err
 
         result: dict = {
             "error": None
