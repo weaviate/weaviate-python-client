@@ -472,14 +472,14 @@ class DataObject:
 
         is_server_version_14 = (self._connection.server_version >= '1.14')
 
-        if class_name is None and is_server_version_14:
+        if class_name is None and is_server_version_14 and uuid is not None:
             deprecation(
                 "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
                 "APIs, please specify the `class_name` argument for this. The non-class "
                 "namespaced APIs (None value for `class_name`) are going to be removed in the "
                 "future versions of the Weaviate Server and Weaviate Python Client."
             )
-        if class_name is not None:
+        if class_name is not None and uuid is not None:
             if not is_server_version_14:
                 deprecation(
                     "Weaviate Server version < 1.14.x does not support class namespaced APIs. The "
@@ -493,12 +493,15 @@ class DataObject:
                     f"'class_name' must be of type str. Given type: {type(class_name)}"
                 )
 
+        params = _get_params(additional_properties, with_vector)
+
         if class_name and is_server_version_14:
-            path = f"/objects/{_capitalize_first_letter(class_name)}"
+            if uuid is not None:
+                path = f"/objects/{_capitalize_first_letter(class_name)}"
+            else:
+                params['classname'] = _capitalize_first_letter(class_name)
         else:
             path = "/objects"
-
-        params = _get_params(additional_properties, with_vector)
 
         if uuid is not None:
             path += "/" + get_valid_uuid(uuid)
@@ -843,11 +846,11 @@ def _get_params(additional_properties: Optional[List[str]], with_vector: bool) -
                 "Additional properties must be of type list "
                 f"but are {type(additional_properties)}"
             )
-        params['include'] = ",".join(additional_properties)
+        params['include'] = additional_properties.copy()
 
     if with_vector:
         if 'include' in params:
-            params['include'] = params['include'] + ',vector'
+            params['include'].append('vector')
         else:
             params['include'] = 'vector'
     return params

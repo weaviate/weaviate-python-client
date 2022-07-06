@@ -112,10 +112,10 @@ def generate_local_beacon(
 
     if class_name is None:
         return {
-            "beacon": f"weaviate://localhost/{to_uuid}"
+            "beacon": f"weaviate://localhost/{uuid}"
         }
     return {
-        "beacon": f"weaviate://localhost/{class_name}/{to_uuid}"
+        "beacon": f"weaviate://localhost/{class_name}/{uuid}"
     }
 
 
@@ -524,3 +524,20 @@ def deprecation(message: str) -> None:
     """
 
     warnings.warn(message, DeprecationWarning, stacklevel=2)
+
+
+def check_batch_result(results: dict) -> None:
+    """
+    Check batch results for errors.
+
+    Parameters
+    ----------
+    results : dict
+        The Weaviate batch creation return value.
+    """
+
+    if results is not None:
+        for result in results:
+            if 'result' in result and 'errors' in result['result']:
+                if 'error' in result['result']['errors']:
+                    print(result['result']['errors']['error'])

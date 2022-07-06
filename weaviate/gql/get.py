@@ -165,7 +165,9 @@ class GetBuilder(GraphQL):
 
         >>> content = {
         ...     'concepts': <list of str or str>,
-        ...     'certainty': <float>, # Optional
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
         ...     'moveAwayFrom': { # Optional
         ...         'concepts': <list of str or str>,
         ...         'force': <float>
@@ -181,7 +183,7 @@ class GetBuilder(GraphQL):
 
         >>> content = {
         ...     'concepts': ["fashion"],
-        ...     'certainty': 0.7,
+        ...     'certainty': 0.7, # or 'distance'
         ...     'moveAwayFrom': {
         ...         'concepts': ["finance"],
         ...         'force': 0.45
@@ -197,7 +199,7 @@ class GetBuilder(GraphQL):
 
         >>> content = {
         ...     'concepts': ["fashion"],
-        ...     'certainty': 0.7,
+        ...     'certainty': 0.7, # or 'distance'
         ...     'moveTo': {
         ...         'concepts': ["haute couture"],
         ...         'force': 0.85
@@ -243,7 +245,9 @@ class GetBuilder(GraphQL):
 
         >>> content = {
         ...     'vector' : <list of float>,
-        ...     'certainty': <float> # Optional
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
         ... }
 
         NOTE: Supported types for 'vector' are `list`, 'numpy.ndarray`, `torch.Tensor`
@@ -253,7 +257,7 @@ class GetBuilder(GraphQL):
 
         >>> content = {
         ...     'vector' : [.1, .2, .3, .5],
-        ...     'certainty': 0.75
+        ...     'certainty': 0.75, # or 'distance'
         ... }
 
         Minimal content:
@@ -307,12 +311,16 @@ class GetBuilder(GraphQL):
 
         >>> {
         ...     'id': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf",
-        ...     'certainty': 0.7 # Optional
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
         ... }
         >>> # alternatively
         >>> {
-        ...     'beacon': "weaviate://localhost/e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf"
-        ...     'certainty': 0.7 # Optional
+        ...     'beacon': "weaviate://localhost/ClassName/e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf"
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
         ... }
 
         Returns
@@ -356,16 +364,23 @@ class GetBuilder(GraphQL):
         --------
         Content prototype:
 
+        >>> content = {
+        ...     'image': <str or binary read file>,
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'    
+        ... }
+
         >>> {
         ...     'image': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf",
-        ...     'certainty': 0.7 # Optional
+        ...     'certainty': 0.7 # or 'distance'
         ... }
 
         With `encoded` True:
 
         >>> content = {
         ...     'image': "my_image_path.png",
-        ...     'certainty': 0.7 # Optional
+        ...     'certainty': 0.7 # or 'distance' instead
         ... }
         >>> query = client.query.get('Image', 'description')\\
         ...     .with_near_image(content, encode=True) # <- encode MUST be set to True
@@ -375,7 +390,7 @@ class GetBuilder(GraphQL):
         >>> my_image_file = open("my_image_path.png", "br")
         >>> content = {
         ...     'image': my_image_file,
-        ...     'certainty': 0.7 # Optional
+        ...     'certainty': 0.7 # or 'distance' instead
         ... }
         >>> query = client.query.get('Image', 'description')\\
         ...     .with_near_image(content, encode=True) # <- encode MUST be set to True
@@ -387,7 +402,7 @@ class GetBuilder(GraphQL):
         >>> encoded_image = image_encoder_b64("my_image_path.png")
         >>> content = {
         ...     'image': encoded_image,
-        ...     'certainty': 0.7 # Optional
+        ...     'certainty': 0.7 # or 'distance' instead
         ... }
         >>> query = client.query.get('Image', 'description')\\
         ...     .with_near_image(content, encode=False) # <- encode MUST be set to False
@@ -399,7 +414,7 @@ class GetBuilder(GraphQL):
         ...     encoded_image = image_encoder_b64(my_image_file)
         >>> content = {
         ...     'image': encoded_image,
-        ...     'certainty': 0.7 # Optional
+        ...     'certainty': 0.7 # or 'distance' instead
         ... }
         >>> query = client.query.get('Image', 'description')\\
         ...     .with_near_image(content, encode=False) # <- encode MUST be set to False
@@ -411,7 +426,7 @@ class GetBuilder(GraphQL):
         ...     encoded_image = base64.b64encode(my_image_file.read()).decode("utf-8")
         >>> content = {
         ...     'image': encoded_image,
-        ...     'certainty': 0.7 # Optional
+        ...     'certainty': 0.7 # or 'distance' instead
         ... }
         >>> query = client.query.get('Image', 'description')\\
         ...     .with_near_image(content, encode=False) # <- encode MUST be set to False
@@ -508,7 +523,9 @@ class GetBuilder(GraphQL):
 
         >>> content = {
         ...     'question' : <str>,
-        ...     'certainty': <float>, # Optional
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
         ...     'properties': <list of str or str> # Optional
         ...     'autocorrect': <bool>, # Optional
         ... }
@@ -517,7 +534,7 @@ class GetBuilder(GraphQL):
 
         >>> content = {
         ...     'question' : "What is the NLP?",
-        ...     'certainty': 0.7,
+        ...     'certainty': 0.7, # or 'distance'
         ...     'properties': ['body'] # search the answer in these properties only.
         ...     'autocorrect': True
         ... }

@@ -118,7 +118,7 @@ class NearText(Filter):
         TypeError
             If 'content' is not of type dict.
         ValueError
-            If 'content'  has key "certainty" but the value is not float.
+            If 'content'  has key "certainty"/"distance" but the value is not float.
         """
 
         super().__init__(content)
@@ -126,9 +126,20 @@ class NearText(Filter):
         _check_concept(self._content)
 
         if "certainty" in self._content:
+            if "distance" in self._content:
+                raise ValueError(
+                    "Cannot have both 'certainty' and 'distance' at the same time. "
+                    "Only one is accepted."
+                )
             _check_type(
                 var_name='certainty',
                 value=self._content["certainty"],
+                dtype=float
+            )
+        if "distance" in self._content:
+            _check_type(
+                var_name='distance',
+                value=self._content["distance"],
                 dtype=float
             )
 
@@ -149,6 +160,8 @@ class NearText(Filter):
         near_text = f'nearText: {{concepts: {dumps(self._content["concepts"])}'
         if 'certainty' in self._content:
             near_text += f' certainty: {self._content["certainty"]}'
+        if 'distance' in self._content:
+            near_text += f' distance: {self._content["distance"]}'
         if 'moveTo' in self._content:
             move_to = self._content['moveTo']
             near_text +=f' moveTo: {{force: {move_to["force"]}'
@@ -195,7 +208,7 @@ class NearVector(Filter):
         AttributeError
             If invalid 'content' keys are provided.
         ValueError
-            If 'content'  has key "certainty" but the value is not float.
+            If 'content'  has key "certainty"/"distance" but the value is not float.
         """
 
         super().__init__(content)
@@ -205,9 +218,20 @@ class NearVector(Filter):
 
         # Check optional fields
         if "certainty" in self._content:
+            if "distance" in self._content:
+                raise ValueError(
+                    "Cannot have both 'certainty' and 'distance' at the same time. "
+                    "Only one is accepted."
+                )
             _check_type(
                 var_name='certainty',
                 value=self._content["certainty"],
+                dtype=float
+            )
+        if "distance" in self._content:
+            _check_type(
+                var_name='distance',
+                value=self._content["distance"],
                 dtype=float
             )
 
@@ -217,6 +241,8 @@ class NearVector(Filter):
         near_vector = f'nearVector: {{vector: {dumps(self._content["vector"])}'
         if 'certainty' in self._content:
             near_vector += f' certainty: {self._content["certainty"]}'
+        if 'distance' in self._content:
+            near_vector += f' distance: {self._content["distance"]}'
         return near_vector + '} '
 
 
@@ -241,7 +267,7 @@ class NearObject(Filter):
         TypeError
             If 'content' is not of type dict.
         ValueError
-            If 'content'  has key "certainty" but the value is not float.
+            If 'content' has key "certainty"/"distance" but the value is not float.
         TypeError
             If 'id'/'beacon' key does not have a value of type str!
         """
@@ -259,7 +285,7 @@ class NearObject(Filter):
                 deprecation(
                     "Based on the number of '/' in the beacon it seems that the beacon is not "
                     "class namespaced. Weaviate version >= 1.14.0 STRONGLY recommends using class "
-                    "namespaced beacons. Non=class namespaced beacons will be removed in future "
+                    "namespaced beacons. Non-class namespaced beacons will be removed in future "
                     "versions. Class namespaced beacons look like this: "
                     "'weaviate://localhost/{CLASS_NAME}/{UUID}'"
                 )
@@ -271,9 +297,20 @@ class NearObject(Filter):
         )
 
         if "certainty" in self._content:
+            if "distance" in self._content:
+                raise ValueError(
+                    "Cannot have both 'certainty' and 'distance' at the same time. "
+                    "Only one is accepted."
+                )
             _check_type(
                 var_name='certainty',
                 value=self._content["certainty"],
+                dtype=float
+            )
+        if "distance" in self._content:
+            _check_type(
+                var_name='distance',
+                value=self._content["distance"],
                 dtype=float
             )
 
@@ -282,6 +319,8 @@ class NearObject(Filter):
         near_object = f'nearObject: {{{self.obj_id}: "{self._content[self.obj_id]}"'
         if 'certainty' in self._content:
             near_object += f' certainty: {self._content["certainty"]}'
+        if 'distance' in self._content:
+            near_object += f' distance: {self._content["distance"]}'
         return near_object + '} '
 
 
@@ -304,7 +343,7 @@ class Ask(Filter):
         TypeError
             If 'content' is not of type dict.
         ValueError
-            If 'content'  has key "certainty" but the value is not float.
+            If 'content'  has key "certainty"/"distance" but the value is not float.
         TypeError
             If 'content'  has key "properties" but the type is not list or str.
         """
@@ -319,10 +358,21 @@ class Ask(Filter):
             value=self._content["question"],
             dtype=str
         )
-        if 'certainty' in self._content:
+        if "certainty" in self._content:
+            if "distance" in self._content:
+                raise ValueError(
+                    "Cannot have both 'certainty' and 'distance' at the same time. "
+                    "Only one is accepted."
+                )
             _check_type(
                 var_name='certainty',
                 value=self._content["certainty"],
+                dtype=float
+            )
+        if "distance" in self._content:
+            _check_type(
+                var_name='distance',
+                value=self._content["distance"],
                 dtype=float
             )
 
@@ -353,6 +403,8 @@ class Ask(Filter):
         ask = f'ask: {{question: {dumps(self._content["question"])}'
         if 'certainty' in self._content:
             ask += f' certainty: {self._content["certainty"]}'
+        if 'distance' in self._content:
+            ask += f' distance: {self._content["distance"]}'
         if 'properties' in self._content:
             ask += f' properties: {dumps(self._content["properties"])}'
         if 'autocorrect' in self._content:
@@ -383,7 +435,7 @@ class NearImage(Filter):
         TypeError
             If 'content["image"]' is not of type str.
         ValueError
-            If 'content'  has key "certainty" but the value is not float.
+            If 'content'  has key "certainty"/"distance" but the value is not float.
         """
 
         super().__init__(content)
@@ -397,9 +449,20 @@ class NearImage(Filter):
             dtype=str
         )
         if "certainty" in self._content:
+            if "distance" in self._content:
+                raise ValueError(
+                    "Cannot have both 'certainty' and 'distance' at the same time. "
+                    "Only one is accepted."
+                )
             _check_type(
                 var_name='certainty',
                 value=self._content["certainty"],
+                dtype=float
+            )
+        if "distance" in self._content:
+            _check_type(
+                var_name='distance',
+                value=self._content["distance"],
                 dtype=float
             )
 
@@ -407,6 +470,8 @@ class NearImage(Filter):
         near_image = f'nearImage: {{image: "{self._content["image"]}"'
         if 'certainty' in self._content:
             near_image += f' certainty: {self._content["certainty"]}'
+        if 'distance' in self._content:
+            near_image += f' distance: {self._content["distance"]}'
         return near_image + '} '
 
 
@@ -736,7 +801,7 @@ def _check_objects(content: dict) -> None:
 
 def _check_type(var_name: str, value: Any, dtype: type) -> None:
     """
-    Check 'certainty
+    Check key-value type.
 
     Parameters
     ----------

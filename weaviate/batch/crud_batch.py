@@ -8,7 +8,11 @@ from typing import Tuple, Callable, Optional, Sequence
 from requests import ReadTimeout, Response
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.connect import Connection
-from weaviate.util import _capitalize_first_letter, deprecation
+from weaviate.util import (
+    _capitalize_first_letter,
+    deprecation,
+    check_batch_result,
+)
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest
 
 
@@ -164,7 +168,7 @@ class Batch:
         ## user configurable, need to be public should implement a setter/getter
         self._recommended_num_objects = None
         self._recommended_num_references = None
-        self._callback = None
+        self._callback = check_batch_result
         self._batch_size = None
         self._creation_time = 10.0
         self._timeout_retries = 0
@@ -174,7 +178,7 @@ class Batch:
             batch_size: Optional[int]=None,
             creation_time: Real=10,
             timeout_retries: int=0,
-            callback: Optional[Callable[[dict], None]]=None,
+            callback: Optional[Callable[[dict], None]]=check_batch_result,
             dynamic: bool=False
         ) -> 'Batch':
         """
@@ -197,8 +201,8 @@ class Batch:
         timeout_retries : int, optional
             Number of times to retry to create a Batch that failed with TimeOut error, by default 0
         callback : Optional[Callable[[dict], None]], optional
-            A callback function on the results of each (objects and references) batch types. It is
-            used only when `batch_size` is NOT None, by default None
+            A callback function on the results of each (objects and references) batch types.
+            By default `weaviate.util.check_batch_result`.
         dynamic : bool, optional
             Whether to use dynamic batching or not, by default False
 
@@ -227,7 +231,7 @@ class Batch:
             batch_size: Optional[int]=None,
             creation_time: Real=10,
             timeout_retries: int=0,
-            callback: Optional[Callable[[dict], None]]=None,
+            callback: Optional[Callable[[dict], None]]=check_batch_result,
             dynamic: bool=False
         ) -> 'Batch':
         """
@@ -250,8 +254,8 @@ class Batch:
         timeout_retries : int, optional
             Number of times to retry to create a Batch that failed with TimeOut error, by default 0
         callback : Optional[Callable[[dict], None]], optional
-            A callback function on the results of each (objects and references) batch types. It is
-            used only when `batch_size` is NOT None, by default None
+            A callback function on the results of each (objects and references) batch types.
+            By default `weaviate.util.check_batch_result`
         dynamic : bool, optional
             Whether to use dynamic batching or not, by default False
 
@@ -273,7 +277,7 @@ class Batch:
 
         # set Batch to manual import
         if batch_size is None:
-            self._callback = None
+            self._callback = callback
             self._batch_size = None
             self._creation_time = creation_time
             self._timeout_retries = timeout_retries
