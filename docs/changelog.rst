@@ -1,6 +1,20 @@
 Changelog
 =========
 
+Version 3.7.0
+-------------
+This minor version includes:
+
+- Adds rolling average (last 5 batches) for batch creation time used by Dynamic Batching method.
+- Adds ability to use :meth:`~weaviate.gql.Query.get` without specifying any properties IF Additional Properties (:meth:`~weaviate.gql.get.GetBuilder.with_additional`) are set before executing the query.
+- Adds base Weaviate Exception :class:`~weaviate.exceptions.WeaviateBaseError`.
+- Adds ability to set proxies. Can be set at :class:`~weaviate.client.Client` initialization by using the new ``proxies`` or ``trust_env`` arguments.
+- :class:`~weaviate.batch.crud_batch.Batch` creates UUIDs (UUIDv4) for all added objects that do not have one at client side (fixes data duplication on Batch retries).
+- Adds new methods for :class:`~weaviate.wcs.WCS` for instances that have authentication enabled: 
+    - :meth:`~weaviate.wcs.WCS.get_users_of_cluster` to get users (emails) for all the users that have access to the created Weaviate instance.
+    - :meth:`~weaviate.wcs.WCS.add_user_to_cluster` to add users (email) to the created Weaviate instance.
+    - :meth:`~weaviate.wcs.WCS.remove_user_from_cluster` to remove user (email) from the created Weaviate instance.
+
 Version 3.6.0
 -------------
 This minor version includes:

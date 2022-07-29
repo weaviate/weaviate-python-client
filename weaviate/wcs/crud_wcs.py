@@ -163,7 +163,7 @@ class WCS(Connection):
         ... }
 
         Both the examples above use the 'semitechnologies' repo (which is the default one).
-        The `modlues` also can be a list of individual module configuration that conforms to the
+        The `modules` also can be a list of individual module configuration that conforms to the
         above description.
 
         The COMPLETE `config` argument looks like this:
