@@ -4,6 +4,7 @@ Batch class definitions.
 import sys
 import time
 from numbers import Real
+from collections import deque
 from typing import Tuple, Callable, Optional, Sequence
 from requests import ReadTimeout, Response
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
@@ -164,6 +165,12 @@ class Batch:
         self._connection = connection
         self._objects_batch = ObjectsBatchRequest()
         self._reference_batch = ReferenceBatchRequest()
+        self._objects_per_second_frame = deque(
+            maxlen=5
+        )
+        self._references_per_second_frame = deque(
+            maxlen=5
+        )
 
         ## user configurable, need to be public should implement a setter/getter
         self._recommended_num_objects = None
@@ -365,7 +372,7 @@ class Batch:
         to_object_uuid : str
             The UUID or URL of the object that is actually referenced.
         to_object_class_name : Optional[str], optional
-            The referenced object class name to which to add the reference (with UUID 
+            The referenced object class name to which to add the reference (with UUID
             `to_object_uuid`), it is included in Weaviate 1.14.0, where all objects are namespaced
             by class name.
             STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
@@ -406,9 +413,7 @@ class Batch:
                         "'to_object_class_name' must be of type str or None. "
                         f"Given type: {type(to_object_class_name)}"
                     )
-                else:
-                    to_object_class_name = _capitalize_first_letter(to_object_class_name)
-            
+                to_object_class_name = _capitalize_first_letter(to_object_class_name)
 
         self._reference_batch.add(
             from_object_class_name=_capitalize_first_letter(from_object_class_name),
@@ -467,7 +472,7 @@ class Batch:
                         f'[ERROR] Batch ReadTimeout Exception occurred! Retrying in {(i+1)*2}s. '
                         f'[{i+1}/{self._timeout_retries}]', file=sys.stderr
                     )
-                    time.sleep((i+1)*2)
+                    time.sleep((i + 1) * 2)
                 else:
                     break
         except RequestsConnectionError as conn_err:
@@ -575,7 +580,11 @@ class Batch:
                 data_type='objects',
                 batch_request=self._objects_batch,
             )
-            obj_per_second = len(self._objects_batch) / response.elapsed.total_seconds()
+            self._objects_per_second_frame.append(
+                len(self._objects_batch) / response.elapsed.total_seconds()
+            )
+
+            obj_per_second = sum(self._objects_per_second_frame)/len(self._objects_per_second_frame)
             self._recommended_num_objects = round(obj_per_second * self._creation_time)
             self._objects_batch = ObjectsBatchRequest()
             return response.json()
@@ -660,8 +669,14 @@ class Batch:
                 data_type='references',
                 batch_request=self._reference_batch,
             )
-            ref_per_second = len(self._reference_batch) / response.elapsed.total_seconds()
-            self._recommended_num_references = round(ref_per_second * self._creation_time)
+            self._references_per_second_frame.append(
+                len(self._reference_batch) / response.elapsed.total_seconds()
+            )
+
+            ref_per_sec = (
+                sum(self._references_per_second_frame)/len(self._references_per_second_frame)
+            )
+            self._recommended_num_references = round(ref_per_sec * self._creation_time)
             self._reference_batch = ReferenceBatchRequest()
             return response.json()
         return []
@@ -808,7 +823,7 @@ class Batch:
             "output": output,
             "dryRun": dry_run,
         }
-        
+
         try:
             response = self._connection.delete(
                 path='/batch/objects',

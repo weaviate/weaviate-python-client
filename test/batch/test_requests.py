@@ -1,6 +1,7 @@
 """
 Test the 'weaviate.batch.requests' functions/classes.
 """
+import uuid
 import unittest
 from unittest.mock import patch
 from test.util import check_error_message
@@ -133,9 +134,10 @@ class TestBatchObjects(unittest.TestCase):
     Test the `ObjectsBatchRequest` class.
     """
 
+    @patch('weaviate.batch.requests.uuid4', side_effect=lambda: uuid.UUID("d087b7c6a1155c898cb2f25bdeb9bf92"))
     @patch('weaviate.batch.requests.get_vector', side_effect=lambda x: x)
     @patch('weaviate.batch.requests.get_valid_uuid', side_effect=lambda x: x)
-    def test_add_and_get_request_body(self, mock_get_valid_uuid, mock_get_vector):
+    def test_add_and_get_request_body(self, mock_get_valid_uuid, mock_get_vector, mock_uuid4):
         """
         Test the all the ObjectsBatchRequest's methods.
         """
@@ -204,7 +206,8 @@ class TestBatchObjects(unittest.TestCase):
         }
         expected_return['objects'].append({
             'class': "Philosopher",
-            'properties': {"name": "Socrates"}
+            'properties': {"name": "Socrates"},
+            'id': "d087b7c6a1155c898cb2f25bdeb9bf92"
         })
         batch.add(
             data_object=obj['properties'],
@@ -255,7 +258,8 @@ class TestBatchObjects(unittest.TestCase):
         expected_return['objects'].append({
             'class': "Writer",
             'properties': {"name": "Stephen King"},
-            'vector': [1, 2, 3]
+            'vector': [1, 2, 3],
+            'id': "d087b7c6a1155c898cb2f25bdeb9bf92"
         })
         batch.add(
             data_object=obj['properties'],

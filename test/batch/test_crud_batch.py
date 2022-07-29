@@ -852,11 +852,11 @@ class TestBatch(unittest.TestCase):
         )
         self.assertEqual(mock_connection.post.call_count, 1)
 
-        ## test ReadTimeout, timeout_retries = 3
+        ## test ReadTimeout, timeout_retries = 1
         mock_connection = mock_connection_method('post', side_effect = ReadTimeout('Test!'))
         mock_connection.timeout_config = (2, 100)
         batch = Batch(mock_connection)
-        batch.timeout_retries = 3
+        batch.timeout_retries = 1
         with self.assertRaises(ReadTimeout) as error:
             batch._create_data('objects', ObjectsBatchRequest())
         check_startswith_error_message(self, error, read_timeout_error_message('objects'))
@@ -864,7 +864,7 @@ class TestBatch(unittest.TestCase):
             path="/batch/objects",
             weaviate_object={'fields' : ['ALL'], 'objects': []},
         )
-        self.assertEqual(mock_connection.post.call_count, 4)
+        self.assertEqual(mock_connection.post.call_count, 2)
 
         ## test status_code != 200
         mock_connection = mock_connection_method('post', status_code=204)

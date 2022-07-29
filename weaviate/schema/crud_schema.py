@@ -278,6 +278,43 @@ class Schema:
         config : dict
             The configurations to update (MUST follow schema format).
 
+        Example
+        -------
+        In the example below we have a Weaviate instance with a class 'Test'.
+
+        >>> client.schema.get('Test')
+        {
+            'class': 'Test',
+            ...
+            'vectorIndexConfig': {
+                'ef': -1,
+                ...
+            },
+            ...
+        }
+        >>> client.schema.update_config(
+        ...     class_name='Test',
+        ...     config={
+        ...         'vectorIndexConfig': {
+        ...             'ef': 100,
+        ...         }
+        ...     }
+        ... )
+        >>> client.schema.get('Test')
+        {
+            'class': 'Test',
+            ...
+            'vectorIndexConfig': {
+                'ef': 100,
+                ...
+            },
+            ...
+        }
+
+        NOTE: When updating schema configuration, the 'config' MUST be sub-set of the schema,
+        starting at the top level. In the example above we update 'ef' value, and for this we
+        included the 'vectorIndexConfig' top level too.
+
         Raises
         ------
         requests.ConnectionError

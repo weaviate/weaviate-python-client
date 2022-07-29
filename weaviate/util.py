@@ -545,4 +545,4 @@ def check_batch_result(results: dict) -> None:
         for result in results:
             if 'result' in result and 'errors' in result['result']:
                 if 'error' in result['result']['errors']:
-                    print(result['result']['errors']['error'])
+                    print(result['result']['errors'])

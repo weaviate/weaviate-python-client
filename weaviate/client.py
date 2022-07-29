@@ -41,8 +41,11 @@ class Client:
 
     def __init__(self,
             url: str,
-            auth_client_secret: AuthCredentials=None,
-            timeout_config: Union[Tuple[Real, Real], Real]=(2, 20)
+            auth_client_secret: Optional[AuthCredentials]=None,
+            timeout_config: Union[Tuple[Real, Real], Real]=(2, 20),
+            proxies: Union[dict, str, None]=None,
+            trust_env: bool=False,
+            additional_headers: Optional[dict]=None,
         ):
         """
         Initialize a Client class instance.
@@ -51,13 +54,27 @@ class Client:
         ----------
         url : str
             The URL to the weaviate instance.
-        auth_client_secret : weaviate.AuthCredentials, optional
+        auth_client_secret : weaviate.AuthCredentials or None, optional
             Authentication client secret, by default None.
         timeout_config : tuple(Real, Real) or Real, optional
             Set the timeout configuration for all requests to the Weaviate server. It can be a
             real number or, a tuple of two real numbers: (connect timeout, read timeout).
             If only one real number is passed then both connect and read timeout will be set to
             that value, by default (2, 20).
+        proxies : dict, str or None, optional
+            Proxies to be used for requests. Are used by both 'requests' and 'aiohttp'. Can be
+            passed as a dict ('requests' format:
+            https://docs.python-requests.org/en/stable/user/advanced/#proxies), str (HTTP/HTTPS
+            protocols are going to use this proxy) or None.
+            By default None.
+        trust_env : bool, optional
+            Whether to read proxies from the ENV variables: (HTTP_PROXY or http_proxy, HTTPS_PROXY
+            or https_proxy). By default False.
+            NOTE: 'proxies' has priority over 'trust_env', i.e. if 'proxies' is NOT None,
+            'trust_env' is ignored.
+        additional_headers : dict or None
+            Additional headers to include in the requests, used to set OpenAI key. OpenAI key looks
+            like this: {'X-OpenAI-Api-Key': 'KEY'}, by default None
 
         Examples
         --------
@@ -94,7 +111,10 @@ class Client:
         self._connection = Connection(
             url=url,
             auth_client_secret=auth_client_secret,
-            timeout_config=timeout_config
+            timeout_config=timeout_config,
+            proxies=proxies,
+            trust_env=trust_env,
+            additional_headers=additional_headers,
         )
         self.classification = Classification(self._connection)
         self.schema = Schema(self._connection)

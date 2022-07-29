@@ -16,9 +16,6 @@ class TestExceptions(unittest.TestCase):
         response.json.side_effect = Exception("Test")
         response.status_code = 1234
         exception = UnexpectedStatusCodeException(message="Test message", response=response)
-
-        self.assertEqual(exception.status_code, 1234)
-        self.assertIsNone(exception.json)
         self.assertEqual(str(exception), "Test message! Unexpected status code: 1234, with response body: None")
 
         # with .json() value
@@ -27,9 +24,6 @@ class TestExceptions(unittest.TestCase):
         response.json.return_value = {"test" : "OK!"}
         response.status_code = 4321
         exception = UnexpectedStatusCodeException(message="Second test message", response=response)
-
-        self.assertEqual(exception.status_code, 4321)
-        self.assertEqual(exception.json, {"test" : "OK!"})
         self.assertEqual(str(exception), "Second test message! Unexpected status code: 4321, with response body: {'test': 'OK!'}")
 
     def test_object_already_exists(self):
