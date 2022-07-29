@@ -386,9 +386,9 @@ class TestWCS(unittest.TestCase):
 
     @patch('weaviate.wcs.crud_wcs.WCS._set_bearer', Mock())
     @patch('weaviate.wcs.crud_wcs.WCS.delete')
-    def test_delete(self, mock_delete):
+    def test_delete_cluster(self, mock_delete):
         """
-        Test the `delete` method.
+        Test the `delete_cluster` method.
         """
 
         wcs = WCS(AuthClientPassword('test_secret_username', 'test_password'))
@@ -432,8 +432,157 @@ class TestWCS(unittest.TestCase):
             path='/clusters/test_name',
         )
 
-        mock_delete.return_value = Mock(status_code=404)
+        mock_delete.return_value = Mock(status_code=200)
         self.assertIsNone(wcs.delete_cluster('TesT_naMe'))
         mock_delete.assert_called_with(
             path='/clusters/test_name',
+        )
+
+    @patch('weaviate.wcs.crud_wcs.WCS._set_bearer', Mock())
+    @patch('weaviate.wcs.crud_wcs.WCS.get')
+    def test_get_users_of_cluster(self, mock_get):
+        """
+        Test the `get_users_of_cluster` method.
+        """
+
+        wcs = WCS(AuthClientPassword('test_secret_username', 'test_password'))
+        wcs._auth_bearer = 'test_bearer'
+
+        # invalid calls
+
+        ## error messages
+        connection_error_message = 'Could not get users of the cluster due to connection error.'
+        unexpected_error_message = "Getting cluster's users"
+
+        ## connection error
+        mock_get.side_effect = RequestsConnectionError('Test!')
+        with self.assertRaises(RequestsConnectionError) as error:
+            wcs.get_users_of_cluster('test_name')
+        check_error_message(self, error, connection_error_message)
+        mock_get.assert_called_with(
+            path='/clusters/test_name/users',
+        )
+
+        ## unexpected error
+        mock_get.side_effect = None
+        mock_get.return_value = Mock(status_code=400)
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
+            wcs.get_users_of_cluster('test_name')
+        check_startswith_error_message(self, error, unexpected_error_message)
+        mock_get.assert_called_with(
+            path='/clusters/test_name/users',
+        )
+
+        # valid calls
+        mock_result = Mock(status_code=200)
+        mock_result.json.return_value = {'users' :['test@semi.technology']}
+        mock_get.return_value = mock_result
+        self.assertEqual(wcs.get_users_of_cluster('test_name'), ['test@semi.technology'])
+        mock_get.assert_called_with(
+            path='/clusters/test_name/users',
+        )
+
+        self.assertEqual(wcs.get_users_of_cluster('Test_Name'), ['test@semi.technology'])
+        mock_get.assert_called_with(
+            path='/clusters/test_name/users',
+        )
+
+    @patch('weaviate.wcs.crud_wcs.WCS._set_bearer', Mock())
+    @patch('weaviate.wcs.crud_wcs.WCS.post')
+    def test_add_user_to_cluster(self, mock_post):
+        """
+        Test the `add_user_to_cluster` method.
+        """
+
+        wcs = WCS(AuthClientPassword('test_secret_username', 'test_password'))
+        wcs._auth_bearer = 'test_bearer'
+
+        # invalid calls
+
+        ## error messages
+        connection_error_message = 'Could not add user of the cluster due to connection error.'
+        unexpected_error_message = 'Adding user to cluster'
+
+        ## connection error
+        mock_post.side_effect = RequestsConnectionError('Test!')
+        with self.assertRaises(RequestsConnectionError) as error:
+            wcs.add_user_to_cluster('test_name', 'test@semi.technology')
+        check_error_message(self, error, connection_error_message)
+        mock_post.assert_called_with(
+            path='/clusters/test_name/users/test@semi.technology',
+            weaviate_object=None,
+        )
+
+        ## unexpected error
+        mock_post.side_effect = None
+        mock_post.return_value = Mock(status_code=400)
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
+            wcs.add_user_to_cluster('test_name', 'test@semi.technology')
+        check_startswith_error_message(self, error, unexpected_error_message)
+        mock_post.assert_called_with(
+            path='/clusters/test_name/users/test@semi.technology',
+            weaviate_object=None,
+        )
+
+        # valid calls
+        mock_post.return_value = Mock(status_code=200)
+        self.assertIsNone(wcs.add_user_to_cluster('test_name', 'test@semi.technology'))
+        mock_post.assert_called_with(
+            path='/clusters/test_name/users/test@semi.technology',
+            weaviate_object=None,
+        )
+
+        mock_post.return_value = Mock(status_code=200)
+        self.assertIsNone(wcs.add_user_to_cluster('TesT_naMe', 'test@semi.technology'))
+        mock_post.assert_called_with(
+            path='/clusters/test_name/users/test@semi.technology',
+            weaviate_object=None,
+        )
+
+    @patch('weaviate.wcs.crud_wcs.WCS._set_bearer', Mock())
+    @patch('weaviate.wcs.crud_wcs.WCS.delete')
+    def test_remove_user_from_cluster(self, mock_delete):
+        """
+        Test the `remove_user_from_cluster` method.
+        """
+
+        wcs = WCS(AuthClientPassword('test_secret_username', 'test_password'))
+        wcs._auth_bearer = 'test_bearer'
+
+        # invalid calls
+
+        ## error messages
+        connection_error_message = 'Could not remove user from the cluster due to connection error.'
+        unexpected_error_message = 'Removing user from cluster'
+
+        ## connection error
+        mock_delete.side_effect = RequestsConnectionError('Test!')
+        with self.assertRaises(RequestsConnectionError) as error:
+            wcs.remove_user_from_cluster('test_name', 'test@semi.technology')
+        check_error_message(self, error, connection_error_message)
+        mock_delete.assert_called_with(
+            path='/clusters/test_name/users/test@semi.technology',
+        )
+
+        ## unexpected error
+        mock_delete.side_effect = None
+        mock_delete.return_value = Mock(status_code=400)
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
+            wcs.remove_user_from_cluster('test_name', 'test@semi.technology')
+        check_startswith_error_message(self, error, unexpected_error_message)
+        mock_delete.assert_called_with(
+            path='/clusters/test_name/users/test@semi.technology',
+        )
+
+        # valid calls
+        mock_delete.return_value = Mock(status_code=200)
+        self.assertIsNone(wcs.remove_user_from_cluster('test_name', 'test@semi.technology'))
+        mock_delete.assert_called_with(
+            path='/clusters/test_name/users/test@semi.technology',
+        )
+
+        mock_delete.return_value = Mock(status_code=200)
+        self.assertIsNone(wcs.remove_user_from_cluster('TesT_naMe', 'test@semi.technology'))
+        mock_delete.assert_called_with(
+            path='/clusters/test_name/users/test@semi.technology',
         )

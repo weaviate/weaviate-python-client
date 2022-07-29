@@ -58,7 +58,7 @@ class Reference:
             it is included in Weaviate 1.14.0, where all objects are namespaced by class name.
             STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
             versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
-            by default None            
+            by default None
 
         Examples
         --------
@@ -251,13 +251,13 @@ class Reference:
             versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
             by default None
         to_class_names : Union[list, str, None], optional
-            The referenced objects class name to which to delete the reference (with UUID `to_uuid`),
-            it is included in Weaviate 1.14.0, where all objects are namespaced by class name.
-            It can be a single class name (assumes all `to_uuids` are of the same class) or a list
-            of class names where for each UUID in `to_uuids` we have a class name.
+            The referenced objects class name to which to delete the reference (with UUID
+            `to_uuid`), it is included in Weaviate 1.14.0, where all objects are namespaced by
+            class name. It can be a single class name (assumes all `to_uuids` are of the same
+            class) or a list of class names where for each UUID in `to_uuids` we have a class name.
             STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
             versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
-            by default None 
+            by default None
 
         Examples
         --------
@@ -476,7 +476,7 @@ class Reference:
             it is included in Weaviate 1.14.0, where all objects are namespaced by class name.
             STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
             versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
-            by default None 
+            by default None
 
         Examples
         --------

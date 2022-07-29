@@ -25,7 +25,7 @@ class GetBuilder(GraphQL):
 
     def __init__(self,
             class_name: str,
-            properties: Union[List[str], str],
+            properties: Union[List[str], str, None],
             connection: Connection
         ):
         """
@@ -50,11 +50,13 @@ class GetBuilder(GraphQL):
 
         if not isinstance(class_name, str):
             raise TypeError(f"class name must be of type str but was {type(class_name)}")
-        if not isinstance(properties, (list, str)):
-            raise TypeError("properties must be of type str or "
-                f"list of str but was {type(properties)}")
+        if properties is None:
+            properties = []
         if isinstance(properties, str):
             properties = [properties]
+        if not isinstance(properties, list):
+            raise TypeError("properties must be of type str, "
+                f"list of str or None but was {type(properties)}")
         for prop in properties:
             if not isinstance(prop, str):
                 raise TypeError(
@@ -368,7 +370,7 @@ class GetBuilder(GraphQL):
         ...     'image': <str or binary read file>,
         ...     # certainty ONLY with `cosine` distance specified in the schema
         ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
-        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'    
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
         ... }
 
         >>> {
@@ -877,9 +879,16 @@ class GetBuilder(GraphQL):
                 query += str(self._sort)
             query += ')'
 
+        additional_props = self._additional_to_str()
+
+        if not (additional_props or self._properties):
+            raise AttributeError(
+                "No 'properties' or 'additional properties' specified to be returned. "
+                "At least one should be included."
+            )
+
         properties = " ".join(self._properties) + self._additional_to_str()
-        if len(properties) != 0:
-            query += '{' + properties + '}'
+        query += '{' + properties + '}'
         return query + '}}'
 
     def _additional_to_str(self) -> str:

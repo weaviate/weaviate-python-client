@@ -2,6 +2,7 @@
 BatchRequest class definitions.
 """
 import copy
+from uuid import uuid4
 from abc import ABC, abstractmethod
 from typing import List, Sequence, Optional
 from weaviate.util import get_valid_uuid, get_vector
@@ -100,7 +101,7 @@ class ReferenceBatchRequest(BatchRequest):
         to_object_uuid : str
             The UUID or URL of the object that is actually referenced.
         to_object_class_name : Optional[str], optional
-            The referenced object class name to which to add the reference (with UUID 
+            The referenced object class name to which to add the reference (with UUID
             `to_object_uuid`), it is included in Weaviate 1.14.0, where all objects are namespaced
             by class name.
             STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
@@ -122,7 +123,7 @@ class ReferenceBatchRequest(BatchRequest):
             or not isinstance(to_object_uuid, str)
         ):
             raise TypeError('All arguments must be of type string')
-        
+
         if to_object_class_name is not None:
             to_beacon = f'weaviate://localhost/{to_object_class_name}/{to_object_uuid}'
         else:
@@ -167,8 +168,8 @@ class ObjectsBatchRequest(BatchRequest):
     def add(self,
             data_object: dict,
             class_name: str,
-            uuid: str=None,
-            vector: Sequence=None
+            uuid: Optional[str]=None,
+            vector: Optional[Sequence]=None,
         ) -> None:
         """
         Add one object to this batch. Does NOT validate the consistency of the object against
@@ -180,9 +181,9 @@ class ObjectsBatchRequest(BatchRequest):
             The name of the class this object belongs to.
         data_object : dict
             Object to be added as a dict datatype.
-        uuid : str, optional
+        uuid : str or None, optional
             UUID of the object as a string, by default None
-        vector: Sequence, optional
+        vector: Sequence or None, optional
             The embedding of the object that should be created. Used only class objects that do not
             have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
             `torch.Tensor` and `tf.Tensor`,
@@ -207,6 +208,8 @@ class ObjectsBatchRequest(BatchRequest):
         }
         if uuid is not None:
             batch_item["id"] = get_valid_uuid(uuid)
+        else:
+            batch_item["id"] = uuid4().hex
 
         if vector is not None:
             batch_item["vector"] = get_vector(vector)

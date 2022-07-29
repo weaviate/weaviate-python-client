@@ -42,7 +42,9 @@ class WCS(Connection):
     def __init__(self,
             auth_client_secret: AuthClientPassword,
             timeout_config: Union[Tuple[Real, Real], Real]=(2, 20),
-            dev: bool=False
+            proxies: Union[dict, str, None]=None,
+            trust_env: bool=False,
+            dev: bool=False,
         ):
         """
         Initialize a WCS class instance.
@@ -62,8 +64,6 @@ class WCS(Connection):
             that value, by default (2, 20).
         """
 
-
-
         self.dev = dev
 
         if dev:
@@ -80,7 +80,10 @@ class WCS(Connection):
         super().__init__(
             url=url,
             auth_client_secret=auth_client_secret,
-            timeout_config=timeout_config
+            timeout_config=timeout_config,
+            proxies=proxies,
+            trust_env=trust_env,
+            additional_headers=None,
         )
         self._is_authentication_required = True
 
@@ -402,6 +405,115 @@ class WCS(Connection):
         if response.status_code in (200, 404):
             return
         raise UnexpectedStatusCodeException('Deleting WCS instance', response)
+
+    def get_users_of_cluster(self, cluster_name: str) -> list:
+        """
+        Get users of the WCS Weaviate cluster instance.
+
+        Parameters
+        ----------
+        cluster_name : str
+            The name of the Weaviate server cluster.
+            NOTE: Case insensitive. The WCS cluster's name is always lowercased.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to Weaviate fails.
+        weaviate.UnsuccessfulStatusCodeError
+            If deleting the Weaviate cluster failed for a different reason,
+            more information is given in the exception.
+
+        Returns
+        -------
+        list
+            The list of users.
+        """
+
+        path = f"/clusters/{cluster_name.lower()}/users"
+
+        try:
+            response = self.get(
+                path=path,
+            )
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                'Could not get users of the cluster due to connection error.'
+            ) from conn_err
+        if response.status_code == 200:
+            return response.json()['users']
+        raise UnexpectedStatusCodeException("Getting cluster's users", response)
+
+    def add_user_to_cluster(self, cluster_name: str, user: str) -> None:
+        """
+        Add user to the WCS Weaviate cluster instance.
+
+        Parameters
+        ----------
+        cluster_name : str
+            The name of the Weaviate server cluster.
+            NOTE: Case insensitive. The WCS cluster's name is always lowercased.
+        user:
+            The user to be added to WCS Weaviate cluster instance.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to Weaviate fails.
+        weaviate.UnsuccessfulStatusCodeError
+            If deleting the Weaviate cluster failed for a different reason,
+            more information is given in the exception.
+        """
+
+        path = f"/clusters/{cluster_name.lower()}/users/{user}"
+
+        try:
+            response = self.post(
+                path=path,
+                weaviate_object=None,
+            )
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                'Could not add user of the cluster due to connection error.'
+            ) from conn_err
+        if response.status_code == 200:
+            return
+        raise UnexpectedStatusCodeException("Adding user to cluster", response)
+
+    def remove_user_from_cluster(self, cluster_name: str, user: str) -> None:
+        """
+        Remove user from the WCS Weaviate cluster instance.
+
+        Parameters
+        ----------
+        cluster_name : str
+            The name of the Weaviate server cluster.
+            NOTE: Case insensitive. The WCS cluster's name is always lowercased.
+        user:
+            The user to be removed from WCS Weaviate cluster instance.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to Weaviate fails.
+        weaviate.UnsuccessfulStatusCodeError
+            If deleting the Weaviate cluster failed for a different reason,
+            more information is given in the exception.
+        """
+
+        path = f"/clusters/{cluster_name.lower()}/users/{user}"
+
+        try:
+            response = self.delete(
+                path=path,
+            )
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                'Could not remove user from the cluster due to connection error.'
+            ) from conn_err
+        if response.status_code == 200:
+            return
+        raise UnexpectedStatusCodeException("Removing user from cluster", response)
 
 
 def _get_modules_config(modules: Optional[Union[str, dict, list]]) -> List[Dict[str, str]]:

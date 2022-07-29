@@ -11,8 +11,8 @@ class TestGetBuilder(unittest.TestCase):
         """
 
         class_name_error_msg = f"class name must be of type str but was {int}"
-        properties_error_msg = ("properties must be of type str or "
-                f"list of str but was {int}")
+        properties_error_msg = ("properties must be of type str, "
+                f"list of str or None but was {int}")
         property_error_msg = "All the `properties` must be of type `str`!"
 
         # invalid calls
@@ -309,7 +309,7 @@ class TestGetBuilder(unittest.TestCase):
 
         ## multiple calls
         query = (
-            GetBuilder("Person", ["name"], None)
+            GetBuilder("Person", None, None)
             .with_additional('test')
             .with_additional(['id', 'certainty'])
             .with_additional({'classification': ['completed', 'id']})
@@ -318,7 +318,7 @@ class TestGetBuilder(unittest.TestCase):
             .build()
         )
         self.assertEqual(
-            '{Get{Person{name _additional {certainty id test classification {completed id } }}}}',
+            '{Get{Person{ _additional {certainty id test classification {completed id } }}}}',
             query
         )
 
@@ -514,8 +514,14 @@ class TestGetBuilder(unittest.TestCase):
         Test the `build` method. (without filters)
         """
 
-        query = GetBuilder("Group", [], None).build()
-        self.assertEqual("{Get{Group}}", query)
+        error_message = (
+            "No 'properties' or 'additional properties' specified to be returned. "
+            "At least one should be included."
+        )
+
+        with self.assertRaises(AttributeError) as error:
+            query = GetBuilder("Group", [], None).build()
+        check_error_message(self, error, error_message)
 
         query = GetBuilder("Group", "name", None).build()
         self.assertEqual("{Get{Group{name}}}", query)
@@ -523,8 +529,8 @@ class TestGetBuilder(unittest.TestCase):
         query = GetBuilder("Group", ["name", "uuid"], None).build()
         self.assertEqual("{Get{Group{name uuid}}}", query)
 
-        query = GetBuilder("Group", ["name", "uuid"], None).build()
-        self.assertEqual("{Get{Group{name uuid}}}", query)
+        query = GetBuilder("Group", None, None).with_additional('distance').build()
+        self.assertEqual("{Get{Group{ _additional {distance }}}}", query)
         
         near_text = {
             "concepts": ["computer"],
@@ -558,9 +564,9 @@ class TestGetBuilder(unittest.TestCase):
             .build()
         self.assertEqual('{Get{Person(where: {operator: Or operands: [{path: ["name"] operator: Equal valueString: "Alan Turing"}, {path: ["name"] operator: Equal valueString: "John von Neumann"}]} limit: 2 offset: 10 nearText: {concepts: ["computer"] certainty: 0.3 moveTo: {force: 0.1 concepts: ["science"]} moveAwayFrom: {force: 0.2 concepts: ["airplane"]}} ){name uuid}}}', query)
 
-    def test_uncapitalized_class_name(self):
+    def test_capitalized_class_name(self):
         """
-        Test the uncapitalized class_name.
+        Test the capitalized class_name.
         """
 
         get = GetBuilder('Test', ['prop'], None)

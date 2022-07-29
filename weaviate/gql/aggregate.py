@@ -352,7 +352,7 @@ class AggregateBuilder(GraphQL):
         ...     'beacon': <str>, # OR 'id'
         ...     # certainty ONLY with `cosine` distance specified in the schema
         ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
-        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'    
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
         ... }
 
         >>> {

@@ -26,19 +26,66 @@ class TestWeaviateClient(unittest.TestCase):
 
         # test valid calls
         with patch('weaviate.client.Connection') as mock_obj:
-            Client("some_URL", auth_client_secret=None, timeout_config=(1, 2))
+            Client(
+                url="some_URL",
+                auth_client_secret=None,
+                timeout_config=(1, 2),
+                additional_headers=None,
+            )
             mock_obj.assert_called_with(
                 url='some_URL',
                 auth_client_secret=None,
-                timeout_config=(1,2)
+                timeout_config=(1, 2),
+                proxies=None,
+                trust_env=False,
+                additional_headers=None,
             )
+
+        with patch('weaviate.client.Connection') as mock_obj:
+            Client(
+                url="some_URL",
+                auth_client_secret=None,
+                timeout_config=(1, 2),
+                additional_headers={'Test': True},
+            )
+            mock_obj.assert_called_with(
+                url='some_URL',
+                auth_client_secret=None,
+                timeout_config=(1, 2),
+                proxies=None,
+                trust_env=False,
+                additional_headers={'Test': True},
+            )
+             
         with patch('weaviate.client.Connection') as mock_obj:
             Client("some_URL/", auth_client_secret=None, timeout_config=(5, 20))
             mock_obj.assert_called_with(
                 url='some_URL',
                 auth_client_secret=None,
-                timeout_config=(5,20)
+                timeout_config=(5, 20),
+                proxies=None,
+                trust_env=False,
+                additional_headers=None,
             )
+
+        with patch('weaviate.client.Connection') as mock_obj:
+            Client(
+                url="some_URL",
+                auth_client_secret=None,
+                timeout_config=(1, 2),
+                proxies={'http': 'test'},
+                trust_env=True,
+                additional_headers=None,
+            )
+            mock_obj.assert_called_with(
+                url='some_URL',
+                auth_client_secret=None,
+                timeout_config=(1, 2),
+                proxies={'http': 'test'},
+                trust_env=True,
+                additional_headers=None,
+            )
+
     @patch('weaviate.client.Client.get_meta', return_value={'version': '1.13.2'})
     def test_is_ready(self, mock_get_meta_method):
         """

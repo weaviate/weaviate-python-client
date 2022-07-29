@@ -5,8 +5,26 @@ Weaviate Exceptions.
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests import Response
 
+class WeaviateBaseError(Exception):
+    """
+    Weaviate base exception that all Weaviate exceptions should inherit from.
+    This error can be used to catch any Weaviate exceptions.
+    """
 
-class UnexpectedStatusCodeException(Exception):
+    def __init__(self, message: str = ''):
+        """
+        Weaviate base exception initializer.
+        Parameters
+        ----------
+        message: str, optional
+            An error message specific to the context in which the error occurred.
+        """
+
+        self.message = message
+        super().__init__(message)
+
+
+class UnexpectedStatusCodeException(WeaviateBaseError):
     """
     Is raised in case the status code returned from Weaviate is
     not handled in the client implementation and suggests an error.
@@ -29,7 +47,6 @@ class UnexpectedStatusCodeException(Exception):
             The request response of which the status code was unexpected.
         """
 
-        super().__init__()
 
         # Set error message
 
@@ -38,29 +55,25 @@ class UnexpectedStatusCodeException(Exception):
         except:
             body = None
 
-        self.message = message
-        self.status_code = response.status_code
-        self.json = body
-
-    def __str__(self):
-        code = str(self.status_code)
-        body = str(self.json)
-        return f"{self.message}! Unexpected status code: {code}, with response body: {body}"
+        super().__init__(
+            message
+            + f"! Unexpected status code: {response.status_code}, with response body: {body}"
+        )
 
 
-class ObjectAlreadyExistsException(Exception):
+class ObjectAlreadyExistsException(WeaviateBaseError):
     """
     Object Already Exists Exception.
     """
 
 
-class AuthenticationFailedException(Exception):
+class AuthenticationFailedException(WeaviateBaseError):
     """
     Authentication Failed Exception.
     """
 
 
-class SchemaValidationException(Exception):
+class SchemaValidationException(WeaviateBaseError):
     """
     Schema Validation Exception.
     """

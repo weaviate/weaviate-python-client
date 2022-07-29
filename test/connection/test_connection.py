@@ -1,8 +1,9 @@
+from operator import add
 import unittest
 from unittest.mock import patch, Mock
 from requests import RequestException
 from weaviate.exceptions import AuthenticationFailedException
-from weaviate.connect import Connection
+from weaviate.connect.connection import Connection, _get_proxies
 from weaviate.util import _get_valid_timeout_config as valid_cnfg
 from test.util import check_error_message
 
@@ -16,7 +17,8 @@ class TestConnection(unittest.TestCase):
             auth_expires=0,
             auth_bearer=None,
             auth_client_secret=None,
-            is_authentication_required=False
+            is_authentication_required=False,
+            headers={"content-type": "application/json"},
         ):
         """
         Check the attributes of the connection value. Assign 'skip' to
@@ -39,6 +41,8 @@ class TestConnection(unittest.TestCase):
                 self.assertTrue(connection._is_authentication_required)
             else:
                 self.assertFalse(connection._is_authentication_required)
+        if headers != 'skip':
+            self.assertEqual(connection._headers, headers)
 
     @patch("weaviate.connect.connection.Connection._refresh_authentication")
     @patch("weaviate.connect.connection.requests")
@@ -52,19 +56,45 @@ class TestConnection(unittest.TestCase):
             "No login credentials provided. The weaviate instance at "
             "test_url requires login credential, use argument 'auth_client_secret'."
         )
+        ad_headers_err_message =  lambda dt: (
+            "'additional_headers' must be of type dict or None. "
+                    f"Given type: {dt}."
+        )
 
         # requests error
         mock_session = mock_requests.Session.return_value = Mock()
+
+        # additional_headers error check
+
+        with self.assertRaises(TypeError) as error:
+            Connection(
+                url='test_url',
+                auth_client_secret=None,
+                timeout_config=(3, 23),
+                proxies=None,
+                trust_env=False,
+                additional_headers=['test', True],
+            )
+        check_error_message(self, error, ad_headers_err_message(list))
+        mock_session.get.assert_not_called()
 
         # non 200 status_code return
         mock_session.get.side_effect = None
         mock_response = Mock(status_code=400)
         mock_session.get.return_value = mock_response
-        connection = Connection('test_url', timeout_config=(3, 23))
+        connection = Connection(
+            url='test_url',
+            auth_client_secret=None,
+            timeout_config=(3, 23),
+            proxies=None,
+            trust_env=False,
+            additional_headers=None,
+        )
         self.check_connection_attributes(connection, timeout_config=(3, 23))
         mock_session.get.assert_called_with(
             "test_url/v1/.well-known/openid-configuration",
             headers={"content-type": "application/json"},
+            proxies={},
             timeout=(3, 23)
         )
         mock_refresh_authentication.assert_not_called()
@@ -74,12 +104,20 @@ class TestConnection(unittest.TestCase):
         mock_response = Mock(status_code=200)
         mock_session.get.return_value = mock_response
         with self.assertRaises(ValueError) as error:
-            Connection('test_url')
+            Connection(
+            url='test_url',
+            auth_client_secret=None,
+            timeout_config=(2, 20),
+            proxies={},
+            trust_env=False,
+            additional_headers=None,
+        )
         check_error_message(self, error, auth_error_message)
         mock_session.get.assert_called_with(
             "test_url/v1/.well-known/openid-configuration",
             headers={"content-type": "application/json"},
-            timeout=(2, 20)
+            timeout=(2, 20),
+            proxies={},
         )
 
         # 200 status_code return and auth provided
@@ -88,12 +126,24 @@ class TestConnection(unittest.TestCase):
             mock_session.get.side_effect = None
             mock_response = Mock(status_code=200)
             mock_session.get.return_value = mock_response
-            connection = Connection('test_url')
-            self.check_connection_attributes(connection, is_authentication_required=True)
+            connection = Connection(
+                url='test_url',
+                auth_client_secret=None,
+                timeout_config=(2, 20),
+                proxies=None,
+                trust_env=False,
+                additional_headers={'Test': True},
+            )
+            self.check_connection_attributes(
+                connection,
+                is_authentication_required=True,
+                headers={"content-type": "application/json", 'Test': True},
+            )
             mock_session.get.assert_called_with(
                 "test_url/v1/.well-known/openid-configuration",
-                headers={"content-type": "application/json"},
-                timeout=(2, 20)
+                headers={"content-type": "application/json"}, # this has different inplace headers
+                timeout=(2, 20),
+                proxies={},
             )
             mock_refresh_authentication.assert_called()
 
@@ -104,7 +154,14 @@ class TestConnection(unittest.TestCase):
         """
 
         mock_session = mock_requests.Session.return_value = Mock()
-        connection = Connection("http://weaviate:1234")
+        connection = Connection(
+            url='http://weaviate:1234',
+            auth_client_secret=None,
+            timeout_config=(2, 20),
+            proxies=None,
+            trust_env=False,
+            additional_headers=None,
+        )
 
         # GET method with param
         connection.get("/get", {'test': None}),
@@ -112,6 +169,7 @@ class TestConnection(unittest.TestCase):
             url='http://weaviate:1234/v1/get',
             headers={"content-type": "application/json"},
             timeout=(2, 20),
+            proxies={},
             params={'test': None},
         )
         mock_session.reset_mock()
@@ -122,6 +180,7 @@ class TestConnection(unittest.TestCase):
             url='http://weaviate:1234/v1/get',
             headers={"content-type": "application/json"},
             timeout=(2, 20),
+            proxies={},
             params={},
         )
         mock_session.reset_mock()
@@ -133,6 +192,7 @@ class TestConnection(unittest.TestCase):
             json={'PUT': 'test'},
             headers={"content-type": "application/json"},
             timeout=(2, 20),
+            proxies={},
         )
         mock_session.reset_mock()
 
@@ -143,6 +203,7 @@ class TestConnection(unittest.TestCase):
             json={'POST': 'TeST!'},
             headers={"content-type": "application/json"},
             timeout=(2, 20),
+            proxies={},
         )
         mock_session.reset_mock()
 
@@ -153,6 +214,7 @@ class TestConnection(unittest.TestCase):
             json={'PATCH': 'teST'},
             headers={"content-type": "application/json"},
             timeout=(2, 20),
+            proxies={},
         )
         mock_session.reset_mock()
 
@@ -163,6 +225,84 @@ class TestConnection(unittest.TestCase):
             json={'DELETE': 'TESt'},
             headers={"content-type": "application/json"},
             timeout=(2, 20),
+            proxies={},
+        )
+
+        # add Proxies
+
+        mock_session = mock_requests.Session.return_value = Mock()
+        connection = Connection(
+            url='http://weaviate:1234',
+            auth_client_secret=None,
+            timeout_config=(2, 20),
+            proxies={'test': True},
+            trust_env=False,
+            additional_headers=None,
+        )
+
+        # GET method with param
+        connection.get("/get", {'test': None}),
+        mock_session.get.assert_called_with(
+            url='http://weaviate:1234/v1/get',
+            headers={"content-type": "application/json"},
+            timeout=(2, 20),
+            proxies={'test': True},
+            params={'test': None},
+        )
+        mock_session.reset_mock()
+
+        # GET method without param
+        connection.get("/get"),
+        mock_session.get.assert_called_with(
+            url='http://weaviate:1234/v1/get',
+            headers={"content-type": "application/json"},
+            timeout=(2, 20),
+            proxies={'test': True},
+            params={},
+        )
+        mock_session.reset_mock()
+
+        # PUT method
+        connection.put("/put", {'PUT': 'test'}),
+        mock_session.put.assert_called_with(
+            url='http://weaviate:1234/v1/put',
+            json={'PUT': 'test'},
+            headers={"content-type": "application/json"},
+            timeout=(2, 20),
+            proxies={'test': True},
+        )
+        mock_session.reset_mock()
+
+        # POST method
+        connection.post("/post", {'POST': 'TeST!'}),
+        mock_session.post.assert_called_with(
+            url='http://weaviate:1234/v1/post',
+            json={'POST': 'TeST!'},
+            headers={"content-type": "application/json"},
+            timeout=(2, 20),
+            proxies={'test': True},
+        )
+        mock_session.reset_mock()
+
+        # PATCH method
+        connection.patch("/patch", {'PATCH': 'teST'}),
+        mock_session.patch.assert_called_with(
+            url='http://weaviate:1234/v1/patch',
+            json={'PATCH': 'teST'},
+            headers={"content-type": "application/json"},
+            timeout=(2, 20),
+            proxies={'test': True},
+        )
+        mock_session.reset_mock()
+
+        # DELETE method
+        connection.delete("/delete", {'DELETE': 'TESt'}),
+        mock_session.delete.assert_called_with(
+            url='http://weaviate:1234/v1/delete',
+            json={'DELETE': 'TESt'},
+            headers={"content-type": "application/json"},
+            timeout=(2, 20),
+            proxies={'test': True},
         )
 
     @patch('weaviate.connect.connection.Connection._log_in', Mock())
@@ -172,7 +312,14 @@ class TestConnection(unittest.TestCase):
         Test the `_get_request_header` method.
         """
 
-        connection = Connection('http://test_url')
+        connection = Connection(
+            url='http://test_url',
+            auth_client_secret=None,
+            timeout_config=(3, 23),
+            proxies=None,
+            trust_env=False,
+            additional_headers=None,
+        )
 
         # with no auth
         connection._is_authentication_required = False
@@ -187,6 +334,22 @@ class TestConnection(unittest.TestCase):
         self.assertEqual(result, {"content-type": "application/json", "Authorization": "Bearer test"})
         mock_refresh_authentication.assert_called()
 
+        # with additional headers
+        connection = Connection(
+            url='http://test_url',
+            auth_client_secret=None,
+            timeout_config=(3, 23),
+            proxies=None,
+            trust_env=False,
+            additional_headers={'Test': 'This is a test', 'test2': True},
+        )
+
+        mock_refresh_authentication.reset_mock()
+        connection._is_authentication_required = False
+        result = connection._get_request_header()
+        self.assertEqual(result, {"content-type": "application/json",'Test': 'This is a test', 'test2': True})
+        mock_refresh_authentication.assert_not_called()
+
     @patch('weaviate.connect.connection.Connection._log_in', Mock())
     @patch("weaviate.connect.connection.requests")
     @patch("weaviate.connect.connection._get_epoch_time")
@@ -200,11 +363,24 @@ class TestConnection(unittest.TestCase):
         mock_get_epoch_time.return_value = -2
 
         mock_session = mock_requests.Session.return_value = Mock()
-        connection = Connection('test_url', None)
+        connection = Connection(
+            url='test_url',
+            auth_client_secret=None,
+            timeout_config=(2, 20),
+            proxies=None,
+            trust_env=False,
+            additional_headers=None,
+        )
         mock_session.reset_mock() # reset 'requests' mock because it is called in the `__init__`
-        self.check_connection_attributes(connection, timeout_config=(2, 20)) # before the `_refresh_authentication` call
+        self.check_connection_attributes(# before the `_refresh_authentication` call
+            connection,
+            timeout_config=(2, 20),
+        )
         connection._refresh_authentication()
-        self.check_connection_attributes(connection, timeout_config=(2, 20)) # after the `_refresh_authentication` call
+        self.check_connection_attributes(
+            connection,
+            timeout_config=(2, 20),
+        )
         mock_get_epoch_time.assert_called()
         mock_session.get.assert_not_called()
         mock_set_bearer.assert_not_called()
@@ -216,24 +392,42 @@ class TestConnection(unittest.TestCase):
         mock_get_epoch_time.return_value = 200
         get_kwargs = {
             'headers': {"content-type": "application/json"},
-            'timeout': (30, 45)
+            'timeout': (30, 45),
+            'proxies': {},
         }
         # test the expired connection
         ## requests.get exception (get data)
-        connection = Connection('test_url', auth_client_secret=None)
+        connection = Connection(
+            url='test_url',
+            auth_client_secret=None,
+            timeout_config=(2, 20),
+            proxies=None,
+            trust_env=False,
+            additional_headers=None,
+        )
         mock_session.get.configure_mock(side_effect=RequestException('Test!'))
         with self.assertRaises(AuthenticationFailedException) as error:
             connection._refresh_authentication()
         
         check_error_message(self, error, data_error_message)
-        mock_session.get.assert_called_with("test_url/v1/.well-known/openid-configuration", **get_kwargs)
+        mock_session.get.assert_called_with(
+            "test_url/v1/.well-known/openid-configuration",
+            **get_kwargs
+        )
         mock_set_bearer.assert_not_called()
 
         ## bad status_code (get data)
         mock_get_epoch_time.reset_mock() # reset mock.called
         ### reset 'requests' mock because it is called in the `__init__`
         mock_session.get.reset_mock(side_effect=True, return_value=True)
-        connection = Connection('test_url', auth_client_secret=None)
+        connection = Connection(
+            url='test_url',
+            auth_client_secret=None,
+            timeout_config=(2, 20),
+            proxies=None,
+            trust_env=False,
+            additional_headers=None,
+        )
         mock_session.get.return_value = Mock(status_code=404)
         with self.assertRaises(AuthenticationFailedException) as error:
             connection._refresh_authentication()
@@ -245,7 +439,14 @@ class TestConnection(unittest.TestCase):
         mock_get_epoch_time.reset_mock() # reset mock.called
         ## reset 'requests' mock because it is called in the `__init__`
         mock_session.get.reset_mock(side_effect=True, return_value=True)
-        connection = Connection('test_url', auth_client_secret=None)
+        connection = Connection(
+            url='test_url',
+            auth_client_secret=None,
+            timeout_config=(3, 23),
+            proxies=None,
+            trust_env=False,
+            additional_headers=None,
+        )
         mock_session.get.return_value = Mock(**{'status_code': 200, 'json.return_value': {'clientId': 'Test1!', 'href': 'Test2!'}})
         connection._refresh_authentication()
         mock_session.get.assert_called_with("test_url/v1/.well-known/openid-configuration", **get_kwargs)
@@ -261,7 +462,8 @@ class TestConnection(unittest.TestCase):
 
         get_kwargs = {
             'headers': {"content-type": "application/json"},
-            'timeout': (30, 45)
+            'timeout': (30, 45),
+            'proxies': {},
         }
         mock_refresh_authentication.return_value = None
 
@@ -289,7 +491,14 @@ class TestConnection(unittest.TestCase):
             # reset 'requests' mock because it is called in the `__init__`
             mock_requests.get.reset_mock(side_effect=True, return_value=True)
             mock_requests.post.reset_mock(side_effect=True, return_value=True)
-            connection = Connection(kwargs['url'], auth_client_secret=kwargs.get("auth_client_secret", None))
+            connection = Connection(
+                url=kwargs['url'],
+                auth_client_secret=kwargs.get("auth_client_secret"),
+                timeout_config=(2, 20),
+                proxies=None,
+                trust_env=False,
+                additional_headers=None,
+            )
             mock_requests.configure_mock(**kwargs['requests'])
             self.check_connection_attributes(
                 connection,
@@ -357,7 +566,8 @@ class TestConnection(unittest.TestCase):
             connection._set_bearer('test_id', 'test_href')
         get_kwargs = {
             'headers': {"content-type": "application/json"},
-            'timeout': (30, 45)
+            'timeout': (30, 45),
+            'proxies': {},
         }
         helper_after_call(credentials_error_message, get_args=["test_href"], get=get_kwargs)
 
@@ -378,10 +588,11 @@ class TestConnection(unittest.TestCase):
             connection._set_bearer('test_id', 'test_href')
         get_kwargs = {
             'headers': {"content-type": "application/json"},
-            'timeout': (30, 45)
+            'timeout': (30, 45),
+            'proxies': {},
         }
         get_args = ["test_href"]
-        post_kwargs = {'timeout': (30, 45)}
+        post_kwargs = {'timeout': (30, 45), 'proxies': {},}
         post_args = ["Test", {'client_id': 'test_id', 'test_key': 'Value'}]
         helper_after_call(
             oauth_error_message,
@@ -409,10 +620,11 @@ class TestConnection(unittest.TestCase):
             connection._set_bearer('Test!ID', 'test_href')
         get_kwargs = {
             'headers': {"content-type": "application/json"},
-            'timeout': (30, 45)
+            'timeout': (30, 45),
+            'proxies': {},
         }
         get_args = ["test_href"]
-        post_kwargs = {'timeout': (30, 45)}
+        post_kwargs = {'timeout': (30, 45),'proxies': {},}
         post_args = ["Test", {'client_id': 'Test!ID', 'test_key': 'Value'}]
         helper_after_call(
             oauth_status_code_error_message,
@@ -444,10 +656,11 @@ class TestConnection(unittest.TestCase):
         connection._set_bearer('Test!ID', 'test_href')
         get_kwargs = {
             'headers': {"content-type": "application/json"},
-            'timeout': (30, 45)
+            'timeout': (30, 45),
+            'proxies': {},
         }
         get_args = ["test_href"]
-        post_kwargs = {'timeout': (30, 45)}
+        post_kwargs = {'timeout': (30, 45), 'proxies': {},}
         post_args = ["Test", {'client_id': 'Test!ID', 'test_key': 'Value'}]
         helper_after_call(
             None,
@@ -466,7 +679,14 @@ class TestConnection(unittest.TestCase):
         Test the setter and getter of `timeout_config`.
         """
 
-        connection = Connection('http://test_url')
+        connection = Connection(
+            url='http://test_url',
+            auth_client_secret=None,
+            timeout_config=(2, 20),
+            proxies=None,
+            trust_env=False,
+            additional_headers=None,
+        )
         mock_log_in.assert_called()
 
         # default one
@@ -497,3 +717,37 @@ class TestConnection(unittest.TestCase):
         epoch = datetime.datetime.fromtimestamp(110.46)
         mock_datetime.datetime.utcnow.return_value = epoch
         self.assertEqual(_get_epoch_time(), 110)
+
+    @patch("weaviate.connect.connection.os")
+    def test_get_proxies(self, os_mock):
+        """
+        Test the `_get_proxies` function.
+        """
+
+        error_msg = lambda dt: (
+            "If 'proxies' is not None, it must be of type dict or str. "
+            f"Given type: {dt}."
+        )
+        with self.assertRaises(TypeError) as error:
+            proxies = _get_proxies([], False)
+        check_error_message(self, error, error_msg(list))
+
+        proxies = _get_proxies({}, False)
+        self.assertEqual(proxies, {})
+
+        proxies = _get_proxies({'test': True}, False)
+        self.assertEqual(proxies, {'test': True})
+
+        proxies = _get_proxies({'test': True}, True)
+        self.assertEqual(proxies, {'test': True})
+
+        proxies = _get_proxies('test', True)
+        self.assertEqual(proxies, {'http': 'test', 'https': 'test'})
+
+        os_mock.environ.get.return_value = None
+        proxies = _get_proxies(None, True)
+        self.assertEqual(proxies, {})
+
+        os_mock.environ.get.return_value = 'test'
+        proxies = _get_proxies(None, True)
+        self.assertEqual(proxies, {'http': 'test', 'https': 'test'})
