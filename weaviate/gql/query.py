@@ -27,7 +27,7 @@ class Query:
 
     def get(self,
             class_name: str,
-            properties: Union[List[str], str]
+            properties: Union[List[str], str, None]=None,
         ) -> GetBuilder:
         """
         Instantiate a GetBuilder for GraphQL `get` requests.
@@ -36,8 +36,8 @@ class Query:
         ----------
         class_name : str
             Class name of the objects to interact with.
-        properties : list of str or str
-            Properties of the objects to get.
+        properties : list of str, str or None
+            Properties of the objects to get, by default None
 
         Returns
         -------
