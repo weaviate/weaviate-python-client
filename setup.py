@@ -37,6 +37,7 @@ setup(
     "weaviate.schema",
     "weaviate.schema.properties",
     "weaviate.batch",
+    "weaviate.backup",
     "weaviate.classification",
     "weaviate.contextionary",
     "weaviate.data",

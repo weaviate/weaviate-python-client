@@ -77,3 +77,8 @@ class SchemaValidationException(WeaviateBaseError):
     """
     Schema Validation Exception.
     """
+
+class BackupFailedException(WeaviateBaseError):
+    """
+    Backup Failed Exception.
+    """

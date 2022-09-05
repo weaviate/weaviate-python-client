@@ -2,6 +2,6 @@
 Module for classifying objects within Weaviate.
 """
 
-__all__ = ['Classification', 'ConfigBuilder']
+__all__ = ['Backup']
 
-from .classification import Classification, ConfigBuilder
+from .backup import Backup
