@@ -1,5 +1,5 @@
 """
-Classification class definition.
+Backup class definition.
 """
 from time import sleep
 from typing import Union, List
@@ -97,7 +97,7 @@ class Backup:
                 )
         else:
             include = []
-        
+
         if exclude:
             if isinstance(exclude, str):
                 exclude = [exclude]
@@ -108,7 +108,7 @@ class Backup:
                 )
         else:
             exclude = []
-            
+
         if include and exclude:
             raise TypeError(
                 "Either 'include' OR 'exclude' can be set, not both."
@@ -254,7 +254,7 @@ class Backup:
                 )
         else:
             include = []
-        
+
         if exclude:
             if isinstance(exclude, str):
                 exclude = [exclude]
@@ -265,7 +265,7 @@ class Backup:
                 )
         else:
             exclude = []
-            
+
         if include and exclude:
             raise TypeError(
                 "Either 'include' OR 'exclude' can be set, not both."
