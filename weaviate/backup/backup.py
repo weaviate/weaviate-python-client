@@ -40,8 +40,8 @@ class Backup:
     def create(self,
             backup_id: str,
             storage_name: str,
-            include: Union[List[str], str, None]=None,
-            exclude: Union[List[str], str, None]=None,
+            include_classes: Union[List[str], str, None]=None,
+            exclude_classes: Union[List[str], str, None]=None,
             wait_for_completion: bool=False,
         ) -> dict:
         """
@@ -56,12 +56,13 @@ class Backup:
             The storage where to create the backup. Currently available options are:
                 "filesystem", "s3" and "gsc".
             NOTE: Case insensitive.
-        include : Union[List[str], str, None], optional
+        include_classes : Union[List[str], str, None], optional
             The class/list of classes to be included in the backup. If not specified all classes
-            will be included. Either `include` or `exclude` can be set. By default None.
-        exclude : Union[List[str], str, None], optional
-            The class/list of classes to be excluded in the backup. Either `include` or `exclude`
-            can be set. By default None.
+            will be included. Either `include_classes` or `exclude_classes` can be set.
+            By default None.
+        exclude_classes : Union[List[str], str, None], optional
+            The class/list of classes to be excluded in the backup. Either `include_classes` or
+            `exclude_classes` can be set. By default None.
         wait_for_completion : bool, optional
             Whether to wait until the backup is done. By default False.
 
@@ -87,38 +88,38 @@ class Backup:
                 f"'storage_name' must have one of these values: {STORAGE_NAMES}. "
                 f"Given value: {storage_name}."
             )
-        if include:
-            if isinstance(include, str):
-                include = [include]
-            elif not isinstance(include, list):
+        if include_classes:
+            if isinstance(include_classes, str):
+                include_classes = [include_classes]
+            elif not isinstance(include_classes, list):
                 raise TypeError(
-                    "'include' must be of type str, list of str or None. "
-                    f"Given type: {type(include)}."
+                    "'include_classes' must be of type str, list of str or None. "
+                    f"Given type: {type(include_classes)}."
                 )
         else:
-            include = []
+            include_classes = []
 
-        if exclude:
-            if isinstance(exclude, str):
-                exclude = [exclude]
-            elif not isinstance(exclude, list):
+        if exclude_classes:
+            if isinstance(exclude_classes, str):
+                exclude_classes = [exclude_classes]
+            elif not isinstance(exclude_classes, list):
                 raise TypeError(
-                    "'exclude' must be of type str, list of str or None. "
-                    f"Given type: {type(exclude)}."
+                    "'exclude_classes' must be of type str, list of str or None. "
+                    f"Given type: {type(exclude_classes)}."
                 )
         else:
-            exclude = []
+            exclude_classes = []
 
-        if include and exclude:
+        if include_classes and exclude_classes:
             raise TypeError(
-                "Either 'include' OR 'exclude' can be set, not both."
+                "Either 'include_classes' OR 'exclude_classes' can be set, not both."
             )
 
         payload = {
             "id": backup_id.lower(),
             "config": {},
-            "include": [_capitalize_first_letter(cls) for cls in include],
-            "exclude": [_capitalize_first_letter(cls) for cls in exclude],
+            "include": [_capitalize_first_letter(cls) for cls in include_classes],
+            "exclude": [_capitalize_first_letter(cls) for cls in exclude_classes],
         }
         path = f'/backups/{storage_name.lower()}'
 
@@ -196,8 +197,8 @@ class Backup:
     def restore(self,
             backup_id: str,
             storage_name: str,
-            include: Union[List[str], str, None]=None,
-            exclude: Union[List[str], str, None]=None,
+            include_classes: Union[List[str], str, None]=None,
+            exclude_classes: Union[List[str], str, None]=None,
             wait_for_completion: bool=False,
         ) -> dict:
         """
@@ -212,13 +213,13 @@ class Backup:
             The storage from where to restore the backup. Currently available options are:
                 "filesystem", "s3" and "gsc".
             NOTE: Case insensitive.
-        include : Union[List[str], str, None], optional
+        include_classes : Union[List[str], str, None], optional
             The class/list of classes to be included in the backup restore. If not specified all
-            classes will be included (that were backup-ed). Either `include` or `exclude` can be
-            set. By default None.
-        exclude : Union[List[str], str, None], optional
-            The class/list of classes to be excluded in the backup restore. Either `include` or
-            `exclude` can be set. By default None.
+            classes will be included (that were backup-ed). Either `include_classes` or
+            `exclude_classes` can be set. By default None.
+        exclude_classes : Union[List[str], str, None], optional
+            The class/list of classes to be excluded in the backup restore.
+            Either `include_classes` or `exclude_classes` can be set. By default None.
         wait_for_completion : bool, optional
             Whether to wait until the backup restore is done.
 
@@ -244,38 +245,38 @@ class Backup:
                 f"'storage_name' must have one of these values: {STORAGE_NAMES}. "
                 f"Given value: {storage_name}."
             )
-        if include:
-            if isinstance(include, str):
-                include = [include]
-            elif not isinstance(include, list):
+        if include_classes:
+            if isinstance(include_classes, str):
+                include_classes = [include_classes]
+            elif not isinstance(include_classes, list):
                 raise TypeError(
-                    "'include' must be of type str, list of str or None. "
-                    f"Given type: {type(include)}."
+                    "'include_classes' must be of type str, list of str or None. "
+                    f"Given type: {type(include_classes)}."
                 )
         else:
-            include = []
+            include_classes = []
 
-        if exclude:
-            if isinstance(exclude, str):
-                exclude = [exclude]
-            elif not isinstance(exclude, list):
+        if exclude_classes:
+            if isinstance(exclude_classes, str):
+                exclude_classes = [exclude_classes]
+            elif not isinstance(exclude_classes, list):
                 raise TypeError(
-                    "'exclude' must be of type str, list of str or None. "
-                    f"Given type: {type(exclude)}."
+                    "'exclude_classes' must be of type str, list of str or None. "
+                    f"Given type: {type(exclude_classes)}."
                 )
         else:
-            exclude = []
+            exclude_classes = []
 
-        if include and exclude:
+        if include_classes and exclude_classes:
             raise TypeError(
-                "Either 'include' OR 'exclude' can be set, not both."
+                "Either 'include_classes' OR 'exclude_classes' can be set, not both."
             )
 
         payload = {
             "id": backup_id.lower(),
             "config": {},
-            "include": [_capitalize_first_letter(cls) for cls in include],
-            "exclude": [_capitalize_first_letter(cls) for cls in exclude],
+            "include": [_capitalize_first_letter(cls) for cls in include_classes],
+            "exclude": [_capitalize_first_letter(cls) for cls in exclude_classes],
         }
         path = f'/backups/{storage_name.lower()}/{backup_id.lower()}/restore'
 

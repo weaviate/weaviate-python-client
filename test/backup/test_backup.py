@@ -25,14 +25,14 @@ class TestBackup(unittest.TestCase):
             f"Given value: {val}."
         )
         include_type_err_msg = lambda dt: (
-            "'include' must be of type str, list of str or None. "
+            "'include_classes' must be of type str, list of str or None. "
             f"Given type: {dt}."
         )
         exclude_type_err_msg = lambda dt: (
-            "'exclude' must be of type str, list of str or None. "
+            "'exclude_classes' must be of type str, list of str or None. "
             f"Given type: {dt}."
         )
-        include_exclude_err_msg = "Either 'include' OR 'exclude' can be set, not both."
+        include_exclude_err_msg = "Either 'include_classes' OR 'exclude_classes' can be set, not both."
         connection_err_msg = 'Backup creation failed due to connection error.'
         status_code_err_msg = "Backup creation"
         backup_failed_err_msg = lambda status: f'Backup failed: {status}'
@@ -64,7 +64,7 @@ class TestBackup(unittest.TestCase):
             Backup(None).create(
                 backup_id='My-bucket',
                 storage_name='s3',
-                include=b'MyClass',
+                include_classes=b'MyClass',
             )
         check_error_message(self, error, include_type_err_msg(bytes))
 
@@ -72,7 +72,7 @@ class TestBackup(unittest.TestCase):
             Backup(None).create(
                 backup_id='My-bucket',
                 storage_name='s3',
-                exclude=b'MyClass',
+                exclude_classes=b'MyClass',
             )
         check_error_message(self, error, exclude_type_err_msg(bytes))
 
@@ -80,8 +80,8 @@ class TestBackup(unittest.TestCase):
             Backup(None).create(
                 backup_id='My-bucket',
                 storage_name='s3',
-                include='MyClass1',
-                exclude='MyClass2',
+                include_classes='MyClass1',
+                exclude_classes='MyClass2',
             )
         check_error_message(self, error, include_exclude_err_msg)
 
@@ -135,7 +135,7 @@ class TestBackup(unittest.TestCase):
         result = Backup(mock_conn).create(
             backup_id='My-Bucket',
             storage_name='gcs',
-            include='myClass'
+            include_classes='myClass'
         )
         self.assertDictEqual(result, {'status': 'TEST'})
         mock_conn.post.assert_called_with(
@@ -153,7 +153,7 @@ class TestBackup(unittest.TestCase):
         result = Backup(mock_conn).create(
             backup_id='My-Bucket',
             storage_name='filesystem',
-            include=['class1', 'Class2']
+            include_classes=['class1', 'Class2']
         )
         self.assertDictEqual(result, {'status': 'TEST'})
         mock_conn.post.assert_called_with(
@@ -171,8 +171,8 @@ class TestBackup(unittest.TestCase):
         result = Backup(mock_conn).create(
             backup_id='My-Bucket',
             storage_name='s3',
-            exclude='myClass',
-            include=None,
+            exclude_classes='myClass',
+            include_classes=None,
         )
         self.assertDictEqual(result, {'status': 'TEST'})
         mock_conn.post.assert_called_with(
@@ -190,8 +190,8 @@ class TestBackup(unittest.TestCase):
         result = Backup(mock_conn).create(
             backup_id='My-Bucket',
             storage_name='s3',
-            exclude=['class1', 'Class2'],
-            include=[],
+            exclude_classes=['class1', 'Class2'],
+            include_classes=[],
         )
         self.assertDictEqual(result, {'status': 'TEST'})
         mock_conn.post.assert_called_with(
@@ -341,14 +341,14 @@ class TestBackup(unittest.TestCase):
             f"Given value: {val}."
         )
         include_type_err_msg = lambda dt: (
-            "'include' must be of type str, list of str or None. "
+            "'include_classes' must be of type str, list of str or None. "
             f"Given type: {dt}."
         )
         exclude_type_err_msg = lambda dt: (
-            "'exclude' must be of type str, list of str or None. "
+            "'exclude_classes' must be of type str, list of str or None. "
             f"Given type: {dt}."
         )
-        include_exclude_err_msg = "Either 'include' OR 'exclude' can be set, not both."
+        include_exclude_err_msg = "Either 'include_classes' OR 'exclude_classes' can be set, not both."
         connection_err_msg = 'Backup restore failed due to connection error.'
         status_code_err_msg = "Backup restore"
         backup_failed_err_msg = lambda status: f'Backup restore failed: {status}'
@@ -380,7 +380,7 @@ class TestBackup(unittest.TestCase):
             Backup(None).restore(
                 backup_id='My-bucket',
                 storage_name='s3',
-                include=b'MyClass',
+                include_classes=b'MyClass',
             )
         check_error_message(self, error, include_type_err_msg(bytes))
 
@@ -388,7 +388,7 @@ class TestBackup(unittest.TestCase):
             Backup(None).restore(
                 backup_id='My-bucket',
                 storage_name='s3',
-                exclude=b'MyClass',
+                exclude_classes=b'MyClass',
             )
         check_error_message(self, error, exclude_type_err_msg(bytes))
 
@@ -396,8 +396,8 @@ class TestBackup(unittest.TestCase):
             Backup(None).restore(
                 backup_id='My-bucket',
                 storage_name='s3',
-                include='MyClass1',
-                exclude='MyClass2',
+                include_classes='MyClass1',
+                exclude_classes='MyClass2',
             )
         check_error_message(self, error, include_exclude_err_msg)
 
@@ -451,7 +451,7 @@ class TestBackup(unittest.TestCase):
         result = Backup(mock_conn).restore(
             backup_id='My-Bucket',
             storage_name='gcs',
-            include='myClass'
+            include_classes='myClass'
         )
         self.assertDictEqual(result, {'status': 'TEST'})
         mock_conn.post.assert_called_with(
@@ -469,7 +469,7 @@ class TestBackup(unittest.TestCase):
         result = Backup(mock_conn).restore(
             backup_id='My-Bucket',
             storage_name='filesystem',
-            include=['class1', 'Class2']
+            include_classes=['class1', 'Class2']
         )
         self.assertDictEqual(result, {'status': 'TEST'})
         mock_conn.post.assert_called_with(
@@ -487,8 +487,8 @@ class TestBackup(unittest.TestCase):
         result = Backup(mock_conn).restore(
             backup_id='My-Bucket',
             storage_name='s3',
-            exclude='myClass',
-            include=None,
+            exclude_classes='myClass',
+            include_classes=None,
         )
         self.assertDictEqual(result, {'status': 'TEST'})
         mock_conn.post.assert_called_with(
@@ -506,8 +506,8 @@ class TestBackup(unittest.TestCase):
         result = Backup(mock_conn).restore(
             backup_id='My-Bucket',
             storage_name='s3',
-            exclude=['class1', 'Class2'],
-            include=[],
+            exclude_classes=['class1', 'Class2'],
+            include_classes=[],
         )
         self.assertDictEqual(result, {'status': 'TEST'})
         mock_conn.post.assert_called_with(
