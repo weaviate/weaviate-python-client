@@ -355,7 +355,7 @@ def _get_and_validate_create_restore_arguments(
             f"'wait_for_completion' must be of type bool. Given type: {type(wait_for_completion)}."
         )
 
-    if include_classes:
+    if include_classes is not None:
         if isinstance(include_classes, str):
             include_classes = [include_classes]
         elif not isinstance(include_classes, list):
@@ -366,7 +366,7 @@ def _get_and_validate_create_restore_arguments(
     else:
         include_classes = []
 
-    if exclude_classes:
+    if exclude_classes is not None:
         if isinstance(exclude_classes, str):
             exclude_classes = [exclude_classes]
         elif not isinstance(exclude_classes, list):
