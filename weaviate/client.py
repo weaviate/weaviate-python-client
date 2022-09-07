@@ -26,20 +26,20 @@ class Client:
 
     Attributes
     ----------
-    classification : weaviate.classification.Classification
-        A Classification object instance connected to the same Weaviate instance as the Client.
-    schema : weaviate.schema.Schema
-        A Schema object instance connected to the same Weaviate instance as the Client.
-    contextionary : weaviate.contextionary.Contextionary
-        A Contextionary object instance connected to the same Weaviate instance as the Client.
+    backup : weaviate.backup.Backup
+        A Backup object instance connected to the same Weaviate instance as the Client.
     batch : weaviate.batch.Batch
         A Batch object instance connected to the same Weaviate instance as the Client.
+    classification : weaviate.classification.Classification
+        A Classification object instance connected to the same Weaviate instance as the Client.
+    contextionary : weaviate.contextionary.Contextionary
+        A Contextionary object instance connected to the same Weaviate instance as the Client.
     data_object : weaviate.date.DataObject
         A DataObject object instance connected to the same Weaviate instance as the Client.
+    schema : weaviate.schema.Schema
+        A Schema object instance connected to the same Weaviate instance as the Client.
     query : weaviate.gql.Query
         A Query object instance connected to the same Weaviate instance as the Client.
-    query : weaviate.backup.Backup
-        A Backup object instance connected to the same Weaviate instance as the Client.
     """
 
     def __init__(self,

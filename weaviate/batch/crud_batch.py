@@ -336,7 +336,7 @@ class Batch:
         Returns
         -------
         str
-            The UUID of the added object. If one was not provided a UUIDv3 will be generated.
+            The UUID of the added object. If one was not provided a UUIDv4 will be generated.
 
         Raises
         ------

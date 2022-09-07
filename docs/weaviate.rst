@@ -14,6 +14,7 @@ Subpackages
 
    weaviate.auth
    weaviate.batch
+   weaviate.backup
    weaviate.classification
    weaviate.client
    weaviate.connect
