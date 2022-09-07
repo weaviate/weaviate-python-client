@@ -326,12 +326,16 @@ class DataObject:
             If weaviate reports a none OK status.
         """
 
-        parsed_object = _get_dict_from_object(data_object)
+        if not isinstance(class_name, str):
+            raise TypeError("Class must be type str")
+
         uuid = get_valid_uuid(uuid)
+
+        object_dict = _get_dict_from_object(data_object)
 
         weaviate_obj = {
             "id": uuid,
-            "properties": parsed_object
+            "properties": object_dict
         }
 
         if vector is not None:

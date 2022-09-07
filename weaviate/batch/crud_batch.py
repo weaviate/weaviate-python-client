@@ -313,7 +313,7 @@ class Batch:
             class_name: str,
             uuid: Optional[str]=None,
             vector: Optional[Sequence]=None
-        ) -> None:
+        ) -> str:
         """
         Add one object to this batch.
         NOTE: If the UUID of one of the objects already exists then the existing object will be
@@ -333,6 +333,11 @@ class Batch:
             `torch.Tensor` and `tf.Tensor`,
             by default None.
 
+        Returns
+        -------
+        str
+            The UUID of the added object. If one was not provided a UUIDv4 will be generated.
+
         Raises
         ------
         TypeError
@@ -341,7 +346,7 @@ class Batch:
             If 'uuid' is not of a proper form.
         """
 
-        self._objects_batch.add(
+        uuid = self._objects_batch.add(
             class_name=_capitalize_first_letter(class_name),
             data_object=data_object,
             uuid=uuid,
@@ -350,6 +355,8 @@ class Batch:
 
         if self._batching_type:
             self._auto_create()
+
+        return uuid
 
     def add_reference(self,
             from_object_uuid: str,

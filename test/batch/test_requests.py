@@ -209,7 +209,7 @@ class TestBatchObjects(unittest.TestCase):
             'properties': {"name": "Socrates"},
             'id': "d087b7c6a1155c898cb2f25bdeb9bf92"
         })
-        batch.add(
+        res_uuid = batch.add(
             data_object=obj['properties'],
             class_name=obj['class'],
         )
@@ -218,6 +218,7 @@ class TestBatchObjects(unittest.TestCase):
         self.assertEqual(mock_get_valid_uuid.call_count, 0)
         self.assertEqual(mock_get_vector.call_count, 0)
         self.assertEqual(batch.get_request_body(), expected_return)
+        self.assertEqual(res_uuid, "d087b7c6a1155c898cb2f25bdeb9bf92")
         ## change obj and check if batch does not reflect this change
         obj['properties']['name'] = 'Test'
         self.assertEqual(batch.get_request_body(), expected_return)
@@ -227,14 +228,14 @@ class TestBatchObjects(unittest.TestCase):
         obj =  {
             'class': "Chemist",
             'properties': {"name": "Marie Curie"},
-            'id': "d087b7c6-a115-5c89-8cb2-f25bdeb9bf92"
+            'id': "d087b7c6-a115-5c89-8cb2-f25bdeb9bf93"
         }
         expected_return['objects'].append({
             'class': "Chemist",
             'properties': {"name": "Marie Curie"},
-            'id': "d087b7c6-a115-5c89-8cb2-f25bdeb9bf92"
+            'id': "d087b7c6-a115-5c89-8cb2-f25bdeb9bf93"
         })
-        batch.add(
+        res_uuid = batch.add(
             data_object=obj['properties'],
             class_name=obj['class'],
             uuid=obj['id'],
@@ -244,6 +245,7 @@ class TestBatchObjects(unittest.TestCase):
         self.assertEqual(mock_get_valid_uuid.call_count, 1)
         self.assertEqual(mock_get_vector.call_count, 0)
         self.assertEqual(batch.get_request_body(), expected_return)
+        self.assertEqual(res_uuid, "d087b7c6-a115-5c89-8cb2-f25bdeb9bf93")
         ## change obj and check if batch does not reflect this change
         obj['properties']['name'] = 'Test'
         self.assertEqual(batch.get_request_body(), expected_return)
@@ -261,7 +263,7 @@ class TestBatchObjects(unittest.TestCase):
             'vector': [1, 2, 3],
             'id': "d087b7c6a1155c898cb2f25bdeb9bf92"
         })
-        batch.add(
+        res_uuid = batch.add(
             data_object=obj['properties'],
             class_name=obj['class'],
             vector=obj['vector'],
@@ -271,6 +273,7 @@ class TestBatchObjects(unittest.TestCase):
         self.assertEqual(mock_get_valid_uuid.call_count, 1)
         self.assertEqual(mock_get_vector.call_count, 1)
         self.assertEqual(batch.get_request_body(), expected_return)
+        self.assertEqual(res_uuid, "d087b7c6a1155c898cb2f25bdeb9bf92")
         ## change obj and check if batch does not reflect this change
         obj['properties']['name'] = 'Test'
         self.assertEqual(batch.get_request_body(), expected_return)
@@ -280,16 +283,16 @@ class TestBatchObjects(unittest.TestCase):
         obj =  {
             'class': "Inventor",
             'properties': {"name": "Nikola Tesla"},
-            'id': "d087b7c6-a115-5c89-8cb2-f25bdeb9bf93",
+            'id': "d087b7c6-a115-5c89-8cb2-f25bdeb9bf95",
             'vector': [1, 2, 3]
         }
         expected_return['objects'].append({
             'class': "Inventor",
             'properties': {"name": "Nikola Tesla"},
-            'id': "d087b7c6-a115-5c89-8cb2-f25bdeb9bf93",
+            'id': "d087b7c6-a115-5c89-8cb2-f25bdeb9bf95",
             'vector': [1, 2, 3]
         })
-        batch.add(
+        res_uuid = batch.add(
             data_object=obj['properties'],
             class_name=obj['class'],
             uuid=obj['id'],
@@ -300,6 +303,7 @@ class TestBatchObjects(unittest.TestCase):
         self.assertEqual(mock_get_valid_uuid.call_count, 2)
         self.assertEqual(mock_get_vector.call_count, 2)
         self.assertEqual(batch.get_request_body(), expected_return)
+        self.assertEqual(res_uuid, "d087b7c6-a115-5c89-8cb2-f25bdeb9bf95")
         ## change obj and check if batch does not reflect this change
         obj['properties']['name'] = 'Test'
         self.assertEqual(batch.get_request_body(), expected_return)

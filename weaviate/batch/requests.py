@@ -170,7 +170,7 @@ class ObjectsBatchRequest(BatchRequest):
             class_name: str,
             uuid: Optional[str]=None,
             vector: Optional[Sequence]=None,
-        ) -> None:
+        ) -> str:
         """
         Add one object to this batch. Does NOT validate the consistency of the object against
         the client's schema. Checks the arguments' type and UUIDs' format.
@@ -188,6 +188,11 @@ class ObjectsBatchRequest(BatchRequest):
             have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
             `torch.Tensor` and `tf.Tensor`,
             by default None.
+
+        Returns
+        -------
+        str
+            The UUID of the added object. If one was not provided a UUIDv3 will be generated.
 
         Raises
         ------
@@ -215,6 +220,8 @@ class ObjectsBatchRequest(BatchRequest):
             batch_item["vector"] = get_vector(vector)
 
         self._items.append(batch_item)
+
+        return batch_item["id"]
 
     def get_request_body(self) -> dict:
         """

@@ -10,6 +10,7 @@ from .classification import Classification
 from .schema import Schema
 from .contextionary import Contextionary
 from .batch import Batch
+from .backup import Backup
 from .data import DataObject
 from .gql import Query
 from .util import deprecation
@@ -25,16 +26,18 @@ class Client:
 
     Attributes
     ----------
-    classification : weaviate.classification.Classification
-        A Classification object instance connected to the same Weaviate instance as the Client.
-    schema : weaviate.schema.Schema
-        A Schema object instance connected to the same Weaviate instance as the Client.
-    contextionary : weaviate.contextionary.Contextionary
-        A Contextionary object instance connected to the same Weaviate instance as the Client.
+    backup : weaviate.backup.Backup
+        A Backup object instance connected to the same Weaviate instance as the Client.
     batch : weaviate.batch.Batch
         A Batch object instance connected to the same Weaviate instance as the Client.
+    classification : weaviate.classification.Classification
+        A Classification object instance connected to the same Weaviate instance as the Client.
+    contextionary : weaviate.contextionary.Contextionary
+        A Contextionary object instance connected to the same Weaviate instance as the Client.
     data_object : weaviate.date.DataObject
         A DataObject object instance connected to the same Weaviate instance as the Client.
+    schema : weaviate.schema.Schema
+        A Schema object instance connected to the same Weaviate instance as the Client.
     query : weaviate.gql.Query
         A Query object instance connected to the same Weaviate instance as the Client.
     """
@@ -122,6 +125,7 @@ class Client:
         self.batch = Batch(self._connection)
         self.data_object = DataObject(self._connection)
         self.query = Query(self._connection)
+        self.backup = Backup(self._connection)
 
         self._set_server_version()
 

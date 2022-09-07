@@ -1,6 +1,18 @@
 Changelog
 =========
 
+Version 3.8.0
+-------------
+This minor version includes:
+
+- Backup functionalities (:class:`~weaviate.backup.Backup`):
+    - :meth:`~weaviate.backup.Backup.create` method to create backups (all/subset of classes).
+    - :meth:`~weaviate.backup.Backup.get_create_status` method to get the status of the created backup.
+    - :meth:`~weaviate.backup.Backup.restore` method to restore Weaviate from a backup (all/subset of classes).
+    - :meth:`~weaviate.backup.Backup.get_restore_status` method to get the status of the restored backup.
+- New :class:`~weaviate.Client` attribute: ``backup`` to ``create``, ``restore`` and ``get status`` of the backups. All backup operations MUST be done through ``Client.backup``.
+- Added return value for :meth:`~weaviate.batch.Batch.add_data_object`, it now returns the UUID of the added object, if one was not set then an UUIDv4 will be generated.
+
 Version 3.7.0
 -------------
 This minor version includes:
