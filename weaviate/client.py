@@ -45,7 +45,7 @@ class Client:
     def __init__(self,
             url: str,
             auth_client_secret: Optional[AuthCredentials]=None,
-            timeout_config: Union[Tuple[Real, Real], Real]=(2, 20),
+            timeout_config: Union[Tuple[Real, Real], Real]=(120, 20),
             proxies: Union[dict, str, None]=None,
             trust_env: bool=False,
             additional_headers: Optional[dict]=None,

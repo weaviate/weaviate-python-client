@@ -1,6 +1,7 @@
 """
 Batch class definitions.
 """
+import asyncio
 import sys
 import time
 from numbers import Real
@@ -180,6 +181,10 @@ class Batch:
         self._creation_time = 10.0
         self._timeout_retries = 0
         self._batching_type = None
+
+        # create empty queue
+        self._queue = []
+        self._max_in_process = 10
 
     def configure(self,
             batch_size: Optional[int]=None,
@@ -496,7 +501,7 @@ class Batch:
             return response
         raise UnexpectedStatusCodeException(f"Create {data_type} in batch", response)
 
-    def create_objects(self) -> list:
+    def create_objects(self, queue_c) -> list:
         """
         Creates multiple Objects at once in Weaviate. This does not guarantee that each batch item
         is added/created to the Weaviate server. This can lead to a successful batch creation but
@@ -582,22 +587,22 @@ class Batch:
             If weaviate reports a none OK status.
         """
 
-        if len(self._objects_batch) != 0:
+        if len(self._queue[queue_c]['_objects_batch']) != 0:
             response = self._create_data(
                 data_type='objects',
-                batch_request=self._objects_batch,
+                batch_request=self._queue[queue_c]['_objects_batch'],
             )
             self._objects_per_second_frame.append(
-                len(self._objects_batch) / response.elapsed.total_seconds()
+                len(self._queue[queue_c]['_objects_batch']) / response.elapsed.total_seconds()
             )
 
             obj_per_second = sum(self._objects_per_second_frame)/len(self._objects_per_second_frame)
             self._recommended_num_objects = round(obj_per_second * self._creation_time)
-            self._objects_batch = ObjectsBatchRequest()
+            self._queue[queue_c]['_objects_batch'] = ObjectsBatchRequest()
             return response.json()
         return []
 
-    def create_references(self) -> list:
+    def create_references(self, queue_c) -> list:
         """
         Creates multiple References at once in Weaviate.
         Adding References in batch is faster but it ignores validations like class name
@@ -671,22 +676,35 @@ class Batch:
             If weaviate reports a none OK status.
         """
 
-        if len(self._reference_batch) != 0:
+        if len(self._queue[queue_c]['_reference_batch']) != 0:
             response = self._create_data(
                 data_type='references',
-                batch_request=self._reference_batch,
+                batch_request=self._queue[queue_c]['_reference_batch'],
             )
             self._references_per_second_frame.append(
-                len(self._reference_batch) / response.elapsed.total_seconds()
+                len(self._queue[queue_c]['_reference_batch']) / response.elapsed.total_seconds()
             )
 
             ref_per_sec = (
                 sum(self._references_per_second_frame)/len(self._references_per_second_frame)
             )
             self._recommended_num_references = round(ref_per_sec * self._creation_time)
-            self._reference_batch = ReferenceBatchRequest()
+            self._queue[queue_c]['_reference_batch'] = ReferenceBatchRequest()
             return response.json()
         return []
+
+    def _run_queue(self) -> None:
+        """
+        Runs the async queue
+        """
+        coroutine_list = []
+        c = 0
+        while c < len(self._queue):
+            coroutine_list.append(self.flush(c))
+            c+=1
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(asyncio.gather(*coroutine_list))
+        self._queue = []
 
     def _auto_create(self) -> None:
         """
@@ -699,26 +717,46 @@ class Batch:
         # greater or equal in case the self._batch_size is changed manually
         if self._batching_type == 'fixed':
             if sum(self.shape) >= self._batch_size:
-                self.flush()
+                self._queue.append({
+                    '_objects_batch': self._objects_batch,
+                    '_reference_batch': self._reference_batch
+                })
+                self._objects_batch = ObjectsBatchRequest()
+                self._reference_batch = ReferenceBatchRequest()
+                if len(self._queue) >= self._max_in_process:
+                    self._run_queue()
             return
         if self._batching_type == 'dynamic':
             if (
                 self.num_objects() >= self._recommended_num_objects
                 or self.num_references() >= self._recommended_num_references
             ):
-                self.flush()
+                self._queue.append({
+                    '_objects_batch': self._objects_batch,
+                    '_reference_batch': self._reference_batch
+                })
+                self._objects_batch = ObjectsBatchRequest()
+                self._reference_batch = ReferenceBatchRequest()
+                if len(self._queue) >= self._max_in_process:
+                    self._run_queue()
             return
         # just in case
         raise ValueError(f'Unsupported batching type "{self._batching_type}"')
 
-    def flush(self) -> None:
+    async def flush(self, queue_c) -> None:
         """
         Flush both objects and references to the Weaviate server and call the callback function
         if one is provided. (See the docs for `configure` or `__call__` for how to set one.)
         """
 
-        result_objects = self.create_objects()
-        result_references = self.create_references()
+        loop = asyncio.get_running_loop()
+        result_objects_action = loop.run_in_executor(None, self.create_objects, queue_c)
+        result_references_action = loop.run_in_executor(None, self.create_references, queue_c)
+        result_objects = await result_objects_action
+        result_references = await result_references_action
+
+        # result_objects = self.create_objects(queue_c)
+        # result_references = self.create_references(queue_c)
         if self._callback is not None:
             if result_objects:
                 self._callback(result_objects)
@@ -1080,7 +1118,11 @@ class Batch:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.flush()
+        self._queue.append({
+            '_objects_batch': self._objects_batch,
+            '_reference_batch': self._reference_batch
+        })
+        self._run_queue()
 
     @property
     def creation_time(self) -> Real:
