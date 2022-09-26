@@ -181,17 +181,18 @@ class Batch:
         self._creation_time = 10.0
         self._timeout_retries = 0
         self._batching_type = None
+        self._max_threads = 10
 
         # create empty queue
         self._queue = []
-        self._max_in_process = 10
 
     def configure(self,
             batch_size: Optional[int]=None,
             creation_time: Real=10,
             timeout_retries: int=0,
             callback: Optional[Callable[[dict], None]]=check_batch_result,
-            dynamic: bool=False
+            dynamic: bool=False,
+            max_threads: int=10
         ) -> 'Batch':
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
@@ -237,6 +238,7 @@ class Batch:
             timeout_retries=timeout_retries,
             callback=callback,
             dynamic=dynamic,
+            max_threads=max_threads
         )
 
     def __call__(self,
@@ -244,7 +246,8 @@ class Batch:
             creation_time: Real=10,
             timeout_retries: int=0,
             callback: Optional[Callable[[dict], None]]=check_batch_result,
-            dynamic: bool=False
+            dynamic: bool=False,
+            max_threads: int=10
         ) -> 'Batch':
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
@@ -294,6 +297,7 @@ class Batch:
             self._creation_time = creation_time
             self._timeout_retries = timeout_retries
             self._batching_type = None
+            self._max_threads = max_threads
             return self
 
         _check_positive_num(batch_size, 'batch_size', int)
@@ -303,6 +307,7 @@ class Batch:
         self._batch_size = batch_size
         self._creation_time = creation_time
         self._timeout_retries = timeout_retries
+        self._max_threads = max_threads
 
         if dynamic is False: # set Batch to auto-commit with fixed batch_size
             self._batching_type = 'fixed'
@@ -723,7 +728,7 @@ class Batch:
                 })
                 self._objects_batch = ObjectsBatchRequest()
                 self._reference_batch = ReferenceBatchRequest()
-                if len(self._queue) >= self._max_in_process:
+                if len(self._queue) >= self._max_threads:
                     self._run_queue()
             return
         if self._batching_type == 'dynamic':
@@ -737,7 +742,7 @@ class Batch:
                 })
                 self._objects_batch = ObjectsBatchRequest()
                 self._reference_batch = ReferenceBatchRequest()
-                if len(self._queue) >= self._max_in_process:
+                if len(self._queue) >= self._max_threads:
                     self._run_queue()
             return
         # just in case
