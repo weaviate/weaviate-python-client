@@ -214,7 +214,7 @@ class ObjectsBatchRequest(BatchRequest):
         if uuid is not None:
             batch_item["id"] = get_valid_uuid(uuid)
         else:
-            batch_item["id"] = uuid4().hex
+            batch_item["id"] = get_valid_uuid(uuid4().hex)
 
         if vector is not None:
             batch_item["vector"] = get_vector(vector)
