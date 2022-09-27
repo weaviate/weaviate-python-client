@@ -181,7 +181,7 @@ class Batch:
         self._creation_time = 10.0
         self._timeout_retries = 0
         self._batching_type = None
-        self._max_threads = 10
+        self._max_threads = 12
 
         # create empty queue
         self._queue = []
@@ -247,7 +247,7 @@ class Batch:
             timeout_retries: int=0,
             callback: Optional[Callable[[dict], None]]=check_batch_result,
             dynamic: bool=False,
-            max_threads: int=10
+            max_threads: int=12
         ) -> 'Batch':
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
@@ -297,7 +297,6 @@ class Batch:
             self._creation_time = creation_time
             self._timeout_retries = timeout_retries
             self._batching_type = None
-            self._max_threads = max_threads
             return self
 
         _check_positive_num(batch_size, 'batch_size', int)
@@ -700,8 +699,9 @@ class Batch:
 
     def _run_queue(self) -> None:
         """
-        Runs the async queue
+        Runs the async queue.
         """
+
         coroutine_list = []
         c = 0
         while c < len(self._queue):
@@ -752,21 +752,26 @@ class Batch:
         """
         Flush both objects and references to the Weaviate server and call the callback function
         if one is provided. (See the docs for `configure` or `__call__` for how to set one.)
+        The function is async and will directly retry if it fails
         """
 
-        loop = asyncio.get_running_loop()
-        result_objects_action = loop.run_in_executor(None, self.create_objects, queue_c)
-        result_references_action = loop.run_in_executor(None, self.create_references, queue_c)
-        result_objects = await result_objects_action
-        result_references = await result_references_action
-
-        # result_objects = self.create_objects(queue_c)
-        # result_references = self.create_references(queue_c)
-        if self._callback is not None:
-            if result_objects:
-                self._callback(result_objects)
-            if result_references:
-                self._callback(result_references)
+        try:
+            loop = asyncio.get_running_loop()
+            result_objects_action = loop.run_in_executor(None, self.create_objects, queue_c)
+            result_references_action = loop.run_in_executor(None, self.create_references, queue_c)
+            result_objects = await result_objects_action
+            result_references = await result_references_action
+            if self._callback is not None:
+                if result_objects:
+                    self._callback(result_objects)
+                if result_references:
+                    self._callback(result_references)
+        except:
+            print(f'[ERROR] Connection closed by peer! Retrying now and decreasing threads.')
+            # 4 threads is arbitrary, this might be made more dynamic in the future
+            if self._max_threads > 4:
+                self._max_threads -= 1
+            self.flush(self, queue_c)
 
     def delete_objects(self,
             class_name: str,
