@@ -771,7 +771,7 @@ class Batch:
             # 4 threads is arbitrary, this might be made more dynamic in the future
             if self._max_threads > 4:
                 self._max_threads -= 1
-            self.flush(self, queue_c)
+            self.flush(queue_c)
 
     def delete_objects(self,
             class_name: str,
