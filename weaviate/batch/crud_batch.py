@@ -179,17 +179,27 @@ class Batch:
         self._callback = check_batch_result
         self._batch_size = None
         self._creation_time = 10.0
-        self._timeout_retries = 0
+        self._timeout_retries = 12
         self._batching_type = None
         self._max_threads = 12
 
         # create empty queue
         self._queue = []
 
+        # set loop
+        if sys.version_info < (3, 10):
+            self._loop = asyncio.get_event_loop()
+        else:
+            try:
+                self._loop = asyncio.get_running_loop()
+            except RuntimeError:
+                self._loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self._loop)
+
     def configure(self,
             batch_size: Optional[int]=None,
             creation_time: Real=10,
-            timeout_retries: int=0,
+            timeout_retries: int=12,
             callback: Optional[Callable[[dict], None]]=check_batch_result,
             dynamic: bool=False,
             max_threads: int=10
@@ -697,18 +707,25 @@ class Batch:
             return response.json()
         return []
 
-    def _run_queue(self) -> None:
+    async def _run_queue(self) -> None:
         """
         Runs the async queue.
         """
 
-        coroutine_list = []
+        coroutine_list = {}
+        
+        # create the async tasks
         c = 0
         while c < len(self._queue):
-            coroutine_list.append(self.flush(c))
+            coroutine_list[c] = asyncio.create_task(self.flush(c))
             c+=1
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(asyncio.gather(*coroutine_list))
+
+        # await the async tasks
+        c = 0
+        while c < len(self._queue):
+            await coroutine_list[c]
+            c+=1
+
         self._queue = []
 
     def _auto_create(self) -> None:
@@ -729,7 +746,7 @@ class Batch:
                 self._objects_batch = ObjectsBatchRequest()
                 self._reference_batch = ReferenceBatchRequest()
                 if len(self._queue) >= self._max_threads:
-                    self._run_queue()
+                    asyncio.run(self._run_queue())
             return
         if self._batching_type == 'dynamic':
             if (
@@ -743,7 +760,7 @@ class Batch:
                 self._objects_batch = ObjectsBatchRequest()
                 self._reference_batch = ReferenceBatchRequest()
                 if len(self._queue) >= self._max_threads:
-                    self._run_queue()
+                    asyncio.run(self._run_queue())
             return
         # just in case
         raise ValueError(f'Unsupported batching type "{self._batching_type}"')
@@ -1132,7 +1149,8 @@ class Batch:
             '_objects_batch': self._objects_batch,
             '_reference_batch': self._reference_batch
         })
-        self._run_queue()
+        asyncio.run(self._run_queue())
+        self._loop.close()
 
     @property
     def creation_time(self) -> Real:
