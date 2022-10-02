@@ -45,7 +45,7 @@ class Client:
     def __init__(self,
             url: str,
             auth_client_secret: Optional[AuthCredentials]=None,
-            timeout_config: Union[Tuple[Real, Real], Real]=(120, 20),
+            timeout_config: Union[Tuple[Real, Real], Real]=(300, 240),
             proxies: Union[dict, str, None]=None,
             trust_env: bool=False,
             additional_headers: Optional[dict]=None,
@@ -63,7 +63,7 @@ class Client:
             Set the timeout configuration for all requests to the Weaviate server. It can be a
             real number or, a tuple of two real numbers: (connect timeout, read timeout).
             If only one real number is passed then both connect and read timeout will be set to
-            that value, by default (2, 20).
+            that value, by default (300, 240).
         proxies : dict, str or None, optional
             Proxies to be used for requests. Are used by both 'requests' and 'aiohttp'. Can be
             passed as a dict ('requests' format:

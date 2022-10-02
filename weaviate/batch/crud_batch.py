@@ -181,7 +181,7 @@ class Batch:
         self._creation_time = 10.0
         self._timeout_retries = 12
         self._batching_type = None
-        self._max_threads = 12
+        self._max_threads = 16
 
         # create empty queue
         self._queue = []
@@ -202,7 +202,7 @@ class Batch:
             timeout_retries: int=12,
             callback: Optional[Callable[[dict], None]]=check_batch_result,
             dynamic: bool=False,
-            max_threads: int=10
+            max_threads: int=16
         ) -> 'Batch':
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
@@ -228,6 +228,8 @@ class Batch:
             By default `weaviate.util.check_batch_result`.
         dynamic : bool, optional
             Whether to use dynamic batching or not, by default False
+        max_threads : int, optional
+            Max number of threads, by default 16
 
         Returns
         -------
@@ -257,7 +259,7 @@ class Batch:
             timeout_retries: int=0,
             callback: Optional[Callable[[dict], None]]=check_batch_result,
             dynamic: bool=False,
-            max_threads: int=12
+            max_threads: int=16
         ) -> 'Batch':
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
@@ -784,10 +786,7 @@ class Batch:
                 if result_references:
                     self._callback(result_references)
         except:
-            print(f'[ERROR] Connection closed by peer! Retrying now and decreasing threads.')
-            # 4 threads is arbitrary, this might be made more dynamic in the future
-            if self._max_threads > 4:
-                self._max_threads -= 1
+            print(f'[WARNING] Connection closed by peer! Retry to decreasing threads if this keeps happening.')
             await self.flush(queue_c)
 
     def delete_objects(self,
