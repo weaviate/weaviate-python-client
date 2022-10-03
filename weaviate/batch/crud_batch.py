@@ -2,6 +2,7 @@
 Batch class definitions.
 """
 import asyncio
+import os
 import sys
 import time
 from numbers import Real
@@ -181,7 +182,7 @@ class Batch:
         self._creation_time = 10.0
         self._timeout_retries = 12
         self._batching_type = None
-        self._max_threads = 16
+        self._max_threads = os.cpu_count()
 
         # create empty queue
         self._queue = []
@@ -203,7 +204,7 @@ class Batch:
             timeout_retries: int=12,
             callback: Optional[Callable[[dict], None]]=check_batch_result,
             dynamic: bool=False,
-            max_threads: int=16
+            max_threads: int=os.cpu_count()
         ) -> 'Batch':
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
@@ -260,7 +261,7 @@ class Batch:
             timeout_retries: int=0,
             callback: Optional[Callable[[dict], None]]=check_batch_result,
             dynamic: bool=False,
-            max_threads: int=16
+            max_threads: int=os.cpu_count()
         ) -> 'Batch':
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
