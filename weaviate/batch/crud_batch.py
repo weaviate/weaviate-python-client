@@ -185,6 +185,7 @@ class Batch:
 
         # create empty queue
         self._queue = []
+        self._non_thread_message = False # Send when manual batching is enabled
 
         # set loop
         if sys.version_info < (3, 10):
@@ -517,7 +518,7 @@ class Batch:
             return response
         raise UnexpectedStatusCodeException(f"Create {data_type} in batch", response)
 
-    def create_objects(self, queue_c) -> list:
+    def create_objects(self, queue_c = None) -> list:
         """
         Creates multiple Objects at once in Weaviate. This does not guarantee that each batch item
         is added/created to the Weaviate server. This can lead to a successful batch creation but
@@ -603,6 +604,27 @@ class Batch:
             If weaviate reports a none OK status.
         """
 
+        # If queue_c == None, run the import without threads
+        if queue_c == None:
+
+            if self._non_thread_message == False:
+                print(f'[INFO] You are manually batching this means you are not using the client\'s built-in multi-threading. Setting `batch_size` in `client.batch.configure()` to an int value will enabled this. Also see: https://weaviate.io/developers/weaviate/current/restful-api-references/batch.html#example-request-1')
+                self._non_thread_message = True
+
+            response = self._create_data(
+                data_type='objects',
+                batch_request=self._objects_batch,
+            )
+            self._objects_per_second_frame.append(
+                len(self._objects_batch) / response.elapsed.total_seconds()
+            )
+
+            obj_per_second = sum(self._objects_per_second_frame)/len(self._objects_per_second_frame)
+            self._recommended_num_objects = round(obj_per_second * self._creation_time)
+            self._objects_batch = ObjectsBatchRequest()
+            return response.json()
+
+        # If queue_c == int, run the import with threads
         if len(self._queue[queue_c]['_objects_batch']) != 0:
             response = self._create_data(
                 data_type='objects',
