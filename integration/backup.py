@@ -3,6 +3,8 @@ import time
 import weaviate
 
 from integration.integration_util import testmethod, TestFailedException
+from weaviate.exceptions import UnexpectedStatusCodeException
+
 
 schema = {
     "classes": [
@@ -115,12 +117,26 @@ def make_backup_id():
 
 class TestBackups:
     def __init__(self, client: weaviate.Client):
+        client.schema.delete_all()
         self.client = client
         self.backup_dir = "/tmp/backups"
 
     def test(self):
         try:
             self._create_and_restore_backup_with_waiting()
+            self._create_and_restore_backup_without_waiting()
+            self._create_and_restore_1_of_2_classes()
+            self._fail_creating_backup_on_non_existing_backend()
+            self._fail_checking_create_status_on_non_existing_backend()
+            self._fail_restoring_backup_on_non_existing_backend()
+            self._fail_creating_backup_for_non_existing_class()
+            self._fail_restoring_backup_for_existing_class()
+            self._fail_creating_existing_backup()
+            self._fail_checking_create_status_for_non_existing_backup()
+            self._fail_restoring_non_existing_backup()
+            self._fail_checking_restore_status_for_non_existing_restore()
+            self._fail_creating_backup_for_both_include_and_exclude_classes()
+            self._fail_restoring_backup_for_both_include_and_exclude_classes()
             self._log("done!")
         except:
             self._cleanup()
@@ -129,6 +145,118 @@ class TestBackups:
     @testmethod
     def _create_and_restore_backup_with_waiting(self):
         self._log("create and restore backup with waiting")
+        # check data exists
+        self._assert_objects_exist("Article", len(articles))
+        self._assert_objects_exist("Paragraph", len(paragraphs))
+        # create backup
+        backup_id = make_backup_id()
+        backend = "filesystem"
+        classes = ["Article", "Paragraph"]
+        resp = self.client.backup.create(
+            backup_id=backup_id,
+            backend=backend,
+            wait_for_completion=True
+        )
+        assert resp["id"] == backup_id
+        assert sorted(resp["classes"]) == sorted(classes)
+        assert resp["backend"] == backend
+        assert resp["path"] == f"{self.backup_dir}/{backup_id}"
+        assert resp["status"] == "SUCCESS"
+        # check data still exists
+        self._assert_objects_exist("Article", len(articles))
+        self._assert_objects_exist("Paragraph", len(paragraphs))
+        # check create status
+        resp = self.client.backup.get_create_status(backup_id, backend)
+        assert resp["id"] == backup_id
+        assert resp["backend"] == backend
+        assert resp["path"] == f"{self.backup_dir}/{backup_id}"
+        assert resp["status"] == "SUCCESS"
+        # remove existing class
+        self.client.schema.delete_class("Article")
+        self.client.schema.delete_class("Paragraph")
+        # restore backup
+        resp = self.client.backup.restore(
+            backup_id=backup_id,
+            backend=backend,
+            wait_for_completion=True
+        )
+        assert resp["id"] == backup_id
+        assert sorted(resp["classes"]) == sorted(classes)
+        assert resp["backend"] == backend
+        assert resp["path"] == f"{self.backup_dir}/{backup_id}"
+        assert resp["status"] == "SUCCESS"
+        # check data exists again
+        self._assert_objects_exist("Article", len(articles))
+        self._assert_objects_exist("Paragraph", len(paragraphs))
+        # check restore status
+        resp = self.client.backup.get_restore_status(backup_id, backend)
+        assert resp["id"] == backup_id
+        assert resp["backend"] == backend
+        assert resp["path"] == f"{self.backup_dir}/{backup_id}"
+        assert resp["status"] == "SUCCESS"
+
+    @testmethod
+    def _create_and_restore_backup_without_waiting(self):
+        self._log("create and restore backup without waiting")
+        # check data exists
+        self._assert_objects_exist("Article", len(articles))
+        # create backup
+        backup_id = make_backup_id()
+        backend = "filesystem"
+        include = ["Article"]
+        resp = self.client.backup.create(
+            backup_id=backup_id,
+            include_classes=include,
+            backend=backend
+        )
+        assert resp["id"] == backup_id
+        assert len(resp["classes"]) == 1
+        assert resp["classes"] == include
+        assert resp["backend"] == backend
+        assert resp["path"] == f"{self.backup_dir}/{backup_id}"
+        assert resp["status"] == "STARTED"
+        # wait until created
+        while True:
+            resp = self.client.backup.get_create_status(backup_id, backend)
+            assert resp["id"] == backup_id
+            assert resp["backend"] == backend
+            assert resp["path"] == f"{self.backup_dir}/{backup_id}"
+            assert resp["status"] == "STARTED" or "TRANSFERRING" or "TRANSFERRED" or "SUCCESS"
+            if resp["status"] == "SUCCESS":
+                break
+            time.sleep(0.1)
+        # check data still exists
+        self._assert_objects_exist("Article", len(articles))
+        # remove existing class
+        self.client.schema.delete_class("Article")
+        # restore backup
+        resp = self.client.backup.restore(
+            backup_id=backup_id,
+            include_classes=include,
+            backend=backend,
+        )
+        assert resp["id"] == backup_id
+        assert len(resp["classes"]) == 1
+        assert resp["classes"] == include
+        assert resp["backend"] == backend
+        assert resp["path"] == f"{self.backup_dir}/{backup_id}"
+        assert resp["status"] == "STARTED"
+        # wait until restored
+        while True:
+            resp = self.client.backup.get_restore_status(backup_id, backend)
+            assert resp["id"] == backup_id
+            assert resp["backend"] == backend
+            assert resp["path"] == f"{self.backup_dir}/{backup_id}"
+            assert resp["status"] == "STARTED" or "TRANSFERRING" or "TRANSFERRED" or "SUCCESS"
+            if resp["status"] == "SUCCESS":
+                break
+            time.sleep(0.1)
+        # check data exists again
+        self._assert_objects_exist("Article", len(articles))
+
+    @testmethod
+    def _create_and_restore_1_of_2_classes(self):
+        self._log("create and restore 1 of 2 classes")
         # check data exists
         self._assert_objects_exist("Article", len(articles))
         # create backup
@@ -178,6 +306,214 @@ class TestBackups:
         assert resp["backend"] == backend
         assert resp["path"] == f"{self.backup_dir}/{backup_id}"
         assert resp["status"] == "SUCCESS"
+    
+    @testmethod
+    def _fail_creating_backup_on_non_existing_backend(self):
+        self._log("fail creating backup on non-existing backend")
+        backup_id = make_backup_id()
+        backend = "non-existing-backend"
+        try:
+            self.client.backup.create(
+                backup_id=backup_id,
+                backend=backend,
+            )
+            raise TestFailedException("should have failed")
+        except ValueError as e:
+            assert backend in str(e)
+
+    @testmethod
+    def _fail_checking_create_status_on_non_existing_backend(self):
+        self._log("fail checking create status on non-existing backend")
+        backup_id = make_backup_id()
+        backend = "non-existing-backend"
+        try:
+            self.client.backup.get_create_status(
+                backup_id=backup_id,
+                backend=backend,
+            )
+            raise TestFailedException("should have failed")
+        except ValueError as e:
+            assert backend in str(e)
+
+    @testmethod
+    def _fail_restoring_backup_on_non_existing_backend(self):
+        self._log("fail restoring backup on non-existing backend")
+        backup_id = make_backup_id()
+        backend = "non-existing-backend"
+        try:
+            self.client.backup.restore(
+                backup_id=backup_id,
+                backend=backend,
+            )
+            raise TestFailedException("should have failed")
+        except ValueError as e:
+            assert backend in str(e)
+
+    @testmethod
+    def _fail_creating_backup_for_non_existing_class(self):
+        self._log("fail creating backup for non-existing class")
+        backup_id = make_backup_id()
+        backend = "filesystem"
+        class_name = "NonExistingClass"
+        try:
+            self.client.backup.create(
+                backup_id=backup_id,
+                backend=backend,
+                include_classes=class_name
+            )
+            raise TestFailedException("should have failed")
+        except UnexpectedStatusCodeException as e:
+            assert class_name in str(e)
+            assert "422" in str(e)
+
+    @testmethod
+    def _fail_restoring_backup_for_existing_class(self):
+        self._log("fail restoring backup for existing class")
+        # create backup
+        backup_id = make_backup_id()
+        backend = "filesystem"
+        class_name = "Article"
+        resp = self.client.backup.create(
+            backup_id=backup_id,
+            include_classes=class_name,
+            backend=backend,
+            wait_for_completion=True
+        )
+        assert resp["id"] == backup_id
+        assert len(resp["classes"]) == 1
+        assert resp["classes"] == [class_name]
+        assert resp["backend"] == backend
+        assert resp["path"] == f"{self.backup_dir}/{backup_id}"
+        assert resp["status"] == "SUCCESS"
+        # fail restore
+        try:
+            self.client.backup.restore(
+                backup_id=backup_id,
+                include_classes=class_name,
+                backend=backend,
+                wait_for_completion=True
+            )
+            raise TestFailedException("should have failed")
+        except UnexpectedStatusCodeException as e:
+            assert class_name in str(e)
+            assert "already exists" in str(e)
+    
+    @testmethod
+    def _fail_creating_existing_backup(self):
+        self._log("fail creating existing backup")
+        # create backup
+        backup_id = make_backup_id()
+        backend = "filesystem"
+        class_name = "Article"
+        resp = self.client.backup.create(
+            backup_id=backup_id,
+            include_classes=class_name,
+            backend=backend,
+            wait_for_completion=True
+        )
+        # fail create
+        try:
+            self.client.backup.create(
+                backup_id=backup_id,
+                include_classes=class_name,
+                backend=backend,
+                wait_for_completion=True
+            )
+        except UnexpectedStatusCodeException as e:
+            assert backup_id in str(e)
+            assert "422" in str(e)
+
+    @testmethod
+    def _fail_checking_create_status_for_non_existing_backup(self):
+        self._log("fail checking create status for non-existing backup")
+        backup_id = make_backup_id()
+        backend = "filesystem"
+        try:
+            self.client.backup.get_create_status(
+                backup_id=backup_id,
+                backend=backend,
+            )
+            raise TestFailedException("should have failed")
+        except UnexpectedStatusCodeException as e:
+            assert backup_id in str(e)
+            assert "404" in str(e)
+
+    @testmethod
+    def _fail_restoring_non_existing_backup(self):
+        self._log("fail restoring non-existing backup")
+        # fail restore
+        backup_id = make_backup_id()
+        backend = "filesystem"
+        try:
+            self.client.backup.restore(
+                backup_id=backup_id,
+                backend=backend,
+                wait_for_completion=True
+            )
+        except UnexpectedStatusCodeException as e:
+            assert backup_id in str(e)
+            assert "404" in str(e)
+
+    @testmethod
+    def _fail_checking_restore_status_for_non_existing_restore(self):
+        self._log("fail checking restore status for non-existing restore")
+        # create backup
+        backup_id = make_backup_id()
+        backend = "filesystem"
+        class_name = "Article"
+        resp = self.client.backup.create(
+            backup_id=backup_id,
+            include_classes=class_name,
+            backend=backend,
+            wait_for_completion=True
+        )
+        # fail restore status
+        try:
+            self.client.backup.get_restore_status(
+                backup_id=backup_id,
+                backend=backend,
+            )
+        except UnexpectedStatusCodeException as e:
+            assert backup_id in str(e)
+            assert "404" in str(e)
+
+    @testmethod
+    def _fail_creating_backup_for_both_include_and_exclude_classes(self):
+        self._log("fail creating backup for both include and exclude classes")
+        try:
+            backup_id = make_backup_id()
+            backend = "filesystem"
+            include = "Article"
+            exclude = "Paragraph"
+            resp = self.client.backup.create(
+                backup_id=backup_id,
+                include_classes=include,
+                exclude_classes=exclude,
+                backend=backend,
+                wait_for_completion=True
+            )
+            return TestFailedException("should have failed")
+        except TypeError as e:
+            assert "Either 'include_classes' OR 'exclude_classes' can be set, not both" in str(e)
+
+    @testmethod
+    def _fail_restoring_backup_for_both_include_and_exclude_classes(self):
+        self._log("fail restoring backup for both include and exclude classes")
+        try:
+            backup_id = make_backup_id()
+            backend = "filesystem"
+            include = "Article"
+            exclude = "Paragraph"
+            resp = self.client.backup.restore(
+                backup_id=backup_id,
+                include_classes=include,
+                exclude_classes=exclude,
+                backend=backend,
+                wait_for_completion=True
+            )
+            return TestFailedException("should have failed")
+        except TypeError as e:
+            assert "Either 'include_classes' OR 'exclude_classes' can be set, not both" in str(e)
 
     def _setup(self):
         self.client.schema.create(schema)

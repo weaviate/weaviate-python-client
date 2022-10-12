@@ -87,8 +87,8 @@ if __name__ == "__main__":
     gql_integration.get_data()
     gql_integration.aggregate_data()
 
-    backup_integration_test = TestBackups(client)
-    backup_integration_test.test()
+    backup_integration = TestBackups(client)
+    backup_integration.test()
 
     contextual(client)
 
