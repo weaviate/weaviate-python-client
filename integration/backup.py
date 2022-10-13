@@ -3,7 +3,7 @@ import time
 import weaviate
 
 from integration.integration_util import testmethod, TestFailedException
-from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.exceptions import UnexpectedStatusCodeException, BackupFailedException
 
 
 schema = {
@@ -394,7 +394,7 @@ class TestBackups:
                 wait_for_completion=True
             )
             raise TestFailedException("should have failed")
-        except UnexpectedStatusCodeException as e:
+        except BackupFailedException as e:
             assert class_name in str(e)
             assert "already exists" in str(e)
     

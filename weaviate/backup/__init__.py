@@ -1,5 +1,5 @@
 """
-Module for classifying objects within Weaviate.
+Module for backup/restore operations
 """
 
 __all__ = ['Backup']
