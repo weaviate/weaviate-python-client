@@ -1,4 +1,10 @@
-on: [push, pull_request_target]
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '**'
+  pull_request_target:
 
 jobs:
   Unit-Tests:
