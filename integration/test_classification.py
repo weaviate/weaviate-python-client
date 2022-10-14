@@ -1,6 +1,8 @@
 import time
+
+import pytest
+
 import weaviate
-from integration.integration_util import TestFailedException
 
 schema = {
     "classes": [
@@ -59,10 +61,16 @@ query = """
 """
 
 
-def contextual(client: weaviate.Client):
-    print("Test classification")
+@pytest.fixture(scope="module")
+def client():
+    client = weaviate.Client("http://localhost:8080")
     client.schema.create(schema)
+    yield client
+    for _, cls in enumerate(schema["classes"]):
+        client.schema.delete_class(cls["class"])
 
+
+def test_contextual(client):
     # Create labels
     client.data_object.create(
         {
@@ -110,10 +118,5 @@ def contextual(client: weaviate.Client):
     result = client.query.raw(query)
     labeled_messages = result["data"]["Get"]["Message"]
     for message in labeled_messages:
-        if message["labeled"] is None:
-            raise TestFailedException("Message is not labeled after classification!")
+        assert message["labeled"] is not None
 
-
-if __name__ == "__main__":
-    client = weaviate.Client("http://localhost:8080")
-    contextual(client)

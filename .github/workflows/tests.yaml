@@ -14,7 +14,7 @@ jobs:
         cache: 'pip' # caching pip dependencies
     - run: pip install -r requirements.txt
     - name: Run unittests
-      run: python -m unittest -v
+      run: pytest test
   Integration-Tests:
     runs-on: ubuntu-latest
     strategy:
@@ -32,4 +32,4 @@ jobs:
       - name: Run unittests
         run: |
           /bin/bash ci/start_weaviate.sh
-          python -m integration.client_functions
+          pytest integration
