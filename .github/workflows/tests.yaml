@@ -1,0 +1,35 @@
+on: [push, pull_request_target]
+
+jobs:
+  Unit-Tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.version }}
+        cache: 'pip' # caching pip dependencies
+    - run: pip install -r requirements.txt
+    - name: Run unittests
+      run: python -m unittest -v
+  Integration-Tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: [ "3.6", "3.7", "3.8", "3.9", "3.10" ]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.version }}
+          cache: 'pip' # caching pip dependencies
+      - run: |
+          pip install -r requirements.txt
+          pip install .
+      - name: Run unittests
+        run: |
+          /bin/bash ci/start_weaviate.sh
+          python -m integration.client_functions
