@@ -28,7 +28,7 @@ class Misc:
             if resp.status_code != 200:
                 raise UnexpectedStatusCodeException("Nodes status", resp) 
             nodes: list = resp.json().get('nodes')
-            if nodes == None or nodes == []:
+            if nodes is None or nodes == []:
                 raise EmptyResponseException("Nodes status response returned empty")
             return nodes
         except RequestsConnectionError as e:
