@@ -45,7 +45,7 @@ setup(
     "weaviate.gql",
     "weaviate.wcs",
   ],
-  python_requires='>=3.6',
+  python_requires='>=3.7',
   install_requires=[
     "requests>=2.23.0,<2.28.0",
     "validators>=0.18.2,<0.19.0",

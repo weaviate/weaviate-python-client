@@ -1,11 +1,17 @@
-on: [push, pull_request_target]
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '**'
+  pull_request:
 
 jobs:
   Unit-Tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
+        version: ["3.7", "3.8", "3.9", "3.10"]
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
@@ -14,12 +20,19 @@ jobs:
         cache: 'pip' # caching pip dependencies
     - run: pip install -r requirements.txt
     - name: Run unittests
-      run: python -m unittest -v
+      run: pytest --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage.xml test
+    - name: Upload to codecov
+      if: matrix.version == '3.10' && (github.ref_name != 'master')
+      uses: codecov/codecov-action@v3
+      with:
+        fail_ci_if_error: true
+        files: ./coverage.xml
+        flags: unittests
   Integration-Tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: [ "3.6", "3.7", "3.8", "3.9", "3.10" ]
+        version: [  "3.7", "3.8", "3.9", "3.10" ]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -29,7 +42,14 @@ jobs:
       - run: |
           pip install -r requirements.txt
           pip install .
-      - name: Run unittests
+      - name: Run integration tests
         run: |
           /bin/bash ci/start_weaviate.sh
-          python -m integration.client_functions
+          pytest --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage.xml integration
+      - name: Upload to codecov
+        if: matrix.version == '3.10' && (github.ref_name != 'master')
+        uses: codecov/codecov-action@v3
+        with:
+          fail_ci_if_error: true
+          files: ./coverage.xml
+          flags: unittests
