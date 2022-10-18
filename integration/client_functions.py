@@ -2,8 +2,11 @@ import os
 import time
 import sys
 import weaviate
+
+from integration.backup import TestBackups
 from integration.crud import IntegrationTestCrud
 from integration.graphql import TestGraphQL
+from integration.misc import TestMisc
 from integration.classification import contextual
 from integration.integration_util import TestFailedException
 
@@ -84,6 +87,12 @@ if __name__ == "__main__":
     gql_integration = TestGraphQL(client)
     gql_integration.get_data()
     gql_integration.aggregate_data()
+
+    backup_integration = TestBackups(client)
+    backup_integration.test()
+
+    misc_integration = TestMisc(client)
+    misc_integration.test()
 
     contextual(client)
 

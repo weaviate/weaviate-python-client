@@ -82,3 +82,8 @@ class BackupFailedException(WeaviateBaseError):
     """
     Backup Failed Exception.
     """
+
+class EmptyResponseException(WeaviateBaseError):
+    """
+    Occurs when an HTTP request unexpectedly returns an empty response
+    """

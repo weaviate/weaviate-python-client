@@ -1,7 +1,8 @@
 import time
+import weaviate
+
 from datetime import datetime
 from datetime import timezone
-import weaviate
 from integration.integration_util import TestFailedException
 
 def get_query_for_group(name):
