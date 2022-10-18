@@ -159,9 +159,10 @@ class Connection:
                 raise AuthenticationFailedException("Cannot authenticate http status not ok.")
 
             # Set the client ID
-            client_id = request.json()['clientId']
+            response_json = request.json()
+            client_id = response_json['clientId']
 
-            self._set_bearer(client_id=client_id, href=request.json()['href'])
+            self._set_bearer(client_id=client_id, href=response_json['href'])
 
     def _set_bearer(self, client_id: str, href: str) -> None:
         """
@@ -201,7 +202,8 @@ class Connection:
         request_body = self._auth_client_secret.get_credentials()
 
         # Validate third part auth info
-        if request_body['grant_type'] not in request_third_part.json()['grant_types_supported']:
+        json_third_party_response = request_third_part.json()
+        if request_body['grant_type'] not in json_third_party_response['grant_types_supported']:
             raise AuthenticationFailedException(
                 "The grant_types supported by the third-party authentication service are "
                 f"insufficient. Please add the '{request_body['grant_type']}' grant type."
@@ -212,7 +214,7 @@ class Connection:
         # try the request
         try:
             request = requests.post(
-                request_third_part.json()['token_endpoint'],
+                json_third_party_response['token_endpoint'],
                 request_body,
                 timeout=(30, 45),
                 proxies=self._proxies,
@@ -230,9 +232,10 @@ class Connection:
             raise AuthenticationFailedException(
                 "Authentication access denied. Are the credentials correct?"
             )
-        self._auth_bearer = request.json()['access_token']
+        json_request = request.json()
+        self._auth_bearer = json_request['access_token']
         # -2 for some lag time
-        self._auth_expires = int(_get_epoch_time() + request.json()['expires_in'] - 2)
+        self._auth_expires = int(_get_epoch_time() + json_request['expires_in'] - 2)
 
     def _get_request_header(self) -> dict:
         """

@@ -52,7 +52,7 @@ setup(
   install_requires=[
     "requests>=2.23.0,<2.28.0",
     "validators>=0.18.2,<0.19.0",
-    "tqdm>=4.59.0,<5.0.0"
+    "tqdm>=4.59.0,<5.0.0",
   ],
   license_files = ('LICENSE.md',),
   cmdclass = {'egg_info': egg_info_ex},

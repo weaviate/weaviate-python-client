@@ -1,10 +1,13 @@
 """
 Batch class definitions.
 """
+import os
 import sys
 import time
+import warnings
 from numbers import Real
 from collections import deque
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Tuple, Callable, Optional, Sequence
 from requests import ReadTimeout, Response
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
@@ -15,6 +18,9 @@ from weaviate.util import (
     check_batch_result,
 )
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest
+
+
+OS_CPU_COUNT = os.cpu_count()
 
 
 class Batch:
@@ -171,6 +177,7 @@ class Batch:
         self._references_per_second_frame = deque(
             maxlen=5
         )
+        self._future_pool = []
 
         ## user configurable, need to be public should implement a setter/getter
         self._recommended_num_objects = None
@@ -180,13 +187,18 @@ class Batch:
         self._creation_time = 10.0
         self._timeout_retries = 0
         self._batching_type = None
+        self._num_workers = OS_CPU_COUNT
+
+        # thread pool executor
+        self._executor = ThreadPoolExecutor(max_workers=self._num_workers)
 
     def configure(self,
             batch_size: Optional[int]=None,
             creation_time: Real=10,
             timeout_retries: int=0,
             callback: Optional[Callable[[dict], None]]=check_batch_result,
-            dynamic: bool=False
+            dynamic: bool=False,
+            num_workers: int=OS_CPU_COUNT,
         ) -> 'Batch':
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
@@ -212,6 +224,10 @@ class Batch:
             By default `weaviate.util.check_batch_result`.
         dynamic : bool, optional
             Whether to use dynamic batching or not, by default False
+        num_workers : int, optional
+            The maximal number of concurrent threads to run batch import. Only used for non-MANUAL
+            batching. i.e. is used only with AUTO or DYNAMIC batching.
+            By default, os.cpu_count()
 
         Returns
         -------
@@ -232,6 +248,7 @@ class Batch:
             timeout_retries=timeout_retries,
             callback=callback,
             dynamic=dynamic,
+            num_workers=num_workers,
         )
 
     def __call__(self,
@@ -239,7 +256,8 @@ class Batch:
             creation_time: Real=10,
             timeout_retries: int=0,
             callback: Optional[Callable[[dict], None]]=check_batch_result,
-            dynamic: bool=False
+            dynamic: bool=False,
+            num_workers: int=OS_CPU_COUNT,
         ) -> 'Batch':
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
@@ -265,6 +283,10 @@ class Batch:
             By default `weaviate.util.check_batch_result`
         dynamic : bool, optional
             Whether to use dynamic batching or not, by default False
+        num_workers : int, optional
+            The maximal number of concurrent threads to run batch import. Only used for non-MANUAL
+            batching. i.e. is used only with AUTO or DYNAMIC batching.
+            By default, os.cpu_count()
 
         Returns
         -------
@@ -292,12 +314,18 @@ class Batch:
             return self
 
         _check_positive_num(batch_size, 'batch_size', int)
+        _check_positive_num(num_workers, 'num_workers', int)
         _check_bool(dynamic, 'dynamic')
 
         self._callback = callback
         self._batch_size = batch_size
         self._creation_time = creation_time
         self._timeout_retries = timeout_retries
+
+        if self._num_workers != num_workers:
+            self._wait_on_all_threads()
+            self._num_workers = num_workers
+            self._executor = ThreadPoolExecutor(max_workers=num_workers)
 
         if dynamic is False: # set Batch to auto-commit with fixed batch_size
             self._batching_type = 'fixed'
@@ -346,15 +374,15 @@ class Batch:
             If 'uuid' is not of a proper form.
         """
 
+        if self._batching_type:
+            self._auto_create()
+
         uuid = self._objects_batch.add(
             class_name=_capitalize_first_letter(class_name),
             data_object=data_object,
             uuid=uuid,
             vector=vector,
         )
-
-        if self._batching_type:
-            self._auto_create()
 
         return uuid
 
@@ -582,7 +610,23 @@ class Batch:
             If weaviate reports a none OK status.
         """
 
+        message = (
+            "You are manually batching this means you are NOT using the client's "
+            "built-in multi-threading. Setting `batch_size` in `client.batch.configure()` "
+            "to an int value will enabled this. Also see: https://weaviate.io/developers/"
+            "weaviate/current/restful-api-references/batch.html#example-request-1"
+        )
+        warnings.warn(message, RuntimeWarning, stacklevel=1)
+
         if len(self._objects_batch) != 0:
+            message = (
+                "You are manually batching this means you are NOT using the client's "
+                "built-in multi-threading. Setting `batch_size` in `client.batch.configure()` "
+                "to an int value will enabled this. Also see: https://weaviate.io/developers/"
+                "weaviate/current/restful-api-references/batch.html#example-request-1"
+            )
+            warnings.warn(message, RuntimeWarning, stacklevel=1)
+
             response = self._create_data(
                 data_type='objects',
                 batch_request=self._objects_batch,
@@ -672,6 +716,14 @@ class Batch:
         """
 
         if len(self._reference_batch) != 0:
+            message = (
+                "You are manually batching this means you are NOT using the client's "
+                "built-in multi-threading. Setting `batch_size` in `client.batch.configure()` "
+                "to an int value will enabled this. Also see: https://weaviate.io/developers/"
+                "weaviate/current/restful-api-references/batch.html#example-request-1"
+            )
+            warnings.warn(message, RuntimeWarning, stacklevel=1)
+
             response = self._create_data(
                 data_type='references',
                 batch_request=self._reference_batch,
@@ -688,10 +740,89 @@ class Batch:
             return response.json()
         return []
 
+    def _flush_in_thread(self,
+            objects_batch_request: ObjectsBatchRequest,
+            reference_batch_request: ReferenceBatchRequest,
+            ) -> Tuple[Tuple[Response, int], Tuple[Response, int]]:
+        """
+        #TODO: Write docstring.
+        """
+
+        response_objects = response_references = None
+
+        if len(objects_batch_request) != 0:
+            response_objects = self._create_data(
+                data_type='objects',
+                batch_request=objects_batch_request,
+            )
+
+        if len(reference_batch_request) != 0:
+            response_references = self._create_data(
+                data_type='references',
+                batch_request=reference_batch_request,
+            )
+        
+        return (
+            (response_objects, len(objects_batch_request)),
+            (response_references, len(reference_batch_request)),
+        )
+
+    def _send_batch_requests(self, force_wait: bool) -> None:
+        """
+        #TODO: Add docstring.
+        """
+        future = self._executor.submit(
+            self._flush_in_thread,
+            objects_batch_request=self._objects_batch,
+            reference_batch_request=self._reference_batch,
+        )
+        self._future_pool.append(future)
+        self._objects_batch = ObjectsBatchRequest()
+        self._reference_batch = ReferenceBatchRequest()
+        
+        if not force_wait and len(self._future_pool) < self._num_workers:
+            return
+        
+        for done_future in as_completed(self._future_pool):
+
+            (
+                (response_objects, nr_objects),
+                (response_references, nr_references),
+            ) = done_future.result()
+
+            # handle references
+            if response_objects:
+                self._objects_per_second_frame.append(
+                    nr_objects / response_objects.elapsed.total_seconds()
+                )
+
+                obj_per_second = (
+                    sum(self._objects_per_second_frame)/len(self._objects_per_second_frame)
+                )
+                self._recommended_num_objects = round(obj_per_second * self._creation_time)
+                if self._callback:
+                    self._callback(response_objects.json())
+
+            # handle references
+            if response_references:
+                self._references_per_second_frame.append(
+                    nr_references / response_references.elapsed.total_seconds()
+                )
+
+                ref_per_sec = (
+                    sum(self._references_per_second_frame)/len(self._references_per_second_frame)
+                )
+                self._recommended_num_references = round(ref_per_sec * self._creation_time)
+                if self._callback:
+                    self._callback(response_references.json())
+
+        self._future_pool = []
+        return
+    
     def _auto_create(self) -> None:
         """
         Auto create both objects and references in the batch. This protected method works with a
-        fixed batch size and with dynamic batching. FOr a 'fixed' batching type it auto-creates
+        fixed batch size and with dynamic batching. For a 'fixed' batching type it auto-creates
         when the sum of both objects and references equals batch_size. For dynamic batching it
         creates both batch requests when only one is full.
         """
@@ -699,14 +830,14 @@ class Batch:
         # greater or equal in case the self._batch_size is changed manually
         if self._batching_type == 'fixed':
             if sum(self.shape) >= self._batch_size:
-                self.flush()
+                self._send_batch_requests(force_wait=False)
             return
         if self._batching_type == 'dynamic':
             if (
                 self.num_objects() >= self._recommended_num_objects
                 or self.num_references() >= self._recommended_num_references
             ):
-                self.flush()
+                self._send_batch_requests(force_wait=False)
             return
         # just in case
         raise ValueError(f'Unsupported batching type "{self._batching_type}"')
@@ -717,13 +848,7 @@ class Batch:
         if one is provided. (See the docs for `configure` or `__call__` for how to set one.)
         """
 
-        result_objects = self.create_objects()
-        result_references = self.create_references()
-        if self._callback is not None:
-            if result_objects:
-                self._callback(result_objects)
-            if result_references:
-                self._callback(result_references)
+        self._send_batch_requests(force_wait=True)
 
     def delete_objects(self,
             class_name: str,
