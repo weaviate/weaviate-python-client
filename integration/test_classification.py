@@ -1,6 +1,8 @@
 import time
+
+import pytest
+
 import weaviate
-from integration.integration_util import TestFailedException
 
 schema = {
     "classes": [
@@ -59,10 +61,15 @@ query = """
 """
 
 
-def contextual(client: weaviate.Client):
-    print("Test classification")
+@pytest.fixture(scope="module")
+def client():
+    client = weaviate.Client("http://localhost:8080")
     client.schema.create(schema)
+    yield client
+    client.schema.delete_all()
 
+
+def test_contextual(client):
     # Create labels
     client.data_object.create(
         {
@@ -99,21 +106,15 @@ def contextual(client: weaviate.Client):
     )
 
     time.sleep(2.0)
-    client.classification.schedule()\
-        .with_type("text2vec-contextionary-contextual")\
-        .with_class_name("Message")\
-        .with_based_on_properties(["content"])\
-        .with_classify_properties(["labeled"])\
-        .with_wait_for_completion()\
+    client.classification.schedule() \
+        .with_type("text2vec-contextionary-contextual") \
+        .with_class_name("Message") \
+        .with_based_on_properties(["content"]) \
+        .with_classify_properties(["labeled"]) \
+        .with_wait_for_completion() \
         .do()
 
     result = client.query.raw(query)
     labeled_messages = result["data"]["Get"]["Message"]
     for message in labeled_messages:
-        if message["labeled"] is None:
-            raise TestFailedException("Message is not labeled after classification!")
-
-
-if __name__ == "__main__":
-    client = weaviate.Client("http://localhost:8080")
-    contextual(client)
+        assert message["labeled"] is not None
