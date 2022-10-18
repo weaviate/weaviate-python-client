@@ -3,7 +3,6 @@ Backup class definition.
 """
 from time import sleep
 from typing import Union, List, Tuple
-import ujson
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     RequestsConnectionError,
@@ -117,7 +116,7 @@ class Backup:
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Backup creation", response)
 
-        create_status: dict = ujson.loads(response.content)
+        create_status: dict = response.json()
         
         if wait_for_completion:
             while True:
@@ -171,7 +170,7 @@ class Backup:
             ) from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Backup status check", response)
-        return ujson.loads(response.content)
+        return response.json()
 
     def restore(self,
             backup_id: str,
@@ -247,7 +246,7 @@ class Backup:
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Backup restore", response)
 
-        restore_status: dict = ujson.loads(response.content)
+        restore_status: dict = response.json()
 
         if wait_for_completion:
             while True:
@@ -300,7 +299,7 @@ class Backup:
             ) from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Backup restore status check", response)
-        return ujson.loads(response.content)
+        return response.json()
 
 
 def _get_and_validate_create_restore_arguments(
