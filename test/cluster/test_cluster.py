@@ -6,10 +6,10 @@ from weaviate.exceptions import (
     RequestsConnectionError,
     EmptyResponseException
 )
-from weaviate.misc.misc import Misc
+from weaviate.cluster.cluster import Cluster
 
 
-class TestMisc(unittest.TestCase):
+class TestCluster(unittest.TestCase):
     def test_get_nodes_status(self):
         # expected success
         expected_resp = {"nodes": [{
@@ -21,17 +21,17 @@ class TestMisc(unittest.TestCase):
             "version": "x.x.x"
         }]}
         mock_conn = mock_connection_method("get", status_code=200, return_json=expected_resp)
-        result = Misc(mock_conn).get_nodes_status()
+        result = Cluster(mock_conn).get_nodes_status()
         self.assertListEqual(result, expected_resp.get("nodes"))
         mock_conn.get.assert_called_with(path="/nodes")
 
         # expected failure
         mock_conn = mock_connection_method("get", status_code=500)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
-            Misc(mock_conn).get_nodes_status()
+            Cluster(mock_conn).get_nodes_status()
             check_error_message(self, error, "Nodes status! Unexpected status code: 500, with response body: None")
         
         mock_conn = mock_connection_method("get", status_code=200, return_json={"nodes": []})
         with self.assertRaises(EmptyResponseException) as error:
-            Misc(mock_conn).get_nodes_status()
+            Cluster(mock_conn).get_nodes_status()
             check_error_message(self, error, "Nodes status response returned empty")

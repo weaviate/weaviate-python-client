@@ -39,7 +39,7 @@ def client():
 
 def test_get_nodes_status_without_data(client):
     """get nodes status without data"""
-    resp = client.misc.get_nodes_status()
+    resp = client.cluster.get_nodes_status()
     assert len(resp) == 1
     assert resp[0]["gitHash"] == GIT_HASH
     assert resp[0]["name"] == NODE_NAME
@@ -57,7 +57,7 @@ def test_get_nodes_status_with_data(client):
     for i in range(NUM_OBJECT):
         client.data_object.create({"stringProp": f"object-{i}", "intProp": i}, "ClassA")
 
-    resp = client.misc.get_nodes_status()
+    resp = client.cluster.get_nodes_status()
     assert len(resp) == 1
     assert resp[0]["gitHash"] == GIT_HASH
     assert resp[0]["name"] == NODE_NAME
