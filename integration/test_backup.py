@@ -5,7 +5,6 @@ from typing import Dict, Any, List
 import pytest
 
 import weaviate
-
 from weaviate.exceptions import UnexpectedStatusCodeException, BackupFailedException
 
 BACKUP_FILESYSTEM_PATH = "/tmp/backups"  # must be the same location as in the docker-compose file
@@ -122,7 +121,7 @@ articles = [
 def client():
     client = weaviate.Client("http://localhost:8080")
     client.schema.create(schema)
-    for _, para in enumerate(paragraphs):
+    for para in paragraphs:
         client.data_object.create(para["properties"], "Paragraph", para["id"])
     for i, art in enumerate(articles):
         client.data_object.create(art["properties"], "Article", art["id"])
@@ -134,8 +133,7 @@ def client():
             to_class_name="Paragraph"
         )
     yield client
-    for _, cls in enumerate(schema["classes"]):
-        client.schema.delete_class(cls["class"])
+    client.schema.delete_all()
 
 
 def _assert_objects_exist(local_client: weaviate.Client, class_name: str, expected_count: int):
@@ -144,9 +142,7 @@ def _assert_objects_exist(local_client: weaviate.Client, class_name: str, expect
         .with_meta_count() \
         .do()
     count = result["data"]["Aggregate"][class_name][0]["meta"]["count"]
-    if expected_count == count:
-        return
-    raise Exception(f"{class_name}: expected count: {expected_count}, received: {count}")
+    assert expected_count == count, f"{class_name}: expected count: {expected_count}, received: {count}"
 
 
 def _create_backup_id() -> str:

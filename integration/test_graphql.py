@@ -1,7 +1,8 @@
+import time
+
 import pytest
 
 import weaviate
-import time
 
 schema = {
     "classes": [
@@ -42,21 +43,20 @@ def client():
     time.sleep(2.0)
 
     yield client
-    for _, cls in enumerate(schema["classes"]):
-        client.schema.delete_class(cls["class"])
+    client.schema.delete_all()
 
 
 def test_get_data(client):
     """Test GraphQL's Get clause."""
     where_filter = {
         "path": ["size"],
-        "operator":  "LessThan",
+        "operator": "LessThan",
         "valueInt": 10
     }
-    result = client.query\
-        .get("Ship", ["name", "size"])\
-        .with_limit(2)\
-        .with_where(where_filter)\
+    result = client.query \
+        .get("Ship", ["name", "size"]) \
+        .with_limit(2) \
+        .with_where(where_filter) \
         .do()
     objects = get_objects_from_result(result)
     a_found = False
@@ -68,6 +68,7 @@ def test_get_data(client):
             d_found = True
     assert a_found and d_found and len(objects) == 2
 
+
 def test_aggregate_data(client):
     """Test GraphQL's Aggregate clause."""
     where_filter = {
@@ -76,7 +77,7 @@ def test_aggregate_data(client):
         "valueString": "B"
     }
 
-    result = client.query\
+    result = client.query \
         .aggregate("Ship") \
         .with_where(where_filter) \
         .with_group_by_filter(["name"]) \
@@ -87,6 +88,7 @@ def test_aggregate_data(client):
     aggregation = get_aggregation_from_aggregate_result(result)
     assert "groupedBy" in aggregation, "Missing groupedBy"
     assert "name" in aggregation, "Missing name property"
+
 
 def get_objects_from_result(result):
     return result["data"]["Get"]["Ship"]

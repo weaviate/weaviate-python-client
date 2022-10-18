@@ -66,8 +66,7 @@ def client():
     client = weaviate.Client("http://localhost:8080")
     client.schema.create(schema)
     yield client
-    for _, cls in enumerate(schema["classes"]):
-        client.schema.delete_class(cls["class"])
+    client.schema.delete_all()
 
 
 def test_contextual(client):
@@ -107,16 +106,15 @@ def test_contextual(client):
     )
 
     time.sleep(2.0)
-    client.classification.schedule()\
-        .with_type("text2vec-contextionary-contextual")\
-        .with_class_name("Message")\
-        .with_based_on_properties(["content"])\
-        .with_classify_properties(["labeled"])\
-        .with_wait_for_completion()\
+    client.classification.schedule() \
+        .with_type("text2vec-contextionary-contextual") \
+        .with_class_name("Message") \
+        .with_based_on_properties(["content"]) \
+        .with_classify_properties(["labeled"]) \
+        .with_wait_for_completion() \
         .do()
 
     result = client.query.raw(query)
     labeled_messages = result["data"]["Get"]["Message"]
     for message in labeled_messages:
         assert message["labeled"] is not None
-

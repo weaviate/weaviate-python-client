@@ -1,5 +1,3 @@
-import time
-
 import pytest
 
 import weaviate
@@ -35,10 +33,8 @@ schema = {
 @pytest.fixture(scope="module")
 def client():
     client = weaviate.Client("http://localhost:8080")
-
     yield client
-    for _, cls in enumerate(schema["classes"]):
-        client.schema.delete_class(cls["class"])
+    client.schema.delete_all()
 
 
 def test_get_nodes_status_without_data(client):

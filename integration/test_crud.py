@@ -1,14 +1,13 @@
 import json
 import os
 import time
+from datetime import datetime
+from datetime import timezone
 from typing import List
 
 import pytest
 
 import weaviate
-
-from datetime import datetime
-from datetime import timezone
 
 
 def get_query_for_group(name):
@@ -37,6 +36,7 @@ def get_query_for_group(name):
     }
     """ % name)
 
+
 gql_get_sophie_scholl = """
 {
   Get {
@@ -53,6 +53,7 @@ gql_get_sophie_scholl = """
   }
 }
 """
+
 
 @pytest.fixture(scope="module")
 def people_schema() -> str:
@@ -77,8 +78,7 @@ def client(people_schema):
     client.schema.create(people_schema)
 
     yield client
-    for cls in people_schema["classes"]:
-        client.schema.delete_class(cls["class"])
+    client.schema.delete_all()
 
 
 def test_query_data(client):
@@ -87,6 +87,7 @@ def test_query_data(client):
     time.sleep(2.0)
     result = client.query.raw(gql_get_sophie_scholl)
     assert result["data"]["Get"]["Person"][0]["name"] == expected_name
+
 
 def test_create_schema():
     client = weaviate.Client("http://localhost:8080")
@@ -108,7 +109,6 @@ def test_create_schema():
             found = len(class_['properties']) == 1
     assert found
     client.schema.delete_class("Barbecue")
-
 
 
 def test_crud(client):
@@ -179,7 +179,8 @@ def _validate_data_loading(local_client: weaviate.Client):
 
 
 def _delete_objects(local_client: weaviate.Client, chemists: List[str]):
-    local_client.data_object.delete(chemists[2], class_name="Person")  # Delete Walter White not a real chemist just a legend
+    local_client.data_object.delete(chemists[2],
+                                    class_name="Person")  # Delete Walter White not a real chemist just a legend
     time.sleep(1.1)
     assert not local_client.data_object.exists(chemists[2], class_name="Person"), "Thing was not correctly deleted"
 
