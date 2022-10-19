@@ -5,14 +5,14 @@ from weaviate.exceptions import (
     EmptyResponseException
 )
 
-class Misc:
+class Cluster:
     """
-    Misc class used for system information
+    Cluster class used for cluster information
     """
     
     def __init__(self, connection: Connection):
         """
-        Initialize a Misc class instance.
+        Initialize a Cluster class instance.
 
         Parameters
         ----------

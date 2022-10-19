@@ -13,7 +13,7 @@ from .batch import Batch
 from .backup import Backup
 from .data import DataObject
 from .gql import Query
-from .misc import Misc
+from .cluster import Cluster
 from .util import deprecation
 from .version import __version__
 
@@ -127,7 +127,7 @@ class Client:
         self.data_object = DataObject(self._connection)
         self.query = Query(self._connection)
         self.backup = Backup(self._connection)
-        self.misc = Misc(self._connection)
+        self.cluster = Cluster(self._connection)
 
         self._set_server_version()
 
