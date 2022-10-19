@@ -1,6 +1,5 @@
 import datetime
 import random
-import string
 import uuid
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
@@ -162,15 +161,28 @@ def test_stress(batch_size, dynamic):
     client.schema.delete_all()
 
 
-@pytest.mark.profiling
-def test_profile_stress():
-    client = weaviate.Client("http://localhost:8080")
-    client.schema.delete_all()
-    client.schema.create(schema)
+@pytest.fixture(
+    params=[(batch_size, dynamic, workers) for workers in [16, 4, 1] for dynamic in [False] for batch_size in
+            [50, 100]],
+    ids=[f"batch_size{batch_size}, dynamic {dynamic}, workers {workers})" for workers in [16, 4, 1] for dynamic in
+         [False] for batch_size in
+         [50, 100]])
+def client(request):
+    local_client = weaviate.Client("http://localhost:8080")
+    local_client.schema.delete_all()
+    local_client.schema.create(schema)
+    if request.param[2] is not None:
+        local_client.batch.configure(batch_size=request.param[0], dynamic=request.param[1],
+                                     num_workers=request.param[2])
+    else:
+        local_client.batch.configure(batch_size=request.param[0], dynamic=request.param[1])
+    return local_client
 
-    authors = create_authors(50)
-    paragraphs = create_paragraphs(100, authors)
-    articles = create_articles(100, authors, paragraphs)
+
+def run_stress_test(client):
+    authors = create_authors(100)
+    paragraphs = create_paragraphs(500, authors)
+    articles = create_articles(500, authors, paragraphs)
 
     add_authors(client, authors)
     add_paragraphs(client, paragraphs)
@@ -184,15 +196,13 @@ def test_profile_stress():
     client.schema.delete_all()
 
 
-def test_benchmark_stress_test(benchmark):
-    benchmark(test_profile_stress)
+# @pytest.mark.profiling
+def test_profile_stress(client):
+    run_stress_test(client)
 
 
-def create_authors(num_authors: int) -> List[Author]:
-    authors: List[Author] = []
-    for _ in range(num_authors):
-        authors.append(Author(''.join(random.choices(string.ascii_uppercase + string.digits, k=random.randint(5, 15)))))
-    return authors
+def test_benchmark_stress_test(benchmark, client):
+    benchmark(test_profile_stress, client)
 
 
 def add_authors(client: weaviate.Client, authors: List[Author]):
@@ -227,15 +237,22 @@ def add_articles(client: weaviate.Client, articles: List[Article]):
                                    to_object_class_name="Paragraph")
 
 
+def create_authors(num_authors: int) -> List[Author]:
+    authors: List[Author] = [
+        Author(f'{i}') for i in range(num_authors)
+    ]
+    return authors
+
+
 def create_paragraphs(num_paragraphs: int, authors: List[Author]) -> List[Paragraph]:
     paragraphs: List[Paragraph] = []
-    for _ in range(num_paragraphs):
-        content: str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=random.randint(5, 15)))
+    for i in range(num_paragraphs):
+        content: str = f'{i} {i} {i} {i}'
 
         paragraph_to_reference: Optional[Paragraph] = None
-        if len(paragraphs) > 0 and random.random() > 0.5:
-            paragraph_to_reference: Paragraph = random.choice(paragraphs)
-        author_to_reference: Author = random.choice(authors)
+        if len(paragraphs) > 0 and i % 2 == 0:
+            paragraph_to_reference: Paragraph = paragraphs[i % len(paragraphs)]
+        author_to_reference: Author = authors[i % len(authors)]
         paragraphs.append(Paragraph(content,
                                     Reference("Author", author_to_reference.uuid),
                                     Reference("Paragraph",
@@ -248,12 +265,11 @@ def create_articles(num_articles: int, authors: List[Author], paragraphs: List[P
         List[Article]:
     articles: List[Article] = []
     base_date: datetime.date = datetime.datetime(2023, 12, 9, 7, 1, 34)
-    for _ in range(num_articles):
-        title: str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=random.randint(5, 15)))
-        paragraph_to_reference: Author = random.choice(paragraphs)
-        author_to_reference: Author = random.choice(authors)
-        date_published: str = (base_date + datetime.timedelta(hours=random.randrange(0, 100),
-                                                              minutes=random.randrange(0, 100))).isoformat() + "Z"
+    for i in range(num_articles):
+        title: str = f'{i} {i} {i}'
+        paragraph_to_reference: Paragraph = paragraphs[i % len(paragraphs)]
+        author_to_reference: Author = authors[i % len(authors)]
+        date_published: str = (base_date + datetime.timedelta(hours=i)).isoformat() + "Z"
         articles.append(Article(title, date_published,
                                 Reference("Author", author_to_reference.uuid),
                                 Reference("Paragraph", paragraph_to_reference.uuid))
