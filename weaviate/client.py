@@ -1,19 +1,20 @@
 """
 Client class definition.
 """
-from typing import Optional, Tuple, Union
 from numbers import Real
+from typing import Optional, Tuple, Union
+
 from .auth import AuthCredentials
-from .exceptions import UnexpectedStatusCodeException, RequestsConnectionError
-from .connect import Connection
-from .classification import Classification
-from .schema import Schema
-from .contextionary import Contextionary
-from .batch import Batch
 from .backup import Backup
+from .batch import Batch
+from .classification import Classification
+from .connect import Connection
+from .contextionary import Contextionary
 from .data import DataObject
+from .exceptions import UnexpectedStatusCodeException, RequestsConnectionError
 from .gql import Query
 from .cluster import Cluster
+from .schema import Schema
 from .util import deprecation
 from .version import __version__
 
@@ -44,13 +45,13 @@ class Client:
     """
 
     def __init__(self,
-            url: str,
-            auth_client_secret: Optional[AuthCredentials]=None,
-            timeout_config: Union[Tuple[Real, Real], Real]=(2, 20),
-            proxies: Union[dict, str, None]=None,
-            trust_env: bool=False,
-            additional_headers: Optional[dict]=None,
-        ):
+                 url: str,
+                 auth_client_secret: Optional[AuthCredentials] = None,
+                 timeout_config: Union[Tuple[Real, Real], Real] = (10, 60),
+                 proxies: Union[dict, str, None] = None,
+                 trust_env: bool = False,
+                 additional_headers: Optional[dict] = None,
+                 ):
         """
         Initialize a Client class instance.
 

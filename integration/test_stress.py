@@ -46,6 +46,14 @@ schema = {
                     "dataType": ["Author"],
                     "name": "author"
                 },
+                {
+                    "dataType": ["string"],
+                    "name": "somestring"
+                },
+                {
+                    "dataType": ["int"],
+                    "name": "counter"
+                },
             ]
         },
         {
@@ -53,7 +61,7 @@ schema = {
             "properties": [
                 {
                     "dataType": ["string"],
-                    "name": "title"
+                    "name": "name"
                 }
             ]
         }
@@ -80,12 +88,12 @@ class Author:
     uuid: uuid = field(init=False)
     class_name: str = field(init=False)
 
-    def __post_init__(self) -> None:
-        self.class_name = "Author"
-        self.uuid = uuid.uuid4()
-
     def to_data_object(self) -> DataObject:
         return DataObject({"name": self.name}, self.class_name, self.uuid)
+
+    def __post_init__(self) -> None:
+        self.uuid = uuid.uuid4()
+        self.class_name = "Author"
 
 
 @dataclass
@@ -94,39 +102,42 @@ class Paragraph:
     author: Reference
     hasParagraphs: Optional[Reference]
     uuid: uuid = field(init=False)
-
-    def __post_init__(self) -> None:
-        self.class_name = "Paragraph"
-        self.uuid = uuid.uuid4()
+    class_name: str = field(init=False)
 
     def to_data_object(self) -> DataObject:
         return DataObject({"contents": self.contents}, self.class_name, self.uuid)
+
+    def __post_init__(self) -> None:
+        self.uuid = uuid.uuid4()
+        self.class_name = "Paragraph"
 
 
 @dataclass
 class Article:
     title: str
     datePublished: str
+    somestring: str
+    counter: int
     author: Reference
     hasParagraphs: Reference
     uuid: uuid = field(init=False)
-
-    def __post_init__(self) -> None:
-        self.class_name = "Article"
-        self.uuid = uuid.uuid4()
+    class_name: str = field(init=False)
 
     def to_data_object(self) -> DataObject:
         return DataObject({"title": self.title, "datePublished": self.datePublished}, self.class_name, self.uuid)
 
+    def __post_init__(self) -> None:
+        self.uuid = uuid.uuid4()
+        self.class_name = "Article"
+
 
 @pytest.mark.parametrize("dynamic", [True, False])
-@pytest.mark.parametrize("batch_size", [1, 10, 50])
+@pytest.mark.parametrize("batch_size", [50])
 def test_stress(batch_size, dynamic):
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create(schema)
     client.batch.configure(batch_size=batch_size, dynamic=dynamic)
-
     authors = create_authors(random.randint(1000, 5000))
     paragraphs = create_paragraphs(random.randint(1000, 5000), authors)
     articles = create_articles(random.randint(1000, 5000), authors, paragraphs)
@@ -162,27 +173,28 @@ def test_stress(batch_size, dynamic):
 
 
 @pytest.fixture(
-    params=[(batch_size, dynamic, workers) for workers in [16, 4, 1] for dynamic in [False] for batch_size in
-            [50, 100]],
-    ids=[f"batch_size{batch_size}, dynamic {dynamic}, workers {workers})" for workers in [16, 4, 1] for dynamic in
-         [False] for batch_size in
-         [50, 100]])
+    params=[(batch_size, workers) for workers in [1, 4, 10] for batch_size in
+            [-1, 50, 100]],
+    ids=[f"batch_size{batch_size}, workers {workers})" for workers in [1, 4, 10] for batch_size in
+         [-1, 50, 100]])
 def client(request):
     local_client = weaviate.Client("http://localhost:8080")
-    local_client.schema.delete_all()
-    local_client.schema.create(schema)
-    if request.param[2] is not None:
-        local_client.batch.configure(batch_size=request.param[0], dynamic=request.param[1],
-                                     num_workers=request.param[2])
+    if request.param[0] > 0:
+        local_client.batch.configure(batch_size=request.param[0], dynamic=False,
+                                     num_workers=request.param[1])
     else:
-        local_client.batch.configure(batch_size=request.param[0], dynamic=request.param[1])
+        local_client.batch.configure(batch_size=10, dynamic=True,
+                                     num_workers=request.param[1])
     return local_client
 
 
 def run_stress_test(client):
-    authors = create_authors(100)
-    paragraphs = create_paragraphs(500, authors)
-    articles = create_articles(500, authors, paragraphs)
+    client.schema.delete_all()
+    client.schema.create(schema)
+
+    authors = create_authors(20000)
+    paragraphs = create_paragraphs(20000, authors)
+    articles = create_articles(10000, authors, paragraphs)
 
     add_authors(client, authors)
     add_paragraphs(client, paragraphs)
@@ -196,7 +208,7 @@ def run_stress_test(client):
     client.schema.delete_all()
 
 
-# @pytest.mark.profiling
+@pytest.mark.profiling
 def test_profile_stress(client):
     run_stress_test(client)
 
@@ -270,7 +282,7 @@ def create_articles(num_articles: int, authors: List[Author], paragraphs: List[P
         paragraph_to_reference: Paragraph = paragraphs[i % len(paragraphs)]
         author_to_reference: Author = authors[i % len(authors)]
         date_published: str = (base_date + datetime.timedelta(hours=i)).isoformat() + "Z"
-        articles.append(Article(title, date_published,
+        articles.append(Article(title, date_published, str(i), i,
                                 Reference("Author", author_to_reference.uuid),
                                 Reference("Paragraph", paragraph_to_reference.uuid))
                         )
