@@ -3,8 +3,6 @@ on:
   workflow_run:
     workflows: 
       - Tests
-    branches:
-      - main
     types: 
       - completed
 
@@ -27,6 +25,13 @@ jobs:
         run: python -m pip install build --user --upgrade
       - name: Build a binary wheel and a source tarball
         run: python setup.py sdist bdist_wheel
+      - name: Create Wheel Artifacts
+        uses: actions/upload-artifact@v3
+        if: github.event_name == 'pull_request'
+        with:
+          name: weaviate_client_wheel_pr_${{ github.event.number }}
+          path: "dist/*.whl"
+          retention-days: 5
       - name: Publish distribution 📦 to PyPI
         if: startsWith(github.ref, 'refs/tags')
         uses: pypa/gh-action-pypi-publish@release/v1
