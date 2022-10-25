@@ -111,6 +111,21 @@ def test_create_schema():
     client.schema.delete_class("Barbecue")
 
 
+def test_replace_and_update(client):
+    """Test updating an object with put (replace) and patch (update)."""
+    uuid = "28954264-0449-57a2-ade5-e9e08d11f51a"
+    client.data_object.create({"name": "Someone"}, "Person", uuid)
+    person = client.data_object.get_by_id(uuid, class_name="Person")
+    assert person["properties"]["name"] == "Someone"
+    client.data_object.replace({"name": "SomeoneElse"}, "Person", uuid)
+    person = client.data_object.get_by_id(uuid, class_name="Person")
+    assert person["properties"]["name"] == "SomeoneElse"
+    client.data_object.update({"name": "Anyone"}, "Person", uuid)
+    person = client.data_object.get_by_id(uuid, class_name="Person")
+    assert person["properties"]["name"] == "Anyone"
+    client.data_object.delete(uuid, class_name="Person")
+
+
 def test_crud(client):
     chemists: List[str] = []
     _create_objects_batch(client)
