@@ -1,7 +1,9 @@
 from builtins import open
 from os import path
+
 from setuptools import setup
 from setuptools.command.egg_info import egg_info
+
 from weaviate.version import __version__
 
 # read the contents of your README file
@@ -44,6 +46,7 @@ setup(
     "weaviate.data.references",
     "weaviate.gql",
     "weaviate.wcs",
+    "weaviate.cluster",
   ],
   python_requires='>=3.7',
   install_requires=[
