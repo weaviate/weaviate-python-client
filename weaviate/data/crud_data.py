@@ -217,30 +217,7 @@ class DataObject:
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none successful status.
         """
-
-        if not isinstance(class_name, str):
-            raise TypeError("Class must be type str")
-
-        uuid = get_valid_uuid(uuid)
-
-        object_dict = _get_dict_from_object(data_object)
-
-        weaviate_obj = {
-            "id": uuid,
-            "properties": object_dict
-        }
-
-        if vector is not None:
-            weaviate_obj['vector'] = get_vector(vector)
-
-        is_server_version_14 = (self._connection.server_version >= '1.14')
-
-        if is_server_version_14:
-            path = f"/objects/{_capitalize_first_letter(class_name)}/{uuid}"
-        else:
-            weaviate_obj["class"] = _capitalize_first_letter(class_name)
-            path = f"/objects/{uuid}"
-
+        weaviate_obj, path = self._create_object_for_update(data_object, class_name, uuid, vector)
         try:
             response = self._connection.patch(
                 path=path,
@@ -325,30 +302,7 @@ class DataObject:
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
-
-        if not isinstance(class_name, str):
-            raise TypeError("Class must be type str")
-
-        uuid = get_valid_uuid(uuid)
-
-        object_dict = _get_dict_from_object(data_object)
-
-        weaviate_obj = {
-            "id": uuid,
-            "properties": object_dict
-        }
-
-        if vector is not None:
-            weaviate_obj['vector'] = get_vector(vector)
-
-        is_server_version_14 = (self._connection.server_version >= '1.14')
-
-        if is_server_version_14:
-            path = f"/objects/{_capitalize_first_letter(class_name)}/{uuid}"
-        else:
-            weaviate_obj["class"] = _capitalize_first_letter(class_name)
-            path = f"/objects/{uuid}"
-
+        weaviate_obj, path = self._create_object_for_update(data_object, class_name, uuid, vector)
         try:
             response = self._connection.put(
                 path=path,
@@ -360,6 +314,36 @@ class DataObject:
             # Successful update
             return
         raise UnexpectedStatusCodeException("Replace object", response)
+
+    def _create_object_for_update(self,
+        data_object: Union[dict, str],
+        class_name: str,
+        uuid: Union[str, uuid_lib.UUID],
+        vector: Optional[Sequence]=None
+        ):
+        if not isinstance(class_name, str):
+            raise TypeError("Class must be type str")
+
+        uuid = get_valid_uuid(uuid)
+
+        object_dict = _get_dict_from_object(data_object)
+
+        weaviate_obj = {
+            "id": uuid,
+            "properties": object_dict,
+            "class": _capitalize_first_letter(class_name)
+        }
+
+        if vector is not None:
+            weaviate_obj['vector'] = get_vector(vector)
+
+        is_server_version_14 = (self._connection.server_version >= '1.14')
+
+        if is_server_version_14:
+            path = f"/objects/{_capitalize_first_letter(class_name)}/{uuid}"
+        else:
+            path = f"/objects/{uuid}"
+        return weaviate_obj, path
 
     def get_by_id(self,
             uuid: Union[str, uuid_lib.UUID],
