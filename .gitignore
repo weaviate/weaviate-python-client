@@ -13,5 +13,6 @@ docs/_build
 nohup.out
 .coverage
 coverage.xml
+.pytest_cache
 
 image.png
