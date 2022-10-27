@@ -256,7 +256,7 @@ def get_valid_uuid(uuid: Union[str, uuid_lib.UUID]) -> str:
         or
         'weaviate://localhost/28f3f61bb52445e09bbe2c1550bf73d2'
         or
-        'fc7eb129f138457fb7271b29db191a67'
+        'fc7eb129-f138-457f-b727-1b29db191a67' / 'fc7eb129f138457fb7271b29db191a67'
 
     Returns
     -------
@@ -272,7 +272,7 @@ def get_valid_uuid(uuid: Union[str, uuid_lib.UUID]) -> str:
     """
 
     if isinstance(uuid, uuid_lib.UUID):
-        return str(uuid).replace('-', '')
+        return uuid.hex
 
     if not isinstance(uuid, str):
         raise TypeError("'uuid' must be of type str or uuid.UUID, but was: " + str(type(uuid)))
@@ -283,10 +283,10 @@ def get_valid_uuid(uuid: Union[str, uuid_lib.UUID]) -> str:
     if _is_weaviate_url or _is_object_url:
         _uuid = uuid.split("/")[-1]
     try:
-        _uuid = str(uuid_lib.UUID(_uuid))
+        _uuid = uuid_lib.UUID(_uuid).hex
     except ValueError:
         raise ValueError("Not valid 'uuid' or 'uuid' can not be extracted from value") from None
-    return _uuid.replace('-', '')
+    return _uuid
 
 
 def get_vector(vector: Sequence) -> list:
