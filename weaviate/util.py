@@ -244,7 +244,7 @@ def is_object_url(url: str) -> bool:
 
 def get_valid_uuid(uuid: Union[str, uuid_lib.UUID]) -> str:
     """
-    Validate and extract the UUID.
+    Validate and extract the UUID, excluding any dashes within.
 
     Parameters
     ----------
@@ -252,11 +252,11 @@ def get_valid_uuid(uuid: Union[str, uuid_lib.UUID]) -> str:
         The UUID to be validated and extracted.
         Should be in the form of an UUID or in form of an URL (weaviate 'beacon' or 'href').
         E.g.
-        'http://localhost:8080/v1/objects/fc7eb129-f138-457f-b727-1b29db191a67'
+        'http://localhost:8080/v1/objects/fc7eb129f138457fb7271b29db191a67'
         or
-        'weaviate://localhost/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'
+        'weaviate://localhost/28f3f61bb52445e09bbe2c1550bf73d2'
         or
-        'fc7eb129-f138-457f-b727-1b29db191a67'
+        'fc7eb129f138457fb7271b29db191a67'
 
     Returns
     -------
@@ -272,7 +272,7 @@ def get_valid_uuid(uuid: Union[str, uuid_lib.UUID]) -> str:
     """
 
     if isinstance(uuid, uuid_lib.UUID):
-        return str(uuid)
+        return str(uuid).replace('-', '')
 
     if not isinstance(uuid, str):
         raise TypeError("'uuid' must be of type str or uuid.UUID, but was: " + str(type(uuid)))
@@ -286,7 +286,7 @@ def get_valid_uuid(uuid: Union[str, uuid_lib.UUID]) -> str:
         _uuid = str(uuid_lib.UUID(_uuid))
     except ValueError:
         raise ValueError("Not valid 'uuid' or 'uuid' can not be extracted from value") from None
-    return _uuid
+    return _uuid.replace('-', '')
 
 
 def get_vector(vector: Sequence) -> list:

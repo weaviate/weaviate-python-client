@@ -316,28 +316,28 @@ class TestUtil(unittest.TestCase):
 
         # valid calls
         result = get_valid_uuid("weaviate://localhost/28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
-        self.assertEqual(result, "28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
+        self.assertEqual(result, "28f3f61bb52445e09bbe2c1550bf73d2")
 
         result = get_valid_uuid("weaviate://otherhost.com/28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
-        self.assertEqual(result, "28f3f61b-b524-45e0-9bbe-2c1550bf73d2")
+        self.assertEqual(result, "28f3f61bb52445e09bbe2c1550bf73d2")
 
         result = get_valid_uuid("http://localhost:8080/v1/objects/1c9cd584-88fe-5010-83d0-017cb3fcb446")
-        self.assertEqual(result, "1c9cd584-88fe-5010-83d0-017cb3fcb446")
+        self.assertEqual(result, "1c9cd58488fe501083d0017cb3fcb446")
 
         result = get_valid_uuid("http://otherhost_2:8080/v1/objects/1c9cd584-88fe-5010-83d0-017cb3fcb446")
-        self.assertEqual(result, "1c9cd584-88fe-5010-83d0-017cb3fcb446")
+        self.assertEqual(result, "1c9cd58488fe501083d0017cb3fcb446")
 
         result = get_valid_uuid("http://otherhost_2:8080/v1/objects/1c9cd58488fe501083d0017cb3fcb446")
-        self.assertEqual(result, "1c9cd584-88fe-5010-83d0-017cb3fcb446")
+        self.assertEqual(result, "1c9cd58488fe501083d0017cb3fcb446")
 
         result = get_valid_uuid("1c9cd584-88fe-5010-83d0-017cb3fcb446")
-        self.assertEqual(result, "1c9cd584-88fe-5010-83d0-017cb3fcb446")
+        self.assertEqual(result, "1c9cd58488fe501083d0017cb3fcb446")
 
         result = get_valid_uuid("1c9cd58488fe501083d0017cb3fcb446")
-        self.assertEqual(result, "1c9cd584-88fe-5010-83d0-017cb3fcb446")
+        self.assertEqual(result, "1c9cd58488fe501083d0017cb3fcb446")
 
         result = get_valid_uuid(uuid_lib.UUID("1c9cd58488fe501083d0017cb3fcb446"))
-        self.assertEqual(result, "1c9cd584-88fe-5010-83d0-017cb3fcb446")
+        self.assertEqual(result, "1c9cd58488fe501083d0017cb3fcb446")
 
         # invalid formats
         type_error_message = "'uuid' must be of type str or uuid.UUID, but was: "
