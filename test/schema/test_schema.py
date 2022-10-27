@@ -165,7 +165,7 @@ class TestSchema(unittest.TestCase):
         # mock function calls
         mock_primitive = Mock()
         mock_complex = Mock()
-        schema._create_class_with_premitives = mock_primitive
+        schema._create_class_with_primitives = mock_primitive
         schema._create_complex_properties_from_class = mock_complex
 
         schema.create_class(company_test_schema["classes"][0])
@@ -515,16 +515,16 @@ class TestSchema(unittest.TestCase):
             schema._create_complex_properties_from_class(properties)
         check_startswith_error_message(self, error, "Add properties to classes")
 
-    def test__create_class_with_premitives(self):
+    def test__create_class_with_primitives(self):
         """
-        Test the `_create_class_with_premitives` method.
+        Test the `_create_class_with_primitives` method.
         """
         
         # valid calls
         def helper_test(test_class, test_class_call):
             mock_rest = mock_connection_method('post')
             schema = Schema(mock_rest)
-            schema._create_class_with_premitives(test_class)
+            schema._create_class_with_primitives(test_class)
             self.assertEqual(mock_rest.post.call_count, 1)
             mock_rest.post.assert_called_with(
                 path="/schema",
@@ -604,13 +604,13 @@ class TestSchema(unittest.TestCase):
         mock_rest = mock_connection_method('post', side_effect=RequestsConnectionError('TEST1'))
         schema = Schema(mock_rest)
         with self.assertRaises(RequestsConnectionError) as error:
-            schema._create_class_with_premitives(test_class)
+            schema._create_class_with_primitives(test_class)
         check_error_message(self, error, requests_error_message)
 
         mock_rest = mock_connection_method('post', status_code=404)
         schema = Schema(mock_rest)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
-            schema._create_class_with_premitives(test_class)
+            schema._create_class_with_primitives(test_class)
         check_startswith_error_message(self, error, "Create class")
 
     def test__create_classes_with_primitives(self):
@@ -621,7 +621,7 @@ class TestSchema(unittest.TestCase):
         schema = Schema(Mock())
 
         mock_primitive = Mock()
-        schema._create_class_with_premitives = mock_primitive
+        schema._create_class_with_primitives = mock_primitive
 
         schema._create_classes_with_primitives(list("Test!!"))
         self.assertEqual(mock_primitive.call_count, 6) 

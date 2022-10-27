@@ -33,7 +33,6 @@ jobs:
       - name: Create Wheel Artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: weaviate_client_wheel_pr_${{ github.event.number }}
           path: "dist/*.whl"
           retention-days: 7
       - name: Publish distribution 📦 to PyPI

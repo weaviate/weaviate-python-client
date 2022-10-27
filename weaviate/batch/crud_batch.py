@@ -543,7 +543,7 @@ class Batch:
                         error=error,
                     )
                     timeout_count += 1
-                except RequestsConnectionError:
+                except RequestsConnectionError as error:
                     _batch_create_error_handler(
                         retry=connection_count,
                         max_retries=self._connection_error_retries,
