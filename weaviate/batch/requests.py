@@ -2,12 +2,9 @@
 BatchRequest class definitions.
 """
 import copy
-import json
-import sys
+from uuid import uuid4
 from abc import ABC, abstractmethod
 from typing import List, Sequence, Optional
-from uuid import uuid4
-
 from weaviate.util import get_valid_uuid, get_vector
 
 
@@ -18,7 +15,6 @@ class BatchRequest(ABC):
 
     def __init__(self):
         self._items = []
-        self._size: int = 0
 
     def __len__(self):
         return len(self._items)
@@ -128,12 +124,13 @@ class ReferenceBatchRequest(BatchRequest):
         ):
             raise TypeError('All arguments must be of type string')
 
+        to_object_uuid = get_valid_uuid(to_object_uuid)
+        from_object_uuid = get_valid_uuid(from_object_uuid)
+
         if to_object_class_name is not None:
             to_beacon = f'weaviate://localhost/{to_object_class_name}/{to_object_uuid}'
         else:
             to_beacon = f'weaviate://localhost/{to_object_uuid}'
-
-        from_object_uuid = get_valid_uuid(from_object_uuid)
 
         self._items.append(
             {
@@ -208,6 +205,7 @@ class ObjectsBatchRequest(BatchRequest):
             raise TypeError("Object must be of type dict")
         if not isinstance(class_name, str):
             raise TypeError("Class name must be of type str")
+
         batch_item = {
             "class": class_name,
             "properties": copy.deepcopy(data_object)
@@ -221,7 +219,6 @@ class ObjectsBatchRequest(BatchRequest):
             batch_item["vector"] = get_vector(vector)
 
         self._items.append(batch_item)
-        self._size += sys.getsizeof(json.dumps(batch_item))
 
         return batch_item["id"]
 

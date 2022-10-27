@@ -1,15 +1,14 @@
 """
 Batch class definitions.
 """
-import json
 import os
 import sys
-import threading
 import time
 import warnings
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from numbers import Real
-from typing import Tuple, Callable, Optional, Sequence, List
+from collections import deque
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Tuple, Callable, Optional, Sequence
 
 from requests import ReadTimeout, Response
 
@@ -21,6 +20,7 @@ from weaviate.util import (
     check_batch_result,
 )
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest
+
 
 OS_CPU_COUNT = os.cpu_count()
 
@@ -192,6 +192,14 @@ class Batch:
         self._connection = connection
         self._objects_batch = ObjectsBatchRequest()
         self._reference_batch = ReferenceBatchRequest()
+        # do not keep too many past values, so it is a better estimation of the throughput
+        # the throughput is computed for 1 second
+        self._objects_throughput_frame = deque(
+            maxlen=5,
+        )
+        self._references_throughput_frame = deque(
+            maxlen=5,
+        )
         self._future_pool = []
         self._reference_batch_queue = []
 
@@ -205,20 +213,19 @@ class Batch:
         self._connection_error_retries = 3
         self._batching_type = None
         self._num_workers = OS_CPU_COUNT
-        self._timeout_lock = threading.Lock()
 
         # thread pool executor
         self._executor = BatchExecutor(max_workers=self._num_workers)
 
     def configure(self,
-                  batch_size: Optional[int] = None,
-                  creation_time: Real = 10,
-                  timeout_retries: int = 3,
-                  connection_error_retries: int = 3,
-                  callback: Optional[Callable[[dict], None]] = check_batch_result,
-                  dynamic: bool = False,
-                  num_workers: int = OS_CPU_COUNT,
-                  ) -> 'Batch':
+            batch_size: Optional[int] = None,
+            creation_time: Real = 10,
+            timeout_retries: int = 3,
+            connection_error_retries: int = 3,
+            callback: Optional[Callable[[dict], None]] = check_batch_result,
+            dynamic: bool = False,
+            num_workers: int = OS_CPU_COUNT,
+            ) -> 'Batch':
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
         NOTE: It has default values and if you want to change only one use a setter instead, or
@@ -274,14 +281,14 @@ class Batch:
         )
 
     def __call__(self,
-                 batch_size: Optional[int] = None,
-                 creation_time: Real = 10,
-                 timeout_retries: int = 3,
-                 connection_error_retries: int = 3,
-                 callback: Optional[Callable[[dict], None]] = check_batch_result,
-                 dynamic: bool = False,
-                 num_workers: int = OS_CPU_COUNT,
-                 ) -> 'Batch':
+            batch_size: Optional[int] = None,
+            creation_time: Real = 10,
+            timeout_retries: int = 3,
+            connection_error_retries: int = 3,
+            callback: Optional[Callable[[dict], None]] = check_batch_result,
+            dynamic: bool = False,
+            num_workers: int = OS_CPU_COUNT,
+            ) -> 'Batch':
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
         NOTE: It has default values and if you want to change only one use a setter instead, or
@@ -348,9 +355,10 @@ class Batch:
         self._batch_size = batch_size
 
         if self._num_workers != num_workers:
-            self._send_batch_requests(force_wait=True)
+            self.flush()
+            self.shutdown()
             self._num_workers = num_workers
-            self._executor = BatchExecutor(max_workers=num_workers)
+            self.start()
 
         if dynamic is False:  # set Batch to auto-commit with fixed batch_size
             self._batching_type = 'fixed'
@@ -362,11 +370,11 @@ class Batch:
         return self
 
     def add_data_object(self,
-                        data_object: dict,
-                        class_name: str,
-                        uuid: Optional[str] = None,
-                        vector: Optional[Sequence] = None
-                        ) -> str:
+            data_object: dict,
+            class_name: str,
+            uuid: Optional[str] = None,
+            vector: Optional[Sequence] = None
+            ) -> str:
         """
         Add one object to this batch.
         NOTE: If the UUID of one of the objects already exists then the existing object will be
@@ -399,9 +407,6 @@ class Batch:
             If 'uuid' is not of a proper form.
         """
 
-        if self._batching_type:
-            self._auto_create()
-
         uuid = self._objects_batch.add(
             class_name=_capitalize_first_letter(class_name),
             data_object=data_object,
@@ -409,15 +414,18 @@ class Batch:
             vector=vector,
         )
 
+        if self._batching_type:
+            self._auto_create()
+
         return uuid
 
     def add_reference(self,
-                      from_object_uuid: str,
-                      from_object_class_name: str,
-                      from_property_name: str,
-                      to_object_uuid: str,
-                      to_object_class_name: Optional[str] = None,
-                      ) -> None:
+            from_object_uuid: str,
+            from_object_class_name: str,
+            from_property_name: str,
+            to_object_uuid: str,
+            to_object_class_name: Optional[str] = None,
+            ) -> None:
         """
         Add one reference to this batch.
 
@@ -487,9 +495,9 @@ class Batch:
             self._auto_create()
 
     def _create_data(self,
-                     data_type: str,
-                     batch_request: BatchRequest,
-                     ) -> Response:
+            data_type: str,
+            batch_request: BatchRequest,
+            ) -> Response:
         """
         Create data in batches, either Objects or References. This does NOT guarantee
         that each batch item (only Objects) is added/created. This can lead to a successful
@@ -512,54 +520,41 @@ class Batch:
 
         Raises
         ------
+        requests.ReadTimeout
+            If the request time-outed.
         requests.ConnectionError
             If the network connection to weaviate fails.
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
-        lock_acquired = False
+
         try:
-            for i in range(self._timeout_retries + 1):
+            timeout_count = connection_count = 0
+            while True:
                 try:
-                    # print(sys.getsizeof(json.dumps(batch_request.get_request_body())))
                     response = self._connection.post(
                         path='/batch/' + data_type,
                         weaviate_object=batch_request.get_request_body()
                     )
-                except ReadTimeout:
-                    if i == self._timeout_retries:
-                        raise
-                    print(
-                        f'[ERROR] Batch ReadTimeout Exception occurred! Retrying in {(i + 1) * 2}s. '
-                        f'[{i + 1}/{self._timeout_retries}]', file=sys.stderr
+                except ReadTimeout as error:
+                    _batch_create_error_handler(
+                        retry=timeout_count,
+                        max_retries=self._timeout_retries,
+                        error=error,
                     )
-                    time.sleep((i + 1) * 2)
-                    if not lock_acquired:
-                        self._timeout_lock.acquire()
-                        lock_acquired = True
-
+                    timeout_count += 1
                 except RequestsConnectionError:
-                    if i == self._connection_error_retries:
-                        raise
-                    print(
-                        '[ERROR] Batch ConnectionError Exception occurred! Retrying in '
-                        f'{(i + 1) * 2}s. [{i + 1}/{self._connection_error_retries}]', file=sys.stderr
+                    _batch_create_error_handler(
+                        retry=connection_count,
+                        max_retries=self._connection_error_retries,
+                        error=error,
                     )
-                    time.sleep((i + 1) * 2)
-                    if not lock_acquired:
-                        self._timeout_lock.acquire()
-                        lock_acquired = True
+                    connection_count += 1
                 else:
-                    if lock_acquired:
-                        self._timeout_lock.release()
                     break
         except RequestsConnectionError as conn_err:
-            if lock_acquired:
-                self._timeout_lock.release()
             raise RequestsConnectionError('Batch was not added to weaviate.') from conn_err
         except ReadTimeout:
-            if lock_acquired:
-                self._timeout_lock.release()
             message = (
                 f"The '{data_type}' creation was cancelled because it took "
                 f"longer than the configured timeout of {self._connection.timeout_config[1]}s. "
@@ -670,8 +665,12 @@ class Batch:
                 data_type='objects',
                 batch_request=self._objects_batch,
             )
-            self._recommended_num_objects = self._estimate_dynamic_batch_size(self._recommended_num_objects,
-                                                                              [response.elapsed.total_seconds()], 100)
+            self._objects_throughput_frame.append(
+                len(self._objects_batch) / response.elapsed.total_seconds()
+            )
+
+            obj_per_second = sum(self._objects_throughput_frame)/len(self._objects_throughput_frame)
+            self._recommended_num_objects = round(obj_per_second * self._creation_time)
             self._objects_batch = ObjectsBatchRequest()
             return response.json()
         return []
@@ -763,18 +762,22 @@ class Batch:
                 data_type='references',
                 batch_request=self._reference_batch,
             )
-            self._recommended_num_references = self._estimate_dynamic_batch_size(self._recommended_num_references,
-                                                                                 [response.elapsed.total_seconds()],
-                                                                                 500)
+            self._references_throughput_frame.append(
+                len(self._reference_batch) / response.elapsed.total_seconds()
+            )
 
+            ref_per_sec = (
+                sum(self._references_throughput_frame)/len(self._references_throughput_frame)
+            )
+            self._recommended_num_references = round(ref_per_sec * self._creation_time)
             self._reference_batch = ReferenceBatchRequest()
             return response.json()
         return []
 
     def _flush_in_thread(self,
-                         data_type: str,
-                         batch_request: BatchRequest,
-                         ) -> Tuple[Response, int]:
+            data_type: str,
+            batch_request: BatchRequest,
+            ) -> Tuple[Response, int]:
         """
         Flush BatchRequest in current thread/process.
 
@@ -793,6 +796,7 @@ class Batch:
         Tuple[requests.Response, int]
             The request response and number of items sent with the BatchRequest as tuple.
         """
+
         if len(batch_request) != 0:
             response = self._create_data(
                 data_type=data_type,
@@ -818,6 +822,7 @@ class Batch:
         force_wait : bool
             Whether to wait on all created tasks even if we do not have `num_workers` tasks created
         """
+
         future = self._executor.submit(
             self._flush_in_thread,
             data_type='objects',
@@ -829,26 +834,29 @@ class Batch:
                 self._reference_batch
             )
         self._objects_batch = ObjectsBatchRequest()
-
         self._reference_batch = ReferenceBatchRequest()
 
         if not force_wait and len(self._future_pool) < self._num_workers:
             return
 
-        response_times = []
+        creation_time = self._connection.timeout_config[1] / self._num_workers
         for done_future in as_completed(self._future_pool):
 
             response_objects, nr_objects = done_future.result()
 
             # handle objects response
             if response_objects:
-                response_times.append(response_objects.elapsed.total_seconds())
-
+                self._objects_throughput_frame.append(
+                    nr_objects / response_objects.elapsed.total_seconds()
+                )
                 if self._callback:
                     self._callback(response_objects.json())
-        self._recommended_num_objects = self._estimate_dynamic_batch_size(self._recommended_num_objects, response_times,
-                                                                          100)
 
+        if len(self._objects_throughput_frame) != 0:
+            obj_per_second = (
+                sum(self._objects_throughput_frame)/len(self._objects_throughput_frame)
+            )
+            self._recommended_num_objects = round(obj_per_second * creation_time)
         # Create references after all the objects have been created
         reference_future_pool = []
         for reference_batch in self._reference_batch_queue:
@@ -858,31 +866,28 @@ class Batch:
                 batch_request=reference_batch,
             )
             reference_future_pool.append(future)
-        response_times = []
+
         for done_future in as_completed(reference_future_pool):
+
             response_references, nr_references = done_future.result()
 
             # handle references response
             if response_references:
-                response_times.append(response_references.elapsed.total_seconds())
+                self._references_throughput_frame.append(
+                    nr_references / response_references.elapsed.total_seconds()
+                )
                 if self._callback:
                     self._callback(response_references.json())
-        self._recommended_num_references = self._estimate_dynamic_batch_size(self._recommended_num_references,
-                                                                             response_times, 500)
+
+        if len(self._references_throughput_frame) != 0:
+            ref_per_sec = (
+                sum(self._references_throughput_frame)/len(self._references_throughput_frame)
+            )
+            self._recommended_num_references = round(ref_per_sec * creation_time)
+
         self._future_pool = []
         self._reference_batch_queue = []
         return
-
-    def _estimate_dynamic_batch_size(self, old_recommendation: int, response_times: List[float],
-                                     max_increase: int) -> int:
-        if not self._batching_type == 'dynamic' or len(response_times) == 0:
-            return old_recommendation
-        new_recommendation = round(
-            old_recommendation * (self._connection.timeout_config[1] / 4) / max(response_times))
-        print(old_recommendation, max(response_times), old_recommendation + min(
-            new_recommendation - old_recommendation, max_increase))
-        return old_recommendation + min(
-            new_recommendation - old_recommendation, max_increase)
 
     def _auto_create(self) -> None:
         """
@@ -916,11 +921,11 @@ class Batch:
         self._send_batch_requests(force_wait=True)
 
     def delete_objects(self,
-                       class_name: str,
-                       where: dict,
-                       output: str = 'minimal',
-                       dry_run: bool = False,
-                       ) -> dict:
+            class_name: str,
+            where: dict,
+            output: str='minimal',
+            dry_run: bool=False,
+        ) -> dict:
         """
         Delete objects that match the 'match' in batch.
 
@@ -1266,15 +1271,28 @@ class Batch:
 
         return self._recommended_num_references
 
-    def start(self):
+    def start(self) -> 'Batch':
+        """
+        Start the BatchExecutor if it was closed.
+
+        Returns
+        -------
+        Batch
+            Updated self.
+        """
+
         if self._executor.is_shutdown():
             self._executor = BatchExecutor(max_workers=self._num_workers)
         return self
 
-    def shutdown(self):
+    def shutdown(self) -> None:
+        """
+        Shutdown the BatchExecutor.
+        """
+
         self._executor.shutdown()
 
-    def __enter__(self):
+    def __enter__(self) -> 'Batch':
         return self.start()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -1380,7 +1398,7 @@ class Batch:
 
         return self._connection_error_retries
 
-    @timeout_retries.setter
+    @connection_error_retries.setter
     def connection_error_retries(self, value: int) -> None:
 
         _check_non_negative(value, 'connection_error_retries', int)
@@ -1460,3 +1478,33 @@ def _check_bool(value: bool, arg_name: str) -> None:
 
     if not isinstance(value, bool):
         raise TypeError(f"'{arg_name}' must be of type bool.")
+
+
+def _batch_create_error_handler(retry: int, max_retries: int, error: Exception) -> None:
+    """
+    Handle errors that occur in Batch creation. This function is going to re-raise the error if
+    number of re-tries was reached.
+
+    Parameters
+    ----------
+    retry : int
+        Current number of attempted request calls.
+    max_retries : int
+        Maximum number of attempted request calls.
+    error : Exception
+        The exception that occurred (to be re-raised if needed).
+
+    Raises
+    ------
+    Exception
+        The caught exception.
+    """
+
+    if retry >= max_retries:
+        raise error
+    print(
+        f'[ERROR] Batch {error.__class__.__name__} Exception occurred! Retrying in '
+        f'{(retry + 1) * 2}s. [{retry + 1}/{max_retries}]',
+        file=sys.stderr,
+    )
+    time.sleep((retry + 1) * 2)
