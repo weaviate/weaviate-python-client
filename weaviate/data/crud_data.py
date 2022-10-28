@@ -1,6 +1,7 @@
 """
 DataObject class definition.
 """
+import warnings
 import uuid as uuid_lib
 from typing import Union, Optional, List, Sequence
 from weaviate.connect import Connection
@@ -14,9 +15,12 @@ from weaviate.util import (
     get_vector,
     get_valid_uuid,
     _capitalize_first_letter,
-    deprecation,
 )
 from weaviate.data.references import Reference
+from weaviate.error_msgs import (
+    DATA_DEPRECATION_NEW_V14_CLS_NS_W,
+    DATA_DEPRECATION_OLD_V14_CLS_NS_W
+)
 
 
 class DataObject:
@@ -461,20 +465,17 @@ class DataObject:
         is_server_version_14 = (self._connection.server_version >= '1.14')
 
         if class_name is None and is_server_version_14 and uuid is not None:
-            deprecation(
-                "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
-                "APIs, please specify the `class_name` argument for this. The non-class "
-                "namespaced APIs (None value for `class_name`) are going to be removed in the "
-                "future versions of the Weaviate Server and Weaviate Python Client."
+            warnings.warn(
+                message=DATA_DEPRECATION_NEW_V14_CLS_NS_W,
+                category=DeprecationWarning,
+                stacklevel=1,
             )
         if class_name is not None and uuid is not None:
             if not is_server_version_14:
-                deprecation(
-                    "Weaviate Server version < 1.14.x does not support class namespaced APIs. The "
-                    "non-class namespaced APIs calls are going to be made instead (None value for "
-                    "`class_name`). The non-class namespaced APIs are going to be removed in "
-                    "future versions of the Weaviate Server and Weaviate Python Client. "
-                    "Please upgrade your Weaviate Server version."
+                warnings.warn(
+                    message=DATA_DEPRECATION_OLD_V14_CLS_NS_W,
+                    category=DeprecationWarning,
+                    stacklevel=1,
                 )
             if not isinstance(class_name, str):
                 raise TypeError(
@@ -570,20 +571,17 @@ class DataObject:
         is_server_version_14 = (self._connection.server_version >= '1.14')
 
         if class_name is None and is_server_version_14:
-            deprecation(
-                "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
-                "APIs, please specify the `class_name` argument for this. The non-class "
-                "namespaced APIs (None value for `class_name`) are going to be removed in the "
-                "future versions of the Weaviate Server and Weaviate Python Client."
+            warnings.warn(
+                message=DATA_DEPRECATION_NEW_V14_CLS_NS_W,
+                category=DeprecationWarning,
+                stacklevel=1,
             )
         if class_name is not None:
             if not is_server_version_14:
-                deprecation(
-                    "Weaviate Server version < 1.14.x does not support class namespaced APIs. The "
-                    "non-class namespaced APIs calls are going to be made instead (None value for "
-                    "`class_name`). The non-class namespaced APIs are going to be removed in "
-                    "future versions of the Weaviate Server and Weaviate Python Client. "
-                    "Please upgrade your Weaviate Server version."
+                warnings.warn(
+                    message=DATA_DEPRECATION_OLD_V14_CLS_NS_W,
+                    category=DeprecationWarning,
+                    stacklevel=1,
                 )
             if not isinstance(class_name, str):
                 raise TypeError(
@@ -661,20 +659,17 @@ class DataObject:
         is_server_version_14 = (self._connection.server_version >= '1.14')
 
         if class_name is None and is_server_version_14:
-            deprecation(
-                "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
-                "APIs, please specify the `class_name` argument for this. The non-class "
-                "namespaced APIs (None value for `class_name`) are going to be removed in the "
-                "future versions of the Weaviate Server and Weaviate Python Client."
+            warnings.warn(
+                message=DATA_DEPRECATION_NEW_V14_CLS_NS_W,
+                category=DeprecationWarning,
+                stacklevel=1,
             )
         if class_name is not None:
             if not is_server_version_14:
-                deprecation(
-                    "Weaviate Server version < 1.14.x does not support class namespaced APIs. The "
-                    "non-class namespaced APIs calls are going to be made instead (None value for "
-                    "`class_name`). The non-class namespaced APIs are going to be removed in "
-                    "future versions of the Weaviate Server and Weaviate Python Client. "
-                    "Please upgrade your Weaviate Server version."
+                warnings.warn(
+                    message=DATA_DEPRECATION_OLD_V14_CLS_NS_W,
+                    category=DeprecationWarning,
+                    stacklevel=1,
                 )
             if not isinstance(class_name, str):
                 raise TypeError(

@@ -3,7 +3,7 @@ import os
 from copy import deepcopy
 from unittest.mock import patch, Mock
 from weaviate.schema import Schema
-from test.util import mock_connection_method, check_error_message, check_startswith_error_message
+from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.util import _capitalize_first_letter
 
@@ -184,7 +184,7 @@ class TestSchema(unittest.TestCase):
         unexpected_error_msg = 'Update class schema configuration'
         
         mock_schema.return_value = {'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 2}}
-        mock_conn = mock_connection_method('put', side_effect=RequestsConnectionError("Test!"))
+        mock_conn = mock_connection_func('put', side_effect=RequestsConnectionError("Test!"))
         schema = Schema(mock_conn)
         with self.assertRaises(RequestsConnectionError) as error:
             schema.update_config("Test", {'vectorIndexConfig': {'test2': 'Test2'}})
@@ -195,7 +195,7 @@ class TestSchema(unittest.TestCase):
         )
         
         mock_schema.return_value = {'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 2}}
-        mock_conn = mock_connection_method('put', status_code=404)
+        mock_conn = mock_connection_func('put', status_code=404)
         schema = Schema(mock_conn)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             schema.update_config("Test", {'vectorIndexConfig': {'test3': True}})
@@ -207,7 +207,7 @@ class TestSchema(unittest.TestCase):
 
         # valid calls
         mock_schema.return_value = {'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 2}}
-        mock_conn = mock_connection_method('put')
+        mock_conn = mock_connection_func('put')
         schema = Schema(mock_conn)
         schema.update_config("Test", {})
         mock_conn.put.assert_called_with(
@@ -217,7 +217,7 @@ class TestSchema(unittest.TestCase):
 
         # with uncapitalized class_name
         mock_schema.return_value = {'class': 'Test', 'vectorIndexConfig': {'test1': 'Test1', 'test2': 2}}
-        mock_conn = mock_connection_method('put')
+        mock_conn = mock_connection_func('put')
         schema = Schema(mock_conn)
         schema.update_config("test", {})
         mock_conn.put.assert_called_with(
@@ -235,19 +235,19 @@ class TestSchema(unittest.TestCase):
         unexpected_error_msg = "Get schema"
         type_error_msg = lambda dt: f"'class_name' argument must be of type `str`! Given type: {dt}"
 
-        mock_conn = mock_connection_method('get', side_effect=RequestsConnectionError("Test!"))
+        mock_conn = mock_connection_func('get', side_effect=RequestsConnectionError("Test!"))
         schema = Schema(mock_conn)
         with self.assertRaises(RequestsConnectionError) as error:
             schema.get()
         check_error_message(self, error, requests_error_message)
 
-        mock_conn = mock_connection_method('get', status_code=404)
+        mock_conn = mock_connection_func('get', status_code=404)
         schema = Schema(mock_conn)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             schema.get()
         check_startswith_error_message(self, error, unexpected_error_msg)
 
-        connection_mock_file = mock_connection_method('get', status_code=200, return_json={'Test': 'OK!'})
+        connection_mock_file = mock_connection_func('get', status_code=200, return_json={'Test': 'OK!'})
         schema = Schema(connection_mock_file)
         with self.assertRaises(TypeError) as error:
             schema.get(1234)
@@ -280,14 +280,14 @@ class TestSchema(unittest.TestCase):
         # 1. test schema is present:
 
         schema = Schema(
-            mock_connection_method('get', return_json=persons_return_test_schema)
+            mock_connection_func('get', return_json=persons_return_test_schema)
         )
         self.assertTrue(schema.contains())
 
         # 2. test no schema is present:
 
         schema = Schema(
-            mock_connection_method('get', return_json={"classes": []})
+            mock_connection_func('get', return_json={"classes": []})
         )
         self.assertFalse(schema.contains())
 
@@ -295,7 +295,7 @@ class TestSchema(unittest.TestCase):
         ## Test weaviate.schema.contains specific schema.
     
         schema = Schema(
-            mock_connection_method('get', return_json=persons_return_test_schema)
+            mock_connection_func('get', return_json=persons_return_test_schema)
         )
         self.assertFalse(schema.contains(company_test_schema))
         subset_schema = {
@@ -318,13 +318,13 @@ class TestSchema(unittest.TestCase):
         ## Test weaviate.schema.contains schema from file.
 
         schema = Schema(
-            mock_connection_method('get', return_json=persons_return_test_schema)
+            mock_connection_func('get', return_json=persons_return_test_schema)
         )
         schema_json_file = os.path.join(os.path.dirname(__file__), "schema_company.json")
         self.assertFalse(schema.contains(schema_json_file))
 
         schema = Schema(
-            mock_connection_method('get', return_json=company_test_schema)
+            mock_connection_func('get', return_json=company_test_schema)
         )
         self.assertTrue(schema.contains(schema_json_file))
 
@@ -344,21 +344,21 @@ class TestSchema(unittest.TestCase):
         check_error_message(self, error, type_error_message(int))
 
         schema = Schema(
-            mock_connection_method('delete', side_effect=RequestsConnectionError('Test!'))
+            mock_connection_func('delete', side_effect=RequestsConnectionError('Test!'))
         )
         with self.assertRaises(RequestsConnectionError) as error:
             schema.delete_class("uuid")
         check_error_message(self, error, requests_error_message)
 
         schema = Schema(
-            mock_connection_method('delete', status_code=404)
+            mock_connection_func('delete', status_code=404)
         )
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             schema.delete_class("uuid")
         check_startswith_error_message(self, error, "Delete class from schema")
 
         # valid calls
-        mock_conn = mock_connection_method('delete', status_code=200)
+        mock_conn = mock_connection_func('delete', status_code=200)
         schema = Schema(mock_conn)
         schema.delete_class("Test")
         mock_conn.delete.assert_called_with(
@@ -366,7 +366,7 @@ class TestSchema(unittest.TestCase):
         )
 
         # with uncapitalized class_name
-        mock_conn = mock_connection_method('delete', status_code=200)
+        mock_conn = mock_connection_func('delete', status_code=200)
         schema = Schema(mock_conn)
         schema.delete_class("test")
         mock_conn.delete.assert_called_with(
@@ -378,8 +378,8 @@ class TestSchema(unittest.TestCase):
         Test the `delete_all` method.
         """
 
-        mock_connection = mock_connection_method('get', return_json=company_test_schema)
-        mock_connection = mock_connection_method('delete', connection_mock=mock_connection)
+        mock_connection = mock_connection_func('get', return_json=company_test_schema)
+        mock_connection = mock_connection_func('delete', connection_mock=mock_connection)
         schema = Schema(mock_connection)
 
         schema.delete_all()
@@ -407,7 +407,7 @@ class TestSchema(unittest.TestCase):
         # valid calls
 
         def helper_test(nr_calls=1):
-            mock_rest = mock_connection_method('post')
+            mock_rest = mock_connection_func('post')
             schema = Schema(mock_rest)
             schema._create_complex_properties_from_class(properties)
             self.assertEqual(mock_rest.post.call_count, nr_calls)
@@ -420,7 +420,7 @@ class TestSchema(unittest.TestCase):
             )
 
         # no `properties` key
-        mock_rest = mock_connection_method('post')
+        mock_rest = mock_connection_func('post')
         schema = Schema(mock_rest)
 
         schema._create_complex_properties_from_class({})
@@ -456,7 +456,7 @@ class TestSchema(unittest.TestCase):
                 
             ]
         }
-        mock_rest = mock_connection_method('post')
+        mock_rest = mock_connection_func('post')
         schema = Schema(mock_rest)
         schema._create_complex_properties_from_class(properties)
         self.assertEqual(mock_rest.post.call_count, 1)
@@ -503,13 +503,13 @@ class TestSchema(unittest.TestCase):
         # invalid calls
         requests_error_message = 'Property may not have been created properly.'
 
-        mock_rest = mock_connection_method('post', side_effect=RequestsConnectionError('TEST1'))
+        mock_rest = mock_connection_func('post', side_effect=RequestsConnectionError('TEST1'))
         schema = Schema(mock_rest)
         with self.assertRaises(RequestsConnectionError) as error:
             schema._create_complex_properties_from_class(properties)
         check_error_message(self, error, requests_error_message)
 
-        mock_rest = mock_connection_method('post', status_code=404)
+        mock_rest = mock_connection_func('post', status_code=404)
         schema = Schema(mock_rest)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             schema._create_complex_properties_from_class(properties)
@@ -522,7 +522,7 @@ class TestSchema(unittest.TestCase):
         
         # valid calls
         def helper_test(test_class, test_class_call):
-            mock_rest = mock_connection_method('post')
+            mock_rest = mock_connection_func('post')
             schema = Schema(mock_rest)
             schema._create_class_with_primitives(test_class)
             self.assertEqual(mock_rest.post.call_count, 1)
@@ -601,13 +601,13 @@ class TestSchema(unittest.TestCase):
         # invalid calls
         requests_error_message = 'Class may not have been created properly.'
 
-        mock_rest = mock_connection_method('post', side_effect=RequestsConnectionError('TEST1'))
+        mock_rest = mock_connection_func('post', side_effect=RequestsConnectionError('TEST1'))
         schema = Schema(mock_rest)
         with self.assertRaises(RequestsConnectionError) as error:
             schema._create_class_with_primitives(test_class)
         check_error_message(self, error, requests_error_message)
 
-        mock_rest = mock_connection_method('post', status_code=404)
+        mock_rest = mock_connection_func('post', status_code=404)
         schema = Schema(mock_rest)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             schema._create_class_with_primitives(test_class)

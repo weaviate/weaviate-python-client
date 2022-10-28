@@ -4,7 +4,6 @@ Helper functions!
 import os
 import json
 import base64
-import warnings
 import uuid as uuid_lib
 from typing import Union, Sequence, Any, Optional
 from io import BufferedReader
@@ -476,19 +475,6 @@ def _capitalize_first_letter(string: str) -> str:
     if len(string) == 1:
         return string.capitalize()
     return string[0].capitalize() + string[1:]
-
-
-def deprecation(message: str) -> None:
-    """
-    Show deprecation message.
-
-    Parameters
-    ----------
-    message : str
-        The deprecation message to show.
-    """
-
-    warnings.warn(message, DeprecationWarning, stacklevel=2)
 
 
 def check_batch_result(results: dict) -> None:

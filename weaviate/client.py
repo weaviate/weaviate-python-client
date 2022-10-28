@@ -1,6 +1,7 @@
 """
 Client class definition.
 """
+import warnings
 from numbers import Real
 from typing import Optional, Tuple, Union
 
@@ -15,8 +16,8 @@ from .exceptions import UnexpectedStatusCodeException, RequestsConnectionError
 from .gql import Query
 from .cluster import Cluster
 from .schema import Schema
-from .util import deprecation
 from .version import __version__
+from .error_msgs import CLIENT_V14_W
 
 
 class Client:
@@ -137,11 +138,10 @@ class Client:
         self._set_server_version()
 
         if self._connection.server_version < '1.14':
-            deprecation(
-                f"You are using the Weaviate Python Client version {__version__} which introduces "
-                "the new changes/features of the Weaviate Server 1.14.x. If you want to make use "
-                "of the new changes/features of the Weaviate Server 1.14.x using this Python "
-                "Client version, upgrade the Weaviate Server version."
+            warnings.warn(
+                message=CLIENT_V14_W,
+                category=DeprecationWarning,
+                stacklevel=1,
             )
 
     def is_ready(self) -> bool:

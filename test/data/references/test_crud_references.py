@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock
 from weaviate.data.references import Reference
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
-from test.util import mock_connection_method, check_error_message, check_startswith_error_message
+from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 
 
 class TestReference(unittest.TestCase):
@@ -49,20 +49,20 @@ class TestReference(unittest.TestCase):
             reference.delete(self.uuid_1, "myProperty", "str")
         check_error_message(self, error, self.valid_uuid_error_message)
 
-        mock_obj = mock_connection_method('delete', status_code=200)
+        mock_obj = mock_connection_func('delete', status_code=200)
         reference = Reference(mock_obj)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             reference.delete(self.uuid_1, "myProperty", self.uuid_2)
         check_startswith_error_message(self, error, unexpected_error_msg)
 
-        mock_obj = mock_connection_method('delete', side_effect=RequestsConnectionError("Test!"))
+        mock_obj = mock_connection_func('delete', side_effect=RequestsConnectionError("Test!"))
         reference = Reference(mock_obj)
         with self.assertRaises(RequestsConnectionError) as error:
             reference.delete(self.uuid_1, "myProperty", self.uuid_2)
         check_error_message(self, error, connection_error_msg)
 
         # test valid calls
-        connection_mock = mock_connection_method('delete', status_code=204)
+        connection_mock = mock_connection_func('delete', status_code=204)
         reference = Reference(connection_mock)
 
         reference.delete(
@@ -131,20 +131,20 @@ class TestReference(unittest.TestCase):
                                         f"http://localhost:8080/v1/objects/{self.uuid_2}")
         check_error_message(self, error, self.valid_uuid_error_message)
 
-        mock_obj = mock_connection_method('post', status_code=204)
+        mock_obj = mock_connection_func('post', status_code=204)
         reference = Reference(mock_obj)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             reference.add(self.uuid_1, "myProperty", self.uuid_2)
         check_startswith_error_message(self, error, unexpected_error_msg)
 
-        mock_obj = mock_connection_method('post', side_effect=RequestsConnectionError("Test!"))
+        mock_obj = mock_connection_func('post', side_effect=RequestsConnectionError("Test!"))
         reference = Reference(mock_obj)
         with self.assertRaises(RequestsConnectionError) as error:
             reference.add(self.uuid_1, "myProperty", self.uuid_2)
         check_error_message(self, error, connection_error_msg)
 
         # test valid calls
-        connection_mock = mock_connection_method('post')
+        connection_mock = mock_connection_func('post')
         reference = Reference(connection_mock)
 
         # 1. Plain
@@ -232,21 +232,21 @@ class TestReference(unittest.TestCase):
                 f"http://localhost:8080/v1/objects/{self.uuid_2}")
         check_error_message(self, error, self.valid_uuid_error_message)
         
-        mock_obj = mock_connection_method('put', status_code=204)
+        mock_obj = mock_connection_func('put', status_code=204)
         reference = Reference(mock_obj)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             reference.update(self.uuid_1, "myProperty", self.uuid_2)
         check_startswith_error_message(self, error, unexpected_error_msg)
 
   
-        mock_obj = mock_connection_method('put', side_effect=RequestsConnectionError("Test!"))
+        mock_obj = mock_connection_func('put', side_effect=RequestsConnectionError("Test!"))
         reference = Reference(mock_obj)
         with self.assertRaises(RequestsConnectionError) as error:
             reference.update(self.uuid_1, "myProperty", self.uuid_2)
         check_error_message(self, error, connection_error_msg)
 
         # test valid calls
-        connection_mock = mock_connection_method('put')
+        connection_mock = mock_connection_func('put')
         reference = Reference(connection_mock)
 
         reference.update(

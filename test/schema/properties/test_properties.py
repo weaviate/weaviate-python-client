@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock
 from weaviate.schema.properties import Property
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException, SchemaValidationException
-from test.util import mock_connection_method, check_error_message, check_startswith_error_message
+from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 
 
 class TestCRUDProperty(unittest.TestCase):
@@ -29,21 +29,21 @@ class TestCRUDProperty(unittest.TestCase):
         check_error_message(self, error, check_property_error_message)
 
         property = Property(
-            mock_connection_method('post', side_effect=RequestsConnectionError('Test!'))
+            mock_connection_func('post', side_effect=RequestsConnectionError('Test!'))
         )
         with self.assertRaises(RequestsConnectionError) as error:
             property.create("Class", {"name": 'test', 'dataType': ["test_type"]})
         check_error_message(self, error, requests_error_message)
 
         property = Property(
-            mock_connection_method('post', status_code=404)
+            mock_connection_func('post', status_code=404)
         )
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             property.create("Class", {"name": 'test', 'dataType': ["test_type"]})
         check_startswith_error_message(self, error, "Add property to class")
 
         # valid calls
-        connection_mock = mock_connection_method('post') # Mock calling weaviate
+        connection_mock = mock_connection_func('post') # Mock calling weaviate
         property = Property(connection_mock)
 
         test_prop = {

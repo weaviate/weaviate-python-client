@@ -16,8 +16,13 @@ from weaviate.connect import Connection
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.util import (
     _capitalize_first_letter,
-    deprecation,
     check_batch_result,
+)
+from weaviate.error_msgs import (
+    BATCH_MANUAL_USE_W,
+    BATCH_REF_DEPRECATION_NEW_V14_CLS_NS_W,
+    BATCH_REF_DEPRECATION_OLD_V14_CLS_NS_W,
+    BATCH_EXECUTOR_SHUTDOWN_W,
 )
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest
 
@@ -202,6 +207,7 @@ class Batch:
         )
         self._future_pool = []
         self._reference_batch_queue = []
+        self._thread_creation_time = self._connection.timeout_config[1] / OS_CPU_COUNT
 
         # user configurable, need to be public should implement a setter/getter
         self._recommended_num_objects = None
@@ -215,7 +221,7 @@ class Batch:
         self._num_workers = OS_CPU_COUNT
 
         # thread pool executor
-        self._executor = BatchExecutor(max_workers=self._num_workers)
+        self._executor: Optional[BatchExecutor] = None
 
     def configure(self,
             batch_size: Optional[int] = None,
@@ -359,6 +365,7 @@ class Batch:
             self.shutdown()
             self._num_workers = num_workers
             self.start()
+            self._thread_creation_time = self._connection.timeout_config[1] / num_workers
 
         if dynamic is False:  # set Batch to auto-commit with fixed batch_size
             self._batching_type = 'fixed'
@@ -458,21 +465,17 @@ class Batch:
         is_server_version_14 = (self._connection.server_version >= '1.14')
 
         if to_object_class_name is None and is_server_version_14:
-            deprecation(
-                "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
-                "beacons, please specify the `to_object_class_name` argument for this. The "
-                "non-class namespaced beacons (None value for `to_object_class_name`) are going "
-                "to be removed in the future versions of the Weaviate Server and Weaviate Python "
-                "Client."
+            warnings.warn(
+                message=BATCH_REF_DEPRECATION_NEW_V14_CLS_NS_W,
+                category=DeprecationWarning,
+                stacklevel=1,
             )
         if to_object_class_name is not None:
             if not is_server_version_14:
-                deprecation(
-                    "Weaviate Server version < 1.14.x does not support class namespaced APIs. The "
-                    "non-class namespaced APIs calls are going to be made instead (None value for "
-                    "`class_name`). The non-class namespaced APIs are going to be removed in "
-                    "future versions of the Weaviate Server and Weaviate Python Client. "
-                    "Please upgrade your Weaviate Server version."
+                warnings.warn(
+                    message=BATCH_REF_DEPRECATION_OLD_V14_CLS_NS_W,
+                    category=DeprecationWarning,
+                    stacklevel=1,
                 )
                 to_object_class_name = None
             if is_server_version_14:
@@ -653,13 +656,11 @@ class Batch:
         """
 
         if len(self._objects_batch) != 0:
-            message = (
-                "You are manually batching this means you are NOT using the client's "
-                "built-in multi-threading. Setting `batch_size` in `client.batch.configure()` "
-                "to an int value will enabled this. Also see: https://weaviate.io/developers/"
-                "weaviate/current/restful-api-references/batch.html#example-request-1"
+            warnings.warn(
+                message=BATCH_MANUAL_USE_W,
+                category=RuntimeWarning,
+                stacklevel=1,
             )
-            warnings.warn(message, RuntimeWarning, stacklevel=1)
 
             response = self._create_data(
                 data_type='objects',
@@ -750,13 +751,11 @@ class Batch:
         """
 
         if len(self._reference_batch) != 0:
-            message = (
-                "You are manually batching this means you are NOT using the client's "
-                "built-in multi-threading. Setting `batch_size` in `client.batch.configure()` "
-                "to an int value will enabled this. Also see: https://weaviate.io/developers/"
-                "weaviate/current/restful-api-references/batch.html#example-request-1"
+            warnings.warn(
+                message=BATCH_MANUAL_USE_W,
+                category=RuntimeWarning,
+                stacklevel=1,
             )
-            warnings.warn(message, RuntimeWarning, stacklevel=1)
 
             response = self._create_data(
                 data_type='references',
@@ -823,13 +822,21 @@ class Batch:
             Whether to wait on all created tasks even if we do not have `num_workers` tasks created
         """
 
+        if self._executor.is_shutdown():
+            warnings.warn(
+                message=BATCH_EXECUTOR_SHUTDOWN_W,
+                category=RuntimeWarning,
+                stacklevel=1,
+            )
+            self.start()
+
         future = self._executor.submit(
             self._flush_in_thread,
             data_type='objects',
             batch_request=self._objects_batch,
         )
         self._future_pool.append(future)
-        if len(self._reference_batch) != 0:
+        if len(self._reference_batch) > 0:
             self._reference_batch_queue.append(
                 self._reference_batch
             )
@@ -839,7 +846,6 @@ class Batch:
         if not force_wait and len(self._future_pool) < self._num_workers:
             return
 
-        creation_time = self._connection.timeout_config[1] / self._num_workers
         for done_future in as_completed(self._future_pool):
 
             response_objects, nr_objects = done_future.result()
@@ -856,7 +862,7 @@ class Batch:
             obj_per_second = (
                 sum(self._objects_throughput_frame)/len(self._objects_throughput_frame)
             )
-            self._recommended_num_objects = round(obj_per_second * creation_time)
+            self._recommended_num_objects = round(obj_per_second * self._thread_creation_time)
         # Create references after all the objects have been created
         reference_future_pool = []
         for reference_batch in self._reference_batch_queue:
@@ -883,7 +889,7 @@ class Batch:
             ref_per_sec = (
                 sum(self._references_throughput_frame)/len(self._references_throughput_frame)
             )
-            self._recommended_num_references = round(ref_per_sec * creation_time)
+            self._recommended_num_references = round(ref_per_sec * self._thread_creation_time)
 
         self._future_pool = []
         self._reference_batch_queue = []
@@ -1281,7 +1287,7 @@ class Batch:
             Updated self.
         """
 
-        if self._executor.is_shutdown():
+        if self._executor is None or self._executor.is_shutdown():
             self._executor = BatchExecutor(max_workers=self._num_workers)
         return self
 

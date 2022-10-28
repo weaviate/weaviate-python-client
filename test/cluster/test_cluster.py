@@ -1,6 +1,6 @@
 import unittest
 
-from test.util import mock_connection_method, check_error_message, check_startswith_error_message
+from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     RequestsConnectionError,
@@ -20,17 +20,17 @@ class TestCluster(unittest.TestCase):
         connection_err_msg = "Get nodes status failed due to connection error"
 
         # expected failure
-        mock_conn = mock_connection_method("get", status_code=500)
+        mock_conn = mock_connection_func("get", status_code=500)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             Cluster(mock_conn).get_nodes_status()
         check_startswith_error_message(self, error, unexpected_err_msg)
         
-        mock_conn = mock_connection_method("get", status_code=200, return_json={"nodes": []})
+        mock_conn = mock_connection_func("get", status_code=200, return_json={"nodes": []})
         with self.assertRaises(EmptyResponseException) as error:
             Cluster(mock_conn).get_nodes_status()
         check_error_message(self, error, empty_response_err_msg)
 
-        mock_conn = mock_connection_method("get",side_effect=RequestsConnectionError)
+        mock_conn = mock_connection_func("get",side_effect=RequestsConnectionError)
         with self.assertRaises(RequestsConnectionError) as error:
             Cluster(mock_conn).get_nodes_status()
         check_error_message(self, error, connection_err_msg)
@@ -47,7 +47,7 @@ class TestCluster(unittest.TestCase):
                 "version": "x.x.x",
             }]
         }
-        mock_conn = mock_connection_method("get", status_code=200, return_json=expected_resp)
+        mock_conn = mock_connection_func("get", status_code=200, return_json=expected_resp)
         result = Cluster(mock_conn).get_nodes_status()
         self.assertListEqual(result, expected_resp.get("nodes"))
         mock_conn.get.assert_called_with(path="/nodes")

@@ -2,7 +2,7 @@ import os
 import unittest
 from unittest.mock import Mock, patch
 from numbers import Real
-from test.util import mock_connection_method, check_error_message, check_startswith_error_message
+from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 from requests import ReadTimeout
 from weaviate.batch.requests import ObjectsBatchRequest, ReferenceBatchRequest
 from weaviate.batch import Batch
@@ -43,7 +43,7 @@ class TestBatch(unittest.TestCase):
         Test Setter and Getter for 'timeout_retries'.
         """
 
-        batch = Batch(Mock())
+        batch = Batch(mock_connection_func())
         self.check_instance(batch=batch)
 
         self.assertEqual(batch.timeout_retries, 3)
@@ -93,7 +93,7 @@ class TestBatch(unittest.TestCase):
         Test Setter and Getter for 'connection_error_retries'.
         """
 
-        batch = Batch(Mock())
+        batch = Batch(mock_connection_func())
         self.check_instance(batch=batch)
 
         self.assertEqual(batch.connection_error_retries, 3)
@@ -143,7 +143,7 @@ class TestBatch(unittest.TestCase):
         Test Setter and Getter for 'recommended_num_objects'.
         """
 
-        batch = Batch(Mock())
+        batch = Batch(mock_connection_func())
         self.check_instance(batch)
 
         self.assertIsNone(batch.recommended_num_objects)
@@ -162,7 +162,7 @@ class TestBatch(unittest.TestCase):
         Test Setter and Getter for 'recommended_num_references'.
         """
 
-        batch = Batch(Mock())
+        batch = Batch(mock_connection_func())
         self.check_instance(batch)
 
         self.assertIsNone(batch.recommended_num_references)
@@ -182,7 +182,7 @@ class TestBatch(unittest.TestCase):
         Test Setter and Getter for 'batch_size'.
         """
 
-        batch = Batch(Mock())
+        batch = Batch(mock_connection_func())
         self.check_instance(batch)
 
         self.assertIsNone(batch.batch_size)
@@ -287,7 +287,7 @@ class TestBatch(unittest.TestCase):
         Test Setter and Getter for 'dynamic'.
         """
 
-        batch = Batch(Mock())
+        batch = Batch(mock_connection_func())
         self.check_instance(batch)
 
         self.assertFalse(batch.dynamic)
@@ -338,7 +338,7 @@ class TestBatch(unittest.TestCase):
         Test Setter and Getter for 'creation_time'.
         """
 
-        batch = Batch(Mock())
+        batch = Batch(mock_connection_func())
         self.check_instance(batch)
 
         self.assertEqual(batch.creation_time, 10.0)
@@ -446,9 +446,7 @@ class TestBatch(unittest.TestCase):
         Test the `shape`, `num_objects` and `num_references` property/methods.
         """
 
-        mock_connection = Mock()
-        mock_connection.server_version = '1.14.0'
-        batch = Batch(mock_connection)
+        batch = Batch(mock_connection_func(server_version='1.14.0'))
 
         self.assertEqual(batch.num_objects(), 0)
         self.assertEqual(batch.num_references(), 0)
@@ -505,7 +503,7 @@ class TestBatch(unittest.TestCase):
         """
 
         mock_start.return_value = 'test'
-        batch = Batch(Mock())
+        batch = Batch(mock_connection_func())
 
         with batch as b:
             self.assertEqual('test', b)
@@ -522,7 +520,7 @@ class TestBatch(unittest.TestCase):
         Test `shutdown` method.
         """
 
-        batch = Batch(Mock())
+        batch = Batch(mock_connection_func())
         executor_mock = Mock()
         batch._executor = executor_mock
         executor_mock.shutdown.assert_not_called()
@@ -539,7 +537,7 @@ class TestBatch(unittest.TestCase):
         executor.is_shutdown.return_value = False
         mock_executor_class.return_value = executor
 
-        batch = Batch(Mock())
+        batch = Batch(mock_connection_func())
         mock_executor_class.assert_called_with(max_workers=OS_CPU_COUNT)
 
         mock_executor_class.reset_mock()
@@ -565,7 +563,7 @@ class TestBatch(unittest.TestCase):
         Test `flush` method.
         """
 
-        batch = Batch(Mock())
+        batch = Batch(mock_connection_func())
 
         batch.flush()
         mock_send_batch_requests.assert_called_with(force_wait=True)
@@ -578,9 +576,7 @@ class TestBatch(unittest.TestCase):
         Test `_auto_create` method through `add_*` methods.
         """
 
-        mock_connection = Mock()
-        mock_connection.server_version = '1.14.0'
-        batch = Batch(mock_connection)
+        batch = Batch(mock_connection_func(server_version='1.14.0'))
         batch.batch_size = 2 # this enables auto_create with batching `fixed`
 
         #######################################################################
@@ -612,9 +608,7 @@ class TestBatch(unittest.TestCase):
 
         #######################################################################
         # batching_type 'dynamic'
-        mock_connection = Mock()
-        mock_connection.server_version = '1.14.0'
-        batch = Batch(mock_connection)
+        batch = Batch(mock_connection_func(server_version='1.14.0'))
         batch.batch_size = 2 # this enables auto_create with batching `fixed`
         batch.dynamic = True # NOTE: recommended are set to 2 when we set the batch_size to 2
         batch.add_data_object({}, 'Test')
@@ -641,7 +635,7 @@ class TestBatch(unittest.TestCase):
         # exceptions
         ## error messages
         value_error = f'Unsupported batching type "{None}"'
-        batch = Batch(Mock())
+        batch = Batch(mock_connection_func())
         with self.assertRaises(ValueError) as error:
             batch._auto_create() # This should not be called like this, only for test purposes
         check_error_message(self, error, value_error)
@@ -652,7 +646,7 @@ class TestBatch(unittest.TestCase):
         Test `add_data_object` method.
         """
 
-        batch = Batch(Mock())
+        batch = Batch(mock_connection_func())
         batch._objects_batch = Mock() # to test if the add method is called
 
 
@@ -717,9 +711,7 @@ class TestBatch(unittest.TestCase):
         Test `add_reference` method.
         """
 
-        mock_connection = Mock()
-        mock_connection.server_version = '1.14.0'
-        batch = Batch(mock_connection)
+        batch = Batch(mock_connection_func(server_version='1.14.0'))
         batch._reference_batch = Mock() # to test if the add method is called
 
 
@@ -814,7 +806,7 @@ class TestBatch(unittest.TestCase):
         Test `create_objects` method.
         """
 
-        batch = Batch(Mock())
+        batch = Batch(mock_connection_func())
         ## mock the requests.Response object
         mock_response = Mock()
         mock_response.json.return_value = 'Test'
@@ -845,9 +837,7 @@ class TestBatch(unittest.TestCase):
         Test `create_references` method.
         """
 
-        mock_connection = Mock()
-        mock_connection.server_version = '1.14.0'
-        batch = Batch(mock_connection)
+        batch = Batch(mock_connection_func(server_version='1.14.0'))
         ## mock the requests.Response object
         mock_response = Mock()
         mock_response.json.return_value = 'Test'
@@ -889,7 +879,7 @@ class TestBatch(unittest.TestCase):
 
         #######################################################################
         # test status_code == 200, timeout_retries = 0
-        mock_connection = mock_connection_method('post', status_code=200)
+        mock_connection = mock_connection_func('post', status_code=200)
         batch = Batch(mock_connection)
         batch._create_data('references', ReferenceBatchRequest())
         mock_connection.post.assert_called_with(
@@ -900,7 +890,7 @@ class TestBatch(unittest.TestCase):
 
         #######################################################################
         # timeout_retries = 2, and no exception raised
-        mock_connection = mock_connection_method('post', status_code=200)
+        mock_connection = mock_connection_func('post', status_code=200)
         batch = Batch(mock_connection)
         batch.timeout_retries = 2
         batch._create_data('references', ReferenceBatchRequest())
@@ -924,7 +914,7 @@ class TestBatch(unittest.TestCase):
 
         #######################################################################
         ## test RequestsConnectionError
-        mock_connection = mock_connection_method('post', side_effect=RequestsConnectionError('Test!'))
+        mock_connection = mock_connection_func('post', side_effect=RequestsConnectionError('Test!'))
         batch = Batch(mock_connection)
         with self.assertRaises(RequestsConnectionError) as error:
             batch._create_data('objects', ObjectsBatchRequest())
@@ -935,7 +925,7 @@ class TestBatch(unittest.TestCase):
         )
 
         ## test ReadTimeout, timeout_retries = 0
-        mock_connection = mock_connection_method('post', side_effect = ReadTimeout('Test!'))
+        mock_connection = mock_connection_func('post', side_effect = ReadTimeout('Test!'))
         mock_connection.timeout_config = (2, 100)
         batch = Batch(mock_connection)
         batch.timeout_retries = 0
@@ -949,7 +939,7 @@ class TestBatch(unittest.TestCase):
         self.assertEqual(mock_connection.post.call_count, 1)
 
         ## test ReadTimeout, timeout_retries = 3 (default)
-        mock_connection = mock_connection_method('post', side_effect = ReadTimeout('Test!'))
+        mock_connection = mock_connection_func('post', side_effect = ReadTimeout('Test!'))
         mock_connection.timeout_config = (2, 100)
         batch = Batch(mock_connection)
         with self.assertRaises(ReadTimeout) as error:
@@ -962,7 +952,7 @@ class TestBatch(unittest.TestCase):
         self.assertEqual(mock_connection.post.call_count, 3 + 1)
 
         ## test ConnectionError, connection_error_retries = 0
-        mock_connection = mock_connection_method('post', side_effect = RequestsConnectionError('Test!'))
+        mock_connection = mock_connection_func('post', side_effect = RequestsConnectionError('Test!'))
         mock_connection.timeout_config = (2, 100)
         batch = Batch(mock_connection)
         batch.connection_error_retries = 0
@@ -976,7 +966,7 @@ class TestBatch(unittest.TestCase):
         self.assertEqual(mock_connection.post.call_count, 1)
 
         ## test ConnectionError, connection_error_retries = 3 (default)
-        mock_connection = mock_connection_method('post', side_effect = RequestsConnectionError('Test!'))
+        mock_connection = mock_connection_func('post', side_effect = RequestsConnectionError('Test!'))
         mock_connection.timeout_config = (2, 100)
         batch = Batch(mock_connection)
         with self.assertRaises(RequestsConnectionError) as error:
@@ -999,7 +989,7 @@ class TestBatch(unittest.TestCase):
             i_for_alt_errors += 1
             raise err
 
-        mock_connection = mock_connection_method('post', side_effect = lambda path, weaviate_object: alternating_errors())
+        mock_connection = mock_connection_func('post', side_effect = lambda path, weaviate_object: alternating_errors())
         mock_connection.timeout_config = (2, 100)
         batch = Batch(mock_connection)
         batch.connection_error_retries = 2
@@ -1014,7 +1004,7 @@ class TestBatch(unittest.TestCase):
         self.assertEqual(mock_connection.post.call_count, 2 + 2 + 1)
 
         ## test status_code != 200
-        mock_connection = mock_connection_method('post', status_code=204)
+        mock_connection = mock_connection_func('post', status_code=204)
         batch = Batch(mock_connection)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             batch._create_data('references', ReferenceBatchRequest())
@@ -1030,7 +1020,7 @@ class TestBatch(unittest.TestCase):
         Test the `configure` method, which is the same as `__call__`.
         """
 
-        batch = Batch(Mock())
+        batch = Batch(mock_connection_func())
         self.check_instance(batch)
 
         #######################################################################
@@ -1352,7 +1342,7 @@ class TestBatch(unittest.TestCase):
         Test the `pop_object` and the `pop_reference`.
         """
 
-        batch = Batch(Mock())
+        batch = Batch(mock_connection_func())
 
         # mock BatchRequests
         mock_obj = Mock()
@@ -1397,7 +1387,7 @@ class TestBatch(unittest.TestCase):
         Test the `empty_objects` and the `empty_references`.
         """
 
-        batch = Batch(Mock())
+        batch = Batch(mock_connection_func())
 
         # mock BatchRequests
         mock_obj = Mock()
@@ -1426,7 +1416,7 @@ class TestBatch(unittest.TestCase):
         Test the `is_empty_objects` and the `is_empty_references`.
         """
 
-        batch = Batch(Mock())
+        batch = Batch(mock_connection_func())
 
         # mock BatchRequests
         mock_obj = Mock()

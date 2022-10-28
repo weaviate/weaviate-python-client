@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch, Mock
 from weaviate.classification.classification import Classification, ConfigBuilder
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
-from test.util import mock_connection_method, check_error_message, check_startswith_error_message
+from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 
 
 class TestClassification(unittest.TestCase):
@@ -34,18 +34,18 @@ class TestClassification(unittest.TestCase):
             Classification(None).get('123')
         check_error_message(self, error, value_error)
 
-        mock_conn = mock_connection_method('get', side_effect=RequestsConnectionError('Test!'))
+        mock_conn = mock_connection_func('get', side_effect=RequestsConnectionError('Test!'))
         with self.assertRaises(RequestsConnectionError) as error:
             Classification(mock_conn).get("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92")
         check_error_message(self, error, requests_error_message)
 
-        mock_conn = mock_connection_method('get', status_code=404)
+        mock_conn = mock_connection_func('get', status_code=404)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             Classification(mock_conn).get("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92")
         check_startswith_error_message(self, error, unexpected_error_message)
 
         # valid calls
-        mock_conn = mock_connection_method('get', return_json='OK!', status_code=200)
+        mock_conn = mock_connection_func('get', return_json='OK!', status_code=200)
         result = Classification(mock_conn).get("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92")
         self.assertEqual(result, 'OK!')
 
@@ -422,7 +422,7 @@ class TestConfigBuilder(unittest.TestCase):
         unexpected_error_message = "Start classification"
 
         # invalid calls
-        mock_conn = mock_connection_method('post', side_effect=RequestsConnectionError('Test!'))
+        mock_conn = mock_connection_func('post', side_effect=RequestsConnectionError('Test!'))
         config = ConfigBuilder(mock_conn, None)
         with self.assertRaises(RequestsConnectionError) as error:
             config._start()
@@ -432,7 +432,7 @@ class TestConfigBuilder(unittest.TestCase):
             weaviate_object={}
         )
 
-        mock_conn = mock_connection_method('post', status_code=200)
+        mock_conn = mock_connection_func('post', status_code=200)
         config = ConfigBuilder(mock_conn, None).with_class_name('Test!')
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             config._start()
@@ -443,7 +443,7 @@ class TestConfigBuilder(unittest.TestCase):
         )
 
         # valid calls
-        mock_conn = mock_connection_method('post', status_code=201, return_json='OK!')
+        mock_conn = mock_connection_func('post', status_code=201, return_json='OK!')
         config = ConfigBuilder(mock_conn, None).with_class_name('TestClass').with_type('TestType')
         self.assertEqual(config._start(), 'OK!')
         mock_conn.post.assert_called_with(

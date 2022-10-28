@@ -1,13 +1,18 @@
 """
 Reference class definition.
 """
+import warnings
 from typing import Union, Optional
 from weaviate.connect import Connection
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
 from weaviate.util import (
     get_valid_uuid,
-    deprecation,
     _capitalize_first_letter,
+)
+from weaviate.error_msgs import (
+    REF_DEPRECATION_NEW_V14_CLS_NS_W,
+    REF_DEPRECATION_OLD_V14_FROM_CLS_NS_W,
+    REF_DEPRECATION_OLD_V14_TO_CLS_NS_W
 )
 
 
@@ -145,21 +150,17 @@ class Reference:
         is_server_version_14 = (self._connection.server_version >= '1.14')
 
         if (from_class_name is None or to_class_name is None) and is_server_version_14:
-            deprecation(
-                "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
-                "APIs and beacons, please set the `from_class_name` AND `to_class_name` arguments "
-                "for this. The non-class namespaced APIs and beacons (None value for "
-                "`from_class_name` AND `to_class_name`) are going to be removed in future "
-                "versions of the Weaviate Server and Weaviate Python Client."
+            warnings.warn(
+                message=REF_DEPRECATION_NEW_V14_CLS_NS_W,
+                category=DeprecationWarning,
+                stacklevel=1,
             )
         if from_class_name is not None:
             if not is_server_version_14:
-                deprecation(
-                    "Weaviate Server version < 1.14.x does not support class namespaced APIs. "
-                    "The non-class namespaced APIs calls are going to be made instead "
-                    "(None value for `from_class_name`). The non-class namespaced APIs and "
-                    "beacons are going to be removed in future versions of the Weaviate Server "
-                    "and Weaviate Python Client. Please upgrade your Weaviate Server version."
+                warnings.warn(
+                    message=REF_DEPRECATION_OLD_V14_FROM_CLS_NS_W,
+                    category=DeprecationWarning,
+                    stacklevel=1,
                 )
             _validate_string_arguments(
                 argument=from_class_name,
@@ -167,12 +168,10 @@ class Reference:
             )
         if to_class_name is not None:
             if not is_server_version_14:
-                deprecation(
-                    "Weaviate Server version < 1.14.x does not support class namespaced beacons. "
-                    "The non-class namespaced beacons are going to be constructed instead "
-                    "(None value for `to_class_name`). The non-class namespaced APIs and "
-                    "beacons are going to be removed in future versions of the Weaviate Server "
-                    "and Weaviate Python Client. Please upgrade your Weaviate Server version."
+                warnings.warn(
+                    message=REF_DEPRECATION_OLD_V14_TO_CLS_NS_W,
+                    category=DeprecationWarning,
+                    stacklevel=1,
                 )
             _validate_string_arguments(
                 argument=to_class_name,
@@ -342,21 +341,17 @@ class Reference:
         is_server_version_14 = (self._connection.server_version >= '1.14')
 
         if (from_class_name is None or to_class_names is None) and is_server_version_14:
-            deprecation(
-                "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
-                "APIs and beacons, please set the `from_class_name` AND `to_class_name` arguments "
-                "for this. The non-class namespaced APIs and beacons (None value for "
-                "`from_class_name` AND `to_class_name`) are going to be removed in future "
-                "versions of the Weaviate Server and Weaviate Python Client."
+            warnings.warn(
+                message=REF_DEPRECATION_NEW_V14_CLS_NS_W,
+                category=DeprecationWarning,
+                stacklevel=1,
             )
         if from_class_name is not None:
             if not is_server_version_14:
-                deprecation(
-                    "Weaviate Server version < 1.14.x does not support class namespaced APIs. "
-                    "The non-class namespaced APIs calls are going to be made instead "
-                    "(None value for `from_class_name`). The non-class namespaced APIs and "
-                    "beacons are going to be removed in future versions of the Weaviate Server "
-                    "and Weaviate Python Client. Please upgrade your Weaviate Server version."
+                warnings.warn(
+                    message=REF_DEPRECATION_OLD_V14_FROM_CLS_NS_W,
+                    category=DeprecationWarning,
+                    stacklevel=1,
                 )
             _validate_string_arguments(
                 argument=from_class_name,
@@ -364,12 +359,10 @@ class Reference:
             )
         if to_class_names is not None:
             if not is_server_version_14:
-                deprecation(
-                    "Weaviate Server version < 1.14.x does not support class namespaced beacons. "
-                    "The non-class namespaced beacons are going to be constructed instead "
-                    "(None value for `to_class_name`). The non-class namespaced APIs and "
-                    "beacons are going to be removed in future versions of the Weaviate Server "
-                    "and Weaviate Python Client. Please upgrade your Weaviate Server version."
+                warnings.warn(
+                    message=REF_DEPRECATION_OLD_V14_TO_CLS_NS_W,
+                    category=DeprecationWarning,
+                    stacklevel=1,
                 )
 
             if not isinstance(to_class_names, list):
@@ -539,21 +532,17 @@ class Reference:
         is_server_version_14 = (self._connection.server_version >= '1.14')
 
         if (from_class_name is None or to_class_name is None) and is_server_version_14:
-            deprecation(
-                "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
-                "APIs and beacons, please set the `from_class_name` AND `to_class_name` arguments "
-                "for this. The non-class namespaced APIs and beacons (None value for "
-                "`from_class_name` AND `to_class_name`) are going to be removed in future "
-                "versions of the Weaviate Server and Weaviate Python Client."
+            warnings.warn(
+                message=REF_DEPRECATION_NEW_V14_CLS_NS_W,
+                category=DeprecationWarning,
+                stacklevel=1,
             )
         if from_class_name is not None:
             if not is_server_version_14:
-                deprecation(
-                    "Weaviate Server version < 1.14.x does not support class namespaced APIs. "
-                    "The non-class namespaced APIs calls are going to be made instead "
-                    "(None value for `from_class_name`). The non-class namespaced APIs and "
-                    "beacons are going to be removed in future versions of the Weaviate Server "
-                    "and Weaviate Python Client. Please upgrade your Weaviate Server version."
+                warnings.warn(
+                    message=REF_DEPRECATION_OLD_V14_FROM_CLS_NS_W,
+                    category=DeprecationWarning,
+                    stacklevel=1,
                 )
             _validate_string_arguments(
                 argument=from_class_name,
@@ -561,12 +550,10 @@ class Reference:
             )
         if to_class_name is not None:
             if not is_server_version_14:
-                deprecation(
-                    "Weaviate Server version < 1.14.x does not support class namespaced beacons. "
-                    "The non-class namespaced beacons are going to be constructed instead "
-                    "(None value for `to_class_name`). The non-class namespaced APIs and "
-                    "beacons are going to be removed in future versions of the Weaviate Server "
-                    "and Weaviate Python Client. Please upgrade your Weaviate Server version."
+                warnings.warn(
+                    message=REF_DEPRECATION_OLD_V14_TO_CLS_NS_W,
+                    category=DeprecationWarning,
+                    stacklevel=1,
                 )
             _validate_string_arguments(
                 argument=to_class_name,
