@@ -538,7 +538,17 @@ class TestBatch(unittest.TestCase):
         mock_executor_class.return_value = executor
 
         batch = Batch(mock_connection_func())
-        mock_executor_class.assert_called_with(max_workers=OS_CPU_COUNT)
+        mock_executor_class.assert_not_called()
+
+        mock_executor_class.reset_mock()
+        mock_executor_class.return_value = executor
+        executor.is_shutdown.assert_not_called()
+        result = batch.start()
+        self.assertEqual(result, batch)
+        executor.is_shutdown.assert_not_called()
+        mock_executor_class.assert_called()
+
+        executor.reset_mock()
 
         mock_executor_class.reset_mock()
         mock_executor_class.return_value = executor
