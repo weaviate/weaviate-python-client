@@ -200,10 +200,10 @@ class Batch:
         # do not keep too many past values, so it is a better estimation of the throughput
         # the throughput is computed for 1 second
         self._objects_throughput_frame = deque(
-            maxlen=5,
+            maxlen=max(5, OS_CPU_COUNT),
         )
         self._references_throughput_frame = deque(
-            maxlen=5,
+            maxlen=max(5, OS_CPU_COUNT),
         )
         self._future_pool = []
         self._reference_batch_queue = []
