@@ -5,27 +5,26 @@ import os
 import sys
 import time
 import warnings
-from numbers import Real
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from numbers import Real
 from typing import Tuple, Callable, Optional, Sequence
 
 from requests import ReadTimeout, Response
 
 from weaviate.connect import Connection
-from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
-from weaviate.util import (
-    _capitalize_first_letter,
-    check_batch_result,
-)
 from weaviate.error_msgs import (
     BATCH_MANUAL_USE_W,
     BATCH_REF_DEPRECATION_NEW_V14_CLS_NS_W,
     BATCH_REF_DEPRECATION_OLD_V14_CLS_NS_W,
     BATCH_EXECUTOR_SHUTDOWN_W,
 )
+from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+from weaviate.util import (
+    _capitalize_first_letter,
+    check_batch_result,
+)
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest
-
 
 OS_CPU_COUNT = os.cpu_count()
 
@@ -821,8 +820,9 @@ class Batch:
         force_wait : bool
             Whether to wait on all created tasks even if we do not have `num_workers` tasks created
         """
-
-        if self._executor.is_shutdown():
+        if self._executor is None:
+            self.start()
+        elif self._executor.is_shutdown():
             warnings.warn(
                 message=BATCH_EXECUTOR_SHUTDOWN_W,
                 category=RuntimeWarning,

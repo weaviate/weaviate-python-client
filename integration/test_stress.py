@@ -132,7 +132,7 @@ class Article:
 
 
 @pytest.mark.parametrize("dynamic", [True, False])
-@pytest.mark.parametrize("batch_size", [50])
+@pytest.mark.parametrize("batch_size", [50, 100])
 def test_stress(batch_size, dynamic):
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
