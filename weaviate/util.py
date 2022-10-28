@@ -1,14 +1,15 @@
 """
 Helper functions!
 """
-import os
-import json
 import base64
+import json
+import os
 import uuid as uuid_lib
-from typing import Union, Sequence, Any, Optional
 from io import BufferedReader
-import validators
+from typing import Union, Sequence, Any, Optional
+
 import requests
+import validators
 
 from weaviate.exceptions import SchemaValidationException
 

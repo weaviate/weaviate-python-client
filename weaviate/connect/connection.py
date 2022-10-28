@@ -1,6 +1,7 @@
 """
 Connection class definition.
 """
+import datetime
 import os
 import time
 import datetime
@@ -8,6 +9,8 @@ from typing import Any, Dict, Tuple, Optional, Union
 from numbers import Real
 import requests
 from requests import RequestException
+
+from weaviate.auth import AuthCredentials
 from weaviate.exceptions import AuthenticationFailedException
 from weaviate.auth import AuthCredentials
 
@@ -63,7 +66,7 @@ class Connection:
         self._server_version = None
         self._session = requests.Session()
         self.url = url  # e.g. http://localhost:80
-        self._timeout_config = timeout_config # this uses the setter
+        self.timeout_config = timeout_config  # this uses the setter
 
         self._auth_expires = 0  # unix time when auth expires
         self._auth_bearer = None
