@@ -29,7 +29,7 @@ class TestWCS(unittest.TestCase):
         # without DEV
         auth = AuthClientPassword('test_user', 'test_pass')
         wcs = WCS(auth)
-        self.assertTrue(wcs._is_authentication_required)
+        self.assertTrue(wcs._oidc_auth_flow)
         self.assertEqual(wcs.timeout_config, (2, 20))
         self.assertEqual(wcs._auth_expires, 0)
         self.assertIsNone(wcs._auth_bearer)
@@ -43,7 +43,7 @@ class TestWCS(unittest.TestCase):
         # without DEV
         auth = AuthClientPassword('test_user', 'test_pass')
         wcs = WCS(auth, dev=True)
-        self.assertTrue(wcs._is_authentication_required)
+        self.assertTrue(wcs._oidc_auth_flow)
         self.assertEqual(wcs.timeout_config, (2, 20))
         self.assertEqual(wcs._auth_expires, 0)
         self.assertIsNone(wcs._auth_bearer)

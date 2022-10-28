@@ -33,12 +33,12 @@ class AuthClientCredentials(AuthCredentials):
         Parameters
         ----------
         client_secret : str
-            The access token.
+            The client secret credentials, NOT access token.
         """
 
         super().__init__()
         self._credentials_body["grant_type"] = "client_credentials"
-        self.client_secret_encoded = base64.b64encode(client_secret.encode('ascii')).decode('ascii')
+        self._client_secret_encoded = base64.b64encode(client_secret.encode('utf-8')).decode('utf-8')
 
     def get_credentials(self) -> dict:
         """
@@ -52,8 +52,8 @@ class AuthClientCredentials(AuthCredentials):
 
         return_body = copy.deepcopy(self._credentials_body)
         return_body["client_secret"] = (
-            base64.b64decode(self.client_secret_encoded.encode('ascii'))
-            .decode('ascii')
+            base64.b64decode(self._client_secret_encoded.encode('utf-8'))
+            .decode('utf-8')
         )
         return return_body
 
@@ -80,7 +80,7 @@ class AuthClientPassword(AuthCredentials):
         super().__init__()
         self._credentials_body["grant_type"] = "password"
         self._credentials_body["username"] = username
-        self.password_encoded = base64.b64encode(password.encode('ascii')).decode('ascii')
+        self._password_encoded = base64.b64encode(password.encode('utf-8')).decode('utf-8')
 
     def get_credentials(self) -> dict:
         """
@@ -94,7 +94,7 @@ class AuthClientPassword(AuthCredentials):
 
         return_body = copy.deepcopy(self._credentials_body)
         return_body["password"] = (
-            base64.b64decode(self.password_encoded.encode('ascii'))
-            .decode('ascii')
+            base64.b64decode(self._password_encoded.encode('utf-8'))
+            .decode('utf-8')
         )
         return return_body

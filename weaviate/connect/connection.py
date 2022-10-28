@@ -4,13 +4,12 @@ Connection class definition.
 import os
 import time
 import datetime
-from typing import Tuple, Optional, Union
+from typing import Any, Dict, Tuple, Optional, Union
 from numbers import Real
 import requests
 from requests import RequestException
 from weaviate.exceptions import AuthenticationFailedException
 from weaviate.auth import AuthCredentials
-from weaviate.util import _get_valid_timeout_config
 
 
 class Connection:
@@ -23,7 +22,7 @@ class Connection:
             timeout_config: Union[Tuple[Real, Real], Real],
             proxies: Union[dict, str, None],
             trust_env: bool,
-            additional_headers: Optional[dict],
+            additional_headers: Optional[Dict[str, Any]],
         ):
         """
         Initialize a Connection class instance.
@@ -49,7 +48,7 @@ class Connection:
             or https_proxy).
             NOTE: 'proxies' has priority over 'trust_env', i.e. if 'proxies' is NOT None,
             'trust_env' is ignored.
-        additional_headers : dict or None
+        additional_headers : Dict[str, Any] or None
             Additional headers to include in the requests, used to set OpenAI key. OpenAI key looks
             like this: {'X-OpenAI-Api-Key': 'KEY'}.
 
@@ -70,7 +69,7 @@ class Connection:
         self._auth_bearer = None
         self._auth_client_secret = auth_client_secret
 
-        self._is_authentication_required = False
+        self._oidc_auth_flow = False
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:
@@ -79,11 +78,13 @@ class Connection:
                     "'additional_headers' must be of type dict or None. "
                     f"Given type: {type(additional_headers)}."
                 )
-            self._headers.update(additional_headers)
+            for key, value in additional_headers.items():
+                self._headers[key.lower()] = value
 
         self._proxies = _get_proxies(proxies, trust_env)
 
-        self._log_in()
+        if 'authorization' not in self._headers:
+            self._log_in()
 
     def _log_in(self) -> None:
         """
@@ -105,7 +106,7 @@ class Connection:
 
         if response.status_code == 200:
             if isinstance(self._auth_client_secret, AuthCredentials):
-                self._is_authentication_required = True
+                self._oidc_auth_flow = True
                 self._refresh_authentication()
             else:
                 raise ValueError(
@@ -197,14 +198,15 @@ class Connection:
                 "Status not OK in connection to the third party authentication service."
             )
 
+        request_body = self._auth_client_secret.get_credentials()
+
         # Validate third part auth info
-        if 'client_credentials' not in request_third_part.json()['grant_types_supported']:
+        if request_body['grant_type'] not in request_third_part.json()['grant_types_supported']:
             raise AuthenticationFailedException(
                 "The grant_types supported by the third-party authentication service are "
-                "insufficient. Please add 'client_credentials'."
+                f"insufficient. Please add the '{request_body['grant_type']}' grant type."
             )
 
-        request_body = self._auth_client_secret.get_credentials()
         request_body["client_id"] = client_id
 
         # try the request
@@ -242,7 +244,7 @@ class Connection:
             Request header as a dict.
         """
 
-        if self._is_authentication_required:
+        if self._oidc_auth_flow:
             self._refresh_authentication()
             self._headers["Authorization"] = "Bearer " + self._auth_bearer
         return self._headers
@@ -587,3 +589,42 @@ def _get_proxies(proxies: Union[dict, str, None], trust_env: bool) -> dict:
         proxies['https'] = https_proxy[0] if https_proxy[0] else https_proxy[1]
 
     return proxies
+
+
+def _get_valid_timeout_config(timeout_config: Union[Tuple[Real, Real], Real, None]):
+    """
+    Validate and return TimeOut configuration.
+
+    Parameters
+    ----------
+    timeout_config : tuple(Real, Real) or Real or None, optional
+            Set the timeout configuration for all requests to the Weaviate server. It can be a
+            real number or, a tuple of two real numbers: (connect timeout, read timeout).
+            If only one real number is passed then both connect and read timeout will be set to
+            that value.
+
+    Raises
+    ------
+    TypeError
+        If arguments are of a wrong data type.
+    ValueError
+        If 'timeout_config' is not a tuple of 2.
+    ValueError
+        If 'timeout_config' is/contains negative number/s.
+    """
+
+    if isinstance(timeout_config, Real) and not isinstance(timeout_config, bool):
+        if timeout_config <= 0.0:
+            raise ValueError("'timeout_config' cannot be non-positive number/s!")
+        return (timeout_config, timeout_config)
+
+    if not isinstance(timeout_config, tuple):
+        raise TypeError("'timeout_config' should be a (or tuple of) positive real number/s!")
+    if len(timeout_config) != 2:
+        raise ValueError("'timeout_config' must be of length 2!")
+    if not (isinstance(timeout_config[0], Real) and isinstance(timeout_config[1], Real)) or \
+            (isinstance(timeout_config[0], bool) and isinstance(timeout_config[1], bool)):
+        raise TypeError("'timeout_config' must be tuple of real numbers")
+    if timeout_config[0] <= 0.0 or timeout_config[1] <= 0.0:
+        raise ValueError("'timeout_config' cannot be non-positive number/s!")
+    return timeout_config
