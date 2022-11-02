@@ -85,7 +85,7 @@ class WCS(Connection):
             trust_env=trust_env,
             additional_headers=None,
         )
-        self._is_authentication_required = True
+        self._oidc_auth_flow = True
 
     def _log_in(self) -> None:
         """

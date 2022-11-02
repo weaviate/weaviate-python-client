@@ -2,9 +2,9 @@ from operator import add
 import unittest
 from unittest.mock import patch, Mock
 from requests import RequestException
+from weaviate.auth import AuthClientPassword
 from weaviate.exceptions import AuthenticationFailedException
-from weaviate.connect.connection import Connection, _get_proxies
-from weaviate.util import _get_valid_timeout_config as valid_cnfg
+from weaviate.connect.connection import Connection, _get_proxies, _get_valid_timeout_config
 from test.util import check_error_message
 
 
@@ -17,7 +17,7 @@ class TestConnection(unittest.TestCase):
             auth_expires=0,
             auth_bearer=None,
             auth_client_secret=None,
-            is_authentication_required=False,
+            oidc_auth_flow=False,
             headers={"content-type": "application/json"},
         ):
         """
@@ -36,11 +36,11 @@ class TestConnection(unittest.TestCase):
         if auth_client_secret != 'skip':
             if auth_client_secret is not None:
                 self.assertEqual(connection._auth_client_secret, auth_client_secret)
-        if is_authentication_required != 'skip':
-            if is_authentication_required is True:
-                self.assertTrue(connection._is_authentication_required)
+        if oidc_auth_flow != 'skip':
+            if oidc_auth_flow is True:
+                self.assertTrue(connection._oidc_auth_flow)
             else:
-                self.assertFalse(connection._is_authentication_required)
+                self.assertFalse(connection._oidc_auth_flow)
         if headers != 'skip':
             self.assertEqual(connection._headers, headers)
 
@@ -136,8 +136,8 @@ class TestConnection(unittest.TestCase):
             )
             self.check_connection_attributes(
                 connection,
-                is_authentication_required=True,
-                headers={"content-type": "application/json", 'Test': True},
+                oidc_auth_flow=True,
+                headers={"content-type": "application/json", 'test': True},
             )
             mock_session.get.assert_called_with(
                 "test_url/v1/.well-known/openid-configuration",
@@ -146,6 +146,23 @@ class TestConnection(unittest.TestCase):
                 proxies={},
             )
             mock_refresh_authentication.assert_called()
+
+        # 200 status_code return and token provided
+        with patch("weaviate.connect.connection.Connection._log_in") as mock_login:
+            connection = Connection(
+                url='test_url',
+                auth_client_secret=None,
+                timeout_config=(2, 20),
+                proxies=None,
+                trust_env=False,
+                additional_headers={'AuthorizatioN': 'my token'},
+            )
+            self.check_connection_attributes(
+                connection,
+                oidc_auth_flow=False,
+                headers={"content-type": "application/json", 'authorization': 'my token'},
+            )
+            mock_login.assert_not_called()
 
     @patch("weaviate.connect.connection.requests")
     def test_all_requests_methods(self, mock_requests):
@@ -322,13 +339,13 @@ class TestConnection(unittest.TestCase):
         )
 
         # with no auth
-        connection._is_authentication_required = False
+        connection._oidc_auth_flow = False
         result = connection._get_request_header()
         self.assertEqual(result, {"content-type": "application/json"})
         mock_refresh_authentication.assert_not_called()
 
         # with auth
-        connection._is_authentication_required = True
+        connection._oidc_auth_flow = True
         connection._auth_bearer = 'test'
         result = connection._get_request_header()
         self.assertEqual(result, {"content-type": "application/json", "Authorization": "Bearer test"})
@@ -345,9 +362,9 @@ class TestConnection(unittest.TestCase):
         )
 
         mock_refresh_authentication.reset_mock()
-        connection._is_authentication_required = False
+        connection._oidc_auth_flow = False
         result = connection._get_request_header()
-        self.assertEqual(result, {"content-type": "application/json",'Test': 'This is a test', 'test2': True})
+        self.assertEqual(result, {"content-type": "application/json",'test': 'This is a test', 'test2': True})
         mock_refresh_authentication.assert_not_called()
 
     @patch('weaviate.connect.connection.Connection._log_in', Mock())
@@ -471,8 +488,10 @@ class TestConnection(unittest.TestCase):
         add_info_error_message = ("Can't connect to the third party authentication service. "
             "Check that it is running.")
         add_info_status_code_error_message = "Status not OK in connection to the third party authentication service."
-        credentials_error_message = ("The grant_types supported by the third-party authentication service are "
-            "insufficient. Please add 'client_credentials'.")
+        credentials_error_message = lambda gt: (
+                "The grant_types supported by the third-party authentication service are "
+                f"insufficient. Please add the '{gt}' grant type."
+            )
         oauth_error_message = ("Unable to get a OAuth token from server. Are the credentials "
             "and URLs correct?")
         oauth_status_code_error_message = "Authentication access denied. Are the credentials correct?"
@@ -507,7 +526,7 @@ class TestConnection(unittest.TestCase):
                 auth_expires=kwargs.get("auth_expires", 0),
                 auth_bearer=kwargs.get("auth_bearer", None),
                 auth_client_secret=kwargs.get("auth_client_secret", None),
-                is_authentication_required=kwargs.get("is_authentication_required", False),
+                oidc_auth_flow=kwargs.get("oidc_auth_flow", False),
                 )
             return connection
             
@@ -530,7 +549,7 @@ class TestConnection(unittest.TestCase):
                 auth_expires=kwargs.get("auth_expires", 0),
                 auth_bearer=kwargs.get("auth_bearer", None),
                 auth_client_secret=kwargs.get("auth_client_secret", None),
-                is_authentication_required=kwargs.get("is_authentication_required", False),
+                oidc_auth_flow=kwargs.get("oidc_auth_flow", False),
                 )
             if 'get' in kwargs:
                 mock_requests.get.assert_called_with(*kwargs['get_args'], **kwargs['get']) # only last call of this method
@@ -557,10 +576,11 @@ class TestConnection(unittest.TestCase):
 
         # client_credentials error 
         request_third_part = Mock(status_code=200)
-        request_third_part.json.return_value = {'grant_types_supported': {'Test_key': 'Test_value'}}
+        request_third_part.json.return_value = {'grant_types_supported': ['Test']}
         connection = helper_before_call(
             url='test_url',
-            requests={'get.return_value': request_third_part}
+            requests={'get.return_value': request_third_part},
+            auth_client_secret=AuthClientPassword('u', 'p')
         )
         with self.assertRaises(AuthenticationFailedException) as error:
             connection._set_bearer('test_id', 'test_href')
@@ -569,14 +589,14 @@ class TestConnection(unittest.TestCase):
             'timeout': (30, 45),
             'proxies': {},
         }
-        helper_after_call(credentials_error_message, get_args=["test_href"], get=get_kwargs)
+        helper_after_call(credentials_error_message('password'), get_args=["test_href"], get=get_kwargs)
 
         # OAuth error 
         request_third_part = Mock(status_code=200)
         request_third_part.json.return_value = {
-            'grant_types_supported': {'client_credentials': 'Test_cred!'},
+            'grant_types_supported': ['client_credentials', 'test'],
             'token_endpoint': 'Test'}
-        mock_auth = Mock(**{'get_credentials.return_value': {'test_key': 'Value'}})
+        mock_auth = Mock(**{'get_credentials.return_value': {'grant_type': 'test'}})
         connection = helper_before_call(
             url='test_url',
             auth_client_secret=mock_auth,
@@ -593,7 +613,7 @@ class TestConnection(unittest.TestCase):
         }
         get_args = ["test_href"]
         post_kwargs = {'timeout': (30, 45), 'proxies': {},}
-        post_args = ["Test", {'client_id': 'test_id', 'test_key': 'Value'}]
+        post_args = ["Test", {'client_id': 'test_id', 'grant_type': 'test'}]
         helper_after_call(
             oauth_error_message,
             get=get_kwargs,
@@ -606,9 +626,9 @@ class TestConnection(unittest.TestCase):
         # OAuth status_code error 
         request_third_part = Mock(status_code=200)
         request_third_part.json.return_value = {
-            'grant_types_supported': {'client_credentials': 'Test_cred!'},
+            'grant_types_supported': ['client_credentials', 'test'],
             'token_endpoint': 'Test'}
-        mock_auth = Mock(**{'get_credentials.return_value': {'test_key': 'Value'}})
+        mock_auth = Mock(**{'get_credentials.return_value': {'grant_type': 'test'}})
         connection = helper_before_call(
             url='test_url',
             auth_client_secret=mock_auth,
@@ -625,7 +645,7 @@ class TestConnection(unittest.TestCase):
         }
         get_args = ["test_href"]
         post_kwargs = {'timeout': (30, 45),'proxies': {},}
-        post_args = ["Test", {'client_id': 'Test!ID', 'test_key': 'Value'}]
+        post_args = ["Test", {'client_id': 'Test!ID', 'grant_type': 'test'}]
         helper_after_call(
             oauth_status_code_error_message,
             get=get_kwargs,
@@ -638,9 +658,9 @@ class TestConnection(unittest.TestCase):
         # valid call
         request_third_part = Mock(status_code=200)
         request_third_part.json.return_value = {
-            'grant_types_supported': {'client_credentials': 'Test_cred!'},
+            'grant_types_supported': ['test'],
             'token_endpoint': 'Test'}
-        mock_auth = Mock(**{'get_credentials.return_value': {'test_key': 'Value'}})
+        mock_auth = Mock(**{'get_credentials.return_value': {'grant_type': 'test'}})
         mock_post_response = Mock(status_code=400)
         mock_post_response.json.return_value = {
             'access_token': 'TestBearer!',
@@ -661,7 +681,7 @@ class TestConnection(unittest.TestCase):
         }
         get_args = ["test_href"]
         post_kwargs = {'timeout': (30, 45), 'proxies': {},}
-        post_args = ["Test", {'client_id': 'Test!ID', 'test_key': 'Value'}]
+        post_args = ["Test", {'client_id': 'Test!ID', 'grant_type': 'test'}]
         helper_after_call(
             None,
             get=get_kwargs,
@@ -692,10 +712,8 @@ class TestConnection(unittest.TestCase):
         # default one
         self.assertEqual(connection.timeout_config, (2, 20))
 
-        with patch('weaviate.connect.connection._get_valid_timeout_config', side_effect=valid_cnfg) as mock_obj: # to test if called
-            connection.timeout_config = (4, 210)
-            self.assertEqual(connection.timeout_config, (4, 210))
-            mock_obj.assert_called_with((4, 210))
+        connection.timeout_config = (4, 210)
+        self.assertEqual(connection.timeout_config, (4, 210))
 
     @patch("weaviate.connect.connection.datetime")
     def test_get_epoch_time(self, mock_datetime):
@@ -751,3 +769,79 @@ class TestConnection(unittest.TestCase):
         os_mock.environ.get.return_value = 'test'
         proxies = _get_proxies(None, True)
         self.assertEqual(proxies, {'http': 'test', 'https': 'test'})
+
+    def test__get_valid_timeout_config(self):
+        """
+        Test the `_get_valid_timeout_config` function.
+        """
+
+        # incalid calls
+        negative_num_error_message = "'timeout_config' cannot be non-positive number/s!"
+        type_error_message = "'timeout_config' should be a (or tuple of) positive real number/s!"
+        value_error_message = "'timeout_config' must be of length 2!"
+        value_types_error_message = "'timeout_config' must be tuple of real numbers"
+
+        ## wrong type
+        with self.assertRaises(TypeError) as error:
+            _get_valid_timeout_config(None)
+        check_error_message(self, error, type_error_message)
+
+        with self.assertRaises(TypeError) as error:
+            _get_valid_timeout_config(True)
+        check_error_message(self, error, type_error_message)
+
+        with self.assertRaises(TypeError) as error:
+            _get_valid_timeout_config("(2, 13)")
+        check_error_message(self, error, type_error_message)
+
+        ## wrong tuple length 3
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config((1,2,3))
+        check_error_message(self, error, value_error_message)
+
+        ## wrong value types
+        with self.assertRaises(TypeError) as error:
+            _get_valid_timeout_config((None, None))
+        check_error_message(self, error, value_types_error_message)
+
+        with self.assertRaises(TypeError) as error:
+            _get_valid_timeout_config(("1", 10))
+        check_error_message(self, error, value_types_error_message)
+
+        with self.assertRaises(TypeError) as error:
+            _get_valid_timeout_config(("1", "10"))
+        check_error_message(self, error, value_types_error_message)
+
+        with self.assertRaises(TypeError) as error:
+            _get_valid_timeout_config((True, False))
+        check_error_message(self, error, value_types_error_message)
+
+        ## non-positive numbers
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config(0)
+        check_error_message(self, error, negative_num_error_message)
+
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config(-1)
+        check_error_message(self, error, negative_num_error_message)
+        
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config(-4.134)
+        check_error_message(self, error, negative_num_error_message)
+
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config((-3.5, 1.5))
+        check_error_message(self, error, negative_num_error_message)
+
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config((3, -1.5))
+        check_error_message(self, error, negative_num_error_message)
+
+        with self.assertRaises(ValueError) as error:
+            _get_valid_timeout_config((0, 0))
+        check_error_message(self, error, negative_num_error_message)
+
+        # valid calls
+        self.assertEqual(_get_valid_timeout_config((2, 20)), (2, 20))
+        self.assertEqual(_get_valid_timeout_config((3.5, 2.34)), (3.5, 2.34))
+        self.assertEqual(_get_valid_timeout_config(4.32), (4.32, 4.32))

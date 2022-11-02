@@ -14,8 +14,6 @@ from weaviate.util import  (
     get_domain_from_weaviate_url,
     _get_dict_from_object,
     _is_sub_schema,
-    _get_valid_timeout_config,
-
 )
 from weaviate import SchemaValidationException
 from test.util import check_error_message
@@ -440,83 +438,6 @@ class TestUtil(unittest.TestCase):
         with self.assertRaises(SchemaValidationException) as error:
             _is_sub_schema({}, schema_set)
         check_error_message(self, error, invalid_sub_schema_msg)
-
-    def test__get_valid_timeout_config(self):
-        """
-        Test the `_get_valid_timeout_config` function.
-        """
-
-        # incalid calls
-        negative_num_error_message = "'timeout_config' cannot be non-positive number/s!"
-        type_error_message = "'timeout_config' should be a (or tuple of) positive real number/s!"
-        value_error_message = "'timeout_config' must be of length 2!"
-        value_types_error_message = "'timeout_config' must be tuple of real numbers"
-
-        ## wrong type
-        with self.assertRaises(TypeError) as error:
-            _get_valid_timeout_config(None)
-        check_error_message(self, error, type_error_message)
-
-        with self.assertRaises(TypeError) as error:
-            _get_valid_timeout_config(True)
-        check_error_message(self, error, type_error_message)
-
-        with self.assertRaises(TypeError) as error:
-            _get_valid_timeout_config("(2, 13)")
-        check_error_message(self, error, type_error_message)
-
-        ## wrong tuple length 3
-        with self.assertRaises(ValueError) as error:
-            _get_valid_timeout_config((1,2,3))
-        check_error_message(self, error, value_error_message)
-
-        ## wrong value types
-        with self.assertRaises(TypeError) as error:
-            _get_valid_timeout_config((None, None))
-        check_error_message(self, error, value_types_error_message)
-
-        with self.assertRaises(TypeError) as error:
-            _get_valid_timeout_config(("1", 10))
-        check_error_message(self, error, value_types_error_message)
-
-        with self.assertRaises(TypeError) as error:
-            _get_valid_timeout_config(("1", "10"))
-        check_error_message(self, error, value_types_error_message)
-
-        with self.assertRaises(TypeError) as error:
-            _get_valid_timeout_config((True, False))
-        check_error_message(self, error, value_types_error_message)
-
-        ## non-positive numbers
-        with self.assertRaises(ValueError) as error:
-            _get_valid_timeout_config(0)
-        check_error_message(self, error, negative_num_error_message)
-
-        with self.assertRaises(ValueError) as error:
-            _get_valid_timeout_config(-1)
-        check_error_message(self, error, negative_num_error_message)
-        
-        with self.assertRaises(ValueError) as error:
-            _get_valid_timeout_config(-4.134)
-        check_error_message(self, error, negative_num_error_message)
-
-        with self.assertRaises(ValueError) as error:
-            _get_valid_timeout_config((-3.5, 1.5))
-        check_error_message(self, error, negative_num_error_message)
-
-        with self.assertRaises(ValueError) as error:
-            _get_valid_timeout_config((3, -1.5))
-        check_error_message(self, error, negative_num_error_message)
-
-        with self.assertRaises(ValueError) as error:
-            _get_valid_timeout_config((0, 0))
-        check_error_message(self, error, negative_num_error_message)
-
-        # valid calls
-        self.assertEqual(_get_valid_timeout_config((2, 20)), (2, 20))
-        self.assertEqual(_get_valid_timeout_config((3.5, 2.34)), (3.5, 2.34))
-        self.assertEqual(_get_valid_timeout_config(4.32), (4.32, 4.32))
-        
 
     def test_image_encoder_b64(self):
         """

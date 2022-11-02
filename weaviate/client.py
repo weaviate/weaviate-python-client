@@ -77,8 +77,12 @@ class Client:
             NOTE: 'proxies' has priority over 'trust_env', i.e. if 'proxies' is NOT None,
             'trust_env' is ignored.
         additional_headers : dict or None
-            Additional headers to include in the requests, used to set OpenAI key. OpenAI key looks
-            like this: {'X-OpenAI-Api-Key': 'KEY'}, by default None
+            Additional headers to include in the requests. You can set a bearer token to
+            authenticate directly to Weaviate by setting the additional headers like this:
+                {"authorization": "Bearer <MY_TOKEN>"}
+            And/or used to set OpenAI/HuggingFace key. OpenAI/HuggingFace key looks like this:
+                {"X-OpenAI-Api-Key": "<THE-KEY>"}, {"X-HuggingFace-Api-Key": "<THE-KEY>"}
+            by default None
 
         Examples
         --------
