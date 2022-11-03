@@ -1,11 +1,11 @@
 """
 Batch class definitions.
 """
-import threading
+import sys
+import time
 import warnings
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from copy import deepcopy
 from numbers import Real
 from typing import Tuple, Callable, Optional, Sequence
 
@@ -218,8 +218,6 @@ class Batch:
 
         # thread pool executor
         self._executor: Optional[BatchExecutor] = None
-        self._timeout_lock_batch = threading.Lock()
-        self._timeout_lock_ref = threading.Lock()
 
     def configure(self,
             batch_size: Optional[int] = None,
@@ -411,14 +409,12 @@ class Batch:
         ValueError
             If 'uuid' is not of a proper form.
         """
-        self._timeout_lock_batch.acquire()
         uuid = self._objects_batch.add(
             class_name=_capitalize_first_letter(class_name),
             data_object=data_object,
             uuid=uuid,
             vector=vector,
         )
-        self._timeout_lock_batch.release()
 
         if self._batching_type:
             self._auto_create()
@@ -485,7 +481,6 @@ class Batch:
                     )
                 to_object_class_name = _capitalize_first_letter(to_object_class_name)
 
-        self._timeout_lock_batch.acquire()
         self._reference_batch.add(
             from_object_class_name=_capitalize_first_letter(from_object_class_name),
             from_object_uuid=from_object_uuid,
@@ -493,7 +488,6 @@ class Batch:
             to_object_uuid=to_object_uuid,
             to_object_class_name=to_object_class_name,
         )
-        self._timeout_lock_batch.release()
 
         if self._batching_type:
             self._auto_create()
@@ -531,19 +525,33 @@ class Batch:
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
-
         try:
-            try:
-                response = self._connection.post(
-                    path='/batch/' + data_type,
-                    weaviate_object=batch_request.get_request_body()
-                )
-            except ReadTimeout as error:
-                self._batch_readd_after_timeout(data_type, batch_request, error)
-                return
-            except RequestsConnectionError as error:
-                self._batch_readd_after_timeout(data_type, batch_request, error)
-                return
+            timeout_count = connection_count = 0
+            while True:
+                try:
+                    start = time.time()
+                    response = self._connection.post(
+                        path='/batch/' + data_type,
+                        weaviate_object=batch_request.get_request_body()
+                    )
+                except ReadTimeout as error:
+                    batch_request = self._batch_readd_after_timeout(data_type, batch_request, error)
+                    _batch_create_error_handler(
+                        retry=timeout_count,
+                        max_retries=self._timeout_retries,
+                        error=error
+                    )
+                    timeout_count += 1
+
+                except RequestsConnectionError as error:
+                    _batch_create_error_handler(
+                        retry=connection_count,
+                        max_retries=self._connection_error_retries,
+                        error=error
+                    )
+                    connection_count += 1
+                else:
+                    break
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError('Batch was not added to weaviate.') from conn_err
         except ReadTimeout:
@@ -558,18 +566,16 @@ class Batch:
             return response
         raise UnexpectedStatusCodeException(f"Create {data_type} in batch", response)
 
-    def _batch_readd_after_timeout(self, data_type: str, batch_request: BatchRequest, error: Exception) -> None:
+    def _batch_readd_after_timeout(self, data_type: str, batch_request: BatchRequest, error: Exception) -> BatchRequest:
         """Readds objects that were not added due to a timeout."""
         if data_type == 'objects':
-            self._readd_objects_after_timeout(batch_request, error)
+            return self._readd_objects_after_timeout(batch_request, error)
         else:
-            self._readd_references_after_timeout(batch_request, error)
+            return self._readd_references_after_timeout(batch_request, error)
 
-    def _readd_objects_after_timeout(self, batch_request: BatchRequest, error: Exception):
-
+    def _readd_objects_after_timeout(self, batch_request: BatchRequest, error: Exception) -> BatchRequest:
+        new_batch = ObjectsBatchRequest()
         for i, obj in enumerate(batch_request.get_request_body()["objects"]):
-            if batch_request.num_retries[i] > self._timeout_retries:
-                raise error
             class_name = obj["class"]
             uuid = obj["id"]
             response_head = self._connection.head(
@@ -577,16 +583,12 @@ class Batch:
             )
 
             if response_head.status_code == 404:
-                self._timeout_lock_batch.acquire()
-                self._objects_batch.add(
+                new_batch.add(
                     class_name=_capitalize_first_letter(class_name),
                     data_object=obj["properties"],
                     uuid=uuid,
                     vector=obj.get("vector", None),
-                    retries=batch_request.num_retries[i] + 1
                 )
-                self._timeout_lock_batch.release()
-
                 continue
 
             # object might already exist and needs to be overwritten in case of an update
@@ -597,29 +599,24 @@ class Batch:
             obj_weav = response.json()
             if obj_weav["properties"] != obj["properties"] or \
                     obj.get("vector", None) != obj_weav.get("vector", None):
-                self._timeout_lock_batch.acquire()
-                self._objects_batch.add(
+                new_batch.add(
                     class_name=_capitalize_first_letter(class_name),
                     data_object=obj["properties"],
                     uuid=uuid,
-                    vector=obj.get("vector", default=None),
+                    vector=obj.get("vector", None),
                 )
-                self._timeout_lock_batch.release()
+        return new_batch
 
     def _readd_references_after_timeout(self, batch_request: BatchRequest, error: Exception):
-        self._timeout_lock_batch.acquire()
+        new_batch = ReferenceBatchRequest()
         for i, ref in enumerate(batch_request.get_request_body()):
-            if batch_request.num_retries[i] > self._timeout_retries:
-                self._timeout_lock_batch.release()
-                raise error
-            self._reference_batch.add(
+            new_batch.add(
                 from_object_class_name=ref["from_object_class_name"],
                 from_object_uuid=ref["from_object_uuid"],
                 from_property_name=ref["from_property_name"],
                 to_object_uuid=ref["to_object_uuid"],
-                to_object_class_name=ref.get("to_object_class_name", None),
-                retries=batch_request.num_retries[i] + 1)
-        self._timeout_lock_batch.release()
+                to_object_class_name=ref.get("to_object_class_name", None))
+        return new_batch
 
     def create_objects(self) -> list:
         """
@@ -713,15 +710,13 @@ class Batch:
                 category=RuntimeWarning,
                 stacklevel=1,
             )
-            self._timeout_lock_batch.acquire()
-            next_obj_batch = deepcopy(self._objects_batch)
-            self._objects_batch = ObjectsBatchRequest()
-            self._timeout_lock_batch.release()
 
             response = self._create_data(
                 data_type='objects',
-                batch_request=next_obj_batch,
+                batch_request=self._objects_batch,
             )
+            self._objects_batch = ObjectsBatchRequest()
+
             if response is None:
                 self._objects_throughput_frame.append(max(self._recommended_num_objects / 4, 1))
                 return []
@@ -816,24 +811,22 @@ class Batch:
                 category=RuntimeWarning,
                 stacklevel=1,
             )
-            self._timeout_lock_batch.acquire()
-            next_ref_batch = deepcopy(self._reference_batch)
-            self._reference_batch = ReferenceBatchRequest()
-            self._timeout_lock_batch.release()
 
             response = self._create_data(
                 data_type='references',
-                batch_request=next_ref_batch,
+                batch_request=self._reference_batch,
             )
+            self._reference_batch = ReferenceBatchRequest()
+
             if response is None:
                 self._references_throughput_frame.append(max(self._recommended_num_references / 4, 1))
                 return []
 
-            ref_per_sec = (
-                sum(self._references_throughput_frame)/len(self._references_throughput_frame)
-            )
             self._references_throughput_frame.append(
                 len(self._reference_batch) / response.elapsed.total_seconds()
+            )
+            ref_per_sec = (
+                sum(self._references_throughput_frame)/len(self._references_throughput_frame)
             )
 
             self._recommended_num_references = round(ref_per_sec * self._creation_time)
@@ -899,15 +892,10 @@ class Batch:
             )
             self.start()
 
-        self._timeout_lock_batch.acquire()
-        objects_for_next_thread = deepcopy(self._objects_batch)
-        self._objects_batch = ObjectsBatchRequest()
-        self._timeout_lock_batch.release()
-
         future = self._executor.submit(
             self._flush_in_thread,
             data_type='objects',
-            batch_request=objects_for_next_thread,
+            batch_request=self._objects_batch,
         )
 
         self._future_pool.append(future)
@@ -940,9 +928,9 @@ class Batch:
             self._recommended_num_objects = max(self._recommended_num_objects//2, 1)
         elif len(self._objects_throughput_frame) != 0 and self._recommended_num_objects is not None:
             obj_per_second = (
-                sum(self._objects_throughput_frame)/len(self._objects_throughput_frame)
+                sum(self._objects_throughput_frame)/len(self._objects_throughput_frame) * 0.75
             )
-            self._recommended_num_objects = min(round(obj_per_second * self._thread_creation_time), self._recommended_num_objects*2)
+            self._recommended_num_objects = min(round(obj_per_second * self._thread_creation_time), self._recommended_num_objects + 250)
         # Create references after all the objects have been created
         reference_future_pool = []
         for reference_batch in self._reference_batch_queue:
@@ -1572,3 +1560,29 @@ def _check_bool(value: bool, arg_name: str) -> None:
         raise TypeError(f"'{arg_name}' must be of type bool.")
 
 
+def _batch_create_error_handler(retry: int, max_retries: int, error: Exception) -> None:
+    """
+    Handle errors that occur in Batch creation. This function is going to re-raise the error if
+    number of re-tries was reached.
+    Parameters
+    ----------
+    retry : int
+        Current number of attempted request calls.
+    max_retries : int
+        Maximum number of attempted request calls.
+    error : Exception
+        The exception that occurred (to be re-raised if needed).
+    Raises
+    ------
+    Exception
+        The caught exception.
+    """
+
+    if retry >= max_retries:
+        raise error
+    print(
+        f'[ERROR] Batch {error.__class__.__name__} Exception occurred! Retrying in '
+        f'{(retry + 1) * 2}s. [{retry + 1}/{max_retries}]',
+        file=sys.stderr,
+    )
+    time.sleep((retry + 1) * 2)

@@ -16,7 +16,6 @@ class BatchRequest(ABC):
 
     def __init__(self):
         self._items = []
-        self._num_retries = []
 
     def __len__(self):
         return len(self._items)
@@ -62,10 +61,6 @@ class BatchRequest(ABC):
 
         return self._items.pop(index)
 
-    @property
-    def num_retries(self):
-        return self._num_retries
-
     @abstractmethod
     def add(self, *args, **kwargs):
         """
@@ -91,7 +86,6 @@ class ReferenceBatchRequest(BatchRequest):
             from_property_name: str,
             to_object_uuid: str,
             to_object_class_name: Optional[str] = None,
-            retries: int = 0
             ) -> None:
         """
         Add one Weaviate-object reference to this batch. Does NOT validate the consistency of the
@@ -150,7 +144,6 @@ class ReferenceBatchRequest(BatchRequest):
                 'to': to_beacon
             }
         )
-        self._num_retries.append(retries)
 
     def get_request_body(self) -> List[dict]:
         """
@@ -177,7 +170,6 @@ class ObjectsBatchRequest(BatchRequest):
             class_name: str,
             uuid: Optional[str] = None,
             vector: Optional[Sequence] = None,
-            retries: int = 0
             ) -> str:
         """
         Add one object to this batch. Does NOT validate the consistency of the object against
@@ -229,7 +221,6 @@ class ObjectsBatchRequest(BatchRequest):
             batch_item["vector"] = get_vector(vector)
 
         self._items.append(batch_item)
-        self._num_retries.append(retries)
 
         return batch_item["id"]
 
