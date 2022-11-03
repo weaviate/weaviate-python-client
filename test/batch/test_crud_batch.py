@@ -520,12 +520,35 @@ class TestBatch(unittest.TestCase):
         Test `shutdown` method.
         """
 
+        # initial value for executor (None)
         batch = Batch(mock_connection_func())
-        executor_mock = Mock()
-        batch._executor = executor_mock
-        executor_mock.shutdown.assert_not_called()
+        with patch('weaviate.batch.crud_batch.BatchExecutor') as mock_executor:
+            mock_executor.shutdown.assert_not_called()
+            batch.shutdown()
+            mock_executor.shutdown.assert_not_called()
+
+
+        # shutdown executor
+        batch = Batch(mock_connection_func())
+        mock_executor = Mock()
+        mock_executor.is_shutdown.return_value = True
+        batch._executor = mock_executor
+        mock_executor.shutdown.assert_not_called()
+        mock_executor.is_shutdown.assert_not_called()
         batch.shutdown()
-        executor_mock.shutdown.assert_called()
+        mock_executor.is_shutdown.assert_called()
+        mock_executor.shutdown.assert_not_called()
+
+        # running executor
+        batch = Batch(mock_connection_func())
+        mock_executor = Mock()
+        mock_executor.is_shutdown.return_value = False
+        batch._executor = mock_executor
+        mock_executor.shutdown.assert_not_called()
+        mock_executor.is_shutdown.assert_not_called()
+        batch.shutdown()
+        mock_executor.is_shutdown.assert_called()
+        mock_executor.shutdown.assert_called()
 
     @patch('weaviate.batch.crud_batch.BatchExecutor')
     def test_start(self, mock_executor_class):

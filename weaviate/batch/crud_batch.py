@@ -1296,7 +1296,8 @@ class Batch:
         Shutdown the BatchExecutor.
         """
 
-        self._executor.shutdown()
+        if not (self._executor is None or self._executor.is_shutdown()):
+            self._executor.shutdown() 
 
     def __enter__(self) -> 'Batch':
         return self.start()
