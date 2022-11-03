@@ -1,7 +1,6 @@
 """
 Batch class definitions.
 """
-import os
 import sys
 import time
 import warnings
@@ -25,8 +24,6 @@ from weaviate.util import (
     check_batch_result,
 )
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest
-
-OS_CPU_COUNT = os.cpu_count()
 
 
 class BatchExecutor(ThreadPoolExecutor):
@@ -199,14 +196,14 @@ class Batch:
         # do not keep too many past values, so it is a better estimation of the throughput
         # the throughput is computed for 1 second
         self._objects_throughput_frame = deque(
-            maxlen=max(5, OS_CPU_COUNT),
+            maxlen=5
         )
         self._references_throughput_frame = deque(
-            maxlen=max(5, OS_CPU_COUNT),
+            maxlen=5
         )
         self._future_pool = []
         self._reference_batch_queue = []
-        self._thread_creation_time = self._connection.timeout_config[1] / OS_CPU_COUNT
+        self._thread_creation_time = self._connection.timeout_config[1]
 
         # user configurable, need to be public should implement a setter/getter
         self._recommended_num_objects = None
@@ -217,7 +214,7 @@ class Batch:
         self._timeout_retries = 3
         self._connection_error_retries = 3
         self._batching_type = None
-        self._num_workers = OS_CPU_COUNT
+        self._num_workers = 1
 
         # thread pool executor
         self._executor: Optional[BatchExecutor] = None
@@ -229,7 +226,7 @@ class Batch:
             connection_error_retries: int = 3,
             callback: Optional[Callable[[dict], None]] = check_batch_result,
             dynamic: bool = False,
-            num_workers: int = OS_CPU_COUNT,
+            num_workers: int = 1,
             ) -> 'Batch':
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
@@ -292,7 +289,7 @@ class Batch:
             connection_error_retries: int = 3,
             callback: Optional[Callable[[dict], None]] = check_batch_result,
             dynamic: bool = False,
-            num_workers: int = OS_CPU_COUNT,
+            num_workers: int = 1,
             ) -> 'Batch':
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
@@ -843,7 +840,7 @@ class Batch:
         self._objects_batch = ObjectsBatchRequest()
         self._reference_batch = ReferenceBatchRequest()
 
-        if not force_wait and len(self._future_pool) < self._num_workers:
+        if not force_wait and self._num_workers > 1 and len(self._future_pool) < self._num_workers:
             return
 
         for done_future in as_completed(self._future_pool):
