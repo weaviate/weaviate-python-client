@@ -17,6 +17,7 @@ Subpackages
    weaviate.backup
    weaviate.classification
    weaviate.client
+   weaviate.cluster
    weaviate.connect
    weaviate.contextionary
    weaviate.data

@@ -1,6 +1,43 @@
 Changelog
 =========
 
+Version 3.9.0
+-------------
+This minor version includes:
+
+
+- Authentication using Bearer token, by adding ``additional_headers`` to the :class:`~weaviate.client.Client` initialization:
+    .. code-block:: python
+        client = weaviate.Client(
+            url='http://localhost:8080',
+            additional_headers={
+                {"authorization": "Bearer <MY_TOKEN>"}
+            }
+        )
+
+- Multi-threading :class:`~weaviate.batch.Batch`  import:
+    - | 
+        Now it is possible to import data using multi-threading. the number of threads can be set using the new argument ``num_workers`` in
+        :meth:`~weaviate.batch.Batch.configure` and :meth:`~weaviate.batch.Batch.__call__`, defaults to `1`.
+    - |
+        New argument ``connection_error_retries`` to retry on ``ConnectionError`` that can be set in :meth:`~weaviate.batch.Batch.configure` and :meth:`~weaviate.batch.Batch.__call__`
+        or using the property getter/setter: ``client.batch.connection_error_retries`` to get the value and ``client.batch.connection_error_retries = 5`` to set the value.
+    - |
+        New method :meth:`~weaviate.batch.Batch.start` to create a ``BatchExecutor`` (``ThreadExecutor``). This method does NOT need to be called if using the 
+        :class:`~weaviate.batch.Batch` in a context manager (``with``). Also it is idempotent.
+    - |
+        New method :meth:`~weaviate.batch.Batch.shutdown` to shutdown the existing ``BatchExecutor`` (``ThreadExecutor``) to release any resources that it is holding once the
+        batch import is done. This method does NOT need to be called if using the :class:`~weaviate.batch.Batch` in a context manager (``with``). Also it is idempotent.
+
+- New :class:`~weaviate.client.Client` attribute :class:`~weaviate.cluster.Cluster` to check the status of the nodes of the cluster.
+    - The method :meth:`~weaviate.cluster.Cluster.get_nodes_status` returns the status of each node as a list of dictionaries.
+        .. code-block:: python
+            client.cluster.get_nodes_status()
+
+- Fix for :meth:`~weaviate.data.DataObject.replace` and :meth:`~weaviate.data.DataObject.update` when using with Weaviate server ``>=v1.14.0``.
+
+- New default ``timeout_config``: ``(10, 60)``.
+
 Version 3.8.0
 -------------
 This minor version includes:
