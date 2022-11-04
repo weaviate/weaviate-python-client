@@ -122,30 +122,32 @@ class TestConnection(unittest.TestCase):
 
         # 200 status_code return and auth provided
         with patch("weaviate.connect.connection.isinstance") as mock_func: # mock is instance method
-            mock_func.return_value = True # isinstance returns True for any calls
-            mock_session.get.side_effect = None
-            mock_response = Mock(status_code=200)
-            mock_session.get.return_value = mock_response
-            connection = Connection(
-                url='test_url',
-                auth_client_secret=None,
-                timeout_config=(2, 20),
-                proxies=None,
-                trust_env=False,
-                additional_headers={'Test': True},
-            )
-            self.check_connection_attributes(
-                connection,
-                oidc_auth_flow=True,
-                headers={"content-type": "application/json", 'test': True},
-            )
-            mock_session.get.assert_called_with(
-                "test_url/v1/.well-known/openid-configuration",
-                headers={"content-type": "application/json"}, # this has different inplace headers
-                timeout=(2, 20),
-                proxies={},
-            )
-            mock_refresh_authentication.assert_called()
+            with patch("weaviate.connect.connection._get_valid_timeout_config") as mock_get_timeout:
+                mock_get_timeout.return_value = (2, 20)
+                mock_func.return_value = True # isinstance returns True for any calls
+                mock_session.get.side_effect = None
+                mock_response = Mock(status_code=200)
+                mock_session.get.return_value = mock_response
+                connection = Connection(
+                    url='test_url',
+                    auth_client_secret=None,
+                    timeout_config=(2, 20),
+                    proxies=None,
+                    trust_env=False,
+                    additional_headers={'Test': True},
+                )
+                self.check_connection_attributes(
+                    connection,
+                    oidc_auth_flow=True,
+                    headers={"content-type": "application/json", 'test': True},
+                )
+                mock_session.get.assert_called_with(
+                    "test_url/v1/.well-known/openid-configuration",
+                    headers={"content-type": "application/json"}, # this has different inplace headers
+                    timeout=(2, 20),
+                    proxies={},
+                )
+                mock_refresh_authentication.assert_called()
 
         # 200 status_code return and token provided
         with patch("weaviate.connect.connection.Connection._log_in") as mock_login:

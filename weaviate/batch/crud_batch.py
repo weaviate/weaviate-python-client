@@ -495,7 +495,7 @@ class Batch:
     def _create_data(self,
             data_type: str,
             batch_request: BatchRequest,
-            ) -> Optional[Response]:
+            ) -> Response:
         """
         Create data in batches, either Objects or References. This does NOT guarantee
         that each batch item (only Objects) is added/created. This can lead to a successful
@@ -529,17 +529,16 @@ class Batch:
             timeout_count = connection_count = 0
             while True:
                 try:
-                    start = time.time()
                     response = self._connection.post(
                         path='/batch/' + data_type,
                         weaviate_object=batch_request.get_request_body()
                     )
                 except ReadTimeout as error:
-                    batch_request = self._batch_readd_after_timeout(data_type, batch_request, error)
+                    batch_request = self._batch_readd_after_timeout(data_type, batch_request)
                     _batch_create_error_handler(
                         retry=timeout_count,
                         max_retries=self._timeout_retries,
-                        error=error
+                        error=error,
                     )
                     timeout_count += 1
 
@@ -547,7 +546,7 @@ class Batch:
                     _batch_create_error_handler(
                         retry=connection_count,
                         max_retries=self._connection_error_retries,
-                        error=error
+                        error=error,
                     )
                     connection_count += 1
                 else:
@@ -566,16 +565,45 @@ class Batch:
             return response
         raise UnexpectedStatusCodeException(f"Create {data_type} in batch", response)
 
-    def _batch_readd_after_timeout(self, data_type: str, batch_request: BatchRequest, error: Exception) -> BatchRequest:
-        """Readds objects that were not added due to a timeout."""
-        if data_type == 'objects':
-            return self._readd_objects_after_timeout(batch_request, error)
-        else:
-            return self._readd_references_after_timeout(batch_request, error)
+    def _batch_readd_after_timeout(self, data_type: str, batch_request: BatchRequest) -> BatchRequest:
+        """
+        Readds items (objects or references) that were not added due to a timeout.
 
-    def _readd_objects_after_timeout(self, batch_request: BatchRequest, error: Exception) -> BatchRequest:
+        Parameters
+        ----------
+        data_type : str
+            The Batch Request type, can be either 'objects' or 'references'.
+        batch_request : BatchRequest
+            The Batch Request that TimeOuted.
+
+        Returns
+        -------
+        BatchRequest
+            New Batch Request with objects that were not added or not updated.
+        """
+
+        if data_type == 'objects':
+            return self._readd_objects_after_timeout(batch_request)
+        else:
+            return self._readd_references_after_timeout(batch_request)
+
+    def _readd_objects_after_timeout(self, batch_request: ObjectsBatchRequest) -> ObjectsBatchRequest:
+        """
+        Read all objects that were not created or updated because of a TimeOut error.
+
+        Parameters
+        ----------
+        batch_request : ObjectsBatchRequest
+            The ObjectsBatchRequest from which to check if items where created or updated.
+
+        Returns
+        -------
+        ObjectsBatchRequest
+            New ObjectsBatchRequest with only the objects that were not created or updated.
+        """
+
         new_batch = ObjectsBatchRequest()
-        for i, obj in enumerate(batch_request.get_request_body()["objects"]):
+        for obj in batch_request.get_request_body()["objects"]:
             class_name = obj["class"]
             uuid = obj["id"]
             response_head = self._connection.head(
@@ -607,9 +635,23 @@ class Batch:
                 )
         return new_batch
 
-    def _readd_references_after_timeout(self, batch_request: BatchRequest, error: Exception):
+    def _readd_references_after_timeout(self, batch_request: ReferenceBatchRequest) -> ReferenceBatchRequest:
+        """
+        Read all objects that were not created or updated because of a TimeOut error.
+
+        Parameters
+        ----------
+        batch_request : ReferenceBatchRequest
+            The ReferenceBatchRequest from which to check if items where created or updated.
+
+        Returns
+        -------
+        ReferenceBatchRequest
+            New ReferenceBatchRequest with only the references that were not created or updated.
+        """
+
         new_batch = ReferenceBatchRequest()
-        for i, ref in enumerate(batch_request.get_request_body()):
+        for ref in batch_request.get_request_body():
             new_batch.add(
                 from_object_class_name=ref["from_object_class_name"],
                 from_object_uuid=ref["from_object_uuid"],
@@ -1582,5 +1624,6 @@ def _batch_create_error_handler(retry: int, max_retries: int, error: Exception) 
         f'[ERROR] Batch {error.__class__.__name__} Exception occurred! Retrying in '
         f'{(retry + 1) * 2}s. [{retry + 1}/{max_retries}]',
         file=sys.stderr,
+        flush=True,
     )
     time.sleep((retry + 1) * 2)
