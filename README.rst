@@ -19,7 +19,7 @@ Weaviate python client
 
 A python native client for easy interaction with a Weaviate instance.
 
-The client is tested for python 3.6 and higher.
+The client is tested for python 3.7 and higher.
 
 Visit the official `SeMi Technology <https://weaviate.io/>`_ website for more information about the Weaviate and how to use it in production.
 

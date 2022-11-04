@@ -257,7 +257,7 @@ class Batch:
         num_workers : int, optional
             The maximal number of concurrent threads to run batch import. Only used for non-MANUAL
             batching. i.e. is used only with AUTO or DYNAMIC batching.
-            By default, os.cpu_count()
+            By default, the multi-threading is disabled. Use with care to not overload your weaviate instance.
 
         Returns
         -------
@@ -320,7 +320,7 @@ class Batch:
         num_workers : int, optional
             The maximal number of concurrent threads to run batch import. Only used for non-MANUAL
             batching. i.e. is used only with AUTO or DYNAMIC batching.
-            By default, os.cpu_count()
+            By default, the multi-threading is disabled. Use with care to not overload your weaviate instance.
 
         Returns
         -------
