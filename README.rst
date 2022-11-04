@@ -51,5 +51,7 @@ Support
 
 Contributing
 ------------
+Do you want to contribute to
 
-- Do you want to contribute to `Weaviate`, read `How to Contribute <https://github.com/semi-technologies/weaviate/blob/master/CONTRIBUTE.md>`_.
+-  `Weaviate Python Client`, read `How to Contribute <https://github.com/semi-technologies/weaviate-python-client/blob/main/CONTRIBUTE.md>`_.
+-  `Weaviate Core`, read `How to Contribute <https://github.com/semi-technologies/weaviate/blob/master/CONTRIBUTE.md>`_.
