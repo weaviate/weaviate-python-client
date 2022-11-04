@@ -27,7 +27,12 @@ jobs:
           pip install -r requirements.txt
           pip install wheel build
       - name: Build a binary wheel and a source tarball
-        run: python setup.py sdist bdist_wheel
+        run: python -m build
+      - name: Create Wheel Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          path: "dist/*.whl"
+          retention-days: 7
       - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:

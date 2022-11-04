@@ -81,7 +81,7 @@ jobs:
           pip install -r requirements.txt
           pip install wheel build
       - name: Build a binary wheel
-        run: python setup.py bdist_wheel
+        run: python -m build
       - name: Create Wheel Artifacts
         uses: actions/upload-artifact@v3
         with:
