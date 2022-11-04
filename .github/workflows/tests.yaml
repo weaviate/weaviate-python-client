@@ -6,6 +6,11 @@ on:
       - main
     tags:
       - '**'
+    paths-ignore:
+      - docs/**
+      - README.rst
+      - LICENSE.md
+      - publishing.md
   pull_request:
 
 jobs:
