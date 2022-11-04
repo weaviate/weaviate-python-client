@@ -15,20 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - name: Recognize sha ref
-        id: sharef
-        run: |
-          if [ "$EVENT" == 'pull_request' ]
-          then
-            echo "::set-output name=sha::$(echo ${{github.event.pull_request.head.sha}})"
-          elif [ "$EVENT" == 'workflow_run' ]
-          then
-            echo "::set-output name=sha::$(echo ${{github.event.workflow_run.head_sha}})"
-          else
-            echo "::set-output name=sha::$(echo $GITHUB_SHA)"
-          fi
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
