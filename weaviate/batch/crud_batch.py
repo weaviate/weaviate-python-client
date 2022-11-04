@@ -759,10 +759,6 @@ class Batch:
             )
             self._objects_batch = ObjectsBatchRequest()
 
-            if response is None:
-                self._objects_throughput_frame.append(max(self._recommended_num_objects / 4, 1))
-                return []
-
             self._objects_throughput_frame.append(
                 len(self._objects_batch) / response.elapsed.total_seconds()
             )
@@ -859,10 +855,6 @@ class Batch:
                 batch_request=self._reference_batch,
             )
             self._reference_batch = ReferenceBatchRequest()
-
-            if response is None:
-                self._references_throughput_frame.append(max(self._recommended_num_references / 4, 1))
-                return []
 
             self._references_throughput_frame.append(
                 len(self._reference_batch) / response.elapsed.total_seconds()
