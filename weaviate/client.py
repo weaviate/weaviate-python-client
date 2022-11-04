@@ -1,21 +1,23 @@
 """
 Client class definition.
 """
-from typing import Optional, Tuple, Union
+import warnings
 from numbers import Real
+from typing import Optional, Tuple, Union
+
 from .auth import AuthCredentials
-from .exceptions import UnexpectedStatusCodeException, RequestsConnectionError
-from .connect import Connection
-from .classification import Classification
-from .schema import Schema
-from .contextionary import Contextionary
-from .batch import Batch
 from .backup import Backup
+from .batch import Batch
+from .classification import Classification
+from .connect import Connection
+from .contextionary import Contextionary
 from .data import DataObject
+from .exceptions import UnexpectedStatusCodeException, RequestsConnectionError
 from .gql import Query
 from .cluster import Cluster
-from .util import deprecation
+from .schema import Schema
 from .version import __version__
+from .error_msgs import CLIENT_V14_W
 
 
 class Client:
@@ -44,13 +46,13 @@ class Client:
     """
 
     def __init__(self,
-            url: str,
-            auth_client_secret: Optional[AuthCredentials]=None,
-            timeout_config: Union[Tuple[Real, Real], Real]=(2, 20),
-            proxies: Union[dict, str, None]=None,
-            trust_env: bool=False,
-            additional_headers: Optional[dict]=None,
-        ):
+                 url: str,
+                 auth_client_secret: Optional[AuthCredentials] = None,
+                 timeout_config: Union[Tuple[Real, Real], Real] = (10, 60),
+                 proxies: Union[dict, str, None] = None,
+                 trust_env: bool = False,
+                 additional_headers: Optional[dict] = None,
+                 ):
         """
         Initialize a Client class instance.
 
@@ -136,11 +138,10 @@ class Client:
         self._set_server_version()
 
         if self._connection.server_version < '1.14':
-            deprecation(
-                f"You are using the Weaviate Python Client version {__version__} which introduces "
-                "the new changes/features of the Weaviate Server 1.14.x. If you want to make use "
-                "of the new changes/features of the Weaviate Server 1.14.x using this Python "
-                "Client version, upgrade the Weaviate Server version."
+            warnings.warn(
+                message=CLIENT_V14_W,
+                category=DeprecationWarning,
+                stacklevel=1,
             )
 
     def is_ready(self) -> bool:

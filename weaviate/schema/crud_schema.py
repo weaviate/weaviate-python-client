@@ -163,7 +163,7 @@ class Schema:
         loaded_schema_class = _get_dict_from_object(schema_class)
         # validate the class before loading
         check_class(loaded_schema_class)
-        self._create_class_with_premitives(loaded_schema_class)
+        self._create_class_with_primitives(loaded_schema_class)
         self._create_complex_properties_from_class(loaded_schema_class)
 
     def delete_class(self, class_name: str) -> None:
@@ -602,7 +602,7 @@ class Schema:
 
     def _create_complex_properties_from_class(self, schema_class: dict) -> None:
         """
-        Add crossreferences to already existing class.
+        Add cross-references to already existing class.
 
         Parameters
         ----------
@@ -651,7 +651,7 @@ class Schema:
 
     def _create_complex_properties_from_classes(self, schema_classes_list: list) -> None:
         """
-        Add crossreferences to already existing classes.
+        Add cross-references to already existing classes.
 
         Parameters
         ----------
@@ -662,14 +662,14 @@ class Schema:
         for schema_class in schema_classes_list:
             self._create_complex_properties_from_class(schema_class)
 
-    def _create_class_with_premitives(self, weaviate_class: dict) -> None:
+    def _create_class_with_primitives(self, weaviate_class: dict) -> None:
         """
         Create class with only primitives.
 
         Parameters
         ----------
         weaviate_class : dict
-            A single weaviate formated class
+            A single weaviate formatted class
 
         Raises
         ------
@@ -720,7 +720,7 @@ class Schema:
         """
 
         for weaviate_class in schema_classes_list:
-            self._create_class_with_premitives(weaviate_class)
+            self._create_class_with_primitives(weaviate_class)
 
 
 def _property_is_primitive(data_type_list: list) -> bool:
@@ -751,7 +751,7 @@ def _get_primitive_properties(properties_list: list) -> list:
     Parameters
     ----------
     properties_list : list
-        A list of properties to exctract the primitive properties.
+        A list of properties to extract the primitive properties.
 
     Returns
     -------

@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock
 from weaviate.contextionary import Contextionary
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
-from test.util import mock_connection_method, check_error_message, check_startswith_error_message
+from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 
 
 class TestText2VecContextionary(unittest.TestCase):
@@ -50,7 +50,7 @@ class TestText2VecContextionary(unittest.TestCase):
 
         ## test UnexpectedStatusCodeException
         contextionary = Contextionary(
-            mock_connection_method('post', status_code=404)
+            mock_connection_func('post', status_code=404)
         )
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             contextionary.extend(**some_concept)
@@ -58,7 +58,7 @@ class TestText2VecContextionary(unittest.TestCase):
 
         ## test requests error
         contextionary = Contextionary(
-            mock_connection_method('post', side_effect=RequestsConnectionError("Test!"))
+            mock_connection_func('post', side_effect=RequestsConnectionError("Test!"))
         )
         with self.assertRaises(RequestsConnectionError) as error:
             contextionary.extend(**some_concept)
@@ -66,7 +66,7 @@ class TestText2VecContextionary(unittest.TestCase):
         
         ## test valid call without specifying 'weight'
         some_concept["weight"] = 1.0
-        connection_mock = mock_connection_method('post', status_code=200)
+        connection_mock = mock_connection_func('post', status_code=200)
         contextionary = Contextionary(connection_mock)
         contextionary.extend(**some_concept)
         connection_mock.post.assert_called_with(
@@ -75,7 +75,7 @@ class TestText2VecContextionary(unittest.TestCase):
         )
 
         ## test valid call with specifying 'weight as error'
-        connection_mock = mock_connection_method('post', status_code=200)
+        connection_mock = mock_connection_func('post', status_code=200)
         contextionary = Contextionary(connection_mock)
         # add weight to 'some_concept'
         some_concept["weight"] = .1234
@@ -91,7 +91,7 @@ class TestText2VecContextionary(unittest.TestCase):
         """
 
         # test valid call
-        connection_mock = mock_connection_method('get', return_json={"A": "B"})
+        connection_mock = mock_connection_func('get', return_json={"A": "B"})
         contextionary = Contextionary(connection_mock)
         self.assertEqual("B", contextionary.get_concept_vector("sauce")["A"])
         connection_mock.get.assert_called_with(
@@ -106,7 +106,7 @@ class TestText2VecContextionary(unittest.TestCase):
 
         ## test UnexpectedStatusCodeException
         contextionary = Contextionary(
-            mock_connection_method('get', status_code=404)
+            mock_connection_func('get', status_code=404)
         )
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             contextionary.get_concept_vector("Palantir")
@@ -114,7 +114,7 @@ class TestText2VecContextionary(unittest.TestCase):
 
         ## test requests error
         contextionary = Contextionary(
-            mock_connection_method('get', side_effect=RequestsConnectionError("Test!"))
+            mock_connection_func('get', side_effect=RequestsConnectionError("Test!"))
         )
         with self.assertRaises(RequestsConnectionError) as error:
             contextionary.get_concept_vector("Palantir")

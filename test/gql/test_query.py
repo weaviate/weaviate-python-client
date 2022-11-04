@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock
 from weaviate.gql.query import Query
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
-from test.util import mock_connection_method, check_error_message, check_startswith_error_message
+from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 
 
 class TestQuery(unittest.TestCase):
@@ -34,7 +34,7 @@ class TestQuery(unittest.TestCase):
         """
 
         # valid calls
-        connection_mock = mock_connection_method('post')
+        connection_mock = mock_connection_func('post')
         query = Query(connection_mock)
 
         gql_query = "{Get {Group {name Members {... on Person {name}}}}}"
@@ -56,14 +56,14 @@ class TestQuery(unittest.TestCase):
         check_error_message(self, error, type_error_message)
 
         query = Query(
-            mock_connection_method('post', side_effect=RequestsConnectionError("Test!"))
+            mock_connection_func('post', side_effect=RequestsConnectionError("Test!"))
         )
         with self.assertRaises(RequestsConnectionError) as error:
             query.raw("TestQuery")
         check_error_message(self, error, requests_error_message)
 
         query = Query(
-            mock_connection_method('post', status_code=404)
+            mock_connection_func('post', status_code=404)
         )
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             query.raw("TestQuery")

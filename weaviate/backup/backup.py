@@ -40,10 +40,10 @@ class Backup:
     def create(self,
             backup_id: str,
             backend: str,
-            include_classes: Union[List[str], str, None]=None,
-            exclude_classes: Union[List[str], str, None]=None,
-            wait_for_completion: bool=False,
-        ) -> dict:
+            include_classes: Union[List[str], str, None] = None,
+            exclude_classes: Union[List[str], str, None] = None,
+            wait_for_completion: bool = False,
+            ) -> dict:
         """
         Create a backup of all/per class Weaviate objects.
 
@@ -117,7 +117,7 @@ class Backup:
             raise UnexpectedStatusCodeException("Backup creation", response)
 
         create_status: dict = response.json()
-        
+
         if wait_for_completion:
             while True:
                 status: dict = self.get_create_status(
@@ -127,10 +127,9 @@ class Backup:
                 create_status.update(status)
                 if status['status'] == 'SUCCESS':
                     break
-                elif status['status'] == 'FAILED':
+                if status['status'] == 'FAILED':
                     raise BackupFailedException(f'Backup failed: {create_status}')
-                else:
-                    sleep(1)
+                sleep(1)
         return create_status
 
     def get_create_status(self, backup_id: str, backend: str) -> bool:
@@ -227,7 +226,7 @@ class Backup:
             wait_for_completion=wait_for_completion,
         )
 
-        payload = { 
+        payload = {
             "config": {},
             "include": include_classes,
             "exclude": exclude_classes,
@@ -257,10 +256,9 @@ class Backup:
                 restore_status.update(status)
                 if status['status'] == 'SUCCESS':
                     break
-                elif status['status'] == 'FAILED':
+                if status['status'] == 'FAILED':
                     raise BackupFailedException(f'Backup restore failed: {restore_status}')
-                else:
-                    sleep(1)
+                sleep(1)
         return restore_status
 
     def get_restore_status(self, backup_id: str, backend: str) -> bool:
@@ -308,7 +306,7 @@ def _get_and_validate_create_restore_arguments(
         include_classes: Union[List[str], str, None],
         exclude_classes: Union[List[str], str, None],
         wait_for_completion: bool,
-    ) -> Tuple[str, str, List[str], List[str]]:
+        ) -> Tuple[str, str, List[str], List[str]]:
     """
     Validate and return the Backup.create/Backup.restore arguments.
 
@@ -381,7 +379,7 @@ def _get_and_validate_create_restore_arguments(
         raise TypeError(
             "Either 'include_classes' OR 'exclude_classes' can be set, not both."
         )
-    
+
     include_classes = [_capitalize_first_letter(cls) for cls in include_classes]
     exclude_classes = [_capitalize_first_letter(cls) for cls in exclude_classes]
 
@@ -422,5 +420,5 @@ def _get_and_validate_get_status(backup_id: str, backend: str) -> Tuple[str, str
             f"'backend' must have one of these values: {STORAGE_NAMES}. "
             f"Given value: {backend}."
         )
-    
+
     return (backup_id.lower(), backend.lower())

@@ -81,6 +81,24 @@ def client(people_schema):
     client.schema.delete_all()
 
 
+@pytest.mark.parametrize("timeout, error", [(None, TypeError), ((5,), ValueError)])
+def test_timeout_error(timeout, error):
+    with pytest.raises(error):
+        weaviate.Client("http://localhost:8080", timeout_config=timeout)
+
+
+@pytest.mark.parametrize("timeout", [(5, 5), 5, 5., (5., 5.), (5, 5.)])
+def test_timeout(people_schema, timeout):
+    client = weaviate.Client("http://localhost:8080", timeout_config=timeout)
+    client.schema.create(people_schema)
+    expected_name = "Sophie Scholl"
+    client.data_object.create({"name": expected_name}, "Person", "594b7827-f795-40d0-aabb-5e0553953dad")
+    time.sleep(0.5)
+    result = client.query.raw(gql_get_sophie_scholl)
+    assert result["data"]["Get"]["Person"][0]["name"] == expected_name
+    client.schema.delete_all()
+
+
 def test_query_data(client):
     expected_name = "Sophie Scholl"
     client.data_object.create({"name": expected_name}, "Person", "594b7827-f795-40d0-aabb-5e0553953dad")

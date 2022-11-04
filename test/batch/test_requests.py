@@ -134,7 +134,7 @@ class TestBatchObjects(unittest.TestCase):
     Test the `ObjectsBatchRequest` class.
     """
 
-    @patch('weaviate.batch.requests.uuid4', side_effect=lambda: uuid.UUID("d087b7c6a1155c898cb2f25bdeb9bf92"))
+    @patch('weaviate.batch.requests.uuid4', side_effect=lambda: "d087b7c6a1155c898cb2f25bdeb9bf92")
     @patch('weaviate.batch.requests.get_vector', side_effect=lambda x: x)
     @patch('weaviate.batch.requests.get_valid_uuid', side_effect=lambda x: x)
     def test_add_and_get_request_body(self, mock_get_valid_uuid, mock_get_vector, mock_uuid4):
@@ -215,7 +215,7 @@ class TestBatchObjects(unittest.TestCase):
         )
         self.assertEqual(len(batch), 1)
         self.assertFalse(batch.is_empty())
-        self.assertEqual(mock_get_valid_uuid.call_count, 0)
+        self.assertEqual(mock_get_valid_uuid.call_count, 1)
         self.assertEqual(mock_get_vector.call_count, 0)
         self.assertEqual(batch.get_request_body(), expected_return)
         self.assertEqual(res_uuid, "d087b7c6a1155c898cb2f25bdeb9bf92")
@@ -242,7 +242,7 @@ class TestBatchObjects(unittest.TestCase):
         )
         self.assertEqual(len(batch), 2)
         self.assertFalse(batch.is_empty())
-        self.assertEqual(mock_get_valid_uuid.call_count, 1)
+        self.assertEqual(mock_get_valid_uuid.call_count, 2)
         self.assertEqual(mock_get_vector.call_count, 0)
         self.assertEqual(batch.get_request_body(), expected_return)
         self.assertEqual(res_uuid, "d087b7c6-a115-5c89-8cb2-f25bdeb9bf93")
@@ -270,7 +270,7 @@ class TestBatchObjects(unittest.TestCase):
         )
         self.assertEqual(len(batch), 3)
         self.assertFalse(batch.is_empty())
-        self.assertEqual(mock_get_valid_uuid.call_count, 1)
+        self.assertEqual(mock_get_valid_uuid.call_count, 3)
         self.assertEqual(mock_get_vector.call_count, 1)
         self.assertEqual(batch.get_request_body(), expected_return)
         self.assertEqual(res_uuid, "d087b7c6a1155c898cb2f25bdeb9bf92")
@@ -300,7 +300,7 @@ class TestBatchObjects(unittest.TestCase):
         )
         self.assertEqual(len(batch), 4)
         self.assertFalse(batch.is_empty())
-        self.assertEqual(mock_get_valid_uuid.call_count, 2)
+        self.assertEqual(mock_get_valid_uuid.call_count, 4)
         self.assertEqual(mock_get_vector.call_count, 2)
         self.assertEqual(batch.get_request_body(), expected_return)
         self.assertEqual(res_uuid, "d087b7c6-a115-5c89-8cb2-f25bdeb9bf95")

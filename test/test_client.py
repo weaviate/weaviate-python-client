@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch, Mock
 from weaviate import Client
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
-from test.util import mock_connection_method, check_error_message
+from test.util import mock_connection_func, check_error_message
 
 
 
@@ -94,7 +94,7 @@ class TestWeaviateClient(unittest.TestCase):
 
         client = Client("http://localhost:8080")
         # Request to weaviate returns 200
-        connection_mock = mock_connection_method('get')
+        connection_mock = mock_connection_func('get')
         client._connection = connection_mock
         self.assertTrue(client.is_ready())  # Should be true
         connection_mock.get.assert_called_with(
@@ -102,7 +102,7 @@ class TestWeaviateClient(unittest.TestCase):
         )
 
         # Request to weaviate returns 404
-        connection_mock = mock_connection_method('get', status_code=404)
+        connection_mock = mock_connection_func('get', status_code=404)
         client._connection = connection_mock
         self.assertFalse(client.is_ready())  # Should be false
         connection_mock.get.assert_called_with(
@@ -110,7 +110,7 @@ class TestWeaviateClient(unittest.TestCase):
         )
 
         # Test exception in connect
-        connection_mock = mock_connection_method('get', side_effect=RequestsConnectionError("Test"))
+        connection_mock = mock_connection_func('get', side_effect=RequestsConnectionError("Test"))
         client._connection = connection_mock
         self.assertFalse(client.is_ready())
         connection_mock.get.assert_called_with(
@@ -125,7 +125,7 @@ class TestWeaviateClient(unittest.TestCase):
 
         client = Client("http://localhost:8080")
         # Request to weaviate returns 200
-        connection_mock = mock_connection_method('get')
+        connection_mock = mock_connection_func('get')
         client._connection = connection_mock
         self.assertTrue(client.is_live())  # Should be true
         connection_mock.get.assert_called_with(
@@ -133,7 +133,7 @@ class TestWeaviateClient(unittest.TestCase):
         )
 
         # Request to weaviate returns 404
-        connection_mock = mock_connection_method('get', status_code=404)
+        connection_mock = mock_connection_func('get', status_code=404)
         client._connection = connection_mock
         self.assertFalse(client.is_live())  # Should be false
         connection_mock.get.assert_called_with(
@@ -147,7 +147,7 @@ class TestWeaviateClient(unittest.TestCase):
 
         # client = Client("http://localhost:8080")
         # # Request to weaviate returns 200
-        # connection_mock = mock_connection_method('get', return_json="OK!")
+        # connection_mock = mock_connection_func('get', return_json="OK!")
         # client._connection = connection_mock
         # self.assertEqual(client.get_meta(), "OK!")
         # connection_mock.get.assert_called_with(
@@ -155,7 +155,7 @@ class TestWeaviateClient(unittest.TestCase):
         # )
 
         # # Request to weaviate returns 404
-        # connection_mock = mock_connection_method('get', status_code=404)
+        # connection_mock = mock_connection_func('get', status_code=404)
         # client._connection = connection_mock
         # with self.assertRaises(UnexpectedStatusCodeException) as error:
         #     client.get_meta()
@@ -173,7 +173,7 @@ class TestWeaviateClient(unittest.TestCase):
 
         client = Client("http://localhost:8080")
         # Request to weaviate returns 200
-        connection_mock = mock_connection_method('get', return_json="OK!")
+        connection_mock = mock_connection_func('get', return_json="OK!")
         client._connection = connection_mock
         self.assertEqual(client.get_open_id_configuration(), "OK!")
         connection_mock.get.assert_called_with(
@@ -182,7 +182,7 @@ class TestWeaviateClient(unittest.TestCase):
 
         
         # Request to weaviate returns 404
-        connection_mock = mock_connection_method('get', status_code=404)
+        connection_mock = mock_connection_func('get', status_code=404)
         client._connection = connection_mock
         self.assertIsNone(client.get_open_id_configuration())
         connection_mock.get.assert_called_with(
@@ -190,7 +190,7 @@ class TestWeaviateClient(unittest.TestCase):
         )
 
         # Request to weaviate returns 204
-        connection_mock = mock_connection_method('get', status_code=204)
+        connection_mock = mock_connection_func('get', status_code=204)
         client._connection = connection_mock
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             client.get_open_id_configuration()

@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch, Mock
 from weaviate.data import DataObject
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException, ObjectAlreadyExistsException
-from test.util import mock_connection_method, check_error_message, check_startswith_error_message
+from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 
 
 class TestDataObject(unittest.TestCase):
@@ -39,7 +39,7 @@ class TestDataObject(unittest.TestCase):
         mock_get_valid_uuid.assert_not_called()
 
         reset()
-        mock_obj = mock_connection_method('post', side_effect=RequestsConnectionError("Test!"))
+        mock_obj = mock_connection_func('post', side_effect=RequestsConnectionError("Test!"))
         data_object = DataObject(mock_obj)
         with self.assertRaises(RequestsConnectionError) as error:
             data_object.create({"name": "Alan Greenspan"}, "CoolestPersonEver")
@@ -49,7 +49,7 @@ class TestDataObject(unittest.TestCase):
         mock_get_valid_uuid.assert_not_called()
         
         reset()
-        mock_obj = mock_connection_method('post', status_code=204, return_json={})
+        mock_obj = mock_connection_func('post', status_code=204, return_json={})
         data_object = DataObject(mock_obj)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             data_object.create({"name": "Alan Greenspan"}, "CoolestPersonEver")
@@ -59,7 +59,7 @@ class TestDataObject(unittest.TestCase):
         mock_get_valid_uuid.assert_not_called()
 
         reset()
-        mock_obj = mock_connection_method('post', status_code=204, return_json={"error" : [{"message" : "already exists"}]})
+        mock_obj = mock_connection_func('post', status_code=204, return_json={"error" : [{"message" : "already exists"}]})
         data_object = DataObject(mock_obj)
         with self.assertRaises(ObjectAlreadyExistsException) as error:
             data_object.create({"name": "Alan Greenspan"}, "CoolestPersonEver")
@@ -69,7 +69,7 @@ class TestDataObject(unittest.TestCase):
         mock_get_valid_uuid.assert_not_called()
 
         reset()
-        mock_obj = mock_connection_method('post', status_code=204, return_json={})
+        mock_obj = mock_connection_func('post', status_code=204, return_json={})
         data_object = DataObject(mock_obj)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             data_object.create({"name": "Alan Greenspan"}, "CoolestPersonEver")
@@ -80,7 +80,7 @@ class TestDataObject(unittest.TestCase):
 
         # # test valid calls
         ## without vector argument
-        connection_mock = mock_connection_method('post', return_json={"id": 0}, status_code=200)
+        connection_mock = mock_connection_func('post', return_json={"id": 0}, status_code=200)
         data_object = DataObject(connection_mock)
 
         object_ = {"lyrics": "da da dadadada dada, da da dadadada da, da da dadadada da, da da dadadada da Tequila"}
@@ -106,7 +106,7 @@ class TestDataObject(unittest.TestCase):
         mock_get_valid_uuid.assert_called()
 
         ## with vector argument
-        connection_mock = mock_connection_method('post', return_json={"id": 0}, status_code=200)
+        connection_mock = mock_connection_func('post', return_json={"id": 0}, status_code=200)
         data_object = DataObject(connection_mock)
 
         object_ = {"lyrics": "da da dadadada dada, da da dadadada da, da da dadadada da, da da dadadada da Tequila"}
@@ -177,7 +177,7 @@ class TestDataObject(unittest.TestCase):
         mock_get_dict_from_object.assert_not_called()
         mock_get_vector.assert_not_called()
 
-        mock_obj = mock_connection_method('patch', side_effect=RequestsConnectionError("Test!"))
+        mock_obj = mock_connection_func('patch', side_effect=RequestsConnectionError("Test!"))
         data_object = DataObject(mock_obj)
         with self.assertRaises(RequestsConnectionError) as error:
             data_object.update(
@@ -189,7 +189,7 @@ class TestDataObject(unittest.TestCase):
         mock_get_vector.assert_not_called()
 
         with self.assertRaises(UnexpectedStatusCodeException) as error:
-            mock_obj = mock_connection_method('patch', status_code=200, return_json={})
+            mock_obj = mock_connection_func('patch', status_code=200, return_json={})
             data_object = DataObject(mock_obj)
             data_object.update(
                 {"name": "Alan Greenspan"},
@@ -201,7 +201,7 @@ class TestDataObject(unittest.TestCase):
 
         # test valid calls
         ## without vector argument
-        connection_mock = mock_connection_method('patch', status_code=204)
+        connection_mock = mock_connection_func('patch', status_code=204)
         data_object = DataObject(connection_mock)
         data_object.update({"A": "B"}, "Class", "ae6d51d6-b4ea-5a03-a808-6aae990bdebf")
         weaviate_obj = {
@@ -217,7 +217,7 @@ class TestDataObject(unittest.TestCase):
         mock_get_vector.assert_not_called()
 
         ### with uncapitalized class_name
-        connection_mock = mock_connection_method('patch', status_code=204)
+        connection_mock = mock_connection_func('patch', status_code=204)
         data_object = DataObject(connection_mock)
         data_object.update({"A": "B"}, "class", "ae6d51d6-b4ea-5a03-a808-6aae990bdebf")
         weaviate_obj = {
@@ -233,7 +233,7 @@ class TestDataObject(unittest.TestCase):
         mock_get_vector.assert_not_called()
 
         ## with vector argument
-        connection_mock = mock_connection_method('patch', status_code=204)
+        connection_mock = mock_connection_func('patch', status_code=204)
         data_object = DataObject(connection_mock)
         data_object.update({"A": "B"}, "Class", "ae6d51d6-b4ea-5a03-a808-6aae990bdebf", vector=[2., 4.])
         weaviate_obj = {
@@ -261,7 +261,7 @@ class TestDataObject(unittest.TestCase):
         unexpected_error_message = "Replace object"
 
         # test exceptions
-        mock_obj = mock_connection_method('put', side_effect=RequestsConnectionError("Test!"))
+        mock_obj = mock_connection_func('put', side_effect=RequestsConnectionError("Test!"))
         data_object = DataObject(mock_obj)
         with self.assertRaises(RequestsConnectionError) as error:
             data_object.replace(
@@ -272,7 +272,7 @@ class TestDataObject(unittest.TestCase):
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
 
-        mock_obj = mock_connection_method('put', status_code=204, return_json={})
+        mock_obj = mock_connection_func('put', status_code=204, return_json={})
         data_object = DataObject(mock_obj)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             data_object.replace(
@@ -285,7 +285,7 @@ class TestDataObject(unittest.TestCase):
 
         # test valid calls
         ## without vector argument
-        connection_mock = mock_connection_method('put')
+        connection_mock = mock_connection_func('put')
         data_object = DataObject(connection_mock)
         data_object.replace({"A": 2}, "Hero", "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
         weaviate_obj = {
@@ -301,7 +301,7 @@ class TestDataObject(unittest.TestCase):
         mock_get_vector.assert_not_called()
 
         ### with uncapitalized class_name
-        connection_mock = mock_connection_method('put')
+        connection_mock = mock_connection_func('put')
         data_object = DataObject(connection_mock)
         data_object.replace({"A": 2}, "hero", "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
         weaviate_obj = {
@@ -317,7 +317,7 @@ class TestDataObject(unittest.TestCase):
         mock_get_vector.assert_not_called()
 
         # with vector argument
-        connection_mock = mock_connection_method('put')
+        connection_mock = mock_connection_func('put')
         data_object = DataObject(connection_mock)
         data_object.replace({"A": 2}, "Hero", "27be9d8d-1da1-4d52-821f-bc7e2a25247d", vector=[3.,5, 7])
         weaviate_obj = {
@@ -356,20 +356,20 @@ class TestDataObject(unittest.TestCase):
             data_object.delete("Hallo World")
         check_error_message(self, error, uuid_value_error_message)
 
-        connection_mock = mock_connection_method('delete', side_effect=RequestsConnectionError('Test!'))
+        connection_mock = mock_connection_func('delete', side_effect=RequestsConnectionError('Test!'))
         data_object = DataObject(connection_mock)
         with self.assertRaises(RequestsConnectionError) as error:
             data_object.delete("b36268d4-a6b5-5274-985f-45f13ce0c642")
         check_error_message(self, error, requests_error_message)
 
-        connection_mock = mock_connection_method('delete', status_code=405)
+        connection_mock = mock_connection_func('delete', status_code=405)
         data_object = DataObject(connection_mock)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             data_object.delete("b36268d4-a6b5-5274-985f-45f13ce0c642")
         check_startswith_error_message(self, error, unexpected_error_message)
 
         # 1. Successfully delete something
-        connection_mock = mock_connection_method('delete', status_code=204)
+        connection_mock = mock_connection_func('delete', status_code=204)
         data_object = DataObject(connection_mock)
 
         object_id = "b36268d4-a6b5-5274-985f-45f13ce0c642"
@@ -424,14 +424,14 @@ class TestDataObject(unittest.TestCase):
         # test exceptions
 
         data_object = DataObject(
-            mock_connection_method('get', side_effect=RequestsConnectionError("Test!"))
+            mock_connection_func('get', side_effect=RequestsConnectionError("Test!"))
         )
         with self.assertRaises(RequestsConnectionError) as error:
             data_object.get()
         check_error_message(self, error, requests_error_message)
         
         data_object = DataObject(
-            mock_connection_method('get', status_code=405)
+            mock_connection_func('get', status_code=405)
         )
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             data_object.get()
@@ -440,7 +440,7 @@ class TestDataObject(unittest.TestCase):
         # test valid calls
         return_value_get = {"my_key": 12341}
         mock_get_params.return_value = {'include': "test1,test2"}
-        connection_mock = mock_connection_method('get', return_json=return_value_get, status_code=200)
+        connection_mock = mock_connection_func('get', return_json=return_value_get, status_code=200)
         data_object = DataObject(connection_mock)
         result = data_object.get()
         self.assertEqual(result, return_value_get)
@@ -451,7 +451,7 @@ class TestDataObject(unittest.TestCase):
 
         return_value_get = {"my_key": '12341'}
         mock_get_params.return_value = {'include': "test1,test2"}
-        connection_mock = mock_connection_method('get', return_json=return_value_get, status_code=200)
+        connection_mock = mock_connection_func('get', return_json=return_value_get, status_code=200)
         data_object = DataObject(connection_mock)
         result = data_object.get(uuid="1d420c9c98cb11ec9db61e008a366d49")
         self.assertEqual(result, return_value_get)
@@ -472,21 +472,21 @@ class TestDataObject(unittest.TestCase):
         # test exceptions
 
         data_object = DataObject(
-            mock_connection_method('head', side_effect=RequestsConnectionError("Test!"))
+            mock_connection_func('head', side_effect=RequestsConnectionError("Test!"))
         )
         with self.assertRaises(RequestsConnectionError) as error:
             data_object.exists(uuid="1d420c9c98cb11ec9db61e008a366d49")
         check_error_message(self, error, requests_error_message)
         
         data_object = DataObject(
-            mock_connection_method('head', status_code=200)
+            mock_connection_func('head', status_code=200)
         )
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             data_object.exists(uuid="1d420c9c98cb11ec9db61e008a366d49")
         check_startswith_error_message(self, error, unexpected_error_message)
 
         # test valid calls
-        connection_mock = mock_connection_method('head', status_code=204)
+        connection_mock = mock_connection_func('head', status_code=204)
         data_object = DataObject(connection_mock)
         result = data_object.exists(uuid="1d420c9c98cb11ec9db61e008a366d49")
         self.assertEqual(result, True)
@@ -494,7 +494,7 @@ class TestDataObject(unittest.TestCase):
             path="/objects/1d420c9c-98cb-11ec-9db6-1e008a366d49",
         )
 
-        connection_mock = mock_connection_method('head', status_code=404)
+        connection_mock = mock_connection_func('head', status_code=404)
         data_object = DataObject(connection_mock)
         result = data_object.exists(uuid="1d420c9c-98cb-11ec-9db6-1e008a366d49")
         self.assertEqual(result, False)
@@ -531,7 +531,7 @@ class TestDataObject(unittest.TestCase):
         mock_get_vector.assert_not_called()
 
         data_object = DataObject(
-            mock_connection_method('post', side_effect=RequestsConnectionError("Test!"))
+            mock_connection_func('post', side_effect=RequestsConnectionError("Test!"))
         )
         with self.assertRaises(RequestsConnectionError) as error:
             data_object.validate({"name": "Alan Greenspan"}, "CoolestPersonEver", "73802305-c0da-427e-b21c-d6779a22f35f")
@@ -540,7 +540,7 @@ class TestDataObject(unittest.TestCase):
         mock_get_vector.assert_not_called()
 
         data_object = DataObject(
-            mock_connection_method('post', status_code=204, return_json={})
+            mock_connection_func('post', status_code=204, return_json={})
         )
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             data_object.validate({"name": "Alan Greenspan"}, "CoolestPersonEver", "73802305-c0da-427e-b21c-d6779a22f35f")
@@ -550,7 +550,7 @@ class TestDataObject(unittest.TestCase):
 
         # test valid calls
         # test for status_code 200 without vector argument
-        connection_mock = mock_connection_method('post', status_code=200)
+        connection_mock = mock_connection_func('post', status_code=200)
         data_object = DataObject(connection_mock)
 
         response = data_object.validate({"A": 2}, "Hero", "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
@@ -569,7 +569,7 @@ class TestDataObject(unittest.TestCase):
         mock_get_vector.assert_not_called()
 
         ### with uncapitalized class_name
-        connection_mock = mock_connection_method('post', status_code=200)
+        connection_mock = mock_connection_func('post', status_code=200)
         data_object = DataObject(connection_mock)
 
         response = data_object.validate({"A": 2}, "hero", "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
@@ -588,7 +588,7 @@ class TestDataObject(unittest.TestCase):
         mock_get_vector.assert_not_called()
 
         # test for status_code 422
-        connection_mock = mock_connection_method('post', status_code=422, return_json={"error": "Not OK!"})
+        connection_mock = mock_connection_func('post', status_code=422, return_json={"error": "Not OK!"})
         data_object = DataObject(connection_mock)
 
         response = data_object.validate({"A": 2}, "Hero", "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
@@ -607,7 +607,7 @@ class TestDataObject(unittest.TestCase):
         mock_get_vector.assert_not_called()
 
         # test for status_code 200 with vector argument
-        connection_mock = mock_connection_method('post', status_code=200)
+        connection_mock = mock_connection_func('post', status_code=200)
         data_object = DataObject(connection_mock)
 
         response = data_object.validate({"A": 2}, "Hero", "27be9d8d-1da1-4d52-821f-bc7e2a25247d", vector=[-9.8, 6.66])

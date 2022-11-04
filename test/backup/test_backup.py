@@ -6,7 +6,7 @@ from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     BackupFailedException,
 )
-from test.util import mock_connection_method, check_error_message, check_startswith_error_message
+from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 
 
 class TestBackup(unittest.TestCase):
@@ -98,7 +98,7 @@ class TestBackup(unittest.TestCase):
             )
         check_error_message(self, error, wait_type_err_msg(int))
 
-        mock_conn = mock_connection_method('post', side_effect=RequestsConnectionError)
+        mock_conn = mock_connection_func('post', side_effect=RequestsConnectionError)
         with self.assertRaises(RequestsConnectionError) as error:
             Backup(mock_conn).create(
                 backup_id='My-bucket',
@@ -106,7 +106,7 @@ class TestBackup(unittest.TestCase):
             )
         check_error_message(self, error, connection_err_msg)
 
-        mock_conn = mock_connection_method('post', status_code=404)
+        mock_conn = mock_connection_func('post', status_code=404)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             Backup(mock_conn).create(
                 backup_id='My-bucket',
@@ -114,7 +114,7 @@ class TestBackup(unittest.TestCase):
             )
         check_startswith_error_message(self, error, status_code_err_msg)
 
-        mock_conn = mock_connection_method('post', status_code=200, return_json={'classes': ['Test'], 'error': 'Test2'})
+        mock_conn = mock_connection_func('post', status_code=200, return_json={'classes': ['Test'], 'error': 'Test2'})
         mock_status.return_value = {'status': 'FAILED', 'error': 'test'}
         with self.assertRaises(BackupFailedException) as error:
             Backup(mock_conn).create(
@@ -126,7 +126,7 @@ class TestBackup(unittest.TestCase):
 
 
         # valid calls
-        mock_conn = mock_connection_method('post', status_code=200, return_json={'status': 'TEST'})
+        mock_conn = mock_connection_func('post', status_code=200, return_json={'status': 'TEST'})
         mock_status.return_value = {'status': 'FAILED', 'error': 'test'}
         result = Backup(mock_conn).create(
             backup_id='My-Bucket',
@@ -143,7 +143,7 @@ class TestBackup(unittest.TestCase):
             }
         )
 
-        mock_conn = mock_connection_method('post', status_code=200, return_json={'status': 'TEST'})
+        mock_conn = mock_connection_func('post', status_code=200, return_json={'status': 'TEST'})
         mock_status.return_value = {'status': 'FAILED', 'error': 'test'}
         result = Backup(mock_conn).create(
             backup_id='My-Bucket',
@@ -161,7 +161,7 @@ class TestBackup(unittest.TestCase):
             }
         )
 
-        mock_conn = mock_connection_method('post', status_code=200, return_json={'status': 'TEST'})
+        mock_conn = mock_connection_func('post', status_code=200, return_json={'status': 'TEST'})
         mock_status.return_value = {'status': 'FAILED', 'error': 'test'}
         result = Backup(mock_conn).create(
             backup_id='My-Bucket',
@@ -179,7 +179,7 @@ class TestBackup(unittest.TestCase):
             }
         )
 
-        mock_conn = mock_connection_method('post', status_code=200, return_json={'status': 'TEST'})
+        mock_conn = mock_connection_func('post', status_code=200, return_json={'status': 'TEST'})
         mock_status.return_value = {'status': 'FAILED', 'error': 'test'}
         result = Backup(mock_conn).create(
             backup_id='My-Bucket',
@@ -198,7 +198,7 @@ class TestBackup(unittest.TestCase):
             }
         )
 
-        mock_conn = mock_connection_method('post', status_code=200, return_json={'status': 'TEST'})
+        mock_conn = mock_connection_func('post', status_code=200, return_json={'status': 'TEST'})
         mock_status.return_value = {'status': 'FAILED', 'error': 'test'}
         result = Backup(mock_conn).create(
             backup_id='My-Bucket',
@@ -217,7 +217,7 @@ class TestBackup(unittest.TestCase):
             }
         )
 
-        mock_conn = mock_connection_method('post', status_code=200, return_json={'status': 'TEST'})
+        mock_conn = mock_connection_func('post', status_code=200, return_json={'status': 'TEST'})
         mock_status.return_value = {'status': 'SUCCESS'}
         result = Backup(mock_conn).create(
             backup_id='My-Bucket2',
@@ -239,7 +239,7 @@ class TestBackup(unittest.TestCase):
             def override_mock_status():
                 mock_status.return_value = {'status': 'SUCCESS'}
             mock_sleep.side_effect = lambda n: override_mock_status()
-            mock_conn = mock_connection_method('post', status_code=200, return_json={'status': 'TEST'})
+            mock_conn = mock_connection_func('post', status_code=200, return_json={'status': 'TEST'})
             mock_status.return_value = {'status': 'TRANSFERRING'}
             result = Backup(mock_conn).create(
                 backup_id='my-Bucket_2',
@@ -293,7 +293,7 @@ class TestBackup(unittest.TestCase):
             )
         check_error_message(self, error, storage_val_err_msg('s4'))
 
-        mock_conn = mock_connection_method('get', side_effect=RequestsConnectionError)
+        mock_conn = mock_connection_func('get', side_effect=RequestsConnectionError)
         with self.assertRaises(RequestsConnectionError) as error:
             Backup(mock_conn).get_create_status(
                 backup_id='My-bucket',
@@ -301,7 +301,7 @@ class TestBackup(unittest.TestCase):
             )
         check_error_message(self, error, connection_err_msg)
 
-        mock_conn = mock_connection_method('get', status_code=404)
+        mock_conn = mock_connection_func('get', status_code=404)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             Backup(mock_conn).get_create_status(
                 backup_id='My-bucket',
@@ -311,7 +311,7 @@ class TestBackup(unittest.TestCase):
 
         # valid calls
 
-        mock_conn = mock_connection_method('get', status_code=200, return_json={'status': 'TEST'})
+        mock_conn = mock_connection_func('get', status_code=200, return_json={'status': 'TEST'})
         result = Backup(mock_conn).get_create_status(
             backup_id='My-Bucket',
             backend='s3',
@@ -321,7 +321,7 @@ class TestBackup(unittest.TestCase):
             path='/backups/s3/my-bucket',
         )
 
-        mock_conn = mock_connection_method('get', status_code=200, return_json={'status': 'TEST','error': None})
+        mock_conn = mock_connection_func('get', status_code=200, return_json={'status': 'TEST','error': None})
         result = Backup(mock_conn).get_create_status(
             backup_id='My-Bucket',
             backend='gcs',
@@ -331,7 +331,7 @@ class TestBackup(unittest.TestCase):
             path='/backups/gcs/my-bucket',
         )
 
-        mock_conn = mock_connection_method('get', status_code=200, return_json={'status': 'TEST2'})
+        mock_conn = mock_connection_func('get', status_code=200, return_json={'status': 'TEST2'})
         result = Backup(mock_conn).get_create_status(
             backup_id='My-Bucket123',
             backend='filesystem',
@@ -427,7 +427,7 @@ class TestBackup(unittest.TestCase):
             )
         check_error_message(self, error, wait_type_err_msg(int))
 
-        mock_conn = mock_connection_method('post', side_effect=RequestsConnectionError)
+        mock_conn = mock_connection_func('post', side_effect=RequestsConnectionError)
         with self.assertRaises(RequestsConnectionError) as error:
             Backup(mock_conn).restore(
                 backup_id='My-bucket',
@@ -435,7 +435,7 @@ class TestBackup(unittest.TestCase):
             )
         check_error_message(self, error, connection_err_msg)
 
-        mock_conn = mock_connection_method('post', status_code=404)
+        mock_conn = mock_connection_func('post', status_code=404)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             Backup(mock_conn).restore(
                 backup_id='My-bucket',
@@ -443,7 +443,7 @@ class TestBackup(unittest.TestCase):
             )
         check_startswith_error_message(self, error, status_code_err_msg)
 
-        mock_conn = mock_connection_method('post', status_code=200, return_json={'classes': ['Test'], 'error': 'Test2'})
+        mock_conn = mock_connection_func('post', status_code=200, return_json={'classes': ['Test'], 'error': 'Test2'})
         mock_status.return_value = {'status': 'FAILED', 'error': 'test'}
         with self.assertRaises(BackupFailedException) as error:
             Backup(mock_conn).restore(
@@ -454,7 +454,7 @@ class TestBackup(unittest.TestCase):
         check_error_message(self, error, backup_failed_err_msg({'classes': ['Test'], 'error': 'test', 'status': 'FAILED'}))
 
         # valid calls
-        mock_conn = mock_connection_method('post', status_code=200, return_json={'status': 'TEST'})
+        mock_conn = mock_connection_func('post', status_code=200, return_json={'status': 'TEST'})
         mock_status.return_value = {'status': 'FAILED', 'error': 'test'}
         result = Backup(mock_conn).restore(
             backup_id='My-Bucket',
@@ -470,7 +470,7 @@ class TestBackup(unittest.TestCase):
             }
         )
 
-        mock_conn = mock_connection_method('post', status_code=200, return_json={'status': 'TEST'})
+        mock_conn = mock_connection_func('post', status_code=200, return_json={'status': 'TEST'})
         mock_status.return_value = {'status': 'FAILED', 'error': 'test'}
         result = Backup(mock_conn).restore(
             backup_id='My-Bucket',
@@ -487,7 +487,7 @@ class TestBackup(unittest.TestCase):
             }
         )
 
-        mock_conn = mock_connection_method('post', status_code=200, return_json={'status': 'TEST'})
+        mock_conn = mock_connection_func('post', status_code=200, return_json={'status': 'TEST'})
         mock_status.return_value = {'status': 'FAILED', 'error': 'test'}
         result = Backup(mock_conn).restore(
             backup_id='My-Bucket',
@@ -504,7 +504,7 @@ class TestBackup(unittest.TestCase):
             }
         )
 
-        mock_conn = mock_connection_method('post', status_code=200, return_json={'status': 'TEST'})
+        mock_conn = mock_connection_func('post', status_code=200, return_json={'status': 'TEST'})
         mock_status.return_value = {'status': 'FAILED', 'error': 'test'}
         result = Backup(mock_conn).restore(
             backup_id='My-Bucket',
@@ -522,7 +522,7 @@ class TestBackup(unittest.TestCase):
             }
         )
 
-        mock_conn = mock_connection_method('post', status_code=200, return_json={'status': 'TEST'})
+        mock_conn = mock_connection_func('post', status_code=200, return_json={'status': 'TEST'})
         mock_status.return_value = {'status': 'FAILED', 'error': 'test'}
         result = Backup(mock_conn).restore(
             backup_id='My-Bucket',
@@ -540,7 +540,7 @@ class TestBackup(unittest.TestCase):
             }
         )
 
-        mock_conn = mock_connection_method('post', status_code=200, return_json={'status': 'TEST'})
+        mock_conn = mock_connection_func('post', status_code=200, return_json={'status': 'TEST'})
         mock_status.return_value = {'status': 'SUCCESS'}
         result = Backup(mock_conn).restore(
             backup_id='My-Bucket2',
@@ -561,7 +561,7 @@ class TestBackup(unittest.TestCase):
             def override_mock_status():
                 mock_status.return_value = {'status': 'SUCCESS'}
             mock_sleep.side_effect = lambda n: override_mock_status()
-            mock_conn = mock_connection_method('post', status_code=200, return_json={'status': 'TEST'})
+            mock_conn = mock_connection_func('post', status_code=200, return_json={'status': 'TEST'})
             mock_status.return_value = {'status': 'TRANSFERRING'}
             result = Backup(mock_conn).restore(
                 backup_id='my-Bucket_2',
@@ -614,7 +614,7 @@ class TestBackup(unittest.TestCase):
             )
         check_error_message(self, error, storage_val_err_msg('s4'))
 
-        mock_conn = mock_connection_method('get', side_effect=RequestsConnectionError)
+        mock_conn = mock_connection_func('get', side_effect=RequestsConnectionError)
         with self.assertRaises(RequestsConnectionError) as error:
             Backup(mock_conn).get_restore_status(
                 backup_id='My-bucket',
@@ -622,7 +622,7 @@ class TestBackup(unittest.TestCase):
             )
         check_error_message(self, error, connection_err_msg)
 
-        mock_conn = mock_connection_method('get', status_code=404)
+        mock_conn = mock_connection_func('get', status_code=404)
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             Backup(mock_conn).get_restore_status(
                 backup_id='My-bucket',
@@ -632,7 +632,7 @@ class TestBackup(unittest.TestCase):
 
         # valid calls
 
-        mock_conn = mock_connection_method('get', status_code=200, return_json={'status': 'TEST'})
+        mock_conn = mock_connection_func('get', status_code=200, return_json={'status': 'TEST'})
         result = Backup(mock_conn).get_restore_status(
             backup_id='My-Bucket',
             backend='s3',
@@ -642,7 +642,7 @@ class TestBackup(unittest.TestCase):
             path='/backups/s3/my-bucket/restore',
         )
 
-        mock_conn = mock_connection_method('get', status_code=200, return_json={'status': 'TEST','error': None})
+        mock_conn = mock_connection_func('get', status_code=200, return_json={'status': 'TEST','error': None})
         result = Backup(mock_conn).get_restore_status(
             backup_id='My-Bucket',
             backend='gcs',
@@ -652,7 +652,7 @@ class TestBackup(unittest.TestCase):
             path='/backups/gcs/my-bucket/restore',
         )
 
-        mock_conn = mock_connection_method('get', status_code=200, return_json={'status': 'TEST2'})
+        mock_conn = mock_connection_func('get', status_code=200, return_json={'status': 'TEST2'})
         result = Backup(mock_conn).get_restore_status(
             backup_id='My-Bucket123',
             backend='filesystem',
