@@ -1,14 +1,14 @@
-import os
 import unittest
-from unittest.mock import Mock, patch
 from numbers import Real
-from test.util import mock_connection_func, check_error_message, check_startswith_error_message
+from unittest.mock import Mock, patch
+
 from requests import ReadTimeout
-from weaviate.batch.requests import ObjectsBatchRequest, ReferenceBatchRequest
+
+from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 from weaviate.batch import Batch
+from weaviate.batch.requests import ObjectsBatchRequest, ReferenceBatchRequest
 from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
 
-OS_CPU_COUNT = os.cpu_count()
 
 class TestBatch(unittest.TestCase):
 
@@ -21,7 +21,7 @@ class TestBatch(unittest.TestCase):
             timeout_retries: int = 3,
             connection_error_retries: int = 3,
             batching_type: str = None,
-            num_workers: int = OS_CPU_COUNT,
+            num_workers: int = 1,
         ) -> None:
         """
         Check all configurable attributes of the Batch instance.
@@ -860,7 +860,7 @@ class TestBatch(unittest.TestCase):
         mock_create_data.assert_called()
         self.check_instance(
             batch,
-            recom_num_obj=20
+            recom_num_obj=0
         )
         self.assertEqual(batch.num_objects(), 0)
 
@@ -901,7 +901,7 @@ class TestBatch(unittest.TestCase):
         mock_create_data.assert_called()
         self.check_instance(
             batch,
-            recom_num_ref=20
+            recom_num_ref=0
         )
         self.assertEqual(batch.num_references(), 0)
 

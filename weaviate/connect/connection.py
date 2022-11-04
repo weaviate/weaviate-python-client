@@ -4,15 +4,14 @@ Connection class definition.
 import datetime
 import os
 import time
-import datetime
-from typing import Any, Dict, Tuple, Optional, Union
 from numbers import Real
+from typing import Any, Dict, Tuple, Optional, Union
+
 import requests
 from requests import RequestException
 
 from weaviate.auth import AuthCredentials
 from weaviate.exceptions import AuthenticationFailedException
-from weaviate.auth import AuthCredentials
 
 
 class Connection:
@@ -622,7 +621,7 @@ def _get_valid_timeout_config(timeout_config: Union[Tuple[Real, Real], Real, Non
     if isinstance(timeout_config, Real) and not isinstance(timeout_config, bool):
         if timeout_config <= 0.0:
             raise ValueError("'timeout_config' cannot be non-positive number/s!")
-        return (timeout_config, timeout_config)
+        return timeout_config, timeout_config
 
     if not isinstance(timeout_config, tuple):
         raise TypeError("'timeout_config' should be a (or tuple of) positive real number/s!")

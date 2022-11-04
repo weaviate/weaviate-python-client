@@ -996,9 +996,7 @@ class Batch:
         Flush both objects and references to the Weaviate server and call the callback function
         if one is provided. (See the docs for `configure` or `__call__` for how to set one.)
         """
-        # In case of timeouts we readd objects and these need to be send again
-        while len(self._reference_batch) > 0 or len(self._objects_batch) > 0:
-            self._send_batch_requests(force_wait=True)
+        self._send_batch_requests(force_wait=True)
 
     def delete_objects(self,
             class_name: str,
