@@ -39,13 +39,14 @@ class WCS(Connection):
     #         attr_name = attr_name[1:]
     #     return super().__getattribute__(attr_name)
 
-    def __init__(self,
-            auth_client_secret: AuthClientPassword,
-            timeout_config: Union[Tuple[Real, Real], Real]=(2, 20),
-            proxies: Union[dict, str, None]=None,
-            trust_env: bool=False,
-            dev: bool=False,
-        ):
+    def __init__(
+        self,
+        auth_client_secret: AuthClientPassword,
+        timeout_config: Union[Tuple[Real, Real], Real] = (2, 20),
+        proxies: Union[dict, str, None] = None,
+        trust_env: bool = False,
+        dev: bool = False,
+    ):
         """
         Initialize a WCS class instance.
 
@@ -67,15 +68,16 @@ class WCS(Connection):
         self.dev = dev
 
         if dev:
-            url = 'https://dev.wcs.api.semi.technology'
+            url = "https://dev.wcs.api.semi.technology"
         else:
-            url = 'https://wcs.api.semi.technology'
+            url = "https://wcs.api.semi.technology"
 
-        auth_path = (url.replace('://', '://auth.') +
-            '/auth/realms/SeMI/.well-known/openid-configuration')
+        auth_path = (
+            url.replace("://", "://auth.") + "/auth/realms/SeMI/.well-known/openid-configuration"
+        )
 
         # make _refresh_authentication method to point to _set_bearer method.
-        self._refresh_authentication = lambda: self._set_bearer('wcs', auth_path)
+        self._refresh_authentication = lambda: self._set_bearer("wcs", auth_path)
 
         super().__init__(
             url=url,
@@ -104,14 +106,15 @@ class WCS(Connection):
                 "Accepted type of credentials: weaviate.auth.AuthClientPassword"
             )
 
-    def create(self,
-            cluster_name: str=None,
-            cluster_type: str='sandbox',
-            with_auth: bool=False,
-            modules: Optional[Union[str, dict, list]]=None,
-            config: dict=None,
-            wait_for_completion: bool=True
-        ) -> str:
+    def create(
+        self,
+        cluster_name: str = None,
+        cluster_type: str = "sandbox",
+        with_auth: bool = False,
+        modules: Optional[Union[str, dict, list]] = None,
+        config: dict = None,
+        wait_for_completion: bool = True,
+    ) -> str:
         """
         Create the cluster and return The Weaviate server URL.
 
@@ -227,50 +230,44 @@ class WCS(Connection):
 
         if config is None:
             config = {
-                'id': cluster_name,
-                'configuration': {
-                    'tier': cluster_type,
-                    'requiresAuthentication': with_auth
-                }
+                "id": cluster_name,
+                "configuration": {"tier": cluster_type, "requiresAuthentication": with_auth},
             }
-            config['configuration']['modules'] = _get_modules_config(modules)
+            config["configuration"]["modules"] = _get_modules_config(modules)
         else:
             if not isinstance(config, dict):
                 raise TypeError(
                     "The `config` argument must be either None or of type 'dict', given: "
                     f"{type(config)}"
                 )
-            if 'id' in config:
-                cluster_name = config['id'].lower()
+            if "id" in config:
+                cluster_name = config["id"].lower()
 
         try:
-            response = self.post(
-                path='/clusters',
-                weaviate_object=config
-            )
+            response = self.post(path="/clusters", weaviate_object=config)
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('WCS cluster was not created.') from conn_err
+            raise RequestsConnectionError("WCS cluster was not created.") from conn_err
         if response.status_code == 400 and "already exists" in response.text:
             # this line is never executed if cluster_name is None
-            return 'https://' + self.get_cluster_config(cluster_name)['meta']['PublicURL']
+            return "https://" + self.get_cluster_config(cluster_name)["meta"]["PublicURL"]
 
         if response.status_code != 202:
-            raise UnexpectedStatusCodeException('Creating WCS instance', response)
+            raise UnexpectedStatusCodeException("Creating WCS instance", response)
 
-        cluster_name = response.json()['id']
+        cluster_name = response.json()["id"]
 
         if wait_for_completion is True:
             title_bar = tqdm(
-                bar_format='{desc}',
-                desc='Creating cluster:',
+                bar_format="{desc}",
+                desc="Creating cluster:",
                 leave=True,
             )
             progress_bar = tqdm(
                 total=100.0,
                 leave=True,
-                unit='%',
+                unit="%",
                 bar_format=(
-                    '{percentage:3.0f}% |{bar}|[{elapsed}<{remaining}, {rate_fmt}{postfix}]'
+                    "{percentage:3.0f}% |{bar}|[{elapsed}<{remaining}, {rate_fmt}{postfix}]"
                 ),
             )
             progress = 0
@@ -279,11 +276,11 @@ class WCS(Connection):
                 progress_state = self.get_cluster_config(cluster_name)["status"]["state"]
                 progress = progress_state["percentage"]
                 progress_bar.update(progress - progress_bar.n)
-                title_bar.set_description(progress_state.get('message'))
+                title_bar.set_description(progress_state.get("message"))
             title_bar.close()
             progress_bar.close()
 
-        return 'https://' + self.get_cluster_config(cluster_name)['meta']['PublicURL']
+        return "https://" + self.get_cluster_config(cluster_name)["meta"]["PublicURL"]
 
     def is_ready(self, cluster_name: str) -> bool:
         """
@@ -329,16 +326,14 @@ class WCS(Connection):
 
         try:
             response = self.get(
-                path='/clusters/list',
-                params={
-                    'email': self._auth_client_secret.get_credentials()['username']
-                }
+                path="/clusters/list",
+                params={"email": self._auth_client_secret.get_credentials()["username"]},
             )
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('WCS clusters were not fetched.') from conn_err
+            raise RequestsConnectionError("WCS clusters were not fetched.") from conn_err
         if response.status_code == 200:
-            return response.json()['clusterIDs']
-        raise UnexpectedStatusCodeException('Checking WCS instance', response)
+            return response.json()["clusterIDs"]
+        raise UnexpectedStatusCodeException("Checking WCS instance", response)
 
     def get_cluster_config(self, cluster_name: str) -> dict:
         """
@@ -367,15 +362,15 @@ class WCS(Connection):
 
         try:
             response = self.get(
-                path='/clusters/' + cluster_name.lower(),
+                path="/clusters/" + cluster_name.lower(),
             )
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('WCS cluster info was not fetched.') from conn_err
+            raise RequestsConnectionError("WCS cluster info was not fetched.") from conn_err
         if response.status_code == 200:
             return response.json()
         if response.status_code == 404:
             return {}
-        raise UnexpectedStatusCodeException('Checking WCS instance', response)
+        raise UnexpectedStatusCodeException("Checking WCS instance", response)
 
     def delete_cluster(self, cluster_name: str) -> None:
         """
@@ -398,13 +393,13 @@ class WCS(Connection):
 
         try:
             response = self.delete(
-                path='/clusters/' + cluster_name.lower(),
+                path="/clusters/" + cluster_name.lower(),
             )
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('WCS cluster was not deleted.') from conn_err
+            raise RequestsConnectionError("WCS cluster was not deleted.") from conn_err
         if response.status_code in (200, 404):
             return
-        raise UnexpectedStatusCodeException('Deleting WCS instance', response)
+        raise UnexpectedStatusCodeException("Deleting WCS instance", response)
 
     def get_users_of_cluster(self, cluster_name: str) -> list:
         """
@@ -438,10 +433,10 @@ class WCS(Connection):
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                'Could not get users of the cluster due to connection error.'
+                "Could not get users of the cluster due to connection error."
             ) from conn_err
         if response.status_code == 200:
-            return response.json()['users']
+            return response.json()["users"]
         raise UnexpectedStatusCodeException("Getting cluster's users", response)
 
     def add_user_to_cluster(self, cluster_name: str, user: str) -> None:
@@ -474,7 +469,7 @@ class WCS(Connection):
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                'Could not add user of the cluster due to connection error.'
+                "Could not add user of the cluster due to connection error."
             ) from conn_err
         if response.status_code == 200:
             return
@@ -509,7 +504,7 @@ class WCS(Connection):
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                'Could not remove user from the cluster due to connection error.'
+                "Could not remove user from the cluster due to connection error."
             ) from conn_err
         if response.status_code == 200:
             return
@@ -559,15 +554,12 @@ def _get_modules_config(modules: Optional[Union[str, dict, list]]) -> List[Dict[
 
         if isinstance(module, str):
             # only module name
-            return {
-                'name': module
-            }
+            return {"name": module}
 
         if isinstance(module, dict):
             # module config
-            if (
-                'name' not in module
-                or not set(module).issubset(['name', 'tag', 'repo', 'inferenceUrl'])
+            if "name" not in module or not set(module).issubset(
+                ["name", "tag", "repo", "inferenceUrl"]
             ):
                 raise KeyError(
                     "A module should have a required key: 'name',  and optional keys: 'tag', "
@@ -578,7 +570,7 @@ def _get_modules_config(modules: Optional[Union[str, dict, list]]) -> List[Dict[
                     raise TypeError(
                         "The type of each value of the module's dict should be 'str'! "
                         f"The key '{key}' has type: {type(value)}"
-                        )
+                    )
             return module
 
         raise TypeError(
@@ -591,15 +583,11 @@ def _get_modules_config(modules: Optional[Union[str, dict, list]]) -> List[Dict[
         return []
 
     if isinstance(modules, (str, dict)):
-        return [
-            get_module_dict(modules)
-        ]
+        return [get_module_dict(modules)]
     if isinstance(modules, list):
         to_return = []
         for _module in modules:
-            to_return.append(
-                get_module_dict(_module)
-            )
+            to_return.append(get_module_dict(_module))
         return to_return
 
     raise TypeError(

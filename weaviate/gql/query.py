@@ -25,10 +25,11 @@ class Query:
 
         self._connection = connection
 
-    def get(self,
-            class_name: str,
-            properties: Union[List[str], str, None]=None,
-        ) -> GetBuilder:
+    def get(
+        self,
+        class_name: str,
+        properties: Union[List[str], str, None] = None,
+    ) -> GetBuilder:
         """
         Instantiate a GetBuilder for GraphQL `get` requests.
 
@@ -140,12 +141,9 @@ class Query:
         json_query = {"query": gql_query}
 
         try:
-            response = self._connection.post(
-                path="/graphql",
-                weaviate_object=json_query
-            )
+            response = self._connection.post(path="/graphql", weaviate_object=json_query)
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Query not executed.') from conn_err
+            raise RequestsConnectionError("Query not executed.") from conn_err
         if response.status_code == 200:
             return response.json()  # Successfully queried
         raise UnexpectedStatusCodeException("GQL query failed", response)

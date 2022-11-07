@@ -23,11 +23,9 @@ class GetBuilder(GraphQL):
     GetBuilder class used to create GraphQL queries.
     """
 
-    def __init__(self,
-            class_name: str,
-            properties: Union[List[str], str, None],
-            connection: Connection
-        ):
+    def __init__(
+        self, class_name: str, properties: Union[List[str], str, None], connection: Connection
+    ):
         """
         Initialize a GetBuilder class instance.
 
@@ -55,27 +53,26 @@ class GetBuilder(GraphQL):
         if isinstance(properties, str):
             properties = [properties]
         if not isinstance(properties, list):
-            raise TypeError("properties must be of type str, "
-                f"list of str or None but was {type(properties)}")
+            raise TypeError(
+                "properties must be of type str, " f"list of str or None but was {type(properties)}"
+            )
         for prop in properties:
             if not isinstance(prop, str):
-                raise TypeError(
-                    "All the `properties` must be of type `str`!"
-                )
+                raise TypeError("All the `properties` must be of type `str`!")
 
         self._class_name: str = _capitalize_first_letter(class_name)
         self._properties: List[str] = properties
-        self._additional: dict = {'__one_level': set()}
+        self._additional: dict = {"__one_level": set()}
         # '__one_level' refers to the additional properties that are just a single word, not a dict
         # thus '__one_level', only one level of complexity
         self._where: Optional[Where] = None  # To store the where filter if it is added
         self._limit: Optional[str] = None  # To store the limit filter if it is added
         self._offset: Optional[str] = None  # To store the offset filter if it is added
-        self._near_ask: Optional[Filter] = None # To store the `near`/`ask` clause if it is added
+        self._near_ask: Optional[Filter] = None  # To store the `near`/`ask` clause if it is added
         self._contains_filter = False  # true if any filter is added
         self._sort: Optional[Sort] = None
 
-    def with_where(self, content: dict) -> 'GetBuilder':
+    def with_where(self, content: dict) -> "GetBuilder":
         """
         Set `where` filter.
 
@@ -150,7 +147,7 @@ class GetBuilder(GraphQL):
         self._contains_filter = True
         return self
 
-    def with_near_text(self, content: dict) -> 'GetBuilder':
+    def with_near_text(self, content: dict) -> "GetBuilder":
         """
         Set `nearText` filter. This filter can be used with text modules (text2vec).
         E.g.: text2vec-contextionary, text2vec-transformers.
@@ -226,13 +223,15 @@ class GetBuilder(GraphQL):
         """
 
         if self._near_ask is not None:
-            raise AttributeError("Cannot use multiple 'near' filters, or a 'near' filter along"
-                " with a 'ask' filter!")
+            raise AttributeError(
+                "Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!"
+            )
         self._near_ask = NearText(content)
         self._contains_filter = True
         return self
 
-    def with_near_vector(self, content: dict) -> 'GetBuilder':
+    def with_near_vector(self, content: dict) -> "GetBuilder":
         """
         Set `nearVector` filter.
 
@@ -292,13 +291,15 @@ class GetBuilder(GraphQL):
         """
 
         if self._near_ask is not None:
-            raise AttributeError("Cannot use multiple 'near' filters, or a 'near' filter along"
-                " with a 'ask' filter!")
+            raise AttributeError(
+                "Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!"
+            )
         self._near_ask = NearVector(content)
         self._contains_filter = True
         return self
 
-    def with_near_object(self, content: dict) -> 'GetBuilder':
+    def with_near_object(self, content: dict) -> "GetBuilder":
         """
         Set `nearObject` filter.
 
@@ -336,7 +337,7 @@ class GetBuilder(GraphQL):
             If another 'near' filter was already set.
         """
 
-        is_server_version_14 = (self._connection.server_version >= '1.14')
+        is_server_version_14 = self._connection.server_version >= "1.14"
 
         if self._near_ask is not None:
             raise AttributeError(
@@ -347,7 +348,7 @@ class GetBuilder(GraphQL):
         self._contains_filter = True
         return self
 
-    def with_near_image(self, content: dict, encode: bool = True) -> 'GetBuilder':
+    def with_near_image(self, content: dict, encode: bool = True) -> "GetBuilder":
         """
         Set `nearImage` filter.
 
@@ -445,15 +446,17 @@ class GetBuilder(GraphQL):
         """
 
         if self._near_ask is not None:
-            raise AttributeError("Cannot use multiple 'near' filters, or a 'near' filter along"
-                " with a 'ask' filter!")
+            raise AttributeError(
+                "Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!"
+            )
         if encode:
-            content['image'] = image_encoder_b64(content['image'])
+            content["image"] = image_encoder_b64(content["image"])
         self._near_ask = NearImage(content)
         self._contains_filter = True
         return self
 
-    def with_limit(self, limit: int) -> 'GetBuilder':
+    def with_limit(self, limit: int) -> "GetBuilder":
         """
         The limit of objects returned.
 
@@ -474,13 +477,13 @@ class GetBuilder(GraphQL):
         """
 
         if limit < 1:
-            raise ValueError('limit cannot be non-positive (limit >=1).')
+            raise ValueError("limit cannot be non-positive (limit >=1).")
 
-        self._limit = f'limit: {limit} '
+        self._limit = f"limit: {limit} "
         self._contains_filter = True
         return self
 
-    def with_offset(self, offset: int) -> 'GetBuilder':
+    def with_offset(self, offset: int) -> "GetBuilder":
         """
         The offset of objects returned, i.e. the starting index of the returned objects should be
         used in conjunction with the `with_limit` method.
@@ -502,13 +505,13 @@ class GetBuilder(GraphQL):
         """
 
         if offset < 0:
-            raise ValueError('offset cannot be non-positive (offset >=0).')
+            raise ValueError("offset cannot be non-positive (offset >=0).")
 
-        self._offset = f'offset: {offset} '
+        self._offset = f"offset: {offset} "
         self._contains_filter = True
         return self
 
-    def with_ask(self, content: dict) -> 'GetBuilder':
+    def with_ask(self, content: dict) -> "GetBuilder":
         """
         Ask a question for which weaviate will retrieve the answer from your data.
         This filter can be used only with QnA module: qna-transformers.
@@ -554,15 +557,17 @@ class GetBuilder(GraphQL):
         """
 
         if self._near_ask is not None:
-            raise AttributeError("Cannot use multiple 'near' filters, or a 'near' filter along"
-                " with a 'ask' filter!")
+            raise AttributeError(
+                "Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!"
+            )
         self._near_ask = Ask(content)
         self._contains_filter = True
         return self
 
-    def with_additional(self,
-            properties: Union[List, str, Dict[str, Union[List[str], str]],Tuple[dict, dict]]
-        ) -> 'GetBuilder':
+    def with_additional(
+        self, properties: Union[List, str, Dict[str, Union[List[str], str]], Tuple[dict, dict]]
+    ) -> "GetBuilder":
         """
         Add additional properties (i.e. properties from `_additional` clause). See Examples below.
         If the the 'properties' is of data type `str` or `list` of `str` then the method is
@@ -737,9 +742,8 @@ class GetBuilder(GraphQL):
             If one of the property is not of a correct data type.
         """
 
-
         if isinstance(properties, str):
-            self._additional['__one_level'].add(properties)
+            self._additional["__one_level"].add(properties)
             return self
 
         if isinstance(properties, list):
@@ -748,7 +752,7 @@ class GetBuilder(GraphQL):
                     raise TypeError(
                         "If type of 'properties' is `list` then all items must be of type `str`!"
                     )
-                self._additional['__one_level'].add(prop)
+                self._additional["__one_level"].add(prop)
             return self
 
         if isinstance(properties, tuple):
@@ -790,7 +794,7 @@ class GetBuilder(GraphQL):
                 self._additional[key].add(value)
         return self
 
-    def with_sort(self, content: Union[list, dict]) -> 'GetBuilder':
+    def with_sort(self, content: Union[list, dict]) -> "GetBuilder":
         """
         Sort objects based on specific field/s. Multiple sort fields can be used, the objects are
         going to be sorted according to order of the sort configs passed. This method can be called
@@ -864,9 +868,9 @@ class GetBuilder(GraphQL):
             The GraphQL query as a string.
         """
 
-        query = '{Get{' + self._class_name
+        query = "{Get{" + self._class_name
         if self._contains_filter:
-            query += '('
+            query += "("
             if self._where is not None:
                 query += str(self._where)
             if self._limit is not None:
@@ -877,7 +881,7 @@ class GetBuilder(GraphQL):
                 query += str(self._near_ask)
             if self._sort is not None:
                 query += str(self._sort)
-            query += ')'
+            query += ")"
 
         additional_props = self._additional_to_str()
 
@@ -888,8 +892,8 @@ class GetBuilder(GraphQL):
             )
 
         properties = " ".join(self._properties) + self._additional_to_str()
-        query += '{' + properties + '}'
-        return query + '}}'
+        query += "{" + properties + "}"
+        return query + "}}"
 
     def _additional_to_str(self) -> str:
         """
@@ -901,25 +905,25 @@ class GetBuilder(GraphQL):
             The converted self._additional.
         """
 
-        str_to_return = ' _additional {'
+        str_to_return = " _additional {"
 
         has_values = False
-        for one_level in sorted(self._additional['__one_level']):
+        for one_level in sorted(self._additional["__one_level"]):
             has_values = True
-            str_to_return += one_level + ' '
+            str_to_return += one_level + " "
 
         for key, values in sorted(self._additional.items(), key=lambda key_value: key_value[0]):
-            if key == '__one_level':
+            if key == "__one_level":
                 continue
             has_values = True
-            str_to_return += key + ' {'
+            str_to_return += key + " {"
             for value in sorted(values):
-                str_to_return += value + ' '
-            str_to_return += '} '
+                str_to_return += value + " "
+            str_to_return += "} "
 
         if has_values is False:
-            return ''
-        return str_to_return + '}'
+            return ""
+        return str_to_return + "}"
 
     def _tuple_to_dict(self, tuple_value: tuple) -> None:
         """
@@ -969,7 +973,7 @@ class GetBuilder(GraphQL):
                 "`str`!"
             )
 
-        clause_with_settings = clause_key + '('
+        clause_with_settings = clause_key + "("
         try:
             for key, value in sorted(settings.items(), key=lambda key_value: key_value[0]):
                 if not isinstance(key, str):
@@ -977,13 +981,13 @@ class GetBuilder(GraphQL):
                         "If type of 'properties' is `tuple` then the second elements (<dict>) "
                         "should have all the keys of type `str`!"
                     )
-                clause_with_settings += key + ': ' + dumps(value) + ' '
+                clause_with_settings += key + ": " + dumps(value) + " "
         except TypeError:
             raise TypeError(
                 "If type of 'properties' is `tuple` then the second elements (<dict>) "
                 "should have all the keys of type `str`!"
             ) from None
-        clause_with_settings += ')'
+        clause_with_settings += ")"
 
         self._additional[clause_with_settings] = set()
         if isinstance(values, str):

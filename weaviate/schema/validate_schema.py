@@ -48,8 +48,10 @@ def validate_schema(schema: dict) -> None:
 
     # check if schema has required "classes" as keys
     if "classes" not in schema:
-        raise SchemaValidationException('Each schema has to have "classes" '
-                    'in the first level of the JSON format file/parameter/object')
+        raise SchemaValidationException(
+            'Each schema has to have "classes" '
+            "in the first level of the JSON format file/parameter/object"
+        )
     # check if "classes" is of type list
     _check_key_type("classes", schema["classes"], list)
     # check if each class in the "classes" is a valid class
@@ -156,5 +158,6 @@ def _check_key_type(key: str, value: Any, expected_type: Any) -> None:
     """
 
     if not isinstance(value, expected_type):
-        raise SchemaValidationException(f'"{key}" is type {type(value)} '
-                                        f'but should be {expected_type}.')
+        raise SchemaValidationException(
+            f'"{key}" is type {type(value)} ' f"but should be {expected_type}."
+        )

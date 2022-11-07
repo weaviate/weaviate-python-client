@@ -45,14 +45,15 @@ class Client:
         A Query object instance connected to the same Weaviate instance as the Client.
     """
 
-    def __init__(self,
-                 url: str,
-                 auth_client_secret: Optional[AuthCredentials] = None,
-                 timeout_config: Union[Tuple[Real, Real], Real] = (10, 60),
-                 proxies: Union[dict, str, None] = None,
-                 trust_env: bool = False,
-                 additional_headers: Optional[dict] = None,
-                 ):
+    def __init__(
+        self,
+        url: str,
+        auth_client_secret: Optional[AuthCredentials] = None,
+        timeout_config: Union[Tuple[Real, Real], Real] = (10, 60),
+        proxies: Union[dict, str, None] = None,
+        trust_env: bool = False,
+        additional_headers: Optional[dict] = None,
+    ):
         """
         Initialize a Client class instance.
 
@@ -113,9 +114,7 @@ class Client:
         """
 
         if not isinstance(url, str):
-            raise TypeError(
-                f"URL is expected to be string but is {type(url)}"
-            )
+            raise TypeError(f"URL is expected to be string but is {type(url)}")
         url = url.strip("/")
 
         self._connection = Connection(
@@ -137,7 +136,7 @@ class Client:
 
         self._set_server_version()
 
-        if self._connection.server_version < '1.14':
+        if self._connection.server_version < "1.14":
             warnings.warn(
                 message=CLIENT_V14_W,
                 category=DeprecationWarning,
@@ -256,4 +255,4 @@ class Client:
         Set Weaviate Server version.
         """
 
-        self._connection.server_version = self.get_meta()['version']
+        self._connection.server_version = self.get_meta()["version"]

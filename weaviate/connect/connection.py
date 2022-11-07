@@ -18,14 +18,16 @@ class Connection:
     """
     Connection class used to communicate to a weaviate instance.
     """
-    def __init__(self,
-            url: str,
-            auth_client_secret: Optional[AuthCredentials],
-            timeout_config: Union[Tuple[Real, Real], Real],
-            proxies: Union[dict, str, None],
-            trust_env: bool,
-            additional_headers: Optional[Dict[str, Any]],
-        ):
+
+    def __init__(
+        self,
+        url: str,
+        auth_client_secret: Optional[AuthCredentials],
+        timeout_config: Union[Tuple[Real, Real], Real],
+        proxies: Union[dict, str, None],
+        trust_env: bool,
+        additional_headers: Optional[Dict[str, Any]],
+    ):
         """
         Initialize a Connection class instance.
 
@@ -61,7 +63,7 @@ class Connection:
             configured.
         """
 
-        self._api_version_path = '/v1'
+        self._api_version_path = "/v1"
         self._server_version = None
         self._session = requests.Session()
         self.url = url  # e.g. http://localhost:80
@@ -85,7 +87,7 @@ class Connection:
 
         self._proxies = _get_proxies(proxies, trust_env)
 
-        if 'authorization' not in self._headers:
+        if "authorization" not in self._headers:
             self._log_in()
 
     def _log_in(self) -> None:
@@ -162,9 +164,9 @@ class Connection:
 
             # Set the client ID
             response_json = request.json()
-            client_id = response_json['clientId']
+            client_id = response_json["clientId"]
 
-            self._set_bearer(client_id=client_id, href=response_json['href'])
+            self._set_bearer(client_id=client_id, href=response_json["href"])
 
     def _set_bearer(self, client_id: str, href: str) -> None:
         """
@@ -205,7 +207,7 @@ class Connection:
 
         # Validate third part auth info
         json_third_party_response = request_third_part.json()
-        if request_body['grant_type'] not in json_third_party_response['grant_types_supported']:
+        if request_body["grant_type"] not in json_third_party_response["grant_types_supported"]:
             raise AuthenticationFailedException(
                 "The grant_types supported by the third-party authentication service are "
                 f"insufficient. Please add the '{request_body['grant_type']}' grant type."
@@ -216,15 +218,14 @@ class Connection:
         # try the request
         try:
             request = requests.post(
-                json_third_party_response['token_endpoint'],
+                json_third_party_response["token_endpoint"],
                 request_body,
                 timeout=(30, 45),
                 proxies=self._proxies,
             )
         except RequestException:
             raise AuthenticationFailedException(
-                "Unable to get a OAuth token from server. Are the credentials "
-                "and URLs correct?"
+                "Unable to get a OAuth token from server. Are the credentials " "and URLs correct?"
             ) from None
 
         # sleep to process
@@ -235,9 +236,9 @@ class Connection:
                 "Authentication access denied. Are the credentials correct?"
             )
         json_request = request.json()
-        self._auth_bearer = json_request['access_token']
+        self._auth_bearer = json_request["access_token"]
         # -2 for some lag time
-        self._auth_expires = int(_get_epoch_time() + json_request['expires_in'] - 2)
+        self._auth_expires = int(_get_epoch_time() + json_request["expires_in"] - 2)
 
     def _get_request_header(self) -> dict:
         """
@@ -254,10 +255,11 @@ class Connection:
             self._headers["Authorization"] = "Bearer " + self._auth_bearer
         return self._headers
 
-    def delete(self,
-            path: str,
-            weaviate_object: dict=None,
-        ) -> requests.Response:
+    def delete(
+        self,
+        path: str,
+        weaviate_object: dict = None,
+    ) -> requests.Response:
         """
         Make a DELETE request to the Weaviate server instance.
 
@@ -290,10 +292,11 @@ class Connection:
             proxies=self._proxies,
         )
 
-    def patch(self,
-            path: str,
-            weaviate_object: dict,
-        ) -> requests.Response:
+    def patch(
+        self,
+        path: str,
+        weaviate_object: dict,
+    ) -> requests.Response:
         """
         Make a PATCH request to the Weaviate server instance.
 
@@ -326,10 +329,11 @@ class Connection:
             proxies=self._proxies,
         )
 
-    def post(self,
-            path: str,
-            weaviate_object: dict,
-        ) -> requests.Response:
+    def post(
+        self,
+        path: str,
+        weaviate_object: dict,
+    ) -> requests.Response:
         """
         Make a POST request to the Weaviate server instance.
 
@@ -362,10 +366,11 @@ class Connection:
             proxies=self._proxies,
         )
 
-    def put(self,
-            path: str,
-            weaviate_object: dict,
-        ) -> requests.Response:
+    def put(
+        self,
+        path: str,
+        weaviate_object: dict,
+    ) -> requests.Response:
         """
         Make a PUT request to the Weaviate server instance.
 
@@ -398,10 +403,11 @@ class Connection:
             proxies=self._proxies,
         )
 
-    def get(self,
-            path: str,
-            params: dict=None,
-        ) -> requests.Response:
+    def get(
+        self,
+        path: str,
+        params: dict = None,
+    ) -> requests.Response:
         """
         Make a GET request to the Weaviate server instance.
 
@@ -541,6 +547,7 @@ def _get_epoch_time() -> int:
     dts = datetime.datetime.utcnow()
     return round(time.mktime(dts.timetuple()) + dts.microsecond / 1e6)
 
+
 def _get_proxies(proxies: Union[dict, str, None], trust_env: bool) -> dict:
     """
     Get proxies as dict, compatible with 'requests' library.
@@ -568,8 +575,8 @@ def _get_proxies(proxies: Union[dict, str, None], trust_env: bool) -> dict:
     if proxies is not None:
         if isinstance(proxies, str):
             return {
-                'http': proxies,
-                'https': proxies,
+                "http": proxies,
+                "https": proxies,
             }
         if isinstance(proxies, dict):
             return proxies
@@ -581,17 +588,17 @@ def _get_proxies(proxies: Union[dict, str, None], trust_env: bool) -> dict:
     if not trust_env:
         return {}
 
-    http_proxy = (os.environ.get('HTTP_PROXY'), os.environ.get('http_proxy'))
-    https_proxy = (os.environ.get('HTTPS_PROXY'), os.environ.get('https_proxy'))
+    http_proxy = (os.environ.get("HTTP_PROXY"), os.environ.get("http_proxy"))
+    https_proxy = (os.environ.get("HTTPS_PROXY"), os.environ.get("https_proxy"))
 
     if not any(http_proxy + https_proxy):
         return {}
 
     proxies = {}
     if any(http_proxy):
-        proxies['http'] = http_proxy[0] if http_proxy[0] else http_proxy[1]
+        proxies["http"] = http_proxy[0] if http_proxy[0] else http_proxy[1]
     if any(https_proxy):
-        proxies['https'] = https_proxy[0] if https_proxy[0] else https_proxy[1]
+        proxies["https"] = https_proxy[0] if https_proxy[0] else https_proxy[1]
 
     return proxies
 
@@ -627,8 +634,9 @@ def _get_valid_timeout_config(timeout_config: Union[Tuple[Real, Real], Real, Non
         raise TypeError("'timeout_config' should be a (or tuple of) positive real number/s!")
     if len(timeout_config) != 2:
         raise ValueError("'timeout_config' must be of length 2!")
-    if not (isinstance(timeout_config[0], Real) and isinstance(timeout_config[1], Real)) or \
-            (isinstance(timeout_config[0], bool) and isinstance(timeout_config[1], bool)):
+    if not (isinstance(timeout_config[0], Real) and isinstance(timeout_config[1], Real)) or (
+        isinstance(timeout_config[0], bool) and isinstance(timeout_config[1], bool)
+    ):
         raise TypeError("'timeout_config' must be tuple of real numbers")
     if timeout_config[0] <= 0.0 or timeout_config[1] <= 0.0:
         raise ValueError("'timeout_config' cannot be non-positive number/s!")

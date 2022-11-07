@@ -30,7 +30,7 @@ _PRIMITIVE_WEAVIATE_TYPES_SET = set(
         "text[]",
         "geoCoordinates",
         "blob",
-        "phoneNumber"
+        "phoneNumber",
     ]
 )
 
@@ -194,11 +194,9 @@ class Schema:
 
         path = f"/schema/{_capitalize_first_letter(class_name)}"
         try:
-            response = self._connection.delete(
-                path=path
-            )
+            response = self._connection.delete(path=path)
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Deletion of class.') from conn_err
+            raise RequestsConnectionError("Deletion of class.") from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Delete class from schema", response)
 
@@ -216,7 +214,7 @@ class Schema:
         for _class in classes:
             self.delete_class(_class["class"])
 
-    def contains(self, schema: Optional[Union[dict, str]]=None) -> bool:
+    def contains(self, schema: Optional[Union[dict, str]] = None) -> bool:
         """
         Check if weaviate already contains a schema.
 
@@ -330,13 +328,10 @@ class Schema:
 
         path = "/schema/" + class_name
         try:
-            response = self._connection.put(
-                path=path,
-                weaviate_object=new_class_schema
-            )
+            response = self._connection.put(path=path, weaviate_object=new_class_schema)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                'Class schema configuration could not be updated.'
+                "Class schema configuration could not be updated."
             ) from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Update class schema configuration", response)
@@ -430,19 +425,19 @@ class Schema:
             If weaviate reports a none OK status.
         """
 
-        path = '/schema'
+        path = "/schema"
         if class_name is not None:
             if not isinstance(class_name, str):
-                raise TypeError("'class_name' argument must be of type `str`! "
-                    f"Given type: {type(class_name)}")
-            path = f'/schema/{_capitalize_first_letter(class_name)}'
+                raise TypeError(
+                    "'class_name' argument must be of type `str`! "
+                    f"Given type: {type(class_name)}"
+                )
+            path = f"/schema/{_capitalize_first_letter(class_name)}"
 
         try:
-            response = self._connection.get(
-                path=path
-            )
+            response = self._connection.get(path=path)
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Schema could not be retrieved.') from conn_err
+            raise RequestsConnectionError("Schema could not be retrieved.") from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Get schema", response)
         return response.json()
@@ -478,15 +473,12 @@ class Schema:
 
         if not isinstance(class_name, str):
             raise TypeError(
-                "'class_name' argument must be of type `str`! "
-                f"Given type: {type(class_name)}."
+                "'class_name' argument must be of type `str`! " f"Given type: {type(class_name)}."
             )
-        path = f'/schema/{_capitalize_first_letter(class_name)}/shards'
+        path = f"/schema/{_capitalize_first_letter(class_name)}/shards"
 
         try:
-            response = self._connection.get(
-                path=path
-            )
+            response = self._connection.get(path=path)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
                 "Class shards' status could not be retrieved due to connection error."
@@ -495,11 +487,12 @@ class Schema:
             raise UnexpectedStatusCodeException("Get shards' status", response)
         return response.json()
 
-    def update_class_shard(self,
-            class_name: str,
-            status: str,
-            shard_name: Optional[str]=None,
-        ) -> list:
+    def update_class_shard(
+        self,
+        class_name: str,
+        status: str,
+        shard_name: Optional[str] = None,
+    ) -> list:
         """
         Get the status of all shards in an index.
 
@@ -550,34 +543,31 @@ class Schema:
 
         if not isinstance(class_name, str):
             raise TypeError(
-                "'class_name' argument must be of type `str`! "
-                f"Given type: {type(class_name)}."
+                "'class_name' argument must be of type `str`! " f"Given type: {type(class_name)}."
             )
         if not isinstance(shard_name, str) and shard_name is not None:
             raise TypeError(
-                "'shard_name' argument must be of type `str`! "
-                f"Given type: {type(shard_name)}."
+                "'shard_name' argument must be of type `str`! " f"Given type: {type(shard_name)}."
             )
         if not isinstance(status, str):
             raise TypeError(
-                "'status' argument must be of type `str`! "
-                f"Given type: {type(status)}."
+                "'status' argument must be of type `str`! " f"Given type: {type(status)}."
             )
 
         if shard_name is None:
             shards_config = self.get_class_shards(
                 class_name=class_name,
             )
-            shard_names = [shard_config['name'] for shard_config in shards_config]
+            shard_names = [shard_config["name"] for shard_config in shards_config]
         else:
             shard_names = [shard_name]
 
-        data = {'status': status}
+        data = {"status": status}
 
         to_return = []
 
         for _shard_name in shard_names:
-            path = f'/schema/{_capitalize_first_letter(class_name)}/shards/{_shard_name}'
+            path = f"/schema/{_capitalize_first_letter(class_name)}/shards/{_shard_name}"
             try:
                 response = self._connection.put(
                     path=path,
@@ -598,7 +588,6 @@ class Schema:
         if shard_name is None:
             return to_return
         return to_return[0]
-
 
     def _create_complex_properties_from_class(self, schema_class: dict) -> None:
         """
@@ -628,8 +617,8 @@ class Schema:
             # create the property object
             ## All complex dataTypes should be capitalized.
             schema_property = {
-                "dataType": [_capitalize_first_letter(dtype) for dtype in  property_["dataType"]],
-                "name": property_["name"]
+                "dataType": [_capitalize_first_letter(dtype) for dtype in property_["dataType"]],
+                "name": property_["name"],
             }
 
             for property_field in PROPERTY_KEYS - set(["name", "dataType"]):
@@ -638,13 +627,10 @@ class Schema:
 
             path = "/schema/" + _capitalize_first_letter(schema_class["class"]) + "/properties"
             try:
-                response = self._connection.post(
-                    path=path,
-                   weaviate_object=schema_property
-                )
+                response = self._connection.post(path=path, weaviate_object=schema_property)
             except RequestsConnectionError as conn_err:
                 raise RequestsConnectionError(
-                    'Property may not have been created properly.'
+                    "Property may not have been created properly."
                 ) from conn_err
             if response.status_code != 200:
                 raise UnexpectedStatusCodeException("Add properties to classes", response)
@@ -681,8 +667,8 @@ class Schema:
 
         # Create the class
         schema_class = {
-            "class": _capitalize_first_letter(weaviate_class['class']),
-            "properties": []
+            "class": _capitalize_first_letter(weaviate_class["class"]),
+            "properties": [],
         }
 
         for class_field in CLASS_KEYS - set(["class", "properties"]):
@@ -690,20 +676,13 @@ class Schema:
                 schema_class[class_field] = weaviate_class[class_field]
 
         if "properties" in weaviate_class:
-            schema_class["properties"] = _get_primitive_properties(
-                weaviate_class["properties"]
-            )
+            schema_class["properties"] = _get_primitive_properties(weaviate_class["properties"])
 
         # Add the item
         try:
-            response = self._connection.post(
-                path="/schema",
-                weaviate_object=schema_class
-            )
+            response = self._connection.post(path="/schema", weaviate_object=schema_class)
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError(
-                'Class may not have been created properly.'
-            ) from conn_err
+            raise RequestsConnectionError("Class may not have been created properly.") from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Create class", response)
 
@@ -792,5 +771,5 @@ def _update_nested_dict(dict_1: dict, dict_2: dict) -> dict:
         if isinstance(value, dict):
             _update_nested_dict(dict_1[key], value)
         else:
-            dict_1.update({key : value})
+            dict_1.update({key: value})
     return dict_1

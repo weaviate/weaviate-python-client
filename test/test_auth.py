@@ -3,7 +3,6 @@ import weaviate
 
 
 class TestAuthentication(unittest.TestCase):
-
     def test_client_credentials(self):
         """
         Test AuthClientCredentials.

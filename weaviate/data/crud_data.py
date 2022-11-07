@@ -8,7 +8,7 @@ from weaviate.connect import Connection
 from weaviate.exceptions import (
     ObjectAlreadyExistsException,
     RequestsConnectionError,
-    UnexpectedStatusCodeException
+    UnexpectedStatusCodeException,
 )
 from weaviate.util import (
     _get_dict_from_object,
@@ -17,10 +17,7 @@ from weaviate.util import (
     _capitalize_first_letter,
 )
 from weaviate.data.references import Reference
-from weaviate.error_msgs import (
-    DATA_DEPRECATION_NEW_V14_CLS_NS_W,
-    DATA_DEPRECATION_OLD_V14_CLS_NS_W
-)
+from weaviate.error_msgs import DATA_DEPRECATION_NEW_V14_CLS_NS_W, DATA_DEPRECATION_OLD_V14_CLS_NS_W
 
 
 class DataObject:
@@ -46,12 +43,13 @@ class DataObject:
         self._connection = connection
         self.reference = Reference(self._connection)
 
-    def create(self,
-            data_object: Union[dict, str],
-            class_name: str,
-            uuid: Union[str, uuid_lib.UUID, None]=None,
-            vector: Optional[Sequence]=None,
-        ) -> str:
+    def create(
+        self,
+        data_object: Union[dict, str],
+        class_name: str,
+        uuid: Union[str, uuid_lib.UUID, None] = None,
+        vector: Optional[Sequence] = None,
+    ) -> str:
         """
         Takes a dict describing the object and adds it to weaviate.
 
@@ -109,14 +107,12 @@ class DataObject:
         """
 
         if not isinstance(class_name, str):
-            raise TypeError(
-                f"Expected class_name of type str but was: {type(class_name)}"
-            )
+            raise TypeError(f"Expected class_name of type str but was: {type(class_name)}")
         loaded_data_object = _get_dict_from_object(data_object)
 
         weaviate_obj = {
             "class": _capitalize_first_letter(class_name),
-            "properties": loaded_data_object
+            "properties": loaded_data_object,
         }
         if uuid is not None:
             weaviate_obj["id"] = get_valid_uuid(uuid)
@@ -126,18 +122,15 @@ class DataObject:
 
         path = "/objects"
         try:
-            response = self._connection.post(
-                path=path,
-                weaviate_object=weaviate_obj
-            )
+            response = self._connection.post(path=path, weaviate_object=weaviate_obj)
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Object was not added to Weaviate.') from conn_err
+            raise RequestsConnectionError("Object was not added to Weaviate.") from conn_err
         if response.status_code == 200:
             return str(response.json()["id"])
 
         object_does_already_exist = False
         try:
-            if 'already exists' in response.json()['error'][0]['message']:
+            if "already exists" in response.json()["error"][0]["message"]:
                 object_does_already_exist = True
         except KeyError:
             pass
@@ -145,12 +138,13 @@ class DataObject:
             raise ObjectAlreadyExistsException(str(uuid))
         raise UnexpectedStatusCodeException("Creating object", response)
 
-    def update(self,
-            data_object: Union[dict, str],
-            class_name: str,
-            uuid: Union[str, uuid_lib.UUID],
-            vector: Optional[Sequence]=None,
-        ) -> None:
+    def update(
+        self,
+        data_object: Union[dict, str],
+        class_name: str,
+        uuid: Union[str, uuid_lib.UUID],
+        vector: Optional[Sequence] = None,
+    ) -> None:
         """
         Update the given object with the already existing object in weaviate.
         Overwrites only the specified fields, the unspecified ones remain unchanged.
@@ -223,23 +217,21 @@ class DataObject:
         """
         weaviate_obj, path = self._create_object_for_update(data_object, class_name, uuid, vector)
         try:
-            response = self._connection.patch(
-                path=path,
-                weaviate_object=weaviate_obj
-            )
+            response = self._connection.patch(path=path, weaviate_object=weaviate_obj)
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Object was not updated.') from conn_err
+            raise RequestsConnectionError("Object was not updated.") from conn_err
         if response.status_code == 204:
             # Successful merge
             return
         raise UnexpectedStatusCodeException("Update of the object not successful", response)
 
-    def replace(self,
-            data_object: Union[dict, str],
-            class_name: str,
-            uuid: Union[str, uuid_lib.UUID],
-            vector: Optional[Sequence]=None,
-        ) -> None:
+    def replace(
+        self,
+        data_object: Union[dict, str],
+        class_name: str,
+        uuid: Union[str, uuid_lib.UUID],
+        vector: Optional[Sequence] = None,
+    ) -> None:
         """
         Replace an already existing object with the given data object.
         This method replaces the whole object.
@@ -308,23 +300,21 @@ class DataObject:
         """
         weaviate_obj, path = self._create_object_for_update(data_object, class_name, uuid, vector)
         try:
-            response = self._connection.put(
-                path=path,
-                weaviate_object=weaviate_obj
-            )
+            response = self._connection.put(path=path, weaviate_object=weaviate_obj)
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Object was not replaced.') from conn_err
+            raise RequestsConnectionError("Object was not replaced.") from conn_err
         if response.status_code == 200:
             # Successful update
             return
         raise UnexpectedStatusCodeException("Replace object", response)
 
-    def _create_object_for_update(self,
+    def _create_object_for_update(
+        self,
         data_object: Union[dict, str],
         class_name: str,
         uuid: Union[str, uuid_lib.UUID],
-        vector: Optional[Sequence]=None
-        ):
+        vector: Optional[Sequence] = None,
+    ):
         if not isinstance(class_name, str):
             raise TypeError("Class must be type str")
 
@@ -335,13 +325,13 @@ class DataObject:
         weaviate_obj = {
             "id": uuid,
             "properties": object_dict,
-            "class": _capitalize_first_letter(class_name)
+            "class": _capitalize_first_letter(class_name),
         }
 
         if vector is not None:
-            weaviate_obj['vector'] = get_vector(vector)
+            weaviate_obj["vector"] = get_vector(vector)
 
-        is_server_version_14 = (self._connection.server_version >= '1.14')
+        is_server_version_14 = self._connection.server_version >= "1.14"
 
         if is_server_version_14:
             path = f"/objects/{_capitalize_first_letter(class_name)}/{uuid}"
@@ -349,12 +339,13 @@ class DataObject:
             path = f"/objects/{uuid}"
         return weaviate_obj, path
 
-    def get_by_id(self,
-            uuid: Union[str, uuid_lib.UUID],
-            additional_properties: List[str]=None,
-            with_vector: bool=False,
-            class_name: Optional[str]=None,
-        ) -> Optional[dict]:
+    def get_by_id(
+        self,
+        uuid: Union[str, uuid_lib.UUID],
+        additional_properties: List[str] = None,
+        with_vector: bool = False,
+        class_name: Optional[str] = None,
+    ) -> Optional[dict]:
         """
         Get an object as dict.
 
@@ -418,12 +409,13 @@ class DataObject:
             class_name=class_name,
         )
 
-    def get(self,
-            uuid: Union[str, uuid_lib.UUID, None]=None,
-            additional_properties: List[str]=None,
-            with_vector: bool=False,
-            class_name: Optional[str]=None,
-        ) -> List[dict]:
+    def get(
+        self,
+        uuid: Union[str, uuid_lib.UUID, None] = None,
+        additional_properties: List[str] = None,
+        with_vector: bool = False,
+        class_name: Optional[str] = None,
+    ) -> List[dict]:
         """
         Gets objects from weaviate, the maximum number of objects returned is 100.
         If 'uuid' is None, all objects are returned. If 'uuid' is specified the result is the same
@@ -462,7 +454,7 @@ class DataObject:
             If weaviate reports a none OK status.
         """
 
-        is_server_version_14 = (self._connection.server_version >= '1.14')
+        is_server_version_14 = self._connection.server_version >= "1.14"
 
         if class_name is None and is_server_version_14 and uuid is not None:
             warnings.warn(
@@ -478,9 +470,7 @@ class DataObject:
                     stacklevel=1,
                 )
             if not isinstance(class_name, str):
-                raise TypeError(
-                    f"'class_name' must be of type str. Given type: {type(class_name)}"
-                )
+                raise TypeError(f"'class_name' must be of type str. Given type: {type(class_name)}")
 
         params = _get_params(additional_properties, with_vector)
 
@@ -489,7 +479,7 @@ class DataObject:
                 path = f"/objects/{_capitalize_first_letter(class_name)}"
             else:
                 path = "/objects"
-                params['class'] = _capitalize_first_letter(class_name)
+                params["class"] = _capitalize_first_letter(class_name)
         else:
             path = "/objects"
 
@@ -502,17 +492,18 @@ class DataObject:
                 params=params,
             )
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Could not get object/s.') from conn_err
+            raise RequestsConnectionError("Could not get object/s.") from conn_err
         if response.status_code == 200:
             return response.json()
         if response.status_code == 404:
             return None
         raise UnexpectedStatusCodeException("Get object/s", response)
 
-    def delete(self,
-            uuid: Union[str, uuid_lib.UUID],
-            class_name: Optional[str]=None,
-        ) -> None:
+    def delete(
+        self,
+        uuid: Union[str, uuid_lib.UUID],
+        class_name: Optional[str] = None,
+    ) -> None:
         """
         Delete an existing object from weaviate.
 
@@ -568,7 +559,7 @@ class DataObject:
 
         uuid = get_valid_uuid(uuid)
 
-        is_server_version_14 = (self._connection.server_version >= '1.14')
+        is_server_version_14 = self._connection.server_version >= "1.14"
 
         if class_name is None and is_server_version_14:
             warnings.warn(
@@ -584,9 +575,7 @@ class DataObject:
                     stacklevel=1,
                 )
             if not isinstance(class_name, str):
-                raise TypeError(
-                    f"'class_name' must be of type str. Given type: {type(class_name)}"
-                )
+                raise TypeError(f"'class_name' must be of type str. Given type: {type(class_name)}")
 
         if class_name and is_server_version_14:
             path = f"/objects/{_capitalize_first_letter(class_name)}/{uuid}"
@@ -598,16 +587,17 @@ class DataObject:
                 path=path,
             )
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Object could not be deleted.') from conn_err
+            raise RequestsConnectionError("Object could not be deleted.") from conn_err
         if response.status_code == 204:
             # Successfully deleted
             return
         raise UnexpectedStatusCodeException("Delete object", response)
 
-    def exists(self,
-            uuid: Union[str, uuid_lib.UUID],
-            class_name: Optional[str]=None,
-        ) -> bool:
+    def exists(
+        self,
+        uuid: Union[str, uuid_lib.UUID],
+        class_name: Optional[str] = None,
+    ) -> bool:
         """
         Check if the object exist in weaviate.
 
@@ -656,7 +646,7 @@ class DataObject:
             If uuid is not properly formed.
         """
 
-        is_server_version_14 = (self._connection.server_version >= '1.14')
+        is_server_version_14 = self._connection.server_version >= "1.14"
 
         if class_name is None and is_server_version_14:
             warnings.warn(
@@ -672,9 +662,7 @@ class DataObject:
                     stacklevel=1,
                 )
             if not isinstance(class_name, str):
-                raise TypeError(
-                    f"'class_name' must be of type str. Given type: {type(class_name)}"
-                )
+                raise TypeError(f"'class_name' must be of type str. Given type: {type(class_name)}")
 
         if class_name and is_server_version_14:
             path = f"/objects/{_capitalize_first_letter(class_name)}/{get_valid_uuid(uuid)}"
@@ -686,7 +674,7 @@ class DataObject:
                 path=path,
             )
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Could not check if object exist.') from conn_err
+            raise RequestsConnectionError("Could not check if object exist.") from conn_err
 
         if response.status_code == 204:
             return True
@@ -694,12 +682,13 @@ class DataObject:
             return False
         raise UnexpectedStatusCodeException("Object exists", response)
 
-    def validate(self,
-            data_object: Union[dict, str],
-            class_name: str,
-            uuid: Union[str, uuid_lib.UUID, None]=None,
-            vector: Sequence=None
-        ) -> dict:
+    def validate(
+        self,
+        data_object: Union[dict, str],
+        class_name: str,
+        uuid: Union[str, uuid_lib.UUID, None] = None,
+        vector: Sequence = None,
+    ) -> dict:
         """
         Validate an object against weaviate.
 
@@ -766,29 +755,24 @@ class DataObject:
 
         weaviate_obj = {
             "class": _capitalize_first_letter(class_name),
-            "properties": loaded_data_object
+            "properties": loaded_data_object,
         }
 
         if uuid is not None:
-            weaviate_obj['id'] = get_valid_uuid(uuid)
+            weaviate_obj["id"] = get_valid_uuid(uuid)
 
         if vector is not None:
-            weaviate_obj['vector'] = get_vector(vector)
+            weaviate_obj["vector"] = get_vector(vector)
 
         path = "/objects/validate"
         try:
-            response = self._connection.post(
-                path=path,
-                weaviate_object=weaviate_obj
-            )
+            response = self._connection.post(path=path, weaviate_object=weaviate_obj)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                'Object was not validated against weaviate.'
+                "Object was not validated against weaviate."
             ) from conn_err
 
-        result: dict = {
-            "error": None
-        }
+        result: dict = {"error": None}
 
         if response.status_code == 200:
             result["valid"] = True
@@ -826,13 +810,15 @@ def _get_params(additional_properties: Optional[List[str]], with_vector: bool) -
     params = {}
     if additional_properties:
         if not isinstance(additional_properties, list):
-            raise TypeError("Additional properties must be of type list "
-                f"but are {type(additional_properties)}")
-        params['include'] = ",".join(additional_properties)
+            raise TypeError(
+                "Additional properties must be of type list "
+                f"but are {type(additional_properties)}"
+            )
+        params["include"] = ",".join(additional_properties)
 
     if with_vector:
-        if 'include' in params:
-            params['include'] = params['include'] + ',vector'
+        if "include" in params:
+            params["include"] = params["include"] + ",vector"
         else:
-            params['include'] = 'vector'
+            params["include"] = "vector"
     return params

@@ -2,6 +2,6 @@
 Module for backup/restore operations
 """
 
-__all__ = ['Backup']
+__all__ = ["Backup"]
 
 from .backup import Backup

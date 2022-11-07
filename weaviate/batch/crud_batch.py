@@ -195,12 +195,8 @@ class Batch:
         self._reference_batch = ReferenceBatchRequest()
         # do not keep too many past values, so it is a better estimation of the throughput
         # the throughput is computed for 1 second
-        self._objects_throughput_frame = deque(
-            maxlen=5
-        )
-        self._references_throughput_frame = deque(
-            maxlen=5
-        )
+        self._objects_throughput_frame = deque(maxlen=5)
+        self._references_throughput_frame = deque(maxlen=5)
         self._future_pool = []
         self._reference_batch_queue = []
         self._thread_creation_time = self._connection.timeout_config[1]
@@ -219,15 +215,16 @@ class Batch:
         # thread pool executor
         self._executor: Optional[BatchExecutor] = None
 
-    def configure(self,
-            batch_size: Optional[int] = None,
-            creation_time: Real = 10,
-            timeout_retries: int = 3,
-            connection_error_retries: int = 3,
-            callback: Optional[Callable[[dict], None]] = check_batch_result,
-            dynamic: bool = False,
-            num_workers: int = 1,
-            ) -> 'Batch':
+    def configure(
+        self,
+        batch_size: Optional[int] = None,
+        creation_time: Real = 10,
+        timeout_retries: int = 3,
+        connection_error_retries: int = 3,
+        callback: Optional[Callable[[dict], None]] = check_batch_result,
+        dynamic: bool = False,
+        num_workers: int = 1,
+    ) -> "Batch":
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
         NOTE: It has default values and if you want to change only one use a setter instead, or
@@ -282,15 +279,16 @@ class Batch:
             num_workers=num_workers,
         )
 
-    def __call__(self,
-            batch_size: Optional[int] = None,
-            creation_time: Real = 10,
-            timeout_retries: int = 3,
-            connection_error_retries: int = 3,
-            callback: Optional[Callable[[dict], None]] = check_batch_result,
-            dynamic: bool = False,
-            num_workers: int = 1,
-            ) -> 'Batch':
+    def __call__(
+        self,
+        batch_size: Optional[int] = None,
+        creation_time: Real = 10,
+        timeout_retries: int = 3,
+        connection_error_retries: int = 3,
+        callback: Optional[Callable[[dict], None]] = check_batch_result,
+        dynamic: bool = False,
+        num_workers: int = 1,
+    ) -> "Batch":
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
         NOTE: It has default values and if you want to change only one use a setter instead, or
@@ -335,9 +333,9 @@ class Batch:
             If the value of one of the arguments is wrong.
         """
 
-        _check_positive_num(creation_time, 'creation_time', Real)
-        _check_non_negative(timeout_retries, 'timeout_retries', int)
-        _check_non_negative(connection_error_retries, 'connection_error_retries', int)
+        _check_positive_num(creation_time, "creation_time", Real)
+        _check_non_negative(timeout_retries, "timeout_retries", int)
+        _check_non_negative(connection_error_retries, "connection_error_retries", int)
 
         self._callback = callback
         self._creation_time = creation_time
@@ -350,15 +348,15 @@ class Batch:
             self._batching_type = None
             return self
 
-        _check_positive_num(batch_size, 'batch_size', int)
-        _check_positive_num(num_workers, 'num_workers', int)
-        _check_bool(dynamic, 'dynamic')
+        _check_positive_num(batch_size, "batch_size", int)
+        _check_positive_num(num_workers, "num_workers", int)
+        _check_bool(dynamic, "dynamic")
 
         self._batch_size = batch_size
         if dynamic is False:  # set Batch to auto-commit with fixed batch_size
-            self._batching_type = 'fixed'
+            self._batching_type = "fixed"
         else:  # else set to 'dynamic'
-            self._batching_type = 'dynamic'
+            self._batching_type = "dynamic"
             self._recommended_num_objects = batch_size
             self._recommended_num_references = batch_size
 
@@ -372,12 +370,13 @@ class Batch:
         self._auto_create()
         return self
 
-    def add_data_object(self,
-            data_object: dict,
-            class_name: str,
-            uuid: Optional[str] = None,
-            vector: Optional[Sequence] = None
-            ) -> str:
+    def add_data_object(
+        self,
+        data_object: dict,
+        class_name: str,
+        uuid: Optional[str] = None,
+        vector: Optional[Sequence] = None,
+    ) -> str:
         """
         Add one object to this batch.
         NOTE: If the UUID of one of the objects already exists then the existing object will be
@@ -421,13 +420,14 @@ class Batch:
 
         return uuid
 
-    def add_reference(self,
-            from_object_uuid: str,
-            from_object_class_name: str,
-            from_property_name: str,
-            to_object_uuid: str,
-            to_object_class_name: Optional[str] = None,
-            ) -> None:
+    def add_reference(
+        self,
+        from_object_uuid: str,
+        from_object_class_name: str,
+        from_property_name: str,
+        to_object_uuid: str,
+        to_object_class_name: Optional[str] = None,
+    ) -> None:
         """
         Add one reference to this batch.
 
@@ -457,7 +457,7 @@ class Batch:
             If 'uuid' is not valid or cannot be extracted.
         """
 
-        is_server_version_14 = (self._connection.server_version >= '1.14')
+        is_server_version_14 = self._connection.server_version >= "1.14"
 
         if to_object_class_name is None and is_server_version_14:
             warnings.warn(
@@ -492,10 +492,11 @@ class Batch:
         if self._batching_type:
             self._auto_create()
 
-    def _create_data(self,
-            data_type: str,
-            batch_request: BatchRequest,
-            ) -> Response:
+    def _create_data(
+        self,
+        data_type: str,
+        batch_request: BatchRequest,
+    ) -> Response:
         """
         Create data in batches, either Objects or References. This does NOT guarantee
         that each batch item (only Objects) is added/created. This can lead to a successful
@@ -530,8 +531,7 @@ class Batch:
             while True:
                 try:
                     response = self._connection.post(
-                        path='/batch/' + data_type,
-                        weaviate_object=batch_request.get_request_body()
+                        path="/batch/" + data_type, weaviate_object=batch_request.get_request_body()
                     )
                 except ReadTimeout as error:
                     batch_request = self._batch_readd_after_timeout(data_type, batch_request)
@@ -552,7 +552,7 @@ class Batch:
                 else:
                     break
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Batch was not added to weaviate.') from conn_err
+            raise RequestsConnectionError("Batch was not added to weaviate.") from conn_err
         except ReadTimeout:
             message = (
                 f"The '{data_type}' creation was cancelled because it took "
@@ -565,7 +565,9 @@ class Batch:
             return response
         raise UnexpectedStatusCodeException(f"Create {data_type} in batch", response)
 
-    def _batch_readd_after_timeout(self, data_type: str, batch_request: BatchRequest) -> BatchRequest:
+    def _batch_readd_after_timeout(
+        self, data_type: str, batch_request: BatchRequest
+    ) -> BatchRequest:
         """
         Readds items (objects or references) that were not added due to a timeout.
 
@@ -582,12 +584,14 @@ class Batch:
             New Batch Request with objects that were not added or not updated.
         """
 
-        if data_type == 'objects':
+        if data_type == "objects":
             return self._readd_objects_after_timeout(batch_request)
         else:
             return self._readd_references_after_timeout(batch_request)
 
-    def _readd_objects_after_timeout(self, batch_request: ObjectsBatchRequest) -> ObjectsBatchRequest:
+    def _readd_objects_after_timeout(
+        self, batch_request: ObjectsBatchRequest
+    ) -> ObjectsBatchRequest:
         """
         Read all objects that were not created or updated because of a TimeOut error.
 
@@ -607,7 +611,7 @@ class Batch:
             class_name = obj["class"]
             uuid = obj["id"]
             response_head = self._connection.head(
-                path='/objects/' + class_name + "/" + uuid,
+                path="/objects/" + class_name + "/" + uuid,
             )
 
             if response_head.status_code == 404:
@@ -621,12 +625,13 @@ class Batch:
 
             # object might already exist and needs to be overwritten in case of an update
             response = self._connection.get(
-                path='/objects/' + class_name + "/" + uuid,
+                path="/objects/" + class_name + "/" + uuid,
             )
 
             obj_weav = response.json()
-            if obj_weav["properties"] != obj["properties"] or \
-                    obj.get("vector", None) != obj_weav.get("vector", None):
+            if obj_weav["properties"] != obj["properties"] or obj.get(
+                "vector", None
+            ) != obj_weav.get("vector", None):
                 new_batch.add(
                     class_name=_capitalize_first_letter(class_name),
                     data_object=obj["properties"],
@@ -635,7 +640,9 @@ class Batch:
                 )
         return new_batch
 
-    def _readd_references_after_timeout(self, batch_request: ReferenceBatchRequest) -> ReferenceBatchRequest:
+    def _readd_references_after_timeout(
+        self, batch_request: ReferenceBatchRequest
+    ) -> ReferenceBatchRequest:
         """
         Read all objects that were not created or updated because of a TimeOut error.
 
@@ -657,7 +664,8 @@ class Batch:
                 from_object_uuid=ref["from_object_uuid"],
                 from_property_name=ref["from_property_name"],
                 to_object_uuid=ref["to_object_uuid"],
-                to_object_class_name=ref.get("to_object_class_name", None))
+                to_object_class_name=ref.get("to_object_class_name", None),
+            )
         return new_batch
 
     def create_objects(self) -> list:
@@ -754,7 +762,7 @@ class Batch:
             )
 
             response = self._create_data(
-                data_type='objects',
+                data_type="objects",
                 batch_request=self._objects_batch,
             )
             self._objects_batch = ObjectsBatchRequest()
@@ -762,7 +770,9 @@ class Batch:
             self._objects_throughput_frame.append(
                 len(self._objects_batch) / response.elapsed.total_seconds()
             )
-            obj_per_second = sum(self._objects_throughput_frame) / len(self._objects_throughput_frame)
+            obj_per_second = sum(self._objects_throughput_frame) / len(
+                self._objects_throughput_frame
+            )
 
             self._recommended_num_objects = round(obj_per_second * self._creation_time)
 
@@ -851,7 +861,7 @@ class Batch:
             )
 
             response = self._create_data(
-                data_type='references',
+                data_type="references",
                 batch_request=self._reference_batch,
             )
             self._reference_batch = ReferenceBatchRequest()
@@ -859,8 +869,8 @@ class Batch:
             self._references_throughput_frame.append(
                 len(self._reference_batch) / response.elapsed.total_seconds()
             )
-            ref_per_sec = (
-                sum(self._references_throughput_frame)/len(self._references_throughput_frame)
+            ref_per_sec = sum(self._references_throughput_frame) / len(
+                self._references_throughput_frame
             )
 
             self._recommended_num_references = round(ref_per_sec * self._creation_time)
@@ -868,10 +878,11 @@ class Batch:
             return response.json()
         return []
 
-    def _flush_in_thread(self,
-            data_type: str,
-            batch_request: BatchRequest,
-            ) -> Tuple[Optional[Response], int]:
+    def _flush_in_thread(
+        self,
+        data_type: str,
+        batch_request: BatchRequest,
+    ) -> Tuple[Optional[Response], int]:
         """
         Flush BatchRequest in current thread/process.
 
@@ -928,15 +939,13 @@ class Batch:
 
         future = self._executor.submit(
             self._flush_in_thread,
-            data_type='objects',
+            data_type="objects",
             batch_request=self._objects_batch,
         )
 
         self._future_pool.append(future)
         if len(self._reference_batch) > 0:
-            self._reference_batch_queue.append(
-                self._reference_batch
-            )
+            self._reference_batch_queue.append(self._reference_batch)
 
         self._objects_batch = ObjectsBatchRequest()
         self._reference_batch = ReferenceBatchRequest()
@@ -959,18 +968,21 @@ class Batch:
                 timeout_occured = True
 
         if timeout_occured and self._recommended_num_objects is not None:
-            self._recommended_num_objects = max(self._recommended_num_objects//2, 1)
+            self._recommended_num_objects = max(self._recommended_num_objects // 2, 1)
         elif len(self._objects_throughput_frame) != 0 and self._recommended_num_objects is not None:
             obj_per_second = (
-                sum(self._objects_throughput_frame)/len(self._objects_throughput_frame) * 0.75
+                sum(self._objects_throughput_frame) / len(self._objects_throughput_frame) * 0.75
             )
-            self._recommended_num_objects = min(round(obj_per_second * self._thread_creation_time), self._recommended_num_objects + 250)
+            self._recommended_num_objects = min(
+                round(obj_per_second * self._thread_creation_time),
+                self._recommended_num_objects + 250,
+            )
         # Create references after all the objects have been created
         reference_future_pool = []
         for reference_batch in self._reference_batch_queue:
             future = self._executor.submit(
                 self._flush_in_thread,
-                data_type='references',
+                data_type="references",
                 batch_request=reference_batch,
             )
             reference_future_pool.append(future)
@@ -991,12 +1003,18 @@ class Batch:
                 timeout_occured = True
 
         if timeout_occured and self._recommended_num_objects is not None:
-            self._recommended_num_references = max(self._recommended_num_references//2, 1)
-        elif len(self._references_throughput_frame) != 0 and self._recommended_num_references is not None:
-            ref_per_sec = (
-                sum(self._references_throughput_frame)/len(self._references_throughput_frame)
+            self._recommended_num_references = max(self._recommended_num_references // 2, 1)
+        elif (
+            len(self._references_throughput_frame) != 0
+            and self._recommended_num_references is not None
+        ):
+            ref_per_sec = sum(self._references_throughput_frame) / len(
+                self._references_throughput_frame
             )
-            self._recommended_num_references = min(round(ref_per_sec * self._thread_creation_time), self._recommended_num_references*2)
+            self._recommended_num_references = min(
+                round(ref_per_sec * self._thread_creation_time),
+                self._recommended_num_references * 2,
+            )
 
         self._future_pool = []
         self._reference_batch_queue = []
@@ -1011,14 +1029,14 @@ class Batch:
         """
 
         # greater or equal in case the self._batch_size is changed manually
-        if self._batching_type == 'fixed':
+        if self._batching_type == "fixed":
             if sum(self.shape) >= self._batch_size:
                 self._send_batch_requests(force_wait=False)
             return
-        elif self._batching_type == 'dynamic':
+        elif self._batching_type == "dynamic":
             if (
-                    self.num_objects() >= self._recommended_num_objects
-                    or self.num_references() >= self._recommended_num_references
+                self.num_objects() >= self._recommended_num_objects
+                or self.num_references() >= self._recommended_num_references
             ):
                 self._send_batch_requests(force_wait=False)
             return
@@ -1032,12 +1050,13 @@ class Batch:
         """
         self._send_batch_requests(force_wait=True)
 
-    def delete_objects(self,
-            class_name: str,
-            where: dict,
-            output: str='minimal',
-            dry_run: bool=False,
-        ) -> dict:
+    def delete_objects(
+        self,
+        class_name: str,
+        where: dict,
+        output: str = "minimal",
+        dry_run: bool = False,
+    ) -> dict:
         """
         Delete objects that match the 'match' in batch.
 
@@ -1113,21 +1132,13 @@ class Batch:
         """
 
         if not isinstance(class_name, str):
-            raise TypeError(
-                f"'class_name' must be of type str. Given type: {type(class_name)}."
-            )
+            raise TypeError(f"'class_name' must be of type str. Given type: {type(class_name)}.")
         if not isinstance(where, dict):
-            raise TypeError(
-                f"'where' must be of type dict. Given type: {type(class_name)}."
-            )
+            raise TypeError(f"'where' must be of type dict. Given type: {type(class_name)}.")
         if not isinstance(output, str):
-            raise TypeError(
-                f"'output' must be of type str. Given type: {type(class_name)}."
-            )
+            raise TypeError(f"'output' must be of type str. Given type: {type(class_name)}.")
         if not isinstance(dry_run, bool):
-            raise TypeError(
-                f"'dry_run' must be of type bool. Given type: {type(class_name)}."
-            )
+            raise TypeError(f"'dry_run' must be of type bool. Given type: {type(class_name)}.")
 
         payload = {
             "match": {
@@ -1140,11 +1151,11 @@ class Batch:
 
         try:
             response = self._connection.delete(
-                path='/batch/objects',
+                path="/batch/objects",
                 weaviate_object=payload,
             )
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Batch delete was not successful.') from conn_err
+            raise RequestsConnectionError("Batch delete was not successful.") from conn_err
         if response.status_code == 200:
             return response.json()
         raise UnexpectedStatusCodeException("Delete in batch", response)
@@ -1308,10 +1319,10 @@ class Batch:
             self._batching_type = None
             return
 
-        _check_positive_num(value, 'batch_size', int)
+        _check_positive_num(value, "batch_size", int)
         self._batch_size = value
         if self._batching_type is None:
-            self._batching_type = 'fixed'
+            self._batching_type = "fixed"
         if self._recommended_num_objects is None:
             self._recommended_num_objects = value
         if self._recommended_num_references is None:
@@ -1341,7 +1352,7 @@ class Batch:
             Setter ONLY: If the new value is not of type bool.
         """
 
-        return self._batching_type == 'dynamic'
+        return self._batching_type == "dynamic"
 
     @dynamic.setter
     def dynamic(self, value: bool) -> None:
@@ -1349,12 +1360,12 @@ class Batch:
         if self._batching_type is None:
             return
 
-        _check_bool(value, 'dynamic')
+        _check_bool(value, "dynamic")
 
         if value is True:
-            self._batching_type = 'dynamic'
+            self._batching_type = "dynamic"
         else:
-            self._batching_type = 'fixed'
+            self._batching_type = "fixed"
         self._auto_create()
 
     @property
@@ -1383,7 +1394,7 @@ class Batch:
 
         return self._recommended_num_references
 
-    def start(self) -> 'Batch':
+    def start(self) -> "Batch":
         """
         Start the BatchExecutor if it was closed.
 
@@ -1402,9 +1413,9 @@ class Batch:
         Shutdown the BatchExecutor.
         """
         if not (self._executor is None or self._executor.is_shutdown()):
-            self._executor.shutdown() 
+            self._executor.shutdown()
 
-    def __enter__(self) -> 'Batch':
+    def __enter__(self) -> "Batch":
         return self.start()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -1441,7 +1452,7 @@ class Batch:
     @creation_time.setter
     def creation_time(self, value: Real) -> None:
 
-        _check_positive_num(value, 'creation_time', Real)
+        _check_positive_num(value, "creation_time", Real)
         if self._recommended_num_references is not None:
             self._recommended_num_references = round(
                 self._recommended_num_references * value / self._creation_time
@@ -1482,7 +1493,7 @@ class Batch:
     @timeout_retries.setter
     def timeout_retries(self, value: int) -> None:
 
-        _check_non_negative(value, 'timeout_retries', int)
+        _check_non_negative(value, "timeout_retries", int)
         self._timeout_retries = value
 
     @property
@@ -1513,7 +1524,7 @@ class Batch:
     @connection_error_retries.setter
     def connection_error_retries(self, value: int) -> None:
 
-        _check_non_negative(value, 'connection_error_retries', int)
+        _check_non_negative(value, "connection_error_retries", int)
         self._connection_error_retries = value
 
 
@@ -1613,8 +1624,8 @@ def _batch_create_error_handler(retry: int, max_retries: int, error: Exception) 
     if retry >= max_retries:
         raise error
     print(
-        f'[ERROR] Batch {error.__class__.__name__} Exception occurred! Retrying in '
-        f'{(retry + 1) * 2}s. [{retry + 1}/{max_retries}]',
+        f"[ERROR] Batch {error.__class__.__name__} Exception occurred! Retrying in "
+        f"{(retry + 1) * 2}s. [{retry + 1}/{max_retries}]",
         file=sys.stderr,
         flush=True,
     )

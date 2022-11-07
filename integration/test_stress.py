@@ -13,58 +13,23 @@ schema = {
         {
             "class": "Paragraph",
             "properties": [
-                {
-                    "dataType": ["text"],
-                    "name": "contents"
-                },
-                {
-                    "dataType": ["Paragraph"],
-                    "name": "hasParagraphs"
-                },
-                {
-                    "dataType": ["Author"],
-                    "name": "author"
-                },
-            ]
+                {"dataType": ["text"], "name": "contents"},
+                {"dataType": ["Paragraph"], "name": "hasParagraphs"},
+                {"dataType": ["Author"], "name": "author"},
+            ],
         },
         {
             "class": "Article",
             "properties": [
-                {
-                    "dataType": ["string"],
-                    "name": "title"
-                },
-                {
-                    "dataType": ["Paragraph"],
-                    "name": "hasParagraphs"
-                },
-                {
-                    "dataType": ["date"],
-                    "name": "datePublished"
-                },
-                {
-                    "dataType": ["Author"],
-                    "name": "author"
-                },
-                {
-                    "dataType": ["string"],
-                    "name": "somestring"
-                },
-                {
-                    "dataType": ["int"],
-                    "name": "counter"
-                },
-            ]
+                {"dataType": ["string"], "name": "title"},
+                {"dataType": ["Paragraph"], "name": "hasParagraphs"},
+                {"dataType": ["date"], "name": "datePublished"},
+                {"dataType": ["Author"], "name": "author"},
+                {"dataType": ["string"], "name": "somestring"},
+                {"dataType": ["int"], "name": "counter"},
+            ],
         },
-        {
-            "class": "Author",
-            "properties": [
-                {
-                    "dataType": ["string"],
-                    "name": "name"
-                }
-            ]
-        }
+        {"class": "Author", "properties": [{"dataType": ["string"], "name": "name"}]},
     ]
 }
 
@@ -124,7 +89,9 @@ class Article:
     class_name: str = field(init=False)
 
     def to_data_object(self) -> DataObject:
-        return DataObject({"title": self.title, "datePublished": self.datePublished}, self.class_name, self.uuid)
+        return DataObject(
+            {"title": self.title, "datePublished": self.datePublished}, self.class_name, self.uuid
+        )
 
     def __post_init__(self) -> None:
         self.uuid = uuid.uuid4()
@@ -173,18 +140,21 @@ def test_stress(batch_size, dynamic):
 
 
 @pytest.fixture(
-    params=[(batch_size, workers) for workers in [1, 4, 10] for batch_size in
-            [-1, 50, 100]],
-    ids=[f"batch_size{batch_size}, workers {workers})" for workers in [1, 4, 10] for batch_size in
-         [-1, 50, 100]])
+    params=[(batch_size, workers) for workers in [1, 4, 10] for batch_size in [-1, 50, 100]],
+    ids=[
+        f"batch_size{batch_size}, workers {workers})"
+        for workers in [1, 4, 10]
+        for batch_size in [-1, 50, 100]
+    ],
+)
 def client(request):
     local_client = weaviate.Client("http://localhost:8080")
     if request.param[0] > 0:
-        local_client.batch.configure(batch_size=request.param[0], dynamic=False,
-                                     num_workers=request.param[1])
+        local_client.batch.configure(
+            batch_size=request.param[0], dynamic=False, num_workers=request.param[1]
+        )
     else:
-        local_client.batch.configure(batch_size=10, dynamic=True,
-                                     num_workers=request.param[1])
+        local_client.batch.configure(batch_size=10, dynamic=True, num_workers=request.param[1])
     return local_client
 
 
@@ -220,79 +190,106 @@ def test_benchmark_stress_test(benchmark, client):
 def add_authors(client: weaviate.Client, authors: List[Author]):
     for author in authors:
         data_object = author.to_data_object()
-        client.batch.add_data_object(data_object.properties, data_object.class_name, data_object.uuid)
+        client.batch.add_data_object(
+            data_object.properties, data_object.class_name, data_object.uuid
+        )
 
 
 def add_paragraphs(client: weaviate.Client, paragraphs: List[Paragraph]):
     for paragraph in paragraphs:
         data_object = paragraph.to_data_object()
-        client.batch.add_data_object(data_object.properties, data_object.class_name, data_object.uuid)
-        client.batch.add_reference(str(paragraph.uuid), from_property_name="author",
-                                   to_object_uuid=str(paragraph.author.to_uuid), from_object_class_name="Paragraph",
-                                   to_object_class_name="Author")
+        client.batch.add_data_object(
+            data_object.properties, data_object.class_name, data_object.uuid
+        )
+        client.batch.add_reference(
+            str(paragraph.uuid),
+            from_property_name="author",
+            to_object_uuid=str(paragraph.author.to_uuid),
+            from_object_class_name="Paragraph",
+            to_object_class_name="Author",
+        )
         if paragraph.hasParagraphs is not None:
-            client.batch.add_reference(str(paragraph.uuid), from_property_name="hasParagraphs",
-                                       to_object_uuid=str(paragraph.hasParagraphs.to_uuid),
-                                       from_object_class_name="Paragraph",
-                                       to_object_class_name="Paragraph")
+            client.batch.add_reference(
+                str(paragraph.uuid),
+                from_property_name="hasParagraphs",
+                to_object_uuid=str(paragraph.hasParagraphs.to_uuid),
+                from_object_class_name="Paragraph",
+                to_object_class_name="Paragraph",
+            )
 
 
 def add_articles(client: weaviate.Client, articles: List[Article]):
     for article in articles:
         data_object = article.to_data_object()
-        client.batch.add_data_object(data_object.properties, data_object.class_name, data_object.uuid)
-        client.batch.add_reference(str(article.uuid), from_property_name="author",
-                                   to_object_uuid=str(article.author.to_uuid), from_object_class_name="Article",
-                                   to_object_class_name="Author")
-        client.batch.add_reference(str(article.uuid), from_property_name="hasParagraphs",
-                                   to_object_uuid=str(article.hasParagraphs.to_uuid), from_object_class_name="Article",
-                                   to_object_class_name="Paragraph")
+        client.batch.add_data_object(
+            data_object.properties, data_object.class_name, data_object.uuid
+        )
+        client.batch.add_reference(
+            str(article.uuid),
+            from_property_name="author",
+            to_object_uuid=str(article.author.to_uuid),
+            from_object_class_name="Article",
+            to_object_class_name="Author",
+        )
+        client.batch.add_reference(
+            str(article.uuid),
+            from_property_name="hasParagraphs",
+            to_object_uuid=str(article.hasParagraphs.to_uuid),
+            from_object_class_name="Article",
+            to_object_class_name="Paragraph",
+        )
 
 
 def create_authors(num_authors: int) -> List[Author]:
-    authors: List[Author] = [
-        Author(f'{i}') for i in range(num_authors)
-    ]
+    authors: List[Author] = [Author(f"{i}") for i in range(num_authors)]
     return authors
 
 
 def create_paragraphs(num_paragraphs: int, authors: List[Author]) -> List[Paragraph]:
     paragraphs: List[Paragraph] = []
     for i in range(num_paragraphs):
-        content: str = f'{i} {i} {i} {i}'
+        content: str = f"{i} {i} {i} {i}"
 
         paragraph_to_reference: Optional[Paragraph] = None
         if len(paragraphs) > 0 and i % 2 == 0:
             paragraph_to_reference: Paragraph = paragraphs[i % len(paragraphs)]
         author_to_reference: Author = authors[i % len(authors)]
-        paragraphs.append(Paragraph(content,
-                                    Reference("Author", author_to_reference.uuid),
-                                    Reference("Paragraph",
-                                              paragraph_to_reference.uuid) if paragraph_to_reference is not None else None)
-                          )
+        paragraphs.append(
+            Paragraph(
+                content,
+                Reference("Author", author_to_reference.uuid),
+                Reference("Paragraph", paragraph_to_reference.uuid)
+                if paragraph_to_reference is not None
+                else None,
+            )
+        )
     return paragraphs
 
 
-def create_articles(num_articles: int, authors: List[Author], paragraphs: List[Paragraph]) -> \
-        List[Article]:
+def create_articles(
+    num_articles: int, authors: List[Author], paragraphs: List[Paragraph]
+) -> List[Article]:
     articles: List[Article] = []
     base_date: datetime.date = datetime.datetime(2023, 12, 9, 7, 1, 34)
     for i in range(num_articles):
-        title: str = f'{i} {i} {i}'
+        title: str = f"{i} {i} {i}"
         paragraph_to_reference: Paragraph = paragraphs[i % len(paragraphs)]
         author_to_reference: Author = authors[i % len(authors)]
         date_published: str = (base_date + datetime.timedelta(hours=i)).isoformat() + "Z"
-        articles.append(Article(title, date_published, str(i), i,
-                                Reference("Author", author_to_reference.uuid),
-                                Reference("Paragraph", paragraph_to_reference.uuid))
-                        )
+        articles.append(
+            Article(
+                title,
+                date_published,
+                str(i),
+                i,
+                Reference("Author", author_to_reference.uuid),
+                Reference("Paragraph", paragraph_to_reference.uuid),
+            )
+        )
 
     return articles
 
 
 def __assert_add(client: weaviate.Client, objects: List[Any], class_name: str) -> None:
-    result = client.query \
-        .aggregate(class_name) \
-        .with_meta_count() \
-        .do()
+    result = client.query.aggregate(class_name).with_meta_count().do()
     assert len(objects) == result["data"]["Aggregate"][class_name][0]["meta"]["count"]

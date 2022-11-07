@@ -28,7 +28,7 @@ Check out our `Command Line Interface (CLI) tool <https://pypi.org/project/weavi
 Articles
 --------
 
-Here are some articles on Weaviate: 
+Here are some articles on Weaviate:
 
 - `Semantic Search Queries Return More Informed Results <https://hackernoon.com/semantic-search-queries-return-more-informed-results-nr5335nw>`_
 - `Getting Started with Weaviate Python Library <https://towardsdatascience.com/getting-started-with-weaviate-python-client-e85d14f19e4f>`_

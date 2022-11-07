@@ -16,14 +16,14 @@ This minor version includes:
         )
 
 - Multi-threading :class:`~weaviate.batch.Batch`  import:
-    - | 
+    - |
         Now it is possible to import data using multi-threading. The number of threads can be set using the new argument ``num_workers`` in
         :meth:`~weaviate.batch.Batch.configure` and :meth:`~weaviate.batch.Batch.__call__`, defaults to `1` ( Use with care to not overload your weaviate instance.).
     - |
         New argument ``connection_error_retries`` to retry on ``ConnectionError`` that can be set in :meth:`~weaviate.batch.Batch.configure` and :meth:`~weaviate.batch.Batch.__call__`
         or using the property getter/setter: ``client.batch.connection_error_retries`` to get the value and ``client.batch.connection_error_retries = 5`` to set the value.
     - |
-        New method :meth:`~weaviate.batch.Batch.start` to create a ``BatchExecutor`` (``ThreadExecutor``). This method does NOT need to be called if using the 
+        New method :meth:`~weaviate.batch.Batch.start` to create a ``BatchExecutor`` (``ThreadExecutor``). This method does NOT need to be called if using the
         :class:`~weaviate.batch.Batch` in a context manager (``with``). Also it is idempotent.
     - |
         New method :meth:`~weaviate.batch.Batch.shutdown` to shutdown the existing ``BatchExecutor`` (``ThreadExecutor``) to release any resources that it is holding once the
@@ -59,7 +59,7 @@ This minor version includes:
 - Adds base Weaviate Exception :class:`~weaviate.exceptions.WeaviateBaseError`.
 - Adds ability to set proxies. Can be set at :class:`~weaviate.client.Client` initialization by using the new ``proxies`` or ``trust_env`` arguments.
 - :class:`~weaviate.batch.crud_batch.Batch` creates UUIDs (UUIDv4) for all added objects that do not have one at client side (fixes data duplication on Batch retries).
-- Adds new methods for :class:`~weaviate.wcs.WCS` for instances that have authentication enabled: 
+- Adds new methods for :class:`~weaviate.wcs.WCS` for instances that have authentication enabled:
     - :meth:`~weaviate.wcs.WCS.get_users_of_cluster` to get users (emails) for all the users that have access to the created Weaviate instance.
     - :meth:`~weaviate.wcs.WCS.add_user_to_cluster` to add users (email) to the created Weaviate instance.
     - :meth:`~weaviate.wcs.WCS.remove_user_from_cluster` to remove user (email) from the created Weaviate instance.
@@ -70,13 +70,13 @@ This minor version includes:
 
 - New function in :func:`~weaviate.util.check_batch_result` used to print errors from batch creation.
 
-- New function argument ``class_name`` for :func:`~weaviate.util.generate_local_beacon`, used ONLY with Weaviate Server version >= ``1.14.0`` 
+- New function argument ``class_name`` for :func:`~weaviate.util.generate_local_beacon`, used ONLY with Weaviate Server version >= ``1.14.0``
     (defaults to ``None`` for backwards compatibility).
 
-- | :func:`~weaviate.util.check_batch_result` is the default ``callback`` function for :class:`~weaviate.batch.Batch` 
+- | :func:`~weaviate.util.check_batch_result` is the default ``callback`` function for :class:`~weaviate.batch.Batch`
     (:meth:`~weaviate.batch.Batch.configure` and :meth:`~weaviate.batch.Batch.__call__`) (instead of ``None``).
 
-- | New method argument ``to_object_class_name``  for :meth:`~weaviate.batch.Batch.add_reference`, used ONLY with Weaviate Server version >= ``1.14.0`` 
+- | New method argument ``to_object_class_name``  for :meth:`~weaviate.batch.Batch.add_reference`, used ONLY with Weaviate Server version >= ``1.14.0``
     (defaults to ``None`` for backwards compatibility).
 
 - Support for ``distance`` in GraphQL filters (only with Weaviate server >= ``1.14.0``).
@@ -87,7 +87,7 @@ This minor version includes:
     - Deprecation Warning if Weaviate Server version >= 1.14.0 and ``class_name`` is ``None`` OR if Weaviate Server version < 1.14.0 and ``class_name`` is NOT ``None``.
 
 - For :class:`~weaviate.data.references.Reference`:
-    - | New method arguments ``from_class_name`` and ``to_class_name`` (``to_class_names`` for :meth:`~weaviate.data.references.Reference.update`) for 
+    - | New method arguments ``from_class_name`` and ``to_class_name`` (``to_class_names`` for :meth:`~weaviate.data.references.Reference.update`) for
         :meth:`~weaviate.data.references.Reference.add`, :meth:`~weaviate.data.references.Reference.delete`,
         :meth:`~weaviate.data.references.Reference.update`, used ONLY with Weaviate Server version >= ``1.14.0`` (defaults to ``None`` for backwards compatibility).
     - Deprecation Warning if Weaviate Server version >= 1.14.0 and ``class_name`` is ``None`` OR if Weaviate Server version < 1.14.0 and ``class_name`` is NOT ``None``.
@@ -112,13 +112,13 @@ This minor version contains functionality for the new features introduced in Wea
 
 - | New :class:`~weaviate.gql.get.GetBuilder` method :meth:`~weaviate.gql.get.GetBuilder.with_sort` that allows sorting data on a particular field/s.
 
-- | New :class:`~weaviate.gql.aggregate.AggregateBuilder` method :meth:`~weaviate.gql.aggregate.AggregateBuilder.with_near_text` that allows to 
+- | New :class:`~weaviate.gql.aggregate.AggregateBuilder` method :meth:`~weaviate.gql.aggregate.AggregateBuilder.with_near_text` that allows to
     aggregate data that is matching ``nearText`` filter.
 
-- | New :class:`~weaviate.gql.aggregate.AggregateBuilder` method :meth:`~weaviate.gql.aggregate.AggregateBuilder.with_near_object` that allows to 
+- | New :class:`~weaviate.gql.aggregate.AggregateBuilder` method :meth:`~weaviate.gql.aggregate.AggregateBuilder.with_near_object` that allows to
     aggregate data that is matching ``nearObject`` filter.
 
-- | New :class:`~weaviate.gql.aggregate.AggregateBuilder` method :meth:`~weaviate.gql.aggregate.AggregateBuilder.with_near_vector` that allows to 
+- | New :class:`~weaviate.gql.aggregate.AggregateBuilder` method :meth:`~weaviate.gql.aggregate.AggregateBuilder.with_near_vector` that allows to
     aggregate data that is matching ``nearVector`` filter.
 
 Version 3.4.2
@@ -141,7 +141,7 @@ Version 3.4.0
 
 Version 3.3.3
 -------------
-| This patch version fixes the nearImage filter requests. 
+| This patch version fixes the nearImage filter requests.
 
 Version 3.3.2
 -------------
@@ -153,13 +153,13 @@ Version 3.3.1
 
 Version 3.3.0
 -------------
-| This minor version adds a new :meth:`~weaviate.gql.get.GetBuilder.with_offset` for the ``Get`` queries. This method should be used 
+| This minor version adds a new :meth:`~weaviate.gql.get.GetBuilder.with_offset` for the ``Get`` queries. This method should be used
     with the :meth:`~weaviate.gql.get.GetBuilder.with_limit`. This new feature (introduced in weaviate version ``1.8.0``) allows to
     use pagination functionality with the ``Get`` queries. The ``offset`` represents the start index of the objects to be returned,
     and the number of objects is specified by the :meth:`~weaviate.gql.get.GetBuilder.with_limit` method.
-    
+
 | For example, to list the
-    first ten results, set ``limit: 10``. Then, to "display the second page of 10", set ``offset: 10, limit: 10`` and so on. E.g. 
+    first ten results, set ``limit: 10``. Then, to "display the second page of 10", set ``offset: 10, limit: 10`` and so on. E.g.
     to show the 9th page of 10 results, set ``offset: 80, limit: 10`` to effectively display results 81-90.
 
 Version 3.2.5
@@ -380,7 +380,7 @@ Version 3.1.1
 - Fixes in :class:`~weaviate.wcs.WCS` class:
     - | Make :class:`~weaviate.wcs.WCS`'s methods' argument ``cluster_name`` case insensitive (lowercased inside the method) to match Weaviate Cloud Service'
         naming convention, this fixes the error when Weaviate Cloud Service lowercases the ``cluster_name`` but the users are not aware of this and get the exception
-        `KeyError`. 
+        `KeyError`.
 
 Version 3.1.0
 -------------
@@ -413,7 +413,7 @@ Version 3.0.0
     - ``WCS`` class is moved from the ``weaviate.tools`` to the new module ``weaviate.wcs``
     - ``weaviate.tools.generate_uuid`` is REMOVED.
 - :func:`weaviate.util.generate_uuid5` is ADDED.
-- | New :class:`~weaviate.batch.Batch` class implementation to replace the old one. This implementation uses the ``BatchRequest`` 
+- | New :class:`~weaviate.batch.Batch` class implementation to replace the old one. This implementation uses the ``BatchRequest``
     objects under the hood, which means that there is no need to create ``BatchRequest``'s anymore. This new class implementation
     allows 3 different batch creations methods: `manual`, `auto-create` and `auto-create` with dynamic batching.
     See the :class:`~weaviate.batch.Batch` documentation for more information.

@@ -14,6 +14,7 @@ from .filter import (
     NearVector,
 )
 
+
 class AggregateBuilder(GraphQL):
     """
     AggregateBuilder class used to aggregate Weaviate objects.
@@ -41,7 +42,7 @@ class AggregateBuilder(GraphQL):
         self._uses_filter: bool = False
         self._near: Optional[Filter] = None
 
-    def with_meta_count(self) -> 'AggregateBuilder':
+    def with_meta_count(self) -> "AggregateBuilder":
         """
         Set Meta Count to True.
 
@@ -54,7 +55,7 @@ class AggregateBuilder(GraphQL):
         self._with_meta_count = True
         return self
 
-    def with_object_limit(self, limit: int) -> 'AggregateBuilder':
+    def with_object_limit(self, limit: int) -> "AggregateBuilder":
         """
         Set objectLimit to limit vector search results only when with near<MEDIA> filter.
 
@@ -72,7 +73,7 @@ class AggregateBuilder(GraphQL):
         self._object_limit = limit
         return self
 
-    def with_fields(self, field: str) -> 'AggregateBuilder':
+    def with_fields(self, field: str) -> "AggregateBuilder":
         """
         Include a field in the aggregate query.
 
@@ -91,7 +92,7 @@ class AggregateBuilder(GraphQL):
         self._fields.append(field)
         return self
 
-    def with_where(self, content: dict) -> 'AggregateBuilder':
+    def with_where(self, content: dict) -> "AggregateBuilder":
         """
         Set 'where' filter.
 
@@ -166,7 +167,7 @@ class AggregateBuilder(GraphQL):
         self._uses_filter = True
         return self
 
-    def with_group_by_filter(self, properties: List[str]) -> 'AggregateBuilder':
+    def with_group_by_filter(self, properties: List[str]) -> "AggregateBuilder":
         """
         Add a group by filter to the query. Might requires the user to set
         an additional group by clause using `with_fields(..)`.
@@ -188,7 +189,7 @@ class AggregateBuilder(GraphQL):
         self._uses_filter = True
         return self
 
-    def with_near_text(self, content: dict) -> 'AggregateBuilder':
+    def with_near_text(self, content: dict) -> "AggregateBuilder":
         """
         Set `nearText` filter. This filter can be used with text modules (text2vec).
         E.g.: text2vec-contextionary, text2vec-transformers.
@@ -269,7 +270,7 @@ class AggregateBuilder(GraphQL):
         self._uses_filter = True
         return self
 
-    def with_near_vector(self, content: dict) -> 'AggregateBuilder':
+    def with_near_vector(self, content: dict) -> "AggregateBuilder":
         """
         Set `nearVector` filter.
 
@@ -334,7 +335,7 @@ class AggregateBuilder(GraphQL):
         self._uses_filter = True
         return self
 
-    def with_near_object(self, content: dict) -> 'AggregateBuilder':
+    def with_near_object(self, content: dict) -> "AggregateBuilder":
         """
         Set `nearObject` filter.
 
@@ -376,7 +377,7 @@ class AggregateBuilder(GraphQL):
             If another 'near' filter was already set.
         """
 
-        is_server_version_14 = (self._connection.server_version >= '1.14')
+        is_server_version_14 = self._connection.server_version >= "1.14"
 
         if self._near is not None:
             raise AttributeError("Cannot use multiple 'near' filters.")

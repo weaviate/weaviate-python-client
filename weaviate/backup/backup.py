@@ -37,13 +37,14 @@ class Backup:
 
         self._connection = connection
 
-    def create(self,
-            backup_id: str,
-            backend: str,
-            include_classes: Union[List[str], str, None] = None,
-            exclude_classes: Union[List[str], str, None] = None,
-            wait_for_completion: bool = False,
-            ) -> dict:
+    def create(
+        self,
+        backup_id: str,
+        backend: str,
+        include_classes: Union[List[str], str, None] = None,
+        exclude_classes: Union[List[str], str, None] = None,
+        wait_for_completion: bool = False,
+    ) -> dict:
         """
         Create a backup of all/per class Weaviate objects.
 
@@ -102,7 +103,7 @@ class Backup:
             "include": include_classes,
             "exclude": exclude_classes,
         }
-        path = f'/backups/{backend}'
+        path = f"/backups/{backend}"
 
         try:
             response = self._connection.post(
@@ -111,7 +112,7 @@ class Backup:
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                'Backup creation failed due to connection error.'
+                "Backup creation failed due to connection error."
             ) from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Backup creation", response)
@@ -125,10 +126,10 @@ class Backup:
                     backend=backend,
                 )
                 create_status.update(status)
-                if status['status'] == 'SUCCESS':
+                if status["status"] == "SUCCESS":
                     break
-                if status['status'] == 'FAILED':
-                    raise BackupFailedException(f'Backup failed: {create_status}')
+                if status["status"] == "FAILED":
+                    raise BackupFailedException(f"Backup failed: {create_status}")
                 sleep(1)
         return create_status
 
@@ -157,7 +158,7 @@ class Backup:
             backend=backend,
         )
 
-        path = f'/backups/{backend}/{backup_id}'
+        path = f"/backups/{backend}/{backup_id}"
 
         try:
             response = self._connection.get(
@@ -165,19 +166,20 @@ class Backup:
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                'Backup creation status failed due to connection error.'
+                "Backup creation status failed due to connection error."
             ) from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Backup status check", response)
         return response.json()
 
-    def restore(self,
-            backup_id: str,
-            backend: str,
-            include_classes: Union[List[str], str, None]=None,
-            exclude_classes: Union[List[str], str, None]=None,
-            wait_for_completion: bool=False,
-        ) -> dict:
+    def restore(
+        self,
+        backup_id: str,
+        backend: str,
+        include_classes: Union[List[str], str, None] = None,
+        exclude_classes: Union[List[str], str, None] = None,
+        wait_for_completion: bool = False,
+    ) -> dict:
         """
         Restore a backup of all/per class Weaviate objects.
 
@@ -231,7 +233,7 @@ class Backup:
             "include": include_classes,
             "exclude": exclude_classes,
         }
-        path = f'/backups/{backend}/{backup_id}/restore'
+        path = f"/backups/{backend}/{backup_id}/restore"
 
         try:
             response = self._connection.post(
@@ -240,7 +242,7 @@ class Backup:
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                'Backup restore failed due to connection error.'
+                "Backup restore failed due to connection error."
             ) from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Backup restore", response)
@@ -254,10 +256,10 @@ class Backup:
                     backend=backend,
                 )
                 restore_status.update(status)
-                if status['status'] == 'SUCCESS':
+                if status["status"] == "SUCCESS":
                     break
-                if status['status'] == 'FAILED':
-                    raise BackupFailedException(f'Backup restore failed: {restore_status}')
+                if status["status"] == "FAILED":
+                    raise BackupFailedException(f"Backup restore failed: {restore_status}")
                 sleep(1)
         return restore_status
 
@@ -285,7 +287,7 @@ class Backup:
             backup_id=backup_id,
             backend=backend,
         )
-        path = f'/backups/{backend}/{backup_id}/restore'
+        path = f"/backups/{backend}/{backup_id}/restore"
 
         try:
             response = self._connection.get(
@@ -293,7 +295,7 @@ class Backup:
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                'Backup restore status failed due to connection error.'
+                "Backup restore status failed due to connection error."
             ) from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Backup restore status check", response)
@@ -301,12 +303,12 @@ class Backup:
 
 
 def _get_and_validate_create_restore_arguments(
-        backup_id: str,
-        backend: str,
-        include_classes: Union[List[str], str, None],
-        exclude_classes: Union[List[str], str, None],
-        wait_for_completion: bool,
-        ) -> Tuple[str, str, List[str], List[str]]:
+    backup_id: str,
+    backend: str,
+    include_classes: Union[List[str], str, None],
+    exclude_classes: Union[List[str], str, None],
+    wait_for_completion: bool,
+) -> Tuple[str, str, List[str], List[str]]:
     """
     Validate and return the Backup.create/Backup.restore arguments.
 
@@ -340,13 +342,10 @@ def _get_and_validate_create_restore_arguments(
     """
 
     if not isinstance(backup_id, str):
-        raise TypeError(
-            f"'backup_id' must be of type str. Given type: {type(backup_id)}."
-        )
+        raise TypeError(f"'backup_id' must be of type str. Given type: {type(backup_id)}.")
     if backend not in STORAGE_NAMES:
         raise ValueError(
-            f"'backend' must have one of these values: {STORAGE_NAMES}. "
-            f"Given value: {backend}."
+            f"'backend' must have one of these values: {STORAGE_NAMES}. " f"Given value: {backend}."
         )
     if not isinstance(wait_for_completion, bool):
         raise TypeError(
@@ -376,9 +375,7 @@ def _get_and_validate_create_restore_arguments(
         exclude_classes = []
 
     if include_classes and exclude_classes:
-        raise TypeError(
-            "Either 'include_classes' OR 'exclude_classes' can be set, not both."
-        )
+        raise TypeError("Either 'include_classes' OR 'exclude_classes' can be set, not both.")
 
     include_classes = [_capitalize_first_letter(cls) for cls in include_classes]
     exclude_classes = [_capitalize_first_letter(cls) for cls in exclude_classes]
@@ -412,13 +409,10 @@ def _get_and_validate_get_status(backup_id: str, backend: str) -> Tuple[str, str
     """
 
     if not isinstance(backup_id, str):
-        raise TypeError(
-            f"'backup_id' must be of type str. Given type: {type(backup_id)}."
-        )
+        raise TypeError(f"'backup_id' must be of type str. Given type: {type(backup_id)}.")
     if backend not in STORAGE_NAMES:
         raise ValueError(
-            f"'backend' must have one of these values: {STORAGE_NAMES}. "
-            f"Given value: {backend}."
+            f"'backend' must have one of these values: {STORAGE_NAMES}. " f"Given value: {backend}."
         )
 
     return (backup_id.lower(), backend.lower())

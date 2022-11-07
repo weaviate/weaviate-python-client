@@ -71,11 +71,8 @@ class Property:
 
         path = f"/schema/{schema_class_name}/properties"
         try:
-            response = self._connection.post(
-                path=path,
-                weaviate_object=loaded_schema_property
-            )
+            response = self._connection.post(path=path, weaviate_object=loaded_schema_property)
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Property was created properly.') from conn_err
+            raise RequestsConnectionError("Property was created properly.") from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Add property to class", response)

@@ -5,8 +5,9 @@ from weaviate.connect import Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     RequestsConnectionError,
-    EmptyResponseException
+    EmptyResponseException,
 )
+
 
 class Cluster:
     """
@@ -55,7 +56,7 @@ class Cluster:
 
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Nodes status", response)
-        nodes = response.json().get('nodes')
+        nodes = response.json().get("nodes")
         if nodes is None or nodes == []:
             raise EmptyResponseException("Nodes status response returned empty")
         return nodes

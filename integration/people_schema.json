@@ -83,7 +83,7 @@
     {
       "class": "Association",
       "description": "A legal body that consists of a set of juristic persons. All juristic persons in a group are deliberate members.",
-      "moduleConfig": 
+      "moduleConfig":
       {
         "text2vec-contextionary":
         {
@@ -104,7 +104,7 @@
           "dataType": [
             "Person", "Association"
           ],
-          "moduleConfig": 
+          "moduleConfig":
           {
             "text2vec-contextionary":
             {
@@ -118,7 +118,7 @@
           "dataType": [
             "string"
           ],
-          "moduleConfig": 
+          "moduleConfig":
           {
             "text2vec-contextionary":
             {

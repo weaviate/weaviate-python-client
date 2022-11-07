@@ -3,13 +3,13 @@ from unittest.mock import Mock
 
 
 def mock_connection_func(
-        rest_method: Optional[str] = None,
-        return_json: Union[list, dict, None] = None,
-        status_code: int = 200,
-        side_effect: Union[Exception, Callable, None] = None,
-        connection_mock: Optional[Mock] = None,
-        server_version: str = '1.13.2,'
-    ) -> Mock:
+    rest_method: Optional[str] = None,
+    return_json: Union[list, dict, None] = None,
+    status_code: int = 200,
+    side_effect: Union[Exception, Callable, None] = None,
+    connection_mock: Optional[Mock] = None,
+    server_version: str = "1.13.2,",
+) -> Mock:
     """
     Mock the Connection class and mocking its public method/s.
 
@@ -45,17 +45,17 @@ def mock_connection_func(
         connection_mock = Mock()
 
     if rest_method:
-        if rest_method.lower() == 'delete':
+        if rest_method.lower() == "delete":
             rest_method_mock = connection_mock.delete
-        elif rest_method.lower() == 'post':
+        elif rest_method.lower() == "post":
             rest_method_mock = connection_mock.post
-        elif rest_method.lower() == 'put':
+        elif rest_method.lower() == "put":
             rest_method_mock = connection_mock.put
-        elif rest_method.lower() == 'patch':
+        elif rest_method.lower() == "patch":
             rest_method_mock = connection_mock.patch
-        elif rest_method.lower() == 'get':
+        elif rest_method.lower() == "get":
             rest_method_mock = connection_mock.get
-        elif rest_method.lower() == 'head':
+        elif rest_method.lower() == "head":
             rest_method_mock = connection_mock.head
         else:
             raise ValueError(
