@@ -15,67 +15,27 @@ schema = {
         {
             "class": "Paragraph",
             "properties": [
-                {
-                    "dataType": ["text"],
-                    "name": "contents"
-                },
-                {
-                    "dataType": ["Paragraph"],
-                    "name": "hasParagraphs"
-                }
-            ]
+                {"dataType": ["text"], "name": "contents"},
+                {"dataType": ["Paragraph"], "name": "hasParagraphs"},
+            ],
         },
         {
             "class": "Article",
             "properties": [
-                {
-                    "dataType": ["string"],
-                    "name": "title"
-                },
-                {
-                    "dataType": ["Paragraph"],
-                    "name": "hasParagraphs"
-                },
-                {
-                    "dataType": ["date"],
-                    "name": "datePublished"
-                }
-            ]
-        }
+                {"dataType": ["string"], "name": "title"},
+                {"dataType": ["Paragraph"], "name": "hasParagraphs"},
+                {"dataType": ["date"], "name": "datePublished"},
+            ],
+        },
     ]
 }
 
 paragraphs = [
-    {
-        "id": "fd34ccf4-1a2a-47ad-8446-231839366c3f",
-        "properties": {
-            "contents": "paragraph 1"
-        }
-    },
-    {
-        "id": "2653442b-05d8-4fa3-b46a-d4a152eb63bc",
-        "properties": {
-            "contents": "paragraph 2"
-        }
-    },
-    {
-        "id": "55374edb-17de-487f-86cb-9a9fbc30823f",
-        "properties": {
-            "contents": "paragraph 3"
-        }
-    },
-    {
-        "id": "124ff6aa-597f-44d0-8c13-62fbb1e66888",
-        "properties": {
-            "contents": "paragraph 4"
-        }
-    },
-    {
-        "id": "f787386e-7d1c-481f-b8c3-3dbfd8bbad85",
-        "properties": {
-            "contents": "paragraph 5"
-        }
-    }
+    {"id": "fd34ccf4-1a2a-47ad-8446-231839366c3f", "properties": {"contents": "paragraph 1"}},
+    {"id": "2653442b-05d8-4fa3-b46a-d4a152eb63bc", "properties": {"contents": "paragraph 2"}},
+    {"id": "55374edb-17de-487f-86cb-9a9fbc30823f", "properties": {"contents": "paragraph 3"}},
+    {"id": "124ff6aa-597f-44d0-8c13-62fbb1e66888", "properties": {"contents": "paragraph 4"}},
+    {"id": "f787386e-7d1c-481f-b8c3-3dbfd8bbad85", "properties": {"contents": "paragraph 5"}},
 ]
 
 articles = [
@@ -83,37 +43,37 @@ articles = [
         "id": "2fd68cbc-21ff-4e19-aaef-62531dade974",
         "properties": {
             "title": "article a",
-            "datePublished": datetime.datetime.now(datetime.timezone.utc).isoformat()
-        }
+            "datePublished": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        },
     },
     {
         "id": "7ea3f7b8-65fd-4318-a842-ae9ba38ffdca",
         "properties": {
             "title": "article b",
-            "datePublished": datetime.datetime.now(datetime.timezone.utc).isoformat()
-        }
+            "datePublished": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        },
     },
     {
         "id": "769a4280-4b85-4e67-b685-07796c49a764",
         "properties": {
             "title": "article c",
-            "datePublished": datetime.datetime.now(datetime.timezone.utc).isoformat()
-        }
+            "datePublished": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        },
     },
     {
         "id": "97fcc234-fd16-4a40-82bb-d614e9bddf8b",
         "properties": {
             "title": "article d",
-            "datePublished": datetime.datetime.now(datetime.timezone.utc).isoformat()
-        }
+            "datePublished": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        },
     },
     {
         "id": "3fa435d3-6ab2-489d-abed-c25ec526c9f4",
         "properties": {
             "title": "article e",
-            "datePublished": datetime.datetime.now(datetime.timezone.utc).isoformat()
-        }
-    }
+            "datePublished": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        },
+    },
 ]
 
 
@@ -130,26 +90,27 @@ def client():
             from_class_name="Article",
             from_property_name="hasParagraphs",
             to_uuid=paragraphs[i]["id"],
-            to_class_name="Paragraph"
+            to_class_name="Paragraph",
         )
     yield client
     client.schema.delete_all()
 
 
 def _assert_objects_exist(local_client: weaviate.Client, class_name: str, expected_count: int):
-    result = local_client.query \
-        .aggregate(class_name) \
-        .with_meta_count() \
-        .do()
+    result = local_client.query.aggregate(class_name).with_meta_count().do()
     count = result["data"]["Aggregate"][class_name][0]["meta"]["count"]
-    assert expected_count == count, f"{class_name}: expected count: {expected_count}, received: {count}"
+    assert (
+        expected_count == count
+    ), f"{class_name}: expected count: {expected_count}, received: {count}"
 
 
 def _create_backup_id() -> str:
     return str(round(time.time() * 1000))
 
 
-def _check_response(response: Dict[str, Any], backup_id: str, status: List[str], classes_include: List[str] = None):
+def _check_response(
+    response: Dict[str, Any], backup_id: str, status: List[str], classes_include: List[str] = None
+):
     assert response["id"] == backup_id
     if classes_include is not None:
         assert len(response["classes"]) == len(classes_include)
@@ -168,11 +129,7 @@ def test_create_and_restore_backup_with_waiting(client, tmp_path):
 
     # create backup
     classes = ["Article", "Paragraph"]
-    resp = client.backup.create(
-        backup_id=backup_id,
-        backend=BACKEND,
-        wait_for_completion=True
-    )
+    resp = client.backup.create(backup_id=backup_id, backend=BACKEND, wait_for_completion=True)
     _check_response(resp, backup_id, ["SUCCESS"], classes)
 
     # check data still exists
@@ -187,11 +144,7 @@ def test_create_and_restore_backup_with_waiting(client, tmp_path):
     client.schema.delete_class("Article")
     client.schema.delete_class("Paragraph")
     # restore backup
-    resp = client.backup.restore(
-        backup_id=backup_id,
-        backend=BACKEND,
-        wait_for_completion=True
-    )
+    resp = client.backup.restore(backup_id=backup_id, backend=BACKEND, wait_for_completion=True)
     _check_response(resp, backup_id, ["SUCCESS"], classes)
 
     # check data exists again
@@ -211,11 +164,7 @@ def test_create_and_restore_backup_without_waiting(client):
     # create backup
     include = ["Article"]
 
-    resp = client.backup.create(
-        backup_id=backup_id,
-        include_classes=include,
-        backend=BACKEND
-    )
+    resp = client.backup.create(backup_id=backup_id, include_classes=include, backend=BACKEND)
     _check_response(resp, backup_id, ["STARTED"], include)
 
     # wait until created
@@ -257,10 +206,7 @@ def test_create_and_restore_1_of_2_classes(client):
     # create backup
     include = ["Article"]
     resp = client.backup.create(
-        backup_id=backup_id,
-        include_classes=include,
-        backend=BACKEND,
-        wait_for_completion=True
+        backup_id=backup_id, include_classes=include, backend=BACKEND, wait_for_completion=True
     )
     _check_response(resp, backup_id, ["SUCCESS"], include)
 
@@ -274,10 +220,7 @@ def test_create_and_restore_1_of_2_classes(client):
     client.schema.delete_class("Article")
     # restore backup
     resp = client.backup.restore(
-        backup_id=backup_id,
-        include_classes=include,
-        backend=BACKEND,
-        wait_for_completion=True
+        backup_id=backup_id, include_classes=include, backend=BACKEND, wait_for_completion=True
     )
     _check_response(resp, backup_id, ["SUCCESS"], include)
 
@@ -314,10 +257,7 @@ def test_fail_restoring_backup_for_existing_class(client):
     backup_id = _create_backup_id()
     class_name = ["Article"]
     resp = client.backup.create(
-        backup_id=backup_id,
-        include_classes=class_name,
-        backend=BACKEND,
-        wait_for_completion=True
+        backup_id=backup_id, include_classes=class_name, backend=BACKEND, wait_for_completion=True
     )
     _check_response(resp, backup_id, ["SUCCESS"], class_name)
 
@@ -327,7 +267,7 @@ def test_fail_restoring_backup_for_existing_class(client):
             backup_id=backup_id,
             include_classes=class_name,
             backend=BACKEND,
-            wait_for_completion=True
+            wait_for_completion=True,
         )
         assert class_name[0] in str(excinfo.value)
         assert "already exists" in str(excinfo.value)
@@ -338,10 +278,7 @@ def test_fail_creating_existing_backup(client):
     backup_id = _create_backup_id()
     class_name = ["Article"]
     resp = client.backup.create(
-        backup_id=backup_id,
-        include_classes=class_name,
-        backend=BACKEND,
-        wait_for_completion=True
+        backup_id=backup_id, include_classes=class_name, backend=BACKEND, wait_for_completion=True
     )
     _check_response(resp, backup_id, ["SUCCESS"], class_name)
 
@@ -351,7 +288,7 @@ def test_fail_creating_existing_backup(client):
             backup_id=backup_id,
             include_classes=class_name,
             backend=BACKEND,
-            wait_for_completion=True
+            wait_for_completion=True,
         )
         assert backup_id in str(excinfo.value)
         assert "422" in str(excinfo.value)
@@ -361,11 +298,7 @@ def test_fail_restoring_non_existing_backup(client):
     """fail restoring non-existing backup"""
     backup_id = _create_backup_id()
     with pytest.raises(UnexpectedStatusCodeException) as excinfo:
-        client.backup.restore(
-            backup_id=backup_id,
-            backend=BACKEND,
-            wait_for_completion=True
-        )
+        client.backup.restore(backup_id=backup_id, backend=BACKEND, wait_for_completion=True)
         assert backup_id in str(excinfo.value)
         assert "404" in str(excinfo.value)
 
@@ -396,6 +329,8 @@ def test_fail_creating_backup_for_both_include_and_exclude_classes(client):
                 include_classes=include,
                 exclude_classes=exclude,
                 backend=BACKEND,
-                wait_for_completion=True
+                wait_for_completion=True,
             )
-            assert "Either 'include_classes' OR 'exclude_classes' can be set, not both" in str(excinfo.value)
+            assert "Either 'include_classes' OR 'exclude_classes' can be set, not both" in str(
+                excinfo.value
+            )

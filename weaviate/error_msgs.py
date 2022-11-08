@@ -64,7 +64,7 @@ DATA_DEPRECATION_OLD_V14_CLS_NS_W = (
 )
 
 
-REF_DEPRECATION_NEW_V14_CLS_NS_W = ( # del
+REF_DEPRECATION_NEW_V14_CLS_NS_W = (  # del
     "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
     "APIs and beacons, please set the `from_class_name` AND `to_class_name` arguments "
     "for this. The non-class namespaced APIs and beacons (None value for "

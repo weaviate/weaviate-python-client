@@ -13,7 +13,7 @@ class ConfigBuilder:
     ConfigBuild class that is used to configure a classification process.
     """
 
-    def __init__(self, connection: Connection, classification: 'Classification'):
+    def __init__(self, connection: Connection, classification: "Classification"):
         """
         Initialize a ConfigBuilder class instance.
 
@@ -31,7 +31,7 @@ class ConfigBuilder:
         self._config: Dict[str, Any] = {}
         self._wait_for_completion = False
 
-    def with_type(self, type: str) -> 'ConfigBuilder':
+    def with_type(self, type: str) -> "ConfigBuilder":
         """
         Set classification type.
 
@@ -49,7 +49,7 @@ class ConfigBuilder:
         self._config["type"] = type
         return self
 
-    def with_k(self, k: int) -> 'ConfigBuilder':
+    def with_k(self, k: int) -> "ConfigBuilder":
         """
         Set k number for the kNN.
 
@@ -66,12 +66,12 @@ class ConfigBuilder:
         """
 
         if "settings" not in self._config:
-            self._config["settings"] = {'k': k}
+            self._config["settings"] = {"k": k}
         else:
-            self._config["settings"]['k'] = k
+            self._config["settings"]["k"] = k
         return self
 
-    def with_class_name(self, class_name: str) -> 'ConfigBuilder':
+    def with_class_name(self, class_name: str) -> "ConfigBuilder":
         """
         What Object type to classify.
 
@@ -89,7 +89,7 @@ class ConfigBuilder:
         self._config["class"] = _capitalize_first_letter(class_name)
         return self
 
-    def with_classify_properties(self, classify_properties: list) -> 'ConfigBuilder':
+    def with_classify_properties(self, classify_properties: list) -> "ConfigBuilder":
         """
         Set the classify properties.
 
@@ -107,7 +107,7 @@ class ConfigBuilder:
         self._config["classifyProperties"] = classify_properties
         return self
 
-    def with_based_on_properties(self, based_on_properties: list) -> 'ConfigBuilder':
+    def with_based_on_properties(self, based_on_properties: list) -> "ConfigBuilder":
         """
         Set properties to build the classification on.
 
@@ -125,7 +125,7 @@ class ConfigBuilder:
         self._config["basedOnProperties"] = based_on_properties
         return self
 
-    def with_source_where_filter(self, filter: dict) -> 'ConfigBuilder':
+    def with_source_where_filter(self, filter: dict) -> "ConfigBuilder":
         """
         Set Source 'where' Filter.
 
@@ -145,7 +145,7 @@ class ConfigBuilder:
         self._config["filters"]["sourceWhere"] = filter
         return self
 
-    def with_training_set_where_filter(self, filter: dict) -> 'ConfigBuilder':
+    def with_training_set_where_filter(self, filter: dict) -> "ConfigBuilder":
         """
         Set Training set 'where' Filter.
 
@@ -165,7 +165,7 @@ class ConfigBuilder:
         self._config["filters"]["trainingSetWhere"] = filter
         return self
 
-    def with_target_where_filter(self, filter: dict) -> 'ConfigBuilder':
+    def with_target_where_filter(self, filter: dict) -> "ConfigBuilder":
         """
         Set Target 'where' Filter.
 
@@ -185,7 +185,7 @@ class ConfigBuilder:
         self._config["filters"]["targetWhere"] = filter
         return self
 
-    def with_wait_for_completion(self) -> 'ConfigBuilder':
+    def with_wait_for_completion(self) -> "ConfigBuilder":
         """
         Wait for completion.
 
@@ -198,7 +198,7 @@ class ConfigBuilder:
         self._wait_for_completion = True
         return self
 
-    def with_settings(self, settings: dict) -> 'ConfigBuilder':
+    def with_settings(self, settings: dict) -> "ConfigBuilder":
         """
         Set settings for the classification. NOTE if you are using 'kNN'
         the value 'k' can be set by this method or by 'with_k'.
@@ -263,12 +263,9 @@ class ConfigBuilder:
         """
 
         try:
-            response = self._connection.post(
-                path='/classifications',
-                weaviate_object=self._config
-            )
+            response = self._connection.post(path="/classifications", weaviate_object=self._config)
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Classification may not started.') from conn_err
+            raise RequestsConnectionError("Classification may not started.") from conn_err
         if response.status_code == 201:
             return response.json()
         raise UnexpectedStatusCodeException("Start classification", response)
@@ -291,7 +288,7 @@ class ConfigBuilder:
 
         # wait for completion
         classification_uuid = response["id"]
-        #print(classification_uuid)
+        # print(classification_uuid)
         while self._classification.is_running(classification_uuid):
             time.sleep(2.0)
         return self._classification.get(classification_uuid)

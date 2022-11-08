@@ -40,7 +40,7 @@ def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
     if isinstance(image_or_image_path, str):
         if not os.path.isfile(image_or_image_path):
             raise ValueError("No file found at location " + image_or_image_path)
-        with open(image_or_image_path, 'br') as file:
+        with open(image_or_image_path, "br") as file:
             content = file.read()
 
     elif isinstance(image_or_image_path, BufferedReader):
@@ -48,7 +48,7 @@ def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
     else:
         raise TypeError(
             '"image_or_image_path" should be a image path or a binary read file'
-            ' (io.BufferedReader)'
+            " (io.BufferedReader)"
         )
     return base64.b64encode(content).decode("utf-8")
 
@@ -68,13 +68,13 @@ def image_decoder_b64(encoded_image: str) -> bytes:
         Decoded image as a binary string.
     """
 
-    return base64.b64decode(encoded_image.encode('utf-8'))
+    return base64.b64decode(encoded_image.encode("utf-8"))
 
 
 def generate_local_beacon(
-        to_uuid: Union[str, uuid_lib.UUID],
-        class_name: Optional[str]=None,
-    ) -> dict:
+    to_uuid: Union[str, uuid_lib.UUID],
+    class_name: Optional[str] = None,
+) -> dict:
     """
     Generates a beacon with the given uuid and class name (only for Weaviate >= 1.14.0).
 
@@ -110,12 +110,8 @@ def generate_local_beacon(
         raise TypeError("Expected to_object_uuid of type str or uuid.UUID")
 
     if class_name is None:
-        return {
-            "beacon": f"weaviate://localhost/{uuid}"
-        }
-    return {
-        "beacon": f"weaviate://localhost/{class_name}/{uuid}"
-    }
+        return {"beacon": f"weaviate://localhost/{uuid}"}
+    return {"beacon": f"weaviate://localhost/{class_name}/{uuid}"}
 
 
 def _get_dict_from_object(object_: Union[str, dict]) -> dict:
@@ -161,7 +157,7 @@ def _get_dict_from_object(object_: Union[str, dict]) -> dict:
             # Object is neither file nor URL
             raise ValueError("No file found at location " + object_)
         # Object is file
-        with open(object_, 'r') as file:
+        with open(object_, "r") as file:
             return json.load(file)
     raise TypeError(
         "Argument is not of the supported types. Supported types are "
@@ -364,7 +360,7 @@ def _is_sub_schema(sub_schema: dict, schema: dict) -> bool:
     """
 
     schema_classes = schema.get("classes", [])
-    if 'classes' in sub_schema:
+    if "classes" in sub_schema:
         sub_schema_classes = sub_schema["classes"]
     else:
         sub_schema_classes = [sub_schema]
@@ -392,13 +388,12 @@ def _compare_class_sets(sub_set: list, set_: list) -> bool:
     for sub_set_class in sub_set:
         found = False
         for set_class in set_:
-            if 'class' not in sub_set_class:
+            if "class" not in sub_set_class:
                 raise SchemaValidationException(
                     "The sub schema class/es MUST have a 'class' keyword each!"
                 )
-            if (
-                    _capitalize_first_letter(sub_set_class["class"]) ==
-                    _capitalize_first_letter(set_class["class"])
+            if _capitalize_first_letter(sub_set_class["class"]) == _capitalize_first_letter(
+                set_class["class"]
             ):
                 if _compare_properties(sub_set_class["properties"], set_class["properties"]):
                     found = True
@@ -490,6 +485,6 @@ def check_batch_result(results: dict) -> None:
 
     if results is not None:
         for result in results:
-            if 'result' in result and 'errors' in result['result']:
-                if 'error' in result['result']['errors']:
-                    print(result['result']['errors'])
+            if "result" in result and "errors" in result["result"]:
+                if "error" in result["result"]["errors"]:
+                    print(result["result"]["errors"])

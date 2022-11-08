@@ -20,7 +20,7 @@ In order to unit test the whole package, you can run the following command:
 python -m unittest -v # -v is optional, -v = verbose
 ```
 
-# Coverage test 
+# Coverage test
 ---
 Coverage test for weaviate package. Coverage test can be performed using the existing unit test. It runs all the unit tests in order to find which parts of the code have been executed, thus it can be used instead of the Unit test.
 Coverage test is performed by the `coverage` package that should be installed with the `development-requirements.txt`. For more information on what and how to run coverage tests visit this [link](https://coverage.readthedocs.io/en/coverage-5.3.1/ "coverage.readthedocs.io").

@@ -28,7 +28,7 @@ Check out our `Command Line Interface (CLI) tool <https://pypi.org/project/weavi
 Articles
 --------
 
-Here are some articles on Weaviate: 
+Here are some articles on Weaviate:
 
 - `Semantic Search Queries Return More Informed Results <https://hackernoon.com/semantic-search-queries-return-more-informed-results-nr5335nw>`_
 - `Getting Started with Weaviate Python Library <https://towardsdatascience.com/getting-started-with-weaviate-python-client-e85d14f19e4f>`_
@@ -51,5 +51,7 @@ Support
 
 Contributing
 ------------
+Do you want to contribute to
 
-- Do you want to contribute to `Weaviate`, read `How to Contribute <https://github.com/semi-technologies/weaviate/blob/master/CONTRIBUTE.md>`_.
+-  `Weaviate Python Client`, read `How to Contribute <https://github.com/semi-technologies/weaviate-python-client/blob/main/CONTRIBUTE.md>`_.
+-  `Weaviate Core`, read `How to Contribute <https://github.com/semi-technologies/weaviate/blob/master/CONTRIBUTE.md>`_.

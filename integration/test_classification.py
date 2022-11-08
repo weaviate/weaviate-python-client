@@ -19,8 +19,8 @@ schema = {
                     "name": "description",
                     "description": "The description of this label",
                     "dataType": ["text"],
-                }
-            ]
+                },
+            ],
         },
         {
             "class": "Message",
@@ -35,9 +35,9 @@ schema = {
                     "name": "labeled",
                     "description": "The label assigned to this message",
                     "dataType": ["Label"],
-                }
-            ]
-        }
+                },
+            ],
+        },
     ]
 }
 
@@ -72,47 +72,35 @@ def client():
 def test_contextual(client):
     # Create labels
     client.data_object.create(
-        {
-            "name": "positive",
-            "description": "A positive, good, happy or supporting message."
-        },
-        "Label"
+        {"name": "positive", "description": "A positive, good, happy or supporting message."},
+        "Label",
     )
     client.data_object.create(
-        {
-            "name": "negative",
-            "description": "A negative, bad, sad or disrupting message."
-        },
-        "Label"
+        {"name": "negative", "description": "A negative, bad, sad or disrupting message."}, "Label"
     )
 
     client.data_object.create(
         {
             "content": "ALERT: So now we find out that the entire opponent “hit squad” illegally wiped their phones clean just prior to the investigation of them, all using the same really dumb reason for this “accident”, just like other people smashing her phones with a hammer, & DELETING THEIR EMAILS!"
         },
-        "Message"
+        "Message",
     )
     client.data_object.create(
         {
             "content": "I'm so happy, proud and excited to be a part of this community for the rest of my days."
         },
-        "Message"
+        "Message",
     )
     client.data_object.create(
-        {
-            "content": "thank you for reminding the world of our cause"
-        },
-        "Message"
+        {"content": "thank you for reminding the world of our cause"}, "Message"
     )
 
     time.sleep(2.0)
-    client.classification.schedule() \
-        .with_type("text2vec-contextionary-contextual") \
-        .with_class_name("Message") \
-        .with_based_on_properties(["content"]) \
-        .with_classify_properties(["labeled"]) \
-        .with_wait_for_completion() \
-        .do()
+    client.classification.schedule().with_type("text2vec-contextionary-contextual").with_class_name(
+        "Message"
+    ).with_based_on_properties(["content"]).with_classify_properties(
+        ["labeled"]
+    ).with_wait_for_completion().do()
 
     result = client.query.raw(query)
     labeled_messages = result["data"]["Get"]["Message"]

@@ -23,11 +23,7 @@ class Contextionary:
 
         self._connection = connection
 
-    def extend(self,
-            concept: str,
-            definition: str,
-            weight: float=1.0
-        ) -> None:
+    def extend(self, concept: str, definition: str, weight: float = 1.0) -> None:
         """
         Extend the text2vec-contextionary with new concepts
 
@@ -72,11 +68,7 @@ class Contextionary:
         if weight > 1.0 or weight < 0.0:
             raise ValueError("Weight out of limits 0.0 <= weight <= 1.0")
 
-        extension = {
-            "concept": concept,
-            "definition": definition,
-            "weight": weight
-        }
+        extension = {"concept": concept, "definition": definition, "weight": weight}
 
         try:
             response = self._connection.post(
@@ -85,7 +77,7 @@ class Contextionary:
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                'text2vec-contextionary could not be extended.'
+                "text2vec-contextionary could not be extended."
             ) from conn_err
         if response.status_code == 200:
             # Successfully extended
@@ -151,12 +143,10 @@ class Contextionary:
 
         path = "/modules/text2vec-contextionary/concepts/" + concept
         try:
-            response = self._connection.get(
-                path=path
-            )
+            response = self._connection.get(path=path)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                'text2vec-contextionary vector was not retrieved.'
+                "text2vec-contextionary vector was not retrieved."
             ) from conn_err
         else:
             if response.status_code == 200:

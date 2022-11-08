@@ -5,13 +5,14 @@ Weaviate Exceptions.
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests import Response
 
+
 class WeaviateBaseError(Exception):
     """
     Weaviate base exception that all Weaviate exceptions should inherit from.
     This error can be used to catch any Weaviate exceptions.
     """
 
-    def __init__(self, message: str = ''):
+    def __init__(self, message: str = ""):
         """
         Weaviate base exception initializer.
         Parameters
@@ -47,7 +48,6 @@ class UnexpectedStatusCodeException(WeaviateBaseError):
             The request response of which the status code was unexpected.
         """
 
-
         # Set error message
 
         try:
@@ -78,10 +78,12 @@ class SchemaValidationException(WeaviateBaseError):
     Schema Validation Exception.
     """
 
+
 class BackupFailedException(WeaviateBaseError):
     """
     Backup Failed Exception.
     """
+
 
 class EmptyResponseException(WeaviateBaseError):
     """

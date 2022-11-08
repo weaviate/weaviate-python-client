@@ -12,19 +12,9 @@ schema = {
         {
             "class": "ClassA",
             "properties": [
-                {
-                    "dataType": [
-                        "string"
-                    ],
-                    "name": "stringProp"
-                },
-                {
-                    "dataType": [
-                        "int"
-                    ],
-                    "name": "intProp"
-                }
-            ]
+                {"dataType": ["string"], "name": "stringProp"},
+                {"dataType": ["int"], "name": "intProp"},
+            ],
         }
     ]
 }

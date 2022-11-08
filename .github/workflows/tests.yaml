@@ -14,6 +14,14 @@ on:
   pull_request:
 
 jobs:
+  lint-and_format:
+    name: Run linter and formatter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: psf/black@stable
+        with:
+          version: "22.10"
   unit-tests:
     name: Run Unit Tests
     runs-on: ubuntu-latest

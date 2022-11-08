@@ -12,7 +12,7 @@ from weaviate.util import (
 from weaviate.error_msgs import (
     REF_DEPRECATION_NEW_V14_CLS_NS_W,
     REF_DEPRECATION_OLD_V14_FROM_CLS_NS_W,
-    REF_DEPRECATION_OLD_V14_TO_CLS_NS_W
+    REF_DEPRECATION_OLD_V14_TO_CLS_NS_W,
 )
 
 
@@ -33,13 +33,14 @@ class Reference:
 
         self._connection = connection
 
-    def delete(self,
-            from_uuid: str,
-            from_property_name: str,
-            to_uuid: str,
-            from_class_name: Optional[str]=None,
-            to_class_name: Optional[str]=None,
-        ) -> None:
+    def delete(
+        self,
+        from_uuid: str,
+        from_property_name: str,
+        to_uuid: str,
+        from_class_name: Optional[str] = None,
+        to_class_name: Optional[str] = None,
+    ) -> None:
         """
         Remove a reference to another object. Equal to removing one direction of an edge from the
         graph.
@@ -147,7 +148,7 @@ class Reference:
             If uuid is not properly formed.
         """
 
-        is_server_version_14 = (self._connection.server_version >= '1.14')
+        is_server_version_14 = self._connection.server_version >= "1.14"
 
         if (from_class_name is None or to_class_name is None) and is_server_version_14:
             warnings.warn(
@@ -164,7 +165,7 @@ class Reference:
                 )
             _validate_string_arguments(
                 argument=from_class_name,
-                argument_name='from_class_name',
+                argument_name="from_class_name",
             )
         if to_class_name is not None:
             if not is_server_version_14:
@@ -175,7 +176,7 @@ class Reference:
                 )
             _validate_string_arguments(
                 argument=to_class_name,
-                argument_name='to_class_name',
+                argument_name="to_class_name",
             )
 
         # Validate and create Beacon
@@ -183,7 +184,7 @@ class Reference:
         to_uuid = get_valid_uuid(to_uuid)
         _validate_string_arguments(
             argument=from_property_name,
-            argument_name='from_property_name',
+            argument_name="from_property_name",
         )
 
         if to_class_name and is_server_version_14:
@@ -203,23 +204,21 @@ class Reference:
             path = f"/objects/{from_uuid}/references/{from_property_name}"
 
         try:
-            response = self._connection.delete(
-                path=path,
-                weaviate_object=beacon
-            )
+            response = self._connection.delete(path=path, weaviate_object=beacon)
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Reference was not deleted.') from conn_err
+            raise RequestsConnectionError("Reference was not deleted.") from conn_err
         if response.status_code == 204:
             return
         raise UnexpectedStatusCodeException("Delete property reference to object", response)
 
-    def update(self,
-            from_uuid: str,
-            from_property_name: str,
-            to_uuids: Union[list, str],
-            from_class_name: Optional[str]=None,
-            to_class_names: Union[list, str, None]=None,
-        ) -> None:
+    def update(
+        self,
+        from_uuid: str,
+        from_property_name: str,
+        to_uuids: Union[list, str],
+        from_class_name: Optional[str] = None,
+        to_class_names: Union[list, str, None] = None,
+    ) -> None:
         """
         Allows to update all references in that property with a new set of references.
         All old references will be deleted.
@@ -338,7 +337,7 @@ class Reference:
             If the parameters are of the wrong value.
         """
 
-        is_server_version_14 = (self._connection.server_version >= '1.14')
+        is_server_version_14 = self._connection.server_version >= "1.14"
 
         if (from_class_name is None or to_class_names is None) and is_server_version_14:
             warnings.warn(
@@ -355,7 +354,7 @@ class Reference:
                 )
             _validate_string_arguments(
                 argument=from_class_name,
-                argument_name='from_class_name',
+                argument_name="from_class_name",
             )
         if to_class_names is not None:
             if not is_server_version_14:
@@ -368,7 +367,7 @@ class Reference:
             if not isinstance(to_class_names, list):
                 _validate_string_arguments(
                     argument=to_class_names,
-                    argument_name='to_class_names',
+                    argument_name="to_class_names",
                 )
             else:
                 for to_class_name in to_class_names:
@@ -393,7 +392,7 @@ class Reference:
         from_uuid = get_valid_uuid(from_uuid)
         _validate_string_arguments(
             argument=from_property_name,
-            argument_name='from_property_name',
+            argument_name="from_property_name",
         )
         beacons = []
 
@@ -425,18 +424,19 @@ class Reference:
                 weaviate_object=beacons,
             )
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Reference was not updated.') from conn_err
+            raise RequestsConnectionError("Reference was not updated.") from conn_err
         if response.status_code == 200:
             return
         raise UnexpectedStatusCodeException("Update property reference to object", response)
 
-    def add(self,
-            from_uuid: str,
-            from_property_name: str,
-            to_uuid: str,
-            from_class_name: Optional[str]=None,
-            to_class_name: Optional[str]=None,
-        ) -> None:
+    def add(
+        self,
+        from_uuid: str,
+        from_property_name: str,
+        to_uuid: str,
+        from_class_name: Optional[str] = None,
+        to_class_name: Optional[str] = None,
+    ) -> None:
         """
         Allows to link an object to an object uni-directionally.
 
@@ -529,7 +529,7 @@ class Reference:
             If the parameters are of the wrong value.
         """
 
-        is_server_version_14 = (self._connection.server_version >= '1.14')
+        is_server_version_14 = self._connection.server_version >= "1.14"
 
         if (from_class_name is None or to_class_name is None) and is_server_version_14:
             warnings.warn(
@@ -546,7 +546,7 @@ class Reference:
                 )
             _validate_string_arguments(
                 argument=from_class_name,
-                argument_name='from_class_name',
+                argument_name="from_class_name",
             )
         if to_class_name is not None:
             if not is_server_version_14:
@@ -557,7 +557,7 @@ class Reference:
                 )
             _validate_string_arguments(
                 argument=to_class_name,
-                argument_name='to_class_name',
+                argument_name="to_class_name",
             )
 
         # Validate and create Beacon
@@ -565,7 +565,7 @@ class Reference:
         to_uuid = get_valid_uuid(to_uuid)
         _validate_string_arguments(
             argument=from_property_name,
-            argument_name='from_property_name',
+            argument_name="from_property_name",
         )
 
         if to_class_name and is_server_version_14:
@@ -590,13 +590,13 @@ class Reference:
                 weaviate_object=beacon,
             )
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError('Reference was not added.') from conn_err
+            raise RequestsConnectionError("Reference was not added.") from conn_err
         if response.status_code == 200:
             return
         raise UnexpectedStatusCodeException("Add property reference to object", response)
 
 
-def _get_beacon(to_uuid: str, class_name: Optional[str]=None) -> dict:
+def _get_beacon(to_uuid: str, class_name: Optional[str] = None) -> dict:
     """
     Get a weaviate-style beacon.
 
@@ -615,12 +615,8 @@ def _get_beacon(to_uuid: str, class_name: Optional[str]=None) -> dict:
     """
 
     if class_name is None:
-        return {
-            "beacon": f"weaviate://localhost/{to_uuid}"
-        }
-    return {
-        "beacon": f"weaviate://localhost/{class_name}/{to_uuid}"
-    }
+        return {"beacon": f"weaviate://localhost/{to_uuid}"}
+    return {"beacon": f"weaviate://localhost/{class_name}/{to_uuid}"}
 
 
 def _validate_string_arguments(argument: str, argument_name: str) -> None:
@@ -641,6 +637,4 @@ def _validate_string_arguments(argument: str, argument_name: str) -> None:
     """
 
     if not isinstance(argument, str):
-        raise TypeError(
-            f"'{argument_name}' must be of type 'str'. Given type: {type(argument)}"
-        )
+        raise TypeError(f"'{argument_name}' must be of type 'str'. Given type: {type(argument)}")

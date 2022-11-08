@@ -80,13 +80,14 @@ class ReferenceBatchRequest(BatchRequest):
     Caution this request will miss some validations to be faster.
     """
 
-    def add(self,
-            from_object_class_name: str,
-            from_object_uuid: str,
-            from_property_name: str,
-            to_object_uuid: str,
-            to_object_class_name: Optional[str] = None,
-            ) -> None:
+    def add(
+        self,
+        from_object_class_name: str,
+        from_object_uuid: str,
+        from_property_name: str,
+        to_object_uuid: str,
+        to_object_class_name: Optional[str] = None,
+    ) -> None:
         """
         Add one Weaviate-object reference to this batch. Does NOT validate the consistency of the
         reference against the class schema. Checks the arguments' type and UUIDs' format.
@@ -118,30 +119,30 @@ class ReferenceBatchRequest(BatchRequest):
         """
 
         if (
-                not isinstance(from_object_class_name, str)
-                or not isinstance(from_object_uuid, str)
-                or not isinstance(from_property_name, str)
-                or not isinstance(to_object_uuid, str)
+            not isinstance(from_object_class_name, str)
+            or not isinstance(from_object_uuid, str)
+            or not isinstance(from_property_name, str)
+            or not isinstance(to_object_uuid, str)
         ):
-            raise TypeError('All arguments must be of type string')
+            raise TypeError("All arguments must be of type string")
 
         to_object_uuid = get_valid_uuid(to_object_uuid)
         from_object_uuid = get_valid_uuid(from_object_uuid)
 
         if to_object_class_name is not None:
-            to_beacon = f'weaviate://localhost/{to_object_class_name}/{to_object_uuid}'
+            to_beacon = f"weaviate://localhost/{to_object_class_name}/{to_object_uuid}"
         else:
-            to_beacon = f'weaviate://localhost/{to_object_uuid}'
+            to_beacon = f"weaviate://localhost/{to_object_uuid}"
 
         self._items.append(
             {
-                'from': 'weaviate://localhost/'
-                        + from_object_class_name
-                        + '/'
-                        + from_object_uuid
-                        + '/'
-                        + from_property_name,
-                'to': to_beacon
+                "from": "weaviate://localhost/"
+                + from_object_class_name
+                + "/"
+                + from_object_uuid
+                + "/"
+                + from_property_name,
+                "to": to_beacon,
             }
         )
 
@@ -165,12 +166,13 @@ class ObjectsBatchRequest(BatchRequest):
     Caution this batch will not be validated through weaviate.
     """
 
-    def add(self,
-            data_object: dict,
-            class_name: str,
-            uuid: Optional[str] = None,
-            vector: Optional[Sequence] = None,
-            ) -> str:
+    def add(
+        self,
+        data_object: dict,
+        class_name: str,
+        uuid: Optional[str] = None,
+        vector: Optional[Sequence] = None,
+    ) -> str:
         """
         Add one object to this batch. Does NOT validate the consistency of the object against
         the client's schema. Checks the arguments' type and UUIDs' format.
@@ -208,10 +210,7 @@ class ObjectsBatchRequest(BatchRequest):
         if not isinstance(class_name, str):
             raise TypeError("Class name must be of type str")
 
-        batch_item = {
-            "class": class_name,
-            "properties": copy.deepcopy(data_object)
-        }
+        batch_item = {"class": class_name, "properties": copy.deepcopy(data_object)}
         if uuid is not None:
             batch_item["id"] = get_valid_uuid(uuid)
         else:
@@ -234,7 +233,4 @@ class ObjectsBatchRequest(BatchRequest):
             The request body as a dict.
         """
 
-        return {
-            "fields": ["ALL"],
-            "objects": self._items
-        }
+        return {"fields": ["ALL"], "objects": self._items}

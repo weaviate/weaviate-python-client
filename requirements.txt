@@ -11,3 +11,4 @@ pytest-benchmark==3.4.1
 pytest-profiling==1.7.0
 coverage==6.5.0
 wheel
+pre-commit

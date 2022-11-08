@@ -6,6 +6,7 @@ from weaviate.util import get_valid_uuid
 from weaviate.connect import Connection
 from .config_builder import ConfigBuilder
 
+
 class Classification:
     """
     Classification class used to schedule and/or check the status of
@@ -65,11 +66,11 @@ class Classification:
 
         try:
             response = self._connection.get(
-                path='/classifications/' + classification_uuid,
+                path="/classifications/" + classification_uuid,
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                'Classification status could not be retrieved.'
+                "Classification status could not be retrieved."
             ) from conn_err
         if response.status_code == 200:
             return response.json()
@@ -126,10 +127,7 @@ class Classification:
 
         return self._check_status(classification_uuid, "running")
 
-    def _check_status(self,
-            classification_uuid: str,
-            status: str
-        ) -> bool:
+    def _check_status(self, classification_uuid: str, status: str) -> bool:
         """
         Check for a status of a classification.
 

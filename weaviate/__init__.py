@@ -33,13 +33,13 @@ __version__ : str
 
 
 __all__ = [
-    'Client',
-    'AuthClientCredentials',
-    'AuthClientPassword',
-    'UnexpectedStatusCodeException',
-    'ObjectAlreadyExistsException',
-    'AuthenticationFailedException',
-    'SchemaValidationException',
+    "Client",
+    "AuthClientCredentials",
+    "AuthClientPassword",
+    "UnexpectedStatusCodeException",
+    "ObjectAlreadyExistsException",
+    "AuthenticationFailedException",
+    "SchemaValidationException",
 ]
 
 import sys
@@ -51,4 +51,5 @@ from .client import Client
 
 if not sys.warnoptions:
     import warnings
+
     warnings.simplefilter("default")
