@@ -1,11 +1,12 @@
-from operator import add
 import unittest
 from unittest.mock import patch, Mock
+
 from requests import RequestException
-from weaviate.auth import AuthClientPassword
-from weaviate.exceptions import AuthenticationFailedException
-from weaviate.connect.connection import Connection, _get_proxies, _get_valid_timeout_config
+
 from test.util import check_error_message
+from weaviate.auth import AuthClientPassword
+from weaviate.connect.connection import Connection, _get_proxies, _get_valid_timeout_config
+from weaviate.exceptions import AuthenticationFailedException
 
 
 class TestConnection(unittest.TestCase):

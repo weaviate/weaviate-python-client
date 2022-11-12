@@ -651,7 +651,7 @@ def _check_direction_clause(direction: dict) -> dict:
         _check_concept(direction)
     if "objects" in direction:
         _check_objects(direction)
-    if not "force" in direction:
+    if "force" not in direction:
         raise ValueError("'move' clause needs to state a 'force'")
     _check_type(var_name="force", value=direction["force"], dtype=float)
 

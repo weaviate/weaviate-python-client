@@ -1,8 +1,7 @@
 """
 Weaviate Exceptions.
 """
-# Import requests ConnectionError as weaviate.ConnectionError to overwrite buildins connection error
-from requests import Response
+from requests import Response, exceptions
 
 ERROR_CODE_EXPLANATION = {
     413: """Payload Too Large. Try to decrease the batch size or increase the maximum request size on your weaviate
@@ -56,7 +55,7 @@ class UnexpectedStatusCodeException(WeaviateBaseError):
 
         try:
             body = response.json()
-        except:
+        except exceptions.JSONDecodeError:
             body = None
 
         msg = (
