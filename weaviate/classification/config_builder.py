@@ -16,7 +16,7 @@ class ConfigBuilder:
     ConfigBuild class that is used to configure a classification process.
     """
 
-    def __init__(self, connection: Connection, classification: "Classification"):
+    def __init__(self, connection: Connection, classification: "Classification"):  # noqa
         """
         Initialize a ConfigBuilder class instance.
 

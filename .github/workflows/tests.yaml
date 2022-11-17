@@ -22,6 +22,13 @@ jobs:
       - uses: psf/black@stable
         with:
           version: "22.10"
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: 'pip' # caching pip dependencies
+      - run: pip install -r requirements.txt
+      - name: "Flake 8"
+        run: flake8 .
   unit-tests:
     name: Run Unit Tests
     runs-on: ubuntu-latest

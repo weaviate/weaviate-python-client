@@ -1,7 +1,14 @@
 import unittest
 from unittest.mock import Mock
 
-from weaviate.exceptions import *
+from requests import exceptions
+
+from weaviate.exceptions import (
+    UnexpectedStatusCodeException,
+    ObjectAlreadyExistsException,
+    AuthenticationFailedException,
+    SchemaValidationException,
+)
 
 
 class TestExceptions(unittest.TestCase):
@@ -12,8 +19,7 @@ class TestExceptions(unittest.TestCase):
 
         # with .json() exception raised
         response = Mock()
-        response.json = Mock()
-        response.json.side_effect = Exception("Test")
+        response.json = Mock(side_effect=exceptions.JSONDecodeError("test", "", 0))
         response.status_code = 1234
         exception = UnexpectedStatusCodeException(message="Test message", response=response)
         self.assertEqual(

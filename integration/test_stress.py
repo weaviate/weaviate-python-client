@@ -104,7 +104,7 @@ def test_stress(batch_size, dynamic):
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create(schema)
-    client.batch.configure(batch_size=batch_size, dynamic=dynamic)
+    client.batch.configure(batch_size=batch_size, dynamic=dynamic, num_workers=4)
     authors = create_authors(random.randint(1000, 5000))
     paragraphs = create_paragraphs(random.randint(1000, 5000), authors)
     articles = create_articles(random.randint(1000, 5000), authors, paragraphs)

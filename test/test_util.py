@@ -1,7 +1,10 @@
 import unittest
-from copy import deepcopy
 import uuid as uuid_lib
+from copy import deepcopy
 from unittest.mock import patch, Mock
+
+from test.util import check_error_message
+from weaviate import SchemaValidationException
 from weaviate.util import (
     generate_uuid5,
     image_decoder_b64,
@@ -15,9 +18,6 @@ from weaviate.util import (
     _get_dict_from_object,
     _is_sub_schema,
 )
-from weaviate import SchemaValidationException
-from test.util import check_error_message
-
 
 schema_set = {
     "classes": [
@@ -30,7 +30,7 @@ schema_set = {
 
 schema_set_extended_prop = {
     "classes": [
-        {"class": "Ollie", "properties": [{"name": "height", "name": "weight"}]},
+        {"class": "Ollie", "properties": [{"name": "weight"}]},
         {"class": "Shuvit", "properties": [{"name": "direction"}]},
         {"class": "Board", "properties": [{"name": "brand"}, {"name": "art"}, {"name": "size"}]},
         {"class": "Truck", "properties": [{"name": "name"}, {"name": "height"}]},

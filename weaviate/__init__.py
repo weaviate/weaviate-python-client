@@ -43,11 +43,16 @@ __all__ = [
 ]
 
 import sys
-from .version import __version__
-from .exceptions import *
+
 from .auth import AuthClientCredentials, AuthClientPassword
 from .client import Client
-
+from .exceptions import (
+    UnexpectedStatusCodeException,
+    ObjectAlreadyExistsException,
+    AuthenticationFailedException,
+    SchemaValidationException,
+)
+from .version import __version__  # noqa
 
 if not sys.warnoptions:
     import warnings

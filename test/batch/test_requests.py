@@ -1,9 +1,9 @@
 """
 Test the 'weaviate.batch.requests' functions/classes.
 """
-import uuid
 import unittest
 from unittest.mock import patch
+
 from test.util import check_error_message
 from weaviate.batch.requests import ReferenceBatchRequest, ObjectsBatchRequest
 
