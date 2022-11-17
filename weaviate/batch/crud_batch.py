@@ -10,6 +10,7 @@ from numbers import Real
 from typing import Tuple, Callable, Optional, Sequence
 
 from requests import ReadTimeout, Response
+from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.error_msgs import (
@@ -18,7 +19,7 @@ from weaviate.error_msgs import (
     BATCH_REF_DEPRECATION_OLD_V14_CLS_NS_W,
     BATCH_EXECUTOR_SHUTDOWN_W,
 )
-from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import (
     _capitalize_first_letter,
     check_batch_result,

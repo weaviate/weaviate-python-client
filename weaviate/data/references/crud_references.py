@@ -3,16 +3,19 @@ Reference class definition.
 """
 import warnings
 from typing import Union, Optional
+
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
 from weaviate.connect import Connection
-from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
-from weaviate.util import (
-    get_valid_uuid,
-    _capitalize_first_letter,
-)
 from weaviate.error_msgs import (
     REF_DEPRECATION_NEW_V14_CLS_NS_W,
     REF_DEPRECATION_OLD_V14_FROM_CLS_NS_W,
     REF_DEPRECATION_OLD_V14_TO_CLS_NS_W,
+)
+from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.util import (
+    get_valid_uuid,
+    _capitalize_first_letter,
 )
 
 

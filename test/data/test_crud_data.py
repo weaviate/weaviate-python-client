@@ -1,12 +1,14 @@
 import unittest
 from unittest.mock import patch, Mock
+
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
+from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 from weaviate.data import DataObject
 from weaviate.exceptions import (
-    RequestsConnectionError,
     UnexpectedStatusCodeException,
     ObjectAlreadyExistsException,
 )
-from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 
 
 class TestDataObject(unittest.TestCase):

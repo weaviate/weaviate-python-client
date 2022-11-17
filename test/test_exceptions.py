@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import Mock
+
 from weaviate.exceptions import *
 
 
@@ -16,7 +17,7 @@ class TestExceptions(unittest.TestCase):
         response.status_code = 1234
         exception = UnexpectedStatusCodeException(message="Test message", response=response)
         self.assertEqual(
-            str(exception), "Test message! Unexpected status code: 1234, with response body: None"
+            str(exception), "Test message! Unexpected status code: 1234, with response body: None."
         )
 
         # with .json() value
@@ -27,7 +28,7 @@ class TestExceptions(unittest.TestCase):
         exception = UnexpectedStatusCodeException(message="Second test message", response=response)
         self.assertEqual(
             str(exception),
-            "Second test message! Unexpected status code: 4321, with response body: {'test': 'OK!'}",
+            "Second test message! Unexpected status code: 4321, with response body: {'test': 'OK!'}.",
         )
 
     def test_object_already_exists(self):

@@ -1,8 +1,11 @@
 import unittest
 from unittest.mock import patch, Mock
-from weaviate import Client
-from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
 from test.util import mock_connection_func, check_error_message
+from weaviate import Client
+from weaviate.exceptions import UnexpectedStatusCodeException
 
 
 @patch("weaviate.client.Connection", Mock)
@@ -177,7 +180,7 @@ class TestWeaviateClient(unittest.TestCase):
         client._connection = connection_mock
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             client.get_open_id_configuration()
-        error_message = f"Meta endpoint! Unexpected status code: 204, with response body: None"
+        error_message = f"Meta endpoint! Unexpected status code: 204, with response body: None."
         check_error_message(self, error, error_message)
         connection_mock.get.assert_called_with(path="/.well-known/openid-configuration")
 

@@ -2,8 +2,12 @@
 Weaviate Exceptions.
 """
 # Import requests ConnectionError as weaviate.ConnectionError to overwrite buildins connection error
-from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests import Response
+
+ERROR_CODE_EXPLANATION = {
+    413: """Payload Too Large. Try to decrease the batch size or increase the maximum request size on your weaviate
+         server."""
+}
 
 
 class WeaviateBaseError(Exception):
@@ -55,10 +59,14 @@ class UnexpectedStatusCodeException(WeaviateBaseError):
         except:
             body = None
 
-        super().__init__(
+        msg = (
             message
-            + f"! Unexpected status code: {response.status_code}, with response body: {body}"
+            + f"! Unexpected status code: {response.status_code}, with response body: {body}."
         )
+        if response.status_code in ERROR_CODE_EXPLANATION:
+            msg += " " + ERROR_CODE_EXPLANATION[response.status_code]
+
+        super().__init__(msg)
 
 
 class ObjectAlreadyExistsException(WeaviateBaseError):

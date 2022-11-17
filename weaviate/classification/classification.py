@@ -1,9 +1,11 @@
 """
 Classification class definition.
 """
-from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
-from weaviate.util import get_valid_uuid
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
 from weaviate.connect import Connection
+from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.util import get_valid_uuid
 from .config_builder import ConfigBuilder
 
 

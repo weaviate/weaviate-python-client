@@ -1,13 +1,17 @@
 """
 DataObject class definition.
 """
-import warnings
 import uuid as uuid_lib
+import warnings
 from typing import Union, Optional, List, Sequence
+
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
 from weaviate.connect import Connection
+from weaviate.data.references import Reference
+from weaviate.error_msgs import DATA_DEPRECATION_NEW_V14_CLS_NS_W, DATA_DEPRECATION_OLD_V14_CLS_NS_W
 from weaviate.exceptions import (
     ObjectAlreadyExistsException,
-    RequestsConnectionError,
     UnexpectedStatusCodeException,
 )
 from weaviate.util import (
@@ -16,8 +20,6 @@ from weaviate.util import (
     get_valid_uuid,
     _capitalize_first_letter,
 )
-from weaviate.data.references import Reference
-from weaviate.error_msgs import DATA_DEPRECATION_NEW_V14_CLS_NS_W, DATA_DEPRECATION_OLD_V14_CLS_NS_W
 
 
 class DataObject:

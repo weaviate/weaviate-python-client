@@ -1,12 +1,14 @@
 import unittest
 from unittest.mock import Mock
-from weaviate.schema.properties import Property
+
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
+from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 from weaviate.exceptions import (
-    RequestsConnectionError,
     UnexpectedStatusCodeException,
     SchemaValidationException,
 )
-from test.util import mock_connection_func, check_error_message, check_startswith_error_message
+from weaviate.schema.properties import Property
 
 
 class TestCRUDProperty(unittest.TestCase):

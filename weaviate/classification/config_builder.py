@@ -3,8 +3,11 @@ ConfigBuilder class definition.
 """
 import time
 from typing import Dict, Any
-from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
 from weaviate.connect import Connection
+from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _capitalize_first_letter
 
 

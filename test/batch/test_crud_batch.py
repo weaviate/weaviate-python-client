@@ -3,11 +3,12 @@ from numbers import Real
 from unittest.mock import Mock, patch
 
 from requests import ReadTimeout
+from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 from weaviate.batch import Batch
 from weaviate.batch.requests import ObjectsBatchRequest, ReferenceBatchRequest
-from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+from weaviate.exceptions import UnexpectedStatusCodeException
 
 
 class TestBatch(unittest.TestCase):
