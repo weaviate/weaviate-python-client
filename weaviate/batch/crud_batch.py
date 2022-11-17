@@ -2,12 +2,14 @@
 Batch class definitions.
 """
 import sys
+import threading
 import time
 import warnings
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from enum import Enum, auto
 from numbers import Real
-from typing import Tuple, Callable, Optional, Sequence
+from typing import Tuple, Callable, Optional, Sequence, Union, Dict, List, Any
 
 from requests import ReadTimeout, Response
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -26,6 +28,14 @@ from ..util import (
     _check_positive_num,
 )
 from ..warnings import _Warnings
+
+
+class CallbackMode(str, Enum):  # can be replaced with StrEnum in Python 3.11
+    RETRY_FAILED = auto()
+    REPORT_ERRORS = auto()
+
+
+CALLBACK = Union[Callable[[dict], None], CallbackMode]
 
 
 class BatchExecutor(ThreadPoolExecutor):
@@ -201,11 +211,12 @@ class Batch:
         self._references_throughput_frame = deque(maxlen=5)
         self._future_pool = []
         self._reference_batch_queue = []
+        self._callback_lock = threading.Lock()
 
         # user configurable, need to be public should implement a setter/getter
         self._recommended_num_objects = None
         self._recommended_num_references = None
-        self._callback = check_batch_result
+        self._callback: Optional[CALLBACK] = None
         self._batch_size = None
         self._creation_time = min(self._connection.timeout_config[1] / 10, 2)
         self._timeout_retries = 3
@@ -222,7 +233,7 @@ class Batch:
         creation_time: Optional[Real] = None,
         timeout_retries: int = 3,
         connection_error_retries: int = 3,
-        callback: Optional[Callable[[dict], None]] = check_batch_result,
+        callback: Optional[CALLBACK] = check_batch_result,
         dynamic: bool = False,
         num_workers: int = 1,
     ) -> "Batch":
@@ -285,7 +296,7 @@ class Batch:
         creation_time: Optional[Real] = None,
         timeout_retries: int = 3,
         connection_error_retries: int = 3,
-        callback: Optional[Callable[[dict], None]] = check_batch_result,
+        callback: Optional[CALLBACK] = check_batch_result,
         dynamic: bool = False,
         num_workers: int = 1,
     ) -> "Batch":
@@ -533,7 +544,7 @@ class Batch:
             If weaviate reports a none OK status.
         """
         try:
-            timeout_count = connection_count = 0
+            timeout_count = connection_count = batch_error_count = 0
             while True:
                 try:
                     response = self._connection.post(
@@ -556,6 +567,21 @@ class Batch:
                     )
                     connection_count += 1
                 else:
+                    if self._callback is not None:
+                        if isinstance(self._callback, Callable):
+                            with self._callback_lock:
+                                self._callback(response.json())
+                        else:
+                            new_batch = self._internal_callback(response.json(), data_type)
+                            if (
+                                new_batch is not None
+                                and len(new_batch) > 0
+                                and batch_error_count < self._connection_error_retries
+                            ):
+                                batch_error_count += 1
+                                batch_request = new_batch
+                                continue
+
                     break
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Batch was not added to weaviate.") from conn_err
@@ -960,8 +986,7 @@ class Batch:
                 self._objects_throughput_frame.append(
                     nr_objects / response_objects.elapsed.total_seconds()
                 )
-                if self._callback:
-                    self._callback(response_objects.json())
+
             else:
                 timeout_occurred = True
 
@@ -995,8 +1020,6 @@ class Batch:
                 self._references_throughput_frame.append(
                     nr_references / response_references.elapsed.total_seconds()
                 )
-                if self._callback:
-                    self._callback(response_references.json())
             else:
                 timeout_occurred = True
 
@@ -1524,6 +1547,67 @@ class Batch:
 
         _check_non_negative(value, "connection_error_retries", int)
         self._connection_error_retries = value
+
+    def _internal_callback(
+        self, response: List[Dict[str, Any]], data_type: str
+    ) -> Optional[Union[ObjectsBatchRequest, ReferenceBatchRequest]]:
+        if self._callback == CallbackMode.RETRY_FAILED:
+            if data_type == "objects":
+                return self._retry_failed_objects(response)
+            else:
+                return self._retry_failed_references(response)
+        else:
+            assert self._callback == CallbackMode.REPORT_ERRORS
+            with self._callback_lock:
+                check_batch_result(response)
+
+    @staticmethod
+    def _retry_failed_objects(response: List[Dict[str, Any]]) -> ObjectsBatchRequest:
+        new_batch = ObjectsBatchRequest()
+        for obj in response:
+            if (
+                len(obj["result"]) == 0
+                or "errors" not in obj["result"]
+                or "error" not in obj["result"]["errors"]
+                or len(obj["result"]["errors"]["error"]) == 0
+            ):
+                continue
+
+            new_batch.add(
+                class_name=obj["class"],
+                data_object=obj["properties"],
+                uuid=obj["id"],
+                vector=obj.get("vector", None),
+            )
+        return new_batch
+
+    @staticmethod
+    def _retry_failed_references(response: List[Dict[str, Any]]) -> ReferenceBatchRequest:
+        new_batch = ReferenceBatchRequest()
+
+        def parse_references(ref: str) -> Tuple[str, str, Optional[str]]:
+            parts = ref[11:].split("/")
+            return parts[1], parts[2], parts[3] if len(parts) >= 4 else None
+
+        for ref in response:
+            if (
+                len(ref["result"]) == 0
+                or "errors" not in ref["result"]
+                or "error" not in ref["result"]["errors"]
+                or len(ref["result"]["errors"]["error"]) == 0
+            ):
+                continue
+
+            from_class, from_uuid, from_property = parse_references(ref["from"])
+            to_class, to_uuid, _ = parse_references(ref["to"])
+            new_batch.add(
+                from_object_class_name=from_class,
+                from_object_uuid=from_uuid,
+                from_property_name=from_property,
+                to_object_uuid=to_uuid,
+                to_object_class_name=to_class,
+            )
+        return new_batch
 
 
 def _check_non_negative(value: Real, arg_name: str, data_type: type) -> None:

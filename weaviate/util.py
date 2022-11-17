@@ -7,7 +7,7 @@ import os
 import uuid as uuid_lib
 from io import BufferedReader
 from numbers import Real
-from typing import Union, Sequence, Any, Optional
+from typing import Union, Sequence, Any, Optional, List, Dict
 
 import requests
 import validators
@@ -474,7 +474,9 @@ def _capitalize_first_letter(string: str) -> str:
     return string[0].capitalize() + string[1:]
 
 
-def check_batch_result(results: dict) -> None:
+def check_batch_result(
+    results: Optional[List[Dict[str, Any]]],
+) -> None:
     """
     Check batch results for errors.
 
@@ -484,11 +486,12 @@ def check_batch_result(results: dict) -> None:
         The Weaviate batch creation return value.
     """
 
-    if results is not None:
-        for result in results:
-            if "result" in result and "errors" in result["result"]:
-                if "error" in result["result"]["errors"]:
-                    print(result["result"]["errors"])
+    if results is None:
+        return
+    for result in results:
+        if "result" in result and "errors" in result["result"]:
+            if "error" in result["result"]["errors"]:
+                print(result["result"]["errors"])
 
 
 def _check_positive_num(value: Real, arg_name: str, data_type: type) -> None:
