@@ -1,13 +1,15 @@
 import unittest
 from unittest.mock import patch, Mock
+
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
+from test.util import check_error_message, check_startswith_error_message
 from weaviate.auth import AuthClientPassword
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
-    RequestsConnectionError,
     AuthenticationFailedException,
 )
 from weaviate.wcs import WCS
-from test.util import check_error_message, check_startswith_error_message
 
 
 class TestWCS(unittest.TestCase):

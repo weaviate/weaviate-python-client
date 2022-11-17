@@ -1,8 +1,10 @@
 """
 Contextionary class definition.
 """
-from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
 from weaviate.connect import Connection
+from weaviate.exceptions import UnexpectedStatusCodeException
 
 
 class Contextionary:

@@ -1,9 +1,11 @@
 import unittest
 from unittest.mock import patch, Mock
 
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
 from test.util import mock_connection_func, check_error_message
 from weaviate import Client
-from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+from weaviate.exceptions import UnexpectedStatusCodeException
 
 
 @patch("weaviate.client.Connection", Mock)

@@ -2,17 +2,19 @@
 Schema class definition.
 """
 from typing import Union, Optional
+
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
 from weaviate.connect import Connection
-from weaviate.util import _get_dict_from_object, _is_sub_schema, _capitalize_first_letter
-from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.schema.properties import Property
 from weaviate.schema.validate_schema import (
     validate_schema,
     check_class,
     CLASS_KEYS,
     PROPERTY_KEYS,
 )
-from weaviate.schema.properties import Property
-
+from weaviate.util import _get_dict_from_object, _is_sub_schema, _capitalize_first_letter
 
 _PRIMITIVE_WEAVIATE_TYPES_SET = set(
     [

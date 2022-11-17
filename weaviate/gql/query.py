@@ -2,10 +2,13 @@
 GraphQL query module.
 """
 from typing import List, Union
+
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
 from weaviate.connect import Connection
-from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
-from .get import GetBuilder
+from weaviate.exceptions import UnexpectedStatusCodeException
 from .aggregate import AggregateBuilder
+from .get import GetBuilder
 
 
 class Query:

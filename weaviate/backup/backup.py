@@ -3,14 +3,15 @@ Backup class definition.
 """
 from time import sleep
 from typing import Union, List, Tuple
+
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
+from weaviate.connect import Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
-    RequestsConnectionError,
     BackupFailedException,
 )
 from weaviate.util import _capitalize_first_letter
-from weaviate.connect import Connection
-
 
 STORAGE_NAMES = {
     "filesystem",

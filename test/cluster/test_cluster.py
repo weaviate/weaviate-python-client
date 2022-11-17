@@ -1,12 +1,13 @@
 import unittest
 
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
 from test.util import mock_connection_func, check_error_message, check_startswith_error_message
+from weaviate.cluster.cluster import Cluster
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
-    RequestsConnectionError,
     EmptyResponseException,
 )
-from weaviate.cluster.cluster import Cluster
 
 
 class TestCluster(unittest.TestCase):

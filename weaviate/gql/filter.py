@@ -3,14 +3,17 @@ GraphQL filters for `Get` and `Aggregate` commands.
 GraphQL abstract class for GraphQL commands to inherit from.
 """
 import warnings
-from json import dumps
-from copy import deepcopy
-from typing import Any, Union
 from abc import ABC, abstractmethod
+from copy import deepcopy
+from json import dumps
+from typing import Any, Union
+
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
 from weaviate.connect import Connection
-from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
-from weaviate.util import get_vector
 from weaviate.error_msgs import FILTER_BEACON_V14_CLS_NS_W
+from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.util import get_vector
 
 
 class GraphQL(ABC):

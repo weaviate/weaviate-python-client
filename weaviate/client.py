@@ -5,19 +5,20 @@ import warnings
 from numbers import Real
 from typing import Optional, Tuple, Union
 
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
 from .auth import AuthCredentials
 from .backup import Backup
 from .batch import Batch
 from .classification import Classification
+from .cluster import Cluster
 from .connect import Connection
 from .contextionary import Contextionary
 from .data import DataObject
-from .exceptions import UnexpectedStatusCodeException, RequestsConnectionError
-from .gql import Query
-from .cluster import Cluster
-from .schema import Schema
-from .version import __version__
 from .error_msgs import CLIENT_V14_W
+from .exceptions import UnexpectedStatusCodeException
+from .gql import Query
+from .schema import Schema
 
 
 class Client:

@@ -97,7 +97,3 @@ class EmptyResponseException(WeaviateBaseError):
     """
     Occurs when an HTTP request unexpectedly returns an empty response
     """
-
-
-class RequestsConnectionError(WeaviateBaseError):
-    """Connection error."""

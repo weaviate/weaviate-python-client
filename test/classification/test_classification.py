@@ -1,8 +1,11 @@
 import unittest
 from unittest.mock import patch, Mock
-from weaviate.classification.classification import Classification, ConfigBuilder
-from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
 from test.util import mock_connection_func, check_error_message, check_startswith_error_message
+from weaviate.classification.classification import Classification, ConfigBuilder
+from weaviate.exceptions import UnexpectedStatusCodeException
 
 
 class TestClassification(unittest.TestCase):

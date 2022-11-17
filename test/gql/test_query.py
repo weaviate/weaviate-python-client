@@ -1,8 +1,11 @@
 import unittest
 from unittest.mock import Mock
-from weaviate.gql.query import Query
-from weaviate.exceptions import RequestsConnectionError, UnexpectedStatusCodeException
+
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
 from test.util import mock_connection_func, check_error_message, check_startswith_error_message
+from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.gql.query import Query
 
 
 class TestQuery(unittest.TestCase):

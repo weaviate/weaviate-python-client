@@ -1,10 +1,12 @@
 """
 Property class definition.
 """
-from weaviate.exceptions import UnexpectedStatusCodeException, RequestsConnectionError
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
+from weaviate.connect import Connection
+from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.schema.validate_schema import check_property
 from weaviate.util import _get_dict_from_object, _capitalize_first_letter
-from weaviate.connect import Connection
 
 
 class Property:

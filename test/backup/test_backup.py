@@ -1,12 +1,14 @@
 import unittest
-from unittest.mock import patch, Mock
+from unittest.mock import patch
+
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
+from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 from weaviate.backup.backup import Backup, STORAGE_NAMES
 from weaviate.exceptions import (
-    RequestsConnectionError,
     UnexpectedStatusCodeException,
     BackupFailedException,
 )
-from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 
 
 class TestBackup(unittest.TestCase):

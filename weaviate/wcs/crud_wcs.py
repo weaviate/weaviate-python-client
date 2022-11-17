@@ -2,16 +2,18 @@
 WCS class definition.
 """
 import time
-from typing import Optional, List, Union, Dict, Tuple
 from numbers import Real
+from typing import Optional, List, Union, Dict, Tuple
+
+from requests.exceptions import ConnectionError as RequestsConnectionError
 from tqdm.auto import tqdm
+
+from weaviate.auth import AuthClientPassword
 from weaviate.connect import Connection
 from weaviate.exceptions import (
-    RequestsConnectionError,
     UnexpectedStatusCodeException,
     AuthenticationFailedException,
 )
-from weaviate.auth import AuthClientPassword
 
 
 class WCS(Connection):
