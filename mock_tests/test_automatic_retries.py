@@ -6,6 +6,7 @@ from werkzeug.wrappers import Request, Response
 
 import weaviate
 from weaviate.batch.crud_batch import CallbackMode
+from weaviate.exceptions import BatchImportFailedException
 from weaviate.util import check_batch_result
 
 
@@ -37,7 +38,10 @@ def test_automatic_retry_obs(weaviate_mock):
         50 * batch_size
     )  # multiple of the batch size, otherwise it is difficult to calculate the number of expected errors
     with client.batch(
-        batch_size=batch_size, callback=CallbackMode.RETRY_FAILED, num_workers=2
+        batch_size=batch_size,
+        callback=CallbackMode.RETRY_FAILED,
+        num_workers=2,
+        weaviate_error_retries=3,
     ) as batch:
         for i in range(n):
             added_uuids.append(uuid.uuid4())
@@ -78,7 +82,7 @@ def test_automatic_retry_refs(weaviate_mock):
     with client.batch(
         batch_size=batch_size, callback=CallbackMode.RETRY_FAILED, num_workers=2
     ) as batch:
-        for i in range(n):
+        for _ in range(n):
             batch.add_reference(
                 from_property_name="Property",
                 from_object_class_name="SomeClass",
@@ -90,6 +94,29 @@ def test_automatic_retry_refs(weaviate_mock):
 
     # with a batch size of 4, we have 3 failures per batch
     assert num_failed_requests == 3 * n / batch_size
+
+
+def test_automatic_retry_unsuccessful(weaviate_mock):
+    """Test that exception is raised when retry is unsuccessful."""
+
+    def handler(request: Request):
+        objects = request.json["objects"]
+        for _, obj in enumerate(objects):
+            obj["deprecations"] = None
+            obj["result"] = {"errors": {"error": [{"message": "I'm an error message"}]}}
+        return Response(json.dumps(objects))
+
+    weaviate_mock.expect_request("/v1/batch/objects").respond_with_handler(handler)
+
+    client = weaviate.Client(url="http://127.0.0.1:23534")
+    n = 50 * 4
+    batch_size = 2
+    with pytest.raises(BatchImportFailedException):
+        with client.batch(
+            batch_size=batch_size, callback=CallbackMode.RETRY_FAILED, num_workers=2
+        ) as batch:
+            for i in range(n):
+                batch.add_data_object({"name": "test" + str(i)}, "test", uuid.uuid4())
 
 
 @pytest.mark.parametrize("callback", [CallbackMode.REPORT_ERRORS, None, check_batch_result])

@@ -7,6 +7,7 @@ import time
 import warnings
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
 from enum import Enum, auto
 from numbers import Real
 from typing import Tuple, Callable, Optional, Sequence, Union, Dict, List, Any
@@ -21,7 +22,7 @@ from ..error_msgs import (
     BATCH_REF_DEPRECATION_OLD_V14_CLS_NS_W,
     BATCH_EXECUTOR_SHUTDOWN_W,
 )
-from ..exceptions import UnexpectedStatusCodeException
+from ..exceptions import UnexpectedStatusCodeException, BatchImportFailedException
 from ..util import (
     _capitalize_first_letter,
     check_batch_result,
@@ -36,6 +37,12 @@ class CallbackMode(str, Enum):  # can be replaced with StrEnum in Python 3.11
 
 
 CALLBACK = Union[Callable[[dict], None], CallbackMode]
+
+
+@dataclass
+class _CallBackResponse:
+    new_batch: Union[ObjectsBatchRequest, ReferenceBatchRequest]
+    errors: List[Any]
 
 
 class BatchExecutor(ThreadPoolExecutor):
@@ -221,6 +228,7 @@ class Batch:
         self._creation_time = min(self._connection.timeout_config[1] / 10, 2)
         self._timeout_retries = 3
         self._connection_error_retries = 3
+        self._weaviate_error_retries = 3
         self._batching_type = None
         self._num_workers = 1
 
@@ -233,6 +241,7 @@ class Batch:
         creation_time: Optional[Real] = None,
         timeout_retries: int = 3,
         connection_error_retries: int = 3,
+        weaviate_error_retries: int = 3,
         callback: Optional[CALLBACK] = check_batch_result,
         dynamic: bool = False,
         num_workers: int = 1,
@@ -285,6 +294,7 @@ class Batch:
             creation_time=creation_time,
             timeout_retries=timeout_retries,
             connection_error_retries=connection_error_retries,
+            weaviate_error_retries=weaviate_error_retries,
             callback=callback,
             dynamic=dynamic,
             num_workers=num_workers,
@@ -296,6 +306,7 @@ class Batch:
         creation_time: Optional[Real] = None,
         timeout_retries: int = 3,
         connection_error_retries: int = 3,
+        weaviate_error_retries: int = 3,
         callback: Optional[CALLBACK] = check_batch_result,
         dynamic: bool = False,
         num_workers: int = 1,
@@ -350,12 +361,13 @@ class Batch:
 
         _check_non_negative(timeout_retries, "timeout_retries", int)
         _check_non_negative(connection_error_retries, "connection_error_retries", int)
+        _check_non_negative(connection_error_retries, "weaviate_error_retries", int)
 
         self._callback = callback
 
         self._timeout_retries = timeout_retries
         self._connection_error_retries = connection_error_retries
-
+        self._weaviate_error_retries = weaviate_error_retries
         # set Batch to manual import
         if batch_size is None:
             self._batch_size = None
@@ -572,14 +584,15 @@ class Batch:
                             with self._callback_lock:
                                 self._callback(response.json())
                         else:
-                            new_batch = self._internal_callback(response.json(), data_type)
+                            callback_response = self._internal_callback(response.json(), data_type)
                             if (
-                                new_batch is not None
-                                and len(new_batch) > 0
-                                and batch_error_count < self._connection_error_retries
+                                callback_response is not None
+                                and len(callback_response.new_batch) > 0
                             ):
                                 batch_error_count += 1
-                                batch_request = new_batch
+                                if batch_error_count > self._weaviate_error_retries:
+                                    raise BatchImportFailedException(callback_response.errors)
+                                batch_request = callback_response.new_batch
                                 continue
 
                     break
@@ -1550,7 +1563,7 @@ class Batch:
 
     def _internal_callback(
         self, response: List[Dict[str, Any]], data_type: str
-    ) -> Optional[Union[ObjectsBatchRequest, ReferenceBatchRequest]]:
+    ) -> Optional[_CallBackResponse]:
         if self._callback == CallbackMode.RETRY_FAILED:
             if data_type == "objects":
                 return self._retry_failed_objects(response)
@@ -1562,8 +1575,9 @@ class Batch:
                 check_batch_result(response)
 
     @staticmethod
-    def _retry_failed_objects(response: List[Dict[str, Any]]) -> ObjectsBatchRequest:
+    def _retry_failed_objects(response: List[Dict[str, Any]]) -> _CallBackResponse:
         new_batch = ObjectsBatchRequest()
+        errors: List[Any] = []
         for obj in response:
             if (
                 len(obj["result"]) == 0
@@ -1579,16 +1593,17 @@ class Batch:
                 uuid=obj["id"],
                 vector=obj.get("vector", None),
             )
-        return new_batch
+            errors.append((obj["id"], obj["result"]["errors"]["error"]))
+        return _CallBackResponse(new_batch, errors)
 
     @staticmethod
-    def _retry_failed_references(response: List[Dict[str, Any]]) -> ReferenceBatchRequest:
-        new_batch = ReferenceBatchRequest()
-
+    def _retry_failed_references(response: List[Dict[str, Any]]) -> _CallBackResponse:
         def parse_references(ref: str) -> Tuple[str, str, Optional[str]]:
             parts = ref[11:].split("/")
             return parts[1], parts[2], parts[3] if len(parts) >= 4 else None
 
+        new_batch = ReferenceBatchRequest()
+        errors: List[Any] = []
         for ref in response:
             if (
                 len(ref["result"]) == 0
@@ -1607,7 +1622,9 @@ class Batch:
                 to_object_uuid=to_uuid,
                 to_object_class_name=to_class,
             )
-        return new_batch
+            errors.append((ref, ref["result"]["errors"]["error"]))
+
+        return _CallBackResponse(new_batch, errors)
 
 
 def _check_non_negative(value: Real, arg_name: str, data_type: type) -> None:
