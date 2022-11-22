@@ -37,7 +37,7 @@ class BatchRequest(ABC):
         Remove all the items from the BatchRequest.
         """
 
-        self._items = []
+        del self._items[:]
 
     def pop(self, index: int = -1) -> dict:
         """
@@ -73,9 +73,9 @@ class BatchRequest(ABC):
         This method should me implemented by all inheriting classes.
         """
 
-    def clear(self):
-        """Clear all objects from batch request."""
-        self._items.clear()
+    def __del__(self):
+        del self._items[:]
+        del self._items
 
 
 class ReferenceBatchRequest(BatchRequest):
