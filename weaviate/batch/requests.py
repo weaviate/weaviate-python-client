@@ -73,6 +73,10 @@ class BatchRequest(ABC):
         This method should me implemented by all inheriting classes.
         """
 
+    def clear(self):
+        """Clear all objects from batch request."""
+        self._items.clear()
+
 
 class ReferenceBatchRequest(BatchRequest):
     """

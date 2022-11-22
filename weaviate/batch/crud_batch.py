@@ -551,6 +551,8 @@ class Batch:
                     )
                     connection_count += 1
                 else:
+                    # clear out a batch request before ending the thread. There seems to be a memory leak without this
+                    batch_request.clear()
                     break
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Batch was not added to weaviate.") from conn_err
@@ -947,7 +949,6 @@ class Batch:
         self._future_pool.append(future)
         if len(self._reference_batch) > 0:
             self._reference_batch_queue.append(self._reference_batch)
-
         self._objects_batch = ObjectsBatchRequest()
         self._reference_batch = ReferenceBatchRequest()
 
