@@ -96,3 +96,7 @@ class EmptyResponseException(WeaviateBaseError):
     """
     Occurs when an HTTP request unexpectedly returns an empty response
     """
+
+
+class MissingScopeException(WeaviateBaseError):
+    """Scope was not provided with client credential flow."""

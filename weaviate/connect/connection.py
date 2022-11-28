@@ -1,6 +1,8 @@
 """
 Connection class definition.
 """
+from __future__ import annotations
+
 import datetime
 import os
 import time
@@ -8,9 +10,9 @@ from numbers import Real
 from typing import Any, Dict, Tuple, Optional, Union
 
 import requests
-from requests import RequestException
 
 from weaviate.auth import AuthCredentials
+from weaviate.connect.authentication import _Auth
 from weaviate.exceptions import AuthenticationFailedException
 
 
@@ -73,7 +75,7 @@ class Connection:
         self._auth_bearer = None
         self._auth_client_secret = auth_client_secret
 
-        self._oidc_auth_flow = False
+        self._auth: Optional[_Auth] = None
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:
@@ -110,12 +112,13 @@ class Connection:
 
         if response.status_code == 200:
             if isinstance(self._auth_client_secret, AuthCredentials):
-                self._oidc_auth_flow = True
+                resp = response.json()
+                self._auth = _Auth(resp, self._auth_client_secret, self)
                 self._refresh_authentication()
             else:
-                raise ValueError(
-                    "No login credentials provided. The weaviate instance at "
-                    f"{self.url} requires login credential, use argument 'auth_client_secret'."
+                raise AuthenticationFailedException(
+                    f""""No login credentials provided. The weaviate instance at {self.url} requires login credential,
+                    use argument 'auth_client_secret'."""
                 )
 
     def __del__(self):
@@ -125,10 +128,8 @@ class Connection:
 
         self._session.close()
 
-    # Requests a new bearer
     def _refresh_authentication(self) -> None:
-        """
-        Request a new bearer.
+        """Refreshes the bearer token if current authentication is expired
 
         Raises
         ------
@@ -147,98 +148,11 @@ class Connection:
         weaviate.AuthenticationFailedException
             If authentication access denied.
         """
+        if self._auth_expires >= _get_epoch_time():
+            return
 
-        if self._auth_expires < _get_epoch_time():
-            # collect data for the request
-            try:
-                request = self._session.get(
-                    self.url + self._api_version_path + "/.well-known/openid-configuration",
-                    headers={"content-type": "application/json"},
-                    timeout=(30, 45),
-                    proxies=self._proxies,
-                )
-            except RequestException as error:
-                raise AuthenticationFailedException("Cannot connect to weaviate.") from error
-            if request.status_code != 200:
-                raise AuthenticationFailedException("Cannot authenticate http status not ok.")
-
-            # Set the client ID
-            response_json = request.json()
-            client_id = response_json["clientId"]
-
-            self._set_bearer(client_id=client_id, href=response_json["href"])
-
-    def _set_bearer(self, client_id: str, href: str) -> None:
-        """
-        Set bearer for a refreshed authentication.
-
-        Parameters
-        ----------
-        client_id : str
-            The client ID of the OpenID Connect.
-        href : str
-            The URL of the OpenID Connect issuer.
-
-        Raises
-        ------
-        weaviate.AuthenticationFailedException
-            If authentication failed.
-        """
-
-        # request additional information
-        try:
-            request_third_part = requests.get(
-                href,
-                headers={"content-type": "application/json"},
-                timeout=(30, 45),
-                proxies=self._proxies,
-            )
-        except RequestException as error:
-            raise AuthenticationFailedException(
-                "Can't connect to the third party authentication service. "
-                "Check that it is running."
-            ) from error
-        if request_third_part.status_code != 200:
-            raise AuthenticationFailedException(
-                "Status not OK in connection to the third party authentication service."
-            )
-
-        request_body = self._auth_client_secret.get_credentials()
-
-        # Validate third part auth info
-        json_third_party_response = request_third_part.json()
-        if request_body["grant_type"] not in json_third_party_response["grant_types_supported"]:
-            raise AuthenticationFailedException(
-                "The grant_types supported by the third-party authentication service are "
-                f"insufficient. Please add the '{request_body['grant_type']}' grant type."
-            )
-
-        request_body["client_id"] = client_id
-
-        # try the request
-        try:
-            request = requests.post(
-                json_third_party_response["token_endpoint"],
-                request_body,
-                timeout=(30, 45),
-                proxies=self._proxies,
-            )
-        except RequestException:
-            raise AuthenticationFailedException(
-                "Unable to get a OAuth token from server. Are the credentials " "and URLs correct?"
-            ) from None
-
-        # sleep to process
-        time.sleep(0.125)
-
-        if request.status_code == 401:
-            raise AuthenticationFailedException(
-                "Authentication access denied. Are the credentials correct?"
-            )
-        json_request = request.json()
-        self._auth_bearer = json_request["access_token"]
-        # -2 for some lag time
-        self._auth_expires = int(_get_epoch_time() + json_request["expires_in"] - 2)
+        self._auth_bearer, expires_in = self._auth.get_auth_token()
+        self._auth_expires = int(_get_epoch_time() + expires_in - 2)  # -2 for some lag time
 
     def _get_request_header(self) -> dict:
         """
@@ -250,7 +164,7 @@ class Connection:
             Request header as a dict.
         """
 
-        if self._oidc_auth_flow:
+        if self._auth is not None:
             self._refresh_authentication()
             self._headers["Authorization"] = "Bearer " + self._auth_bearer
         return self._headers
@@ -333,6 +247,7 @@ class Connection:
         self,
         path: str,
         weaviate_object: dict,
+        external_url: bool = False,
     ) -> requests.Response:
         """
         Make a POST request to the Weaviate server instance.
@@ -344,6 +259,7 @@ class Connection:
             e.g. '/meta' or '/objects', without version.
         weaviate_object : dict
             Object is used as payload for POST request.
+        external_url: Is an external (non-weaviate) url called
 
         Returns
         -------
@@ -355,8 +271,10 @@ class Connection:
         requests.ConnectionError
             If the POST request could not be made.
         """
-
-        request_url = self.url + self._api_version_path + path
+        if external_url:
+            request_url = path
+        else:
+            request_url = self.url + self._api_version_path + path
 
         return self._session.post(
             url=request_url,
@@ -403,13 +321,8 @@ class Connection:
             proxies=self._proxies,
         )
 
-    def get(
-        self,
-        path: str,
-        params: dict = None,
-    ) -> requests.Response:
-        """
-        Make a GET request to the Weaviate server instance.
+    def get(self, path: str, params: dict = None, external_url: bool = False) -> requests.Response:
+        """Make a GET request.
 
         Parameters
         ----------
@@ -418,6 +331,7 @@ class Connection:
             e.g. '/meta' or '/objects', without version.
         params : dict, optional
             Additional request parameters, by default None
+        external_url: Is an external (non-weaviate) url called
 
         Returns
         -------
@@ -432,7 +346,11 @@ class Connection:
 
         if params is None:
             params = {}
-        request_url = self.url + self._api_version_path + path
+
+        if external_url:
+            request_url = path
+        else:
+            request_url = self.url + self._api_version_path + path
 
         return self._session.get(
             url=request_url,
@@ -519,6 +437,10 @@ class Connection:
         """
 
         return self._server_version
+
+    @property
+    def proxies(self) -> dict:
+        return self._proxies
 
     @server_version.setter
     def server_version(self, server_version: Union[Tuple[Real, Real], Real]):

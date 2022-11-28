@@ -1,0 +1,29 @@
+---
+version: '3.4'
+services:
+  weaviate-auth-azure:
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - '8081'
+      - --scheme
+      - http
+      - --write-timeout=600s
+    image: semitechnologies/weaviate:1.15.4-b7811d4
+    ports:
+      - 8081:8081
+    restart: on-failure:0
+    environment:
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'false'
+      AUTHENTICATION_OIDC_ENABLED: 'true'
+      AUTHENTICATION_OIDC_CLIENT_ID: '4706508f-30c2-469b-8b12-ad272b3de864'
+      AUTHENTICATION_OIDC_ISSUER: 'https://login.microsoftonline.com/36c47fb4-f57c-4e1c-8760-d42293932cc2/v2.0'
+      AUTHENTICATION_OIDC_USERNAME_CLAIM: 'oid'
+      AUTHENTICATION_OIDC_GROUPS_CLAIM: 'groups'
+      AUTHORIZATION_ADMINLIST_ENABLED: 'true'
+      AUTHORIZATION_ADMINLIST_USERS: 'b6bf8e1d-d398-4e5d-8f1b-50fda9146a64'
+      AUTHENTICATION_OIDC_SCOPES: 'openid,email'
+...
+
