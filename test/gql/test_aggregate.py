@@ -33,9 +33,11 @@ class TestAggregateBuilder(unittest.TestCase):
         Test the `with_where` method.
         """
 
-        filter = {"operator": "Equal", "valueString": "B", "path": ["name"]}
-
-        query = self.aggregate.with_meta_count().with_where(filter).build()
+        query = (
+            self.aggregate.with_meta_count()
+            .with_where({"operator": "Equal", "valueString": "B", "path": ["name"]})
+            .build()
+        )
         self.assertEqual(
             '{Aggregate{Object(where: {path: ["name"] operator: Equal valueString: "B"} ){meta{count}}}}',
             query,
@@ -78,11 +80,11 @@ class TestAggregateBuilder(unittest.TestCase):
             self.aggregate.do()
         check_startswith_error_message(self, error, "Query was not successful")
 
-        filter = {"path": ["name"], "operator": "Equal", "valueString": "B"}
+        filter_name = {"path": ["name"], "operator": "Equal", "valueString": "B"}
 
         self.aggregate.with_group_by_filter(["name"]).with_fields(
             "groupedBy { value }"
-        ).with_fields("name { count }").with_where(filter)
+        ).with_fields("name { count }").with_where(filter_name)
         expected_gql_clause = '{Aggregate{Object(where: {path: ["name"] operator: Equal valueString: "B"} groupBy: ["name"]){groupedBy { value }name { count }}}}'
 
         mock_obj = mock_connection_func("post", status_code=200, return_json={"status": "OK!"})

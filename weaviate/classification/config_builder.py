@@ -34,13 +34,13 @@ class ConfigBuilder:
         self._config: Dict[str, Any] = {}
         self._wait_for_completion = False
 
-    def with_type(self, type: str) -> "ConfigBuilder":
+    def with_type(self, classification_type: str) -> "ConfigBuilder":
         """
         Set classification type.
 
         Parameters
         ----------
-        type : str
+        classification_type : str
             Type of the desired classification.
 
         Returns
@@ -49,7 +49,7 @@ class ConfigBuilder:
             Updated ConfigBuilder.
         """
 
-        self._config["type"] = type
+        self._config["type"] = classification_type
         return self
 
     def with_k(self, k: int) -> "ConfigBuilder":
@@ -128,13 +128,13 @@ class ConfigBuilder:
         self._config["basedOnProperties"] = based_on_properties
         return self
 
-    def with_source_where_filter(self, filter: dict) -> "ConfigBuilder":
+    def with_source_where_filter(self, where_filter: dict) -> "ConfigBuilder":
         """
         Set Source 'where' Filter.
 
         Parameters
         ----------
-        filter : dict
+        where_filter : dict
             Filter to use, as a dict.
 
         Returns
@@ -145,16 +145,16 @@ class ConfigBuilder:
 
         if "filters" not in self._config:
             self._config["filters"] = {}
-        self._config["filters"]["sourceWhere"] = filter
+        self._config["filters"]["sourceWhere"] = where_filter
         return self
 
-    def with_training_set_where_filter(self, filter: dict) -> "ConfigBuilder":
+    def with_training_set_where_filter(self, where_filter: dict) -> "ConfigBuilder":
         """
         Set Training set 'where' Filter.
 
         Parameters
         ----------
-        filter : dict
+        where_filter : dict
             Filter to use, as a dict.
 
         Returns
@@ -165,16 +165,16 @@ class ConfigBuilder:
 
         if "filters" not in self._config:
             self._config["filters"] = {}
-        self._config["filters"]["trainingSetWhere"] = filter
+        self._config["filters"]["trainingSetWhere"] = where_filter
         return self
 
-    def with_target_where_filter(self, filter: dict) -> "ConfigBuilder":
+    def with_target_where_filter(self, where_filter: dict) -> "ConfigBuilder":
         """
         Set Target 'where' Filter.
 
         Parameters
         ----------
-        filter : dict
+        where_filter : dict
             Filter to use, as a dict.
 
         Returns
@@ -185,7 +185,7 @@ class ConfigBuilder:
 
         if "filters" not in self._config:
             self._config["filters"] = {}
-        self._config["filters"]["targetWhere"] = filter
+        self._config["filters"]["targetWhere"] = where_filter
         return self
 
     def with_wait_for_completion(self) -> "ConfigBuilder":

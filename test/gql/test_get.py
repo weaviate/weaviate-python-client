@@ -1,7 +1,8 @@
 import unittest
 from unittest.mock import patch, Mock
-from weaviate.gql.get import GetBuilder
+
 from test.util import check_error_message
+from weaviate.gql.get import GetBuilder
 
 
 class TestGetBuilder(unittest.TestCase):
@@ -75,8 +76,8 @@ class TestGetBuilder(unittest.TestCase):
         Test the ` with_where` method.
         """
 
-        filter = {"path": ["name"], "operator": "Equal", "valueString": "A"}
-        query = GetBuilder("Person", "name", None).with_where(filter).build()
+        filter_name = {"path": ["name"], "operator": "Equal", "valueString": "A"}
+        query = GetBuilder("Person", "name", None).with_where(filter_name).build()
         self.assertEqual(
             '{Get{Person(where: {path: ["name"] operator: Equal valueString: "A"} ){name}}}', query
         )
@@ -493,7 +494,7 @@ class TestGetBuilder(unittest.TestCase):
             "moveAwayFrom": {"concepts": ["airplane"], "force": 0.2},
             "certainty": 0.3,
         }
-        filter = {
+        or_filter = {
             "operator": "Or",
             "operands": [
                 {
@@ -507,7 +508,7 @@ class TestGetBuilder(unittest.TestCase):
         query = (
             GetBuilder("Person", ["name", "uuid"], None)
             .with_near_text(near_text)
-            .with_where(filter)
+            .with_where(or_filter)
             .with_limit(2)
             .with_offset(10)
             .build()
