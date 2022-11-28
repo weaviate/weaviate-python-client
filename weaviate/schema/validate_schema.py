@@ -2,33 +2,22 @@
 Schema validation module.
 """
 from typing import Any
+
 from weaviate.exceptions import SchemaValidationException
 
+CLASS_KEYS = {
+    "class",
+    "vectorIndexType",
+    "vectorIndexConfig",
+    "moduleConfig",
+    "description",
+    "vectorizer",
+    "properties",
+    "invertedIndexConfig",
+    "shardingConfig",
+}
 
-CLASS_KEYS = set(
-    [
-        "class",
-        "vectorIndexType",
-        "vectorIndexConfig",
-        "moduleConfig",
-        "description",
-        "vectorizer",
-        "properties",
-        "invertedIndexConfig",
-        "shardingConfig",
-    ]
-)
-
-PROPERTY_KEYS = set(
-    [
-        "dataType",
-        "name",
-        "moduleConfig",
-        "description",
-        "indexInverted",
-        "tokenization",
-    ]
-)
+PROPERTY_KEYS = {"dataType", "name", "moduleConfig", "description", "indexInverted", "tokenization"}
 
 
 def validate_schema(schema: dict) -> None:

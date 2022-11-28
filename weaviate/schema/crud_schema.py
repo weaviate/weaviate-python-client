@@ -16,25 +16,23 @@ from weaviate.schema.validate_schema import (
 )
 from weaviate.util import _get_dict_from_object, _is_sub_schema, _capitalize_first_letter
 
-_PRIMITIVE_WEAVIATE_TYPES_SET = set(
-    [
-        "string",
-        "string[]",
-        "int",
-        "int[]",
-        "boolean",
-        "boolean[]",
-        "number",
-        "number[]",
-        "date",
-        "date[]",
-        "text",
-        "text[]",
-        "geoCoordinates",
-        "blob",
-        "phoneNumber",
-    ]
-)
+_PRIMITIVE_WEAVIATE_TYPES_SET = {
+    "string",
+    "string[]",
+    "int",
+    "int[]",
+    "boolean",
+    "boolean[]",
+    "number",
+    "number[]",
+    "date",
+    "date[]",
+    "text",
+    "text[]",
+    "geoCoordinates",
+    "blob",
+    "phoneNumber",
+}
 
 
 class Schema:
@@ -623,7 +621,7 @@ class Schema:
                 "name": property_["name"],
             }
 
-            for property_field in PROPERTY_KEYS - set(["name", "dataType"]):
+            for property_field in PROPERTY_KEYS - {"name", "dataType"}:
                 if property_field in property_:
                     schema_property[property_field] = property_[property_field]
 
@@ -673,7 +671,7 @@ class Schema:
             "properties": [],
         }
 
-        for class_field in CLASS_KEYS - set(["class", "properties"]):
+        for class_field in CLASS_KEYS - {"class", "properties"}:
             if class_field in weaviate_class:
                 schema_class[class_field] = weaviate_class[class_field]
 

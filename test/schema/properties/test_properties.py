@@ -17,7 +17,7 @@ class TestCRUDProperty(unittest.TestCase):
         Test `create` method.
         """
 
-        property = Property(Mock())
+        prop = Property(Mock())
 
         # invalid calls
         error_message = "Class name must be of type str but is "
@@ -25,29 +25,27 @@ class TestCRUDProperty(unittest.TestCase):
         requests_error_message = "Property was created properly."
 
         with self.assertRaises(TypeError) as error:
-            property.create(35, {})
+            prop.create(35, {})
         check_error_message(self, error, error_message + str(int))
 
         # test if `check_property` is called in `create`
         with self.assertRaises(SchemaValidationException) as error:
-            property.create("Class", {})
+            prop.create("Class", {})
         check_error_message(self, error, check_property_error_message)
 
-        property = Property(
-            mock_connection_func("post", side_effect=RequestsConnectionError("Test!"))
-        )
+        prop = Property(mock_connection_func("post", side_effect=RequestsConnectionError("Test!")))
         with self.assertRaises(RequestsConnectionError) as error:
-            property.create("Class", {"name": "test", "dataType": ["test_type"]})
+            prop.create("Class", {"name": "test", "dataType": ["test_type"]})
         check_error_message(self, error, requests_error_message)
 
-        property = Property(mock_connection_func("post", status_code=404))
+        prop = Property(mock_connection_func("post", status_code=404))
         with self.assertRaises(UnexpectedStatusCodeException) as error:
-            property.create("Class", {"name": "test", "dataType": ["test_type"]})
+            prop.create("Class", {"name": "test", "dataType": ["test_type"]})
         check_startswith_error_message(self, error, "Add property to class")
 
         # valid calls
         connection_mock = mock_connection_func("post")  # Mock calling weaviate
-        property = Property(connection_mock)
+        prop = Property(connection_mock)
 
         test_prop = {
             "dataType": ["string"],
@@ -57,14 +55,14 @@ class TestCRUDProperty(unittest.TestCase):
             "indexInverted": True,
         }
 
-        property.create("TestThing", test_prop)
+        prop.create("TestThing", test_prop)
 
         connection_mock.post.assert_called_with(
             path="/schema/TestThing/properties",
             weaviate_object=test_prop,
         )
 
-        property.create("testThing", test_prop)
+        prop.create("testThing", test_prop)
 
         connection_mock.post.assert_called_with(
             path="/schema/TestThing/properties",

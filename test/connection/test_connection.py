@@ -19,13 +19,15 @@ class TestConnection(unittest.TestCase):
         auth_bearer=None,
         auth_client_secret=None,
         oidc_auth_flow=False,
-        headers={"content-type": "application/json"},
+        headers=None,
     ):
         """
         Check the attributes of the connection value. Assign 'skip' to
         an attribute to skip testing. The attributes have the default constructor values.
         """
 
+        if headers is None:
+            headers = {"content-type": "application/json"}
         if url != "skip":
             self.assertEqual(connection.url, url)
         if timeout_config != "skip":

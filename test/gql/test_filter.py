@@ -1,10 +1,11 @@
 import unittest
-from weaviate.gql.filter import NearText, NearVector, NearObject, NearImage, Where, Ask
+
 from test.util import check_error_message, check_startswith_error_message
+from weaviate.gql.filter import NearText, NearVector, NearObject, NearImage, Where, Ask
 
 
-def helper_get_test_filter(type, value):
-    return {"path": ["name"], "operator": "Equal", type: value}
+def helper_get_test_filter(filter_type, value):
+    return {"path": ["name"], "operator": "Equal", filter_type: value}
 
 
 class TestNearText(unittest.TestCase):
