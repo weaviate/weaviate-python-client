@@ -1,5 +1,6 @@
 import json
 
+import pytest
 from werkzeug import Request, Response
 
 import weaviate
@@ -57,7 +58,8 @@ def test_client_credentials(weaviate_auth_mock):
     client.schema.delete_all()  # some call that includes authorization
 
 
-def test_auth_header_priority(weaviate_auth_mock):
+@pytest.mark.parametrize("header_name", ["Authorization", "authorization"])
+def test_auth_header_priority(weaviate_auth_mock, header_name: str):
     """Test that the auth header has priority over other authentication methods."""
     bearer_token = "OTHER TOKEN"
 
@@ -71,7 +73,7 @@ def test_auth_header_priority(weaviate_auth_mock):
     client = weaviate.Client(
         url="http://127.0.0.1:23534",
         auth_client_secret=weaviate.AuthClientCredentials(client_secret=CLIENT_SECRET, scope=SCOPE),
-        additional_headers={"Authorization": "Bearer " + bearer_token},
+        additional_headers={header_name: "Bearer " + bearer_token},
     )
     client.schema.delete_all()  # some call that includes authorization
 
