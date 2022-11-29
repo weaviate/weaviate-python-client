@@ -35,6 +35,7 @@ jobs:
     strategy:
       matrix:
         version: ["3.7", "3.8", "3.9", "3.10"]
+        folder: ["test", "mock_tests"]
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
@@ -43,7 +44,7 @@ jobs:
         cache: 'pip' # caching pip dependencies
     - run: pip install -r requirements.txt
     - name: Run unittests
-      run: pytest --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage.xml test
+      run: pytest --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage.xml ${{ matrix.folder }}
     - name: Upload to codecov
       if: matrix.version == '3.10' && (github.ref_name != 'master')
       uses: codecov/codecov-action@v3
@@ -68,6 +69,10 @@ jobs:
           pip install -r requirements.txt
           pip install .
       - name: Run integration tests
+        env:
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          OKTA_CLIENT_SECRET: ${{ secrets.OKTA_CLIENT_SECRET }}
+          WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
         run: |
           /bin/bash ci/start_weaviate.sh
           pytest --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage.xml integration

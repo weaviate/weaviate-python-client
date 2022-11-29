@@ -1,0 +1,29 @@
+---
+version: '3.4'
+services:
+  weaviate-auth-okta:
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - '8082'
+      - --scheme
+      - http
+      - --write-timeout=600s
+    image: semitechnologies/weaviate:1.15.4-b7811d4
+    ports:
+      - 8082:8082
+    restart: on-failure:0
+    environment:
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'false'
+      AUTHENTICATION_OIDC_ENABLED: 'true'
+      AUTHENTICATION_OIDC_CLIENT_ID: '0oa7e9ipdkVZRUcxo5d7'
+      AUTHENTICATION_OIDC_ISSUER: 'https://dev-32300990.okta.com/oauth2/aus7e9kxbwYQB0eht5d7'
+      AUTHENTICATION_OIDC_USERNAME_CLAIM: 'cid'
+      AUTHENTICATION_OIDC_GROUPS_CLAIM: 'groups'
+      AUTHORIZATION_ADMINLIST_ENABLED: 'true'
+      AUTHORIZATION_ADMINLIST_USERS: '0oa7e9ipdkVZRUcxo5d7'
+      AUTHENTICATION_OIDC_SCOPES: 'openid,email'
+...
+

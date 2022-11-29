@@ -12,19 +12,19 @@ from typing import Tuple, Callable, Optional, Sequence
 from requests import ReadTimeout, Response
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.connect import Connection
-from weaviate.error_msgs import (
+from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest
+from ..connect import Connection
+from ..error_msgs import (
     BATCH_MANUAL_USE_W,
     BATCH_REF_DEPRECATION_NEW_V14_CLS_NS_W,
     BATCH_REF_DEPRECATION_OLD_V14_CLS_NS_W,
     BATCH_EXECUTOR_SHUTDOWN_W,
 )
-from weaviate.exceptions import UnexpectedStatusCodeException
-from weaviate.util import (
+from ..exceptions import UnexpectedStatusCodeException
+from ..util import (
     _capitalize_first_letter,
     check_batch_result,
 )
-from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest
 
 
 class BatchExecutor(ThreadPoolExecutor):

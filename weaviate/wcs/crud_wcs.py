@@ -74,13 +74,6 @@ class WCS(Connection):
         else:
             url = "https://wcs.api.semi.technology"
 
-        auth_path = (
-            url.replace("://", "://auth.") + "/auth/realms/SeMI/.well-known/openid-configuration"
-        )
-
-        # make _refresh_authentication method to point to _set_bearer method.
-        self._refresh_authentication = lambda: self._set_bearer("wcs", auth_path)
-
         super().__init__(
             url=url,
             auth_client_secret=auth_client_secret,
@@ -327,9 +320,10 @@ class WCS(Connection):
         """
 
         try:
+            assert isinstance(self._auth_client_secret, AuthClientPassword)
             response = self.get(
                 path="/clusters/list",
-                params={"email": self._auth_client_secret.get_credentials()["username"]},
+                params={"email": self._auth_client_secret.username},
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("WCS clusters were not fetched.") from conn_err

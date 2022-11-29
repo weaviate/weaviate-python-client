@@ -1,102 +1,37 @@
 """
 Authentication class definitions.
 """
-import base64
-import copy
-from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Optional
 
 
-class AuthCredentials(ABC):
-    """
-    Base class for getting the grant type and credentials.
-    """
-
-    def __init__(self):
-        self._credentials_body = {}
-
-    @abstractmethod
-    def get_credentials(self) -> dict:
-        """
-        Get credentials.
-        """
+@dataclass
+class AuthCredentials:
+    """Base class for authentication."""
 
 
+@dataclass
 class AuthClientCredentials(AuthCredentials):
+    """Authenticate for the client credential flow using client secrets.
+
+    Acquire the client secret from your identify provider and set the appropriate scope. Rhe client includes hardcoded
+    scopes for Azure, otherwise it needs to be supplied.
     """
-    Using a client secret for authentication.
-    In case of grant type client credentials.
-    """
 
-    def __init__(self, client_secret: str):
-        """
-        Using a client secret for authentication.
-        In case of grant type client credentials.
-
-        Parameters
-        ----------
-        client_secret : str
-            The client secret credentials, NOT access token.
-        """
-
-        super().__init__()
-        self._credentials_body["grant_type"] = "client_credentials"
-        self._client_secret_encoded = base64.b64encode(client_secret.encode("utf-8")).decode(
-            "utf-8"
-        )
-
-    def get_credentials(self) -> dict:
-        """
-        Get decoded credentials.
-
-        Returns
-        -------
-        dict
-            Decoded credentials.
-        """
-
-        return_body = copy.deepcopy(self._credentials_body)
-        return_body["client_secret"] = base64.b64decode(
-            self._client_secret_encoded.encode("utf-8")
-        ).decode("utf-8")
-        return return_body
+    client_secret: str
+    scope: Optional[str] = None
 
 
+@dataclass
 class AuthClientPassword(AuthCredentials):
-    """
-    Using username and password for authentication.
-    In case of grant type password.
-    """
+    """Using username and password for authentication. In case of grant type password."""
 
-    def __init__(self, username: str, password: str) -> None:
-        """
-        Using username and password for authentication.
-        In case of grant type password.
+    username: str
+    password: str
 
-        Parameters
-        ----------
-        username : str
-            The username to login with.
-        password : str
-            Password fot the given User.
-        """
 
-        super().__init__()
-        self._credentials_body["grant_type"] = "password"
-        self._credentials_body["username"] = username
-        self._password_encoded = base64.b64encode(password.encode("utf-8")).decode("utf-8")
+@dataclass
+class AuthBearerConfig(AuthCredentials):
+    """Using a preexisting bearer token for authentication."""
 
-    def get_credentials(self) -> dict:
-        """
-        Get decoded credentials.
-
-        Returns
-        -------
-        dict
-            Decoded credentials.
-        """
-
-        return_body = copy.deepcopy(self._credentials_body)
-        return_body["password"] = base64.b64decode(self._password_encoded.encode("utf-8")).decode(
-            "utf-8"
-        )
-        return return_body
+    bearer_token: str
