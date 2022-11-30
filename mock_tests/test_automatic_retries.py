@@ -5,7 +5,7 @@ import pytest
 from werkzeug.wrappers import Request, Response
 
 import weaviate
-from weaviate.batch.crud_batch import CallbackMode
+from weaviate.batch.crud_batch import CallbackModeRetryFailed, CallbackModeReportErrors
 from weaviate.exceptions import BatchImportFailedException
 from weaviate.util import check_batch_result
 
@@ -39,9 +39,8 @@ def test_automatic_retry_obs(weaviate_mock):
     )  # multiple of the batch size, otherwise it is difficult to calculate the number of expected errors
     with client.batch(
         batch_size=batch_size,
-        callback=CallbackMode.RETRY_FAILED,
+        callback=CallbackModeRetryFailed(number_retries=3),
         num_workers=2,
-        weaviate_error_retries=3,
     ) as batch:
         for i in range(n):
             added_uuids.append(uuid.uuid4())
@@ -80,7 +79,7 @@ def test_automatic_retry_refs(weaviate_mock):
         50 * batch_size
     )  # multiple of the batch size, otherwise it is difficult to calculate the number of expected errors
     with client.batch(
-        batch_size=batch_size, callback=CallbackMode.RETRY_FAILED, num_workers=2
+        batch_size=batch_size, callback=CallbackModeRetryFailed(number_retries=3), num_workers=2
     ) as batch:
         for _ in range(n):
             batch.add_reference(
@@ -113,13 +112,13 @@ def test_automatic_retry_unsuccessful(weaviate_mock):
     batch_size = 2
     with pytest.raises(BatchImportFailedException):
         with client.batch(
-            batch_size=batch_size, callback=CallbackMode.RETRY_FAILED, num_workers=2
+            batch_size=batch_size, callback=CallbackModeRetryFailed(number_retries=3), num_workers=2
         ) as batch:
             for i in range(n):
                 batch.add_data_object({"name": "test" + str(i)}, "test", uuid.uuid4())
 
 
-@pytest.mark.parametrize("callback", [CallbackMode.REPORT_ERRORS, None, check_batch_result])
+@pytest.mark.parametrize("callback", [CallbackModeReportErrors(), None, check_batch_result])
 def test_print_threadsafety(weaviate_mock, capfd, callback):
     """Test that the default callback calling print statements is threadsafe."""
     successfully_added = []

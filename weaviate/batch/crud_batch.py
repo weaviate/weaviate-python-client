@@ -8,7 +8,6 @@ import warnings
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
-from enum import Enum, auto
 from numbers import Real
 from typing import Tuple, Callable, Optional, Sequence, Union, Dict, List, Any
 
@@ -31,11 +30,17 @@ from ..util import (
 from ..warnings import _Warnings
 
 
-class CallbackMode(str, Enum):  # can be replaced with StrEnum in Python 3.11
-    RETRY_FAILED = auto()
-    REPORT_ERRORS = auto()
+@dataclass()
+class CallbackModeRetryFailed:
+    number_retries: int = 3
 
 
+@dataclass()
+class CallbackModeReportErrors:
+    """Prints errors"""
+
+
+CallbackMode = Union[CallbackModeRetryFailed, CallbackModeReportErrors]
 CALLBACK = Union[Callable[[dict], None], CallbackMode]
 
 
@@ -212,8 +217,7 @@ class Batch:
         self._connection = connection
         self._objects_batch = ObjectsBatchRequest()
         self._reference_batch = ReferenceBatchRequest()
-        # do not keep too many past values, so it is a better estimation of the throughput
-        # the throughput is computed for 1 second
+        # do not keep too many past values, so it is a better estimation of the throughput is computed for 1 second
         self._objects_throughput_frame = deque(maxlen=5)
         self._references_throughput_frame = deque(maxlen=5)
         self._future_pool = []
@@ -228,7 +232,6 @@ class Batch:
         self._creation_time = min(self._connection.timeout_config[1] / 10, 2)
         self._timeout_retries = 3
         self._connection_error_retries = 3
-        self._weaviate_error_retries = 3
         self._batching_type = None
         self._num_workers = 1
 
@@ -241,7 +244,6 @@ class Batch:
         creation_time: Optional[Real] = None,
         timeout_retries: int = 3,
         connection_error_retries: int = 3,
-        weaviate_error_retries: int = 3,
         callback: Optional[CALLBACK] = check_batch_result,
         dynamic: bool = False,
         num_workers: int = 1,
@@ -294,7 +296,6 @@ class Batch:
             creation_time=creation_time,
             timeout_retries=timeout_retries,
             connection_error_retries=connection_error_retries,
-            weaviate_error_retries=weaviate_error_retries,
             callback=callback,
             dynamic=dynamic,
             num_workers=num_workers,
@@ -306,7 +307,6 @@ class Batch:
         creation_time: Optional[Real] = None,
         timeout_retries: int = 3,
         connection_error_retries: int = 3,
-        weaviate_error_retries: int = 3,
         callback: Optional[CALLBACK] = check_batch_result,
         dynamic: bool = False,
         num_workers: int = 1,
@@ -367,7 +367,6 @@ class Batch:
 
         self._timeout_retries = timeout_retries
         self._connection_error_retries = connection_error_retries
-        self._weaviate_error_retries = weaviate_error_retries
         # set Batch to manual import
         if batch_size is None:
             self._batch_size = None
@@ -581,6 +580,7 @@ class Batch:
                 else:
                     if self._callback is not None:
                         if isinstance(self._callback, Callable):
+                            # We don't know if user-supplied functions are threadsafe
                             with self._callback_lock:
                                 self._callback(response.json())
                         else:
@@ -590,10 +590,11 @@ class Batch:
                                 and len(callback_response.new_batch) > 0
                             ):
                                 batch_error_count += 1
-                                if batch_error_count > self._weaviate_error_retries:
-                                    raise BatchImportFailedException(callback_response.errors)
-                                batch_request = callback_response.new_batch
-                                continue
+                                if isinstance(self._callback, CallbackModeRetryFailed):
+                                    if batch_error_count > self._callback.number_retries:
+                                        raise BatchImportFailedException(callback_response.errors)
+                                    batch_request = callback_response.new_batch
+                                    continue
 
                     break
         except RequestsConnectionError as conn_err:
@@ -1564,13 +1565,13 @@ class Batch:
     def _internal_callback(
         self, response: List[Dict[str, Any]], data_type: str
     ) -> Optional[_CallBackResponse]:
-        if self._callback == CallbackMode.RETRY_FAILED:
+        if isinstance(self._callback, CallbackModeRetryFailed):
             if data_type == "objects":
                 return self._retry_failed_objects(response)
             else:
                 return self._retry_failed_references(response)
         else:
-            assert self._callback == CallbackMode.REPORT_ERRORS
+            assert isinstance(self._callback, CallbackModeReportErrors)
             with self._callback_lock:
                 check_batch_result(response)
 
