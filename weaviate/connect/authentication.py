@@ -16,15 +16,15 @@ from weaviate.auth import (
 from weaviate.exceptions import MissingScopeException, AuthenticationFailedException
 
 if TYPE_CHECKING:
-    from . import Connection
+    from . import BaseConnection
 
 
 class _Auth:
     def __init__(
-        self, response: Dict[str, str], auth_config: AuthCredentials, connection: Connection
+        self, response: Dict[str, str], auth_config: AuthCredentials, connection: BaseConnection
     ) -> None:
         self._auth_config: AuthCredentials = auth_config
-        self._connection: Connection = connection
+        self._connection: BaseConnection = connection
 
         self._open_id_config_url: str = response["href"]
         self._client_id: str = response["clientId"]
