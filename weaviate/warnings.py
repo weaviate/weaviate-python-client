@@ -23,3 +23,14 @@ class _Warnings:
             category=DeprecationWarning,
             stacklevel=1,
         )
+
+    @staticmethod
+    def manual_batching():
+        warnings.warn(
+            message="""Dep002: You are batching manually. This means you are NOT using the client's built-in
+            multi-threading. Setting `batch_size` in `client.batch.configure()`  to an int value will enabled automatic
+            batching. See:
+            https://weaviate.io/developers/weaviate/current/restful-api-references/batch.html#example-request-1""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )

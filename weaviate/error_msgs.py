@@ -1,15 +1,6 @@
 """
 Error/Warning messages that are reused throughout the code.
 """
-from .version import __version__
-
-
-CLIENT_V14_W = (
-    f"You are using the Weaviate Python Client version {__version__} which has "
-    "the new changes/features of the Weaviate Server 1.14.x. If you want to make use "
-    "of the new changes/features of the Weaviate Server 1.14.x using this Python "
-    "Client version, upgrade the Weaviate Server version.",
-)
 
 
 FILTER_BEACON_V14_CLS_NS_W = (
