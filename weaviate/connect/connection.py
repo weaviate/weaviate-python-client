@@ -14,6 +14,7 @@ import requests
 from weaviate.auth import AuthCredentials
 from weaviate.connect.authentication import _Auth
 from weaviate.exceptions import AuthenticationFailedException
+from weaviate.warnings import _Warnings
 
 
 class Connection:
@@ -120,6 +121,8 @@ class Connection:
                     f""""No login credentials provided. The weaviate instance at {self.url} requires login credential,
                     use argument 'auth_client_secret'."""
                 )
+        elif response.status_code == 404 and self._auth_client_secret is not None:
+            _Warnings.auth_with_anon_weaviate()
 
     def __del__(self):
         """
