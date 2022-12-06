@@ -36,7 +36,7 @@ __all__ = [
     "Client",
     "AuthClientCredentials",
     "AuthClientPassword",
-    "AuthBearerConfig",
+    "AuthBearerToken",
     "UnexpectedStatusCodeException",
     "ObjectAlreadyExistsException",
     "AuthenticationFailedException",
@@ -45,7 +45,7 @@ __all__ = [
 
 import sys
 
-from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerConfig
+from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken
 from .client import Client
 from .exceptions import (
     UnexpectedStatusCodeException,

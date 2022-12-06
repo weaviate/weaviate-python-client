@@ -1,4 +1,5 @@
 import warnings
+from typing import Optional
 
 import weaviate.version as version
 
@@ -9,6 +10,27 @@ class _Warnings:
         warnings.warn(
             message="""Auth001: The client was configured to use authentication, but weaviate is configured without
                     authentication. Are you sure this is correct?""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def auth_no_refresh_token(auth_len: Optional[int] = None):
+        if auth_len is not None:
+            msg = f"The current access token is only valid for {auth_len}s."
+        else:
+            msg = "Also, no expiration time was given."
+
+        warnings.warn(
+            message=f"""Auth002: The token returned from you identity provider does not contain a refresh token. {msg}
+
+            Access to your weaviate instance is not possible after expiration and this client will return an
+            authentication exception.
+
+            Things to try:
+            - You might need to enable refresh tokens in the settings of your authentication provider
+            - You might need to send the correct scope. For some providers it needs to include "offline_access"
+            ?""",
             category=UserWarning,
             stacklevel=1,
         )

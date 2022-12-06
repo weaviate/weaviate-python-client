@@ -2,16 +2,11 @@
 Authentication class definitions.
 """
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 
 
 @dataclass
-class AuthCredentials:
-    """Base class for authentication."""
-
-
-@dataclass
-class AuthClientCredentials(AuthCredentials):
+class AuthClientCredentials:
     """Authenticate for the client credential flow using client secrets.
 
     Acquire the client secret from your identify provider and set the appropriate scope. Rhe client includes hardcoded
@@ -23,15 +18,22 @@ class AuthClientCredentials(AuthCredentials):
 
 
 @dataclass
-class AuthClientPassword(AuthCredentials):
+class AuthClientPassword:
     """Using username and password for authentication. In case of grant type password."""
 
     username: str
     password: str
+    scope: Optional[str] = "offline_access"
 
 
 @dataclass
-class AuthBearerConfig(AuthCredentials):
+class AuthBearerToken:
     """Using a preexisting bearer token for authentication."""
 
     bearer_token: str
+    expires_in: Optional[int] = None
+    refresh_token: Optional[str] = None
+    refresh_expires_in: Optional[int] = None
+
+
+AuthCredentials = Union[AuthBearerToken, AuthClientPassword, AuthClientCredentials]

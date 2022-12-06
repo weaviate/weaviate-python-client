@@ -3,12 +3,13 @@
 echo "Run Docker compose"
 nohup docker-compose -f ci/docker-compose.yml up -d
 nohup docker-compose -f ci/docker-compose-azure.yml up -d
-nohup docker-compose -f ci/docker-compose-okta.yml up -d
+nohup docker-compose -f ci/docker-compose-okta-cc.yml up -d
+nohup docker-compose -f ci/docker-compose-okta-users.yml up -d
 nohup docker-compose -f ci/docker-compose-wcs.yml up -d
 
 echo "Wait until weaviate is up"
 
-for port in 8080 8081 8082 8083
+for port in 8080 8081 8082 8083 8084
 do
   # pulling all images usually takes < 3 min
   # starting weaviate usually takes < 2 min

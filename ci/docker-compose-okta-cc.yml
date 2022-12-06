@@ -1,7 +1,7 @@
 ---
 version: '3.4'
 services:
-  weaviate-auth-okta:
+  weaviate-auth-okta-cc:
     command:
       - --host
       - 0.0.0.0

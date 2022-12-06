@@ -1,28 +1,29 @@
 ---
 version: '3.4'
 services:
-  weaviate-auth-wcs:
+  weaviate-auth-okta-users:
     command:
       - --host
       - 0.0.0.0
       - --port
-      - '8084'
+      - '8083'
       - --scheme
       - http
       - --write-timeout=600s
     image: semitechnologies/weaviate:1.15.4-b7811d4
     ports:
-      - 8084:8084
+      - 8083:8083
     restart: on-failure:0
     environment:
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'false'
       AUTHENTICATION_OIDC_ENABLED: 'true'
-      AUTHENTICATION_OIDC_CLIENT_ID: 'wcs'
-      AUTHENTICATION_OIDC_ISSUER: 'https://auth.wcs.api.semi.technology/auth/realms/SeMI'
-      AUTHENTICATION_OIDC_USERNAME_CLAIM: 'email'
+      AUTHENTICATION_OIDC_CLIENT_ID: '0oa7iz2g41rNxv95B5d7'
+      AUTHENTICATION_OIDC_ISSUER: 'https://dev-32300990.okta.com/oauth2/aus7iz3tna3kckRWS5d7'
+      AUTHENTICATION_OIDC_USERNAME_CLAIM: 'sub'
       AUTHENTICATION_OIDC_GROUPS_CLAIM: 'groups'
       AUTHORIZATION_ADMINLIST_ENABLED: 'true'
-      AUTHORIZATION_ADMINLIST_USERS: 'ms_2d0e007e7136de11d5f29fce7a53dae219a51458@existiert.net'
+      AUTHORIZATION_ADMINLIST_USERS: 'test@test.de'
       AUTHENTICATION_OIDC_SCOPES: 'openid,email'
 ...
+
