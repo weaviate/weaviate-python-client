@@ -12,10 +12,9 @@ from typing import Tuple, Callable, Optional, Sequence
 from requests import ReadTimeout, Response
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
+from weaviate.connect import Connection
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest
-from ..connect import Connection
 from ..error_msgs import (
-    BATCH_MANUAL_USE_W,
     BATCH_REF_DEPRECATION_NEW_V14_CLS_NS_W,
     BATCH_REF_DEPRECATION_OLD_V14_CLS_NS_W,
     BATCH_EXECUTOR_SHUTDOWN_W,
@@ -25,6 +24,7 @@ from ..util import (
     _capitalize_first_letter,
     check_batch_result,
 )
+from ..warnings import _Warnings
 
 
 class BatchExecutor(ThreadPoolExecutor):
@@ -756,11 +756,7 @@ class Batch:
         """
 
         if len(self._objects_batch) != 0:
-            warnings.warn(
-                message=BATCH_MANUAL_USE_W,
-                category=RuntimeWarning,
-                stacklevel=1,
-            )
+            _Warnings.manual_batching()
 
             response = self._create_data(
                 data_type="objects",
@@ -855,11 +851,7 @@ class Batch:
         """
 
         if len(self._reference_batch) != 0:
-            warnings.warn(
-                message=BATCH_MANUAL_USE_W,
-                category=RuntimeWarning,
-                stacklevel=1,
-            )
+            _Warnings.manual_batching()
 
             response = self._create_data(
                 data_type="references",

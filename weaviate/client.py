@@ -1,7 +1,6 @@
 """
 Client class definition.
 """
-import warnings
 from numbers import Real
 from typing import Optional, Tuple, Union
 
@@ -12,10 +11,9 @@ from .backup import Backup
 from .batch import Batch
 from .classification import Classification
 from .cluster import Cluster
-from .connect import Connection
+from .connect.connection import Connection
 from .contextionary import Contextionary
 from .data import DataObject
-from .error_msgs import CLIENT_V14_W
 from .exceptions import UnexpectedStatusCodeException
 from .gql import Query
 from .schema import Schema
@@ -135,15 +133,6 @@ class Client:
         self.backup = Backup(self._connection)
         self.cluster = Cluster(self._connection)
 
-        self._set_server_version()
-
-        if self._connection.server_version < "1.14":
-            warnings.warn(
-                message=CLIENT_V14_W,
-                category=DeprecationWarning,
-                stacklevel=1,
-            )
-
     def is_ready(self) -> bool:
         """
         Ping Weaviate's ready state
@@ -194,10 +183,8 @@ class Client:
             If weaviate reports a none OK status.
         """
 
-        response = self._connection.get(path="/meta")
-        if response.status_code == 200:
-            return response.json()
-        raise UnexpectedStatusCodeException("Meta endpoint", response)
+        response = self._connection.get_meta()
+        return response.json()
 
     def get_open_id_configuration(self) -> Optional[dict]:
         """
@@ -250,10 +237,3 @@ class Client:
         """
 
         self._connection.timeout_config = timeout_config
-
-    def _set_server_version(self):
-        """
-        Set Weaviate Server version.
-        """
-
-        self._connection.server_version = self.get_meta()["version"]

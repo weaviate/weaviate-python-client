@@ -7,8 +7,10 @@ import requests
 import weaviate
 from weaviate import AuthenticationFailedException, AuthClientCredentials, AuthClientPassword
 
+ANON_PORT = "8080"
 AZURE_PORT = "8081"
 OKTA_PORT = "8082"
+WCS_PORT = "8083"
 
 
 def is_auth_enabled(url: str):
@@ -55,7 +57,7 @@ def test_authentication_client_credentials(
 
 def test_authentication_user_pw():
     """Test authentication using Resource Owner Password Credentials Grant (User + PW)."""
-    url = "http://127.0.0.1:8083"
+    url = "http://127.0.0.1:" + WCS_PORT
     assert is_auth_enabled(url)
 
     wcs_pw = os.environ.get("WCS_DUMMY_CI_PW")
@@ -69,3 +71,22 @@ def test_authentication_user_pw():
         ),
     )
     client.schema.delete_all()  # no exception
+
+
+def test_client_with_authentication_with_anon_weaviate(recwarn):
+    """Test that we warn users when their client has auth enabled, but weaviate has only anon access."""
+    url = "http://127.0.0.1:" + ANON_PORT
+    assert not is_auth_enabled(url)
+
+    client = weaviate.Client(
+        url,
+        auth_client_secret=AuthClientPassword(username="someUser", password="SomePw"),
+    )
+
+    # only one warning
+    assert len(recwarn) == 1
+    w = recwarn.pop()
+    assert issubclass(w.category, UserWarning)
+    assert str(w.message).startswith("Auth001")
+
+    client.schema.delete_all()  # no exception, client works

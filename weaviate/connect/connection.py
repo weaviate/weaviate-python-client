@@ -13,10 +13,11 @@ import requests
 
 from weaviate.auth import AuthCredentials
 from weaviate.connect.authentication import _Auth
-from weaviate.exceptions import AuthenticationFailedException
+from weaviate.exceptions import AuthenticationFailedException, UnexpectedStatusCodeException
+from weaviate.warnings import _Warnings
 
 
-class Connection:
+class BaseConnection:
     """
     Connection class used to communicate to a weaviate instance.
     """
@@ -66,7 +67,6 @@ class Connection:
         """
 
         self._api_version_path = "/v1"
-        self._server_version = None
         self._session = requests.Session()
         self.url = url  # e.g. http://localhost:80
         self.timeout_config = timeout_config  # this uses the setter
@@ -120,6 +120,8 @@ class Connection:
                     f""""No login credentials provided. The weaviate instance at {self.url} requires login credential,
                     use argument 'auth_client_secret'."""
                 )
+        elif response.status_code == 404 and self._auth_client_secret is not None:
+            _Warnings.auth_with_anon_weaviate()
 
     def __del__(self):
         """
@@ -421,39 +423,38 @@ class Connection:
         self._timeout_config = _get_valid_timeout_config(timeout_config)
 
     @property
-    def server_version(self) -> Tuple[Real, Real]:
-        """
-        Getter/setter for Weaviate `server_version`.
-
-        Parameters
-        ----------
-        server_version : str
-            For Setter only: The Weaviate server version gotten from the `Client.get_meta()`.
-
-        Returns
-        -------
-        str
-            For Getter only: Weaviate server version.
-        """
-
-        return self._server_version
-
-    @property
     def proxies(self) -> dict:
         return self._proxies
 
-    @server_version.setter
-    def server_version(self, server_version: Union[Tuple[Real, Real], Real]):
-        """
-        Setter for `server_version`. (docstring should be only in the Getter)
-        """
 
-        if not isinstance(server_version, str):
-            raise TypeError(
-                f"'server_version' must be of type str. Given type: {type(server_version)}."
-            )
+class Connection(BaseConnection):
+    def __init__(
+        self,
+        url: str,
+        auth_client_secret: Optional[AuthCredentials],
+        timeout_config: Union[Tuple[Real, Real], Real],
+        proxies: Union[dict, str, None],
+        trust_env: bool,
+        additional_headers: Optional[Dict[str, Any]],
+    ):
+        super().__init__(
+            url, auth_client_secret, timeout_config, proxies, trust_env, additional_headers
+        )
+        version = self.get_meta()["version"]
+        if version < "1.14":
+            _Warnings.weaviate_server_older_than_1_14(version)
 
-        self._server_version = server_version
+    @property
+    def server_version(self) -> str:
+        """Version of the weaviate instance."""
+        return self.get_meta()["version"]
+
+    def get_meta(self) -> Dict[str, str]:
+        """Returns the meta endpoint."""
+        response = self.get(path="/meta")
+        if response.status_code == 200:
+            return response.json()
+        raise UnexpectedStatusCodeException("Meta endpoint", response)
 
 
 def _get_epoch_time() -> int:

@@ -2,14 +2,14 @@ import unittest
 from unittest.mock import patch, Mock
 
 from test.util import check_error_message
-from weaviate.connect.connection import Connection, _get_proxies, _get_valid_timeout_config
+from weaviate.connect.connection import BaseConnection, _get_proxies, _get_valid_timeout_config
 from weaviate.exceptions import AuthenticationFailedException
 
 
 class TestConnection(unittest.TestCase):
     def check_connection_attributes(
         self,
-        connection: Connection,
+        connection: BaseConnection,
         url="test_url",
         timeout_config=(2, 20),
         auth_expires=0,
@@ -44,7 +44,7 @@ class TestConnection(unittest.TestCase):
         if headers != "skip":
             self.assertEqual(connection._headers, headers)
 
-    @patch("weaviate.connect.connection.Connection._refresh_authentication")
+    @patch("weaviate.connect.connection.BaseConnection._refresh_authentication")
     @patch("weaviate.connect.connection.requests")
     def test__init__(self, mock_requests, mock_refresh_authentication):
         """
@@ -63,7 +63,7 @@ class TestConnection(unittest.TestCase):
 
         # additional_headers error check
         with self.assertRaises(TypeError) as error:
-            Connection(
+            BaseConnection(
                 url="test_url",
                 auth_client_secret=None,
                 timeout_config=(3, 23),
@@ -78,7 +78,7 @@ class TestConnection(unittest.TestCase):
         mock_session.get.side_effect = None
         mock_response = Mock(status_code=400)
         mock_session.get.return_value = mock_response
-        connection = Connection(
+        connection = BaseConnection(
             url="test_url",
             auth_client_secret=None,
             timeout_config=(3, 23),
@@ -100,7 +100,7 @@ class TestConnection(unittest.TestCase):
         mock_response = Mock(status_code=200)
         mock_session.get.return_value = mock_response
         with self.assertRaises(AuthenticationFailedException) as error:
-            Connection(
+            BaseConnection(
                 url="test_url",
                 auth_client_secret=None,
                 timeout_config=(2, 20),
@@ -117,8 +117,8 @@ class TestConnection(unittest.TestCase):
         )
 
         # 200 status_code return and token provided
-        with patch("weaviate.connect.connection.Connection._log_in") as mock_login:
-            connection = Connection(
+        with patch("weaviate.connect.connection.BaseConnection._log_in") as mock_login:
+            connection = BaseConnection(
                 url="test_url",
                 auth_client_secret=None,
                 timeout_config=(2, 20),
@@ -140,7 +140,7 @@ class TestConnection(unittest.TestCase):
         """
 
         mock_session = mock_requests.Session.return_value = Mock()
-        connection = Connection(
+        connection = BaseConnection(
             url="http://weaviate:1234",
             auth_client_secret=None,
             timeout_config=(2, 20),
@@ -217,7 +217,7 @@ class TestConnection(unittest.TestCase):
         # add Proxies
 
         mock_session = mock_requests.Session.return_value = Mock()
-        connection = Connection(
+        connection = BaseConnection(
             url="http://weaviate:1234",
             auth_client_secret=None,
             timeout_config=(2, 20),
@@ -291,13 +291,13 @@ class TestConnection(unittest.TestCase):
             proxies={"test": True},
         )
 
-    @patch("weaviate.connect.connection.Connection._log_in")
+    @patch("weaviate.connect.connection.BaseConnection._log_in")
     def test_timeout_config(self, mock_log_in):
         """
         Test the setter and getter of `timeout_config`.
         """
 
-        connection = Connection(
+        connection = BaseConnection(
             url="http://test_url",
             auth_client_secret=None,
             timeout_config=(2, 20),

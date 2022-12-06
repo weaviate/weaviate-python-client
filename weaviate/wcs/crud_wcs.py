@@ -9,14 +9,14 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from tqdm.auto import tqdm
 
 from weaviate.auth import AuthClientPassword
-from weaviate.connect import Connection
+from weaviate.connect.connection import BaseConnection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     AuthenticationFailedException,
 )
 
 
-class WCS(Connection):
+class WCS(BaseConnection):
     """
     WCS class used to create/delete WCS cluster instances.
 
