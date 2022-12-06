@@ -12,7 +12,6 @@ from weaviate.auth import AuthClientPassword
 from weaviate.connect.connection import BaseConnection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
-    AuthenticationFailedException,
 )
 
 
@@ -82,24 +81,7 @@ class WCS(BaseConnection):
             trust_env=trust_env,
             additional_headers=None,
         )
-        self._oidc_auth_flow = True
-
-    def _log_in(self) -> None:
-        """
-        Log in to WCS.
-
-        Raises
-        ------
-        weaviate.AuthenticationFailedException
-            If no login credentials provided, or wrong type of credentials!
-        """
-        if isinstance(self._auth_client_secret, AuthClientPassword):
-            self._refresh_authentication()
-        else:
-            raise AuthenticationFailedException(
-                "No login credentials provided, or wrong type of credentials! "
-                "Accepted type of credentials: weaviate.auth.AuthClientPassword"
-            )
+        self._email = auth_client_secret.username
 
     def create(
         self,
@@ -320,10 +302,9 @@ class WCS(BaseConnection):
         """
 
         try:
-            assert isinstance(self._auth_client_secret, AuthClientPassword)
             response = self.get(
                 path="/clusters/list",
-                params={"email": self._auth_client_secret.username},
+                params={"email": self._email},
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("WCS clusters were not fetched.") from conn_err

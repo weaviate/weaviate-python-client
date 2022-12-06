@@ -92,7 +92,6 @@ class BaseConnection:
             auth_client_secret = auth.AuthBearerToken(bearer_token=bearer_header)
 
         self._auth: Optional[_Auth] = None
-        self
         self._session: Session = self._create_session(auth_client_secret)
 
         # while the underlying library refreshes tokens, it does not have an internal cronjob that checks every

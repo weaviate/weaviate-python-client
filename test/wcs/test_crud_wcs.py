@@ -7,53 +7,11 @@ from test.util import check_error_message, check_startswith_error_message
 from weaviate.auth import AuthClientPassword
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
-    AuthenticationFailedException,
 )
 from weaviate.wcs import WCS
 
 
 class TestWCS(unittest.TestCase):
-    @patch("weaviate.wcs.crud_wcs.WCS._refresh_authentication")
-    def test___init__(self, mock_refresh_auth):
-        """
-        Test the `__init__` method.
-        """
-        # invalid calls
-        ## error messages
-        login_error_message = (
-            "No login credentials provided, or wrong type of credentials! "
-            "Accepted type of credentials: weaviate.auth.AuthClientPassword"
-        )
-
-        with self.assertRaises(AuthenticationFailedException) as error:
-            WCS(None)
-        check_error_message(self, error, login_error_message)
-        mock_refresh_auth.assert_not_called()
-
-        # valid calls
-        # without DEV
-        auth = AuthClientPassword("test_user", "test_pass")
-        wcs = WCS(auth)
-        self.assertTrue(wcs._oidc_auth_flow)
-        self.assertEqual(wcs.timeout_config, (2, 20))
-        self.assertEqual(wcs._auth_expires, 0)
-        self.assertIsNone(wcs._auth_bearer)
-        self.assertEqual(wcs._auth_client_secret, auth)
-        self.assertEqual(wcs.url, "https://wcs.api.semi.technology")
-        mock_refresh_auth.assert_called_with()
-
-        # without DEV
-        auth = AuthClientPassword("test_user", "test_pass")
-        wcs = WCS(auth, dev=True)
-        self.assertTrue(wcs._oidc_auth_flow)
-        self.assertEqual(wcs.timeout_config, (2, 20))
-        self.assertEqual(wcs._auth_expires, 0)
-        self.assertIsNone(wcs._auth_bearer)
-        self.assertEqual(wcs._auth_client_secret, auth)
-        self.assertEqual(wcs.url, "https://dev.wcs.api.semi.technology")
-        mock_refresh_auth.assert_called_with()
-
-    @patch("weaviate.wcs.crud_wcs.WCS._refresh_authentication", Mock())
     @patch("weaviate.wcs.crud_wcs.WCS.get_cluster_config")
     def test_is_ready(self, mock_get_cluster_config):
         """Test the `is_ready` method."""
@@ -77,7 +35,6 @@ class TestWCS(unittest.TestCase):
         self.assertEqual(wcs.is_ready("test_name2"), True)
         mock_get_cluster_config.assert_called_with("test_name2")
 
-    @patch("weaviate.wcs.crud_wcs.WCS._refresh_authentication", Mock())
     @patch("weaviate.wcs.crud_wcs.WCS.post")
     @patch("weaviate.wcs.crud_wcs.WCS.get_cluster_config")
     def test_create(self, mock_get_cluster_config, mock_post):
@@ -282,14 +239,11 @@ class TestWCS(unittest.TestCase):
         )
         self.assertEqual(result, "https://weaviate.semi.network")
 
-    @patch("weaviate.wcs.crud_wcs.WCS._refresh_authentication", Mock())
     @patch("weaviate.wcs.crud_wcs.WCS.get")
     def test_get_clusters(self, mock_get):
         """Test the `get_clusters` method."""
 
         wcs = WCS(AuthClientPassword("test@semi.technology", "testPassoword"))
-        wcs._auth_bearer = "test_bearer"
-
         # invalid calls
 
         ## error messages
@@ -319,7 +273,6 @@ class TestWCS(unittest.TestCase):
         self.assertEqual(result, "test!")
         mock_get.assert_called_with(path="/clusters/list", params={"email": "test@semi.technology"})
 
-    @patch("weaviate.wcs.crud_wcs.WCS._refresh_authentication", Mock())
     @patch("weaviate.wcs.crud_wcs.WCS.get")
     def test_get_cluster_config(self, mock_get):
         """Test the `get_cluster_config` method."""
@@ -379,7 +332,6 @@ class TestWCS(unittest.TestCase):
             path="/clusters/test_name",
         )
 
-    @patch("weaviate.wcs.crud_wcs.WCS._refresh_authentication", Mock())
     @patch("weaviate.wcs.crud_wcs.WCS.delete")
     def test_delete_cluster(self, mock_delete):
         """Test the `delete_cluster` method."""
@@ -431,7 +383,6 @@ class TestWCS(unittest.TestCase):
             path="/clusters/test_name",
         )
 
-    @patch("weaviate.wcs.crud_wcs.WCS._refresh_authentication", Mock())
     @patch("weaviate.wcs.crud_wcs.WCS.get")
     def test_get_users_of_cluster(self, mock_get):
         """
@@ -480,7 +431,6 @@ class TestWCS(unittest.TestCase):
             path="/clusters/test_name/users",
         )
 
-    @patch("weaviate.wcs.crud_wcs.WCS._refresh_authentication", Mock())
     @patch("weaviate.wcs.crud_wcs.WCS.post")
     def test_add_user_to_cluster(self, mock_post):
         """
@@ -532,7 +482,6 @@ class TestWCS(unittest.TestCase):
             weaviate_object=None,
         )
 
-    @patch("weaviate.wcs.crud_wcs.WCS._refresh_authentication", Mock())
     @patch("weaviate.wcs.crud_wcs.WCS.delete")
     def test_remove_user_from_cluster(self, mock_delete):
         """
