@@ -3,7 +3,7 @@ from pytest_httpserver import HTTPServer
 
 
 MOCK_IP = "127.0.0.1"
-MOCK_PORT = 23535
+MOCK_PORT = 23536
 CLIENT_ID = "DoesNotMatter"
 MOCK_SERVER_URL = "http://" + MOCK_IP + ":" + str(MOCK_PORT)
 

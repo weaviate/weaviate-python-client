@@ -16,7 +16,8 @@ def test_user_password(weaviate_auth_mock):
 
     # note: order matters. If this handler is not called, check of the order of arguments changed
     weaviate_auth_mock.expect_request(
-        "/auth", data=f"grant_type=password&username={user}&password={pw}&client_id={CLIENT_ID}"
+        "/auth",
+        data=f"grant_type=password&username={user}&password={pw}&scope=offline_access&client_id={CLIENT_ID}",
     ).respond_with_json({"access_token": ACCESS_TOKEN, "expires_in": 500})
     weaviate_auth_mock.expect_request(
         "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
