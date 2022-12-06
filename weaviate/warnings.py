@@ -30,7 +30,21 @@ class _Warnings:
             Things to try:
             - You might need to enable refresh tokens in the settings of your authentication provider
             - You might need to send the correct scope. For some providers it needs to include "offline_access"
-            ?""",
+            """,
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def auth_negative_expiration_time(expires_in: int, refresh_expires_in: Optional[int]):
+        msg = """Auth003:"""
+        if expires_in < 0:
+            msg += f"access token expiration time is negative: {expires_in}."
+        if refresh_expires_in < 0:
+            msg += f"refresh token expiration time is negative: {refresh_expires_in}."
+
+        warnings.warn(
+            message=msg,
             category=UserWarning,
             stacklevel=1,
         )

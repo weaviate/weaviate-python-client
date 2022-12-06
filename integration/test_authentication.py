@@ -171,7 +171,7 @@ def test_authentication_with_bearer_token(name: str, user: str, env_variable_nam
     client = weaviate.Client(
         url,
         auth_client_secret=AuthBearerToken(
-            bearer_token=token["access_token"],
+            access_token=token["access_token"],
             expires_in=token["expires_in"],
             refresh_token=token["refresh_token"],
             refresh_expires_in=token.get("refresh_expires_in", None),
@@ -211,7 +211,7 @@ def test_bearer_token_without_refresh(recwarn):
     client = weaviate.Client(
         url,
         auth_client_secret=AuthBearerToken(
-            bearer_token=token["access_token"],
+            access_token=token["access_token"],
         ),
     )
 

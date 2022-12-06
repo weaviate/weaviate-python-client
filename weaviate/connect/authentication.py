@@ -69,7 +69,7 @@ class _Auth:
         return session
 
     def _get_session_auth_bearer_token(self, config: AuthBearerToken) -> OAuth2Session:
-        token = {"access_token": config.bearer_token}
+        token = {"access_token": config.access_token}
         if config.expires_in is not None:
             token["expires_in"] = config.expires_in
         if config.refresh_token is not None:

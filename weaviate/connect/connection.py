@@ -89,7 +89,7 @@ class BaseConnection:
 
         if "authorization" in self._headers:
             bearer_header = self._headers["authorization"]
-            auth_client_secret = auth.AuthBearerToken(bearer_token=bearer_header)
+            auth_client_secret = auth.AuthBearerToken(access_token=bearer_header)
 
         self._auth: Optional[_Auth] = None
         self._session: Session = self._create_session(auth_client_secret)
