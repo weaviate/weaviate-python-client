@@ -54,9 +54,6 @@ class _Auth:
         response_auth = requests.get(self._open_id_config_url, proxies=self._connection.proxies)
         return response_auth.json()["token_endpoint"]
 
-    def get_token_endpoint(self) -> str:
-        return self._token_endpoint
-
     def get_auth_session(self) -> OAuth2Session:
         if isinstance(self._auth_config, AuthBearerToken):
             session = self._get_session_auth_bearer_token(self._auth_config)
@@ -107,8 +104,7 @@ class _Auth:
                 scope = self._client_id + "/.default"
             else:
                 raise MissingScopeException
-
-        return OAuth2Session(
+        session = OAuth2Session(
             client_id=self._client_id,
             client_secret=config.client_secret,
             token_endpoint_auth_method="client_secret_post",
@@ -117,3 +113,6 @@ class _Auth:
             grant_type="client_credentials",
             token={"access_token": None, "expires_in": -100},
         )
+        # explicitly fetch tokens. Otherwise authlib will do it in the background and we might have race-conditions
+        session.fetch_token()
+        return session

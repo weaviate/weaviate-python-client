@@ -91,35 +91,14 @@ class BaseConnection:
             bearer_header = self._headers["authorization"]
             auth_client_secret = auth.AuthBearerToken(access_token=bearer_header)
 
-        self._auth: Optional[_Auth] = None
-        self._session: Session = self._create_session(auth_client_secret)
+        self._background_thread: Optional[Thread] = None
+        self._session: Session
+        self._create_session(auth_client_secret)
 
-        # while the underlying library refreshes tokens, it does not have an internal cronjob that checks every
-        # X-seconds if a token has expired. If there is no activity for longer than the refresh tokens lifetime, it will
-        # expire. Therefore, refresh manually shortly before expiration time is up.
-        if isinstance(self._session, OAuth2Session):
-            expires_in = self._session.token.get("expires_in", None)
-            if expires_in is not None:
+    def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
+        """Creates a request session.
 
-                def periodic_refresh_token():
-                    while True:
-                        time.sleep(5)
-                        if self._auth is not None:
-                            # client credentials usually does not contain a refresh token => refresh manually
-                            new_session = self._auth.get_auth_session()
-                            self._session.token = new_session.fetch_token()
-                        else:
-                            # use refresh token when
-                            self._session.token = self._session.refresh_token(
-                                self._session.metadata["token_endpoint"]
-                            )
-
-                daemon = Thread(target=periodic_refresh_token, daemon=True, name="TokenRefresh")
-                daemon.start()
-
-    def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> Session:
-        """
-        Log in to the Weaviate server only if the Weaviate server has an OpenID configured.
+        Either through authlib.oauth2 if authentication is enabled or a normal request session otherwise.
 
         Raises
         ------
@@ -133,12 +112,16 @@ class BaseConnection:
             proxies=self._proxies,
         )
         if response.status_code == 200:
-            if isinstance(auth_client_secret, AuthCredentials):
+            if auth_client_secret is not None:
                 resp = response.json()
                 _auth = _Auth(resp, auth_client_secret, self)
+                self._session = _auth.get_auth_session()
+
                 if isinstance(auth_client_secret, AuthClientCredentials):
-                    self._auth = _auth
-                return _auth.get_auth_session()
+                    # credentials should only be saved for client credentials, otherwise use refresh token
+                    self._create_background_token_refresh(_auth)
+                else:
+                    self._create_background_token_refresh()
             else:
                 raise AuthenticationFailedException(
                     f""""No login credentials provided. The weaviate instance at {self.url} requires login credential,
@@ -146,13 +129,53 @@ class BaseConnection:
                 )
         elif response.status_code == 404 and auth_client_secret is not None:
             _Warnings.auth_with_anon_weaviate()
-        return requests.Session()
+            self._session = requests.Session()
+        else:
+            self._session = requests.Session()
+
+    def _create_background_token_refresh(self, _auth: Optional[_Auth] = None):
+        """Create a background thread that periodically refreshes access and refresh tokens.
+
+        While the underlying library refreshes tokens, it does not have an internal cronjob that checks every
+        X-seconds if a token has expired. If there is no activity for longer than the refresh tokens lifetime, it will
+        expire. Therefore, refresh manually shortly before expiration time is up."""
+        if "refresh_token" not in self._session.token and _auth is None:
+            return
+
+        expires_in: int = self._session.token.get(
+            "expires_in", 60
+        )  # use 1minute as token lifetime if not supplied
+
+        def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]):
+            while True:
+                time.sleep(min(refresh_time - 5, 1))
+                # use refresh token when available
+                if "refresh_token" in self._session.token:
+                    self._session.token = self._session.refresh_token(
+                        self._session.metadata["token_endpoint"]
+                    )
+                    refresh_time = self._session.token.get("expires_in")
+                else:
+                    # client credentials usually does not contain a refresh token => get a new token using the
+                    # saved credentials
+                    assert _auth is not None
+                    new_session = _auth.get_auth_session()
+                    self._session.token = new_session.fetch_token()
+
+        self._background_thread = Thread(
+            target=periodic_refresh_token,
+            args=(expires_in, _auth),
+            daemon=True,
+            name="TokenRefresh",
+        )
+        self._background_thread.start()
 
     def __del__(self):
         """
         Destructor for Connection class instance.
         """
-        if hasattr(self, "_session"):  # in case an exception happens before session is defined
+        # in case an exception happens before session is defined
+        if hasattr(self, "_session"):
             self._session.close()
 
     def _get_request_header(self) -> dict:
@@ -244,7 +267,6 @@ class BaseConnection:
         self,
         path: str,
         weaviate_object: dict,
-        external_url: bool = False,
     ) -> requests.Response:
         """
         Make a POST request to the Weaviate server instance.
@@ -268,10 +290,7 @@ class BaseConnection:
         requests.ConnectionError
             If the POST request could not be made.
         """
-        if external_url:
-            request_url = path
-        else:
-            request_url = self.url + self._api_version_path + path
+        request_url = self.url + self._api_version_path + path
 
         return self._session.post(
             url=request_url,

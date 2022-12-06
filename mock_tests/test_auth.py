@@ -2,6 +2,7 @@ import pytest
 
 import weaviate
 from mock_tests.conftest import MOCK_SERVER_URL, CLIENT_ID
+from weaviate.exceptions import MissingScopeException
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
 CLIENT_SECRET = "SomeSecret.DontTell"
@@ -75,3 +76,13 @@ def test_auth_header_priority(weaviate_auth_mock, header_name: str):
         additional_headers={header_name: "Bearer " + bearer_token},
     )
     client.schema.delete_all()  # some call that includes authorization
+
+
+def test_missing_scope(weaviate_auth_mock):
+    with pytest.raises(MissingScopeException):
+        weaviate.Client(
+            url=MOCK_SERVER_URL,
+            auth_client_secret=weaviate.AuthClientCredentials(
+                client_secret=CLIENT_SECRET, scope=None
+            ),
+        )
