@@ -183,7 +183,7 @@ class Client:
             If weaviate reports a none OK status.
         """
 
-        response = self._connection._meta
+        response = self._connection.get_meta()
         return response.json()
 
     def get_open_id_configuration(self) -> Optional[dict]:

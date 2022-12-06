@@ -67,7 +67,6 @@ class BaseConnection:
         """
 
         self._api_version_path = "/v1"
-        self._server_version = None
         self._session = requests.Session()
         self.url = url  # e.g. http://localhost:80
         self.timeout_config = timeout_config  # this uses the setter
@@ -441,22 +440,16 @@ class Connection(BaseConnection):
         super().__init__(
             url, auth_client_secret, timeout_config, proxies, trust_env, additional_headers
         )
-        self._meta = self._get_meta()
-        self._server_version = self._meta["version"]
-        if self._server_version < "1.14":
-            _Warnings.weaviate_server_older_than_1_14(self._server_version)
+        version = self.get_meta()["version"]
+        if version < "1.14":
+            _Warnings.weaviate_server_older_than_1_14(version)
 
     @property
     def server_version(self) -> str:
         """Version of the weaviate instance."""
-        return self._server_version
+        return self.get_meta()["version"]
 
-    @property
-    def meta(self) -> Dict[str, str]:
-        """Version of the weaviate instance."""
-        return self._meta
-
-    def _get_meta(self) -> Dict[str, str]:
+    def get_meta(self) -> Dict[str, str]:
         """Returns the meta endpoint."""
         response = self.get(path="/meta")
         if response.status_code == 200:
