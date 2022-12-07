@@ -9,7 +9,7 @@ from weaviate.warnings import _Warnings
 
 @dataclass
 class AuthClientCredentials:
-    """Authenticate for the client credential flow using client secrets.
+    """Authenticate for the Client Credential flow using client secrets.
 
     Acquire the client secret from your identify provider and set the appropriate scope. The client includes hardcoded
     scopes for Azure, otherwise it needs to be supplied.
@@ -21,7 +21,7 @@ class AuthClientCredentials:
 
 @dataclass
 class AuthClientPassword:
-    """Using username and password for authentication. In case of grant type password.
+    """Using username and password for authentication with Resource Owner Password flow.
 
     For some providers the scope needs to contain "offline_access" (and "openid" which is automatically added) to return
     a refresh token. Without a refresh token the authentication will expire once the lifetime of the access token is up.

@@ -61,7 +61,10 @@ class Client:
         url : str
             The URL to the weaviate instance.
         auth_client_secret : weaviate.AuthCredentials or None, optional
-            Authentication client secret, by default None.
+            Authenticate to weaviate by using one of the given authentication modes:
+            - weaviate.auth.AuthBearerToken to use existing access and (optionally, but recommended) refresh tokens
+            - weaviate.auth.AuthClientPassword to use username and password for oidc Resource Owner Password flow
+            - weaviate.auth.AuthClientCredentials to use a client secret for oidc client credential flow
         timeout_config : tuple(Real, Real) or Real, optional
             Set the timeout configuration for all requests to the Weaviate server. It can be a
             real number or, a tuple of two real numbers: (connect timeout, read timeout).
@@ -79,10 +82,8 @@ class Client:
             NOTE: 'proxies' has priority over 'trust_env', i.e. if 'proxies' is NOT None,
             'trust_env' is ignored.
         additional_headers : dict or None
-            Additional headers to include in the requests. You can set a bearer token to
-            authenticate directly to Weaviate by setting the additional headers like this:
-                {"authorization": "Bearer <MY_TOKEN>"}
-            And/or used to set OpenAI/HuggingFace key. OpenAI/HuggingFace key looks like this:
+            Additional headers to include in the requests.
+            Can be used to set OpenAI/HuggingFace keys. OpenAI/HuggingFace key looks like this:
                 {"X-OpenAI-Api-Key": "<THE-KEY>"}, {"X-HuggingFace-Api-Key": "<THE-KEY>"}
             by default None
 
