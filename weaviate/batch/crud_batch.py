@@ -219,7 +219,7 @@ class Batch:
     def configure(
         self,
         batch_size: Optional[int] = None,
-        creation_time: Real = 10,
+        creation_time: Optional[Real] = None,
         timeout_retries: int = 3,
         connection_error_retries: int = 3,
         callback: Optional[Callable[[dict], None]] = check_batch_result,
@@ -241,8 +241,7 @@ class Batch:
             auto-create; 2) in case `dynamic` is True -> the initial value for both
             `recommended_num_objects` and `recommended_num_references`, by default None
         creation_time : Real, optional
-            The time interval it should take the Batch to be created, used ONLY for computing
-            `recommended_num_objects` and `recommended_num_references`, by default 10
+            How long it should take to create a Batch. Used ONLY for computing dynamic batch sizes. By default None
         timeout_retries : int, optional
             Number of retries to create a Batch that failed with ReadTimeout, by default 3
         connection_error_retries : int, optional
@@ -283,7 +282,7 @@ class Batch:
     def __call__(
         self,
         batch_size: Optional[int] = None,
-        creation_time: Real = 10,
+        creation_time: Optional[Real] = None,
         timeout_retries: int = 3,
         connection_error_retries: int = 3,
         callback: Optional[Callable[[dict], None]] = check_batch_result,
@@ -305,8 +304,7 @@ class Batch:
             auto-create; 2) in case `dynamic` is True -> the initial value for both
             `recommended_num_objects` and `recommended_num_references`, by default None
         creation_time : Real, optional
-            The time interval it should take the Batch to be created, used ONLY for computing
-            `recommended_num_objects` and `recommended_num_references`, by default 10
+            How long it should take to create a Batch. Used ONLY for computing dynamic batch sizes. By default None
         timeout_retries : int, optional
             Number of retries to create a Batch that failed with ReadTimeout, by default 3
         connection_error_retries : int, optional
@@ -333,13 +331,17 @@ class Batch:
         ValueError
             If the value of one of the arguments is wrong.
         """
+        if creation_time is not None:
+            _check_positive_num(creation_time, "creation_time", Real)
+            self._creation_time = creation_time
+        else:
+            self._creation_time = min(self._connection.timeout_config[0] / 10, 2)
 
-        _check_positive_num(creation_time, "creation_time", Real)
         _check_non_negative(timeout_retries, "timeout_retries", int)
         _check_non_negative(connection_error_retries, "connection_error_retries", int)
 
         self._callback = callback
-        self._creation_time = creation_time
+
         self._timeout_retries = timeout_retries
         self._connection_error_retries = connection_error_retries
 
