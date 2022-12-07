@@ -113,6 +113,6 @@ class _Auth:
             grant_type="client_credentials",
             token={"access_token": None, "expires_in": -100},
         )
-        # explicitly fetch tokens. Otherwise authlib will do it in the background and we might have race-conditions
+        # explicitly fetch tokens. Otherwise, authlib will do it in the background and we might have race-conditions
         session.fetch_token()
         return session

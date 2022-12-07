@@ -87,9 +87,14 @@ class BaseConnection:
 
         self._proxies = _get_proxies(proxies, trust_env)
 
-        if "authorization" in self._headers:
+        # auth secrets can contain more information than a header (refresh tokens and lifetime) and therefore take
+        # precedent over headers
+        if "authorization" in self._headers and auth_client_secret is None:
             bearer_header = self._headers["authorization"]
             auth_client_secret = auth.AuthBearerToken(access_token=bearer_header)
+        elif "authorization" in self._headers and auth_client_secret is not None:
+            _Warnings.auth_header_and_auth_secret()
+            self._headers.pop("authorization")
 
         self._background_thread: Optional[Thread] = None
         self._session: Session

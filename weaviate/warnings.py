@@ -43,11 +43,17 @@ class _Warnings:
         if refresh_expires_in < 0:
             msg += f"refresh token expiration time is negative: {refresh_expires_in}."
 
-        warnings.warn(
-            message=msg,
-            category=UserWarning,
-            stacklevel=1,
-        )
+        warnings.warn(message=msg, category=UserWarning, stacklevel=1)
+
+    @staticmethod
+    def auth_header_and_auth_secret():
+        msg = """Auth004: Received an authentication header and an auth_client_secret parameter.
+
+         The auth_client_secret takes precedence over the header and the authentication header will be ignored. Use
+         weaviate.auth.AuthBearerToken(..) to supply an access token via auth_client_secret parameter and (if available)
+         also supply refresh tokens and token lifetimes.
+         """
+        warnings.warn(message=msg, category=UserWarning, stacklevel=1)
 
     @staticmethod
     def weaviate_server_older_than_1_14(server_version: str):
