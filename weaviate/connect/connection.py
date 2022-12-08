@@ -7,7 +7,7 @@ import datetime
 import os
 import time
 from numbers import Real
-from threading import Thread
+from threading import Thread, Event
 from typing import Any, Dict, Tuple, Optional, Union
 
 import requests
@@ -96,8 +96,8 @@ class BaseConnection:
             _Warnings.auth_header_and_auth_secret()
             self._headers.pop("authorization")
 
-        self._background_thread: Optional[Thread] = None
         self._session: Session
+        self._shutdown_background_event: Optional[Event] = None
         self._create_session(auth_client_secret)
 
     def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
@@ -152,7 +152,7 @@ class BaseConnection:
         )  # use 1minute as token lifetime if not supplied
 
         def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]):
-            while True:
+            while not self._shutdown_background_event.is_set():
                 time.sleep(min(refresh_time - 5, 1))
                 # use refresh token when available
                 if "refresh_token" in self._session.token:
@@ -167,19 +167,25 @@ class BaseConnection:
                     new_session = _auth.get_auth_session()
                     self._session.token = new_session.fetch_token()
 
-        self._background_thread = Thread(
+        demon = Thread(
             target=periodic_refresh_token,
             args=(expires_in, _auth),
             daemon=True,
             name="TokenRefresh",
         )
-        self._background_thread.start()
+        demon.start()
+        self._shutdown_background_event = Event()
 
     def __del__(self):
         """
         Destructor for Connection class instance.
         """
-        # in case an exception happens before session is defined
+        # in case an exception happens before definition of these members
+        if (
+            hasattr(self, "_shutdown_background_event")
+            and self._shutdown_background_event is not None
+        ):
+            self._shutdown_background_event.set()
         if hasattr(self, "_session"):
             self._session.close()
 
