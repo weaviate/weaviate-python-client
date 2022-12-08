@@ -71,8 +71,6 @@ class _Auth:
             token["expires_in"] = config.expires_in
         if config.refresh_token is not None:
             token["refresh_token"] = config.refresh_token
-        if config.refresh_expires_in is not None:
-            token["refresh_expires_in"] = config.refresh_expires_in
 
         if "refresh_token" not in token:
             _Warnings.auth_no_refresh_token(config.expires_in)

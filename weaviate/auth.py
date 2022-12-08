@@ -36,22 +36,19 @@ class AuthClientPassword:
 class AuthBearerToken:
     """Using a preexisting bearer/access token for authentication.
 
-    Only the access token is required. However, when no refresh token is supplied, the authentication will expire once
-    the lifetime of the access token is up.
+    The expiration time of access tokens is given in seconds.
 
-    The expiration time of access and refresh tokens are given in seconds.
+    Only the access token is required. However, when no refresh token is given, the authentication will expire once
+    the lifetime of the access token is up.
     """
 
     access_token: str
     expires_in: int = 60
     refresh_token: Optional[str] = None
-    refresh_expires_in: Optional[int] = None
 
     def __post_init__(self):
-        if (self.expires_in and self.expires_in < 0) or (
-            self.refresh_expires_in is not None and self.refresh_expires_in < 0
-        ):
-            _Warnings.auth_negative_expiration_time(self.expires_in, self.refresh_expires_in)
+        if self.expires_in and self.expires_in < 0:
+            _Warnings.auth_negative_expiration_time(self.expires_in)
 
 
 AuthCredentials = Union[AuthBearerToken, AuthClientPassword, AuthClientCredentials]

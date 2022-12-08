@@ -36,12 +36,8 @@ class _Warnings:
         )
 
     @staticmethod
-    def auth_negative_expiration_time(expires_in: int, refresh_expires_in: Optional[int]):
-        msg = """Auth003:"""
-        if expires_in < 0:
-            msg += f"access token expiration time is negative: {expires_in}."
-        if refresh_expires_in < 0:
-            msg += f"refresh token expiration time is negative: {refresh_expires_in}."
+    def auth_negative_expiration_time(expires_in: int):
+        msg = f"""Auth003: Access token expiration time is negative: {expires_in}."""
 
         warnings.warn(message=msg, category=UserWarning, stacklevel=1)
 
