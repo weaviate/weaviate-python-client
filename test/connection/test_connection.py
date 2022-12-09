@@ -3,7 +3,6 @@ from unittest.mock import patch, Mock
 
 from test.util import check_error_message
 from weaviate.connect.connection import BaseConnection, _get_proxies, _get_valid_timeout_config
-from weaviate.exceptions import AuthenticationFailedException
 
 
 class TestConnection(unittest.TestCase):
@@ -12,9 +11,6 @@ class TestConnection(unittest.TestCase):
         connection: BaseConnection,
         url="test_url",
         timeout_config=(2, 20),
-        auth_expires=0,
-        auth_bearer=None,
-        auth_client_secret=None,
         oidc_auth_flow=False,
         headers=None,
     ):
@@ -29,13 +25,6 @@ class TestConnection(unittest.TestCase):
             self.assertEqual(connection.url, url)
         if timeout_config != "skip":
             self.assertEqual(connection.timeout_config, timeout_config)
-        if auth_expires != "skip":
-            self.assertEqual(connection._auth_expires, auth_expires)
-        if auth_bearer != "skip":
-            self.assertEqual(connection._auth_bearer, auth_bearer)
-        if auth_client_secret != "skip":
-            if auth_client_secret is not None:
-                self.assertEqual(connection._auth_client_secret, auth_client_secret)
         if oidc_auth_flow != "skip":
             if oidc_auth_flow is True:
                 self.assertIsNotNone(connection._auth)
@@ -43,95 +32,6 @@ class TestConnection(unittest.TestCase):
                 self.assertIsNone(connection._auth)
         if headers != "skip":
             self.assertEqual(connection._headers, headers)
-
-    @patch("weaviate.connect.connection.BaseConnection._refresh_authentication")
-    @patch("weaviate.connect.connection.requests")
-    def test__init__(self, mock_requests, mock_refresh_authentication):
-        """
-        Test the `__init__` method.
-        """
-
-        # error messages
-        auth_error_message = """"No login credentials provided. The weaviate instance at test_url requires login credential,
-                    use argument 'auth_client_secret'."""
-        ad_headers_err_message = lambda dt: (
-            "'additional_headers' must be of type dict or None. " f"Given type: {dt}."
-        )
-
-        # requests error
-        mock_session = mock_requests.Session.return_value = Mock()
-
-        # additional_headers error check
-        with self.assertRaises(TypeError) as error:
-            BaseConnection(
-                url="test_url",
-                auth_client_secret=None,
-                timeout_config=(3, 23),
-                proxies=None,
-                trust_env=False,
-                additional_headers=["test", True],
-            )
-        check_error_message(self, error, ad_headers_err_message(list))
-        mock_session.get.assert_not_called()
-
-        # non 200 status_code return
-        mock_session.get.side_effect = None
-        mock_response = Mock(status_code=400)
-        mock_session.get.return_value = mock_response
-        connection = BaseConnection(
-            url="test_url",
-            auth_client_secret=None,
-            timeout_config=(3, 23),
-            proxies=None,
-            trust_env=False,
-            additional_headers=None,
-        )
-        self.check_connection_attributes(connection, timeout_config=(3, 23))
-        mock_session.get.assert_called_with(
-            "test_url/v1/.well-known/openid-configuration",
-            headers={"content-type": "application/json"},
-            proxies={},
-            timeout=(3, 23),
-        )
-        mock_refresh_authentication.assert_not_called()
-
-        # 200 status_code return and no auth provided
-        mock_session.get.side_effect = None
-        mock_response = Mock(status_code=200)
-        mock_session.get.return_value = mock_response
-        with self.assertRaises(AuthenticationFailedException) as error:
-            BaseConnection(
-                url="test_url",
-                auth_client_secret=None,
-                timeout_config=(2, 20),
-                proxies={},
-                trust_env=False,
-                additional_headers=None,
-            )
-        check_error_message(self, error, auth_error_message)
-        mock_session.get.assert_called_with(
-            "test_url/v1/.well-known/openid-configuration",
-            headers={"content-type": "application/json"},
-            timeout=(2, 20),
-            proxies={},
-        )
-
-        # 200 status_code return and token provided
-        with patch("weaviate.connect.connection.BaseConnection._log_in") as mock_login:
-            connection = BaseConnection(
-                url="test_url",
-                auth_client_secret=None,
-                timeout_config=(2, 20),
-                proxies=None,
-                trust_env=False,
-                additional_headers={"AuthorizatioN": "my token"},
-            )
-            self.check_connection_attributes(
-                connection,
-                oidc_auth_flow=False,
-                headers={"content-type": "application/json", "authorization": "my token"},
-            )
-            mock_login.assert_not_called()
 
     @patch("weaviate.connect.connection.requests")
     def test_all_requests_methods(self, mock_requests):
@@ -291,7 +191,7 @@ class TestConnection(unittest.TestCase):
             proxies={"test": True},
         )
 
-    @patch("weaviate.connect.connection.BaseConnection._log_in")
+    @patch("weaviate.connect.connection.BaseConnection._create_session")
     def test_timeout_config(self, mock_log_in):
         """
         Test the setter and getter of `timeout_config`.

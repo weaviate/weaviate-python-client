@@ -7,14 +7,19 @@ import datetime
 import os
 import time
 from numbers import Real
+from threading import Thread, Event
 from typing import Any, Dict, Tuple, Optional, Union
 
 import requests
+from authlib.integrations.requests_client import OAuth2Session
 
-from weaviate.auth import AuthCredentials
+from weaviate import auth
+from weaviate.auth import AuthCredentials, AuthClientCredentials
 from weaviate.connect.authentication import _Auth
 from weaviate.exceptions import AuthenticationFailedException, UnexpectedStatusCodeException
 from weaviate.warnings import _Warnings
+
+Session = Union[requests.sessions.Session, OAuth2Session]
 
 
 class BaseConnection:
@@ -39,7 +44,8 @@ class BaseConnection:
         url : str
             URL to a running weaviate instance.
         auth_client_secret : weaviate.auth.AuthCredentials, optional
-            User login credentials to a weaviate instance.
+            Credentials to authenticate with a weaviate instance. The credentials are not saved within the client and
+            authentication is done via authentication tokens.
         timeout_config : tuple(Real, Real) or Real, optional
             Set the timeout configuration for all requests to the Weaviate server. It can be a
             real number or, a tuple of two real numbers: (connect timeout, read timeout).
@@ -67,94 +73,121 @@ class BaseConnection:
         """
 
         self._api_version_path = "/v1"
-        self._session = requests.Session()
         self.url = url  # e.g. http://localhost:80
         self.timeout_config = timeout_config  # this uses the setter
-
-        self._auth_expires = 0  # unix time when auth expires
-        self._auth_bearer = None
-        self._auth_client_secret = auth_client_secret
-
-        self._auth: Optional[_Auth] = None
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:
             if not isinstance(additional_headers, dict):
                 raise TypeError(
-                    "'additional_headers' must be of type dict or None. "
-                    f"Given type: {type(additional_headers)}."
+                    f"'additional_headers' must be of type dict or None. Given type: {type(additional_headers)}."
                 )
             for key, value in additional_headers.items():
                 self._headers[key.lower()] = value
 
         self._proxies = _get_proxies(proxies, trust_env)
 
-        if "authorization" not in self._headers:
-            self._log_in()
+        # auth secrets can contain more information than a header (refresh tokens and lifetime) and therefore take
+        # precedent over headers
+        if "authorization" in self._headers and auth_client_secret is None:
+            bearer_header = self._headers["authorization"]
+            auth_client_secret = auth.AuthBearerToken(access_token=bearer_header)
+        elif "authorization" in self._headers and auth_client_secret is not None:
+            _Warnings.auth_header_and_auth_secret()
+            self._headers.pop("authorization")
 
-    def _log_in(self) -> None:
-        """
-        Log in to the Weaviate server only if the Weaviate server has an OpenID configured.
+        self._session: Session
+        self._shutdown_background_event: Optional[Event] = None
+        self._create_session(auth_client_secret)
+
+    def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
+        """Creates a request session.
+
+        Either through authlib.oauth2 if authentication is enabled or a normal request session otherwise.
 
         Raises
         ------
         ValueError
-            If no authentication credentials provided but the Weaviate server has an OpenID
-            configured.
+            If no authentication credentials provided but the Weaviate server has OpenID configured.
         """
-
-        response = self._session.get(
+        response = requests.get(
             self.url + self._api_version_path + "/.well-known/openid-configuration",
             headers={"content-type": "application/json"},
             timeout=self._timeout_config,
             proxies=self._proxies,
         )
-
         if response.status_code == 200:
-            if isinstance(self._auth_client_secret, AuthCredentials):
+            if auth_client_secret is not None:
                 resp = response.json()
-                self._auth = _Auth(resp, self._auth_client_secret, self)
-                self._refresh_authentication()
+                _auth = _Auth(resp, auth_client_secret, self)
+                self._session = _auth.get_auth_session()
+
+                if isinstance(auth_client_secret, AuthClientCredentials):
+                    # credentials should only be saved for client credentials, otherwise use refresh token
+                    self._create_background_token_refresh(_auth)
+                else:
+                    self._create_background_token_refresh()
             else:
                 raise AuthenticationFailedException(
                     f""""No login credentials provided. The weaviate instance at {self.url} requires login credential,
                     use argument 'auth_client_secret'."""
                 )
-        elif response.status_code == 404 and self._auth_client_secret is not None:
+        elif response.status_code == 404 and auth_client_secret is not None:
             _Warnings.auth_with_anon_weaviate()
+            self._session = requests.Session()
+        else:
+            self._session = requests.Session()
+
+    def _create_background_token_refresh(self, _auth: Optional[_Auth] = None):
+        """Create a background thread that periodically refreshes access and refresh tokens.
+
+        While the underlying library refreshes tokens, it does not have an internal cronjob that checks every
+        X-seconds if a token has expired. If there is no activity for longer than the refresh tokens lifetime, it will
+        expire. Therefore, refresh manually shortly before expiration time is up."""
+        if "refresh_token" not in self._session.token and _auth is None:
+            return
+
+        expires_in: int = self._session.token.get(
+            "expires_in", 60
+        )  # use 1minute as token lifetime if not supplied
+
+        def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]):
+            while not self._shutdown_background_event.is_set():
+                time.sleep(min(refresh_time - 5, 1))
+                # use refresh token when available
+                if "refresh_token" in self._session.token:
+                    self._session.token = self._session.refresh_token(
+                        self._session.metadata["token_endpoint"]
+                    )
+                    refresh_time = self._session.token.get("expires_in")
+                else:
+                    # client credentials usually does not contain a refresh token => get a new token using the
+                    # saved credentials
+                    assert _auth is not None
+                    new_session = _auth.get_auth_session()
+                    self._session.token = new_session.fetch_token()
+
+        demon = Thread(
+            target=periodic_refresh_token,
+            args=(expires_in, _auth),
+            daemon=True,
+            name="TokenRefresh",
+        )
+        demon.start()
+        self._shutdown_background_event = Event()
 
     def __del__(self):
         """
         Destructor for Connection class instance.
         """
-
-        self._session.close()
-
-    def _refresh_authentication(self) -> None:
-        """Refreshes the bearer token if current authentication is expired
-
-        Raises
-        ------
-        weaviate.AuthenticationFailedException
-            If cannot connect to weaviate.
-        weaviate.AuthenticationFailedException
-            If cannot authenticate http status not ok.
-        weaviate.AuthenticationFailedException
-            If cannot connect to the third party authentication service.
-        weaviate.AuthenticationFailedException
-            If status not OK in connection to the third party authentication service.
-        weaviate.AuthenticationFailedException
-            If grant_types supported by the third-party authentication service are insufficient.
-        weaviate.AuthenticationFailedException
-            If unable to get a OAuth token from server.
-        weaviate.AuthenticationFailedException
-            If authentication access denied.
-        """
-        if self._auth_expires >= _get_epoch_time():
-            return
-
-        self._auth_bearer, expires_in = self._auth.get_auth_token()
-        self._auth_expires = int(_get_epoch_time() + expires_in - 2)  # -2 for some lag time
+        # in case an exception happens before definition of these members
+        if (
+            hasattr(self, "_shutdown_background_event")
+            and self._shutdown_background_event is not None
+        ):
+            self._shutdown_background_event.set()
+        if hasattr(self, "_session"):
+            self._session.close()
 
     def _get_request_header(self) -> dict:
         """
@@ -165,10 +198,6 @@ class BaseConnection:
         dict
             Request header as a dict.
         """
-
-        if self._auth is not None:
-            self._refresh_authentication()
-            self._headers["Authorization"] = "Bearer " + self._auth_bearer
         return self._headers
 
     def delete(
@@ -249,7 +278,6 @@ class BaseConnection:
         self,
         path: str,
         weaviate_object: dict,
-        external_url: bool = False,
     ) -> requests.Response:
         """
         Make a POST request to the Weaviate server instance.
@@ -273,10 +301,7 @@ class BaseConnection:
         requests.ConnectionError
             If the POST request could not be made.
         """
-        if external_url:
-            request_url = path
-        else:
-            request_url = self.url + self._api_version_path + path
+        request_url = self.url + self._api_version_path + path
 
         return self._session.post(
             url=request_url,
