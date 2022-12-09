@@ -13,6 +13,7 @@ from typing import Any, Dict, Tuple, Optional, Union
 import requests
 from authlib.integrations.requests_client import OAuth2Session
 from requests.exceptions import ConnectionError as RequestsConnectionError
+from urllib3.exceptions import NewConnectionError
 
 from weaviate import auth
 from weaviate.auth import AuthCredentials, AuthClientCredentials
@@ -158,25 +159,40 @@ class BaseConnection:
         def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]):
             time.sleep(min(refresh_time - 5, 1))
             while not self._shutdown_background_event.is_set():
+                print("START", refresh_time, flush=True)
                 try:
                     # use refresh token when available
                     if "refresh_token" in self._session.token:
                         self._session.token = self._session.refresh_token(
                             self._session.metadata["token_endpoint"]
                         )
-                        print(self._shutdown_background_event.is_set())
+                        print(self._shutdown_background_event.is_set(), flush=True)
                         refresh_time = self._session.token.get("expires_in")
                     else:
                         # client credentials usually does not contain a refresh token => get a new token using the
                         # saved credentials
                         assert _auth is not None
                         new_session = _auth.get_auth_session()
-                        print(self._shutdown_background_event.is_set())
+                        print(self._shutdown_background_event.is_set(), flush=True)
                         self._session.token = new_session.fetch_token()
                 except RequestsConnectionError as exc:
                     if self._shutdown_background_event.is_set():
                         return
+                    print(type(exc), flush=True)
+                    print(self._shutdown_background_event.is_set(), flush=True)
+                    raise exc
+                except NewConnectionError as exc:
+                    if self._shutdown_background_event.is_set():
+                        return
 
+                    raise exc
+                except requests.exceptions.ConnectionRefusedError as exc:
+                    if self._shutdown_background_event.is_set():
+                        return
+
+                    raise exc
+                except Exception as exc:
+                    print(type(exc))
                     raise exc
 
                 time.sleep(min(refresh_time - 5, 1))
@@ -193,6 +209,7 @@ class BaseConnection:
         Destructor for Connection class instance.
         """
         # in case an exception happens before definition of these members
+        print("In shutdown", flush=True)
         if (
             hasattr(self, "_shutdown_background_event")
             and self._shutdown_background_event is not None
