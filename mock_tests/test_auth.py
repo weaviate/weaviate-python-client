@@ -9,6 +9,7 @@ from mock_tests.conftest import MOCK_SERVER_URL, CLIENT_ID
 from weaviate.exceptions import MissingScopeException
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
+REFRESH_TOKEN = "UseMeToRefreshYourAccessToken"
 CLIENT_SECRET = "SomeSecret.DontTell"
 SCOPE = "IcanBeAnything"
 
@@ -23,7 +24,9 @@ def test_user_password(weaviate_auth_mock):
     weaviate_auth_mock.expect_request(
         "/auth",
         data=f"grant_type=password&username={user}&password={pw}&scope=offline_access&client_id={CLIENT_ID}",
-    ).respond_with_json({"access_token": ACCESS_TOKEN, "expires_in": 500})
+    ).respond_with_json(
+        {"access_token": ACCESS_TOKEN, "expires_in": 500, "refresh_token": REFRESH_TOKEN}
+    )
     weaviate_auth_mock.expect_request(
         "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
     ).respond_with_json({})
@@ -41,7 +44,8 @@ def test_bearer_token(weaviate_auth_mock):
     ).respond_with_json({})
 
     client = weaviate.Client(
-        url=MOCK_SERVER_URL, auth_client_secret=weaviate.AuthBearerToken(ACCESS_TOKEN)
+        url=MOCK_SERVER_URL,
+        auth_client_secret=weaviate.AuthBearerToken(ACCESS_TOKEN, refresh_token=REFRESH_TOKEN),
     )
     client.schema.delete_all()  # some call that includes authorization
 
@@ -66,13 +70,13 @@ def test_client_credentials(weaviate_auth_mock):
 def test_auth_header_priority(recwarn, weaviate_auth_mock, header_name: str):
     """Test that auth_client_secret has priority over the auth header."""
 
-    # testing for warnings can be flaky without this as there are open SSL conections
+    # testing for warnings can be flaky without this as there are open SSL connections
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 
     bearer_token = "OTHER TOKEN"
 
     weaviate_auth_mock.expect_request("/auth").respond_with_json(
-        {"access_token": ACCESS_TOKEN, "expires_in": 500}
+        {"access_token": ACCESS_TOKEN, "expires_in": 500, "refresh_token": REFRESH_TOKEN}
     )
 
     def handler(request: Request):
@@ -84,7 +88,7 @@ def test_auth_header_priority(recwarn, weaviate_auth_mock, header_name: str):
     client = weaviate.Client(
         url=MOCK_SERVER_URL,
         auth_client_secret=weaviate.AuthBearerToken(
-            access_token=ACCESS_TOKEN, refresh_token="SOMETHING"
+            access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN
         ),
         additional_headers={header_name: "Bearer " + bearer_token},
     )

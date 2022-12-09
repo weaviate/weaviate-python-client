@@ -147,6 +147,7 @@ class BaseConnection:
         if "refresh_token" not in self._session.token and _auth is None:
             return
 
+        self._shutdown_background_event = Event()
         expires_in: int = self._session.token.get(
             "expires_in", 60
         )  # use 1minute as token lifetime if not supplied
@@ -174,7 +175,6 @@ class BaseConnection:
             name="TokenRefresh",
         )
         demon.start()
-        self._shutdown_background_event = Event()
 
     def __del__(self):
         """
