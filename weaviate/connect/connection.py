@@ -160,8 +160,8 @@ class BaseConnection:
         )  # use 1minute as token lifetime if not supplied
 
         def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]):
+            time.sleep(min(refresh_time - 5, 1))
             while not self._shutdown_background_event.is_set():
-                time.sleep(min(refresh_time - 5, 1))
                 # use refresh token when available
                 if "refresh_token" in self._session.token:
                     self._session.token = self._session.refresh_token(
@@ -174,6 +174,7 @@ class BaseConnection:
                     assert _auth is not None
                     new_session = _auth.get_auth_session()
                     self._session.token = new_session.fetch_token()
+                time.sleep(min(refresh_time - 5, 1))
 
         demon = Thread(
             target=periodic_refresh_token,
