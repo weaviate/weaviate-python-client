@@ -189,7 +189,6 @@ class BaseConnection:
         demon = Thread(
             target=periodic_refresh_token,
             args=(expires_in, _auth),
-            daemon=True,
             name="TokenRefresh",
         )
         demon.start()
