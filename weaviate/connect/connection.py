@@ -13,6 +13,7 @@ from typing import Any, Dict, Tuple, Optional, Union
 
 import requests
 from authlib.integrations.requests_client import OAuth2Session
+from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate import auth
 from weaviate.auth import AuthCredentials, AuthClientCredentials
@@ -162,18 +163,27 @@ class BaseConnection:
         def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]):
             time.sleep(min(refresh_time - 5, 1))
             while not self._shutdown_background_event.is_set():
-                # use refresh token when available
-                if "refresh_token" in self._session.token:
-                    self._session.token = self._session.refresh_token(
-                        self._session.metadata["token_endpoint"]
-                    )
-                    refresh_time = self._session.token.get("expires_in")
-                else:
-                    # client credentials usually does not contain a refresh token => get a new token using the
-                    # saved credentials
-                    assert _auth is not None
-                    new_session = _auth.get_auth_session()
-                    self._session.token = new_session.fetch_token()
+                try:
+                    # use refresh token when available
+                    if "refresh_token" in self._session.token:
+                        self._session.token = self._session.refresh_token(
+                            self._session.metadata["token_endpoint"]
+                        )
+                        print(self._shutdown_background_event.is_set())
+                        refresh_time = self._session.token.get("expires_in")
+                    else:
+                        # client credentials usually does not contain a refresh token => get a new token using the
+                        # saved credentials
+                        assert _auth is not None
+                        new_session = _auth.get_auth_session()
+                        print(self._shutdown_background_event.is_set())
+                        self._session.token = new_session.fetch_token()
+                except RequestsConnectionError as exc:
+                    if self._shutdown_background_event.is_set():
+                        return
+
+                    raise exc
+
                 time.sleep(min(refresh_time - 5, 1))
 
         demon = Thread(
@@ -194,6 +204,7 @@ class BaseConnection:
             and self._shutdown_background_event is not None
         ):
             self._shutdown_background_event.set()
+            time.sleep(0.5)
         if hasattr(self, "_session"):
             self._session.close()
 

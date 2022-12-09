@@ -1,9 +1,10 @@
+import random
+
 import pytest
 from pytest_httpserver import HTTPServer
 
-
 MOCK_IP = "127.0.0.1"
-MOCK_PORT = 23536
+MOCK_PORT = random.randint(20000, 25000)
 CLIENT_ID = "DoesNotMatter"
 MOCK_SERVER_URL = "http://" + MOCK_IP + ":" + str(MOCK_PORT)
 
