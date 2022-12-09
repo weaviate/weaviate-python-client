@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import datetime
 import os
+import threading
 import time
 from numbers import Real
 from threading import Thread, Event
@@ -148,6 +149,12 @@ class BaseConnection:
             return
 
         self._shutdown_background_event = Event()
+
+        def custom_hook(args):
+            raise Exception(args.exc_value)
+
+        threading.excepthook = custom_hook
+
         expires_in: int = self._session.token.get(
             "expires_in", 60
         )  # use 1minute as token lifetime if not supplied
