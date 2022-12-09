@@ -5,6 +5,7 @@ import pytest
 from werkzeug.wrappers import Request, Response
 
 import weaviate
+from mock_tests.conftest import MOCK_SERVER_URL
 from weaviate.batch.crud_batch import CallbackModeRetryFailed, CallbackModeReportErrors
 from weaviate.exceptions import BatchImportFailedException
 from weaviate.util import check_batch_result
@@ -31,7 +32,7 @@ def test_automatic_retry_obs(weaviate_mock):
 
     weaviate_mock.expect_request("/v1/batch/objects").respond_with_handler(handler)
 
-    client = weaviate.Client(url="http://127.0.0.1:23534")
+    client = weaviate.Client(url=MOCK_SERVER_URL)
     added_uuids = []
     batch_size = 4  # Do not change, affects how many failed requests there are
     n = (
@@ -73,7 +74,7 @@ def test_automatic_retry_refs(weaviate_mock):
 
     weaviate_mock.expect_request("/v1/batch/references").respond_with_handler(handler)
 
-    client = weaviate.Client(url="http://127.0.0.1:23534")
+    client = weaviate.Client(url=MOCK_SERVER_URL)
     batch_size = 4  # Do not change, affects how many failed requests there are
     n = (
         50 * batch_size
@@ -107,7 +108,7 @@ def test_automatic_retry_unsuccessful(weaviate_mock):
 
     weaviate_mock.expect_request("/v1/batch/objects").respond_with_handler(handler)
 
-    client = weaviate.Client(url="http://127.0.0.1:23534")
+    client = weaviate.Client(url=MOCK_SERVER_URL)
     n = 50 * 4
     batch_size = 2
     with pytest.raises(BatchImportFailedException):
@@ -137,7 +138,7 @@ def test_print_threadsafety(weaviate_mock, capfd, callback):
 
     weaviate_mock.expect_request("/v1/batch/objects").respond_with_handler(handler)
 
-    client = weaviate.Client(url="http://127.0.0.1:23534")
+    client = weaviate.Client(url=MOCK_SERVER_URL)
 
     added_uuids = []
     n = 50 * 4
