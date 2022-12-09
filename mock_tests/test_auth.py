@@ -21,12 +21,19 @@ def test_user_password(weaviate_auth_mock):
     pw = "SomePassWord"
 
     # note: order matters. If this handler is not called, check of the order of arguments changed
-    weaviate_auth_mock.expect_request(
+    weaviate_auth_mock.expect_request(  # initial token
         "/auth",
         data=f"grant_type=password&username={user}&password={pw}&scope=offline_access&client_id={CLIENT_ID}",
     ).respond_with_json(
         {"access_token": ACCESS_TOKEN, "expires_in": 500, "refresh_token": REFRESH_TOKEN}
     )
+    weaviate_auth_mock.expect_request(
+        "/auth",  # refresh token
+        data=f"grant_type=refresh_token&refresh_token={REFRESH_TOKEN}&scope=offline_access&client_id={CLIENT_ID}",
+    ).respond_with_json(
+        {"access_token": ACCESS_TOKEN, "expires_in": 500, "refresh_token": REFRESH_TOKEN}
+    )
+
     weaviate_auth_mock.expect_request(
         "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
     ).respond_with_json({})
@@ -42,6 +49,12 @@ def test_bearer_token(weaviate_auth_mock):
     weaviate_auth_mock.expect_request(
         "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
     ).respond_with_json({})
+    weaviate_auth_mock.expect_request(
+        "/auth",
+        data=f"grant_type=refresh_token&refresh_token={REFRESH_TOKEN}&scope=offline_access&client_id={CLIENT_ID}",
+    ).respond_with_json(
+        {"access_token": ACCESS_TOKEN, "expires_in": 500, "refresh_token": REFRESH_TOKEN}
+    )
 
     client = weaviate.Client(
         url=MOCK_SERVER_URL,
