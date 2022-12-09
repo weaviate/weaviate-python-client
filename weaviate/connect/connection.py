@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import datetime
 import os
-import threading
 import time
 from numbers import Real
 from threading import Thread, Event
@@ -100,6 +99,7 @@ class BaseConnection:
 
         self._session: Session
         self._shutdown_background_event: Optional[Event] = None
+        self._background_thread: Optional[Thread] = None
         self._create_session(auth_client_secret)
 
     def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
@@ -151,11 +151,6 @@ class BaseConnection:
 
         self._shutdown_background_event = Event()
 
-        def custom_hook(args):
-            raise Exception(args.exc_value)
-
-        threading.excepthook = custom_hook
-
         expires_in: int = self._session.token.get(
             "expires_in", 60
         )  # use 1minute as token lifetime if not supplied
@@ -186,12 +181,12 @@ class BaseConnection:
 
                 time.sleep(min(refresh_time - 5, 1))
 
-        demon = Thread(
+        self._background_thread = Thread(
             target=periodic_refresh_token,
             args=(expires_in, _auth),
             name="TokenRefresh",
         )
-        demon.start()
+        self._background_thread.start()
 
     def __del__(self):
         """
@@ -203,7 +198,7 @@ class BaseConnection:
             and self._shutdown_background_event is not None
         ):
             self._shutdown_background_event.set()
-            time.sleep(0.5)
+            self._background_thread.join(timeout=0.5)
         if hasattr(self, "_session"):
             self._session.close()
 
