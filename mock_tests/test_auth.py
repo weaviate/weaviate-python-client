@@ -100,6 +100,28 @@ def test_auth_header_priority(recwarn, weaviate_auth_mock, header_name: str):
     assert str(w.message).startswith("Auth004")
 
 
+def test_refresh(weaviate_auth_mock):
+    """Test that refresh tokens are used to get a new access token."""
+    weaviate_auth_mock.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
+    ).respond_with_json({})
+
+    weaviate_auth_mock.expect_request(
+        "/auth",
+        data=f"grant_type=refresh_token&refresh_token={REFRESH_TOKEN}&client_id={CLIENT_ID}",
+    ).respond_with_json(
+        {"access_token": ACCESS_TOKEN, "expires_in": 1, "refresh_token": REFRESH_TOKEN}
+    )
+    client = weaviate.Client(
+        url=MOCK_SERVER_URL,
+        auth_client_secret=weaviate.AuthBearerToken(
+            ACCESS_TOKEN, refresh_token=REFRESH_TOKEN, expires_in=1
+        ),
+    )
+    # client gets a new token 5s before expiration
+    client.schema.delete_all()  # some call that includes authorization
+
+
 def test_missing_scope(weaviate_auth_mock):
     with pytest.raises(MissingScopeException):
         weaviate.Client(
