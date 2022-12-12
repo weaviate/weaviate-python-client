@@ -200,7 +200,6 @@ class Batch:
         self._references_throughput_frame = deque(maxlen=5)
         self._future_pool = []
         self._reference_batch_queue = []
-        self._thread_creation_time = self._connection.timeout_config[1]
 
         # user configurable, need to be public should implement a setter/getter
         self._recommended_num_objects = None
@@ -335,7 +334,7 @@ class Batch:
             _check_positive_num(creation_time, "creation_time", Real)
             self._creation_time = creation_time
         else:
-            self._creation_time = min(self._connection.timeout_config[0] / 10, 2)
+            self._creation_time = min(self._connection.timeout_config[1] / 10, 2)
 
         _check_non_negative(timeout_retries, "timeout_retries", int)
         _check_non_negative(connection_error_retries, "connection_error_retries", int)
@@ -368,7 +367,6 @@ class Batch:
             self.shutdown()
             self._num_workers = num_workers
             self.start()
-            self._thread_creation_time = self._connection.timeout_config[1] / num_workers
 
         self._auto_create()
         return self
@@ -969,7 +967,7 @@ class Batch:
                 sum(self._objects_throughput_frame) / len(self._objects_throughput_frame) * 0.75
             )
             self._recommended_num_objects = min(
-                round(obj_per_second * self._thread_creation_time),
+                round(obj_per_second * self._creation_time),
                 self._recommended_num_objects + 250,
             )
         # Create references after all the objects have been created
@@ -1007,7 +1005,7 @@ class Batch:
                 self._references_throughput_frame
             )
             self._recommended_num_references = min(
-                round(ref_per_sec * self._thread_creation_time),
+                round(ref_per_sec * self._creation_time),
                 self._recommended_num_references * 2,
             )
 
