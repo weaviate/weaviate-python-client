@@ -238,3 +238,8 @@ class Client:
         """
 
         self._connection.timeout_config = timeout_config
+
+    def __del__(self):
+        # in case an exception happens before definition of these members
+        if hasattr(self, "_connection"):
+            self._connection.close()

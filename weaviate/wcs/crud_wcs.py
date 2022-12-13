@@ -83,6 +83,11 @@ class WCS(BaseConnection):
         )
         self._email = auth_client_secret.username
 
+    def __del__(self):
+        # in case an exception happens before definition of these members
+        if hasattr(self, "_connection"):
+            self._connection.close()
+
     def create(
         self,
         cluster_name: str = None,
