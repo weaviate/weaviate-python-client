@@ -388,22 +388,49 @@ class TestDataObject(unittest.TestCase):
         data_object.get = mock_get
         data_object.get_by_id(uuid="UUID", additional_properties=["Test", "list"], with_vector=True)
         mock_get.assert_called_with(
-            uuid="UUID", class_name=None, additional_properties=["Test", "list"], with_vector=True, node_name=None, consistency_level=None
+            uuid="UUID",
+            class_name=None,
+            additional_properties=["Test", "list"],
+            with_vector=True,
+            node_name=None,
+            consistency_level=None,
         )
 
         data_object.get_by_id(uuid="UUID2", additional_properties=["Test"], with_vector=False)
         mock_get.assert_called_with(
-            uuid="UUID2", class_name=None, additional_properties=["Test"], with_vector=False, node_name=None, consistency_level=None
+            uuid="UUID2",
+            class_name=None,
+            additional_properties=["Test"],
+            with_vector=False,
+            node_name=None,
+            consistency_level=None,
         )
 
-        data_object.get_by_id(uuid="UUID3", additional_properties=["Test"], with_vector=False, consistency_level="QUORUM")
+        data_object.get_by_id(
+            uuid="UUID3",
+            additional_properties=["Test"],
+            with_vector=False,
+            consistency_level="QUORUM",
+        )
         mock_get.assert_called_with(
-            uuid="UUID3", class_name=None, additional_properties=["Test"], with_vector=False, node_name=None, consistency_level="QUORUM"
+            uuid="UUID3",
+            class_name=None,
+            additional_properties=["Test"],
+            with_vector=False,
+            node_name=None,
+            consistency_level="QUORUM",
         )
 
-        data_object.get_by_id(uuid="UUID4", additional_properties=["Test"], with_vector=False, node_name="node1")
+        data_object.get_by_id(
+            uuid="UUID4", additional_properties=["Test"], with_vector=False, node_name="node1"
+        )
         mock_get.assert_called_with(
-            uuid="UUID4", class_name=None, additional_properties=["Test"], with_vector=False, node_name="node1", consistency_level=None
+            uuid="UUID4",
+            class_name=None,
+            additional_properties=["Test"],
+            with_vector=False,
+            node_name="node1",
+            consistency_level=None,
         )
 
     @patch("weaviate.data.crud_data._get_params")
