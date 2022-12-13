@@ -26,7 +26,10 @@ class TestWeaviateClient(unittest.TestCase):
         check_error_message(self, error, type_error_message + str(int))
 
         # test valid calls
-        with patch("weaviate.client.Connection") as mock_obj:
+        with patch(
+            "weaviate.client.Connection",
+            Mock(side_effect=lambda **kwargs: Mock(timeout_config=kwargs["timeout_config"])),
+        ) as mock_obj:
             Client(
                 url="some_URL",
                 auth_client_secret=None,
@@ -42,7 +45,10 @@ class TestWeaviateClient(unittest.TestCase):
                 additional_headers=None,
             )
 
-        with patch("weaviate.client.Connection") as mock_obj:
+        with patch(
+            "weaviate.client.Connection",
+            Mock(side_effect=lambda **kwargs: Mock(timeout_config=kwargs["timeout_config"])),
+        ) as mock_obj:
             Client(
                 url="some_URL",
                 auth_client_secret=None,
@@ -58,7 +64,10 @@ class TestWeaviateClient(unittest.TestCase):
                 additional_headers={"Test": True},
             )
 
-        with patch("weaviate.client.Connection") as mock_obj:
+        with patch(
+            "weaviate.client.Connection",
+            Mock(side_effect=lambda **kwargs: Mock(timeout_config=kwargs["timeout_config"])),
+        ) as mock_obj:
             Client("some_URL/", auth_client_secret=None, timeout_config=(5, 20))
             mock_obj.assert_called_with(
                 url="some_URL",
@@ -69,7 +78,10 @@ class TestWeaviateClient(unittest.TestCase):
                 additional_headers=None,
             )
 
-        with patch("weaviate.client.Connection") as mock_obj:
+        with patch(
+            "weaviate.client.Connection",
+            Mock(side_effect=lambda **kwargs: Mock(timeout_config=kwargs["timeout_config"])),
+        ) as mock_obj:
             Client(
                 url="some_URL",
                 auth_client_secret=None,

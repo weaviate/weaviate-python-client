@@ -206,7 +206,7 @@ class Batch:
         self._recommended_num_references = None
         self._callback = check_batch_result
         self._batch_size = None
-        self._creation_time = 10.0
+        self._creation_time = min(self._connection.timeout_config[1] / 10, 2)
         self._timeout_retries = 3
         self._connection_error_retries = 3
         self._batching_type = None

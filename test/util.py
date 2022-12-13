@@ -9,6 +9,7 @@ def mock_connection_func(
     side_effect: Union[Exception, Callable, None] = None,
     connection_mock: Optional[Mock] = None,
     server_version: str = "1.13.2,",
+    timeout_config: tuple = (10, 60),
 ) -> Mock:
     """
     Mock the Connection class and mocking its public method/s.
@@ -77,8 +78,8 @@ def mock_connection_func(
             rest_method_mock.side_effect = side_effect
 
     connection_mock.server_version = server_version
-    connection_mock.timeout_config = (10, 30)
-    connection_mock._timeout_config = (10, 30)
+    connection_mock.timeout_config = timeout_config
+    connection_mock._timeout_config = timeout_config
     return connection_mock
 
 
