@@ -200,14 +200,13 @@ class Batch:
         self._references_throughput_frame = deque(maxlen=5)
         self._future_pool = []
         self._reference_batch_queue = []
-        self._thread_creation_time = self._connection.timeout_config[1]
 
         # user configurable, need to be public should implement a setter/getter
         self._recommended_num_objects = None
         self._recommended_num_references = None
         self._callback = check_batch_result
         self._batch_size = None
-        self._creation_time = 10.0
+        self._creation_time = min(self._connection.timeout_config[1] / 10, 2)
         self._timeout_retries = 3
         self._connection_error_retries = 3
         self._batching_type = None
@@ -219,7 +218,7 @@ class Batch:
     def configure(
         self,
         batch_size: Optional[int] = None,
-        creation_time: Real = 10,
+        creation_time: Optional[Real] = None,
         timeout_retries: int = 3,
         connection_error_retries: int = 3,
         callback: Optional[Callable[[dict], None]] = check_batch_result,
@@ -241,8 +240,7 @@ class Batch:
             auto-create; 2) in case `dynamic` is True -> the initial value for both
             `recommended_num_objects` and `recommended_num_references`, by default None
         creation_time : Real, optional
-            The time interval it should take the Batch to be created, used ONLY for computing
-            `recommended_num_objects` and `recommended_num_references`, by default 10
+            How long it should take to create a Batch. Used ONLY for computing dynamic batch sizes. By default None
         timeout_retries : int, optional
             Number of retries to create a Batch that failed with ReadTimeout, by default 3
         connection_error_retries : int, optional
@@ -283,7 +281,7 @@ class Batch:
     def __call__(
         self,
         batch_size: Optional[int] = None,
-        creation_time: Real = 10,
+        creation_time: Optional[Real] = None,
         timeout_retries: int = 3,
         connection_error_retries: int = 3,
         callback: Optional[Callable[[dict], None]] = check_batch_result,
@@ -305,8 +303,7 @@ class Batch:
             auto-create; 2) in case `dynamic` is True -> the initial value for both
             `recommended_num_objects` and `recommended_num_references`, by default None
         creation_time : Real, optional
-            The time interval it should take the Batch to be created, used ONLY for computing
-            `recommended_num_objects` and `recommended_num_references`, by default 10
+            How long it should take to create a Batch. Used ONLY for computing dynamic batch sizes. By default None
         timeout_retries : int, optional
             Number of retries to create a Batch that failed with ReadTimeout, by default 3
         connection_error_retries : int, optional
@@ -333,13 +330,17 @@ class Batch:
         ValueError
             If the value of one of the arguments is wrong.
         """
+        if creation_time is not None:
+            _check_positive_num(creation_time, "creation_time", Real)
+            self._creation_time = creation_time
+        else:
+            self._creation_time = min(self._connection.timeout_config[1] / 10, 2)
 
-        _check_positive_num(creation_time, "creation_time", Real)
         _check_non_negative(timeout_retries, "timeout_retries", int)
         _check_non_negative(connection_error_retries, "connection_error_retries", int)
 
         self._callback = callback
-        self._creation_time = creation_time
+
         self._timeout_retries = timeout_retries
         self._connection_error_retries = connection_error_retries
 
@@ -366,7 +367,6 @@ class Batch:
             self.shutdown()
             self._num_workers = num_workers
             self.start()
-            self._thread_creation_time = self._connection.timeout_config[1] / num_workers
 
         self._auto_create()
         return self
@@ -945,7 +945,7 @@ class Batch:
 
         if not force_wait and self._num_workers > 1 and len(self._future_pool) < self._num_workers:
             return
-        timeout_occured = False
+        timeout_occurred = False
         for done_future in as_completed(self._future_pool):
 
             response_objects, nr_objects = done_future.result()
@@ -958,16 +958,16 @@ class Batch:
                 if self._callback:
                     self._callback(response_objects.json())
             else:
-                timeout_occured = True
+                timeout_occurred = True
 
-        if timeout_occured and self._recommended_num_objects is not None:
+        if timeout_occurred and self._recommended_num_objects is not None:
             self._recommended_num_objects = max(self._recommended_num_objects // 2, 1)
         elif len(self._objects_throughput_frame) != 0 and self._recommended_num_objects is not None:
             obj_per_second = (
                 sum(self._objects_throughput_frame) / len(self._objects_throughput_frame) * 0.75
             )
             self._recommended_num_objects = min(
-                round(obj_per_second * self._thread_creation_time),
+                round(obj_per_second * self._creation_time),
                 self._recommended_num_objects + 250,
             )
         # Create references after all the objects have been created
@@ -980,7 +980,7 @@ class Batch:
             )
             reference_future_pool.append(future)
 
-        timeout_occured = False
+        timeout_occurred = False
         for done_future in as_completed(reference_future_pool):
 
             response_references, nr_references = done_future.result()
@@ -993,9 +993,9 @@ class Batch:
                 if self._callback:
                     self._callback(response_references.json())
             else:
-                timeout_occured = True
+                timeout_occurred = True
 
-        if timeout_occured and self._recommended_num_objects is not None:
+        if timeout_occurred and self._recommended_num_objects is not None:
             self._recommended_num_references = max(self._recommended_num_references // 2, 1)
         elif (
             len(self._references_throughput_frame) != 0
@@ -1005,7 +1005,7 @@ class Batch:
                 self._references_throughput_frame
             )
             self._recommended_num_references = min(
-                round(ref_per_sec * self._thread_creation_time),
+                round(ref_per_sec * self._creation_time),
                 self._recommended_num_references * 2,
             )
 

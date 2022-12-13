@@ -18,7 +18,7 @@ class TestBatch(unittest.TestCase):
         recom_num_obj: int = None,
         recom_num_ref: int = None,
         batch_size: int = None,
-        creation_time: Real = 10.0,
+        creation_time: Real = 2,  # this is based on the default timeout_config of the Client class
         timeout_retries: int = 3,
         connection_error_retries: int = 3,
         batching_type: str = None,
@@ -323,7 +323,7 @@ class TestBatch(unittest.TestCase):
         batch = Batch(mock_connection_func())
         self.check_instance(batch)
 
-        self.assertEqual(batch.creation_time, 10.0)
+        self.assertEqual(batch.creation_time, 2)
         self.check_instance(batch)
 
         #######################################################################
