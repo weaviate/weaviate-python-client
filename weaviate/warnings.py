@@ -52,6 +52,15 @@ class _Warnings:
         warnings.warn(message=msg, category=UserWarning, stacklevel=1)
 
     @staticmethod
+    def auth_cannot_parse_oidc_config(url: str):
+        msg = f"""Auth005: Could not parse Weaviates OIDC configuration, using unauthenticated access. If you added
+        an authorization header yourself it will be unaffected.
+
+        This can happen if weaviate is miss-configured or you have a proxy inbetween the client and weaviate.
+        You can test this by visiting {url}."""
+        warnings.warn(message=msg, category=UserWarning, stacklevel=1)
+
+    @staticmethod
     def weaviate_server_older_than_1_14(server_version: str):
         warnings.warn(
             message=f"""Dep001: You are using the Weaviate Python Client version {version.__version__} which supports

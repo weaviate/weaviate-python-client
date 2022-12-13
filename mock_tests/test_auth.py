@@ -136,6 +136,28 @@ def test_auth_header_without_weaviate_auth(weaviate_mock):
     client.schema.delete_all()  # some call that includes authorization
 
 
+def test_auth_header_with_catchall_proxy(weaviate_mock, recwarn):
+    """Test that the client can handle situations in which a proxy returns a catchall page for all requests."""
+    bearer_token = "OTHER TOKEN"
+    weaviate_mock.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + bearer_token}
+    ).respond_with_json({})
+    weaviate_mock.expect_request("/v1/.well-known/openid-configuration").respond_with_data(
+        "JsonCannotParseThis"
+    )
+
+    client = weaviate.Client(
+        url=MOCK_SERVER_URL,
+        additional_headers={"Authorization": "Bearer " + bearer_token},
+    )
+    client.schema.delete_all()  # some call that includes authorization
+
+    assert len(recwarn) == 1
+    w = recwarn.pop()
+    assert issubclass(w.category, UserWarning)
+    assert str(w.message).startswith("Auth005")
+
+
 def test_missing_scope(weaviate_auth_mock):
     with pytest.raises(MissingScopeException):
         weaviate.Client(
