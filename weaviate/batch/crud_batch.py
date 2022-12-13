@@ -945,7 +945,7 @@ class Batch:
 
         if not force_wait and self._num_workers > 1 and len(self._future_pool) < self._num_workers:
             return
-        timeout_occured = False
+        timeout_occurred = False
         for done_future in as_completed(self._future_pool):
 
             response_objects, nr_objects = done_future.result()
@@ -958,9 +958,9 @@ class Batch:
                 if self._callback:
                     self._callback(response_objects.json())
             else:
-                timeout_occured = True
+                timeout_occurred = True
 
-        if timeout_occured and self._recommended_num_objects is not None:
+        if timeout_occurred and self._recommended_num_objects is not None:
             self._recommended_num_objects = max(self._recommended_num_objects // 2, 1)
         elif len(self._objects_throughput_frame) != 0 and self._recommended_num_objects is not None:
             obj_per_second = (
@@ -980,7 +980,7 @@ class Batch:
             )
             reference_future_pool.append(future)
 
-        timeout_occured = False
+        timeout_occurred = False
         for done_future in as_completed(reference_future_pool):
 
             response_references, nr_references = done_future.result()
@@ -993,9 +993,9 @@ class Batch:
                 if self._callback:
                     self._callback(response_references.json())
             else:
-                timeout_occured = True
+                timeout_occurred = True
 
-        if timeout_occured and self._recommended_num_objects is not None:
+        if timeout_occurred and self._recommended_num_objects is not None:
             self._recommended_num_references = max(self._recommended_num_references // 2, 1)
         elif (
             len(self._references_throughput_frame) != 0
