@@ -349,7 +349,7 @@ class DataObject:
         with_vector: bool = False,
         class_name: Optional[str] = None,
         node_name: Optional[str] = None,
-        consistency_level: Optional[str] = None
+        consistency_level: Optional[str] = None,
     ) -> Optional[dict]:
         """
         Get an object as dict.
@@ -413,7 +413,7 @@ class DataObject:
             with_vector=with_vector,
             class_name=class_name,
             node_name=node_name,
-            consistency_level=consistency_level
+            consistency_level=consistency_level,
         )
 
     def get(
@@ -424,7 +424,7 @@ class DataObject:
         class_name: Optional[str] = None,
         limit: Optional[int] = None,
         node_name: Optional[str] = None,
-        consistency_level: Optional[str] = None
+        consistency_level: Optional[str] = None,
     ) -> List[dict]:
         """
         Gets objects from weaviate, the maximum number of objects returned is 100.
