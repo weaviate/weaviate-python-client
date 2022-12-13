@@ -122,6 +122,20 @@ def test_refresh(weaviate_auth_mock):
     client.schema.delete_all()  # some call that includes authorization
 
 
+def test_auth_header_without_weaviate_auth(weaviate_mock):
+    """Test that setups that use the Authorization header to authorize to non-weaviate servers."""
+    bearer_token = "OTHER TOKEN"
+    weaviate_mock.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + bearer_token}
+    ).respond_with_json({})
+
+    client = weaviate.Client(
+        url=MOCK_SERVER_URL,
+        additional_headers={"Authorization": "Bearer " + bearer_token},
+    )
+    client.schema.delete_all()  # some call that includes authorization
+
+
 def test_missing_scope(weaviate_auth_mock):
     with pytest.raises(MissingScopeException):
         weaviate.Client(
