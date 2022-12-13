@@ -347,6 +347,8 @@ class DataObject:
         additional_properties: List[str] = None,
         with_vector: bool = False,
         class_name: Optional[str] = None,
+        node_name: Optional[str] = None,
+        consistency_level: Optional[str] = None
     ) -> Optional[dict]:
         """
         Get an object as dict.
@@ -409,6 +411,8 @@ class DataObject:
             additional_properties=additional_properties,
             with_vector=with_vector,
             class_name=class_name,
+            node_name=node_name,
+            consistency_level=consistency_level
         )
 
     def get(
@@ -417,6 +421,8 @@ class DataObject:
         additional_properties: List[str] = None,
         with_vector: bool = False,
         class_name: Optional[str] = None,
+        node_name: Optional[str] = None,
+        consistency_level: Optional[str] = None
     ) -> List[dict]:
         """
         Gets objects from weaviate, the maximum number of objects returned is 100.
@@ -430,7 +436,7 @@ class DataObject:
         additional_properties : list of str, optional
             list of additional properties that should be included in the request,
             by default None
-        with_vector: bool
+        with_vector : bool
             If True the `vector` property will be returned too,
             by default False
         class_name : Optional[str], optional
@@ -438,6 +444,12 @@ class DataObject:
             STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
             versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
             by default None
+        consistency_level : Optional[str], optional
+            Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge 
+            a request before it is considered successful. Mutually exclusive with node_name param.
+        node_name : Optional[str], optional
+            The name of the target node which should fulfill the request. Mutually exclusive with
+            consistency_level param.
 
         Returns
         -------
@@ -487,6 +499,12 @@ class DataObject:
 
         if uuid is not None:
             path += "/" + get_valid_uuid(uuid)
+
+        if consistency_level is not None:
+            params["consistency_level"] = consistency_level
+
+        if node_name is not None:
+            params["node_name"] = node_name
 
         try:
             response = self._connection.get(
