@@ -5,6 +5,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 from weaviate.data import DataObject
+from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     ObjectAlreadyExistsException,
@@ -410,7 +411,7 @@ class TestDataObject(unittest.TestCase):
             uuid="UUID3",
             additional_properties=["Test"],
             with_vector=False,
-            consistency_level="QUORUM",
+            consistency_level=ConsistencyLevel.QUORUM,
         )
         mock_get.assert_called_with(
             uuid="UUID3",
@@ -418,7 +419,7 @@ class TestDataObject(unittest.TestCase):
             additional_properties=["Test"],
             with_vector=False,
             node_name=None,
-            consistency_level="QUORUM",
+            consistency_level=ConsistencyLevel.QUORUM,
         )
 
         data_object.get_by_id(

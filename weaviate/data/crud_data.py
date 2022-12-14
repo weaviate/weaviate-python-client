@@ -9,6 +9,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.data.references import Reference
+from weaviate.data.replication import ConsistencyLevel
 from weaviate.error_msgs import DATA_DEPRECATION_NEW_V14_CLS_NS_W, DATA_DEPRECATION_OLD_V14_CLS_NS_W
 from weaviate.exceptions import (
     ObjectAlreadyExistsException,
@@ -348,7 +349,7 @@ class DataObject:
         with_vector: bool = False,
         class_name: Optional[str] = None,
         node_name: Optional[str] = None,
-        consistency_level: Optional[str] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
     ) -> Optional[dict]:
         """
         Get an object as dict.
@@ -422,7 +423,7 @@ class DataObject:
         with_vector: bool = False,
         class_name: Optional[str] = None,
         node_name: Optional[str] = None,
-        consistency_level: Optional[str] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
     ) -> List[dict]:
         """
         Gets objects from weaviate, the maximum number of objects returned is 100.
