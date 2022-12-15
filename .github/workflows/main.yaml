@@ -29,6 +29,10 @@ jobs:
       - run: pip install -r requirements.txt
       - name: "Flake 8"
         run: flake8 .
+      - name: "Check release for pypi"
+        run: |
+          python -m build
+          python -m twine check dist/*
   unit-tests:
     name: Run Unit Tests
     runs-on: ubuntu-latest
