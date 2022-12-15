@@ -6,6 +6,7 @@ import json
 import os
 import uuid as uuid_lib
 from io import BufferedReader
+from numbers import Real
 from typing import Union, Sequence, Any, Optional
 
 import requests
@@ -488,3 +489,30 @@ def check_batch_result(results: dict) -> None:
             if "result" in result and "errors" in result["result"]:
                 if "error" in result["result"]["errors"]:
                     print(result["result"]["errors"])
+
+
+def _check_positive_num(value: Real, arg_name: str, data_type: type) -> None:
+    """
+    Check if the `value` of the `arg_name` is a positive number.
+
+    Parameters
+    ----------
+    value : Union[int, float]
+        The value to check.
+    arg_name : str
+        The name of the variable from the original function call. Used for error message.
+    data_type : type
+        The data type to check for.
+
+    Raises
+    ------
+    TypeError
+        If the `value` is not of type `data_type`.
+    ValueError
+        If the `value` has a non positive value.
+    """
+
+    if not isinstance(value, data_type) or isinstance(value, bool):
+        raise TypeError(f"'{arg_name}' must be of type {data_type}.")
+    if value <= 0:
+        raise ValueError(f"'{arg_name}' must be positive, i.e. greater that zero (>0).")

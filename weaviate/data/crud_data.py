@@ -7,7 +7,6 @@ from typing import Union, Optional, List, Sequence
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.batch.crud_batch import _check_positive_num
 from weaviate.connect import Connection
 from weaviate.data.references import Reference
 from weaviate.error_msgs import DATA_DEPRECATION_NEW_V14_CLS_NS_W, DATA_DEPRECATION_OLD_V14_CLS_NS_W
@@ -20,6 +19,7 @@ from weaviate.util import (
     get_vector,
     get_valid_uuid,
     _capitalize_first_letter,
+    _check_positive_num,
 )
 
 
@@ -442,7 +442,7 @@ class DataObject:
             by default None
         limit: Optional[int], optional
             The maximum number of data objects to return.
-            by default None
+            by default None, which uses the weaviate default of 100 entries
 
         Returns
         -------
