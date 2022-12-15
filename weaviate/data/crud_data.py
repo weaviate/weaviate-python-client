@@ -19,6 +19,7 @@ from weaviate.util import (
     get_vector,
     get_valid_uuid,
     _capitalize_first_letter,
+    _check_positive_num,
 )
 
 
@@ -417,6 +418,7 @@ class DataObject:
         additional_properties: List[str] = None,
         with_vector: bool = False,
         class_name: Optional[str] = None,
+        limit: Optional[int] = None,
     ) -> List[dict]:
         """
         Gets objects from weaviate, the maximum number of objects returned is 100.
@@ -433,11 +435,14 @@ class DataObject:
         with_vector: bool
             If True the `vector` property will be returned too,
             by default False
-        class_name : Optional[str], optional
+        class_name: Optional[str], optional
             The class name of the object with UUID `uuid`. Introduced in Weaviate version v1.14.0.
             STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
             versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
             by default None
+        limit: Optional[int], optional
+            The maximum number of data objects to return.
+            by default None, which uses the weaviate default of 100 entries
 
         Returns
         -------
@@ -455,7 +460,6 @@ class DataObject:
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
-
         is_server_version_14 = self._connection.server_version >= "1.14"
 
         if class_name is None and is_server_version_14 and uuid is not None:
@@ -487,6 +491,10 @@ class DataObject:
 
         if uuid is not None:
             path += "/" + get_valid_uuid(uuid)
+
+        if limit is not None:
+            _check_positive_num(limit, "limit", int)
+            params["limit"] = limit
 
         try:
             response = self._connection.get(

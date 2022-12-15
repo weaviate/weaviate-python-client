@@ -23,6 +23,7 @@ from ..exceptions import UnexpectedStatusCodeException
 from ..util import (
     _capitalize_first_letter,
     check_batch_result,
+    _check_positive_num,
 )
 from ..warnings import _Warnings
 
@@ -1519,33 +1520,6 @@ class Batch:
 
         _check_non_negative(value, "connection_error_retries", int)
         self._connection_error_retries = value
-
-
-def _check_positive_num(value: Real, arg_name: str, data_type: type) -> None:
-    """
-    Check if the `value` of the `arg_name` is a positive number.
-
-    Parameters
-    ----------
-    value : Union[int, float]
-        The value to check.
-    arg_name : str
-        The name of the variable from the original function call. Used for error message.
-    data_type : type
-        The data type to check for.
-
-    Raises
-    ------
-    TypeError
-        If the `value` is not of type `data_type`.
-    ValueError
-        If the `value` has a non positive value.
-    """
-
-    if not isinstance(value, data_type) or isinstance(value, bool):
-        raise TypeError(f"'{arg_name}' must be of type {data_type}.")
-    if value <= 0:
-        raise ValueError(f"'{arg_name}' must be positive, i.e. greater that zero (>0).")
 
 
 def _check_non_negative(value: Real, arg_name: str, data_type: type) -> None:

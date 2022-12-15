@@ -3,7 +3,7 @@ import os
 import time
 from datetime import datetime
 from datetime import timezone
-from typing import List
+from typing import List, Optional
 
 import pytest
 
@@ -78,6 +78,7 @@ def test_load_scheme(people_schema):
 @pytest.fixture(scope="module")
 def client(people_schema):
     client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
     client.schema.create(people_schema)
 
     yield client
@@ -101,6 +102,25 @@ def test_timeout(people_schema, timeout):
     time.sleep(0.5)
     result = client.query.raw(gql_get_sophie_scholl)
     assert result["data"]["Get"]["Person"][0]["name"] == expected_name
+    client.schema.delete_all()
+
+
+@pytest.mark.parametrize("limit", [None, 1, 5, 20, 50])
+def test_query_get_with_limit(people_schema, limit: Optional[int]):
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+    client.schema.create(people_schema)
+
+    num_objects = 20
+    for i in range(num_objects):
+        with client.batch as batch:
+            batch.add_data_object({"name": f"name{i}"}, "Person")
+        batch.flush()
+    result = client.data_object.get(class_name="Person", limit=limit)
+    if limit is None or limit >= num_objects:
+        assert len(result["objects"]) == num_objects
+    else:
+        assert len(result["objects"]) == limit
     client.schema.delete_all()
 
 
