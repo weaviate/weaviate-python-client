@@ -104,7 +104,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install wheel build
       - name: Build a binary wheel
         run: python -m build
       - name: Create Wheel Artifacts
