@@ -3,6 +3,7 @@ validators>=0.18.2,<0.19.0
 tqdm>=4.59.0,<5.0.0
 authlib>=1.1.0
 
+build
 twine
 wheel
 Sphinx>=5.3.0
@@ -12,12 +13,12 @@ pytest-cov==4.0.0
 pytest-benchmark==3.4.1
 pytest-profiling==1.7.0
 coverage==6.5.0
-pylint
-coverage
+werkzeug>=2.2.2
+pytest-httpserver>=1.0.6
+
 pre-commit
+
 flake8
 flake8-bugbear==22.10.27
 flake8-comprehensions==3.10.1
 flake8-builtins==2.0.1
-werkzeug>=2.2.2
-pytest-httpserver>=1.0.6
