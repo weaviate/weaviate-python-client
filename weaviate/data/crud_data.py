@@ -510,7 +510,7 @@ class DataObject:
             params["limit"] = limit
 
         if consistency_level is not None:
-            params["consistency_level"] = consistency_level
+            params["consistency_level"] = consistency_level.name
 
         if node_name is not None:
             params["node_name"] = node_name
