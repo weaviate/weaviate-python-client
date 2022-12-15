@@ -6,6 +6,8 @@ from __future__ import annotations
 import datetime
 import os
 import time
+
+from requests.exceptions import JSONDecodeError
 from numbers import Real
 from threading import Thread, Event
 from typing import Any, Dict, Tuple, Optional, Union
@@ -13,7 +15,6 @@ from typing import Any, Dict, Tuple, Optional, Union
 import requests
 from authlib.integrations.requests_client import OAuth2Session
 
-from weaviate import auth
 from weaviate.auth import AuthCredentials, AuthClientCredentials
 from weaviate.connect.authentication import _Auth
 from weaviate.exceptions import AuthenticationFailedException, UnexpectedStatusCodeException
@@ -89,10 +90,7 @@ class BaseConnection:
 
         # auth secrets can contain more information than a header (refresh tokens and lifetime) and therefore take
         # precedent over headers
-        if "authorization" in self._headers and auth_client_secret is None:
-            bearer_header = self._headers["authorization"]
-            auth_client_secret = auth.AuthBearerToken(access_token=bearer_header)
-        elif "authorization" in self._headers and auth_client_secret is not None:
+        if "authorization" in self._headers and auth_client_secret is not None:
             _Warnings.auth_header_and_auth_secret()
             self._headers.pop("authorization")
 
@@ -110,15 +108,25 @@ class BaseConnection:
         ValueError
             If no authentication credentials provided but the Weaviate server has OpenID configured.
         """
+        oidc_url = self.url + self._api_version_path + "/.well-known/openid-configuration"
         response = requests.get(
-            self.url + self._api_version_path + "/.well-known/openid-configuration",
+            oidc_url,
             headers={"content-type": "application/json"},
             timeout=self._timeout_config,
             proxies=self._proxies,
         )
         if response.status_code == 200:
-            if auth_client_secret is not None:
+            # Some setups are behind proxies that return some default page - for example a login - for all requests.
+            # If the response is not json, we assume that this is the case and try unauthenticated access. Any auth
+            # header provided by the user is unaffected.
+            try:
                 resp = response.json()
+            except JSONDecodeError:
+                _Warnings.auth_cannot_parse_oidc_config(oidc_url)
+                self._session = requests.Session()
+                return
+
+            if auth_client_secret is not None:
                 _auth = _Auth(resp, auth_client_secret, self)
                 self._session = _auth.get_auth_session()
 
