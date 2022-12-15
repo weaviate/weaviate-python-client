@@ -7,12 +7,7 @@ import datetime
 import os
 import time
 
-# request library uses simplejson (and its JSONDecodeError) if it is installed on the system and stdlib json otherwise.
-# See https://github.com/psf/requests/issues/4842 for more infos
-try:
-    from simplejson import JSONDecodeError
-except ImportError:
-    from json import JSONDecodeError
+from requests.exceptions import JSONDecodeError
 from numbers import Real
 from threading import Thread, Event
 from typing import Any, Dict, Tuple, Optional, Union
