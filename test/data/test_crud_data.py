@@ -436,19 +436,34 @@ class TestDataObject(unittest.TestCase):
 
         connection_mock = Mock()
         connection_mock.server_version = "1.17.0"
-        data_object = DataObject(connection_mock)        
+        data_object = DataObject(connection_mock)
         with self.assertRaises(ValueError) as error:
             data_object.get_by_id(
-            uuid="UUID4", class_name="SomeClass", additional_properties=["Test"], with_vector=False, consistency_level=12345
-        )
+                uuid="UUID4",
+                class_name="SomeClass",
+                additional_properties=["Test"],
+                with_vector=False,
+                consistency_level=12345,
+            )
+            assert "123" in error
         with self.assertRaises(ValueError) as error:
             data_object.get_by_id(
-            uuid="UUID4", class_name="SomeClass", additional_properties=["Test"], with_vector=False, consistency_level='all'
-        )
+                uuid="UUID4",
+                class_name="SomeClass",
+                additional_properties=["Test"],
+                with_vector=False,
+                consistency_level="all",
+            )
+            assert "all" in error
         with self.assertRaises(ValueError) as error:
             data_object.get_by_id(
-            uuid="UUID4", class_name="SomeClass", additional_properties=["Test"], with_vector=False, consistency_level={'consistency_level': 'ALL'}
-        )
+                uuid="UUID4",
+                class_name="SomeClass",
+                additional_properties=["Test"],
+                with_vector=False,
+                consistency_level={"consistency_level": "ALL"},
+            )
+            assert "consistency_level" in error
 
     @patch("weaviate.data.crud_data._get_params")
     def test_get(self, mock_get_params):

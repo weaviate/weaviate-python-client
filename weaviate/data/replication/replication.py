@@ -12,6 +12,8 @@ class MetaEnum(EnumMeta):
         except AttributeError:
             # when item is type str
             return item in cls.__members__.keys()
+
+
 class BaseEnum(Enum, metaclass=MetaEnum):
     pass
 
