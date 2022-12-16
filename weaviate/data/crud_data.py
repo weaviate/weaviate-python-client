@@ -502,6 +502,8 @@ class DataObject:
             path += "/" + get_valid_uuid(uuid)
 
         if consistency_level is not None:
+            if consistency_level not in ConsistencyLevel:
+                raise ValueError(f"invalid ConsistencyLevel: {consistency_level}")
             params["consistency_level"] = consistency_level.name
 
         if node_name is not None:
