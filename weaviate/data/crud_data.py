@@ -445,7 +445,7 @@ class DataObject:
             STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
             versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
             by default None
-        consistency_level : Optional[str], optional
+        consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
             a request before it is considered successful. Mutually exclusive with node_name param.
         node_name : Optional[str], optional
