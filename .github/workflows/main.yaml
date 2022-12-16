@@ -122,12 +122,17 @@ jobs:
     name: Create a GitHub Release on new tags
     if: startsWith(github.ref, 'refs/tags')
     runs-on: ubuntu-latest
-    needs: [integration-tests, unit-tests, lint-and_format]
+    needs: [integration-tests, unit-tests, lint-and_format, build-and-add-artifact-and-publish]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Download build artifact to append to release
+        uses: actions/download-artifact@v3
+        with:
+          path: "dist/*.whl"
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
           generate_release_notes: true
           draft: true
+          files: dist/weaviate_client-3.10.0b0-py3-none-any.whl
