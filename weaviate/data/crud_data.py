@@ -20,6 +20,7 @@ from weaviate.util import (
     get_vector,
     get_valid_uuid,
     _capitalize_first_letter,
+    _check_positive_num,
 )
 
 
@@ -424,6 +425,7 @@ class DataObject:
         class_name: Optional[str] = None,
         node_name: Optional[str] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
+        limit: Optional[int] = None,
     ) -> List[dict]:
         """
         Gets objects from weaviate, the maximum number of objects returned is 100.
@@ -440,7 +442,7 @@ class DataObject:
         with_vector : bool
             If True the `vector` property will be returned too,
             by default False
-        class_name : Optional[str], optional
+        class_name: Optional[str], optional
             The class name of the object with UUID `uuid`. Introduced in Weaviate version v1.14.0.
             STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
             versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
@@ -451,6 +453,9 @@ class DataObject:
         node_name : Optional[str], optional
             The name of the target node which should fulfill the request. Mutually exclusive with
             consistency_level param.
+        limit: Optional[int], optional
+            The maximum number of data objects to return.
+            by default None, which uses the weaviate default of 100 entries
 
         Returns
         -------
@@ -468,7 +473,6 @@ class DataObject:
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
-
         is_server_version_14 = self._connection.server_version >= "1.14"
 
         if class_name is None and is_server_version_14 and uuid is not None:
@@ -508,6 +512,10 @@ class DataObject:
 
         if node_name is not None:
             params["node_name"] = node_name
+
+        if limit is not None:
+            _check_positive_num(limit, "limit", int)
+            params["limit"] = limit
 
         try:
             response = self._connection.get(
