@@ -506,9 +506,7 @@ class DataObject:
             path += "/" + get_valid_uuid(uuid)
 
         if consistency_level is not None:
-            if consistency_level not in ConsistencyLevel:
-                raise ValueError(f"invalid ConsistencyLevel: {consistency_level}")
-            params["consistency_level"] = consistency_level.name
+            params["consistency_level"] = validate_consistency_level(consistency_level)
 
         if node_name is not None:
             params["node_name"] = node_name
@@ -853,3 +851,12 @@ def _get_params(additional_properties: Optional[List[str]], with_vector: bool) -
         else:
             params["include"] = "vector"
     return params
+
+
+def validate_consistency_level(consistency_level):
+    if consistency_level not in ConsistencyLevel:
+        raise ValueError(f"invalid ConsistencyLevel: {consistency_level}")
+    if isinstance(consistency_level, ConsistencyLevel):
+        return consistency_level.name
+    else:
+        return consistency_level
