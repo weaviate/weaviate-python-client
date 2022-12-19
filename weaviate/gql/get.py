@@ -32,6 +32,17 @@ class BM25:
         return "bm25:{" + ret + "}"
 
 
+@dataclass
+class Hybrid:
+    query: str
+    alpha: float
+    vector: List[float]
+
+    def __str__(self) -> str:
+        ret = f'query: "{self.query}", vector: {self.vector}, alpha: {self.alpha}'
+        return "hybrid:{" + ret + "}"
+
+
 class GetBuilder(GraphQL):
     """
     GetBuilder class used to create GraphQL queries.
@@ -85,7 +96,8 @@ class GetBuilder(GraphQL):
         self._near_ask: Optional[Filter] = None  # To store the `near`/`ask` clause if it is added
         self._contains_filter = False  # true if any filter is added
         self._sort: Optional[Sort] = None
-        self._bm25: Optional[Sort] = None
+        self._bm25: Optional[BM25] = None
+        self._hybrid: Optional[Hybrid] = None
 
     def with_where(self, content: dict) -> "GetBuilder":
         """
@@ -888,6 +900,24 @@ class GetBuilder(GraphQL):
 
         return self
 
+    def with_hybrid(self, query: str, alpha: float, vector: List[float]):
+        """Get objects using bm25 and vector, then combine the results using a reciprocal ranking algorithm.
+
+        Parameters
+        ----------
+        query: str
+            The query to search for.
+        alpha: float
+            Factor determining how BM25 and vector search are weighted.
+            alpha = 0 -> bm25, alpha=1 -> vector search
+        vector: List[float]
+            Vector that is searched for.
+
+        """
+        self._hybrid = Hybrid(query, alpha, vector)
+        self._contains_filter = True
+        return self
+
     def build(self) -> str:
         """
         Build query filter as a string.
@@ -913,6 +943,8 @@ class GetBuilder(GraphQL):
                 query += str(self._sort)
             if self._bm25 is not None:
                 query += str(self._bm25)
+            if self._hybrid is not None:
+                query += str(self._hybrid)
             query += ")"
 
         additional_props = self._additional_to_str()

@@ -102,3 +102,11 @@ def test_bm25(client):
 def test_bm25_no_result(client):
     result = client.query.get("Ship", ["name"]).with_bm25("sponges", ["name"]).do()
     assert len(result["data"]["Get"]["Ship"]) == 0
+
+
+def test_hybrid(client):
+    """Test hybrid search with alpha=0 to emulate BM25."""
+    result = (
+        client.query.get("Ship", ["name"]).with_hybrid("sponges", alpha=0, vector=[1] * 300).do()
+    )
+    assert result["data"]["Get"]["Ship"][0]["name"] == "The Crusty Crab"

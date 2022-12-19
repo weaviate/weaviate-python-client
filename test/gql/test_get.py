@@ -5,7 +5,7 @@ from unittest.mock import patch, Mock
 import pytest
 
 from test.util import check_error_message
-from weaviate.gql.get import GetBuilder, BM25
+from weaviate.gql.get import GetBuilder, BM25, Hybrid
 
 
 @pytest.mark.parametrize(
@@ -23,6 +23,22 @@ from weaviate.gql.get import GetBuilder, BM25
 def test_bm25(query: str, properties: List[str], expected: str):
     bm25 = BM25(query, properties)
     assert str(bm25) == expected
+
+
+@pytest.mark.parametrize(
+    "query,vector,alpha,expected",
+    [
+        (
+            "query",
+            [1, 2, 3],
+            0.5,
+            'hybrid:{query: "query", vector: [1, 2, 3], alpha: 0.5}',
+        ),
+    ],
+)
+def test_hybrid(query: str, vector: List[float], alpha: float, expected: str):
+    hybrid = Hybrid(query, alpha, vector)
+    assert str(hybrid) == expected
 
 
 class TestGetBuilder(unittest.TestCase):
