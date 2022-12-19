@@ -15,6 +15,7 @@ CLASS_KEYS = {
     "properties",
     "invertedIndexConfig",
     "shardingConfig",
+    "replicationConfig",
 }
 
 PROPERTY_KEYS = {"dataType", "name", "moduleConfig", "description", "indexInverted", "tokenization"}
@@ -76,7 +77,13 @@ def check_class(class_definition: dict) -> None:
         # check if key is right type
         if key in ["class", "vectorIndexType", "description", "vectorizer"]:
             _check_key_type(key, class_definition[key], str)
-        if key in ["vectorIndexConfig", "moduleConfig", "invertedIndexConfig", "shardingConfig"]:
+        if key in [
+            "vectorIndexConfig",
+            "moduleConfig",
+            "invertedIndexConfig",
+            "shardingConfig",
+            "replicationConfig",
+        ]:
             _check_key_type(key, class_definition[key], dict)
         if key in ["properties"]:
             _check_key_type(key, class_definition[key], list)

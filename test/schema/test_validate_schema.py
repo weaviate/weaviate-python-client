@@ -21,6 +21,9 @@ valid_schema_with_all_properties = {
             ],
             "vectorIndexType": "hnsw",
             "vectorizer": "none",
+            "replicationConfig": {
+                "factor": 1,
+            },
         },
         {
             "class": "Publication",
@@ -46,6 +49,9 @@ valid_schema_with_all_properties = {
             ],
             "vectorIndexType": "hnsw",
             "vectorizer": "none",
+            "replicationConfig": {
+                "factor": 1,
+            },
         },
         {
             "class": "Author",
@@ -61,6 +67,9 @@ valid_schema_with_all_properties = {
             ],
             "vectorIndexType": "hnsw",
             "vectorizer": "none",
+            "replicationConfig": {
+                "factor": 1,
+            },
         },
         {
             "class": "Article",
@@ -117,6 +126,9 @@ valid_schema_with_all_properties = {
             ],
             "vectorIndexType": "hnsw",
             "vectorizer": "none",
+            "replicationConfig": {
+                "factor": 1,
+            },
         },
     ]
 }
@@ -128,7 +140,7 @@ class TestSchemaValidation(unittest.TestCase):
         Test `validate_schema` function.
         """
 
-        # incalid calls
+        # invalid calls
         classess_error_message = (
             'Each schema has to have "classes" '
             "in the first level of the JSON format file/parameter/object"
@@ -182,6 +194,9 @@ class TestSchemaValidation(unittest.TestCase):
             "vectorIndexConfig": {},
             "moduleConfig": {},
             "vectorizer": "text2vec-contextionary",
+            "replicationConfig": {
+                "factor": 1,
+            },
         }
         check_class(max_valid)
         # minimal must contain class key as string
@@ -225,6 +240,10 @@ class TestSchemaValidation(unittest.TestCase):
         with self.assertRaises(SchemaValidationException) as error:
             check_class({"class": "Tree", "vectorIndexConfig": []})
         check_error_message(self, error, key_type_error_messsage("vectorIndexConfig", [], dict))
+
+        with self.assertRaises(SchemaValidationException) as error:
+            check_class({"class": "Tree", "replicationConfig": []})
+        check_error_message(self, error, key_type_error_messsage("replicationConfig", [], dict))
 
         with self.assertRaises(SchemaValidationException) as error:
             check_class({"class": "Tree", "moduleConfig": []})
