@@ -1,6 +1,7 @@
 """
 GraphQL `Get` command.
 """
+from dataclasses import dataclass
 from json import dumps
 from typing import List, Union, Optional, Dict, Tuple
 from weaviate.gql.filter import (
@@ -16,6 +17,19 @@ from weaviate.gql.filter import (
 )
 from weaviate.connect import Connection
 from weaviate.util import image_encoder_b64, _capitalize_first_letter
+
+
+@dataclass
+class BM25:
+    query: str
+    properties: Optional[List[str]]
+
+    def __str__(self) -> str:
+        ret = f'query: "{self.query}"'
+        if self.properties is not None and len(self.properties) > 0:
+            props = '","'.join(self.properties)
+            ret += f', properties: ["{props}"]'
+        return "bm25:{" + ret + "}"
 
 
 class GetBuilder(GraphQL):
@@ -71,6 +85,7 @@ class GetBuilder(GraphQL):
         self._near_ask: Optional[Filter] = None  # To store the `near`/`ask` clause if it is added
         self._contains_filter = False  # true if any filter is added
         self._sort: Optional[Sort] = None
+        self._bm25: Optional[Sort] = None
 
     def with_where(self, content: dict) -> "GetBuilder":
         """
@@ -858,6 +873,21 @@ class GetBuilder(GraphQL):
             self._sort.add(content=content)
         return self
 
+    def with_bm25(self, query: str, properties: Optional[List[str]] = None) -> "GetBuilder":
+        """Add BM25 query to search the inverted index for keywords.
+
+        Parameters
+        ----------
+        query: str
+            The query to search for.
+        properties: Optional[List[str]]
+            Which properties should be searched. If 'None' or empty all properties will be searched. By default, None
+        """
+        self._bm25 = BM25(query, properties)
+        self._contains_filter = True
+
+        return self
+
     def build(self) -> str:
         """
         Build query filter as a string.
@@ -881,6 +911,8 @@ class GetBuilder(GraphQL):
                 query += str(self._near_ask)
             if self._sort is not None:
                 query += str(self._sort)
+            if self._bm25 is not None:
+                query += str(self._bm25)
             query += ")"
 
         additional_props = self._additional_to_str()

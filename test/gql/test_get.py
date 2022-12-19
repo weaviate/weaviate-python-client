@@ -1,8 +1,28 @@
 import unittest
+from typing import List
 from unittest.mock import patch, Mock
 
+import pytest
+
 from test.util import check_error_message
-from weaviate.gql.get import GetBuilder
+from weaviate.gql.get import GetBuilder, BM25
+
+
+@pytest.mark.parametrize(
+    "query,properties,expected",
+    [
+        (
+            "query",
+            ["title", "document", "date"],
+            'bm25:{query: "query", properties: ["title","document","date"]}',
+        ),
+        ("other query", [], 'bm25:{query: "other query"}'),
+        ("other query", None, 'bm25:{query: "other query"}'),
+    ],
+)
+def test_bm25(query: str, properties: List[str], expected: str):
+    bm25 = BM25(query, properties)
+    assert str(bm25) == expected
 
 
 class TestGetBuilder(unittest.TestCase):

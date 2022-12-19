@@ -1,5 +1,3 @@
-import time
-
 import pytest
 
 import weaviate
@@ -11,6 +9,7 @@ schema = {
             "description": "object",
             "properties": [
                 {"dataType": ["string"], "description": "name", "name": "name"},
+                {"dataType": ["string"], "description": "description", "name": "description"},
                 {"dataType": ["int"], "description": "size", "name": "size"},
             ],
         }
@@ -22,13 +21,33 @@ schema = {
 def client():
     client = weaviate.Client("http://localhost:8080")
     client.schema.create(schema)
-    client.data_object.create({"name": "A", "size": 5}, "Ship")
-    client.data_object.create({"name": "B", "size": 20}, "Ship")
-    client.data_object.create({"name": "C", "size": 43}, "Ship")
-    client.data_object.create({"name": "D", "size": 1}, "Ship")
-    client.data_object.create({"name": "E", "size": 34}, "Ship")
-    client.data_object.create({"name": "F", "size": 303}, "Ship")
-    time.sleep(2.0)
+    with client.batch as batch:
+        batch.add_data_object(
+            {"name": "HMS British Name", "size": 5, "description": "Super long description"}, "Ship"
+        )
+        batch.add_data_object(
+            {
+                "name": "The dragon ship",
+                "size": 20,
+                "description": "Interesting things about dragons",
+            },
+            "Ship",
+        )
+        batch.add_data_object(
+            {"name": "Blackbeard", "size": 43, "description": "Background info about movies"},
+            "Ship",
+        )
+        batch.add_data_object(
+            {"name": "Titanic", "size": 1, "description": "Everyone knows"}, "Ship"
+        )
+        batch.add_data_object(
+            {"name": "Artemis", "size": 34, "description": "Name from some story"}, "Ship"
+        )
+        batch.add_data_object(
+            {"name": "The Crusty Crab", "size": 303, "description": "sponges, sponges, sponges"},
+            "Ship",
+        )
+        batch.flush()
 
     yield client
     client.schema.delete_all()
@@ -42,16 +61,16 @@ def test_get_data(client):
     a_found = False
     d_found = False
     for obj in objects:
-        if obj["name"] == "A":
+        if obj["name"] == "HMS British Name":
             a_found = True
-        if obj["name"] == "D":
+        if obj["name"] == "Titanic":
             d_found = True
     assert a_found and d_found and len(objects) == 2
 
 
 def test_aggregate_data(client):
     """Test GraphQL's Aggregate clause."""
-    where_filter = {"path": ["name"], "operator": "Equal", "valueString": "B"}
+    where_filter = {"path": ["name"], "operator": "Equal", "valueString": "The dragon ship"}
 
     result = (
         client.query.aggregate("Ship")
@@ -73,3 +92,13 @@ def get_objects_from_result(result):
 
 def get_aggregation_from_aggregate_result(result):
     return result["data"]["Aggregate"]["Ship"][0]
+
+
+def test_bm25(client):
+    result = client.query.get("Ship", ["name"]).with_bm25("sponges", ["name", "description"]).do()
+    assert result["data"]["Get"]["Ship"][0]["name"] == "The Crusty Crab"
+
+
+def test_bm25_no_result(client):
+    result = client.query.get("Ship", ["name"]).with_bm25("sponges", ["name"]).do()
+    assert len(result["data"]["Get"]["Ship"]) == 0
