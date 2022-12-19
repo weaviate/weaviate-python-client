@@ -5,6 +5,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 from weaviate.data import DataObject
+from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     ObjectAlreadyExistsException,
@@ -388,13 +389,81 @@ class TestDataObject(unittest.TestCase):
         data_object.get = mock_get
         data_object.get_by_id(uuid="UUID", additional_properties=["Test", "list"], with_vector=True)
         mock_get.assert_called_with(
-            uuid="UUID", class_name=None, additional_properties=["Test", "list"], with_vector=True
+            uuid="UUID",
+            class_name=None,
+            additional_properties=["Test", "list"],
+            with_vector=True,
+            node_name=None,
+            consistency_level=None,
         )
 
         data_object.get_by_id(uuid="UUID2", additional_properties=["Test"], with_vector=False)
         mock_get.assert_called_with(
-            uuid="UUID2", class_name=None, additional_properties=["Test"], with_vector=False
+            uuid="UUID2",
+            class_name=None,
+            additional_properties=["Test"],
+            with_vector=False,
+            node_name=None,
+            consistency_level=None,
         )
+
+        data_object.get_by_id(
+            uuid="UUID3",
+            additional_properties=["Test"],
+            with_vector=False,
+            consistency_level=ConsistencyLevel.QUORUM,
+        )
+        mock_get.assert_called_with(
+            uuid="UUID3",
+            class_name=None,
+            additional_properties=["Test"],
+            with_vector=False,
+            node_name=None,
+            consistency_level=ConsistencyLevel.QUORUM,
+        )
+
+        data_object.get_by_id(
+            uuid="UUID4", additional_properties=["Test"], with_vector=False, node_name="node1"
+        )
+        mock_get.assert_called_with(
+            uuid="UUID4",
+            class_name=None,
+            additional_properties=["Test"],
+            with_vector=False,
+            node_name="node1",
+            consistency_level=None,
+        )
+
+        connection_mock = Mock()
+        connection_mock.server_version = "1.17.0"
+        data_object = DataObject(connection_mock)
+        with self.assertRaises(ValueError) as error:
+            data_object.get_by_id(
+                uuid="UUID4",
+                class_name="SomeClass",
+                additional_properties=["Test"],
+                with_vector=False,
+                consistency_level=12345,
+            )
+            assert "123" in error
+        with self.assertRaises(ValueError) as error:
+            data_object.get_by_id(
+                uuid="UUID4",
+                class_name="SomeClass",
+                additional_properties=["Test"],
+                with_vector=False,
+                consistency_level="all",
+            )
+            assert "all" in error
+        with self.assertRaises(ValueError) as error:
+            data_object.get_by_id(
+                uuid="UUID4",
+                class_name="SomeClass",
+                additional_properties=["Test"],
+                with_vector=False,
+                consistency_level={"consistency_level": "ALL"},
+            )
+            assert "consistency_level" in error
 
     @patch("weaviate.data.crud_data._get_params")
     def test_get(self, mock_get_params):

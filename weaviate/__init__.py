@@ -41,12 +41,14 @@ __all__ = [
     "ObjectAlreadyExistsException",
     "AuthenticationFailedException",
     "SchemaValidationException",
+    "ConsistencyLevel",
 ]
 
 import sys
 
 from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken
 from .client import Client
+from .data.replication import ConsistencyLevel
 from .exceptions import (
     UnexpectedStatusCodeException,
     ObjectAlreadyExistsException,

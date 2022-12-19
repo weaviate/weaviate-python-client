@@ -9,6 +9,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.data.references import Reference
+from weaviate.data.replication import ConsistencyLevel
 from weaviate.error_msgs import DATA_DEPRECATION_NEW_V14_CLS_NS_W, DATA_DEPRECATION_OLD_V14_CLS_NS_W
 from weaviate.exceptions import (
     ObjectAlreadyExistsException,
@@ -348,6 +349,8 @@ class DataObject:
         additional_properties: List[str] = None,
         with_vector: bool = False,
         class_name: Optional[str] = None,
+        node_name: Optional[str] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
     ) -> Optional[dict]:
         """
         Get an object as dict.
@@ -410,6 +413,8 @@ class DataObject:
             additional_properties=additional_properties,
             with_vector=with_vector,
             class_name=class_name,
+            node_name=node_name,
+            consistency_level=consistency_level,
         )
 
     def get(
@@ -418,6 +423,8 @@ class DataObject:
         additional_properties: List[str] = None,
         with_vector: bool = False,
         class_name: Optional[str] = None,
+        node_name: Optional[str] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
         limit: Optional[int] = None,
     ) -> List[dict]:
         """
@@ -432,7 +439,7 @@ class DataObject:
         additional_properties : list of str, optional
             list of additional properties that should be included in the request,
             by default None
-        with_vector: bool
+        with_vector : bool
             If True the `vector` property will be returned too,
             by default False
         class_name: Optional[str], optional
@@ -440,6 +447,12 @@ class DataObject:
             STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
             versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
             by default None
+        consistency_level : Optional[ConsistencyLevel], optional
+            Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
+            a request before it is considered successful. Mutually exclusive with node_name param.
+        node_name : Optional[str], optional
+            The name of the target node which should fulfill the request. Mutually exclusive with
+            consistency_level param.
         limit: Optional[int], optional
             The maximum number of data objects to return.
             by default None, which uses the weaviate default of 100 entries
@@ -491,6 +504,12 @@ class DataObject:
 
         if uuid is not None:
             path += "/" + get_valid_uuid(uuid)
+
+        if consistency_level is not None:
+            params["consistency_level"] = validate_consistency_level(consistency_level)
+
+        if node_name is not None:
+            params["node_name"] = node_name
 
         if limit is not None:
             _check_positive_num(limit, "limit", int)
@@ -832,3 +851,12 @@ def _get_params(additional_properties: Optional[List[str]], with_vector: bool) -
         else:
             params["include"] = "vector"
     return params
+
+
+def validate_consistency_level(consistency_level):
+    if consistency_level not in ConsistencyLevel:
+        raise ValueError(f"invalid ConsistencyLevel: {consistency_level}")
+    if isinstance(consistency_level, ConsistencyLevel):
+        return consistency_level.name
+    else:
+        return consistency_level
