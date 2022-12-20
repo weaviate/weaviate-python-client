@@ -1,8 +1,45 @@
 import unittest
+from typing import List, Optional
 from unittest.mock import patch, Mock
 
+import pytest
+
 from test.util import check_error_message
-from weaviate.gql.get import GetBuilder
+from weaviate.gql.get import GetBuilder, BM25, Hybrid
+
+
+@pytest.mark.parametrize(
+    "query,properties,expected",
+    [
+        (
+            "query",
+            ["title", "document", "date"],
+            'bm25:{query: "query", properties: ["title","document","date"]}',
+        ),
+        ("other query", [], 'bm25:{query: "other query"}'),
+        ("other query", None, 'bm25:{query: "other query"}'),
+    ],
+)
+def test_bm25(query: str, properties: List[str], expected: str):
+    bm25 = BM25(query, properties)
+    assert str(bm25) == expected
+
+
+@pytest.mark.parametrize(
+    "query,vector,alpha,expected",
+    [
+        (
+            "query",
+            [1, 2, 3],
+            0.5,
+            'hybrid:{query: "query", vector: [1, 2, 3], alpha: 0.5}',
+        ),
+        ("query", None, None, 'hybrid:{query: "query"}'),
+    ],
+)
+def test_hybrid(query: str, vector: Optional[List[float]], alpha: Optional[float], expected: str):
+    hybrid = Hybrid(query, alpha, vector)
+    assert str(hybrid) == expected
 
 
 class TestGetBuilder(unittest.TestCase):
