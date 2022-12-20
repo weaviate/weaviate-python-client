@@ -96,6 +96,7 @@ def get_aggregation_from_aggregate_result(result):
 
 def test_bm25(client):
     result = client.query.get("Ship", ["name"]).with_bm25("sponges", ["name", "description"]).do()
+    assert len(result["data"]["Get"]["Ship"]) == 1
     assert result["data"]["Get"]["Ship"][0]["name"] == "The Crusty Crab"
 
 
@@ -104,9 +105,12 @@ def test_bm25_no_result(client):
     assert len(result["data"]["Get"]["Ship"]) == 0
 
 
-def test_hybrid(client):
-    """Test hybrid search with alpha=0 to emulate BM25."""
+def test_hybrid_bm25(client):
+    """Test hybrid search with alpha=0.5 to have a combination of BM25 and vector search."""
     result = (
-        client.query.get("Ship", ["name"]).with_hybrid("sponges", alpha=0, vector=[1] * 300).do()
+        client.query.get("Ship", ["name"]).with_hybrid("sponges", alpha=0.5, vector=[1] * 300).do()
     )
+
+    # will find more results. "The Crusty Crab" is still first, because it matches with the BM25 search
+    assert len(result["data"]["Get"]["Ship"]) >= 1
     assert result["data"]["Get"]["Ship"][0]["name"] == "The Crusty Crab"

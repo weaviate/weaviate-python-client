@@ -1,5 +1,5 @@
 import unittest
-from typing import List
+from typing import List, Optional
 from unittest.mock import patch, Mock
 
 import pytest
@@ -34,9 +34,10 @@ def test_bm25(query: str, properties: List[str], expected: str):
             0.5,
             'hybrid:{query: "query", vector: [1, 2, 3], alpha: 0.5}',
         ),
+        ("query", None, None, 'hybrid:{query: "query"}'),
     ],
 )
-def test_hybrid(query: str, vector: List[float], alpha: float, expected: str):
+def test_hybrid(query: str, vector: Optional[List[float]], alpha: Optional[float], expected: str):
     hybrid = Hybrid(query, alpha, vector)
     assert str(hybrid) == expected
 

@@ -39,7 +39,12 @@ class Hybrid:
     vector: List[float]
 
     def __str__(self) -> str:
-        ret = f'query: "{self.query}", vector: {self.vector}, alpha: {self.alpha}'
+        ret = f'query: "{self.query}"'
+        if self.vector is not None:
+            ret += f", vector: {self.vector}"
+        if self.alpha is not None:
+            ret += f", alpha: {self.alpha}"
+
         return "hybrid:{" + ret + "}"
 
 
@@ -900,18 +905,23 @@ class GetBuilder(GraphQL):
 
         return self
 
-    def with_hybrid(self, query: str, alpha: float, vector: List[float]):
+    def with_hybrid(
+        self, query: str, alpha: Optional[float] = None, vector: Optional[List[float]] = None
+    ):
         """Get objects using bm25 and vector, then combine the results using a reciprocal ranking algorithm.
 
         Parameters
         ----------
         query: str
             The query to search for.
-        alpha: float
-            Factor determining how BM25 and vector search are weighted.
+        alpha: Optional[float]
+            Factor determining how BM25 and vector search are weighted. If 'None' the weaviate default of 0.75 is used.
+            By default, None
             alpha = 0 -> bm25, alpha=1 -> vector search
-        vector: List[float]
-            Vector that is searched for.
+        vector: Optional[List[float]]
+            Vector that is searched for. If 'None', weaviate will use the configured text-to-vector module to create a
+            vector from the "query" field.
+            By default, None
 
         """
         self._hybrid = Hybrid(query, alpha, vector)
