@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:1.15.4-b7811d4
+    image: semitechnologies/weaviate:preview-replace-shardingconfig-replicas-with-replication-factor-29e987d
     ports:
       - 8085:8085
     restart: on-failure:0

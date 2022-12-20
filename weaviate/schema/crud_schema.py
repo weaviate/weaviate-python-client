@@ -386,7 +386,10 @@ class Schema:
                     "vectorCacheMaxObjects": 500000
                 },
                 "vectorIndexType": "hnsw",
-                "vectorizer": "text2vec-contextionary"
+                "vectorizer": "text2vec-contextionary",
+                "replicationConfig": {
+                    "factor": 1
+                }
                 }
             ]
         }
@@ -414,7 +417,10 @@ class Schema:
                 "vectorCacheMaxObjects": 500000
             },
             "vectorIndexType": "hnsw",
-            "vectorizer": "text2vec-contextionary"
+            "vectorizer": "text2vec-contextionary",
+            "replicationConfig": {
+                "factor": 1
+            }
         }
 
         Raises
