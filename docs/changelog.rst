@@ -1,6 +1,44 @@
 Changelog
 =========
 
+Version 3.10.0
+--------------
+This minor version includes:
+
+- Improves error message for error ``"413: Payload Too Large"``
+- |
+    Adds new :class:`~weaviate.client.Client` credential OIDC flow method:
+
+        .. code-block:: python
+
+            client_credentials_config = weaviate.AuthClientCredentials(
+                client_secret = "client_secret",
+                scope = "scope1 scope2" # optional, depends on the configuration of your identity provider
+            )
+            client = weaviate.Client("https://localhost:8080", auth_client_secret=client_credentials_config)
+- Improves size of batches on dynamic batching.
+- New ``limit`` argument to :meth:`~weaviate.data.DataObject.get` method of the :class:`~weaviate.data.DataObject` client attribute.
+- Bump minimum version of request to ``2.28.0``
+- |
+    Adds support for ``node_name`` and ``consistency_level`` for both :meth:`~weaviate.data.DataObject.get` and :meth:`~weaviate.data.DataObject.get_by_id`
+    of the :class:`~weaviate.data.DataObject` client attribute.
+    This can be used `ONLY` with Weaviate Server ``v1.17.0`` or later.
+- |
+    Adds support for replication factor in schema. This can be used `ONLY` with Weaviate Server ``v1.17.0`` or later. This can be configured in class schema like this:
+
+        .. code-block:: python
+
+            my_class = {
+                "class": "MyClass",
+                ...,
+                "replicationConfig": {
+                    "factor": 1
+                }
+            }
+- Adds support for ``Bm25`` for ``Get`` queries, :meth:`~weaviate.gql.get.GetBuilder.with_bm25`. This can be used `ONLY` with Weaviate Server ``v1.17.0`` or later.
+- Adds support for ``with_hybrid`` for ``Get`` queries, :meth:`~weaviate.gql.get.GetBuilder.with_hybrid`. This can be used `ONLY` with Weaviate Server ``v1.17.0`` or later.
+
+
 Version 3.9.0
 -------------
 This minor version includes:
@@ -8,6 +46,7 @@ This minor version includes:
 
 - Authentication using Bearer token, by adding ``additional_headers`` to the :class:`~weaviate.client.Client` initialization:
     .. code-block:: python
+
         client = weaviate.Client(
             url='http://localhost:8080',
             additional_headers={
@@ -32,6 +71,7 @@ This minor version includes:
 - New :class:`~weaviate.client.Client` attribute :class:`~weaviate.cluster.Cluster` to check the status of the cluster nodes.
     - The method :meth:`~weaviate.cluster.Cluster.get_nodes_status` returns the status of each node as a list of dictionaries.
         .. code-block:: python
+
             client.cluster.get_nodes_status()
 
 - Fix for :meth:`~weaviate.data.DataObject.replace` and :meth:`~weaviate.data.DataObject.update` when using with Weaviate server ``>=v1.14.0``.
