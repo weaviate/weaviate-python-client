@@ -25,6 +25,7 @@ class TestExceptions(unittest.TestCase):
         self.assertEqual(
             str(exception), "Test message! Unexpected status code: 1234, with response body: None."
         )
+        self.assertEqual(exception.status_code, response.status_code)
 
         # with .json() value
         response = Mock()
@@ -36,6 +37,7 @@ class TestExceptions(unittest.TestCase):
             str(exception),
             "Second test message! Unexpected status code: 4321, with response body: {'test': 'OK!'}.",
         )
+        self.assertEqual(exception.status_code, response.status_code)
 
     def test_object_already_exists(self):
         """
