@@ -69,9 +69,13 @@ class DataObject:
             Otherwise, weaviate will generate a uuid for this object,
             by default None.
         vector: Sequence or None, optional
-            The embedding of the object that should be created. Used only class objects that do not
-            have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
-            `torch.Tensor` and `tf.Tensor`,
+            Embedding for the object.
+            Can be used when:
+             - a class does not have a vectorization module.
+             - The given vector was generated using the _identical_ vectorization module that is configured for the
+             class. In this case this vector takes precendence.
+
+            Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`,
             by default None.
 
         Examples
@@ -165,9 +169,13 @@ class DataObject:
         uuid : str or uuid.UUID
             The ID of the object that should be changed.
         vector: Sequence or None, optional
-            The embedding of the object that should be updated. Used only class objects that do not
-            have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
-            `torch.Tensor` and `tf.Tensor`,
+            Embedding for the object.
+            Can be used when:
+             - a class does not have a vectorization module.
+             - The given vector was generated using the _identical_ vectorization module that is configured for the
+             class. In this case this vector takes precendence.
+
+            Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`,
             by default None.
 
         Examples
@@ -250,9 +258,13 @@ class DataObject:
         uuid : str or uuid.UUID
             The UUID of the object that should be changed.
         vector: Sequence or None, optional
-            The embedding of the object that should be replaced. Used only class objects that do not
-            have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
-            `torch.Tensor` and `tf.Tensor`,
+            Embedding for the object.
+            Can be used when:
+             - a class does not have a vectorization module.
+             - The given vector was generated using the _identical_ vectorization module that is configured for the
+             class. In this case this vector takes precendence.
+
+            Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`,
             by default None.
 
         Examples
@@ -731,10 +743,14 @@ class DataObject:
         uuid : str, uuid.UUID or None, optional
             The UUID of the object that should be validated against weaviate.
             by default None.
-        vector: Sequence, optional
-            The embedding of the object that should be validated. Used only class objects that
-            do not have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
-            `torch.Tensor` and `tf.Tensor`,
+        vector: Sequence or None, optional
+            The embedding of the object that should be validated.
+            Can be used when:
+             - a class does not have a vectorization module.
+             - The given vector was generated using the _identical_ vectorization module that is configured for the
+             class. In this case this vector takes precendence.
+
+            Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`,
             by default None.
 
         Examples
