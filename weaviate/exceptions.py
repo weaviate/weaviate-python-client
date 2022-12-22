@@ -50,7 +50,7 @@ class UnexpectedStatusCodeException(WeaviateBaseError):
         response: requests.Response
             The request response of which the status code was unexpected.
         """
-
+        self._status_code: int = response.status_code
         # Set error message
 
         try:
@@ -66,6 +66,10 @@ class UnexpectedStatusCodeException(WeaviateBaseError):
             msg += " " + ERROR_CODE_EXPLANATION[response.status_code]
 
         super().__init__(msg)
+
+    @property
+    def status_code(self) -> int:
+        return self._status_code
 
 
 class ObjectAlreadyExistsException(WeaviateBaseError):
