@@ -186,11 +186,14 @@ class ObjectsBatchRequest(BatchRequest):
         uuid : str or None, optional
             UUID of the object as a string, by default None
         vector: Sequence or None, optional
-            The embedding of the object that should be created. Used only class objects that do not
-            have a vectorization module. Supported types are `list`, 'numpy.ndarray`,
-            `torch.Tensor` and `tf.Tensor`,
+            The embedding of the object that should be validated.
+            Can be used when:
+             - a class does not have a vectorization module.
+             - The given vector was generated using the _identical_ vectorization module that is configured for the
+             class. In this case this vector takes precendence.
+
+            Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`,
             by default None.
-        retries: How often an object was added to the batch
 
         Returns
         -------
