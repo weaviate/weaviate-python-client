@@ -1,6 +1,7 @@
 import json
 import os
 import time
+import uuid
 from datetime import datetime
 from datetime import timezone
 from typing import List, Optional
@@ -323,3 +324,33 @@ def _get_data(local_client: weaviate.Client):
 
     persons = local_client.data_object.get(with_vector=True)
     assert "vector" in persons["objects"][0], "additional property _vector not in persons"
+
+
+def test_add_vector_and_vectorizer(client: weaviate.Client):
+    """Add objects with and without vector.
+
+    The Vectorizer should create a vector for the object without vector and the given one should be used for the object
+    with vector.
+    """
+    uuid_without_vector = uuid.uuid4()
+    uuid_with_vector = uuid.uuid4()
+    with client.batch(batch_size=2) as batch:
+        batch.add_data_object({"name": "Some Name"}, "Person", uuid=uuid_without_vector)
+        batch.add_data_object(
+            {"name": "Other Name"}, "Person", uuid=uuid_with_vector, vector=[1] * 300
+        )
+        batch.flush()
+
+    object_with_vector = client.data_object.get_by_id(
+        uuid_with_vector,
+        with_vector=True,
+        class_name="Person",
+    )
+    assert object_with_vector["vector"] == [1] * 300
+
+    object_without_vector = client.data_object.get_by_id(
+        uuid_without_vector,
+        with_vector=True,
+        class_name="Person",
+    )
+    assert object_without_vector["vector"] != [1] * 300
