@@ -190,7 +190,7 @@ class ObjectsBatchRequest(BatchRequest):
             Can be used when:
              - a class does not have a vectorization module.
              - The given vector was generated using the _identical_ vectorization module that is configured for the
-             class. In this case this vector takes precendence.
+             class. In this case this vector takes precedence.
 
             Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`,
             by default None.
