@@ -6,13 +6,12 @@ from werkzeug.wrappers import Request, Response
 
 import weaviate
 from mock_tests.conftest import MOCK_SERVER_URL
-from weaviate.batch.crud_batch import CallbackModeRetryFailed, CallbackModeReportErrors
-from weaviate.exceptions import BatchImportFailedException
+from weaviate.batch.crud_batch import WeaviateErrorRetryConf
 from weaviate.util import check_batch_result
 
 
 def test_automatic_retry_obs(weaviate_mock):
-    """Tests that all objects are successfully added even if half of them fail"""
+    """Tests that all objects are successfully added even if half of them fail."""
     successfully_added = []
     num_failed_requests = 0
 
@@ -40,8 +39,8 @@ def test_automatic_retry_obs(weaviate_mock):
     )  # multiple of the batch size, otherwise it is difficult to calculate the number of expected errors
     with client.batch(
         batch_size=batch_size,
-        callback=CallbackModeRetryFailed(number_retries=3),
         num_workers=2,
+        weaviate_error_retries=WeaviateErrorRetryConf(number_retries=3),
     ) as batch:
         for i in range(n):
             added_uuids.append(uuid.uuid4())
@@ -54,7 +53,7 @@ def test_automatic_retry_obs(weaviate_mock):
 
 
 def test_automatic_retry_refs(weaviate_mock):
-    """Tests that all objects are successfully added even if half of them fail"""
+    """Tests that all references are successfully added even if half of them fail."""
     num_success_requests = 0
     num_failed_requests = 0
 
@@ -80,7 +79,9 @@ def test_automatic_retry_refs(weaviate_mock):
         50 * batch_size
     )  # multiple of the batch size, otherwise it is difficult to calculate the number of expected errors
     with client.batch(
-        batch_size=batch_size, callback=CallbackModeRetryFailed(number_retries=3), num_workers=2
+        batch_size=batch_size,
+        weaviate_error_retries=WeaviateErrorRetryConf(number_retries=3),
+        num_workers=2,
     ) as batch:
         for _ in range(n):
             batch.add_reference(
@@ -98,29 +99,48 @@ def test_automatic_retry_refs(weaviate_mock):
 
 def test_automatic_retry_unsuccessful(weaviate_mock):
     """Test that exception is raised when retry is unsuccessful."""
+    num_success_requests = 0
 
+    # Mockserver returns error for half of all objects
     def handler(request: Request):
+        nonlocal num_success_requests
         objects = request.json["objects"]
-        for _, obj in enumerate(objects):
+        for j, obj in enumerate(objects):
             obj["deprecations"] = None
-            obj["result"] = {"errors": {"error": [{"message": "I'm an error message"}]}}
+            if j % 2 == 0:
+                obj["result"] = {}
+                num_success_requests += 1
+            else:
+                obj["result"] = {"errors": {"error": [{"message": "I'm an error message"}]}}
         return Response(json.dumps(objects))
 
     weaviate_mock.expect_request("/v1/batch/objects").respond_with_handler(handler)
 
     client = weaviate.Client(url=MOCK_SERVER_URL)
-    n = 50 * 4
-    batch_size = 2
-    with pytest.raises(BatchImportFailedException):
-        with client.batch(
-            batch_size=batch_size, callback=CallbackModeRetryFailed(number_retries=3), num_workers=2
-        ) as batch:
-            for i in range(n):
-                batch.add_data_object({"name": "test" + str(i)}, "test", uuid.uuid4())
+    batch_size = 20
+    n = batch_size * 2
+    with client.batch(
+        batch_size=batch_size,
+        weaviate_error_retries=WeaviateErrorRetryConf(number_retries=1),
+        num_workers=2,
+        callback=None,
+    ) as batch:
+        for i in range(n):
+            batch.add_data_object({"name": "test" + str(i)}, "test", uuid.uuid4())
+        batch.flush()
+    # retried 3 times, starting with 200 objects and half off all objects succeed each time
+    assert num_success_requests == 30
 
 
-@pytest.mark.parametrize("callback", [CallbackModeReportErrors(), None, check_batch_result])
-def test_print_threadsafety(weaviate_mock, capfd, callback):
+@pytest.mark.parametrize(
+    "retry_config, expected",
+    [
+        (None, 400),
+        (WeaviateErrorRetryConf(number_retries=1), 600),
+        (WeaviateErrorRetryConf(number_retries=2), 700),
+    ],
+)
+def test_print_threadsafety(weaviate_mock, capfd, retry_config, expected):
     """Test that the default callback calling print statements is threadsafe."""
     successfully_added = []
 
@@ -141,14 +161,22 @@ def test_print_threadsafety(weaviate_mock, capfd, callback):
     client = weaviate.Client(url=MOCK_SERVER_URL)
 
     added_uuids = []
-    n = 50 * 4
-    with client.batch(batch_size=4, callback=callback, num_workers=4) as batch:
+    n = 200 * 4
+    with client.batch(
+        batch_size=200,
+        callback=check_batch_result,
+        num_workers=4,
+        weaviate_error_retries=retry_config,
+    ) as batch:
         for i in range(n):
             added_uuids.append(uuid.uuid4())
             batch.add_data_object({"name": "test" + str(i)}, "test", added_uuids[-1])
-    assert len(successfully_added) == n / 2
+
+    retry_factor: float = 1.0
+    if retry_config is not None:
+        retry_factor = 1 / (2 * retry_config.number_retries)
+    assert len(successfully_added) == n - n / 2 * retry_factor
 
     # half of all objects fail => N/2 print statements that end with a newline
     print_output, err = capfd.readouterr()
-    if callback is not None:
-        assert print_output.count("\n") == n / 2
+    assert print_output.count("\n") == n - len(successfully_added)

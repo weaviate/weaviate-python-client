@@ -21,7 +21,7 @@ from ..error_msgs import (
     BATCH_REF_DEPRECATION_OLD_V14_CLS_NS_W,
     BATCH_EXECUTOR_SHUTDOWN_W,
 )
-from ..exceptions import UnexpectedStatusCodeException, BatchImportFailedException
+from ..exceptions import UnexpectedStatusCodeException
 from ..util import (
     _capitalize_first_letter,
     check_batch_result,
@@ -31,23 +31,13 @@ from ..warnings import _Warnings
 
 
 @dataclass()
-class CallbackModeRetryFailed:
+class WeaviateErrorRetryConf:
     number_retries: int = 3
+    exclude_errors: Optional[List[str]] = None
+    include_errors: Optional[List[str]] = None
 
 
-@dataclass()
-class CallbackModeReportErrors:
-    """Prints errors"""
-
-
-CallbackMode = Union[CallbackModeRetryFailed, CallbackModeReportErrors]
-CALLBACK = Union[Callable[[dict], None], CallbackMode]
-
-
-@dataclass
-class _CallBackResponse:
-    new_batch: Union[ObjectsBatchRequest, ReferenceBatchRequest]
-    errors: List[Any]
+Batch = Union[ObjectsBatchRequest, ReferenceBatchRequest]
 
 
 class BatchExecutor(ThreadPoolExecutor):
@@ -227,7 +217,8 @@ class Batch:
         # user configurable, need to be public should implement a setter/getter
         self._recommended_num_objects = None
         self._recommended_num_references = None
-        self._callback: Optional[CALLBACK] = None
+        self._callback: Optional[Callable[[dict], None]] = None
+        self._weaviate_error_retry: Optional[WeaviateErrorRetryConf] = None
         self._batch_size = None
         self._creation_time = min(self._connection.timeout_config[1] / 10, 2)
         self._timeout_retries = 3
@@ -244,7 +235,8 @@ class Batch:
         creation_time: Optional[Real] = None,
         timeout_retries: int = 3,
         connection_error_retries: int = 3,
-        callback: Optional[CALLBACK] = check_batch_result,
+        weaviate_error_retries: Optional[WeaviateErrorRetryConf] = None,
+        callback: Optional[Callable[[dict], None]] = check_batch_result,
         dynamic: bool = False,
         num_workers: int = 1,
     ) -> "Batch":
@@ -266,6 +258,10 @@ class Batch:
             How long it should take to create a Batch. Used ONLY for computing dynamic batch sizes. By default None
         timeout_retries : int, optional
             Number of retries to create a Batch that failed with ReadTimeout, by default 3
+        weaviate_error_retries: WeaviateErrorRetryConf, Optional
+            How often batch-elements with an error originating from weaviate (for example transformer timeouts) should
+            be retried and which errors should be ignored and/or included. See documentation for WeaviateErrorRetryConf
+            for details.
         connection_error_retries : int, optional
             Number of retries to create a Batch that failed with ConnectionError, by default 3
         callback : Optional[Callable[[dict], None]], optional
@@ -295,6 +291,7 @@ class Batch:
             batch_size=batch_size,
             creation_time=creation_time,
             timeout_retries=timeout_retries,
+            weaviate_error_retries=weaviate_error_retries,
             connection_error_retries=connection_error_retries,
             callback=callback,
             dynamic=dynamic,
@@ -307,7 +304,8 @@ class Batch:
         creation_time: Optional[Real] = None,
         timeout_retries: int = 3,
         connection_error_retries: int = 3,
-        callback: Optional[CALLBACK] = check_batch_result,
+        weaviate_error_retries: Optional[WeaviateErrorRetryConf] = None,
+        callback: Optional[Callable[[dict], None]] = check_batch_result,
         dynamic: bool = False,
         num_workers: int = 1,
     ) -> "Batch":
@@ -331,6 +329,10 @@ class Batch:
             Number of retries to create a Batch that failed with ReadTimeout, by default 3
         connection_error_retries : int, optional
             Number of retries to create a Batch that failed with ConnectionError, by default 3
+        weaviate_error_retries: WeaviateErrorRetryConf, Optional
+            How often batch-elements with an error originating from weaviate (for example transformer timeouts) should
+            be retried and which errors should be ignored and/or included. See documentation for WeaviateErrorRetryConf
+            for details.
         callback : Optional[Callable[[dict], None]], optional
             A callback function on the results of each (objects and references) batch types.
             By default `weaviate.util.check_batch_result`
@@ -367,6 +369,7 @@ class Batch:
 
         self._timeout_retries = timeout_retries
         self._connection_error_retries = connection_error_retries
+        self._weaviate_error_retry = weaviate_error_retries
         # set Batch to manual import
         if batch_size is None:
             self._batch_size = None
@@ -578,24 +581,18 @@ class Batch:
                     )
                     connection_count += 1
                 else:
-                    if self._callback is not None:
-                        if isinstance(self._callback, Callable):
-                            # We don't know if user-supplied functions are threadsafe
-                            with self._callback_lock:
-                                self._callback(response.json())
-                        else:
-                            callback_response = self._internal_callback(response.json(), data_type)
-                            if (
-                                callback_response is not None
-                                and len(callback_response.new_batch) > 0
-                            ):
-                                batch_error_count += 1
-                                if isinstance(self._callback, CallbackModeRetryFailed):
-                                    if batch_error_count > self._callback.number_retries:
-                                        raise BatchImportFailedException(callback_response.errors)
-                                    batch_request = callback_response.new_batch
-                                    continue
+                    response_json = response.json()
+                    if (
+                        self._weaviate_error_retry is not None
+                        and batch_error_count < self._weaviate_error_retry.number_retries
+                    ):
+                        batch_to_retry = self._retry_on_error(response_json, data_type)
+                        if len(batch_to_retry) > 0:
+                            batch_error_count += 1
+                            batch_request = batch_to_retry
+                            continue  # run the request again, but only with objects that had errors
 
+                    self._run_callback(response_json)
                     break
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Batch was not added to weaviate.") from conn_err
@@ -610,6 +607,13 @@ class Batch:
         if response.status_code == 200:
             return response
         raise UnexpectedStatusCodeException(f"Create {data_type} in batch", response)
+
+    def _run_callback(self, response: Dict[str, Any]):
+        if self._callback is None:
+            return
+        # We don't know if user-supplied functions are threadsafe
+        with self._callback_lock:
+            self._callback(response)
 
     def _batch_readd_after_timeout(
         self, data_type: str, batch_request: BatchRequest
@@ -1558,27 +1562,18 @@ class Batch:
 
     @connection_error_retries.setter
     def connection_error_retries(self, value: int) -> None:
-
         _check_non_negative(value, "connection_error_retries", int)
         self._connection_error_retries = value
 
-    def _internal_callback(
-        self, response: List[Dict[str, Any]], data_type: str
-    ) -> Optional[_CallBackResponse]:
-        if isinstance(self._callback, CallbackModeRetryFailed):
-            if data_type == "objects":
-                return self._retry_failed_objects(response)
-            else:
-                return self._retry_failed_references(response)
+    def _retry_on_error(self, response: List[Dict[str, Any]], data_type: str) -> Batch:
+        if data_type == "objects":
+            return self._retry_failed_objects(response)
         else:
-            assert isinstance(self._callback, CallbackModeReportErrors)
-            with self._callback_lock:
-                check_batch_result(response)
+            return self._retry_failed_references(response)
 
     @staticmethod
-    def _retry_failed_objects(response: List[Dict[str, Any]]) -> _CallBackResponse:
+    def _retry_failed_objects(response: List[Dict[str, Any]]) -> Batch:
         new_batch = ObjectsBatchRequest()
-        errors: List[Any] = []
         for obj in response:
             if (
                 len(obj["result"]) == 0
@@ -1594,17 +1589,15 @@ class Batch:
                 uuid=obj["id"],
                 vector=obj.get("vector", None),
             )
-            errors.append((obj["id"], obj["result"]["errors"]["error"]))
-        return _CallBackResponse(new_batch, errors)
+        return new_batch
 
     @staticmethod
-    def _retry_failed_references(response: List[Dict[str, Any]]) -> _CallBackResponse:
-        def parse_references(ref: str) -> Tuple[str, str, Optional[str]]:
-            parts = ref[11:].split("/")
+    def _retry_failed_references(response: List[Dict[str, Any]]) -> Batch:
+        def parse_references(full_ref: str) -> Tuple[str, str, Optional[str]]:
+            parts = full_ref[11:].split("/")
             return parts[1], parts[2], parts[3] if len(parts) >= 4 else None
 
         new_batch = ReferenceBatchRequest()
-        errors: List[Any] = []
         for ref in response:
             if (
                 len(ref["result"]) == 0
@@ -1623,9 +1616,8 @@ class Batch:
                 to_object_uuid=to_uuid,
                 to_object_class_name=to_class,
             )
-            errors.append((ref, ref["result"]["errors"]["error"]))
 
-        return _CallBackResponse(new_batch, errors)
+        return new_batch
 
 
 def _check_non_negative(value: Real, arg_name: str, data_type: type) -> None:
