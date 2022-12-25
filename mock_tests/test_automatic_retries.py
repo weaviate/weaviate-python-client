@@ -10,7 +10,18 @@ from weaviate.batch.crud_batch import WeaviateErrorRetryConf
 from weaviate.util import check_batch_result
 
 
-def test_automatic_retry_obs(weaviate_mock):
+@pytest.mark.parametrize(
+    "error",
+    [
+        {"errors": {"error": [{"message": "I'm an error message"}]}},
+        {
+            "errors": {
+                "error": [{"message": "I'm an error message"}, {"message": "Another message"}]
+            }
+        },
+    ],
+)
+def test_automatic_retry_obs(weaviate_mock, error):
     """Tests that all objects are successfully added even if half of them fail."""
     successfully_added = []
     num_failed_requests = 0
@@ -25,7 +36,7 @@ def test_automatic_retry_obs(weaviate_mock):
                 obj["result"] = {}
                 successfully_added.append(uuid.UUID(obj["id"]))
             else:
-                obj["result"] = {"errors": {"error": [{"message": "I'm an error message"}]}}
+                obj["result"] = error
                 num_failed_requests += 1
         return Response(json.dumps(objects))
 
@@ -208,7 +219,9 @@ def test_include_error(weaviate_mock, retry_config, expected):
             elif j % 4 == 2:
                 obj["result"] = {"errors": {"error": [{"message": "maybe retry maybe not"}]}}
             else:
-                obj["result"] = {"errors": {"error": [{"message": "reject me"}]}}
+                obj["result"] = {
+                    "errors": {"error": [{"message": "reject me"}, {"message": "other error"}]}
+                }
         return Response(json.dumps(objects))
 
     weaviate_mock.expect_request("/v1/batch/objects").respond_with_handler(handler)
