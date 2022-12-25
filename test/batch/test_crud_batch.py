@@ -13,12 +13,20 @@ from weaviate.batch.requests import ObjectsBatchRequest, ReferenceBatchRequest
 from weaviate.exceptions import UnexpectedStatusCodeException
 
 
-def test_retry_config():
+@pytest.mark.parametrize(
+    "num,excl,incl",
+    [
+        (3, ["some entry"], ["other entry"]),
+        (-1, None, None),
+        (1, ["some entry", 1], None),
+        (1, None, ["some entry", 1]),
+        (1, None, []),
+    ],
+)
+def test_retry_config_both_lists(num, excl, incl):
     """Test that either include or exclude list can be given."""
     with pytest.raises(ValueError):
-        WeaviateErrorRetryConf(
-            number_retries=3, errors_to_exclude=["some entry"], errors_to_include=["other entry"]
-        )
+        WeaviateErrorRetryConf(number_retries=num, errors_to_exclude=excl, errors_to_include=incl)
 
 
 class TestBatch(unittest.TestCase):

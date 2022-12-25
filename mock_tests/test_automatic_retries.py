@@ -98,7 +98,7 @@ def test_automatic_retry_refs(weaviate_mock):
 
 
 def test_automatic_retry_unsuccessful(weaviate_mock):
-    """Test that exception is raised when retry is unsuccessful."""
+    """Test automatic retry that cannot add all objects."""
     num_success_requests = 0
 
     # Mockserver returns error for half of all objects
@@ -141,7 +141,7 @@ def test_automatic_retry_unsuccessful(weaviate_mock):
     ],
 )
 def test_print_threadsafety(weaviate_mock, capfd, retry_config, expected):
-    """Test that the default callback calling print statements is threadsafe."""
+    """Test retry with callback and callback threadsafety."""
     num_success_requests = 0
 
     # Mockserver returns error for half of all objects
@@ -190,7 +190,7 @@ def test_print_threadsafety(weaviate_mock, capfd, retry_config, expected):
         (WeaviateErrorRetryConf(number_retries=1, errors_to_exclude=["reject", "maybe"]), 250),
     ],
 )
-def test_include_error(weaviate_mock, capfd, retry_config, expected):
+def test_include_error(weaviate_mock, retry_config, expected):
     """Test that objects are included/excluded based on their error message"""
     num_success_requests = 0
 

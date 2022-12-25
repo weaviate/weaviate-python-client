@@ -39,7 +39,7 @@ class WeaviateErrorRetryConf:
     Parameters
     ----------
     number_retries: int
-       How often an object should be retried
+       How often a batch that includes objects with errors should be retried. Must be >=1.
     errors_to_exclude: Optional[List[str]]
         Which errors should NOT be retried. All other errors will be retried. An object will be skipped, when the given
         string is part of the weaviate error message.
@@ -58,9 +58,23 @@ class WeaviateErrorRetryConf:
     errors_to_exclude: Optional[List[str]] = None
     errors_to_include: Optional[List[str]] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.errors_to_exclude is not None and self.errors_to_include is not None:
             raise ValueError(self.__module__ + "can either include or exclude errors")
+
+        _check_positive_num(self.number_retries, "number_retries", int)
+
+        def check_lists(error_list: Optional[List[str]]) -> None:
+            if error_list is None:
+                return
+            if any(not isinstance(entry, str) for entry in error_list):
+                raise ValueError("List entries must be strings.")
+
+        check_lists(self.errors_to_exclude)
+        check_lists(self.errors_to_include)
+
+        if self.errors_to_include is not None and len(self.errors_to_include) == 0:
+            raise ValueError("errors_to_include has 0 entries and no error will be retried.")
 
 
 Batch = Union[ObjectsBatchRequest, ReferenceBatchRequest]
