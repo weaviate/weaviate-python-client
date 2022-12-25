@@ -142,16 +142,17 @@ def test_automatic_retry_unsuccessful(weaviate_mock):
 )
 def test_print_threadsafety(weaviate_mock, capfd, retry_config, expected):
     """Test that the default callback calling print statements is threadsafe."""
-    successfully_added = []
+    num_success_requests = 0
 
     # Mockserver returns error for half of all objects
     def handler(request: Request):
+        nonlocal num_success_requests
         objects = request.json["objects"]
         for j, obj in enumerate(objects):
             obj["deprecations"] = None
             if j % 2 == 0:
                 obj["result"] = {}
-                successfully_added.append(obj["id"])
+                num_success_requests += 1
             else:
                 obj["result"] = {"errors": {"error": [{"message": "I'm an error message"}]}}
         return Response(json.dumps(objects))
@@ -175,8 +176,55 @@ def test_print_threadsafety(weaviate_mock, capfd, retry_config, expected):
     retry_factor: float = 1.0
     if retry_config is not None:
         retry_factor = 1 / (2 * retry_config.number_retries)
-    assert len(successfully_added) == n - n / 2 * retry_factor
+    assert num_success_requests == n - n / 2 * retry_factor
 
     # half of all objects fail => N/2 print statements that end with a newline
     print_output, err = capfd.readouterr()
-    assert print_output.count("\n") == n - len(successfully_added)
+    assert print_output.count("\n") == n - num_success_requests
+
+
+@pytest.mark.parametrize(
+    "retry_config, expected",
+    [
+        (WeaviateErrorRetryConf(number_retries=1, errors_to_include=["include", "maybe"]), 300),
+        (WeaviateErrorRetryConf(number_retries=1, errors_to_exclude=["reject", "maybe"]), 250),
+    ],
+)
+def test_include_error(weaviate_mock, capfd, retry_config, expected):
+    """Test that objects are included/excluded based on their error message"""
+    num_success_requests = 0
+
+    # Mockserver returns error for 3/4 of all objects, with different messages for each quarter
+    def handler(request: Request):
+        nonlocal num_success_requests
+        objects = request.json["objects"]
+        for j, obj in enumerate(objects):
+            obj["deprecations"] = None
+            if j % 4 == 0:
+                obj["result"] = {}
+                num_success_requests += 1
+            elif j % 4 == 1:
+                obj["result"] = {"errors": {"error": [{"message": "include me"}]}}
+            elif j % 4 == 2:
+                obj["result"] = {"errors": {"error": [{"message": "maybe retry maybe not"}]}}
+            else:
+                obj["result"] = {"errors": {"error": [{"message": "reject me"}]}}
+        return Response(json.dumps(objects))
+
+    weaviate_mock.expect_request("/v1/batch/objects").respond_with_handler(handler)
+
+    client = weaviate.Client(url=MOCK_SERVER_URL)
+
+    added_uuids = []
+    n = 400 * 2
+    with client.batch(
+        batch_size=400,
+        callback=None,
+        num_workers=2,
+        weaviate_error_retries=retry_config,
+    ) as batch:
+        for i in range(n):
+            added_uuids.append(uuid.uuid4())
+            batch.add_data_object({"name": "test" + str(i)}, "test", added_uuids[-1])
+
+    assert num_success_requests == expected

@@ -32,9 +32,35 @@ from ..warnings import _Warnings
 
 @dataclass()
 class WeaviateErrorRetryConf:
+    """Configures how often objects should be retried when Weavaite returns an error and which errors should be included
+    or excluded.
+    By default, all errors are retried.
+
+    Parameters
+    ----------
+    number_retries: int
+       How often an object should be retried
+    errors_to_exclude: Optional[List[str]]
+        Which errors should NOT be retried. All other errors will be retried. An object will be skipped, when the given
+        string is part of the weaviate error message.
+
+        Example: errors_to_exclude =["string1", "string2"] will match the error with message "Long error message that
+        contains string1".
+    errors_to_include: Optional[List[str]]
+        Which errors should be retried. All other errors will NOT be retried. An object will be included, when the given
+        string is part of the weaviate error message.
+
+        Example: errors_to_include =["string1", "string2"] will match the error with message "Long error message that
+        contains string1".
+    """
+
     number_retries: int = 3
-    exclude_errors: Optional[List[str]] = None
-    include_errors: Optional[List[str]] = None
+    errors_to_exclude: Optional[List[str]] = None
+    errors_to_include: Optional[List[str]] = None
+
+    def __post_init__(self):
+        if self.errors_to_exclude is not None and self.errors_to_include is not None:
+            raise ValueError(self.__module__ + "can either include or exclude errors")
 
 
 Batch = Union[ObjectsBatchRequest, ReferenceBatchRequest]
@@ -258,7 +284,7 @@ class Batch:
             How long it should take to create a Batch. Used ONLY for computing dynamic batch sizes. By default None
         timeout_retries : int, optional
             Number of retries to create a Batch that failed with ReadTimeout, by default 3
-        weaviate_error_retries: WeaviateErrorRetryConf, Optional
+        weaviate_error_retries: Optional[WeaviateErrorRetryConf], by default None
             How often batch-elements with an error originating from weaviate (for example transformer timeouts) should
             be retried and which errors should be ignored and/or included. See documentation for WeaviateErrorRetryConf
             for details.
@@ -1571,16 +1597,10 @@ class Batch:
         else:
             return self._retry_failed_references(response)
 
-    @staticmethod
-    def _retry_failed_objects(response: List[Dict[str, Any]]) -> Batch:
+    def _retry_failed_objects(self, response: List[Dict[str, Any]]) -> Batch:
         new_batch = ObjectsBatchRequest()
         for obj in response:
-            if (
-                len(obj["result"]) == 0
-                or "errors" not in obj["result"]
-                or "error" not in obj["result"]["errors"]
-                or len(obj["result"]["errors"]["error"]) == 0
-            ):
+            if self._skip_objects_retry(obj):
                 continue
 
             new_batch.add(
@@ -1591,20 +1611,16 @@ class Batch:
             )
         return new_batch
 
-    @staticmethod
-    def _retry_failed_references(response: List[Dict[str, Any]]) -> Batch:
+    def _retry_failed_references(self, response: List[Dict[str, Any]]) -> Batch:
+        assert self._weaviate_error_retry is not None
+
         def parse_references(full_ref: str) -> Tuple[str, str, Optional[str]]:
             parts = full_ref[11:].split("/")
             return parts[1], parts[2], parts[3] if len(parts) >= 4 else None
 
         new_batch = ReferenceBatchRequest()
         for ref in response:
-            if (
-                len(ref["result"]) == 0
-                or "errors" not in ref["result"]
-                or "error" not in ref["result"]["errors"]
-                or len(ref["result"]["errors"]["error"]) == 0
-            ):
+            if self._skip_objects_retry(ref):
                 continue
 
             from_class, from_uuid, from_property = parse_references(ref["from"])
@@ -1618,6 +1634,32 @@ class Batch:
             )
 
         return new_batch
+
+    def _skip_objects_retry(self, entry: Dict[str, Any]) -> bool:
+        if (
+            len(entry["result"]) == 0
+            or "errors" not in entry["result"]
+            or "error" not in entry["result"]["errors"]
+            or len(entry["result"]["errors"]["error"]) == 0
+        ):
+            return True
+
+        # skip based on error messages
+        if self._weaviate_error_retry.errors_to_exclude is not None:
+            for err in entry["result"]["errors"]["error"]:
+                if any(
+                    excl in err["message"] for excl in self._weaviate_error_retry.errors_to_exclude
+                ):
+                    return True
+            return False
+        elif self._weaviate_error_retry.errors_to_include is not None:
+            for err in entry["result"]["errors"]["error"]:
+                if any(
+                    incl in err["message"] for incl in self._weaviate_error_retry.errors_to_include
+                ):
+                    return False
+            return True
+        return False
 
 
 def _check_non_negative(value: Real, arg_name: str, data_type: type) -> None:

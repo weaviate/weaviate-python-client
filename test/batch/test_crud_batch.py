@@ -2,13 +2,23 @@ import unittest
 from numbers import Real
 from unittest.mock import Mock, patch
 
+import pytest
 from requests import ReadTimeout
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 from weaviate.batch import Batch
+from weaviate.batch.crud_batch import WeaviateErrorRetryConf
 from weaviate.batch.requests import ObjectsBatchRequest, ReferenceBatchRequest
 from weaviate.exceptions import UnexpectedStatusCodeException
+
+
+def test_retry_config():
+    """Test that either include or exclude list can be given."""
+    with pytest.raises(ValueError):
+        WeaviateErrorRetryConf(
+            number_retries=3, errors_to_exclude=["some entry"], errors_to_include=["other entry"]
+        )
 
 
 class TestBatch(unittest.TestCase):
