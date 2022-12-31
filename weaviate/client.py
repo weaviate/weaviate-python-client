@@ -36,7 +36,7 @@ class Client:
         A Classification object instance connected to the same Weaviate instance as the Client.
     contextionary : weaviate.contextionary.Contextionary
         A Contextionary object instance connected to the same Weaviate instance as the Client.
-    data_object : weaviate.date.DataObject
+    data_object : weaviate.data.DataObject
         A DataObject object instance connected to the same Weaviate instance as the Client.
     schema : weaviate.schema.Schema
         A Schema object instance connected to the same Weaviate instance as the Client.
