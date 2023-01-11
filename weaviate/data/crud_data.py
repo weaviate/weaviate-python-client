@@ -438,6 +438,7 @@ class DataObject:
         node_name: Optional[str] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
         limit: Optional[int] = None,
+        offset: Optional[int] = None,
     ) -> List[dict]:
         """
         Gets objects from weaviate, the maximum number of objects returned is 100.
@@ -526,7 +527,11 @@ class DataObject:
         if limit is not None:
             _check_positive_num(limit, "limit", int)
             params["limit"] = limit
-
+            
+        if offset is not None:
+            _check_positive_num(offset, "offset", int)
+            params["offset"] = offset
+        
         try:
             response = self._connection.get(
                 path=path,
