@@ -494,7 +494,7 @@ def check_batch_result(
                 print(result["result"]["errors"])
 
 
-def _check_positive_num(value: Real, arg_name: str, data_type: type) -> None:
+def _check_positive_num(value: Real, arg_name: str, data_type: type, include_zero: bool = False) -> None:
     """
     Check if the `value` of the `arg_name` is a positive number.
 
@@ -506,6 +506,8 @@ def _check_positive_num(value: Real, arg_name: str, data_type: type) -> None:
         The name of the variable from the original function call. Used for error message.
     data_type : type
         The data type to check for.
+    include_zero : bool
+        Wether zero counts as positive or not. by default False.
 
     Raises
     ------
@@ -517,5 +519,10 @@ def _check_positive_num(value: Real, arg_name: str, data_type: type) -> None:
 
     if not isinstance(value, data_type) or isinstance(value, bool):
         raise TypeError(f"'{arg_name}' must be of type {data_type}.")
-    if value <= 0:
-        raise ValueError(f"'{arg_name}' must be positive, i.e. greater that zero (>0).")
+    if include_zero:
+        if value < 0:
+            raise ValueError(f"'{arg_name}' must be positive, i.e. greater or equal to zero (>=0).")
+    else:
+        if value <= 0:
+            raise ValueError(f"'{arg_name}' must be positive, i.e. greater that zero (>0).")
+    

@@ -124,7 +124,7 @@ def test_query_get_with_limit(people_schema, limit: Optional[int]):
         assert len(result["objects"]) == limit
     client.schema.delete_all()
     
-@pytest.mark.parametrize("offset", [None, 1, 5, 20, 50])
+@pytest.mark.parametrize("offset", [None,0, 1, 5, 20, 50])
 def test_query_get_with_offset(people_schema, offset: Optional[int]):
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
