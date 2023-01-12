@@ -34,6 +34,8 @@ class Client:
         A Batch object instance connected to the same Weaviate instance as the Client.
     classification : weaviate.classification.Classification
         A Classification object instance connected to the same Weaviate instance as the Client.
+    cluster : weaviate.cluster.Cluster
+        A Cluster object instance connected to the same Weaviate instance as the Client.
     contextionary : weaviate.contextionary.Contextionary
         A Contextionary object instance connected to the same Weaviate instance as the Client.
     data_object : weaviate.data.DataObject
@@ -184,8 +186,7 @@ class Client:
             If weaviate reports a none OK status.
         """
 
-        response = self._connection.get_meta()
-        return response.json()
+        return self._connection.get_meta()
 
     def get_open_id_configuration(self) -> Optional[dict]:
         """
