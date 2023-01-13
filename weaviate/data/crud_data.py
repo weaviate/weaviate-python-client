@@ -536,29 +536,27 @@ class DataObject:
             _check_positive_num(offset, "offset", int, include_zero = True)
             params["offset"] = offset
 
-        if isinstance(ascending, bool):
-            ascending = [ascending]
-        else:
-            if len(sort) != len(ascending):
-                raise SyntaxError(f"'ascending' must be the same length as 'sort' or a boolean. Current length is sort:{len(sort)} and ascending:{len(ascending)}.")
         if sort is not None:
+            if isinstance(ascending, bool):
+                ascending = [ascending]*len(sort)
+            elif not isinstance(ascending, list):
+                raise TypeError(f"'ascending' must be of type boolean or list. Given type: {type(ascending)}.")
+            elif len(sort) != len(ascending):
+                raise SyntaxError(f"'ascending' must be the same length as 'sort' or a boolean (not in a list). Current length is sort:{len(sort)} and ascending:{len(ascending)}.")
+            elif len(ascending) == 0:
+                raise ValueError("'ascending' cannot be an empty list.")
+        
             if isinstance(sort,str):
                 params["sort"] = sort
             else:
                 sort = ','.join(sort)
                 params["sort"] = sort
             #else:
-            #    raise TypeError(f"'sort' must be of type str or list[str]. Given type: {type(sort)}.")
+            #   raise TypeError(f"'sort' must be of type str or list[str]. Given type: {type(sort)}.")
 
-        if not isinstance(ascending, list):
-            raise TypeError(f"'ascending' must be of type boolean or list. Given type: {type(ascending)}.")
-
-        if len(ascending) == 0:
-            raise ValueError("'ascending' cannot be an empty list.")
-
-        order = ["asc" if x else "desc" for x in ascending]
-        order = ','.join(order)
-        params["order"] = order
+            order = ["asc" if x else "desc" for x in ascending]
+            order = ','.join(order)
+            params["order"] = order
 
         try:
             response = self._connection.get(

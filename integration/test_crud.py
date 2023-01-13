@@ -148,8 +148,10 @@ def test_query_get_with_offset(people_schema, offset: Optional[int]):
 
 
 
-@pytest.mark.parametrize("ascending",[[True,False,True],False])
-def test_query_get_with_sort(ascending: Union[bool,List[bool]]):
+@pytest.mark.parametrize("sort_and_ascending",[("name",True),("name",False),(["description","size","name"],[False,True,False]),(["description","size","name"],False),(["description","size","name"],True)])
+def test_query_get_with_sort(sort_and_ascending: Optional[tuple]):
+    sort = sort_and_ascending[0]
+    ascending = sort_and_ascending[1]
     ship_schema = {
     "classes": [
         {
@@ -163,6 +165,7 @@ def test_query_get_with_sort(ascending: Union[bool,List[bool]]):
         }
     ]
 }
+
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create(ship_schema)
@@ -175,11 +178,26 @@ def test_query_get_with_sort(ascending: Union[bool,List[bool]]):
 
 
 
-    result = client.data_object.get(class_name="Ship", limit= 20, sort = ["description","size","name"], ascending = ascending)
-    if ascending:
+    result = client.data_object.get(class_name="Ship", sort = sort, ascending = ascending)
+    if sort_and_ascending == ("name",True):
         assert result["objects"][0]["properties"]["name"] == "name0"
-    if not ascending:
+    elif sort_and_ascending == ("name",False):
         assert result["objects"][0]["properties"]["name"] == "name9"
+    elif sort_and_ascending == (["description","size","name"],[False,True,False]):
+        assert result["objects"][0]["properties"]["name"] == "name5"
+        assert result["objects"][1]["properties"]["name"] == "name0"
+        assert result["objects"][2]["properties"]["name"] == "name6"
+        assert result["objects"][3]["properties"]["name"] == "name1"
+    elif sort_and_ascending == (["description","size","name"],False):
+        assert result["objects"][0]["properties"]["name"] == "name9"
+        assert result["objects"][1]["properties"]["name"] == "name4"
+        assert result["objects"][2]["properties"]["name"] == "name8"
+        assert result["objects"][3]["properties"]["name"] == "name3"
+    elif sort_and_ascending == (["description","size","name"],True):
+        assert result["objects"][0]["properties"]["name"] == "name10"
+        assert result["objects"][1]["properties"]["name"] == "name15"
+        assert result["objects"][2]["properties"]["name"] == "name11"
+        assert result["objects"][3]["properties"]["name"] == "name16"
     client.schema.delete_all()
 
 def test_query_data(client):
