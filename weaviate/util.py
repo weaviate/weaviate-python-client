@@ -507,7 +507,7 @@ def _check_positive_num(value: Real, arg_name: str, data_type: type, include_zer
     data_type : type
         The data type to check for.
     include_zero : bool
-        Wether zero counts as positive or not. by default False.
+        Wether zero counts as positive or not. By default False.
 
     Raises
     ------

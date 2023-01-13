@@ -4,7 +4,7 @@ import time
 import uuid
 from datetime import datetime
 from datetime import timezone
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import pytest
 
@@ -144,6 +144,42 @@ def test_query_get_with_offset(people_schema, offset: Optional[int]):
         assert len(result_with_offset["objects"]) == 0
     else:
         assert result_with_offset["objects"][0] == result_without_offset["objects"][offset]
+    client.schema.delete_all()
+
+
+
+@pytest.mark.parametrize("ascending",[[True,False,True],False])
+def test_query_get_with_sort(ascending: Union[bool,List[bool]]):
+    ship_schema = {
+    "classes": [
+        {
+            "class": "Ship",
+            "description": "object",
+            "properties": [
+                {"dataType": ["string"], "description": "name", "name": "name"},
+                {"dataType": ["string"], "description": "description", "name": "description"},
+                {"dataType": ["int"], "description": "size", "name": "size"},
+            ],
+        }
+    ]
+}
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+    client.schema.create(ship_schema)
+    num_objects = 10
+    for i in range(num_objects):
+        with client.batch as batch:
+            batch.add_data_object({"name": f"name{i}", "size": i%5+5, "description": "Super long description"}, "Ship")
+            batch.add_data_object({"name": f"name{i+10}", "size": i%5+5, "description": "Short description"}, "Ship")
+        batch.flush()
+
+
+
+    result = client.data_object.get(class_name="Ship", limit= 20, sort = ["description","size","name"], ascending = ascending)
+    if ascending:
+        assert result["objects"][0]["properties"]["name"] == "name0"
+    if not ascending:
+        assert result["objects"][0]["properties"]["name"] == "name9"
     client.schema.delete_all()
 
 def test_query_data(client):
