@@ -165,7 +165,6 @@ def test_query_get_with_sort(sort_and_ascending: Optional[tuple]):
         }
     ]
 }
-
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create(ship_schema)
@@ -175,8 +174,6 @@ def test_query_get_with_sort(sort_and_ascending: Optional[tuple]):
             batch.add_data_object({"name": f"name{i}", "size": i%5+5, "description": "Super long description"}, "Ship")
             batch.add_data_object({"name": f"name{i+10}", "size": i%5+5, "description": "Short description"}, "Ship")
         batch.flush()
-
-
 
     result = client.data_object.get(class_name="Ship", sort = sort, ascending = ascending)
     if sort_and_ascending == ("name",True):
