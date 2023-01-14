@@ -474,12 +474,12 @@ class DataObject:
             The offset of objects returned, i.e. the starting index of the returned objects. Should be
             used in conjunction with the 'limit' parameter.
          sort: str, List[str] or None, optional
-            The path(s) of the properties that should be sorted. When a list of paths is given the objects are sorted in order of the list. 
+            The path(s) of the properties that should be sorted. When a list of paths is given, the objects are sorted in order of the list. 
             The order of the sorting can be given by using 'ascending'.
         ascending: bool, List[bool]
-            The order the paramters given in 'sort' should be returned in. When a single boolean is used, all parameters are sorted in the same order.
-             If a list is used, it needs to have the same length as 'sort'. Each parameters order is then decided individually. 
-             If 'ascending' is True, the parameters are sorted in ascending order. If it is False, they are sorted in descending order.
+            The order the properties given in 'sort' should be returned in. When a single boolean is used, all properties are sorted in the same order.
+             If a list is used, it needs to have the same length as 'sort'. Each properties order is then decided individually. 
+             If 'ascending' is True, the properties are sorted in ascending order. If it is False, they are sorted in descending order.
 
         Returns
         -------
@@ -552,8 +552,7 @@ class DataObject:
                 raise ValueError("'sort' cannot be an empty list.")
 
             if isinstance(ascending, bool):
-                if isinstance(sort, list):
-                    ascending = [ascending]*len(sort)
+                ascending = [ascending]*len(sort)
             if not isinstance(ascending, list) or not all(isinstance(x,bool) for x in ascending):
                 raise TypeError(f"'ascending' must be of type boolean or list[bool]. Given type: {type(ascending)}.")
             if len(sort) != len(ascending):

@@ -148,7 +148,7 @@ def test_query_get_with_offset(people_schema, offset: Optional[int]):
 
 
 
-@pytest.mark.parametrize("sort_and_ascending",[("name",True),("name",False),(["description","size","name"],[False,True,False]),(["description","size","name"],False),(["description","size","name"],True)])
+@pytest.mark.parametrize("sort_and_ascending",[("name",True),("name",False),(["name"],[False]),(["description","size","name"],[False,True,False]),(["description","size","name"],False),(["description","size","name"],True)])
 def test_query_get_with_sort(sort_and_ascending: Optional[tuple]):
     sort = sort_and_ascending[0]
     ascending = sort_and_ascending[1]
@@ -178,7 +178,7 @@ def test_query_get_with_sort(sort_and_ascending: Optional[tuple]):
     result = client.data_object.get(class_name="Ship", sort = sort, ascending = ascending)
     if sort_and_ascending == ("name",True):
         assert result["objects"][0]["properties"]["name"] == "name0"
-    elif sort_and_ascending == ("name",False):
+    elif sort_and_ascending == ("name",False) or sort_and_ascending == (["name"],[False]):
         assert result["objects"][0]["properties"]["name"] == "name9"
     elif sort_and_ascending == (["description","size","name"],[False,True,False]):
         assert result["objects"][0]["properties"]["name"] == "name5"
