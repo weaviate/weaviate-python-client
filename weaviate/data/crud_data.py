@@ -23,6 +23,7 @@ from weaviate.util import (
     _check_positive_num,
 )
 
+
 class DataObject:
     """
     DataObject class used to manipulate object to/from weaviate.
@@ -438,8 +439,8 @@ class DataObject:
         consistency_level: Optional[ConsistencyLevel] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        sort: Union[str,List[str],None] = None,
-        ascending: Union[bool,List[bool]] = True,
+        sort: Union[str, List[str], None] = None,
+        ascending: Union[bool, List[bool]] = True,
     ) -> List[dict]:
         """
         Gets objects from weaviate, the maximum number of objects returned is 100.
@@ -474,11 +475,11 @@ class DataObject:
             The offset of objects returned, i.e. the starting index of the returned objects. Should be
             used in conjunction with the 'limit' parameter.
          sort: str, List[str] or None, optional
-            The path(s) of the properties that should be sorted. When a list of paths is given, the objects are sorted in order of the list. 
+            The path(s) of the properties that should be sorted. When a list of paths is given, the objects are sorted in order of the list.
             The order of the sorting can be given by using 'ascending'.
         ascending: bool, List[bool]
             The order the properties given in 'sort' should be returned in. When a single boolean is used, all properties are sorted in the same order.
-             If a list is used, it needs to have the same length as 'sort'. Each properties order is then decided individually. 
+             If a list is used, it needs to have the same length as 'sort'. Each properties order is then decided individually.
              If 'ascending' is True, the properties are sorted in ascending order. If it is False, they are sorted in descending order.
 
         Returns
@@ -536,34 +537,40 @@ class DataObject:
             params["node_name"] = node_name
 
         if limit is not None:
-            _check_positive_num(limit, "limit", int, include_zero = False)
+            _check_positive_num(limit, "limit", int, include_zero=False)
             params["limit"] = limit
 
         if offset is not None:
-            _check_positive_num(offset, "offset", int, include_zero = True)
+            _check_positive_num(offset, "offset", int, include_zero=True)
             params["offset"] = offset
 
         if sort is not None:
-            if isinstance(sort,str):
+            if isinstance(sort, str):
                 sort = [sort]
-            if not isinstance(sort, list) or not all(isinstance(x,str) for x in sort):
-                raise TypeError(f"'sort' must be of type str or list[str]. Given type: {type(sort)}.")
+            if not isinstance(sort, list) or not all(isinstance(x, str) for x in sort):
+                raise TypeError(
+                    f"'sort' must be of type str or list[str]. Given type: {type(sort)}."
+                )
             if len(sort) == 0:
                 raise ValueError("'sort' cannot be an empty list.")
 
             if isinstance(ascending, bool):
-                ascending = [ascending]*len(sort)
-            if not isinstance(ascending, list) or not all(isinstance(x,bool) for x in ascending):
-                raise TypeError(f"'ascending' must be of type boolean or list[bool]. Given type: {type(ascending)}.")
+                ascending = [ascending] * len(sort)
+            if not isinstance(ascending, list) or not all(isinstance(x, bool) for x in ascending):
+                raise TypeError(
+                    f"'ascending' must be of type boolean or list[bool]. Given type: {type(ascending)}."
+                )
             if len(sort) != len(ascending):
-                raise ValueError(f"'ascending' must be the same length as 'sort' or a boolean (not in a list). Current length is sort:{len(sort)} and ascending:{len(ascending)}.")
+                raise ValueError(
+                    f"'ascending' must be the same length as 'sort' or a boolean (not in a list). Current length is sort:{len(sort)} and ascending:{len(ascending)}."
+                )
             if len(ascending) == 0:
                 raise ValueError("'ascending' cannot be an empty list.")
-        
-            sort = ','.join(sort)
+
+            sort = ",".join(sort)
             params["sort"] = sort
             order = ["asc" if x else "desc" for x in ascending]
-            order = ','.join(order)
+            order = ",".join(order)
             params["order"] = order
 
         try:

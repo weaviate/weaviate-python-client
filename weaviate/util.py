@@ -494,7 +494,9 @@ def check_batch_result(
                 print(result["result"]["errors"])
 
 
-def _check_positive_num(value: Real, arg_name: str, data_type: type, include_zero: bool = False) -> None:
+def _check_positive_num(
+    value: Real, arg_name: str, data_type: type, include_zero: bool = False
+) -> None:
     """
     Check if the `value` of the `arg_name` is a positive number.
 

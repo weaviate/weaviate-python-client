@@ -72,6 +72,7 @@ SHIP_SCHEMA = {
     ]
 }
 
+
 @pytest.fixture(scope="module")
 def people_schema() -> str:
     with open(os.path.join(os.path.dirname(__file__), "people_schema.json"), encoding="utf-8") as f:
@@ -136,8 +137,9 @@ def test_query_get_with_limit(people_schema, limit: Optional[int]):
     else:
         assert len(result["objects"]) == limit
     client.schema.delete_all()
-    
-@pytest.mark.parametrize("offset", [None,0, 1, 5, 20, 50])
+
+
+@pytest.mark.parametrize("offset", [None, 0, 1, 5, 20, 50])
 def test_query_get_with_offset(people_schema, offset: Optional[int]):
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
@@ -160,23 +162,46 @@ def test_query_get_with_offset(people_schema, offset: Optional[int]):
     client.schema.delete_all()
 
 
-
-@pytest.mark.parametrize("sort,ascending,expected",[("name",True, ["name0"]),("name",False,["name9"]),(["name"],[False],["name9"]),(["description","size","name"],[False,True,False],["name5","name0","name6","name1"]),(["description","size","name"],False,["name9","name4","name8","name3"]),(["description","size","name"],True,["name10","name15","name11","name16"])])
-def test_query_get_with_sort(sort: Union[str,List[str],None], ascending: Union[bool,List[bool]], expected: List[str]):
+@pytest.mark.parametrize(
+    "sort,ascending,expected",
+    [
+        ("name", True, ["name0"]),
+        ("name", False, ["name9"]),
+        (["name"], [False], ["name9"]),
+        (
+            ["description", "size", "name"],
+            [False, True, False],
+            ["name5", "name0", "name6", "name1"],
+        ),
+        (["description", "size", "name"], False, ["name9", "name4", "name8", "name3"]),
+        (["description", "size", "name"], True, ["name10", "name15", "name11", "name16"]),
+    ],
+)
+def test_query_get_with_sort(
+    sort: Union[str, List[str], None], ascending: Union[bool, List[bool]], expected: List[str]
+):
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create(SHIP_SCHEMA)
+
     num_objects = 10
     for i in range(num_objects):
         with client.batch as batch:
-            batch.add_data_object({"name": f"name{i}", "size": i%5+5, "description": "Super long description"}, "Ship")
-            batch.add_data_object({"name": f"name{i+10}", "size": i%5+5, "description": "Short description"}, "Ship")
+            batch.add_data_object(
+                {"name": f"name{i}", "size": i % 5 + 5, "description": "Super long description"},
+                "Ship",
+            )
+            batch.add_data_object(
+                {"name": f"name{i+10}", "size": i % 5 + 5, "description": "Short description"},
+                "Ship",
+            )
         batch.flush()
+    result = client.data_object.get(class_name="Ship", sort=sort, ascending=ascending)
 
-    result = client.data_object.get(class_name="Ship", sort = sort, ascending = ascending)
     for i, exp in enumerate(expected):
         assert exp == result["objects"][i]["properties"]["name"]
     client.schema.delete_all()
+
 
 def test_query_data(client):
     expected_name = "Sophie Scholl"
