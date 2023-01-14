@@ -58,6 +58,19 @@ gql_get_sophie_scholl = """
 }
 """
 
+SHIP_SCHEMA = {
+    "classes": [
+        {
+            "class": "Ship",
+            "description": "object",
+            "properties": [
+                {"dataType": ["string"], "description": "name", "name": "name"},
+                {"dataType": ["string"], "description": "description", "name": "description"},
+                {"dataType": ["int"], "description": "size", "name": "size"},
+            ],
+        }
+    ]
+}
 
 @pytest.fixture(scope="module")
 def people_schema() -> str:
@@ -148,26 +161,11 @@ def test_query_get_with_offset(people_schema, offset: Optional[int]):
 
 
 
-@pytest.mark.parametrize("sort_and_ascending",[("name",True),("name",False),(["name"],[False]),(["description","size","name"],[False,True,False]),(["description","size","name"],False),(["description","size","name"],True)])
-def test_query_get_with_sort(sort_and_ascending: Optional[tuple]):
-    sort = sort_and_ascending[0]
-    ascending = sort_and_ascending[1]
-    ship_schema = {
-    "classes": [
-        {
-            "class": "Ship",
-            "description": "object",
-            "properties": [
-                {"dataType": ["string"], "description": "name", "name": "name"},
-                {"dataType": ["string"], "description": "description", "name": "description"},
-                {"dataType": ["int"], "description": "size", "name": "size"},
-            ],
-        }
-    ]
-}
+@pytest.mark.parametrize("sort,ascending,expected",[("name",True, ["name0"]),("name",False,["name9"]),(["name"],[False],["name9"]),(["description","size","name"],[False,True,False],["name5","name0","name6","name1"]),(["description","size","name"],False,["name9","name4","name8","name3"]),(["description","size","name"],True,["name10","name15","name11","name16"])])
+def test_query_get_with_sort(sort: Union[str,List[str],None], ascending: Union[bool,List[bool]], expected: List[str]):
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
-    client.schema.create(ship_schema)
+    client.schema.create(SHIP_SCHEMA)
     num_objects = 10
     for i in range(num_objects):
         with client.batch as batch:
@@ -176,25 +174,8 @@ def test_query_get_with_sort(sort_and_ascending: Optional[tuple]):
         batch.flush()
 
     result = client.data_object.get(class_name="Ship", sort = sort, ascending = ascending)
-    if sort_and_ascending == ("name",True):
-        assert result["objects"][0]["properties"]["name"] == "name0"
-    elif sort_and_ascending == ("name",False) or sort_and_ascending == (["name"],[False]):
-        assert result["objects"][0]["properties"]["name"] == "name9"
-    elif sort_and_ascending == (["description","size","name"],[False,True,False]):
-        assert result["objects"][0]["properties"]["name"] == "name5"
-        assert result["objects"][1]["properties"]["name"] == "name0"
-        assert result["objects"][2]["properties"]["name"] == "name6"
-        assert result["objects"][3]["properties"]["name"] == "name1"
-    elif sort_and_ascending == (["description","size","name"],False):
-        assert result["objects"][0]["properties"]["name"] == "name9"
-        assert result["objects"][1]["properties"]["name"] == "name4"
-        assert result["objects"][2]["properties"]["name"] == "name8"
-        assert result["objects"][3]["properties"]["name"] == "name3"
-    elif sort_and_ascending == (["description","size","name"],True):
-        assert result["objects"][0]["properties"]["name"] == "name10"
-        assert result["objects"][1]["properties"]["name"] == "name15"
-        assert result["objects"][2]["properties"]["name"] == "name11"
-        assert result["objects"][3]["properties"]["name"] == "name16"
+    for i, exp in enumerate(expected):
+        assert exp == result["objects"][i]["properties"]["name"]
     client.schema.delete_all()
 
 def test_query_data(client):

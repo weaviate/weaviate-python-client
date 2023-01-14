@@ -525,4 +525,3 @@ def _check_positive_num(value: Real, arg_name: str, data_type: type, include_zer
     else:
         if value <= 0:
             raise ValueError(f"'{arg_name}' must be positive, i.e. greater that zero (>0).")
-    
