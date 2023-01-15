@@ -73,15 +73,19 @@ jobs:
       - run: |
           pip install -r requirements.txt
           pip install .
-      - name: Run integration tests
+      - name: start weaviate
+        run: /bin/bash ci/start_weaviate.sh
+      - name: Run integration tests with auth secrets
+        if: ${{ !github.event.pull_request.head.repo.fork }}
         env:
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           OKTA_CLIENT_SECRET: ${{ secrets.OKTA_CLIENT_SECRET }}
           WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
           OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
-        run: |
-          /bin/bash ci/start_weaviate.sh
-          pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage.xml integration
+        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage.xml integration
+      - name: Run integration tests without auth secrets (for forks)
+        if: ${{ github.event.pull_request.head.repo.fork }}
+        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage.xml integration
       - name: Upload to codecov
         if: matrix.version == '3.10' && (github.ref_name != 'master')
         uses: codecov/codecov-action@v3
