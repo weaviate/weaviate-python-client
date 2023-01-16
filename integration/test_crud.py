@@ -4,7 +4,7 @@ import time
 import uuid
 from datetime import datetime
 from datetime import timezone
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import pytest
 
@@ -186,7 +186,7 @@ def test_query_get_with_sort(sort: Optional[tuple], expected: List[str]):
         with client.batch as batch:
             batch.add_data_object(
                 {
-                    "name": f"name" + "{:02d}".format(i),
+                    "name": "name" + "{:02d}".format(i),
                     "size": i % 5 + 5,
                     "description": "Super long description",
                 },
@@ -194,7 +194,7 @@ def test_query_get_with_sort(sort: Optional[tuple], expected: List[str]):
             )
             batch.add_data_object(
                 {
-                    "name": f"name" + "{:02d}".format(i + 10),
+                    "name": "name" + "{:02d}".format(i + 10),
                     "size": i % 5 + 5,
                     "description": "Short description",
                 },
