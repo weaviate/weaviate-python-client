@@ -154,31 +154,31 @@ def test_query_get_with_offset(people_schema, offset: Optional[int]):
     result_with_offset = client.data_object.get(class_name="Person", offset=offset)
 
     if offset is None:
-        assert result_with_offset["objects"][0] == result_without_offset["objects"][0]
+        assert result_with_offset["objects"] == result_without_offset["objects"]
     elif offset >= num_objects:
         assert len(result_with_offset["objects"]) == 0
     else:
-        assert result_with_offset["objects"][0] == result_without_offset["objects"][offset]
+        assert result_with_offset["objects"][:] == result_without_offset["objects"][offset:]
     client.schema.delete_all()
 
 
 @pytest.mark.parametrize(
-    "sort,ascending,expected",
+    "sort,expected",
     [
-        ("name", True, ["name0"]),
-        ("name", False, ["name9"]),
-        (["name"], [False], ["name9"]),
+        (["name", True], ["name" + "{:02d}".format(i) for i in range(0,20)]),
+        (["name", False], ["name" + "{:02d}".format(i) for i in range(19,-1,-1)]),
+        ([["name"], [False]], ["name" + "{:02d}".format(i) for i in range(19,-1,-1)]),
         (
-            ["description", "size", "name"],
-            [False, True, False],
-            ["name5", "name0", "name6", "name1"],
+            [["description", "size", "name"],
+            [False, True, False]],
+            ["name05", "name00", "name06", "name01"],
         ),
-        (["description", "size", "name"], False, ["name9", "name4", "name8", "name3"]),
-        (["description", "size", "name"], True, ["name10", "name15", "name11", "name16"]),
+        ([["description", "size", "name"], False], ["name09", "name04", "name08", "name03"]),
+        ([["description", "size", "name"], True], ["name10", "name15", "name11", "name16"]),
     ],
 )
 def test_query_get_with_sort(
-    sort: Union[str, List[str], None], ascending: Union[bool, List[bool]], expected: List[str]
+    sort: Optional[tuple], expected: List[str]
 ):
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
@@ -188,15 +188,15 @@ def test_query_get_with_sort(
     for i in range(num_objects):
         with client.batch as batch:
             batch.add_data_object(
-                {"name": f"name{i}", "size": i % 5 + 5, "description": "Super long description"},
+                {"name": f"name" + "{:02d}".format(i), "size": i % 5 + 5, "description": "Super long description"},
                 "Ship",
             )
             batch.add_data_object(
-                {"name": f"name{i+10}", "size": i % 5 + 5, "description": "Short description"},
+                {"name": f"name" + "{:02d}".format(i+10), "size": i % 5 + 5, "description": "Short description"},
                 "Ship",
             )
         batch.flush()
-    result = client.data_object.get(class_name="Ship", sort=sort, ascending=ascending)
+    result = client.data_object.get(class_name="Ship", sort=sort)
 
     for i, exp in enumerate(expected):
         assert exp == result["objects"][i]["properties"]["name"]

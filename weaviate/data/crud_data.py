@@ -439,8 +439,7 @@ class DataObject:
         consistency_level: Optional[ConsistencyLevel] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        sort: Union[str, List[str], None] = None,
-        ascending: Union[bool, List[bool]] = True,
+        sort: Optional[List] = None,
     ) -> List[dict]:
         """
         Gets objects from weaviate, the maximum number of objects returned is 100.
@@ -474,13 +473,15 @@ class DataObject:
         offset: Optional[int], optional
             The offset of objects returned, i.e. the starting index of the returned objects. Should be
             used in conjunction with the 'limit' parameter.
-         sort: str, List[str] or None, optional
-            The path(s) of the properties that should be sorted. When a list of paths is given, the objects are sorted in order of the list.
-            The order of the sorting can be given by using 'ascending'.
-        ascending: bool, List[bool]
-            The order the properties given in 'sort' should be returned in. When a single boolean is used, all properties are sorted in the same order.
-             If a list is used, it needs to have the same length as 'sort'. Each properties order is then decided individually.
-             If 'ascending' is True, the properties are sorted in ascending order. If it is False, they are sorted in descending order.
+         sort: Optional[List]
+            A list of length 2 for sorting objects.
+            sort[0]: str, List[str]
+                By which properties the returned objects should be sorted. When more than one property is given, the objects are sorted in order of the list.
+            The order of the sorting can be given by using 'sort[1]'.
+            sort[1]: bool, List[bool]
+                The order the properties given in 'sort[0]' should be returned in. When a single boolean is used, all properties are sorted in the same order.
+                If a list is used, it needs to have the same length as 'sort'. Each properties order is then decided individually.
+                If 'sort[1]' is True, the properties are sorted in ascending order. If it is False, they are sorted in descending order.
 
         Returns
         -------
@@ -544,34 +545,36 @@ class DataObject:
             _check_positive_num(offset, "offset", int, include_zero=True)
             params["offset"] = offset
 
-        if sort is not None:
-            if isinstance(sort, str):
-                sort = [sort]
-            if not isinstance(sort, list) or not all(isinstance(x, str) for x in sort):
+        if sort is not None: 
+            if not isinstance(sort, List):
+                raise TypeError(f"'sort' must be of type list. Given type: {type(sort)}.")
+            if not len(sort) == 2:
+                raise ValueError("'sort' must be a list of length 2 or 'None'.")
+            if isinstance(sort[0], str):
+                sort[0] = [sort[0]]
+            elif not isinstance(sort[0], list) or not all(isinstance(x, str) for x in sort[0]):
                 raise TypeError(
-                    f"'sort' must be of type str or list[str]. Given type: {type(sort)}."
+                    f"'sort[0]' must be of type str or list[str]. Given type: {type(sort[0])}."
                 )
-            if len(sort) == 0:
-                raise ValueError("'sort' cannot be an empty list.")
+            if len(sort[0]) == 0:
+                raise ValueError("'sort[0]' cannot be an empty list.")
 
-            if isinstance(ascending, bool):
-                ascending = [ascending] * len(sort)
-            if not isinstance(ascending, list) or not all(isinstance(x, bool) for x in ascending):
+            if isinstance(sort[1], bool):
+                sort[1] = [sort[1]] * len(sort[0])
+            elif not isinstance(sort[1], list) or not all(isinstance(x, bool) for x in sort[1]):
                 raise TypeError(
-                    f"'ascending' must be of type boolean or list[bool]. Given type: {type(ascending)}."
+                    f"'sort[1]' must be of type boolean or list[bool]. Given type: {type(sort[1])}."
                 )
-            if len(sort) != len(ascending):
+            if len(sort[0]) != len(sort[1]):
                 raise ValueError(
-                    f"'ascending' must be the same length as 'sort' or a boolean (not in a list). Current length is sort:{len(sort)} and ascending:{len(ascending)}."
+                    f"'sort[1]' must be the same length as 'sort[0]' or a boolean (not in a list). Current length is sort[0]:{len(sort[0])} and sort[1]:{len(sort[1])}."
                 )
-            if len(ascending) == 0:
-                raise ValueError("'ascending' cannot be an empty list.")
+            if len(sort[1]) == 0:
+                raise ValueError("'sort[1]' cannot be an empty list.")
 
-            sort = ",".join(sort)
-            params["sort"] = sort
-            order = ["asc" if x else "desc" for x in ascending]
-            order = ",".join(order)
-            params["order"] = order
+            params["sort"] = ",".join(sort[0])
+            order = ["asc" if x else "desc" for x in sort[1]]
+            params["order"] = ",".join(order)
 
         try:
             response = self._connection.get(
