@@ -545,7 +545,7 @@ class DataObject:
             _check_positive_num(offset, "offset", int, include_zero=True)
             params["offset"] = offset
 
-        if sort is not None: 
+        if sort is not None:
             if not isinstance(sort, List):
                 raise TypeError(f"'sort' must be of type list. Given type: {type(sort)}.")
             if not len(sort) == 2:

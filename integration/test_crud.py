@@ -165,21 +165,18 @@ def test_query_get_with_offset(people_schema, offset: Optional[int]):
 @pytest.mark.parametrize(
     "sort,expected",
     [
-        (["name", True], ["name" + "{:02d}".format(i) for i in range(0,20)]),
-        (["name", False], ["name" + "{:02d}".format(i) for i in range(19,-1,-1)]),
-        ([["name"], [False]], ["name" + "{:02d}".format(i) for i in range(19,-1,-1)]),
+        (["name", True], ["name" + "{:02d}".format(i) for i in range(0, 20)]),
+        (["name", False], ["name" + "{:02d}".format(i) for i in range(19, -1, -1)]),
+        ([["name"], [False]], ["name" + "{:02d}".format(i) for i in range(19, -1, -1)]),
         (
-            [["description", "size", "name"],
-            [False, True, False]],
+            [["description", "size", "name"], [False, True, False]],
             ["name05", "name00", "name06", "name01"],
         ),
         ([["description", "size", "name"], False], ["name09", "name04", "name08", "name03"]),
         ([["description", "size", "name"], True], ["name10", "name15", "name11", "name16"]),
     ],
 )
-def test_query_get_with_sort(
-    sort: Optional[tuple], expected: List[str]
-):
+def test_query_get_with_sort(sort: Optional[tuple], expected: List[str]):
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create(SHIP_SCHEMA)
@@ -188,11 +185,19 @@ def test_query_get_with_sort(
     for i in range(num_objects):
         with client.batch as batch:
             batch.add_data_object(
-                {"name": f"name" + "{:02d}".format(i), "size": i % 5 + 5, "description": "Super long description"},
+                {
+                    "name": f"name" + "{:02d}".format(i),
+                    "size": i % 5 + 5,
+                    "description": "Super long description",
+                },
                 "Ship",
             )
             batch.add_data_object(
-                {"name": f"name" + "{:02d}".format(i+10), "size": i % 5 + 5, "description": "Short description"},
+                {
+                    "name": f"name" + "{:02d}".format(i + 10),
+                    "size": i % 5 + 5,
+                    "description": "Short description",
+                },
                 "Ship",
             )
         batch.flush()
