@@ -1,4 +1,4 @@
-Copyright (c) 2016-2022, SeMI Technologies B.V. (registered @ Dutch Chamber of Commerce no 75231824)
+Copyright (c) 2016-2023, Weaviate B.V. (registered @ Dutch Chamber of Commerce no 75231824)
 
 All rights reserved.
 
