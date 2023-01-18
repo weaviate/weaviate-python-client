@@ -5,12 +5,8 @@ Weaviate python client
     :align: right
     :alt: Weaviate logo
 
-.. image:: https://travis-ci.com/semi-technologies/weaviate-python-client.svg?branch=main
-    :target: https://travis-ci.com/semi-technologies/weaviate-python-client
-    :alt: Build Status (Travis CI)
-
-.. image:: https://github.com/semi-technologies/weaviate-python-client/actions/workflows/.github/workflows/main.yaml/badge.svg?branch=main
-    :target: https://github.com/semi-technologies/weaviate/actions/workflows/.github/workflows/pull_requests.yaml
+.. image:: https://github.com/weaviate/weaviate-python-client/actions/workflows/.github/workflows/main.yaml/badge.svg?branch=main
+    :target: https://github.com/weaviate/weaviate/actions/workflows/.github/workflows/pull_requests.yaml
     :alt: Build Status
 
 .. image:: https://badge.fury.io/py/weaviate-client.svg
