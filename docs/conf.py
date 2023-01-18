@@ -20,8 +20,8 @@ from weaviate import __version__
 # -- Project information -----------------------------------------------------
 
 project = "Weaviate Python Client"
-copyright = "2021, SeMI Technology"
-author = "SeMI Technology"
+copyright = "2021-2023, Weaviate"
+author = "Weaviate"
 
 # The full version, including alpha/beta/rc tags
 release = __version__
