@@ -10,6 +10,29 @@ import weaviate
 UUID = Union[str, uuid.UUID]
 
 
+UUID_UUID = uuid.uuid4()
+UUID_STR = str(uuid.uuid4())
+UUID_HEX = uuid.uuid4().hex
+
+
+def has_batch_errors(results: dict) -> bool:
+    """
+    Check batch results for errors.
+
+    Parameters
+    ----------
+    results : dict
+        The Weaviate batch creation return value.
+    """
+
+    if results is not None:
+        for result in results:
+            if "result" in result and "errors" in result["result"]:
+                if "error" in result["result"]["errors"]:
+                    return True
+    return False
+
+
 @dataclass
 class MockNumpyTorch:
     array: list
@@ -32,15 +55,24 @@ class MockTensorFlow:
 @pytest.fixture(scope="module")
 def client():
     client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+    client.schema.create_class(
+        {
+            "class": "Test",
+            "properties": [{"name": "test", "dataType": ["Test"]}],
+            "vectorizer": "none",
+        }
+    )
     yield client
     client.schema.delete_all()
 
 
+@pytest.mark.order(1)
 @pytest.mark.parametrize(
     "vector",
     [None, [1, 2, 3], MockNumpyTorch([1, 2, 3]), MockTensorFlow([1, 2, 3])],
 )
-@pytest.mark.parametrize("uuid", [None, uuid.uuid4(), uuid.uuid4().hex, str(uuid.uuid4())])
+@pytest.mark.parametrize("uuid", [None, UUID_UUID, UUID_STR, UUID_HEX])
 def test_add_data_object(client: weaviate.Client, uuid: Optional[UUID], vector: Optional[Sequence]):
     """Test the `add_data_object` method"""
     client.batch.add_data_object(
@@ -49,11 +81,14 @@ def test_add_data_object(client: weaviate.Client, uuid: Optional[UUID], vector: 
         uuid=uuid,
         vector=vector,
     )
+    response = client.batch.create_objects()
+    assert has_batch_errors(response) is False, str(response)
 
 
-@pytest.mark.parametrize("from_object_uuid", [uuid.uuid4(), uuid.uuid4().hex, str(uuid.uuid4())])
-@pytest.mark.parametrize("to_object_uuid", [uuid.uuid4(), uuid.uuid4().hex, str(uuid.uuid4())])
-@pytest.mark.parametrize("to_object_class_name", [None, "Test2"])
+@pytest.mark.order(2)
+@pytest.mark.parametrize("from_object_uuid", [UUID_UUID, UUID_STR, UUID_HEX])
+@pytest.mark.parametrize("to_object_uuid", [UUID_HEX, UUID_UUID, UUID_STR])
+@pytest.mark.parametrize("to_object_class_name", [None, "Test"])
 def test_add_reference(
     client: weaviate.Client,
     from_object_uuid: UUID,
@@ -68,3 +103,6 @@ def test_add_reference(
         to_object_uuid=to_object_uuid,
         to_object_class_name=to_object_class_name,
     )
+
+    response = client.batch.create_references()
+    assert has_batch_errors(response) is False, str(response)
