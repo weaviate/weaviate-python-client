@@ -77,7 +77,7 @@ class WeaviateErrorRetryConf:
             raise ValueError("errors_to_include has 0 entries and no error will be retried.")
 
 
-Batch = Union[ObjectsBatchRequest, ReferenceBatchRequest]
+BatchRequestType = Union[ObjectsBatchRequest, ReferenceBatchRequest]
 BatchResponse = List[Dict[str, Any]]
 
 
@@ -258,7 +258,7 @@ class Batch:
         # user configurable, need to be public should implement a setter/getter
         self._recommended_num_objects = None
         self._recommended_num_references = None
-        self._callback: Optional[Callable[[BatchResponse], None]] = None
+        self._callback: Optional[Callable[[BatchResponse], None]] = check_batch_result
         self._weaviate_error_retry: Optional[WeaviateErrorRetryConf] = None
         self._batch_size = None
         self._creation_time = min(self._connection.timeout_config[1] / 10, 2)
@@ -1612,13 +1612,15 @@ class Batch:
 
     def _retry_on_error(
         self, response: BatchResponse, data_type: str
-    ) -> Tuple[Batch, BatchResponse]:
+    ) -> Tuple[BatchRequestType, BatchResponse]:
         if data_type == "objects":
             return self._retry_failed_objects(response)
         else:
             return self._retry_failed_references(response)
 
-    def _retry_failed_objects(self, old_response: BatchResponse) -> Tuple[Batch, BatchResponse]:
+    def _retry_failed_objects(
+        self, old_response: BatchResponse
+    ) -> Tuple[BatchRequestType, BatchResponse]:
         new_batch = ObjectsBatchRequest()
         successful_responses = []
         for obj in old_response:
@@ -1634,7 +1636,9 @@ class Batch:
             )
         return new_batch, successful_responses
 
-    def _retry_failed_references(self, old_response: BatchResponse) -> Tuple[Batch, BatchResponse]:
+    def _retry_failed_references(
+        self, old_response: BatchResponse
+    ) -> Tuple[BatchRequestType, BatchResponse]:
         assert self._weaviate_error_retry is not None
 
         def parse_references(full_ref: str) -> Tuple[str, str, Optional[str]]:
