@@ -1,7 +1,6 @@
 """
 Weaviate Exceptions.
 """
-from typing import List, Dict, Any
 
 from requests import Response, exceptions
 
@@ -106,10 +105,3 @@ class EmptyResponseException(WeaviateBaseError):
 
 class MissingScopeException(WeaviateBaseError):
     """Scope was not provided with client credential flow."""
-
-
-class BatchImportFailedException(WeaviateBaseError):
-    """Occurs when a batch import fails."""
-
-    def __init__(self, objects: List[Dict[str, Any]]) -> None:
-        super().__init__(" ".join(str(objects)))

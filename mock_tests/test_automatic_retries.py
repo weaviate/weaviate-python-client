@@ -1,12 +1,13 @@
 import json
 import uuid
+from typing import Optional
 
 import pytest
 from werkzeug.wrappers import Request, Response
 
 import weaviate
 from mock_tests.conftest import MOCK_SERVER_URL
-from weaviate.batch.crud_batch import WeaviateErrorRetryConf
+from weaviate.batch.crud_batch import WeaviateErrorRetryConf, BatchResponse
 from weaviate.util import check_batch_result
 
 
@@ -144,14 +145,10 @@ def test_automatic_retry_unsuccessful(weaviate_mock):
 
 
 @pytest.mark.parametrize(
-    "retry_config, expected",
-    [
-        (None, 400),
-        (WeaviateErrorRetryConf(number_retries=1), 600),
-        (WeaviateErrorRetryConf(number_retries=2), 700),
-    ],
+    "retry_config",
+    [None, WeaviateErrorRetryConf(number_retries=1), WeaviateErrorRetryConf(number_retries=2)],
 )
-def test_print_threadsafety(weaviate_mock, capfd, retry_config, expected):
+def test_print_threadsafety(weaviate_mock, capfd, retry_config):
     """Test retry with callback and callback threadsafety."""
     num_success_requests = 0
 
@@ -241,3 +238,44 @@ def test_include_error(weaviate_mock, retry_config, expected):
             batch.add_data_object({"name": "test" + str(i)}, "test", added_uuids[-1])
 
     assert num_success_requests == expected
+
+
+def test_callback_for_successful_responses(weaviate_mock, capfd):
+    """Test that all objects reach teh callback, even when a part of a batch is retried."""
+
+    # have some objects fail
+    def handler(request: Request):
+        objects = request.json["objects"]
+        for j, obj in enumerate(objects):
+            obj["deprecations"] = None
+            if j % 2 == 0:
+                obj["result"] = {}
+            else:
+                obj["result"] = {"errors": {"error": [{"message": "I'm an error message"}]}}
+        return Response(json.dumps(objects))
+
+    weaviate_mock.expect_request("/v1/batch/objects").respond_with_handler(handler)
+
+    client = weaviate.Client(url=MOCK_SERVER_URL)
+
+    def callback_print_all(results: Optional[BatchResponse]):
+        if results is None:
+            return
+        for _ in results:
+            print("I saw that object")
+
+    added_uuids = []
+    n = 200 * 4
+    with client.batch(
+        batch_size=200,
+        callback=callback_print_all,
+        num_workers=4,
+        weaviate_error_retries=WeaviateErrorRetryConf(number_retries=1),
+    ) as batch:
+        for i in range(n):
+            added_uuids.append(uuid.uuid4())
+            batch.add_data_object({"name": "test" + str(i)}, "test", added_uuids[-1])
+
+    # callback output for each object
+    print_output, err = capfd.readouterr()
+    assert print_output.count("\n") == n

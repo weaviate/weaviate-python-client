@@ -60,7 +60,7 @@ class WeaviateErrorRetryConf:
 
     def __post_init__(self) -> None:
         if self.errors_to_exclude is not None and self.errors_to_include is not None:
-            raise ValueError(self.__module__ + "can either include or exclude errors")
+            raise ValueError(self.__module__ + " can either include or exclude errors")
 
         _check_positive_num(self.number_retries, "number_retries", int)
 
@@ -78,6 +78,7 @@ class WeaviateErrorRetryConf:
 
 
 Batch = Union[ObjectsBatchRequest, ReferenceBatchRequest]
+BatchResponse = List[Dict[str, Any]]
 
 
 class BatchExecutor(ThreadPoolExecutor):
@@ -257,7 +258,7 @@ class Batch:
         # user configurable, need to be public should implement a setter/getter
         self._recommended_num_objects = None
         self._recommended_num_references = None
-        self._callback: Optional[Callable[[dict], None]] = None
+        self._callback: Optional[Callable[[BatchResponse], None]] = None
         self._weaviate_error_retry: Optional[WeaviateErrorRetryConf] = None
         self._batch_size = None
         self._creation_time = min(self._connection.timeout_config[1] / 10, 2)
@@ -626,8 +627,12 @@ class Batch:
                         self._weaviate_error_retry is not None
                         and batch_error_count < self._weaviate_error_retry.number_retries
                     ):
-                        batch_to_retry = self._retry_on_error(response_json, data_type)
+                        batch_to_retry, response_json_successful = self._retry_on_error(
+                            response_json, data_type
+                        )
                         if len(batch_to_retry) > 0:
+                            self._run_callback(response_json_successful)
+
                             batch_error_count += 1
                             batch_request = batch_to_retry
                             continue  # run the request again, but only with objects that had errors
@@ -648,7 +653,7 @@ class Batch:
             return response
         raise UnexpectedStatusCodeException(f"Create {data_type} in batch", response)
 
-    def _run_callback(self, response: Dict[str, Any]):
+    def _run_callback(self, response: BatchResponse):
         if self._callback is None:
             return
         # We don't know if user-supplied functions are threadsafe
@@ -1605,16 +1610,20 @@ class Batch:
         _check_non_negative(value, "connection_error_retries", int)
         self._connection_error_retries = value
 
-    def _retry_on_error(self, response: List[Dict[str, Any]], data_type: str) -> Batch:
+    def _retry_on_error(
+        self, response: BatchResponse, data_type: str
+    ) -> Tuple[Batch, BatchResponse]:
         if data_type == "objects":
             return self._retry_failed_objects(response)
         else:
             return self._retry_failed_references(response)
 
-    def _retry_failed_objects(self, response: List[Dict[str, Any]]) -> Batch:
+    def _retry_failed_objects(self, old_response: BatchResponse) -> Tuple[Batch, BatchResponse]:
         new_batch = ObjectsBatchRequest()
-        for obj in response:
+        successful_responses = []
+        for obj in old_response:
             if self._skip_objects_retry(obj):
+                successful_responses.append(obj)
                 continue
 
             new_batch.add(
@@ -1623,9 +1632,9 @@ class Batch:
                 uuid=obj["id"],
                 vector=obj.get("vector", None),
             )
-        return new_batch
+        return new_batch, successful_responses
 
-    def _retry_failed_references(self, response: List[Dict[str, Any]]) -> Batch:
+    def _retry_failed_references(self, old_response: BatchResponse) -> Tuple[Batch, BatchResponse]:
         assert self._weaviate_error_retry is not None
 
         def parse_references(full_ref: str) -> Tuple[str, str, Optional[str]]:
@@ -1633,8 +1642,11 @@ class Batch:
             return parts[1], parts[2], parts[3] if len(parts) >= 4 else None
 
         new_batch = ReferenceBatchRequest()
-        for ref in response:
+        successful_responses = []
+
+        for ref in old_response:
             if self._skip_objects_retry(ref):
+                successful_responses.append(ref)
                 continue
 
             from_class, from_uuid, from_property = parse_references(ref["from"])
@@ -1647,7 +1659,7 @@ class Batch:
                 to_object_class_name=to_class,
             )
 
-        return new_batch
+        return new_batch, successful_responses
 
     def _skip_objects_retry(self, entry: Dict[str, Any]) -> bool:
         if (
