@@ -4,7 +4,7 @@ import time
 import uuid
 from datetime import datetime
 from datetime import timezone
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import pytest
 
@@ -192,7 +192,7 @@ def test_query_get_with_offset(people_schema, offset: Optional[int]):
         ({"properties": ["description", "size", "name"]}, ["name10", "name15", "name11", "name16"]),
     ],
 )
-def test_query_get_with_sort(sort: Optional[tuple], expected: List[str]):
+def test_query_get_with_sort(sort: Optional[Dict], expected: List[str]):
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create(SHIP_SCHEMA)

@@ -3,7 +3,7 @@ DataObject class definition.
 """
 import uuid as uuid_lib
 import warnings
-from typing import Union, Optional, List, Sequence
+from typing import Union, Optional, List, Sequence, Dict
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -439,7 +439,7 @@ class DataObject:
         consistency_level: Optional[ConsistencyLevel] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        sort: Optional[dict[str, List, bool]] = None,
+        sort: Optional[Dict] = None,
     ) -> List[dict]:
         """
         Gets objects from weaviate, the maximum number of objects returned is 100.
@@ -473,7 +473,7 @@ class DataObject:
         offset: Optional[int], optional
             The offset of objects returned, i.e. the starting index of the returned objects. Should be
             used in conjunction with the 'limit' parameter.
-        sort: Optional[dict]
+        sort: Optional[Dict]
             A dictionary for sorting objects.
             sort['properties']: str, List[str]
                 By which properties the returned objects should be sorted. When more than one property is given, the objects are sorted in order of the list.
@@ -551,7 +551,7 @@ class DataObject:
                 raise ValueError("The sort clause is missing the required field: 'properties'.")
             if "order_asc" not in sort:
                 sort["order_asc"] = True
-            if not isinstance(sort, dict):
+            if not isinstance(sort, Dict):
                 raise TypeError(f"'sort' must be of type dict. Given type: {type(sort)}.")
             if isinstance(sort["properties"], str):
                 sort["properties"] = [sort["properties"]]
