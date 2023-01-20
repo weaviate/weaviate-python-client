@@ -25,23 +25,21 @@ class TestBatchReferences(unittest.TestCase):
         # invalid calls
         #######################################################################
         ## error messages
-        type_error_message = "All arguments must be of type string"
+        type_error_message_1 = "'from_object_class_name' argument must be of type str"
+        type_error_message_2 = "'from_property_name' argument must be of type str"
+        type_error_message_3 = "'to_object_class_name' argument must be of type str"
 
         with self.assertRaises(TypeError) as error:
             batch.add(10, "some_str", "some_str", "some_str")
-        check_error_message(self, error, type_error_message)
-
-        with self.assertRaises(TypeError) as error:
-            batch.add("some_str", batch, "some_str", "some_str")
-        check_error_message(self, error, type_error_message)
+        check_error_message(self, error, type_error_message_1)
 
         with self.assertRaises(TypeError) as error:
             batch.add("some_str", "some_str", True, "some_str")
-        check_error_message(self, error, type_error_message)
+        check_error_message(self, error, type_error_message_2)
 
         with self.assertRaises(TypeError) as error:
-            batch.add("some_str", "some_str", "some_str", 1.0)
-        check_error_message(self, error, type_error_message)
+            batch.add("some_str", "some_str", "some_str", "some_uuid", 1.0)
+        check_error_message(self, error, type_error_message_3)
 
         #######################################################################
         # valid calls

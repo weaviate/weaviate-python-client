@@ -166,13 +166,14 @@ class ReferenceBatchRequest(BatchRequest):
             If 'uuid' is not valid or cannot be extracted.
         """
 
-        if (
-            not isinstance(from_object_class_name, str)
-            or not isinstance(from_object_uuid, str)
-            or not isinstance(from_property_name, str)
-            or not isinstance(to_object_uuid, str)
-        ):
-            raise TypeError("All arguments must be of type string")
+        if not isinstance(from_object_class_name, str):
+            raise TypeError("'from_object_class_name' argument must be of type str")
+
+        if not isinstance(from_property_name, str):
+            raise TypeError("'from_property_name' argument must be of type str")
+
+        if to_object_class_name is not None and not isinstance(to_object_class_name, str):
+            raise TypeError("'to_object_class_name' argument must be of type str")
 
         to_object_uuid = get_valid_uuid(to_object_uuid)
         from_object_uuid = get_valid_uuid(from_object_uuid)
