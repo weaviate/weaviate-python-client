@@ -165,15 +165,31 @@ def test_query_get_with_offset(people_schema, offset: Optional[int]):
 @pytest.mark.parametrize(
     "sort,expected",
     [
-        (["name", True], ["name" + "{:02d}".format(i) for i in range(0, 20)]),
-        (["name", False], ["name" + "{:02d}".format(i) for i in range(19, -1, -1)]),
-        ([["name"], [False]], ["name" + "{:02d}".format(i) for i in range(19, -1, -1)]),
         (
-            [["description", "size", "name"], [False, True, False]],
+            {"properties": "name", "order_asc": True},
+            ["name" + "{:02d}".format(i) for i in range(0, 20)],
+        ),
+        (
+            {"properties": "name", "order_asc": False},
+            ["name" + "{:02d}".format(i) for i in range(19, -1, -1)],
+        ),
+        (
+            {"properties": ["name"], "order_asc": [False]},
+            ["name" + "{:02d}".format(i) for i in range(19, -1, -1)],
+        ),
+        (
+            {"properties": ["description", "size", "name"], "order_asc": [False, True, False]},
             ["name05", "name00", "name06", "name01"],
         ),
-        ([["description", "size", "name"], False], ["name09", "name04", "name08", "name03"]),
-        ([["description", "size", "name"], True], ["name10", "name15", "name11", "name16"]),
+        (
+            {"properties": ["description", "size", "name"], "order_asc": False},
+            ["name09", "name04", "name08", "name03"],
+        ),
+        (
+            {"properties": ["description", "size", "name"], "order_asc": True},
+            ["name10", "name15", "name11", "name16"],
+        ),
+        ({"properties": ["description", "size", "name"]}, ["name10", "name15", "name11", "name16"]),
     ],
 )
 def test_query_get_with_sort(sort: Optional[tuple], expected: List[str]):
