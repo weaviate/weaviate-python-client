@@ -9,13 +9,13 @@ from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from numbers import Real
-from typing import Tuple, Callable, Optional, Sequence, Union, Dict, List, Any
+from typing import Tuple, Callable, Optional, Sequence, Union, List
 
 from requests import ReadTimeout, Response
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
-from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest
+from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest, BatchResponse
 from ..error_msgs import (
     BATCH_REF_DEPRECATION_NEW_V14_CLS_NS_W,
     BATCH_REF_DEPRECATION_OLD_V14_CLS_NS_W,
@@ -28,6 +28,8 @@ from ..util import (
     _check_positive_num,
 )
 from ..warnings import _Warnings
+
+BatchRequestType = Union[ObjectsBatchRequest, ReferenceBatchRequest]
 
 
 @dataclass()
@@ -75,10 +77,6 @@ class WeaviateErrorRetryConf:
 
         if self.errors_to_include is not None and len(self.errors_to_include) == 0:
             raise ValueError("errors_to_include has 0 entries and no error will be retried.")
-
-
-BatchRequestType = Union[ObjectsBatchRequest, ReferenceBatchRequest]
-BatchResponse = List[Dict[str, Any]]
 
 
 class BatchExecutor(ThreadPoolExecutor):
@@ -1614,82 +1612,15 @@ class Batch:
         self, response: BatchResponse, data_type: str
     ) -> Tuple[BatchRequestType, BatchResponse]:
         if data_type == "objects":
-            return self._retry_failed_objects(response)
+            new_batch = ObjectsBatchRequest()
         else:
-            return self._retry_failed_references(response)
-
-    def _retry_failed_objects(
-        self, old_response: BatchResponse
-    ) -> Tuple[BatchRequestType, BatchResponse]:
-        new_batch = ObjectsBatchRequest()
-        successful_responses = []
-        for obj in old_response:
-            if self._skip_objects_retry(obj):
-                successful_responses.append(obj)
-                continue
-
-            new_batch.add(
-                class_name=obj["class"],
-                data_object=obj["properties"],
-                uuid=obj["id"],
-                vector=obj.get("vector", None),
-            )
+            new_batch = ReferenceBatchRequest()
+        successful_responses = new_batch.add_failed_objects_from_response(
+            response,
+            self._weaviate_error_retry.errors_to_exclude,
+            self._weaviate_error_retry.errors_to_include,
+        )
         return new_batch, successful_responses
-
-    def _retry_failed_references(
-        self, old_response: BatchResponse
-    ) -> Tuple[BatchRequestType, BatchResponse]:
-        assert self._weaviate_error_retry is not None
-
-        def parse_references(full_ref: str) -> Tuple[str, str, Optional[str]]:
-            parts = full_ref[11:].split("/")
-            return parts[1], parts[2], parts[3] if len(parts) >= 4 else None
-
-        new_batch = ReferenceBatchRequest()
-        successful_responses = []
-
-        for ref in old_response:
-            if self._skip_objects_retry(ref):
-                successful_responses.append(ref)
-                continue
-
-            from_class, from_uuid, from_property = parse_references(ref["from"])
-            to_class, to_uuid, _ = parse_references(ref["to"])
-            new_batch.add(
-                from_object_class_name=from_class,
-                from_object_uuid=from_uuid,
-                from_property_name=from_property,
-                to_object_uuid=to_uuid,
-                to_object_class_name=to_class,
-            )
-
-        return new_batch, successful_responses
-
-    def _skip_objects_retry(self, entry: Dict[str, Any]) -> bool:
-        if (
-            len(entry["result"]) == 0
-            or "errors" not in entry["result"]
-            or "error" not in entry["result"]["errors"]
-            or len(entry["result"]["errors"]["error"]) == 0
-        ):
-            return True
-
-        # skip based on error messages
-        if self._weaviate_error_retry.errors_to_exclude is not None:
-            for err in entry["result"]["errors"]["error"]:
-                if any(
-                    excl in err["message"] for excl in self._weaviate_error_retry.errors_to_exclude
-                ):
-                    return True
-            return False
-        elif self._weaviate_error_retry.errors_to_include is not None:
-            for err in entry["result"]["errors"]["error"]:
-                if any(
-                    incl in err["message"] for incl in self._weaviate_error_retry.errors_to_include
-                ):
-                    return False
-            return True
-        return False
 
 
 def _check_non_negative(value: Real, arg_name: str, data_type: type) -> None:

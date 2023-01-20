@@ -3,10 +3,12 @@ BatchRequest class definitions.
 """
 import copy
 from abc import ABC, abstractmethod
-from typing import List, Sequence, Optional
+from typing import List, Sequence, Optional, Dict, Any
 from uuid import uuid4
 
 from weaviate.util import get_valid_uuid, get_vector
+
+BatchResponse = List[Dict[str, Any]]
 
 
 class BatchRequest(ABC):
@@ -63,15 +65,61 @@ class BatchRequest(ABC):
 
     @abstractmethod
     def add(self, *args, **kwargs):
-        """
-        This method should me implemented by all inheriting classes.
-        """
+        """Add objects to BatchRequest."""
 
     @abstractmethod
     def get_request_body(self):
+        """Return the request body to be digested by weaviate that contains all batch items."""
+
+    @abstractmethod
+    def add_failed_objects_from_response(
+        self,
+        response_item: BatchResponse,
+        errors_to_exclude: Optional[List[str]],
+        errors_to_include: Optional[List[str]],
+    ) -> BatchResponse:
+        """Add failed items from a weaviate response.
+
+        Parameters
+        ----------
+        response_item : BatchResponse
+            Weaviate response that contains the status for all objects.
+        errors_to_exclude : Optional[List[str]]
+            Which errors should NOT be retried.
+        errors_to_include : Optional[List[str]]
+            Which errors should be retried.
+
+        Returns
+        ------
+        BatchResponse: Contains responses form all successful object, eg. those that have not been added to this batch.
         """
-        This method should me implemented by all inheriting classes.
-        """
+
+    @staticmethod
+    def _skip_objects_retry(
+        entry: Dict[str, Any],
+        errors_to_exclude: Optional[List[str]],
+        errors_to_include: Optional[List[str]],
+    ) -> bool:
+        if (
+            len(entry["result"]) == 0
+            or "errors" not in entry["result"]
+            or "error" not in entry["result"]["errors"]
+            or len(entry["result"]["errors"]["error"]) == 0
+        ):
+            return True
+
+        # skip based on error messages
+        if errors_to_exclude is not None:
+            for err in entry["result"]["errors"]["error"]:
+                if any(excl in err["message"] for excl in errors_to_exclude):
+                    return True
+            return False
+        elif errors_to_include is not None:
+            for err in entry["result"]["errors"]["error"]:
+                if any(incl in err["message"] for incl in errors_to_include):
+                    return False
+            return True
+        return False
 
 
 class ReferenceBatchRequest(BatchRequest):
@@ -159,6 +207,21 @@ class ReferenceBatchRequest(BatchRequest):
 
         return self._items
 
+    def add_failed_objects_from_response(
+        self,
+        response: BatchResponse,
+        errors_to_exclude: Optional[List[str]],
+        errors_to_include: Optional[List[str]],
+    ) -> BatchResponse:
+        successful_responses = []
+
+        for ref in response:
+            if self._skip_objects_retry(ref, errors_to_exclude, errors_to_include):
+                successful_responses.append(ref)
+                continue
+            self._items.append({"from": ref["from"], "to": ref["to"]})
+        return successful_responses
+
 
 class ObjectsBatchRequest(BatchRequest):
     """
@@ -237,3 +300,23 @@ class ObjectsBatchRequest(BatchRequest):
         """
 
         return {"fields": ["ALL"], "objects": self._items}
+
+    def add_failed_objects_from_response(
+        self,
+        response: BatchResponse,
+        errors_to_exclude: Optional[List[str]],
+        errors_to_include: Optional[List[str]],
+    ) -> BatchResponse:
+        successful_responses = []
+
+        for obj in response:
+            if self._skip_objects_retry(obj, errors_to_exclude, errors_to_include):
+                successful_responses.append(obj)
+                continue
+            self.add(
+                data_object=obj["properties"],
+                class_name=obj["class"],
+                uuid=obj["id"],
+                vector=obj.get("vector", None),
+            )
+        return successful_responses
