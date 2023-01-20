@@ -3,7 +3,7 @@ DataObject class definition.
 """
 import uuid as uuid_lib
 import warnings
-from typing import Union, Optional, List, Sequence
+from typing import Union, Optional, List, Sequence, Dict
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -438,6 +438,8 @@ class DataObject:
         node_name: Optional[str] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
         limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        sort: Optional[Dict[str, Union[str, bool, List[bool], List[str]]]] = None,
     ) -> List[dict]:
         """
         Gets objects from weaviate, the maximum number of objects returned is 100.
@@ -468,6 +470,19 @@ class DataObject:
         limit: Optional[int], optional
             The maximum number of data objects to return.
             by default None, which uses the weaviate default of 100 entries
+        offset: Optional[int], optional
+            The offset of objects returned, i.e. the starting index of the returned objects. Should be
+            used in conjunction with the 'limit' parameter.
+        sort: Optional[Dict]
+            A dictionary for sorting objects.
+            sort['properties']: str, List[str]
+                By which properties the returned objects should be sorted. When more than one property is given, the objects are sorted in order of the list.
+                The order of the sorting can be given by using 'sort['order_asc']'.
+            sort['order_asc']: bool, List[bool]
+                The order the properties given in 'sort['properties']' should be returned in. When a single boolean is used, all properties are sorted in the same order.
+                If a list is used, it needs to have the same length as 'sort'. Each properties order is then decided individually.
+                If 'sort['order_asc']' is True, the properties are sorted in ascending order. If it is False, they are sorted in descending order.
+                if 'sort['order_asc']' is not given, all properties are sorted in ascending order.
 
         Returns
         -------
@@ -524,8 +539,49 @@ class DataObject:
             params["node_name"] = node_name
 
         if limit is not None:
-            _check_positive_num(limit, "limit", int)
+            _check_positive_num(limit, "limit", int, include_zero=False)
             params["limit"] = limit
+
+        if offset is not None:
+            _check_positive_num(offset, "offset", int, include_zero=True)
+            params["offset"] = offset
+
+        if sort is not None:
+            if "properties" not in sort:
+                raise ValueError("The sort clause is missing the required field: 'properties'.")
+            if "order_asc" not in sort:
+                sort["order_asc"] = True
+            if not isinstance(sort, Dict):
+                raise TypeError(f"'sort' must be of type dict. Given type: {type(sort)}.")
+            if isinstance(sort["properties"], str):
+                sort["properties"] = [sort["properties"]]
+            elif not isinstance(sort["properties"], list) or not all(
+                isinstance(x, str) for x in sort["properties"]
+            ):
+                raise TypeError(
+                    f"'sort['properties']' must be of type str or list[str]. Given type: {type(sort['properties'])}."
+                )
+            if len(sort["properties"]) == 0:
+                raise ValueError("'sort['properties']' cannot be an empty list.")
+
+            if isinstance(sort["order_asc"], bool):
+                sort["order_asc"] = [sort["order_asc"]] * len(sort["properties"])
+            elif not isinstance(sort["order_asc"], list) or not all(
+                isinstance(x, bool) for x in sort["order_asc"]
+            ):
+                raise TypeError(
+                    f"'sort['order_asc']' must be of type boolean or list[bool]. Given type: {type(sort['order_asc'])}."
+                )
+            if len(sort["properties"]) != len(sort["order_asc"]):
+                raise ValueError(
+                    f"'sort['order_asc']' must be the same length as 'sort['properties']' or a boolean (not in a list). Current length is sort['properties']:{len(sort['properties'])} and sort['order_asc']:{len(sort['order_asc'])}."
+                )
+            if len(sort["order_asc"]) == 0:
+                raise ValueError("'sort['order_asc']' cannot be an empty list.")
+
+            params["sort"] = ",".join(sort["properties"])
+            order = ["asc" if x else "desc" for x in sort["order_asc"]]
+            params["order"] = ",".join(order)
 
         try:
             response = self._connection.get(

@@ -4,7 +4,7 @@ import time
 import uuid
 from datetime import datetime
 from datetime import timezone
-from typing import List, Optional
+from typing import List, Optional, Dict, Union
 
 import pytest
 
@@ -57,6 +57,20 @@ gql_get_sophie_scholl = """
   }
 }
 """
+
+SHIP_SCHEMA = {
+    "classes": [
+        {
+            "class": "Ship",
+            "description": "object",
+            "properties": [
+                {"dataType": ["string"], "description": "name", "name": "name"},
+                {"dataType": ["string"], "description": "description", "name": "description"},
+                {"dataType": ["int"], "description": "size", "name": "size"},
+            ],
+        }
+    ]
+}
 
 
 @pytest.fixture(scope="module")
@@ -122,6 +136,93 @@ def test_query_get_with_limit(people_schema, limit: Optional[int]):
         assert len(result["objects"]) == num_objects
     else:
         assert len(result["objects"]) == limit
+    client.schema.delete_all()
+
+
+@pytest.mark.parametrize("offset", [None, 0, 1, 5, 20, 50])
+def test_query_get_with_offset(people_schema, offset: Optional[int]):
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+    client.schema.create(people_schema)
+
+    num_objects = 20
+    for i in range(num_objects):
+        with client.batch as batch:
+            batch.add_data_object({"name": f"name{i}"}, "Person")
+        batch.flush()
+    result_without_offset = client.data_object.get(class_name="Person")
+    result_with_offset = client.data_object.get(class_name="Person", offset=offset)
+
+    if offset is None:
+        assert result_with_offset["objects"] == result_without_offset["objects"]
+    elif offset >= num_objects:
+        assert len(result_with_offset["objects"]) == 0
+    else:
+        assert result_with_offset["objects"][:] == result_without_offset["objects"][offset:]
+    client.schema.delete_all()
+
+
+@pytest.mark.parametrize(
+    "sort,expected",
+    [
+        (
+            {"properties": "name", "order_asc": True},
+            ["name" + "{:02d}".format(i) for i in range(0, 20)],
+        ),
+        (
+            {"properties": "name", "order_asc": False},
+            ["name" + "{:02d}".format(i) for i in range(19, -1, -1)],
+        ),
+        (
+            {"properties": ["name"], "order_asc": [False]},
+            ["name" + "{:02d}".format(i) for i in range(19, -1, -1)],
+        ),
+        (
+            {"properties": ["description", "size", "name"], "order_asc": [False, True, False]},
+            ["name05", "name00", "name06", "name01"],
+        ),
+        (
+            {"properties": ["description", "size", "name"], "order_asc": False},
+            ["name09", "name04", "name08", "name03"],
+        ),
+        (
+            {"properties": ["description", "size", "name"], "order_asc": True},
+            ["name10", "name15", "name11", "name16"],
+        ),
+        ({"properties": ["description", "size", "name"]}, ["name10", "name15", "name11", "name16"]),
+    ],
+)
+def test_query_get_with_sort(
+    sort: Optional[Dict[str, Union[str, bool, List[bool], List[str]]]], expected: List[str]
+):
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+    client.schema.create(SHIP_SCHEMA)
+
+    num_objects = 10
+    for i in range(num_objects):
+        with client.batch as batch:
+            batch.add_data_object(
+                {
+                    "name": "name" + "{:02d}".format(i),
+                    "size": i % 5 + 5,
+                    "description": "Super long description",
+                },
+                "Ship",
+            )
+            batch.add_data_object(
+                {
+                    "name": "name" + "{:02d}".format(i + 10),
+                    "size": i % 5 + 5,
+                    "description": "Short description",
+                },
+                "Ship",
+            )
+        batch.flush()
+    result = client.data_object.get(class_name="Ship", sort=sort)
+
+    for i, exp in enumerate(expected):
+        assert exp == result["objects"][i]["properties"]["name"]
     client.schema.delete_all()
 
 
