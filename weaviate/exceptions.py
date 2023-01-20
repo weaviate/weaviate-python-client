@@ -1,6 +1,7 @@
 """
 Weaviate Exceptions.
 """
+
 from requests import Response, exceptions
 
 ERROR_CODE_EXPLANATION = {

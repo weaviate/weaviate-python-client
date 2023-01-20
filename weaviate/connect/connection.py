@@ -472,17 +472,21 @@ class Connection(BaseConnection):
         super().__init__(
             url, auth_client_secret, timeout_config, proxies, trust_env, additional_headers
         )
-        version = self.get_meta()["version"]
-        if version < "1.14":
-            _Warnings.weaviate_server_older_than_1_14(version)
+        self._server_version = self.get_meta()["version"]
+        if self._server_version < "1.14":
+            _Warnings.weaviate_server_older_than_1_14(self._server_version)
 
     @property
     def server_version(self) -> str:
-        """Version of the weaviate instance."""
-        return self.get_meta()["version"]
+        """
+        Version of the weaviate instance.
+        """
+        return self._server_version
 
     def get_meta(self) -> Dict[str, str]:
-        """Returns the meta endpoint."""
+        """
+        Returns the meta endpoint.
+        """
         response = self.get(path="/meta")
         if response.status_code == 200:
             return response.json()
