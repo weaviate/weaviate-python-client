@@ -35,7 +35,7 @@ This minor version includes:
             ) as batch:
                 # Your code
 
-    - Exclude errors:
+    - Exclude errors, all the other errors will be retried:
 
         .. code-block:: python
 
@@ -46,7 +46,7 @@ This minor version includes:
             ) as batch:
                 # Your code
 
-    - Exclude errors:
+    - Include errors, all the other errors will be ignored:
 
         .. code-block:: python
 
@@ -57,7 +57,7 @@ This minor version includes:
             ) as batch:
                 # Your code
 
-- Adds new arguments ``sort`` and ``order`` for :meth:`~weaviate.data.DataObject.get`.
+- Adds new arguments ``sort`` and ``offset`` for :meth:`~weaviate.data.DataObject.get`.
 
 
 Version 3.10.0
