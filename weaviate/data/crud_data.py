@@ -439,7 +439,7 @@ class DataObject:
         consistency_level: Optional[ConsistencyLevel] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        sort: Optional[Dict] = None,
+        sort: Optional[Dict[str, Union[str, bool, List[bool], List[str]]]] = None,
     ) -> List[dict]:
         """
         Gets objects from weaviate, the maximum number of objects returned is 100.
