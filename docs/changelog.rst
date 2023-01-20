@@ -1,6 +1,65 @@
 Changelog
 =========
 
+Version 3.11.0
+--------------
+This minor version includes:
+
+- New status code attribute for :class:`~weaviate.exceptions.UnexpectedStatusCodeException` that can be accessed like this:
+
+    .. code-block:: python
+
+        try:
+            # your code
+        except weaviate.UnexpectedStatusCodeException as err:
+            print(err.status_code)
+
+- Fix for :meth:`~weaviate.client.Client.get_meta`.
+
+- Caches server version at :class:`~weaviate.client.Client` initialization. This improves batch reference creation performance.
+
+- Changes accepted data types for arguments ``from_object_uuid`` and ``to_object_uuid``  of the method :meth:`~weaviate.batch.Batch.add_reference` to ``str`` and ``uuid.UUID``.
+
+- |
+    Adds automatic retry for failed objects. It can be configured using the ``weaviate_error_retries`` argument for the :meth:`~weaviate.batch.Batch.configure` or
+     :meth:`~weaviate.batch.Batch.__call__`, and should be an instance of :class:`~weaviate.WeaviateErrorRetryConf`. It can be used like this:
+
+    - All errors:
+
+        .. code-block:: python
+
+            from weaviate import WeaviateErrorRetryConf
+
+            with client.batch(
+                weaviate_error_retries=WeaviateErrorRetryConf(number_retries=3),
+            ) as batch:
+                # Your code
+
+    - Exclude errors:
+
+        .. code-block:: python
+
+            from weaviate import WeaviateErrorRetryConf
+
+            with client.batch(
+                weaviate_error_retries=WeaviateErrorRetryConf(number_retries=3, errors_to_exclude=["Ignore me", "other error to ignore"]),
+            ) as batch:
+                # Your code
+
+    - Exclude errors:
+
+        .. code-block:: python
+
+            from weaviate import WeaviateErrorRetryConf
+
+            with client.batch(
+                weaviate_error_retries=WeaviateErrorRetryConf(number_retries=3, errors_to_include=["error to retry", "other error to test again"]),
+            ) as batch:
+                # Your code
+
+- Adds new arguments ``sort`` and ``order`` for :meth:`~weaviate.data.DataObject.get`.
+
+
 Version 3.10.0
 --------------
 This minor version includes:

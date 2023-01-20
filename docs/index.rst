@@ -43,7 +43,7 @@ Here are some articles on Weaviate:
 Weaviate Python Library
 -----------------------
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
    :caption: Contents:
 
    weaviate
