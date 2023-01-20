@@ -10,11 +10,6 @@ import weaviate
 UUID = Union[str, uuid.UUID]
 
 
-UUID_UUID = uuid.uuid4()
-UUID_STR = str(uuid.uuid4())
-UUID_HEX = uuid.uuid4().hex
-
-
 def has_batch_errors(results: dict) -> bool:
     """
     Check batch results for errors.
@@ -52,7 +47,7 @@ class MockTensorFlow:
         return MockNumpyTorch(self.array)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def client():
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
@@ -67,12 +62,11 @@ def client():
     client.schema.delete_all()
 
 
-@pytest.mark.order(1)
 @pytest.mark.parametrize(
     "vector",
     [None, [1, 2, 3], MockNumpyTorch([1, 2, 3]), MockTensorFlow([1, 2, 3])],
 )
-@pytest.mark.parametrize("uuid", [None, UUID_UUID, UUID_STR, UUID_HEX])
+@pytest.mark.parametrize("uuid", [None, uuid.uuid4(), str(uuid.uuid4()), uuid.uuid4().hex])
 def test_add_data_object(client: weaviate.Client, uuid: Optional[UUID], vector: Optional[Sequence]):
     """Test the `add_data_object` method"""
     client.batch.add_data_object(
@@ -85,9 +79,8 @@ def test_add_data_object(client: weaviate.Client, uuid: Optional[UUID], vector: 
     assert has_batch_errors(response) is False, str(response)
 
 
-@pytest.mark.order(2)
-@pytest.mark.parametrize("from_object_uuid", [UUID_UUID, UUID_STR, UUID_HEX])
-@pytest.mark.parametrize("to_object_uuid", [UUID_HEX, UUID_UUID, UUID_STR])
+@pytest.mark.parametrize("from_object_uuid", [uuid.uuid4(), str(uuid.uuid4()), uuid.uuid4().hex])
+@pytest.mark.parametrize("to_object_uuid", [uuid.uuid4().hex, uuid.uuid4(), str(uuid.uuid4())])
 @pytest.mark.parametrize("to_object_class_name", [None, "Test"])
 def test_add_reference(
     client: weaviate.Client,
@@ -96,6 +89,19 @@ def test_add_reference(
     to_object_class_name: Optional[str],
 ):
     """Test the `add_reference` method"""
+
+    # create the 2 objects first
+    client.data_object.create(
+        data_object={},
+        class_name="Test",
+        uuid=from_object_uuid,
+    )
+    client.data_object.create(
+        data_object={},
+        class_name="Test",
+        uuid=to_object_uuid,
+    )
+
     client.batch.add_reference(
         from_object_uuid=from_object_uuid,
         from_object_class_name="Test",

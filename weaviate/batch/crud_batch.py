@@ -7,7 +7,7 @@ import warnings
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from numbers import Real
-from uuid import UUID
+import uuid
 from typing import Tuple, Callable, Optional, Sequence, Union
 
 from requests import ReadTimeout, Response
@@ -27,6 +27,9 @@ from ..util import (
     _check_positive_num,
 )
 from ..warnings import _Warnings
+
+
+UUID = Union[str, uuid.UUID]
 
 
 class BatchExecutor(ThreadPoolExecutor):
@@ -377,7 +380,7 @@ class Batch:
         self,
         data_object: dict,
         class_name: str,
-        uuid: Union[str, UUID, None] = None,
+        uuid: Optional[UUID] = None,
         vector: Optional[Sequence] = None,
     ) -> str:
         """
@@ -391,11 +394,9 @@ class Batch:
             Object to be added as a dict datatype.
         class_name : str
             The name of the class this object belongs to.
-        uuid : Union[str, UUID, None], optional
+        uuid : Optional[UUID], optional
             The UUID of the object as an uuid.UUID object or str. It can be a Weaviate beacon or Weaviate href.
             If it is None an UUIDv4 will generated, by default None
-        uuid : str, optional
-            UUID of the object as a string, by default None
         vector: Sequence or None, optional
             The embedding of the object that should be validated.
             Can be used when:
@@ -432,10 +433,10 @@ class Batch:
 
     def add_reference(
         self,
-        from_object_uuid: Union[UUID, str],
+        from_object_uuid: UUID,
         from_object_class_name: str,
         from_property_name: str,
-        to_object_uuid: Union[UUID, str],
+        to_object_uuid: UUID,
         to_object_class_name: Optional[str] = None,
     ) -> None:
         """
@@ -443,14 +444,14 @@ class Batch:
 
         Parameters
         ----------
-        from_object_uuid : Union[UUID, str]
+        from_object_uuid : UUID
             The UUID of the object, as an uuid.UUID object or str, that should reference another object.
             It can be a Weaviate beacon or Weaviate href.
         from_object_class_name : str
             The name of the class that should reference another object.
         from_property_name : str
             The name of the property that contains the reference.
-        to_object_uuid : Union[UUID, str]
+        to_object_uuid : UUID
             The UUID of the object, as an uuid.UUID object or str, that is actually referenced.
             It can be a Weaviate beacon or Weaviate href.
         to_object_class_name : Optional[str], optional
