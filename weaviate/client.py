@@ -54,6 +54,7 @@ class Client:
         proxies: Union[dict, str, None] = None,
         trust_env: bool = False,
         additional_headers: Optional[dict] = None,
+        wait_for_weaviate: bool = False,
     ):
         """
         Initialize a Client class instance.
@@ -126,6 +127,7 @@ class Client:
             proxies=proxies,
             trust_env=trust_env,
             additional_headers=additional_headers,
+            wait_for_weaviate=wait_for_weaviate,
         )
         self.classification = Classification(self._connection)
         self.schema = Schema(self._connection)

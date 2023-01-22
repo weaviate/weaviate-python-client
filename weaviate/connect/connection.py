@@ -36,6 +36,7 @@ class BaseConnection:
         proxies: Union[dict, str, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
+        wait_for_weaviate: bool = False,
     ):
         """
         Initialize a Connection class instance.
@@ -96,6 +97,10 @@ class BaseConnection:
 
         self._session: Session
         self._shutdown_background_event: Optional[Event] = None
+
+        if wait_for_weaviate:
+            self.wait_for_weaviate()
+
         self._create_session(auth_client_secret)
 
     def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
@@ -458,6 +463,21 @@ class BaseConnection:
     def proxies(self) -> dict:
         return self._proxies
 
+    def wait_for_weaviate(self):
+        ready_url = self.url + self._api_version_path + "/.well-known/ready"
+        for _i in range(0, 300, 5):
+            try:
+                status_code = requests.get(
+                    ready_url,
+                ).status_code
+                if status_code != 200:
+                    time.sleep(5)
+                else:
+                    return
+            except requests.exceptions.ConnectionError:
+                time.sleep(5)
+        raise ConnectionError("Weaviate did not start in time.")
+
 
 class Connection(BaseConnection):
     def __init__(
@@ -468,9 +488,16 @@ class Connection(BaseConnection):
         proxies: Union[dict, str, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
+        wait_for_weaviate: bool = False,
     ):
         super().__init__(
-            url, auth_client_secret, timeout_config, proxies, trust_env, additional_headers
+            url,
+            auth_client_secret,
+            timeout_config,
+            proxies,
+            trust_env,
+            additional_headers,
+            wait_for_weaviate,
         )
         self._server_version = self.get_meta()["version"]
         if self._server_version < "1.14":
