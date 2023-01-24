@@ -4,6 +4,7 @@ from typing import Optional, Dict
 
 import pytest
 import requests
+import time
 
 import weaviate
 from weaviate import (
@@ -20,7 +21,24 @@ OKTA_PORT_USERS = "8083"
 WCS_PORT = "8085"
 
 
+def wait_for_weaviate(url: str):
+    ready_url = url + "/v1/.well-known/ready"
+    for _i in range(0, 30, 5):
+        try:
+            status_code = requests.get(
+                ready_url,
+            ).status_code
+            if status_code != 200:
+                time.sleep(5)
+            else:
+                return
+        except requests.exceptions.ConnectionError:
+            time.sleep(5)
+    raise ConnectionError("Weaviate did not start in time.")
+
+
 def is_auth_enabled(url: str):
+    wait_for_weaviate(url)
     response = requests.get(url + "/v1/.well-known/openid-configuration")
     return response.status_code == 200
 
