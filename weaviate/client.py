@@ -54,7 +54,7 @@ class Client:
         proxies: Union[dict, str, None] = None,
         trust_env: bool = False,
         additional_headers: Optional[dict] = None,
-        timeout_for_weaviate: Optional[int] = 30,
+        wait_for_weaviate: Optional[int] = 30,
     ):
         """
         Initialize a Client class instance.
@@ -89,6 +89,9 @@ class Client:
             Can be used to set OpenAI/HuggingFace keys. OpenAI/HuggingFace key looks like this:
                 {"X-OpenAI-Api-Key": "<THE-KEY>"}, {"X-HuggingFace-Api-Key": "<THE-KEY>"}
             by default None
+        wait_for_weaviate : int or None
+            Describes how long the client will wait for weaviate to start in seconds.
+            If wait_for_weaviate is None the client will not wait at all. Waits for 30s by default.
 
         Examples
         --------
@@ -127,7 +130,7 @@ class Client:
             proxies=proxies,
             trust_env=trust_env,
             additional_headers=additional_headers,
-            timeout_for_weaviate=timeout_for_weaviate,
+            wait_for_weaviate=wait_for_weaviate,
         )
         self.classification = Classification(self._connection)
         self.schema = Schema(self._connection)

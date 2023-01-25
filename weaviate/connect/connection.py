@@ -19,6 +19,7 @@ from weaviate.auth import AuthCredentials, AuthClientCredentials
 from weaviate.connect.authentication import _Auth
 from weaviate.exceptions import AuthenticationFailedException, UnexpectedStatusCodeException
 from weaviate.warnings import _Warnings
+from weaviate.util import _check_positive_num
 
 Session = Union[requests.sessions.Session, OAuth2Session]
 
@@ -36,7 +37,7 @@ class BaseConnection:
         proxies: Union[dict, str, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
-        timeout_for_weaviate: Optional[int] = 30,
+        wait_for_weaviate: Optional[int] = 30,
     ):
         """
         Initialize a Connection class instance.
@@ -66,6 +67,9 @@ class BaseConnection:
         additional_headers : Dict[str, Any] or None
             Additional headers to include in the requests, used to set OpenAI key. OpenAI key looks
             like this: {'X-OpenAI-Api-Key': 'KEY'}.
+        wait_for_weaviate : int or None
+            Describes how long the client will wait for weaviate to start in seconds.
+            If wait_for_weaviate is None the client will not wait at all. Waits for 30s by default.
 
         Raises
         ------
@@ -98,8 +102,9 @@ class BaseConnection:
         self._session: Session
         self._shutdown_background_event: Optional[Event] = None
 
-        if timeout_for_weaviate is not None:
-            self.wait_for_weaviate(timeout_for_weaviate)
+        if wait_for_weaviate is not None:
+            _check_positive_num(wait_for_weaviate, "wait_for_weaviate", int, include_zero=False)
+            self.wait_for_weaviate(wait_for_weaviate)
 
         self._create_session(auth_client_secret)
 
@@ -463,9 +468,17 @@ class BaseConnection:
     def proxies(self) -> dict:
         return self._proxies
 
-    def wait_for_weaviate(self, timeout_for_weaviate):
+    def wait_for_weaviate(self, wait_for_weaviate):
+        """
+        Waits until weaviate is ready or the timelimit given in 'wait_for_weaviate' has passed.
+
+        Parameters
+        ----------
+        wait_for_weaviate : Optional[int]
+            Describes how long the client will wait for weaviate to start in seconds.
+        """
         ready_url = self.url + self._api_version_path + "/.well-known/ready"
-        for _i in range(0, timeout_for_weaviate, 5):
+        for _i in range(0, wait_for_weaviate, 5):
             try:
                 status_code = requests.get(
                     ready_url,
@@ -488,7 +501,7 @@ class Connection(BaseConnection):
         proxies: Union[dict, str, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
-        timeout_for_weaviate: Optional[int] = 30,
+        wait_for_weaviate: Optional[int] = 30,
     ):
         super().__init__(
             url,
@@ -497,7 +510,7 @@ class Connection(BaseConnection):
             proxies,
             trust_env,
             additional_headers,
-            timeout_for_weaviate,
+            wait_for_weaviate,
         )
         self._server_version = self.get_meta()["version"]
         if self._server_version < "1.14":

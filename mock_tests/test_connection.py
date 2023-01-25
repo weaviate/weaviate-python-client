@@ -60,4 +60,4 @@ def test_wait_for_weaviate(httpserver: HTTPServer):
     httpserver.expect_request("/v1/meta").respond_with_handler(handler_meta)
     httpserver.expect_request("/v1/.well-known/ready").respond_with_handler(handler)
     start_time = time.time()
-    weaviate.Client(url=MOCK_SERVER_URL, timeout_for_weaviate=120)
+    weaviate.Client(url=MOCK_SERVER_URL, wait_for_weaviate=30)
