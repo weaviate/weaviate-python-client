@@ -476,7 +476,13 @@ class BaseConnection:
         ----------
         wait_for_weaviate : Optional[int]
             Describes how long the client will wait for weaviate to start in seconds.
+
+        Raises
+        ------
+        ConnectionError
+            If weaviate takes longer than the timelimit to respond.
         """
+
         ready_url = self.url + self._api_version_path + "/.well-known/ready"
         for _i in range(0, wait_for_weaviate, 5):
             try:
