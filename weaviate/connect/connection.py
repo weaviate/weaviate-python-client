@@ -468,7 +468,7 @@ class BaseConnection:
     def proxies(self) -> dict:
         return self._proxies
 
-    def wait_for_weaviate(self, wait_for_weaviate):
+    def wait_for_weaviate(self, wait_for_weaviate: Optional[int]):
         """
         Waits until weaviate is ready or the timelimit given in 'wait_for_weaviate' has passed.
 

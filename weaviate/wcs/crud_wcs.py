@@ -80,6 +80,7 @@ class WCS(BaseConnection):
             proxies=proxies,
             trust_env=trust_env,
             additional_headers=None,
+            wait_for_weaviate=None,
         )
         self._email = auth_client_secret.username
 
