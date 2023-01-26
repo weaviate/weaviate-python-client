@@ -13,6 +13,7 @@ from threading import Thread, Event
 from typing import Any, Dict, Tuple, Optional, Union
 
 import requests
+from requests.exceptions import ConnectionError as RequestsConnectionError
 from authlib.integrations.requests_client import OAuth2Session
 
 from weaviate.auth import AuthCredentials, AuthClientCredentials
@@ -20,6 +21,7 @@ from weaviate.connect.authentication import _Auth
 from weaviate.exceptions import AuthenticationFailedException, UnexpectedStatusCodeException
 from weaviate.warnings import _Warnings
 from weaviate.util import _check_positive_num
+
 
 Session = Union[requests.sessions.Session, OAuth2Session]
 
@@ -68,7 +70,7 @@ class BaseConnection:
             Additional headers to include in the requests, used to set OpenAI key. OpenAI key looks
             like this: {'X-OpenAI-Api-Key': 'KEY'}.
         wait_for_weaviate : int or None
-            How long the client will wait for weaviate to start before raising a ConnectionError.
+            How long the client will wait for weaviate to start before raising a RequestsConnectionError.
             If None the client will not wait at all. Default timeout is 30s.
 
         Raises
@@ -76,7 +78,7 @@ class BaseConnection:
         ValueError
             If no authentication credentials provided but the Weaviate server has an OpenID
             configured.
-        requests.exceptions.ConnectionError
+        RequestsConnectionError
             If a connection to weaviate can not be established in the given time.
         """
 
@@ -495,9 +497,9 @@ class BaseConnection:
                     time.sleep(1)
                 else:
                     return
-            except requests.exceptions.ConnectionError:
+            except RequestsConnectionError:
                 time.sleep(1)
-        raise requests.exceptions.ConnectionError("Weaviate did not start in time.")
+        raise RequestsConnectionError("Weaviate did not start in time.")
 
 
 class Connection(BaseConnection):
