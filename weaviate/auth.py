@@ -1,10 +1,12 @@
 """
 Authentication class definitions.
 """
-from dataclasses import dataclass
-from typing import Optional, Union
+from dataclasses import dataclass, field
+from typing import Optional, Union, List
 
 from weaviate.warnings import _Warnings
+
+SCOPES = Union[str, List[str]]
 
 
 @dataclass
@@ -16,7 +18,11 @@ class AuthClientCredentials:
     """
 
     client_secret: str
-    scope: Optional[str] = None
+    scope: Optional[SCOPES] = None
+
+    def __post_init__(self):
+        if isinstance(self.scope, str):
+            self.scope = self.scope.split(" ")
 
 
 @dataclass
@@ -29,7 +35,11 @@ class AuthClientPassword:
 
     username: str
     password: str
-    scope: Optional[str] = "offline_access"
+    scope: Optional[SCOPES] = field(default_factory=lambda: ["offline_access"])
+
+    def __post_init__(self):
+        if isinstance(self.scope, str):
+            self.scope = self.scope.split(" ")
 
 
 @dataclass

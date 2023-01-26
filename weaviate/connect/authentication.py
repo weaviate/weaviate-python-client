@@ -99,7 +99,7 @@ class _Auth:
         else:
             # hardcode commonly used scopes
             if self._token_endpoint.startswith("https://login.microsoftonline.com"):
-                scope = self._client_id + "/.default"
+                scope = [self._client_id + "/.default"]
             else:
                 raise MissingScopeException
         session = OAuth2Session(
