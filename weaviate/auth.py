@@ -15,6 +15,9 @@ class AuthClientCredentials:
 
     Acquire the client secret from your identify provider and set the appropriate scope. The client includes hardcoded
     scopes for Azure, otherwise it needs to be supplied.
+    Scopes can be given as:
+      - List of strings: ["scope1", "scope2"]
+      - space separated string: "scope1 scope2"
     """
 
     client_secret: str
@@ -31,6 +34,10 @@ class AuthClientPassword:
 
     For some providers the scope needs to contain "offline_access" (and "openid" which is automatically added) to return
     a refresh token. Without a refresh token the authentication will expire once the lifetime of the access token is up.
+    Scopes can be given as:
+      - List of strings: ["scope1", "scope2"]
+      - space separated string: "scope1 scope2"
+
     """
 
     username: str
