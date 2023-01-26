@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict
+from typing import Dict, List, Union
 from typing import TYPE_CHECKING
 
 import requests
@@ -21,13 +21,17 @@ if TYPE_CHECKING:
 
 class _Auth:
     def __init__(
-        self, response: Dict[str, str], auth_config: AuthCredentials, connection: BaseConnection
+        self,
+        response: Dict[str, Union[str, List[str]]],
+        auth_config: AuthCredentials,
+        connection: BaseConnection,
     ) -> None:
         self._auth_config: AuthCredentials = auth_config
         self._connection: BaseConnection = connection
 
         self._open_id_config_url: str = response["href"]
         self._client_id: str = response["clientId"]
+        self._default_scopes: List[str] = response["scopes"]
 
         self._token_endpoint: str = self._get_token_endpoint()
         self._validate(response)
@@ -81,11 +85,13 @@ class _Auth:
         )
 
     def _get_session_user_pw(self, config: AuthClientPassword) -> OAuth2Session:
+        scope: List[str] = self._default_scopes.copy()
+        scope.extend(config.scope)
         session = OAuth2Session(
             client_id=self._client_id,
             token_endpoint=self._token_endpoint,
             grant_type="password",
-            scope=config.scope,
+            scope=scope,
         )
         token = session.fetch_token(username=config.username, password=config.password)
         if "refresh_token" not in token:
@@ -94,14 +100,24 @@ class _Auth:
         return session
 
     def _get_session_client_credential(self, config: AuthClientCredentials) -> OAuth2Session:
+        scope: List[str] = self._default_scopes.copy()
+
+        # remove openid scopes from the scopes returned by weaviate (these are returned by default). These are not
+        # accepted by some providers for client credentials
+        if "openid" in scope:
+            scope.remove("openid")
+        if "email" in scope:
+            scope.remove("email")
+
         if config.scope is not None:
-            scope = config.scope
-        else:
+            scope.extend(config.scope)
+        if len(scope) == 0:
             # hardcode commonly used scopes
             if self._token_endpoint.startswith("https://login.microsoftonline.com"):
                 scope = [self._client_id + "/.default"]
             else:
                 raise MissingScopeException
+
         session = OAuth2Session(
             client_id=self._client_id,
             client_secret=config.client_secret,
