@@ -90,8 +90,8 @@ class Client:
                 {"X-OpenAI-Api-Key": "<THE-KEY>"}, {"X-HuggingFace-Api-Key": "<THE-KEY>"}
             by default None
         wait_for_weaviate : int or None
-            Describes how long the client will wait for weaviate to start in seconds.
-            If wait_for_weaviate is None the client will not wait at all. Waits for 30s by default.
+            How long the client will wait for weaviate to start before raising a ConnectionError.
+            If None the client will not wait at all. Default timeout is 30s.
 
         Examples
         --------

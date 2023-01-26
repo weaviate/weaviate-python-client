@@ -68,14 +68,16 @@ class BaseConnection:
             Additional headers to include in the requests, used to set OpenAI key. OpenAI key looks
             like this: {'X-OpenAI-Api-Key': 'KEY'}.
         wait_for_weaviate : int or None
-            Describes how long the client will wait for weaviate to start in seconds.
-            If wait_for_weaviate is None the client will not wait at all. Waits for 30s by default.
+            How long the client will wait for weaviate to start before raising a ConnectionError.
+            If None the client will not wait at all. Default timeout is 30s.
 
         Raises
         ------
         ValueError
             If no authentication credentials provided but the Weaviate server has an OpenID
             configured.
+        ConnectionError
+            If a connection to weaviate can not be established in the given time.
         """
 
         self._api_version_path = "/v1"
@@ -484,17 +486,17 @@ class BaseConnection:
         """
 
         ready_url = self.url + self._api_version_path + "/.well-known/ready"
-        for _i in range(0, wait_for_weaviate, 5):
+        for _i in range(0, wait_for_weaviate, 1):
             try:
                 status_code = requests.get(
                     ready_url,
                 ).status_code
                 if status_code != 200:
-                    time.sleep(5)
+                    time.sleep(1)
                 else:
                     return
             except requests.exceptions.ConnectionError:
-                time.sleep(5)
+                time.sleep(1)
         raise ConnectionError("Weaviate did not start in time.")
 
 
