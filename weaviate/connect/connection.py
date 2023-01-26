@@ -76,7 +76,7 @@ class BaseConnection:
         ValueError
             If no authentication credentials provided but the Weaviate server has an OpenID
             configured.
-        ConnectionError
+        requests.exceptions.ConnectionError
             If a connection to weaviate can not be established in the given time.
         """
 
@@ -497,7 +497,7 @@ class BaseConnection:
                     return
             except requests.exceptions.ConnectionError:
                 time.sleep(1)
-        raise ConnectionError("Weaviate did not start in time.")
+        raise requests.exceptions.ConnectionError("Weaviate did not start in time.")
 
 
 class Connection(BaseConnection):
