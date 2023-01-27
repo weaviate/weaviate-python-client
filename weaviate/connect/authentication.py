@@ -22,22 +22,22 @@ if TYPE_CHECKING:
 class _Auth:
     def __init__(
         self,
-        response: Dict[str, Union[str, List[str]]],
-        auth_config: AuthCredentials,
+        oidc_config: Dict[str, Union[str, List[str]]],
+        credentials: AuthCredentials,
         connection: BaseConnection,
     ) -> None:
-        self._auth_config: AuthCredentials = auth_config
+        self._credentials: AuthCredentials = credentials
         self._connection: BaseConnection = connection
 
-        self._open_id_config_url: str = response["href"]
-        self._client_id: str = response["clientId"]
-        self._default_scopes: List[str] = response["scopes"]
+        self._open_id_config_url: str = oidc_config["href"]
+        self._client_id: str = oidc_config["clientId"]
+        self._default_scopes: List[str] = oidc_config["scopes"]
 
         self._token_endpoint: str = self._get_token_endpoint()
-        self._validate(response)
+        self._validate(oidc_config)
 
-    def _validate(self, response: Dict[str, str]) -> None:
-        if isinstance(self._auth_config, AuthClientPassword):
+    def _validate(self, oidc_config: Dict[str, str]) -> None:
+        if isinstance(self._credentials, AuthClientPassword):
             if self._token_endpoint.startswith("https://login.microsoftonline.com"):
                 raise AuthenticationFailedException(
                     """Microsoft/azure does not recommend to authenticate using username and password and this method is
@@ -46,8 +46,8 @@ class _Auth:
 
             # The grant_types_supported field is optional and does not have to be present in the response
             if (
-                "grant_types_supported" in response
-                and "password" not in response["grant_types_supported"]
+                "grant_types_supported" in oidc_config
+                and "password" not in oidc_config["grant_types_supported"]
             ):
                 raise AuthenticationFailedException(
                     """The grant_types supported by the third-party authentication service are insufficient. Please add
@@ -59,13 +59,13 @@ class _Auth:
         return response_auth.json()["token_endpoint"]
 
     def get_auth_session(self) -> OAuth2Session:
-        if isinstance(self._auth_config, AuthBearerToken):
-            session = self._get_session_auth_bearer_token(self._auth_config)
-        elif isinstance(self._auth_config, AuthClientCredentials):
-            session = self._get_session_client_credential(self._auth_config)
+        if isinstance(self._credentials, AuthBearerToken):
+            session = self._get_session_auth_bearer_token(self._credentials)
+        elif isinstance(self._credentials, AuthClientCredentials):
+            session = self._get_session_client_credential(self._credentials)
         else:
-            assert isinstance(self._auth_config, AuthClientPassword)
-            session = self._get_session_user_pw(self._auth_config)
+            assert isinstance(self._credentials, AuthClientPassword)
+            session = self._get_session_user_pw(self._credentials)
 
         return session
 
@@ -104,10 +104,7 @@ class _Auth:
 
         # remove openid scopes from the scopes returned by weaviate (these are returned by default). These are not
         # accepted by some providers for client credentials
-        if "openid" in scope:
-            scope.remove("openid")
-        if "email" in scope:
-            scope.remove("email")
+        scope = list(filter(lambda s: s != "openid" and s != "email", scope))
 
         if config.scope is not None:
             scope.extend(config.scope)
