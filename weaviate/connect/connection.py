@@ -70,7 +70,7 @@ class BaseConnection:
             Additional headers to include in the requests, used to set OpenAI key. OpenAI key looks
             like this: {'X-OpenAI-Api-Key': 'KEY'}.
         wait_for_weaviate : int or None
-            How long the client will wait for weaviate to start before raising the appropiate Error.
+            How long the client will wait for weaviate to start before raising a RequestsConnectionError.
             If None the client will not wait at all. Default timeout is 30s.
 
         Raises
