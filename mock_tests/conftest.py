@@ -14,15 +14,25 @@ def httpserver_listen_address():
 
 
 @pytest.fixture(scope="function")
-def weaviate_mock(httpserver: HTTPServer):
-    httpserver.expect_request("/v1/meta").respond_with_json({"version": "1.16"})
+def ready_mock(httpserver: HTTPServer):
+    httpserver.expect_request("/v1/.well-known/ready").respond_with_json({})
     yield httpserver
+
+
+@pytest.fixture(scope="function")
+def weaviate_mock(ready_mock):
+    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.16"})
+    yield ready_mock
 
 
 @pytest.fixture(scope="function")
 def weaviate_auth_mock(weaviate_mock):
     weaviate_mock.expect_request("/v1/.well-known/openid-configuration").respond_with_json(
-        {"href": MOCK_SERVER_URL + "/endpoints", "clientId": CLIENT_ID}
+        {
+            "href": MOCK_SERVER_URL + "/endpoints",
+            "clientId": CLIENT_ID,
+            "scopes": ["openid", "email"],
+        }
     )
     weaviate_mock.expect_request("/endpoints").respond_with_json(
         {"token_endpoint": MOCK_SERVER_URL + "/auth"}

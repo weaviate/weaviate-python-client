@@ -1,10 +1,12 @@
 """
 Authentication class definitions.
 """
-from dataclasses import dataclass
-from typing import Optional, Union
+from dataclasses import dataclass, field
+from typing import Optional, Union, List
 
 from weaviate.warnings import _Warnings
+
+SCOPES = Union[str, List[str]]
 
 
 @dataclass
@@ -13,10 +15,17 @@ class AuthClientCredentials:
 
     Acquire the client secret from your identify provider and set the appropriate scope. The client includes hardcoded
     scopes for Azure, otherwise it needs to be supplied.
+    Scopes can be given as:
+      - List of strings: ["scope1", "scope2"]
+      - space separated string: "scope1 scope2"
     """
 
     client_secret: str
-    scope: Optional[str] = None
+    scope: Optional[SCOPES] = None
+
+    def __post_init__(self):
+        if isinstance(self.scope, str):
+            self.scope = self.scope.split(" ")
 
 
 @dataclass
@@ -25,11 +34,19 @@ class AuthClientPassword:
 
     For some providers the scope needs to contain "offline_access" (and "openid" which is automatically added) to return
     a refresh token. Without a refresh token the authentication will expire once the lifetime of the access token is up.
+    Scopes can be given as:
+      - List of strings: ["scope1", "scope2"]
+      - space separated string: "scope1 scope2"
+
     """
 
     username: str
     password: str
-    scope: Optional[str] = "offline_access"
+    scope: Optional[SCOPES] = field(default_factory=lambda: ["offline_access"])
+
+    def __post_init__(self):
+        if isinstance(self.scope, str):
+            self.scope = self.scope.split(" ")
 
 
 @dataclass
