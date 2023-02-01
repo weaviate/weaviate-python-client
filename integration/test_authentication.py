@@ -5,7 +5,9 @@ from typing import Optional, Dict
 import pytest
 import requests
 import time
-
+from weaviate.exceptions import WeaviateStartUpError
+from requests.exceptions import ConnectionError as RequestsConnectionError
+from requests.exceptions import HTTPError as RequestsHTTPError
 import weaviate
 from weaviate import (
     AuthenticationFailedException,
@@ -23,18 +25,21 @@ WCS_PORT = "8085"
 
 def wait_for_weaviate(url: str):
     ready_url = url + "/v1/.well-known/ready"
-    for _i in range(0, 30, 5):
+    for _i in range(5):
         try:
-            status_code = requests.get(
-                ready_url,
-            ).status_code
-            if status_code != 200:
-                time.sleep(5)
-            else:
-                return
-        except requests.exceptions.ConnectionError:
-            time.sleep(5)
-    raise ConnectionError("Weaviate did not start in time.")
+            requests.get(ready_url).raise_for_status()
+            return
+        except (RequestsHTTPError, RequestsConnectionError):
+            time.sleep(1)
+
+    try:
+        requests.get(ready_url).raise_for_status()
+        return
+    except (RequestsHTTPError, RequestsConnectionError):
+        pass
+    raise WeaviateStartUpError(
+        f"Weaviate did not start up in 5 seconds. Either the Weaviate URL {url} is wrong or Weaivate did not start up in the interval given in 'startup_period'."
+    )
 
 
 def is_auth_enabled(url: str):
