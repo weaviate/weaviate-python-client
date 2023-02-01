@@ -486,7 +486,7 @@ class BaseConnection:
 
         Raises
         ------
-        ConnectionError
+        WeaviateStartUpError
             If weaviate takes longer than the timelimit to respond.
         """
 
