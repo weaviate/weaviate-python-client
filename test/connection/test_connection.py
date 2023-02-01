@@ -47,7 +47,7 @@ class TestConnection(unittest.TestCase):
             proxies=None,
             trust_env=False,
             additional_headers=None,
-            wait_for_weaviate=None,
+            startup_period=None,
         )
 
         # GET method with param
@@ -125,7 +125,7 @@ class TestConnection(unittest.TestCase):
             proxies={"test": True},
             trust_env=False,
             additional_headers=None,
-            wait_for_weaviate=None,
+            startup_period=None,
         )
 
         # GET method with param
@@ -206,7 +206,7 @@ class TestConnection(unittest.TestCase):
             proxies=None,
             trust_env=False,
             additional_headers=None,
-            wait_for_weaviate=None,
+            startup_period=None,
         )
         mock_log_in.assert_called()
 

@@ -14,11 +14,16 @@ from typing import Any, Dict, Tuple, Optional, Union
 
 import requests
 from requests.exceptions import ConnectionError as RequestsConnectionError
+from requests.exceptions import HTTPError as RequestsHTTPError
 from authlib.integrations.requests_client import OAuth2Session
 
 from weaviate.auth import AuthCredentials, AuthClientCredentials
 from weaviate.connect.authentication import _Auth
-from weaviate.exceptions import AuthenticationFailedException, UnexpectedStatusCodeException
+from weaviate.exceptions import (
+    AuthenticationFailedException,
+    UnexpectedStatusCodeException,
+    WeaviateStartUpError,
+)
 from weaviate.warnings import _Warnings
 from weaviate.util import _check_positive_num
 
@@ -39,7 +44,7 @@ class BaseConnection:
         proxies: Union[dict, str, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
-        wait_for_weaviate: Optional[int] = 30,
+        startup_period: Optional[int],
     ):
         """
         Initialize a Connection class instance.
@@ -69,7 +74,7 @@ class BaseConnection:
         additional_headers : Dict[str, Any] or None
             Additional headers to include in the requests, used to set OpenAI key. OpenAI key looks
             like this: {'X-OpenAI-Api-Key': 'KEY'}.
-        wait_for_weaviate : int or None
+        startup_period : int or None
             How long the client will wait for weaviate to start before raising a RequestsConnectionError.
             If None the client will not wait at all. Default timeout is 30s.
 
@@ -104,9 +109,9 @@ class BaseConnection:
         self._session: Session
         self._shutdown_background_event: Optional[Event] = None
 
-        if wait_for_weaviate is not None:
-            _check_positive_num(wait_for_weaviate, "wait_for_weaviate", int, include_zero=False)
-            self.wait_for_weaviate(wait_for_weaviate)
+        if startup_period is not None:
+            _check_positive_num(startup_period, "startup_period", int, include_zero=False)
+            self.wait_for_weaviate(startup_period)
 
         self._create_session(auth_client_secret)
 
@@ -470,13 +475,13 @@ class BaseConnection:
     def proxies(self) -> dict:
         return self._proxies
 
-    def wait_for_weaviate(self, wait_for_weaviate: Optional[int]):
+    def wait_for_weaviate(self, startup_period: Optional[int]):
         """
-        Waits until weaviate is ready or the timelimit given in 'wait_for_weaviate' has passed.
+        Waits until weaviate is ready or the timelimit given in 'startup_period' has passed.
 
         Parameters
         ----------
-        wait_for_weaviate : Optional[int]
+        startup_period : Optional[int]
             Describes how long the client will wait for weaviate to start in seconds.
 
         Raises
@@ -486,19 +491,21 @@ class BaseConnection:
         """
 
         ready_url = self.url + self._api_version_path + "/.well-known/ready"
-        for _i in range(0, wait_for_weaviate, 1):
+        for _i in range(startup_period):
             try:
-                status_code = requests.get(
-                    ready_url,
-                ).status_code
-                if status_code != 200:
-                    time.sleep(1)
-                else:
-                    return
-            except RequestsConnectionError:
+                requests.get(ready_url).raise_for_status()
+                return
+            except (RequestsHTTPError, RequestsConnectionError):
                 time.sleep(1)
-        requests.get(ready_url)
-        return
+
+        try:
+            requests.get(ready_url).raise_for_status()
+            return
+        except (RequestsHTTPError, RequestsConnectionError):
+            pass
+        raise WeaviateStartUpError(
+            f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaivate did not start up in the interval given in 'startup_period'."
+        )
 
 
 class Connection(BaseConnection):
@@ -510,7 +517,7 @@ class Connection(BaseConnection):
         proxies: Union[dict, str, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
-        wait_for_weaviate: Optional[int] = 30,
+        startup_period: Optional[int],
     ):
         super().__init__(
             url,
@@ -519,7 +526,7 @@ class Connection(BaseConnection):
             proxies,
             trust_env,
             additional_headers,
-            wait_for_weaviate,
+            startup_period,
         )
         self._server_version = self.get_meta()["version"]
         if self._server_version < "1.14":

@@ -35,7 +35,7 @@ class TestWeaviateClient(unittest.TestCase):
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 additional_headers=None,
-                wait_for_weaviate=None,
+                startup_period=None,
             )
             mock_obj.assert_called_with(
                 url="some_URL",
@@ -44,7 +44,7 @@ class TestWeaviateClient(unittest.TestCase):
                 proxies=None,
                 trust_env=False,
                 additional_headers=None,
-                wait_for_weaviate=None,
+                startup_period=None,
             )
 
         with patch(
@@ -56,7 +56,7 @@ class TestWeaviateClient(unittest.TestCase):
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 additional_headers={"Test": True},
-                wait_for_weaviate=None,
+                startup_period=None,
             )
             mock_obj.assert_called_with(
                 url="some_URL",
@@ -65,7 +65,7 @@ class TestWeaviateClient(unittest.TestCase):
                 proxies=None,
                 trust_env=False,
                 additional_headers={"Test": True},
-                wait_for_weaviate=None,
+                startup_period=None,
             )
 
         with patch(
@@ -73,7 +73,7 @@ class TestWeaviateClient(unittest.TestCase):
             Mock(side_effect=lambda **kwargs: Mock(timeout_config=kwargs["timeout_config"])),
         ) as mock_obj:
             Client(
-                "some_URL/", auth_client_secret=None, timeout_config=(5, 20), wait_for_weaviate=None
+                "some_URL/", auth_client_secret=None, timeout_config=(5, 20), startup_period=None
             )
             mock_obj.assert_called_with(
                 url="some_URL",
@@ -82,7 +82,7 @@ class TestWeaviateClient(unittest.TestCase):
                 proxies=None,
                 trust_env=False,
                 additional_headers=None,
-                wait_for_weaviate=None,
+                startup_period=None,
             )
 
         with patch(
@@ -96,7 +96,7 @@ class TestWeaviateClient(unittest.TestCase):
                 proxies={"http": "test"},
                 trust_env=True,
                 additional_headers=None,
-                wait_for_weaviate=None,
+                startup_period=None,
             )
             mock_obj.assert_called_with(
                 url="some_URL",
@@ -105,7 +105,7 @@ class TestWeaviateClient(unittest.TestCase):
                 proxies={"http": "test"},
                 trust_env=True,
                 additional_headers=None,
-                wait_for_weaviate=None,
+                startup_period=None,
             )
 
     @patch("weaviate.client.Client.get_meta", return_value={"version": "1.13.2"})

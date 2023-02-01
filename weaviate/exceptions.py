@@ -105,3 +105,7 @@ class EmptyResponseException(WeaviateBaseError):
 
 class MissingScopeException(WeaviateBaseError):
     """Scope was not provided with client credential flow."""
+
+
+class WeaviateStartUpError(WeaviateBaseError):
+    """Is raised if weaviate does not start up in time."""
