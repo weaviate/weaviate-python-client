@@ -9,7 +9,7 @@ creates the needed instances and connects all of them to the same Weaviate insta
 
 Examples
 --------
-A Weaviate instance running on `localhost`, on port `8080`. With Authentication disables.
+Creating and exploring a Weaviate instance running on `localhost`, on port `8080`, with Authentication disabled.
 
 >>> import weaviate
 >>> client = weaviate.Client('http://localhost:8080')
