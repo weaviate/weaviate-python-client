@@ -501,10 +501,10 @@ class BaseConnection:
         try:
             requests.get(ready_url).raise_for_status()
             return
-        except (RequestsHTTPError, RequestsConnectionError):
+        except (RequestsHTTPError, RequestsConnectionError) as error:
             raise WeaviateStartUpError(
                 f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaivate did not start up in the interval given in 'startup_period'."
-            )
+            ) from error
 
 
 class Connection(BaseConnection):
