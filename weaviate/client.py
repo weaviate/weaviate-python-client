@@ -91,7 +91,7 @@ class Client:
             by default None
         startup_period : int or None
             How long the client will wait for weaviate to start before raising a RequestsConnectionError.
-            If None the client will not wait at all. Default timeout is 30s.
+            If None the client will not wait at all. Default timeout is 5s.
 
         Examples
         --------

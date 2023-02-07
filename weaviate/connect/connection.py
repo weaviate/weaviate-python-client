@@ -76,7 +76,7 @@ class BaseConnection:
             like this: {'X-OpenAI-Api-Key': 'KEY'}.
         startup_period : int or None
             How long the client will wait for weaviate to start before raising a RequestsConnectionError.
-            If None the client will not wait at all. Default timeout is 30s.
+            If None the client will not wait at all.
 
         Raises
         ------
@@ -502,10 +502,9 @@ class BaseConnection:
             requests.get(ready_url).raise_for_status()
             return
         except (RequestsHTTPError, RequestsConnectionError):
-            pass
-        raise WeaviateStartUpError(
-            f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaivate did not start up in the interval given in 'startup_period'."
-        )
+            raise WeaviateStartUpError(
+                f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaivate did not start up in the interval given in 'startup_period'."
+            )
 
 
 class Connection(BaseConnection):
