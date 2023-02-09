@@ -4,14 +4,13 @@ Batch class definitions.
 import sys
 import threading
 import time
+import uuid
 import warnings
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from numbers import Real
-import uuid
 from typing import Tuple, Callable, Optional, Sequence, Union, List
-
 
 from requests import ReadTimeout, Response
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -407,7 +406,6 @@ class Batch:
 
         _check_non_negative(timeout_retries, "timeout_retries", int)
         _check_non_negative(connection_error_retries, "connection_error_retries", int)
-        _check_non_negative(connection_error_retries, "weaviate_error_retries", int)
 
         self._callback = callback
 
