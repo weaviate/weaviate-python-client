@@ -984,6 +984,13 @@ class GetBuilder(GraphQL):
         self,
         alias: str,
     ):
+        """Gives an alias for the 'class_name'. Needs to be used if 'multi_get' requests the same 'class_name' twice.
+
+        Parameters
+        ----------
+        alias: str
+            The alias for the 'class_name'.
+        """
 
         self._alias = alias
         return self

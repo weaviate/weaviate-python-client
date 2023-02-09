@@ -1,6 +1,11 @@
+<<<<<<< HEAD
 import os
 import uuid
 
+=======
+import json
+import os
+>>>>>>> e2f0e97 (added documentation)
 import pytest
 
 import weaviate
@@ -50,6 +55,12 @@ SHIPS = [
         "id": uuid.uuid4(),
     },
 ]
+
+
+@pytest.fixture(scope="function")
+def people_schema() -> str:
+    with open(os.path.join(os.path.dirname(__file__), "people_schema.json"), encoding="utf-8") as f:
+        return json.load(f)
 
 
 @pytest.fixture(scope="module")

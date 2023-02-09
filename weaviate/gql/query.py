@@ -1,7 +1,7 @@
 """
 GraphQL query module.
 """
-from typing import List, Union, Optional
+from typing import List, Union
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -54,25 +54,24 @@ class Query:
 
     def multi_get(
         self,
-        get: Optional[List],
+        get_builder: List[GetBuilder],
     ) -> MultiGetBuilder:
         """
-        Instantiate a GetBuilder for GraphQL `get` requests.
+        Instantiate a MultiGetBuilder for GraphQL `multi_get` requests.
+        Bundels multiple get requests into one.
 
         Parameters
         ----------
-        class_name : str
-            Class name of the objects to interact with.
-        properties : list of str, str or None
-            Properties of the objects to get, by default None
+        get_builder : list of GetBuilder
+            List of GetBuilder objects for a single request each.
 
         Returns
         -------
-        GetBuilder
-            A GetBuilder to make GraphQL `get` requests from weaviate.
+        MultiGetBuilder
+            A MultiGetBuilder to make GraphQL `get` multiple requests from weaviate.
         """
 
-        return MultiGetBuilder(get, self._connection)
+        return MultiGetBuilder(get_builder, self._connection)
 
     def aggregate(self, class_name: str) -> AggregateBuilder:
         """
