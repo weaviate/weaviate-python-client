@@ -1008,8 +1008,8 @@ class GetBuilder(GraphQL):
 
         if self._alias is not None:
             query += self._alias + ": "
+        query += self._class_name
         if self._contains_filter:
-            query += self._class_name
             query += "("
             if self._where is not None:
                 query += str(self._where)

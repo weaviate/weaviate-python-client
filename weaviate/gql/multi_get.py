@@ -52,7 +52,7 @@ class MultiGetBuilder(GraphQL):
                 raise TypeError(
                     f"All objects in 'get_builder' must be of type 'GetBuilder' but at least one object was {type(get)}"
                 )
-        self.get_builder: List[GetBuilder] = get
+        self.get_builder: List[GetBuilder] = get_builder
 
     def build(self) -> str:
         """
