@@ -7,6 +7,7 @@ from werkzeug import Request, Response
 
 import weaviate
 from mock_tests.conftest import MOCK_SERVER_URL
+import time
 
 
 @pytest.mark.parametrize(
@@ -33,9 +34,9 @@ def test_additional_headers(weaviate_mock, header: Dict[str, str]):
 
 
 @pytest.mark.parametrize("version,warning", [("1.13", True), ("1.14", False)])
-def test_warning_old_weaviate(recwarn, httpserver: HTTPServer, version: str, warning: bool):
+def test_warning_old_weaviate(recwarn, ready_mock: HTTPServer, version: str, warning: bool):
     """Test that we warn if a new client version is using an old weaviate server."""
-    httpserver.expect_request("/v1/meta").respond_with_json({"version": version})
+    ready_mock.expect_request("/v1/meta").respond_with_json({"version": version})
     weaviate.Client(url=MOCK_SERVER_URL)
 
     if warning:
@@ -45,3 +46,18 @@ def test_warning_old_weaviate(recwarn, httpserver: HTTPServer, version: str, war
         assert str(w.message).startswith("Dep001")
     else:
         assert len(recwarn) == 0
+
+
+def test_wait_for_weaviate(httpserver: HTTPServer):
+    def handler(request: Request):
+        time.sleep(1)
+        return Response(json.dumps({}))
+
+    def handler_meta(request: Request):
+        assert time.time() > start_time - 1
+        return Response(json.dumps({"version": "1.16"}))
+
+    httpserver.expect_request("/v1/meta").respond_with_handler(handler_meta)
+    httpserver.expect_request("/v1/.well-known/ready").respond_with_handler(handler)
+    start_time = time.time()
+    weaviate.Client(url=MOCK_SERVER_URL, startup_period=30)

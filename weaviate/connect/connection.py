@@ -13,12 +13,20 @@ from threading import Thread, Event
 from typing import Any, Dict, Tuple, Optional, Union
 
 import requests
+from requests.exceptions import ConnectionError as RequestsConnectionError
+from requests.exceptions import HTTPError as RequestsHTTPError
 from authlib.integrations.requests_client import OAuth2Session
 
 from weaviate.auth import AuthCredentials, AuthClientCredentials
 from weaviate.connect.authentication import _Auth
-from weaviate.exceptions import AuthenticationFailedException, UnexpectedStatusCodeException
+from weaviate.exceptions import (
+    AuthenticationFailedException,
+    UnexpectedStatusCodeException,
+    WeaviateStartUpError,
+)
 from weaviate.warnings import _Warnings
+from weaviate.util import _check_positive_num
+
 
 Session = Union[requests.sessions.Session, OAuth2Session]
 
@@ -36,6 +44,7 @@ class BaseConnection:
         proxies: Union[dict, str, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
+        startup_period: Optional[int],
     ):
         """
         Initialize a Connection class instance.
@@ -65,6 +74,9 @@ class BaseConnection:
         additional_headers : Dict[str, Any] or None
             Additional headers to include in the requests, used to set OpenAI key. OpenAI key looks
             like this: {'X-OpenAI-Api-Key': 'KEY'}.
+        startup_period : int or None
+            How long the client will wait for weaviate to start before raising a RequestsConnectionError.
+            If None the client will not wait at all.
 
         Raises
         ------
@@ -96,6 +108,11 @@ class BaseConnection:
 
         self._session: Session
         self._shutdown_background_event: Optional[Event] = None
+
+        if startup_period is not None:
+            _check_positive_num(startup_period, "startup_period", int, include_zero=False)
+            self.wait_for_weaviate(startup_period)
+
         self._create_session(auth_client_secret)
 
     def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
@@ -458,6 +475,37 @@ class BaseConnection:
     def proxies(self) -> dict:
         return self._proxies
 
+    def wait_for_weaviate(self, startup_period: Optional[int]):
+        """
+        Waits until weaviate is ready or the timelimit given in 'startup_period' has passed.
+
+        Parameters
+        ----------
+        startup_period : Optional[int]
+            Describes how long the client will wait for weaviate to start in seconds.
+
+        Raises
+        ------
+        WeaviateStartUpError
+            If weaviate takes longer than the timelimit to respond.
+        """
+
+        ready_url = self.url + self._api_version_path + "/.well-known/ready"
+        for _i in range(startup_period):
+            try:
+                requests.get(ready_url).raise_for_status()
+                return
+            except (RequestsHTTPError, RequestsConnectionError):
+                time.sleep(1)
+
+        try:
+            requests.get(ready_url).raise_for_status()
+            return
+        except (RequestsHTTPError, RequestsConnectionError) as error:
+            raise WeaviateStartUpError(
+                f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaivate did not start up in the interval given in 'startup_period'."
+            ) from error
+
 
 class Connection(BaseConnection):
     def __init__(
@@ -468,9 +516,16 @@ class Connection(BaseConnection):
         proxies: Union[dict, str, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
+        startup_period: Optional[int],
     ):
         super().__init__(
-            url, auth_client_secret, timeout_config, proxies, trust_env, additional_headers
+            url,
+            auth_client_secret,
+            timeout_config,
+            proxies,
+            trust_env,
+            additional_headers,
+            startup_period,
         )
         self._server_version = self.get_meta()["version"]
         if self._server_version < "1.14":
