@@ -995,16 +995,24 @@ class GetBuilder(GraphQL):
         self._alias = alias
         return self
 
-    def build(self) -> str:
+    def build(self, wrap_get: bool = True) -> str:
         """
         Build query filter as a string.
+
+        Parameters
+        ----------
+        wrap_get: bool
+            A boolean to decide wether {Get{...}} is placed around the query. Useful for multi_get.
 
         Returns
         -------
         str
             The GraphQL query as a string.
         """
-        query = "{Get{"
+        if wrap_get:
+            query = "{Get{"
+        else:
+            query = ""
 
         if self._alias is not None:
             query += self._alias + ": "
@@ -1040,7 +1048,9 @@ class GetBuilder(GraphQL):
 
         properties = " ".join(self._properties) + self._additional_to_str()
         query += "{" + properties + "}"
-        return query + "}}"
+        if wrap_get:
+            query += "}}"
+        return query
 
     def _additional_to_str(self) -> str:
         """
