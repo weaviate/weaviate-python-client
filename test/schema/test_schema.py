@@ -353,13 +353,13 @@ class TestSchema(unittest.TestCase):
         mock_conn = mock_connection_func("delete", status_code=200)
         schema = Schema(mock_conn)
         schema.delete_class("Test")
-        mock_conn.delete.assert_called_with(path="/schema/Test")
+        mock_conn.delete.assert_called_with(path="/schema/Test", params={"force": False})
 
         # with uncapitalized class_name
         mock_conn = mock_connection_func("delete", status_code=200)
         schema = Schema(mock_conn)
         schema.delete_class("test")
-        mock_conn.delete.assert_called_with(path="/schema/Test")
+        mock_conn.delete.assert_called_with(path="/schema/Test", params={"force": False})
 
     def test_delete_everything(self):
         """

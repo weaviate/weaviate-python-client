@@ -113,6 +113,7 @@ class TestConnection(unittest.TestCase):
             headers={"content-type": "application/json"},
             timeout=(2, 20),
             proxies={},
+            params=None,
         )
 
         # add Proxies
@@ -191,6 +192,7 @@ class TestConnection(unittest.TestCase):
             headers={"content-type": "application/json"},
             timeout=(2, 20),
             proxies={"test": True},
+            params=None,
         )
 
     @patch("weaviate.connect.connection.BaseConnection._create_session")

@@ -166,7 +166,11 @@ class Schema:
         self._create_class_with_primitives(loaded_schema_class)
         self._create_complex_properties_from_class(loaded_schema_class)
 
-    def delete_class(self, class_name: str) -> None:
+    def delete_class(
+        self,
+        class_name: str,
+        force: bool = False,  # not documented on purpose, should only be used if you know what you're doing
+    ) -> None:
         """
         Delete a schema class from weaviate. This deletes all associated data.
 
@@ -194,7 +198,7 @@ class Schema:
 
         path = f"/schema/{_capitalize_first_letter(class_name)}"
         try:
-            response = self._connection.delete(path=path)
+            response = self._connection.delete(path=path, params={"force": force})
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Deletion of class.") from conn_err
         if response.status_code != 200:

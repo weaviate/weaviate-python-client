@@ -240,6 +240,7 @@ class BaseConnection:
         self,
         path: str,
         weaviate_object: dict = None,
+        params: Dict[str, str] = None,
     ) -> requests.Response:
         """
         Make a DELETE request to the Weaviate server instance.
@@ -251,6 +252,8 @@ class BaseConnection:
             e.g. '/meta' or '/objects', without version.
         weaviate_object : dict, optional
             Object is used as payload for DELETE request. By default None.
+        params : dict, optional
+            Additional parameters for DELETE request. By default None.
 
         Returns
         -------
@@ -271,6 +274,7 @@ class BaseConnection:
             headers=self._get_request_header(),
             timeout=self._timeout_config,
             proxies=self._proxies,
+            params=params,
         )
 
     def patch(
