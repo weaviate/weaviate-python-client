@@ -20,7 +20,20 @@ class EmbeddedDB:
         # Ensuring weaviate binary is executable
         file.chmod(file.stat().st_mode | stat.S_IEXEC)
 
+    def is_running(self) -> bool:
+        binary_name = os.path.basename(self.weaviate_binary_path)
+        output = subprocess.check_output(f'ps aux | grep {binary_name} | grep -v grep', shell=True)
+        output = output.decode("ascii")
+        if binary_name in output:
+            return True
+        else:
+            return False
+
     def start(self):
+        if self.is_running():
+            print("weaviate is already running")
+            return
+
         self.ensure_weaviate_binary_exists()
         my_env = os.environ.copy()
         my_env.setdefault("AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED", "true")
