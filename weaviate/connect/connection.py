@@ -154,8 +154,19 @@ class BaseConnection:
                     self._create_background_token_refresh()
             else:
                 raise AuthenticationFailedException(
-                    f""""No login credentials provided. The weaviate instance at {self.url} requires login credential,
-                    use argument 'auth_client_secret'."""
+                    f""""No login credentials provided. The weaviate instance at {self.url} requires login credential.
+                    You can instantiate the client with login credentials using
+
+                    client = weaviate.Client(
+                      url=YOUR_WEAVIATE_URL,
+                      auth_client_secret=weaviate.AuthClientPassword(
+                        username = "user",
+                        password = "pass",
+                        scope = "scope1 scope2" # optional, depends on the configuration of your identity provider
+                      ))
+
+                    Please check our documentation at https://weaviate.io/developers/weaviate/client-libraries/python#authentication
+                    for more information about how to use authentication."""
                 )
         elif response.status_code == 404 and auth_client_secret is not None:
             _Warnings.auth_with_anon_weaviate()
