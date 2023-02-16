@@ -127,8 +127,10 @@ class Client:
             db.start()
             # TODO Make port configurable
             url = "http://localhost:8080"
+            embedded = True
         else:
             url = url.strip("/")
+            embedded = False
 
         self._connection = Connection(
             url=url,
@@ -138,6 +140,7 @@ class Client:
             trust_env=trust_env,
             additional_headers=additional_headers,
             startup_period=startup_period,
+            embedded=embedded,
         )
         self.classification = Classification(self._connection)
         self.schema = Schema(self._connection)

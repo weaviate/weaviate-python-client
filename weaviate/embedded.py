@@ -1,6 +1,7 @@
 import subprocess
 import os
 import stat
+import time
 import urllib.request
 from pathlib import Path
 
@@ -44,3 +45,12 @@ class EmbeddedDB:
             ["./weaviate-server-embedded", "--host", "127.0.0.1", "--port", "8080", "--scheme", "http"],
             env=my_env
         )
+
+
+def ensure_embedded_db_running():
+    embedded_db = EmbeddedDB()
+    if not embedded_db.is_running():
+        print("Embedded weaviate wasn't running, so starting embedded weaviate again")
+        embedded_db.start()
+        # TODO remove the sleep and check every 0.1 seconds if it's ready
+        time.sleep(1)
