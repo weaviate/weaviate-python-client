@@ -14,6 +14,7 @@ from .cluster import Cluster
 from .connect.connection import Connection
 from .contextionary import Contextionary
 from .data import DataObject
+from .embedded import EmbeddedDB
 from .exceptions import UnexpectedStatusCodeException
 from .gql import Query
 from .schema import Schema
@@ -121,7 +122,13 @@ class Client:
 
         if not isinstance(url, str):
             raise TypeError(f"URL is expected to be string but is {type(url)}")
-        url = url.strip("/")
+        if url.startswith("embedded"):
+            db = EmbeddedDB()
+            db.start()
+            # TODO Make port configurable
+            url = "http://localhost:8080"
+        else:
+            url = url.strip("/")
 
         self._connection = Connection(
             url=url,
