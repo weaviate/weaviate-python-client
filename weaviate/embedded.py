@@ -18,8 +18,8 @@ class EmbeddedDB:
             print(f"Binary {self.weaviate_binary_path} did not exist. "
                   f"Downloading binary from {self.weaviate_binary_url}")
             urllib.request.urlretrieve(self.weaviate_binary_url, self.weaviate_binary_path)
-        # Ensuring weaviate binary is executable
-        file.chmod(file.stat().st_mode | stat.S_IEXEC)
+            # Ensuring weaviate binary is executable
+            file.chmod(file.stat().st_mode | stat.S_IEXEC)
 
     def is_running(self) -> bool:
         binary_name = os.path.basename(self.weaviate_binary_path)
