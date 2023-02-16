@@ -22,12 +22,14 @@ class EmbeddedDB:
 
     def is_running(self) -> bool:
         binary_name = os.path.basename(self.weaviate_binary_path)
-        output = subprocess.check_output(f'ps aux | grep {binary_name} | grep -v grep', shell=True)
-        output = output.decode("ascii")
-        if binary_name in output:
-            return True
-        else:
+        result = subprocess.run(f'ps aux | grep {binary_name} | grep -v grep', shell=True, capture_output=True)
+        if result.returncode == 1:
             return False
+        else:
+            output = result.stdout.decode("ascii")
+            if binary_name in output:
+                return True
+        return False
 
     def start(self):
         if self.is_running():
