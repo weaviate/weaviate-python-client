@@ -4,6 +4,7 @@ import stat
 import time
 import urllib.request
 from pathlib import Path
+import socket
 
 
 class EmbeddedDB:
@@ -32,6 +33,21 @@ class EmbeddedDB:
                 return True
         return False
 
+    def is_listening(self) -> bool:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.connect(("127.0.0.1", 8080))
+            s.close()
+            return True
+        except socket.error as e:
+            return False
+
+    def wait_till_listening(self):
+        retries = 20
+        while self.is_listening() is False and retries > 0:
+            time.sleep(0.1)
+            retries -= 1
+
     def start(self):
         if self.is_running():
             print("weaviate is already running")
@@ -45,6 +61,7 @@ class EmbeddedDB:
             ["./weaviate-server-embedded", "--host", "127.0.0.1", "--port", "8080", "--scheme", "http"],
             env=my_env
         )
+        self.wait_till_listening()
 
 
 def ensure_embedded_db_running():
@@ -52,5 +69,3 @@ def ensure_embedded_db_running():
     if not embedded_db.is_running():
         print("Embedded weaviate wasn't running, so starting embedded weaviate again")
         embedded_db.start()
-        # TODO remove the sleep and check every 0.1 seconds if it's ready
-        time.sleep(1)
