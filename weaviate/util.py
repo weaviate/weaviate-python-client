@@ -2,10 +2,8 @@
 Helper functions!
 """
 import base64
-import errno
 import json
 import os
-import socket
 import uuid as uuid_lib
 from io import BufferedReader
 from numbers import Real

@@ -57,7 +57,7 @@ class EmbeddedDB:
             s.connect(("127.0.0.1", self.port))
             s.close()
             return True
-        except socket.error as e:
+        except socket.error:
             s.close()
             return False
 
