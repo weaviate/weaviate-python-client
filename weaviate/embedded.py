@@ -1,3 +1,4 @@
+import hashlib
 import subprocess
 import os
 import stat
@@ -11,9 +12,9 @@ class EmbeddedDB:
     weaviate_binary_path = "./weaviate-server-embedded"
     weaviate_binary_url = "https://github.com/samos123/weaviate/releases/download/v1.17.3/weaviate-server"
     weaviate_persistence_data_path = "./weaviate-data"
+    weaviate_binary_md5 = "38b8ac3c77cc8707999569ae3fe34c71"
 
     def ensure_weaviate_binary_exists(self):
-        # TODO implement binary verification
         file = Path(self.weaviate_binary_path)
         if not file.exists():
             print(f"Binary {self.weaviate_binary_path} did not exist. "
@@ -21,6 +22,9 @@ class EmbeddedDB:
             urllib.request.urlretrieve(self.weaviate_binary_url, self.weaviate_binary_path)
             # Ensuring weaviate binary is executable
             file.chmod(file.stat().st_mode | stat.S_IEXEC)
+            with open(file, "rb") as f:
+                assert (hashlib.md5(f.read()).hexdigest() == self.weaviate_binary_md5,
+                        f"md5 of binary {self.weaviate_binary_path} did not match {self.weaviate_binary_md5}")
 
     def is_running(self) -> bool:
         binary_name = os.path.basename(self.weaviate_binary_path)
