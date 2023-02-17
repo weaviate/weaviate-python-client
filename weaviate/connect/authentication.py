@@ -31,7 +31,9 @@ class _Auth:
 
         self._open_id_config_url: str = oidc_config["href"]
         self._client_id: str = oidc_config["clientId"]
-        self._default_scopes: List[str] = oidc_config["scopes"]
+        self._default_scopes: List[str] = []
+        if "scopes" in oidc_config:
+            self._default_scopes = oidc_config["scopes"]
 
         self._token_endpoint: str = self._get_token_endpoint()
         self._validate(oidc_config)
@@ -101,10 +103,6 @@ class _Auth:
 
     def _get_session_client_credential(self, config: AuthClientCredentials) -> OAuth2Session:
         scope: List[str] = self._default_scopes.copy()
-
-        # remove openid scopes from the scopes returned by weaviate (these are returned by default). These are not
-        # accepted by some providers for client credentials
-        scope = list(filter(lambda s: s != "openid" and s != "email", scope))
 
         if config.scope is not None:
             scope.extend(config.scope)
