@@ -1,6 +1,7 @@
 import hashlib
 import subprocess
 import os
+import signal
 import stat
 import time
 from urllib.parse import urlparse, parse_qsl
@@ -9,6 +10,7 @@ from pathlib import Path
 import socket
 
 from weaviate.exceptions import WeaviateStartUpError
+from weaviate.util import is_port_available
 
 weaviate_binary_path = "./weaviate-server-embedded"
 weaviate_binary_url = "https://github.com/samos123/weaviate/releases/download/v1.17.3/weaviate-server"
@@ -73,16 +75,26 @@ class EmbeddedDB:
             print("weaviate is already running")
             return
 
+        if is_port_available(self.port) is False:
+            return WeaviateStartUpError(
+                f"Unable to start up weaviate on port {self.port}. "
+                f"You can try another port by using Client('embedded?port=30666')"
+            )
+
         self.ensure_weaviate_binary_exists()
         my_env = os.environ.copy()
         my_env.setdefault("AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED", "true")
         my_env.setdefault("PERSISTENCE_DATA_PATH", weaviate_persistence_data_path)
         my_env.setdefault("CLUSTER_HOSTNAME", "embedded")
-        subprocess.Popen(
+        process = subprocess.Popen(
             [f"{weaviate_binary_path}", "--host", "127.0.0.1", "--port", str(self.port), "--scheme", "http"],
             env=my_env
         )
+        self.pid = process.pid
         self.wait_till_listening()
+
+    def stop(self):
+        os.kill(self.pid, signal.SIGTERM)
 
     def ensure_running(self):
         if not self.is_running():

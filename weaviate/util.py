@@ -2,8 +2,10 @@
 Helper functions!
 """
 import base64
+import errno
 import json
 import os
+import socket
 import uuid as uuid_lib
 from io import BufferedReader
 from numbers import Real
@@ -527,3 +529,14 @@ def _check_positive_num(
     else:
         if value <= 0:
             raise ValueError(f"'{arg_name}' must be positive, i.e. greater that zero (>0).")
+
+
+def is_port_available(port: int) -> bool:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.bind(("127.0.0.1", port))
+        s.close()
+        return True
+    except socket.error as e:
+        s.close()
+        return False
