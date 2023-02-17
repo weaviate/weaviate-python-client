@@ -2,9 +2,6 @@
 
 We recommend to create a virtual environment to contribute to the client. You can install all developer dependencies using `pip install requirements.txt`
 
-
-
-
 ### Testing
 
 We use [pytest](https://docs.pytest.org) to write tests, however there are plenty of older tests that use unittest.
