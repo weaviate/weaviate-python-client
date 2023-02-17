@@ -1,6 +1,6 @@
 ### Setup
 
-We recommend to create a virtual environment to contribute to the client. You can install all developer dependencies using `pip install requirements.txt`
+We recommend to create a virtual environment to contribute to the client. You can install all developer dependencies using `pip install requirements.txt`.
 
 ### Testing
 
@@ -10,6 +10,16 @@ There are three kinds of tests:
 - Unit tests, that test individual components of the client
 - Integration tests, that test the client with a running weaviate instance
 - Mock tests, where a weaviate instance is mocked to return specific replies
+
+To run the integration tests start the weaviate instances using `./ci/start_weaviate.sh`.
+Then run all tests with
+```
+pytest integration
+pytest mock_tests
+pytest test
+```
+
+### Linting
 
 We use the following tools to ensure a high code quality:
 - black (formatter)
