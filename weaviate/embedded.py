@@ -12,7 +12,9 @@ import socket
 from weaviate.exceptions import WeaviateStartUpError
 
 weaviate_binary_path = "./weaviate-server-embedded"
-weaviate_binary_url = "https://github.com/samos123/weaviate/releases/download/v1.17.3/weaviate-server"
+weaviate_binary_url = (
+    "https://github.com/samos123/weaviate/releases/download/v1.17.3/weaviate-server"
+)
 weaviate_persistence_data_path = "./weaviate-data"
 weaviate_binary_md5 = "38b8ac3c77cc8707999569ae3fe34c71"
 
@@ -31,18 +33,23 @@ class EmbeddedDB:
     def ensure_weaviate_binary_exists(self):
         file = Path(weaviate_binary_path)
         if not file.exists():
-            print(f"Binary {weaviate_binary_path} did not exist. "
-                  f"Downloading binary from {weaviate_binary_url}")
+            print(
+                f"Binary {weaviate_binary_path} did not exist. "
+                f"Downloading binary from {weaviate_binary_url}"
+            )
             urllib.request.urlretrieve(weaviate_binary_url, weaviate_binary_path)
             # Ensuring weaviate binary is executable
             file.chmod(file.stat().st_mode | stat.S_IEXEC)
             with open(file, "rb") as f:
-                assert hashlib.md5(f.read()).hexdigest() == weaviate_binary_md5, \
-                    f"md5 of binary {weaviate_binary_path} did not match {weaviate_binary_md5}"
+                assert (
+                    hashlib.md5(f.read()).hexdigest() == weaviate_binary_md5
+                ), f"md5 of binary {weaviate_binary_path} did not match {weaviate_binary_md5}"
 
     def is_running(self) -> bool:
         binary_name = os.path.basename(weaviate_binary_path)
-        result = subprocess.run(f'ps aux | grep {binary_name} | grep -v grep', shell=True, capture_output=True)
+        result = subprocess.run(
+            f"ps aux | grep {binary_name} | grep -v grep", shell=True, capture_output=True
+        )
         if result.returncode == 1:
             return False
         else:
@@ -84,8 +91,16 @@ class EmbeddedDB:
         my_env.setdefault("PERSISTENCE_DATA_PATH", weaviate_persistence_data_path)
         my_env.setdefault("CLUSTER_HOSTNAME", "embedded")
         process = subprocess.Popen(
-            [f"{weaviate_binary_path}", "--host", "127.0.0.1", "--port", str(self.port), "--scheme", "http"],
-            env=my_env
+            [
+                f"{weaviate_binary_path}",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                str(self.port),
+                "--scheme",
+                "http",
+            ],
+            env=my_env,
         )
         self.pid = process.pid
         print(f"Started {weaviate_binary_path}: process ID {self.pid}")
@@ -96,8 +111,10 @@ class EmbeddedDB:
             try:
                 os.kill(self.pid, signal.SIGTERM)
             except ProcessLookupError:
-                print(f"Tried to stop embedded weaviate process {self.pid}. Process {self.pid} "
-                      f"was not found. So not doing anything")
+                print(
+                    f"Tried to stop embedded weaviate process {self.pid}. Process {self.pid} "
+                    f"was not found. So not doing anything"
+                )
 
     def ensure_running(self):
         if not self.is_running():
