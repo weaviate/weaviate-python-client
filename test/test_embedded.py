@@ -48,7 +48,7 @@ class TestEmbeddedEndToEnd(unittest.TestCase):
         self.assertTrue(embedded_db.is_listening())
         with patch("builtins.print") as mocked_print:
             embedded_db.start()
-            mocked_print.assert_called_once_with("weaviate is already running")
+            mocked_print.assert_called_once_with("embedded weaviate is already running")
 
         # killing the process should restart it again when ensure running is called
         os.kill(embedded_db.pid, signal.SIGTERM)
