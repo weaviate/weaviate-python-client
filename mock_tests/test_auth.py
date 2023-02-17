@@ -19,7 +19,7 @@ def test_user_password(weaviate_auth_mock):
 
     user = "AUsername"
     pw = "SomePassWord"
-    scopes = "openid+email+offline_access"
+    scopes = "offline_access"
 
     # note: order matters. If this handler is not called, check of the order of arguments changed
     weaviate_auth_mock.expect_request(

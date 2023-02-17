@@ -31,7 +31,6 @@ def weaviate_auth_mock(weaviate_mock):
         {
             "href": MOCK_SERVER_URL + "/endpoints",
             "clientId": CLIENT_ID,
-            "scopes": ["openid", "email"],
         }
     )
     weaviate_mock.expect_request("/endpoints").respond_with_json(
