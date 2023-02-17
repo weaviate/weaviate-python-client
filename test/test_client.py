@@ -45,6 +45,7 @@ class TestWeaviateClient(unittest.TestCase):
                 trust_env=False,
                 additional_headers=None,
                 startup_period=None,
+                embedded=False,
             )
 
         with patch(
@@ -66,6 +67,7 @@ class TestWeaviateClient(unittest.TestCase):
                 trust_env=False,
                 additional_headers={"Test": True},
                 startup_period=None,
+                embedded=False,
             )
 
         with patch(
@@ -83,6 +85,7 @@ class TestWeaviateClient(unittest.TestCase):
                 trust_env=False,
                 additional_headers=None,
                 startup_period=None,
+                embedded=False,
             )
 
         with patch(
@@ -106,6 +109,7 @@ class TestWeaviateClient(unittest.TestCase):
                 trust_env=True,
                 additional_headers=None,
                 startup_period=None,
+                embedded=False,
             )
 
     @patch("weaviate.client.Client.get_meta", return_value={"version": "1.13.2"})
