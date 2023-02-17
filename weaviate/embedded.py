@@ -10,7 +10,6 @@ from pathlib import Path
 import socket
 
 from weaviate.exceptions import WeaviateStartUpError
-from weaviate.util import is_port_available
 
 weaviate_binary_path = "./weaviate-server-embedded"
 weaviate_binary_url = "https://github.com/samos123/weaviate/releases/download/v1.17.3/weaviate-server"
@@ -24,6 +23,10 @@ class EmbeddedDB:
         parsed = parse_qsl(urlparse(url).query)
         parsed = dict(parsed)
         self.port = int(parsed.get("port", 6666))
+        self.pid = 0
+
+    def __del__(self):
+        self.stop()
 
     def ensure_weaviate_binary_exists(self):
         file = Path(weaviate_binary_path)
@@ -72,14 +75,8 @@ class EmbeddedDB:
 
     def start(self):
         if self.is_running():
-            print("weaviate is already running")
+            print("embedded weaviate is already running")
             return
-
-        if is_port_available(self.port) is False:
-            return WeaviateStartUpError(
-                f"Unable to start up weaviate on port {self.port}. "
-                f"You can try another port by using Client('embedded?port=30666')"
-            )
 
         self.ensure_weaviate_binary_exists()
         my_env = os.environ.copy()
@@ -91,10 +88,16 @@ class EmbeddedDB:
             env=my_env
         )
         self.pid = process.pid
+        print(f"Started {weaviate_binary_path}: process ID {self.pid}")
         self.wait_till_listening()
 
     def stop(self):
-        os.kill(self.pid, signal.SIGTERM)
+        if self.pid > 0:
+            try:
+                os.kill(self.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                print(f"Tried to stop embedded weaviate process {self.pid}. Process {self.pid} "
+                      f"was not found. So not doing anything")
 
     def ensure_running(self):
         if not self.is_running():
