@@ -8,6 +8,7 @@ import urllib.request
 from pathlib import Path
 import socket
 
+from weaviate.exceptions import WeaviateStartUpError
 
 weaviate_binary_path = "./weaviate-server-embedded"
 weaviate_binary_url = "https://github.com/samos123/weaviate/releases/download/v1.17.3/weaviate-server"
@@ -15,20 +16,7 @@ weaviate_persistence_data_path = "./weaviate-data"
 weaviate_binary_md5 = "38b8ac3c77cc8707999569ae3fe34c71"
 
 
-class Singleton(type):
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
-
-    @staticmethod
-    def clear():
-        Singleton._instances = {}
-
-
-class EmbeddedDB(metaclass=Singleton):
+class EmbeddedDB:
     # TODO add a stop function that gets called when python process exits
     def __init__(self, url: str = ""):
         parsed = parse_qsl(urlparse(url).query)
@@ -69,10 +57,16 @@ class EmbeddedDB(metaclass=Singleton):
             return False
 
     def wait_till_listening(self):
-        retries = 10 * 30
+        seconds = 30
+        sleep_interval = 0.1
+        retries = int(10 * (seconds / sleep_interval))
         while self.is_listening() is False and retries > 0:
-            time.sleep(0.1)
+            time.sleep(sleep_interval)
             retries -= 1
+        if retries == 0:
+            raise WeaviateStartUpError(
+                f"Embedded DB did not start listening on port {self.port} within {seconds} seconds"
+            )
 
     def start(self):
         if self.is_running():
@@ -85,7 +79,7 @@ class EmbeddedDB(metaclass=Singleton):
         my_env.setdefault("PERSISTENCE_DATA_PATH", weaviate_persistence_data_path)
         my_env.setdefault("CLUSTER_HOSTNAME", "embedded")
         subprocess.Popen(
-            ["./weaviate-server-embedded", "--host", "127.0.0.1", "--port", str(self.port), "--scheme", "http"],
+            [f"{weaviate_binary_path}", "--host", "127.0.0.1", "--port", str(self.port), "--scheme", "http"],
             env=my_env
         )
         self.wait_till_listening()
