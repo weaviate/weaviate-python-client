@@ -19,7 +19,6 @@ class TestEmbeddedBasics(unittest.TestCase):
 
 
 class TestEmbeddedEndToEnd(unittest.TestCase):
-
     def setUp(self) -> None:
         embedded.weaviate_binary_path = "./weaviate-embedded-unitests-delete-me"
         self.embedded_db: EmbeddedDB = None
