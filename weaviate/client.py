@@ -123,14 +123,12 @@ class Client:
         if not isinstance(url, str):
             raise TypeError(f"URL is expected to be string but is {type(url)}")
         if url.startswith("embedded"):
-            db = EmbeddedDB()
-            db.start()
-            # TODO Make port configurable
-            url = "http://localhost:8080"
-            embedded = True
+            embedded_db = EmbeddedDB(url=url)
+            embedded_db.start()
+            url = f"http://localhost:{embedded_db.port}"
         else:
             url = url.strip("/")
-            embedded = False
+            embedded_db = None
 
         self._connection = Connection(
             url=url,
@@ -140,7 +138,7 @@ class Client:
             trust_env=trust_env,
             additional_headers=additional_headers,
             startup_period=startup_period,
-            embedded=embedded,
+            embedded_db=embedded_db,
         )
         self.classification = Classification(self._connection)
         self.schema = Schema(self._connection)
