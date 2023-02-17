@@ -26,7 +26,8 @@ class TestEmbeddedEndToEnd(unittest.TestCase):
 
     def tearDown(self) -> None:
         file = pathlib.Path(embedded.weaviate_binary_path)
-        file.unlink(missing_ok=True)
+        if file.exists():
+            file.unlink()
         self.embedded_db.stop()
 
     def test_end_to_end_all(self):
