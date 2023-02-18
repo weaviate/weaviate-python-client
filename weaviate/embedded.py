@@ -90,7 +90,10 @@ class EmbeddedDB:
         my_env.setdefault("AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED", "true")
         my_env.setdefault("PERSISTENCE_DATA_PATH", weaviate_persistence_data_path)
         my_env.setdefault("CLUSTER_HOSTNAME", "embedded")
-        my_env.setdefault("ENABLE_MODULES", "text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,text2vec-transformers,generative-openai,qna-openai")
+        my_env.setdefault(
+            "ENABLE_MODULES",
+            "text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,generative-openai,qna-openai",
+        )
         process = subprocess.Popen(
             [
                 f"{weaviate_binary_path}",
