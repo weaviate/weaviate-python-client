@@ -6,16 +6,15 @@ from __future__ import annotations
 import datetime
 import os
 import time
-
-from requests.exceptions import JSONDecodeError
 from numbers import Real
 from threading import Thread, Event
 from typing import Any, Dict, Tuple, Optional, Union
 
 import requests
+from authlib.integrations.requests_client import OAuth2Session
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests.exceptions import HTTPError as RequestsHTTPError
-from authlib.integrations.requests_client import OAuth2Session
+from requests.exceptions import JSONDecodeError
 
 from weaviate.auth import AuthCredentials, AuthClientCredentials
 from weaviate.connect.authentication import _Auth
@@ -24,9 +23,8 @@ from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     WeaviateStartUpError,
 )
+from weaviate.util import _check_positive_num, is_weaviate_domain
 from weaviate.warnings import _Warnings
-from weaviate.util import _check_positive_num
-
 
 Session = Union[requests.sessions.Session, OAuth2Session]
 
@@ -153,10 +151,24 @@ class BaseConnection:
                 else:
                     self._create_background_token_refresh()
             else:
-                raise AuthenticationFailedException(
-                    f""""No login credentials provided. The weaviate instance at {self.url} requires login credential,
-                    use argument 'auth_client_secret'."""
-                )
+                msg = f""""No login credentials provided. The weaviate instance at {self.url} requires login credentials.
+
+                    Please check our documentation at https://weaviate.io/developers/weaviate/client-libraries/python#authentication
+                    for more information about how to use authentication."""
+
+                if is_weaviate_domain(self.url):
+                    msg += """
+
+                    You can instantiate the client with login credentials for WCS using
+
+                    client = weaviate.Client(
+                      url=YOUR_WEAVIATE_URL,
+                      auth_client_secret=weaviate.AuthClientPassword(
+                        username = YOUR_WCS_USER,
+                        password = YOUR_WCS_PW,
+                      ))
+                    """
+                raise AuthenticationFailedException(msg)
         elif response.status_code == 404 and auth_client_secret is not None:
             _Warnings.auth_with_anon_weaviate()
             self._session = requests.Session()
