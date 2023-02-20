@@ -12,7 +12,7 @@ from typing import Any, Dict, Tuple, Optional, Union
 
 import requests
 from authlib.integrations.requests_client import OAuth2Session
-from requests.exceptions import ConnectionError as RequestsConnectionError
+from requests.exceptions import ConnectionError as RequestsConnectionError, ReadTimeout
 from requests.exceptions import HTTPError as RequestsHTTPError
 from requests.exceptions import JSONDecodeError
 
@@ -193,21 +193,30 @@ class BaseConnection:
         self._shutdown_background_event = Event()
 
         def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]):
-            time.sleep(max(refresh_time - 5, 1))
+            time.sleep(max(refresh_time - 30, 1))
+            failed_refresh = False
             while not self._shutdown_background_event.is_set():
                 # use refresh token when available
-                if "refresh_token" in self._session.token:
-                    self._session.token = self._session.refresh_token(
-                        self._session.metadata["token_endpoint"]
-                    )
-                    refresh_time = self._session.token.get("expires_in")
-                else:
-                    # client credentials usually does not contain a refresh token => get a new token using the
-                    # saved credentials
-                    assert _auth is not None
-                    new_session = _auth.get_auth_session()
-                    self._session.token = new_session.fetch_token()
-                time.sleep(max(refresh_time - 5, 1))
+                try:
+                    if "refresh_token" in self._session.token:
+                        self._session.token = self._session.refresh_token(
+                            self._session.metadata["token_endpoint"]
+                        )
+                        refresh_time = self._session.token.get("expires_in") - 30
+                    else:
+                        # client credentials usually does not contain a refresh token => get a new token using the
+                        # saved credentials
+                        assert _auth is not None
+                        new_session = _auth.get_auth_session()
+                        self._session.token = new_session.fetch_token()
+                except (RequestsHTTPError, ReadTimeout) as exc:
+                    # retry again after one second, might be an unstable connection
+                    refresh_time = 1
+                    if not failed_refresh:
+                        failed_refresh = True
+                        _Warnings.token_refresh_failed(exc)
+
+                time.sleep(max(refresh_time, 1))
 
         demon = Thread(
             target=periodic_refresh_token,
