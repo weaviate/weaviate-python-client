@@ -528,5 +528,10 @@ def _check_positive_num(
         if value <= 0:
             raise ValueError(f"'{arg_name}' must be positive, i.e. greater that zero (>0).")
 
+
 def is_weaviate_domain(url: str) -> bool:
-    return "weaviate.io" in url.lower() or "semi.technology" in url.lower() or "weaviate.cloud" in url.lower()
+    return (
+        "weaviate.io" in url.lower()
+        or "semi.technology" in url.lower()
+        or "weaviate.cloud" in url.lower()
+    )
