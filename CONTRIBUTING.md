@@ -1,6 +1,17 @@
 ### Setup
 
-We recommend to create a virtual environment to contribute to the client. You can install all developer dependencies using `pip install requirements.txt`.
+We recommend to create a virtual environment to contribute to the client.
+
+Run the following to create a virtual environment, activate it and install dependencies:
+```shell
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+The next time you open your shell, you can activate your virtual environment using `source .venv/bin/activate`
+
+To have a local weaviate running we recommend using docker.
 
 ### Testing
 
@@ -11,7 +22,8 @@ There are three kinds of tests:
 - Integration tests, that test the client with a running weaviate instance
 - Mock tests, where a weaviate instance is mocked to return specific replies
 
-To run the integration tests start the weaviate instances using `./ci/start_weaviate.sh`.
+To run the integration tests start the weaviate instances using `./ci/start_weaviate.sh`. This assumes that you have docker installed.
+
 Then run all tests with
 ```
 pytest integration
@@ -21,11 +33,13 @@ pytest test
 
 ### Linting
 
-We use the following tools to ensure a high code quality:
-- black (formatter)
-- flake8 with plugins
+> **Note**
+> We strongly recommend to use [pre-commit](https://pre-commit.com/) to automatically run all linters locally on each commit. Install on your system and then enable it using `pre-commit install`.
 
-To avoid annoying CI failures we use [pre-commit](https://pre-commit.com/) to automatically run all linters locally on each commit.
+We use the following tools to ensure a high code quality:
+- black (formatter), run with `black $FOLDER_WITH_CHANGES`
+- flake8 with plugins. Run with `flake8 $FOLDER_WITH_CHANGES`. Note that all plugins are listed in the `requirements.txt` file and are installed in the first step.
+
 
 ### Creating a Pull Request
 
@@ -37,7 +51,7 @@ To avoid annoying CI failures we use [pre-commit](https://pre-commit.com/) to au
 
 ### Contributor License Agreement
 
-Contributions to Weaviate Go client must be accompanied by a Contributor License Agreement. You (or your employer) retain the copyright to your contribution; this simply gives us permission to use and redistribute your contributions as part of Weaviate Go client. Go to [this page](https://www.semi.technology/playbooks/misc/contributor-license-agreement.html) to read the current agreement.
+Contributions to Weaviate python client must be accompanied by a Contributor License Agreement. You (or your employer) retain the copyright to your contribution; this simply gives us permission to use and redistribute your contributions as part of Weaviate Python client. Go to [this page](https://www.semi.technology/playbooks/misc/contributor-license-agreement.html) to read the current agreement.
 
 The process works as follows:
 
