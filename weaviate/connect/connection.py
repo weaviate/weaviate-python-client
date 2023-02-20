@@ -23,7 +23,7 @@ from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     WeaviateStartUpError,
 )
-from weaviate.util import _check_positive_num
+from weaviate.util import _check_positive_num, is_weaviate_domain
 from weaviate.warnings import _Warnings
 
 Session = Union[requests.sessions.Session, OAuth2Session]
@@ -151,12 +151,12 @@ class BaseConnection:
                 else:
                     self._create_background_token_refresh()
             else:
-                msg = f""""No login credentials provided. The weaviate instance at {self.url} requires login credential.
+                msg = f""""No login credentials provided. The weaviate instance at {self.url} requires login credentials.
 
                     Please check our documentation at https://weaviate.io/developers/weaviate/client-libraries/python#authentication
                     for more information about how to use authentication."""
 
-                if "weaviate.io" in self.url or "semi.technology" in self.url:
+                if is_weaviate_domain(self.url):
                     msg += """
 
                     You can instantiate the client with login credentials for WCS using
