@@ -1,3 +1,5 @@
+.venv
+venv
 .idea
 dist/
 weaviate_client.egg-info

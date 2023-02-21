@@ -50,4 +50,4 @@ Support
 
 Contributing
 ------------
-To contribute read `How to Contribute <https://github.com/weaviate/weaviate-python-client/blob/main/CONTRIBUTE.md>`_.
+To contribute read `How to Contribute <https://github.com/weaviate/weaviate-python-client/blob/main/CONTRIBUTING.md>`_.
