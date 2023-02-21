@@ -11,18 +11,25 @@ pip install -r requirements.txt
 
 The next time you open your shell, you can activate your virtual environment using `source .venv/bin/activate`
 
-To have a local weaviate running we recommend using docker.
+To run local instance of Weaviate, we recommend using Docker (see https://weaviate.io/developers/weaviate/installation/docker-compose).
 
 ### Testing
 
-We use [pytest](https://docs.pytest.org) to write tests, however there are plenty of older tests that use unittest.
+> Note: We use [pytest](https://docs.pytest.org) to write tests, however many older tests use [unittest](https://docs.python.org/3/library/unittest.html). Regardless, the below commands will run all tests.
 
 There are three kinds of tests:
 - Unit tests, that test individual components of the client
 - Integration tests, that test the client with a running weaviate instance
 - Mock tests, where a weaviate instance is mocked to return specific replies
 
-To run the integration tests start the weaviate instances using `./ci/start_weaviate.sh`. This assumes that you have docker installed.
+To run the integration tests,
+
+1. Ensure that you have Docker installed, and then
+2. Start the weaviate instances with:
+
+```shell
+./ci/start_weaviate.sh
+```
 
 Then run all tests with
 ```
