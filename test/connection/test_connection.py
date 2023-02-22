@@ -80,6 +80,7 @@ class TestConnection(unittest.TestCase):
             headers={"content-type": "application/json"},
             timeout=(2, 20),
             proxies={},
+            params=None,
         )
         mock_session.reset_mock()
 
@@ -91,6 +92,7 @@ class TestConnection(unittest.TestCase):
             headers={"content-type": "application/json"},
             timeout=(2, 20),
             proxies={},
+            params=None,
         )
         mock_session.reset_mock()
 
@@ -102,6 +104,7 @@ class TestConnection(unittest.TestCase):
             headers={"content-type": "application/json"},
             timeout=(2, 20),
             proxies={},
+            params=None,
         )
         mock_session.reset_mock()
 
@@ -113,6 +116,7 @@ class TestConnection(unittest.TestCase):
             headers={"content-type": "application/json"},
             timeout=(2, 20),
             proxies={},
+            params=None,
         )
 
         # add Proxies
@@ -151,46 +155,50 @@ class TestConnection(unittest.TestCase):
         mock_session.reset_mock()
 
         # PUT method
-        connection.put("/put", {"PUT": "test"}),
+        connection.put("/put", {"PUT": "test"}, {"A": "B"}),
         mock_session.put.assert_called_with(
             url="http://weaviate:1234/v1/put",
             json={"PUT": "test"},
             headers={"content-type": "application/json"},
             timeout=(2, 20),
             proxies={"test": True},
+            params={"A": "B"},
         )
         mock_session.reset_mock()
 
         # POST method
-        connection.post("/post", {"POST": "TeST!"}),
+        connection.post("/post", {"POST": "TeST!"}, {"A": "B"}),
         mock_session.post.assert_called_with(
             url="http://weaviate:1234/v1/post",
             json={"POST": "TeST!"},
             headers={"content-type": "application/json"},
             timeout=(2, 20),
             proxies={"test": True},
+            params={"A": "B"},
         )
         mock_session.reset_mock()
 
         # PATCH method
-        connection.patch("/patch", {"PATCH": "teST"}),
+        connection.patch("/patch", {"PATCH": "teST"}, {"A": "B"}),
         mock_session.patch.assert_called_with(
             url="http://weaviate:1234/v1/patch",
             json={"PATCH": "teST"},
             headers={"content-type": "application/json"},
             timeout=(2, 20),
             proxies={"test": True},
+            params={"A": "B"},
         )
         mock_session.reset_mock()
 
         # DELETE method
-        connection.delete("/delete", {"DELETE": "TESt"}),
+        connection.delete("/delete", {"DELETE": "TESt"}, params={"A": "B"}),
         mock_session.delete.assert_called_with(
             url="http://weaviate:1234/v1/delete",
             json={"DELETE": "TESt"},
             headers={"content-type": "application/json"},
             timeout=(2, 20),
             proxies={"test": True},
+            params={"A": "B"},
         )
 
     @patch("weaviate.connect.connection.BaseConnection._create_session")

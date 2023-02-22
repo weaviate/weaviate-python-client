@@ -9,7 +9,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.data.references import Reference
-from weaviate.data.replication import ConsistencyLevel
+from weaviate.data.replication import ConsistencyLevel, name_consistency_level
 from weaviate.error_msgs import DATA_DEPRECATION_NEW_V14_CLS_NS_W, DATA_DEPRECATION_OLD_V14_CLS_NS_W
 from weaviate.exceptions import (
     ObjectAlreadyExistsException,
@@ -53,6 +53,7 @@ class DataObject:
         class_name: str,
         uuid: Union[str, uuid_lib.UUID, None] = None,
         vector: Optional[Sequence] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
     ) -> str:
         """
         Takes a dict describing the object and adds it to weaviate.
@@ -77,6 +78,8 @@ class DataObject:
 
             Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`,
             by default None.
+        consistency_level : Optional[ConsistencyLevel], optional
+            Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
 
         Examples
         --------
@@ -129,8 +132,11 @@ class DataObject:
             weaviate_obj["vector"] = get_vector(vector)
 
         path = "/objects"
+        params = None
+        if consistency_level is not None:
+            params = {"consistency_level": name_consistency_level(consistency_level)}
         try:
-            response = self._connection.post(path=path, weaviate_object=weaviate_obj)
+            response = self._connection.post(path=path, weaviate_object=weaviate_obj, params=params)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Object was not added to Weaviate.") from conn_err
         if response.status_code == 200:
@@ -152,6 +158,7 @@ class DataObject:
         class_name: str,
         uuid: Union[str, uuid_lib.UUID],
         vector: Optional[Sequence] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
     ) -> None:
         """
         Update the given object with the already existing object in weaviate.
@@ -177,6 +184,8 @@ class DataObject:
 
             Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`,
             by default None.
+        consistency_level : Optional[ConsistencyLevel], optional
+            Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
 
         Examples
         --------
@@ -227,9 +236,16 @@ class DataObject:
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none successful status.
         """
+        params = None
+        if consistency_level is not None:
+            params = {"consistency_level": name_consistency_level(consistency_level)}
         weaviate_obj, path = self._create_object_for_update(data_object, class_name, uuid, vector)
         try:
-            response = self._connection.patch(path=path, weaviate_object=weaviate_obj)
+            response = self._connection.patch(
+                path=path,
+                weaviate_object=weaviate_obj,
+                params=params,
+            )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Object was not updated.") from conn_err
         if response.status_code == 204:
@@ -243,6 +259,7 @@ class DataObject:
         class_name: str,
         uuid: Union[str, uuid_lib.UUID],
         vector: Optional[Sequence] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
     ) -> None:
         """
         Replace an already existing object with the given data object.
@@ -266,6 +283,8 @@ class DataObject:
 
             Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`,
             by default None.
+        consistency_level : Optional[ConsistencyLevel], optional
+            Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
 
         Examples
         --------
@@ -314,9 +333,12 @@ class DataObject:
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
+        params = None
+        if consistency_level is not None:
+            params = {"consistency_level": name_consistency_level(consistency_level)}
         weaviate_obj, path = self._create_object_for_update(data_object, class_name, uuid, vector)
         try:
-            response = self._connection.put(path=path, weaviate_object=weaviate_obj)
+            response = self._connection.put(path=path, weaviate_object=weaviate_obj, params=params)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Object was not replaced.") from conn_err
         if response.status_code == 200:
@@ -533,7 +555,7 @@ class DataObject:
             path += "/" + get_valid_uuid(uuid)
 
         if consistency_level is not None:
-            params["consistency_level"] = validate_consistency_level(consistency_level)
+            params["consistency_level"] = name_consistency_level(consistency_level)
 
         if node_name is not None:
             params["node_name"] = node_name
@@ -600,6 +622,7 @@ class DataObject:
         self,
         uuid: Union[str, uuid_lib.UUID],
         class_name: Optional[str] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
     ) -> None:
         """
         Delete an existing object from weaviate.
@@ -613,7 +636,8 @@ class DataObject:
             STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
             versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
             by default None
-
+        consistency_level : Optional[ConsistencyLevel], optional
+            Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
         Examples
         --------
         >>> client.data_object.get(
@@ -679,9 +703,13 @@ class DataObject:
         else:
             path = f"/objects/{uuid}"
 
+        params = None
+        if consistency_level is not None:
+            params = {"consistency_level": name_consistency_level(consistency_level)}
         try:
             response = self._connection.delete(
                 path=path,
+                params=params,
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Object could not be deleted.") from conn_err
@@ -694,6 +722,7 @@ class DataObject:
         self,
         uuid: Union[str, uuid_lib.UUID],
         class_name: Optional[str] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
     ) -> bool:
         """
         Check if the object exist in weaviate.
@@ -707,7 +736,8 @@ class DataObject:
             STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
             versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < 1.14.0,
             by default None
-
+        consistency_level : Optional[ConsistencyLevel], optional
+            Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
         Examples
         --------
         >>> client.data_object.exists(
@@ -765,10 +795,14 @@ class DataObject:
             path = f"/objects/{_capitalize_first_letter(class_name)}/{get_valid_uuid(uuid)}"
         else:
             path = f"/objects/{get_valid_uuid(uuid)}"
+        params = None
+        if consistency_level is not None:
+            params = {"consistency_level": name_consistency_level(consistency_level)}
 
         try:
             response = self._connection.head(
                 path=path,
+                params=params,
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Could not check if object exist.") from conn_err
@@ -923,12 +957,3 @@ def _get_params(additional_properties: Optional[List[str]], with_vector: bool) -
         else:
             params["include"] = "vector"
     return params
-
-
-def validate_consistency_level(consistency_level):
-    if consistency_level not in ConsistencyLevel:
-        raise ValueError(f"invalid ConsistencyLevel: {consistency_level}")
-    if isinstance(consistency_level, ConsistencyLevel):
-        return consistency_level.name
-    else:
-        return consistency_level

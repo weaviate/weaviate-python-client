@@ -44,6 +44,17 @@ class TestDataObject(unittest.TestCase):
         mock_get_vector.assert_not_called()
         mock_get_valid_uuid.assert_not_called()
 
+        # test invalid consistency level
+        reset()
+        with self.assertRaises(ValueError) as error:
+            data_object.create(
+                {"name": "Optimus Prime"}, "class", "123", None, consistency_level="TWO"
+            )
+        check_error_message(self, error, "invalid ConsistencyLevel: TWO")
+        mock_get_dict_from_object.assert_called()
+        mock_get_vector.assert_not_called()
+        mock_get_valid_uuid.assert_called()
+
         reset()
         mock_obj = mock_connection_func("post", side_effect=RequestsConnectionError("Test!"))
         data_object = DataObject(mock_obj)
@@ -103,7 +114,9 @@ class TestDataObject(unittest.TestCase):
         reset()
         uuid = data_object.create(object_, class_name, id_)
         self.assertEqual(uuid, "0")
-        connection_mock.post.assert_called_with(path="/objects", weaviate_object=rest_object)
+        connection_mock.post.assert_called_with(
+            path="/objects", weaviate_object=rest_object, params=None
+        )
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
         mock_get_valid_uuid.assert_called()
@@ -122,9 +135,11 @@ class TestDataObject(unittest.TestCase):
         rest_object = {"class": class_name, "properties": object_, "vector": vector, "id": id_}
 
         reset()
-        uuid = data_object.create(object_, class_name, id_, vector)
+        uuid = data_object.create(object_, class_name, id_, vector, ConsistencyLevel.ALL)
         self.assertEqual(uuid, "0")
-        connection_mock.post.assert_called_with(path="/objects", weaviate_object=rest_object)
+        connection_mock.post.assert_called_with(
+            path="/objects", weaviate_object=rest_object, params={"consistency_level": "ALL"}
+        )
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_called()
         mock_get_valid_uuid.assert_called()
@@ -133,7 +148,9 @@ class TestDataObject(unittest.TestCase):
         # uncapitalized class_names should be capitalized
         uuid = data_object.create(object_, "karaokeSongs", id_, vector)
         self.assertEqual(uuid, "0")
-        connection_mock.post.assert_called_with(path="/objects", weaviate_object=rest_object)
+        connection_mock.post.assert_called_with(
+            path="/objects", weaviate_object=rest_object, params=None
+        )
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_called()
         mock_get_valid_uuid.assert_called()
@@ -144,6 +161,7 @@ class TestDataObject(unittest.TestCase):
         """
         Test the `update` method.
         """
+        uuid = "ae6d51d6-b4ea-5a03-a808-6aae990bdebf"
         data_object = DataObject(Mock())
 
         # error messages
@@ -155,8 +173,14 @@ class TestDataObject(unittest.TestCase):
         requests_error_message = "Object was not updated."
         unexpected_error_message = "Update of the object not successful"
 
+        with self.assertRaises(ValueError) as error:
+            data_object.update({"A": "B"}, "class", uuid, consistency_level="Unknown")
+        check_error_message(self, error, "invalid ConsistencyLevel: Unknown")
+        mock_get_dict_from_object.assert_not_called()
+        mock_get_vector.assert_not_called()
+
         with self.assertRaises(TypeError) as error:
-            data_object.update({"A": "B"}, 35, "ae6d51d6-b4ea-5a03-a808-6aae990bdebf")
+            data_object.update({"A": "B"}, 35, uuid)
         check_error_message(self, error, class_type_error_message)
         mock_get_dict_from_object.assert_not_called()
         mock_get_vector.assert_not_called()
@@ -179,7 +203,7 @@ class TestDataObject(unittest.TestCase):
             data_object.update(
                 {"name": "Alan Greenspan"},
                 "CoolestPersonEver",
-                "27be9d8d-1da1-4d52-821f-bc7e2a25247d",
+                uuid,
             )
         check_error_message(self, error, requests_error_message)
         mock_get_dict_from_object.assert_called()
@@ -191,7 +215,7 @@ class TestDataObject(unittest.TestCase):
             data_object.update(
                 {"name": "Alan Greenspan"},
                 "CoolestPersonEver",
-                "27be9d8d-1da1-4d52-821f-bc7e2a25247d",
+                uuid,
             )
         check_startswith_error_message(self, error, unexpected_error_message)
         mock_get_dict_from_object.assert_called()
@@ -201,14 +225,16 @@ class TestDataObject(unittest.TestCase):
         ## without vector argument
         connection_mock = mock_connection_func("patch", status_code=204)
         data_object = DataObject(connection_mock)
-        data_object.update({"A": "B"}, "Class", "ae6d51d6-b4ea-5a03-a808-6aae990bdebf")
+        data_object.update({"A": "B"}, "Class", uuid)
         weaviate_obj = {
-            "id": "ae6d51d6-b4ea-5a03-a808-6aae990bdebf",
+            "id": uuid,
             "class": "Class",
             "properties": {"A": "B"},
         }
         connection_mock.patch.assert_called_with(
-            path="/objects/ae6d51d6-b4ea-5a03-a808-6aae990bdebf", weaviate_object=weaviate_obj
+            path="/objects/ae6d51d6-b4ea-5a03-a808-6aae990bdebf",
+            weaviate_object=weaviate_obj,
+            params=None,
         )
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
@@ -216,14 +242,16 @@ class TestDataObject(unittest.TestCase):
         ### with uncapitalized class_name
         connection_mock = mock_connection_func("patch", status_code=204)
         data_object = DataObject(connection_mock)
-        data_object.update({"A": "B"}, "class", "ae6d51d6-b4ea-5a03-a808-6aae990bdebf")
+        data_object.update({"A": "B"}, "class", uuid)
         weaviate_obj = {
             "id": "ae6d51d6-b4ea-5a03-a808-6aae990bdebf",
             "class": "Class",
             "properties": {"A": "B"},
         }
         connection_mock.patch.assert_called_with(
-            path="/objects/ae6d51d6-b4ea-5a03-a808-6aae990bdebf", weaviate_object=weaviate_obj
+            path="/objects/ae6d51d6-b4ea-5a03-a808-6aae990bdebf",
+            weaviate_object=weaviate_obj,
+            params=None,
         )
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
@@ -232,16 +260,22 @@ class TestDataObject(unittest.TestCase):
         connection_mock = mock_connection_func("patch", status_code=204)
         data_object = DataObject(connection_mock)
         data_object.update(
-            {"A": "B"}, "Class", "ae6d51d6-b4ea-5a03-a808-6aae990bdebf", vector=[2.0, 4.0]
+            {"A": "B"},
+            "Class",
+            uuid,
+            vector=[2.0, 4.0],
+            consistency_level=ConsistencyLevel.ONE,
         )
         weaviate_obj = {
-            "id": "ae6d51d6-b4ea-5a03-a808-6aae990bdebf",
+            "id": uuid,
             "class": "Class",
             "properties": {"A": "B"},
             "vector": [2.0, 4.0],
         }
         connection_mock.patch.assert_called_with(
-            path="/objects/ae6d51d6-b4ea-5a03-a808-6aae990bdebf", weaviate_object=weaviate_obj
+            path="/objects/ae6d51d6-b4ea-5a03-a808-6aae990bdebf",
+            weaviate_object=weaviate_obj,
+            params={"consistency_level": "ONE"},
         )
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_called()
@@ -252,6 +286,19 @@ class TestDataObject(unittest.TestCase):
         """
         Test the `replace` method.
         """
+        uuid = "27be9d8d-1da1-4d52-821f-bc7e2a25247d"
+        # test invalid consistency level
+        data_object = DataObject(Mock)
+        with self.assertRaises(ValueError) as error:
+            data_object.replace(
+                {"name": "Alan Greenspan"},
+                "CoolestPersonEver",
+                "27be9d8d-1da1-4d52-821f-bc7e2a25247d",
+                consistency_level="Unknown",
+            )
+        check_error_message(self, error, "invalid ConsistencyLevel: Unknown")
+        mock_get_dict_from_object.assert_not_called()
+        mock_get_vector.assert_not_called()
 
         # error messages
         requests_error_message = "Object was not replaced."
@@ -264,7 +311,7 @@ class TestDataObject(unittest.TestCase):
             data_object.replace(
                 {"name": "Alan Greenspan"},
                 "CoolestPersonEver",
-                "27be9d8d-1da1-4d52-821f-bc7e2a25247d",
+                uuid,
             )
         check_error_message(self, error, requests_error_message)
         mock_get_dict_from_object.assert_called()
@@ -276,7 +323,7 @@ class TestDataObject(unittest.TestCase):
             data_object.replace(
                 {"name": "Alan Greenspan"},
                 "CoolestPersonEver",
-                "27be9d8d-1da1-4d52-821f-bc7e2a25247d",
+                uuid,
             )
         check_startswith_error_message(self, error, unexpected_error_message)
         mock_get_dict_from_object.assert_called()
@@ -286,14 +333,16 @@ class TestDataObject(unittest.TestCase):
         ## without vector argument
         connection_mock = mock_connection_func("put")
         data_object = DataObject(connection_mock)
-        data_object.replace({"A": 2}, "Hero", "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
+        data_object.replace({"A": 2}, "Hero", uuid)
         weaviate_obj = {
             "id": "27be9d8d-1da1-4d52-821f-bc7e2a25247d",
             "class": "Hero",
             "properties": {"A": 2},
         }
         connection_mock.put.assert_called_with(
-            path="/objects/27be9d8d-1da1-4d52-821f-bc7e2a25247d", weaviate_object=weaviate_obj
+            path="/objects/27be9d8d-1da1-4d52-821f-bc7e2a25247d",
+            weaviate_object=weaviate_obj,
+            params=None,
         )
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
@@ -301,14 +350,16 @@ class TestDataObject(unittest.TestCase):
         ### with uncapitalized class_name
         connection_mock = mock_connection_func("put")
         data_object = DataObject(connection_mock)
-        data_object.replace({"A": 2}, "hero", "27be9d8d-1da1-4d52-821f-bc7e2a25247d")
+        data_object.replace({"A": 2}, "hero", uuid)
         weaviate_obj = {
             "id": "27be9d8d-1da1-4d52-821f-bc7e2a25247d",
             "class": "Hero",
             "properties": {"A": 2},
         }
         connection_mock.put.assert_called_with(
-            path="/objects/27be9d8d-1da1-4d52-821f-bc7e2a25247d", weaviate_object=weaviate_obj
+            path="/objects/27be9d8d-1da1-4d52-821f-bc7e2a25247d",
+            weaviate_object=weaviate_obj,
+            params=None,
         )
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
@@ -317,7 +368,11 @@ class TestDataObject(unittest.TestCase):
         connection_mock = mock_connection_func("put")
         data_object = DataObject(connection_mock)
         data_object.replace(
-            {"A": 2}, "Hero", "27be9d8d-1da1-4d52-821f-bc7e2a25247d", vector=[3.0, 5, 7]
+            {"A": 2},
+            "Hero",
+            uuid,
+            vector=[3.0, 5, 7],
+            consistency_level=ConsistencyLevel.ONE,
         )
         weaviate_obj = {
             "id": "27be9d8d-1da1-4d52-821f-bc7e2a25247d",
@@ -326,7 +381,9 @@ class TestDataObject(unittest.TestCase):
             "vector": [3.0, 5, 7],
         }
         connection_mock.put.assert_called_with(
-            path="/objects/27be9d8d-1da1-4d52-821f-bc7e2a25247d", weaviate_object=weaviate_obj
+            path="/objects/27be9d8d-1da1-4d52-821f-bc7e2a25247d",
+            weaviate_object=weaviate_obj,
+            params={"consistency_level": "ONE"},
         )
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_called()
@@ -335,7 +392,7 @@ class TestDataObject(unittest.TestCase):
         """
         Test the `delete` method.
         """
-
+        uuid = "b36268d4-a6b5-5274-985f-45f13ce0c642"
         connection_mock = Mock()
         connection_mock.server_version = "1.13.2"
         data_object = DataObject(connection_mock)
@@ -355,6 +412,11 @@ class TestDataObject(unittest.TestCase):
         with self.assertRaises(ValueError) as error:
             data_object.delete("Hallo World")
         check_error_message(self, error, uuid_value_error_message)
+
+        ## test invalid consistency level
+        with self.assertRaises(ValueError) as error:
+            data_object.delete(uuid=uuid, consistency_level="Unknown")
+        check_error_message(self, error, "invalid ConsistencyLevel: Unknown")
 
         connection_mock = mock_connection_func(
             "delete", side_effect=RequestsConnectionError("Test!")
@@ -376,7 +438,16 @@ class TestDataObject(unittest.TestCase):
 
         object_id = "b36268d4-a6b5-5274-985f-45f13ce0c642"
         data_object.delete(object_id)
-        connection_mock.delete.assert_called_with(path="/objects/" + object_id)
+        connection_mock.delete.assert_called_with(
+            path="/objects/" + object_id,
+            params=None,
+        )
+
+        data_object.delete(object_id, None, ConsistencyLevel.ALL)
+        connection_mock.delete.assert_called_with(
+            path="/objects/" + object_id,
+            params={"consistency_level": "ALL"},
+        )
 
     def test_get_by_id(self):
         """
@@ -512,12 +583,16 @@ class TestDataObject(unittest.TestCase):
         """
         Test the `exists` method.
         """
-
+        uuid = "1d420c9c-98cb-11ec-9db6-1e008a366d49"
         # error messages
         requests_error_message = "Could not check if object exist."
         unexpected_error_message = "Object exists"
 
         # test exceptions
+        data_object = DataObject(mock_connection_func("head"))
+        with self.assertRaises(ValueError) as error:
+            data_object.exists(uuid=uuid, consistency_level="Unknown")
+        check_error_message(self, error, "invalid ConsistencyLevel: Unknown")
 
         data_object = DataObject(
             mock_connection_func("head", side_effect=RequestsConnectionError("Test!"))
@@ -538,14 +613,16 @@ class TestDataObject(unittest.TestCase):
         self.assertEqual(result, True)
         connection_mock.head.assert_called_with(
             path="/objects/1d420c9c-98cb-11ec-9db6-1e008a366d49",
+            params=None,
         )
 
         connection_mock = mock_connection_func("head", status_code=404)
         data_object = DataObject(connection_mock)
-        result = data_object.exists(uuid="1d420c9c-98cb-11ec-9db6-1e008a366d49")
+        result = data_object.exists(uuid, None, ConsistencyLevel.QUORUM)
         self.assertEqual(result, False)
         connection_mock.head.assert_called_with(
             path="/objects/1d420c9c-98cb-11ec-9db6-1e008a366d49",
+            params={"consistency_level": "QUORUM"},
         )
 
     @patch("weaviate.data.crud_data._get_dict_from_object", side_effect=lambda x: x)
