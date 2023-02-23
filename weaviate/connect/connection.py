@@ -253,7 +253,7 @@ class BaseConnection:
         requests.ConnectionError
             If the DELETE request could not be made.
         """
-        if self.embedded_db:
+        if self.embedded_db is not None:
             self.embedded_db.ensure_running()
         request_url = self.url + self._api_version_path + path
 
@@ -291,7 +291,7 @@ class BaseConnection:
         requests.ConnectionError
             If the PATCH request could not be made.
         """
-        if self.embedded_db:
+        if self.embedded_db is not None:
             self.embedded_db.ensure_running()
         request_url = self.url + self._api_version_path + path
 
@@ -330,7 +330,7 @@ class BaseConnection:
         requests.ConnectionError
             If the POST request could not be made.
         """
-        if self.embedded_db:
+        if self.embedded_db is not None:
             self.embedded_db.ensure_running()
         request_url = self.url + self._api_version_path + path
 
@@ -368,7 +368,7 @@ class BaseConnection:
         requests.ConnectionError
             If the PUT request could not be made.
         """
-        if self.embedded_db:
+        if self.embedded_db is not None:
             self.embedded_db.ensure_running()
         request_url = self.url + self._api_version_path + path
 
@@ -402,7 +402,7 @@ class BaseConnection:
         requests.ConnectionError
             If the GET request could not be made.
         """
-        if self.embedded_db:
+        if self.embedded_db is not None:
             self.embedded_db.ensure_running()
         if params is None:
             params = {}
@@ -440,7 +440,7 @@ class BaseConnection:
         requests.ConnectionError
             If the HEAD request could not be made.
         """
-        if self.embedded_db:
+        if self.embedded_db is not None:
             self.embedded_db.ensure_running()
         request_url = self.url + self._api_version_path + path
 
