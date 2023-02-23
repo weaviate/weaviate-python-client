@@ -4,6 +4,7 @@ import os
 import signal
 import stat
 import time
+from dataclasses import dataclass
 from urllib.parse import urlparse, parse_qsl
 import urllib.request
 from pathlib import Path
@@ -15,16 +16,20 @@ weaviate_binary_path = "./weaviate-server-embedded"
 weaviate_binary_url = (
     "https://github.com/samos123/weaviate/releases/download/v1.17.3/weaviate-server"
 )
-weaviate_persistence_data_path = "./weaviate-data"
 weaviate_binary_md5 = "38b8ac3c77cc8707999569ae3fe34c71"
+
+
+@dataclass
+class EmbeddedOptions:
+    persistence_data_path: str = Path.home() / ".local/share/weaviate"
+    port: int = 6666
 
 
 class EmbeddedDB:
     # TODO add a stop function that gets called when python process exits
-    def __init__(self, url: str = ""):
-        parsed = parse_qsl(urlparse(url).query)
-        parsed = dict(parsed)
-        self.port = int(parsed.get("port", 6666))
+    def __init__(self, options: EmbeddedOptions):
+        self.port = options.port
+        self.options = options
         self.pid = 0
 
     def __del__(self):
@@ -88,7 +93,7 @@ class EmbeddedDB:
         self.ensure_weaviate_binary_exists()
         my_env = os.environ.copy()
         my_env.setdefault("AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED", "true")
-        my_env.setdefault("PERSISTENCE_DATA_PATH", weaviate_persistence_data_path)
+        my_env.setdefault("PERSISTENCE_DATA_PATH", self.options.persistence_data_path)
         my_env.setdefault("CLUSTER_HOSTNAME", "embedded")
         my_env.setdefault(
             "ENABLE_MODULES",

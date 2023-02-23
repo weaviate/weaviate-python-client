@@ -5,16 +5,16 @@ import signal
 from unittest.mock import patch
 
 from weaviate import embedded
-from weaviate.embedded import EmbeddedDB
+from weaviate.embedded import EmbeddedDB, EmbeddedOptions
 from weaviate.exceptions import WeaviateStartUpError
 
 
 def test_embedded__init__():
-    assert EmbeddedDB(url="embedded").port == 6666
+    assert EmbeddedDB(EmbeddedOptions(port=6666)).port == 6666
 
 
 def test_embedded__init__non_default_port():
-    assert EmbeddedDB(url="embedded?port=30666").port == 30666
+    assert EmbeddedDB(EmbeddedOptions(port=30666)).port == 30666
 
 
 @pytest.fixture(scope="session")
@@ -24,9 +24,9 @@ def embedded_db_binary_path(tmp_path_factory):
     )
 
 
-@pytest.mark.parametrize("url", ["embedded", "embedded?port=30666"])
-def test_embedded_end_to_end(url, embedded_db_binary_path):
-    embedded_db = EmbeddedDB(url=url)
+@pytest.mark.parametrize("options", [EmbeddedOptions(), EmbeddedOptions(port=30666)])
+def test_embedded_end_to_end(options, embedded_db_binary_path):
+    embedded_db = EmbeddedDB(options=options)
     assert embedded_db.is_running() is False
     assert embedded_db.is_listening() is False
     with pytest.raises(WeaviateStartUpError):
@@ -50,3 +50,12 @@ def test_embedded_end_to_end(url, embedded_db_binary_path):
     assert embedded_db.is_running() is True
     assert embedded_db.is_listening() is True
     embedded_db.stop()
+
+
+def test_embedded_multiple_instances(embedded_db_binary_path, tmp_path):
+    embedded_db = EmbeddedDB(EmbeddedOptions(port=30666, persistence_data_path=(tmp_path / "db1").absolute()))
+    embedded_db2 = EmbeddedDB(EmbeddedOptions(port=30667, persistence_data_path=(tmp_path / "db2").absolute()))
+    embedded_db.ensure_running()
+    embedded_db2.ensure_running()
+    assert embedded_db.is_listening() is True
+    assert embedded_db2.is_listening() is True

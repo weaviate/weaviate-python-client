@@ -14,7 +14,7 @@ from .cluster import Cluster
 from .connect.connection import Connection
 from .contextionary import Contextionary
 from .data import DataObject
-from .embedded import EmbeddedDB
+from .embedded import EmbeddedDB, EmbeddedOptions
 from .exceptions import UnexpectedStatusCodeException
 from .gql import Query
 from .schema import Schema
@@ -49,7 +49,8 @@ class Client:
 
     def __init__(
         self,
-        url: str,
+        url: Optional[str] = None,
+        embedded_options: Optional[EmbeddedOptions] = None,
         auth_client_secret: Optional[AuthCredentials] = None,
         timeout_config: Union[Tuple[Real, Real], Real] = (10, 60),
         proxies: Union[dict, str, None] = None,
@@ -122,8 +123,8 @@ class Client:
 
         if not isinstance(url, str):
             raise TypeError(f"URL is expected to be string but is {type(url)}")
-        if url.startswith("embedded"):
-            embedded_db = EmbeddedDB(url=url)
+        if embedded_options is not None:
+            embedded_db = EmbeddedDB(options=embedded_options)
             embedded_db.start()
             url = f"http://localhost:{embedded_db.port}"
         else:
