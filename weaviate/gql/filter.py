@@ -16,6 +16,17 @@ from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import get_vector
 
 
+VALUE_TYPES = {
+    "valueString",
+    "valueText",
+    "valueInt",
+    "valueNumber",
+    "valueDate",
+    "valueBoolean",
+    "valueGeoRange",
+}
+
+
 class GraphQL(ABC):
     """
     A base abstract class for GraphQL commands, such as Get, Aggregate.
@@ -761,23 +772,16 @@ def _find_value_type(content: dict) -> str:
         If missing required fields.
     """
 
-    if "valueString" in content:
-        to_return = "valueString"
-    elif "valueText" in content:
-        to_return = "valueText"
-    elif "valueInt" in content:
-        to_return = "valueInt"
-    elif "valueNumber" in content:
-        to_return = "valueNumber"
-    elif "valueDate" in content:
-        to_return = "valueDate"
-    elif "valueBoolean" in content:
-        to_return = "valueBoolean"
-    elif "valueGeoRange" in content:
-        to_return = "valueGeoRange"
-    else:
-        raise ValueError(f"Filter is missing required fields: {content}")
-    return to_return
+    value_type = VALUE_TYPES & set(content.keys())
+
+    if len(value_type) == 0:
+        raise ValueError(
+            f"Filter is missing required field 'value<TYPE>': {content}. Valid values are: {VALUE_TYPES}."
+        )
+    if len(value_type) != 1:
+        raise ValueError(f"Multiple fields 'value<TYPE>' are not supported: {content}")
+
+    return value_type.pop()
 
 
 def _move_clause_objects_to_str(objects: list) -> str:

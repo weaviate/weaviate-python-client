@@ -537,7 +537,8 @@ class TestWhere(unittest.TestCase):
         content_error_msg = lambda dt: f"Where filter is expected to be type dict but is {dt}"
         content_key_error_msg = "Filter is missing required fields `path` or `operands`. Given: "
         path_key_error = "Filter is missing required field `operator`. Given: "
-        dtype_error_msg = "Filter is missing required fields: "
+        dtype_no_value_error_msg = "Filter is missing required field 'value<TYPE>': "
+        dtype_multiple_value_error_msg = "Multiple fields 'value<TYPE>' are not supported: "
 
         with self.assertRaises(TypeError) as error:
             Where(None)
@@ -557,7 +558,11 @@ class TestWhere(unittest.TestCase):
 
         with self.assertRaises(ValueError) as error:
             Where({"path": "some_path", "operator": "Like"})
-        check_startswith_error_message(self, error, dtype_error_msg)
+        check_startswith_error_message(self, error, dtype_no_value_error_msg)
+
+        with self.assertRaises(ValueError) as error:
+            Where({"path": "some_path", "operator": "Like", "valueBoolean": True, "valueInt": 1})
+        check_startswith_error_message(self, error, dtype_multiple_value_error_msg)
 
         with self.assertRaises(ValueError) as error:
             Where({"operands": "some_path"})
