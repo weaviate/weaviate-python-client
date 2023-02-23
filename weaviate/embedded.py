@@ -5,7 +5,6 @@ import signal
 import stat
 import time
 from dataclasses import dataclass
-from urllib.parse import urlparse, parse_qsl
 import urllib.request
 from pathlib import Path
 import socket
@@ -23,12 +22,22 @@ weaviate_binary_md5 = "38b8ac3c77cc8707999569ae3fe34c71"
 class EmbeddedOptions:
     persistence_data_path: str = Path.home() / ".local/share/weaviate"
     port: int = 6666
+    cluster_hostname: str = "embedded"
+
+
+def get_random_port() -> int:
+    sock = socket.socket()
+    sock.bind(("", 0))
+    port_num = int(sock.getsockname()[1])
+    sock.close()
+    return port_num
 
 
 class EmbeddedDB:
     # TODO add a stop function that gets called when python process exits
     def __init__(self, options: EmbeddedOptions):
         self.port = options.port
+        self.data_bind_port = get_random_port()
         self.options = options
         self.pid = 0
 
@@ -49,19 +58,6 @@ class EmbeddedDB:
                 assert (
                     hashlib.md5(f.read()).hexdigest() == weaviate_binary_md5
                 ), f"md5 of binary {weaviate_binary_path} did not match {weaviate_binary_md5}"
-
-    def is_running(self) -> bool:
-        binary_name = os.path.basename(weaviate_binary_path)
-        result = subprocess.run(
-            f"ps aux | grep {binary_name} | grep -v grep", shell=True, capture_output=True
-        )
-        if result.returncode == 1:
-            return False
-        else:
-            output = result.stdout.decode("ascii")
-            if binary_name in output:
-                return True
-        return False
 
     def is_listening(self) -> bool:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -86,15 +82,17 @@ class EmbeddedDB:
             )
 
     def start(self):
-        if self.is_running():
-            print("embedded weaviate is already running")
+        if self.is_listening():
+            print(f"embedded weaviate is already listing on port {self.port}")
             return
 
         self.ensure_weaviate_binary_exists()
         my_env = os.environ.copy()
         my_env.setdefault("AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED", "true")
         my_env.setdefault("PERSISTENCE_DATA_PATH", self.options.persistence_data_path)
-        my_env.setdefault("CLUSTER_HOSTNAME", "embedded")
+        my_env.setdefault("CLUSTER_HOSTNAME", self.options.cluster_hostname)
+        # Bug with weaviate requires setting gossip and data bind port
+        my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(get_random_port()))
         my_env.setdefault(
             "ENABLE_MODULES",
             "text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,generative-openai,qna-openai",
@@ -126,6 +124,8 @@ class EmbeddedDB:
                 )
 
     def ensure_running(self):
-        if not self.is_running():
-            print("Embedded weaviate wasn't running, so starting embedded weaviate again")
+        if not self.is_listening():
+            print(
+                f"Embedded weaviate wasn't listening on port {self.port}, so starting embedded weaviate again"
+            )
             self.start()

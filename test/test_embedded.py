@@ -27,7 +27,6 @@ def embedded_db_binary_path(tmp_path_factory):
 @pytest.mark.parametrize("options", [EmbeddedOptions(), EmbeddedOptions(port=30666)])
 def test_embedded_end_to_end(options, embedded_db_binary_path):
     embedded_db = EmbeddedDB(options=options)
-    assert embedded_db.is_running() is False
     assert embedded_db.is_listening() is False
     with pytest.raises(WeaviateStartUpError):
         with patch("time.sleep") as mocked_sleep:
@@ -35,27 +34,35 @@ def test_embedded_end_to_end(options, embedded_db_binary_path):
             mocked_sleep.assert_has_calls([0.1] * 3000)
 
     embedded_db.ensure_running()
-    assert embedded_db.is_running() is True
     assert embedded_db.is_listening() is True
     with patch("builtins.print") as mocked_print:
         embedded_db.start()
-        mocked_print.assert_called_once_with("embedded weaviate is already running")
+        mocked_print.assert_called_once_with(
+            f"embedded weaviate is already listing on port {options.port}"
+        )
 
     # killing the process should restart it again when ensure running is called
     os.kill(embedded_db.pid, signal.SIGTERM)
     time.sleep(0.2)
-    assert embedded_db.is_running() is False
     assert embedded_db.is_listening() is False
     embedded_db.ensure_running()
-    assert embedded_db.is_running() is True
     assert embedded_db.is_listening() is True
     embedded_db.stop()
 
 
 def test_embedded_multiple_instances(embedded_db_binary_path, tmp_path):
-    embedded_db = EmbeddedDB(EmbeddedOptions(port=30666, persistence_data_path=(tmp_path / "db1").absolute()))
-    embedded_db2 = EmbeddedDB(EmbeddedOptions(port=30667, persistence_data_path=(tmp_path / "db2").absolute()))
+    embedded_db = EmbeddedDB(
+        EmbeddedOptions(
+            cluster_hostname="db1", port=30664, persistence_data_path=(tmp_path / "db1").absolute()
+        )
+    )
+    embedded_db2 = EmbeddedDB(
+        EmbeddedOptions(
+            cluster_hostname="db2", port=30665, persistence_data_path=(tmp_path / "db2").absolute()
+        )
+    )
     embedded_db.ensure_running()
-    embedded_db2.ensure_running()
+    print("db1 is running")
     assert embedded_db.is_listening() is True
+    embedded_db2.ensure_running()
     assert embedded_db2.is_listening() is True
