@@ -240,7 +240,7 @@ class BaseConnection:
         self,
         path: str,
         weaviate_object: dict = None,
-        params: dict = None,
+        params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """
         Make a DELETE request to the Weaviate server instance.
@@ -281,7 +281,7 @@ class BaseConnection:
         self,
         path: str,
         weaviate_object: dict,
-        params: dict = None,
+        params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """
         Make a PATCH request to the Weaviate server instance.
@@ -321,7 +321,7 @@ class BaseConnection:
         self,
         path: str,
         weaviate_object: dict,
-        params: dict = None,
+        params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """
         Make a POST request to the Weaviate server instance.
@@ -362,7 +362,7 @@ class BaseConnection:
         self,
         path: str,
         weaviate_object: dict,
-        params: dict = None,
+        params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """
         Make a PUT request to the Weaviate server instance.
@@ -398,7 +398,9 @@ class BaseConnection:
             params=params,
         )
 
-    def get(self, path: str, params: dict = None, external_url: bool = False) -> requests.Response:
+    def get(
+        self, path: str, params: Optional[Dict[str, Any]] = None, external_url: bool = False
+    ) -> requests.Response:
         """Make a GET request.
 
         Parameters
@@ -440,7 +442,7 @@ class BaseConnection:
     def head(
         self,
         path: str,
-        params: dict = None,
+        params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """
         Make a HEAD request to the server.

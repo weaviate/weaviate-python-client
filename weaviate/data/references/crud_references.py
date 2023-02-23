@@ -17,7 +17,7 @@ from weaviate.util import (
     get_valid_uuid,
     _capitalize_first_letter,
 )
-from weaviate.data.replication import ConsistencyLevel, name_consistency_level
+from weaviate.data.replication import ConsistencyLevel
 
 
 class Reference:
@@ -158,7 +158,7 @@ class Reference:
         is_server_version_14 = self._connection.server_version >= "1.14"
         params = None
         if consistency_level is not None:
-            params = {"consistency_level": name_consistency_level(consistency_level)}
+            params = {"consistency_level": ConsistencyLevel(consistency_level).value}
 
         if (from_class_name is None or to_class_name is None) and is_server_version_14:
             warnings.warn(
@@ -353,7 +353,7 @@ class Reference:
         is_server_version_14 = self._connection.server_version >= "1.14"
         params = None
         if consistency_level is not None:
-            params = {"consistency_level": name_consistency_level(consistency_level)}
+            params = {"consistency_level": ConsistencyLevel(consistency_level).value}
 
         if (from_class_name is None or to_class_names is None) and is_server_version_14:
             warnings.warn(
@@ -552,7 +552,7 @@ class Reference:
         is_server_version_14 = self._connection.server_version >= "1.14"
         params = None
         if consistency_level is not None:
-            params = {"consistency_level": name_consistency_level(consistency_level)}
+            params = {"consistency_level": ConsistencyLevel(consistency_level).value}
 
         if (from_class_name is None or to_class_name is None) and is_server_version_14:
             warnings.warn(

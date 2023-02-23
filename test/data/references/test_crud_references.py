@@ -55,7 +55,6 @@ class TestReference(unittest.TestCase):
 
         with self.assertRaises(ValueError) as error:
             reference.delete(self.uuid_1, "myProperty", self.uuid_2, consistency_level=1)
-        check_error_message(self, error, "invalid ConsistencyLevel: 1")
 
         mock_obj = mock_connection_func("delete", status_code=200)
         reference = Reference(mock_obj)
@@ -130,7 +129,6 @@ class TestReference(unittest.TestCase):
 
         with self.assertRaises(ValueError) as error:
             reference.add(self.uuid_1, "prop", self.uuid_2, consistency_level=1)
-        check_error_message(self, error, "invalid ConsistencyLevel: 1")
 
         with self.assertRaises(ValueError) as error:
             reference.add(
@@ -245,7 +243,7 @@ class TestReference(unittest.TestCase):
 
         with self.assertRaises(ValueError) as error:
             reference.update(self.uuid_1, "prop", self.uuid_2, consistency_level=1)
-        check_error_message(self, error, "invalid ConsistencyLevel: 1")
+        check_error_message(self, error, "1 is not a valid ConsistencyLevel")
 
         with self.assertRaises(ValueError) as error:
             reference.update(

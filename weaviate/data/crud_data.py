@@ -9,7 +9,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.data.references import Reference
-from weaviate.data.replication import ConsistencyLevel, name_consistency_level
+from weaviate.data.replication import ConsistencyLevel
 from weaviate.error_msgs import DATA_DEPRECATION_NEW_V14_CLS_NS_W, DATA_DEPRECATION_OLD_V14_CLS_NS_W
 from weaviate.exceptions import (
     ObjectAlreadyExistsException,
@@ -134,7 +134,7 @@ class DataObject:
         path = "/objects"
         params = None
         if consistency_level is not None:
-            params = {"consistency_level": name_consistency_level(consistency_level)}
+            params = {"consistency_level": ConsistencyLevel(consistency_level).value}
         try:
             response = self._connection.post(path=path, weaviate_object=weaviate_obj, params=params)
         except RequestsConnectionError as conn_err:
@@ -238,7 +238,7 @@ class DataObject:
         """
         params = None
         if consistency_level is not None:
-            params = {"consistency_level": name_consistency_level(consistency_level)}
+            params = {"consistency_level": ConsistencyLevel(consistency_level).value}
         weaviate_obj, path = self._create_object_for_update(data_object, class_name, uuid, vector)
         try:
             response = self._connection.patch(
@@ -335,7 +335,7 @@ class DataObject:
         """
         params = None
         if consistency_level is not None:
-            params = {"consistency_level": name_consistency_level(consistency_level)}
+            params = {"consistency_level": ConsistencyLevel(consistency_level).value}
         weaviate_obj, path = self._create_object_for_update(data_object, class_name, uuid, vector)
         try:
             response = self._connection.put(path=path, weaviate_object=weaviate_obj, params=params)
@@ -555,7 +555,7 @@ class DataObject:
             path += "/" + get_valid_uuid(uuid)
 
         if consistency_level is not None:
-            params["consistency_level"] = name_consistency_level(consistency_level)
+            params["consistency_level"] = ConsistencyLevel(consistency_level).value
 
         if node_name is not None:
             params["node_name"] = node_name
@@ -705,7 +705,7 @@ class DataObject:
 
         params = None
         if consistency_level is not None:
-            params = {"consistency_level": name_consistency_level(consistency_level)}
+            params = {"consistency_level": ConsistencyLevel(consistency_level).value}
         try:
             response = self._connection.delete(
                 path=path,
@@ -797,7 +797,7 @@ class DataObject:
             path = f"/objects/{get_valid_uuid(uuid)}"
         params = None
         if consistency_level is not None:
-            params = {"consistency_level": name_consistency_level(consistency_level)}
+            params = {"consistency_level": ConsistencyLevel(consistency_level).value}
 
         try:
             response = self._connection.head(

@@ -50,7 +50,6 @@ class TestDataObject(unittest.TestCase):
             data_object.create(
                 {"name": "Optimus Prime"}, "class", "123", None, consistency_level="TWO"
             )
-        check_error_message(self, error, "invalid ConsistencyLevel: TWO")
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
         mock_get_valid_uuid.assert_called()
@@ -135,7 +134,7 @@ class TestDataObject(unittest.TestCase):
         rest_object = {"class": class_name, "properties": object_, "vector": vector, "id": id_}
 
         reset()
-        uuid = data_object.create(object_, class_name, id_, vector, ConsistencyLevel.ALL)
+        uuid = data_object.create(object_, class_name, id_, vector, "ALL")
         self.assertEqual(uuid, "0")
         connection_mock.post.assert_called_with(
             path="/objects", weaviate_object=rest_object, params={"consistency_level": "ALL"}
@@ -175,7 +174,7 @@ class TestDataObject(unittest.TestCase):
 
         with self.assertRaises(ValueError) as error:
             data_object.update({"A": "B"}, "class", uuid, consistency_level="Unknown")
-        check_error_message(self, error, "invalid ConsistencyLevel: Unknown")
+        check_error_message(self, error, "'Unknown' is not a valid ConsistencyLevel")
         mock_get_dict_from_object.assert_not_called()
         mock_get_vector.assert_not_called()
 
@@ -296,7 +295,6 @@ class TestDataObject(unittest.TestCase):
                 "27be9d8d-1da1-4d52-821f-bc7e2a25247d",
                 consistency_level="Unknown",
             )
-        check_error_message(self, error, "invalid ConsistencyLevel: Unknown")
         mock_get_dict_from_object.assert_not_called()
         mock_get_vector.assert_not_called()
 
@@ -372,7 +370,7 @@ class TestDataObject(unittest.TestCase):
             "Hero",
             uuid,
             vector=[3.0, 5, 7],
-            consistency_level=ConsistencyLevel.ONE,
+            consistency_level="ONE",
         )
         weaviate_obj = {
             "id": "27be9d8d-1da1-4d52-821f-bc7e2a25247d",
@@ -416,7 +414,6 @@ class TestDataObject(unittest.TestCase):
         ## test invalid consistency level
         with self.assertRaises(ValueError) as error:
             data_object.delete(uuid=uuid, consistency_level="Unknown")
-        check_error_message(self, error, "invalid ConsistencyLevel: Unknown")
 
         connection_mock = mock_connection_func(
             "delete", side_effect=RequestsConnectionError("Test!")
@@ -592,7 +589,6 @@ class TestDataObject(unittest.TestCase):
         data_object = DataObject(mock_connection_func("head"))
         with self.assertRaises(ValueError) as error:
             data_object.exists(uuid=uuid, consistency_level="Unknown")
-        check_error_message(self, error, "invalid ConsistencyLevel: Unknown")
 
         data_object = DataObject(
             mock_connection_func("head", side_effect=RequestsConnectionError("Test!"))
