@@ -62,7 +62,6 @@ def test_embedded_multiple_instances(embedded_db_binary_path, tmp_path):
         )
     )
     embedded_db.ensure_running()
-    print("db1 is running")
     assert embedded_db.is_listening() is True
     embedded_db2.ensure_running()
     assert embedded_db2.is_listening() is True
