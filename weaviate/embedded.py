@@ -72,7 +72,7 @@ class EmbeddedDB:
     def wait_till_listening(self):
         seconds = 30
         sleep_interval = 0.1
-        retries = int(10 * (seconds / sleep_interval))
+        retries = int(seconds / sleep_interval)
         while self.is_listening() is False and retries > 0:
             time.sleep(sleep_interval)
             retries -= 1

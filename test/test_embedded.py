@@ -31,7 +31,7 @@ def test_embedded_end_to_end(options, embedded_db_binary_path):
     with pytest.raises(WeaviateStartUpError):
         with patch("time.sleep") as mocked_sleep:
             embedded_db.wait_till_listening()
-            mocked_sleep.assert_has_calls([0.1] * 3000)
+            mocked_sleep.assert_has_calls([0.1] * 300)
 
     embedded_db.ensure_running()
     assert embedded_db.is_listening() is True
