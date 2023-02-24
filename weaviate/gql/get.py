@@ -2,7 +2,6 @@
 GraphQL `Get` command.
 """
 from dataclasses import dataclass
-from enum import auto
 from json import dumps
 from typing import List, Union, Optional, Dict, Tuple
 
@@ -18,7 +17,7 @@ from weaviate.gql.filter import (
     NearImage,
     Sort,
 )
-from weaviate.util import image_encoder_b64, _capitalize_first_letter, BaseEnum
+from weaviate.util import image_encoder_b64, _capitalize_first_letter
 from weaviate.warnings import _Warnings
 
 
@@ -49,11 +48,6 @@ class Hybrid:
             ret += f", alpha: {self.alpha}"
 
         return "hybrid:{" + ret + "}"
-
-
-class GenerativeType(str, BaseEnum):
-    SINGLE = auto()
-    GROUPED = auto()
 
 
 class GetBuilder(GraphQL):
