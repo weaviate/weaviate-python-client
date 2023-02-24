@@ -1,4 +1,3 @@
-import hashlib
 import subprocess
 import os
 import signal
@@ -11,16 +10,12 @@ import socket
 
 from weaviate.exceptions import WeaviateStartUpError
 
-weaviate_binary_path = "./weaviate-server-embedded"
-weaviate_binary_url = (
-    "https://github.com/samos123/weaviate/releases/download/v1.17.3/weaviate-server"
-)
-weaviate_binary_md5 = "38b8ac3c77cc8707999569ae3fe34c71"
-
 
 @dataclass
 class EmbeddedOptions:
     persistence_data_path: str = Path.home() / ".local/share/weaviate"
+    binary_path: str = Path.home() / ".local/bin/weaviate-embedded"
+    binary_url: str = "https://github.com/samos123/weaviate/releases/download/v1.17.3/weaviate-server"
     port: int = 6666
     cluster_hostname: str = "embedded"
 
@@ -45,19 +40,15 @@ class EmbeddedDB:
         self.stop()
 
     def ensure_weaviate_binary_exists(self):
-        file = Path(weaviate_binary_path)
+        file = Path(self.options.binary_path)
         if not file.exists():
             print(
-                f"Binary {weaviate_binary_path} did not exist. "
-                f"Downloading binary from {weaviate_binary_url}"
+                f"Binary {self.options.binary_path} did not exist. "
+                f"Downloading binary from {self.options.binary_url}"
             )
-            urllib.request.urlretrieve(weaviate_binary_url, weaviate_binary_path)
+            urllib.request.urlretrieve(self.options.binary_url, self.options.binary_path)
             # Ensuring weaviate binary is executable
             file.chmod(file.stat().st_mode | stat.S_IEXEC)
-            with open(file, "rb") as f:
-                assert (
-                    hashlib.md5(f.read()).hexdigest() == weaviate_binary_md5
-                ), f"md5 of binary {weaviate_binary_path} did not match {weaviate_binary_md5}"
 
     def is_listening(self) -> bool:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -99,7 +90,7 @@ class EmbeddedDB:
         )
         process = subprocess.Popen(
             [
-                f"{weaviate_binary_path}",
+                f"{self.options.binary_path}",
                 "--host",
                 "127.0.0.1",
                 "--port",
@@ -110,7 +101,7 @@ class EmbeddedDB:
             env=my_env,
         )
         self.pid = process.pid
-        print(f"Started {weaviate_binary_path}: process ID {self.pid}")
+        print(f"Started {self.options.binary_path}: process ID {self.pid}")
         self.wait_till_listening()
 
     def stop(self):
