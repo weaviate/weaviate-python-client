@@ -7,6 +7,9 @@ import pytest
 from test.util import check_error_message
 from weaviate.gql.get import GetBuilder, BM25, Hybrid
 
+mock_connection_v117 = Mock()
+mock_connection_v117.server_version = "1.17.4"
+
 
 @pytest.mark.parametrize(
     "query,properties,expected",
@@ -40,6 +43,44 @@ def test_bm25(query: str, properties: List[str], expected: str):
 def test_hybrid(query: str, vector: Optional[List[float]], alpha: Optional[float], expected: str):
     hybrid = Hybrid(query, alpha, vector)
     assert str(hybrid) == expected
+
+
+@pytest.mark.parametrize(
+    "single_prompt,grouped_task,expected",
+    [
+        (
+            "What is the meaning of life?",
+            None,
+            """generate(singleResult:{prompt:"What is the meaning of life?"}){error singleResult} """,
+        ),
+        (
+            None,
+            "Explain why these magazines or newspapers are about finance",
+            """generate(groupedResult:{task:"Explain why these magazines or newspapers are about finance"}){error groupedResult} """,
+        ),
+        (
+            "What is the meaning of life?",
+            "Explain why these magazines or newspapers are about finance",
+            """generate(singleResult:{prompt:"What is the meaning of life?"}groupedResult:{task:"Explain why these magazines or newspapers are about finance"}){error singleResult groupedResult} """,
+        ),
+    ],
+)
+def test_generative(single_prompt: str, grouped_task: str, expected: str):
+    query = (
+        GetBuilder("Person", "name", mock_connection_v117)
+        .with_generate(single_prompt, grouped_task)
+        .build()
+    )
+    expected_query = "{Get{Person{name _additional {" + expected + "}}}}"
+    assert query == expected_query
+
+
+@pytest.mark.parametrize("single_prompt,grouped_task", [(123, None), (None, None), (None, 123)])
+def test_generative_type(single_prompt: str, grouped_task: str):
+    with pytest.raises(TypeError):
+        GetBuilder("Person", "name", mock_connection_v117).with_generate(
+            single_prompt, grouped_task
+        ).build()
 
 
 class TestGetBuilder(unittest.TestCase):

@@ -5,6 +5,7 @@ import base64
 import json
 import os
 import uuid as uuid_lib
+from enum import Enum, EnumMeta
 from io import BufferedReader
 from numbers import Real
 from typing import Union, Sequence, Any, Optional, List, Dict
@@ -13,6 +14,23 @@ import requests
 import validators
 
 from weaviate.exceptions import SchemaValidationException
+
+
+# MetaEnum and BaseEnum are required to support `in` statements:
+#    'ALL' in ConsistencyLevel == True
+#    12345 in ConsistencyLevel == False
+class MetaEnum(EnumMeta):
+    def __contains__(cls, item):
+        try:
+            # when item is type ConsistencyLevel
+            return item.name in cls.__members__.keys()
+        except AttributeError:
+            # when item is type str
+            return item in cls.__members__.keys()
+
+
+class BaseEnum(Enum, metaclass=MetaEnum):
+    pass
 
 
 def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:

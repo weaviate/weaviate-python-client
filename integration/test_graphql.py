@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 import weaviate
@@ -114,3 +116,48 @@ def test_hybrid_bm25(client):
     # will find more results. "The Crusty Crab" is still first, because it matches with the BM25 search
     assert len(result["data"]["Get"]["Ship"]) >= 1
     assert result["data"]["Get"]["Ship"][0]["name"] == "The Crusty Crab"
+
+
+@pytest.mark.parametrize(
+    "single,grouped",
+    [
+        ("Describe the following as a Facebook Ad: {review}", None),
+        (None, "Describe the following as a LinkedIn Ad: {review}"),
+        (
+            "Describe the following as a Twitter Ad: {review}",
+            "Describe the following as a Mastodon Ad: {review}",
+        ),
+    ],
+)
+def test_generative_openai(single: str, grouped: str):
+    """Test client credential flow with various providers."""
+    api_key = os.environ.get("OPENAI_APIKEY")
+    if api_key is None:
+        pytest.skip("No OpenAI API key found.")
+
+    client = weaviate.Client(
+        "http://127.0.0.1:8086", additional_headers={"X-OpenAI-Api-Key": api_key}
+    )
+    client.schema.delete_all()
+    wine_class = {
+        "class": "Wine",
+        "properties": [
+            {"name": "name", "dataType": ["string"]},
+            {"name": "review", "dataType": ["string"]},
+        ],
+    }
+    client.schema.create_class(wine_class)
+    client.data_object.create(
+        data_object={"name": "Super expensive wine", "review": "Tastes like a fresh ocean breeze"},
+        class_name="Wine",
+    )
+    client.data_object.create(
+        data_object={"name": "cheap wine", "review": "Tastes like forest"}, class_name="Wine"
+    )
+
+    result = (
+        client.query.get("Wine", ["name", "review"])
+        .with_generate(single_prompt=single, grouped_task=grouped)
+        .do()
+    )
+    assert result["data"]["Get"]["Wine"][0]["_additional"]["generate"]["error"] is None

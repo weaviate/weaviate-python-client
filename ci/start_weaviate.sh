@@ -6,3 +6,4 @@ nohup docker-compose -f ci/docker-compose-azure.yml up -d
 nohup docker-compose -f ci/docker-compose-okta-cc.yml up -d
 nohup docker-compose -f ci/docker-compose-okta-users.yml up -d
 nohup docker-compose -f ci/docker-compose-wcs.yml up -d
+nohup docker-compose -f ci/docker-compose_openai.yml up -d

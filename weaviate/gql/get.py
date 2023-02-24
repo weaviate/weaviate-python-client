@@ -2,8 +2,11 @@
 GraphQL `Get` command.
 """
 from dataclasses import dataclass
+from enum import auto
 from json import dumps
 from typing import List, Union, Optional, Dict, Tuple
+
+from weaviate.connect import Connection
 from weaviate.gql.filter import (
     Where,
     NearText,
@@ -15,8 +18,8 @@ from weaviate.gql.filter import (
     NearImage,
     Sort,
 )
-from weaviate.connect import Connection
-from weaviate.util import image_encoder_b64, _capitalize_first_letter
+from weaviate.util import image_encoder_b64, _capitalize_first_letter, BaseEnum
+from weaviate.warnings import _Warnings
 
 
 @dataclass
@@ -46,6 +49,11 @@ class Hybrid:
             ret += f", alpha: {self.alpha}"
 
         return "hybrid:{" + ret + "}"
+
+
+class GenerativeType(str, BaseEnum):
+    SINGLE = auto()
+    GROUPED = auto()
 
 
 class GetBuilder(GraphQL):
@@ -922,10 +930,48 @@ class GetBuilder(GraphQL):
             Vector that is searched for. If 'None', weaviate will use the configured text-to-vector module to create a
             vector from the "query" field.
             By default, None
-
         """
         self._hybrid = Hybrid(query, alpha, vector)
         self._contains_filter = True
+        return self
+
+    def with_generate(
+        self, single_prompt: Optional[str] = None, grouped_task: Optional[str] = None
+    ) -> "GetBuilder":
+        """Generate responses using the OpenAI generative search.
+
+        At least one of the two parameters must be set.
+
+        Parameters
+        ----------
+        grouped_task: Optional[str]
+            The task to generate a grouped response. One
+        single_prompt: Optional[str]
+            The prompt to generate a single response.
+        """
+        if single_prompt is None and grouped_task is None:
+            raise TypeError(
+                "Either parameter grouped_result_task or single_result_prompt must be not None."
+            )
+        if (single_prompt is not None and not isinstance(single_prompt, str)) or (
+            grouped_task is not None and not isinstance(grouped_task, str)
+        ):
+            raise TypeError("prompts and tasks must be of type str.")
+
+        if self._connection.server_version < "1.17.3":
+            _Warnings.weaviate_too_old_for_openai(self._connection.server_version)
+
+        results: List[str] = ["error"]
+        task_and_prompt = ""
+        if single_prompt is not None:
+            results.append("singleResult")
+            task_and_prompt += f'singleResult:{{prompt:"{single_prompt}"}}'
+        if grouped_task is not None:
+            results.append("groupedResult")
+            task_and_prompt += f'groupedResult:{{task:"{grouped_task}"}}'
+
+        self._additional["__one_level"].add(f'generate({task_and_prompt}){{{" ".join(results)}}}')
+
         return self
 
     def build(self) -> str:
