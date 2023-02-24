@@ -15,7 +15,9 @@ from weaviate.exceptions import WeaviateStartUpError
 class EmbeddedOptions:
     persistence_data_path: str = Path.home() / ".local/share/weaviate"
     binary_path: str = Path.home() / ".local/bin/weaviate-embedded"
-    binary_url: str = "https://github.com/samos123/weaviate/releases/download/v1.17.3/weaviate-server"
+    binary_url: str = (
+        "https://github.com/samos123/weaviate/releases/download/v1.17.3/weaviate-server"
+    )
     port: int = 6666
     cluster_hostname: str = "embedded"
 
