@@ -81,3 +81,12 @@ class _Warnings:
             category=DeprecationWarning,
             stacklevel=1,
         )
+
+    @staticmethod
+    def weaviate_too_old_for_openai(server_version: str):
+        warnings.warn(
+            message=f"""Dep003: You are trying to use the generative search, but you are connected to Weaviate {server_version}.
+            Support for generative search was added in weaviate version 1.17.3.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )

@@ -19,6 +19,7 @@ from weaviate.gql.filter import (
     Sort,
 )
 from weaviate.util import image_encoder_b64, _capitalize_first_letter, BaseEnum
+from weaviate.warnings import _Warnings
 
 
 @dataclass
@@ -956,6 +957,9 @@ class GetBuilder(GraphQL):
             grouped_task is not None and not isinstance(grouped_task, str)
         ):
             raise TypeError("prompts and tasks must be of type str.")
+
+        if self._connection.server_version < "1.17.3":
+            _Warnings.weaviate_too_old_for_openai(self._connection.server_version)
 
         results: List[str] = ["error"]
         task_and_prompt = ""
