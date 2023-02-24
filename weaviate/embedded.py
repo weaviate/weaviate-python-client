@@ -1,7 +1,8 @@
-import subprocess
 import os
+import platform
 import signal
 import stat
+import subprocess
 import time
 from dataclasses import dataclass
 import urllib.request
@@ -37,6 +38,7 @@ class EmbeddedDB:
         self.data_bind_port = get_random_port()
         self.options = options
         self.pid = 0
+        self.check_supported_platform()
 
     def __del__(self):
         self.stop()
@@ -72,6 +74,13 @@ class EmbeddedDB:
         if retries == 0:
             raise WeaviateStartUpError(
                 f"Embedded DB did not start listening on port {self.port} within {seconds} seconds"
+            )
+
+    def check_supported_platform(self):
+        if platform.system() in ["Darwin", "Windows"]:
+            raise WeaviateStartUpError(
+                f"{platform.system()} is not supported with EmbeddedDB. Please upvote the feature request if "
+                f"you want this: https://github.com/weaviate/weaviate-python-client/issues/239"
             )
 
     def start(self):
