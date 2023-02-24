@@ -80,6 +80,7 @@ class EmbeddedDB:
         self.ensure_weaviate_binary_exists()
         my_env = os.environ.copy()
         my_env.setdefault("AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED", "true")
+        my_env.setdefault("QUERY_DEFAULTS_LIMIT", "20")
         my_env.setdefault("PERSISTENCE_DATA_PATH", self.options.persistence_data_path)
         my_env.setdefault("CLUSTER_HOSTNAME", self.options.cluster_hostname)
         # Bug with weaviate requires setting gossip and data bind port
