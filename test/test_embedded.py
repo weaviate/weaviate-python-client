@@ -1,3 +1,4 @@
+from pathlib import Path
 import pytest
 import time
 import os
@@ -15,6 +16,14 @@ def test_embedded__init__():
 
 def test_embedded__init__non_default_port():
     assert EmbeddedDB(EmbeddedOptions(port=30666)).port == 30666
+
+
+def test_embedded_ensure_binary_exists(tmp_path):
+    bin_path = tmp_path / "notcreated-yet/bin/weaviate-embedded"
+    assert bin_path.is_file, False
+    embedded_db = EmbeddedDB(EmbeddedOptions(binary_path=str(bin_path)))
+    embedded_db.ensure_weaviate_binary_exists()
+    assert Path(embedded_db.options.binary_path).is_file, True
 
 
 @pytest.fixture(scope="session")

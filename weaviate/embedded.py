@@ -14,8 +14,8 @@ from weaviate.exceptions import WeaviateStartUpError
 
 @dataclass
 class EmbeddedOptions:
-    persistence_data_path: str = Path.home() / ".local/share/weaviate"
-    binary_path: str = Path.home() / ".local/bin/weaviate-embedded"
+    persistence_data_path: str = str((Path.home() / ".local/share/weaviate"))
+    binary_path: str = str((Path.home() / ".local/bin/weaviate-embedded"))
     binary_url: str = (
         "https://github.com/samos123/weaviate/releases/download/v1.17.3/weaviate-server"
     )
@@ -38,10 +38,15 @@ class EmbeddedDB:
         self.data_bind_port = get_random_port()
         self.options = options
         self.pid = 0
+        self.ensure_paths_exist()
         self.check_supported_platform()
 
     def __del__(self):
         self.stop()
+
+    def ensure_paths_exist(self):
+        Path(self.options.binary_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(self.options.persistence_data_path).mkdir(parents=True, exist_ok=True)
 
     def ensure_weaviate_binary_exists(self):
         file = Path(self.options.binary_path)
