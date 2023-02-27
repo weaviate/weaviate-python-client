@@ -240,6 +240,7 @@ class BaseConnection:
         self,
         path: str,
         weaviate_object: dict = None,
+        params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """
         Make a DELETE request to the Weaviate server instance.
@@ -251,6 +252,8 @@ class BaseConnection:
             e.g. '/meta' or '/objects', without version.
         weaviate_object : dict, optional
             Object is used as payload for DELETE request. By default None.
+        params : dict, optional
+            Additional request parameters, by default None
 
         Returns
         -------
@@ -271,12 +274,14 @@ class BaseConnection:
             headers=self._get_request_header(),
             timeout=self._timeout_config,
             proxies=self._proxies,
+            params=params,
         )
 
     def patch(
         self,
         path: str,
         weaviate_object: dict,
+        params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """
         Make a PATCH request to the Weaviate server instance.
@@ -288,7 +293,8 @@ class BaseConnection:
             e.g. '/meta' or '/objects', without version.
         weaviate_object : dict
             Object is used as payload for PATCH request.
-
+        params : dict, optional
+            Additional request parameters, by default None
         Returns
         -------
         requests.Response
@@ -308,12 +314,14 @@ class BaseConnection:
             headers=self._get_request_header(),
             timeout=self._timeout_config,
             proxies=self._proxies,
+            params=params,
         )
 
     def post(
         self,
         path: str,
         weaviate_object: dict,
+        params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """
         Make a POST request to the Weaviate server instance.
@@ -325,6 +333,8 @@ class BaseConnection:
             e.g. '/meta' or '/objects', without version.
         weaviate_object : dict
             Object is used as payload for POST request.
+        params : dict, optional
+            Additional request parameters, by default None
         external_url: Is an external (non-weaviate) url called
 
         Returns
@@ -345,12 +355,14 @@ class BaseConnection:
             headers=self._get_request_header(),
             timeout=self._timeout_config,
             proxies=self._proxies,
+            params=params,
         )
 
     def put(
         self,
         path: str,
         weaviate_object: dict,
+        params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """
         Make a PUT request to the Weaviate server instance.
@@ -362,7 +374,8 @@ class BaseConnection:
             e.g. '/meta' or '/objects', without version.
         weaviate_object : dict
             Object is used as payload for PUT request.
-
+        params : dict, optional
+            Additional request parameters, by default None
         Returns
         -------
         requests.Response
@@ -382,9 +395,12 @@ class BaseConnection:
             headers=self._get_request_header(),
             timeout=self._timeout_config,
             proxies=self._proxies,
+            params=params,
         )
 
-    def get(self, path: str, params: dict = None, external_url: bool = False) -> requests.Response:
+    def get(
+        self, path: str, params: Optional[Dict[str, Any]] = None, external_url: bool = False
+    ) -> requests.Response:
         """Make a GET request.
 
         Parameters
@@ -423,7 +439,11 @@ class BaseConnection:
             proxies=self._proxies,
         )
 
-    def head(self, path: str) -> requests.Response:
+    def head(
+        self,
+        path: str,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> requests.Response:
         """
         Make a HEAD request to the server.
 
@@ -432,6 +452,8 @@ class BaseConnection:
         path : str
             Sub-path to the resources. Must be a valid sub-path.
             e.g. '/meta' or '/objects', without version.
+        params : dict, optional
+            Additional request parameters, by default None
 
         Returns
         -------
@@ -451,6 +473,7 @@ class BaseConnection:
             headers=self._get_request_header(),
             timeout=self._timeout_config,
             proxies=self._proxies,
+            params=params,
         )
 
     @property

@@ -1,9 +1,7 @@
-from enum import auto
-
-from weaviate.util import BaseEnum
+from enum import Enum
 
 
-class ConsistencyLevel(str, BaseEnum):
-    ALL = auto()
-    ONE = auto()
-    QUORUM = auto()
+class ConsistencyLevel(str, Enum):
+    ALL = "ALL"
+    ONE = "ONE"
+    QUORUM = "QUORUM"

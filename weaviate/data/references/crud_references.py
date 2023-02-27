@@ -17,6 +17,7 @@ from weaviate.util import (
     get_valid_uuid,
     _capitalize_first_letter,
 )
+from weaviate.data.replication import ConsistencyLevel
 
 
 class Reference:
@@ -43,6 +44,7 @@ class Reference:
         to_uuid: str,
         from_class_name: Optional[str] = None,
         to_class_name: Optional[str] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
     ) -> None:
         """
         Remove a reference to another object. Equal to removing one direction of an edge from the
@@ -68,6 +70,8 @@ class Reference:
             STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
             versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
             by default None
+        consistency_level : Optional[ConsistencyLevel], optional
+            Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
 
         Examples
         --------
@@ -152,6 +156,9 @@ class Reference:
         """
 
         is_server_version_14 = self._connection.server_version >= "1.14"
+        params = None
+        if consistency_level is not None:
+            params = {"consistency_level": ConsistencyLevel(consistency_level).value}
 
         if (from_class_name is None or to_class_name is None) and is_server_version_14:
             warnings.warn(
@@ -207,7 +214,7 @@ class Reference:
             path = f"/objects/{from_uuid}/references/{from_property_name}"
 
         try:
-            response = self._connection.delete(path=path, weaviate_object=beacon)
+            response = self._connection.delete(path=path, weaviate_object=beacon, params=params)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Reference was not deleted.") from conn_err
         if response.status_code == 204:
@@ -221,6 +228,7 @@ class Reference:
         to_uuids: Union[list, str],
         from_class_name: Optional[str] = None,
         to_class_names: Union[list, str, None] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
     ) -> None:
         """
         Allows to update all references in that property with a new set of references.
@@ -259,6 +267,8 @@ class Reference:
             STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
             versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
             by default None
+        consistency_level : Optional[ConsistencyLevel], optional
+            Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
 
         Examples
         --------
@@ -341,6 +351,9 @@ class Reference:
         """
 
         is_server_version_14 = self._connection.server_version >= "1.14"
+        params = None
+        if consistency_level is not None:
+            params = {"consistency_level": ConsistencyLevel(consistency_level).value}
 
         if (from_class_name is None or to_class_names is None) and is_server_version_14:
             warnings.warn(
@@ -425,6 +438,7 @@ class Reference:
             response = self._connection.put(
                 path=path,
                 weaviate_object=beacons,
+                params=params,
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Reference was not updated.") from conn_err
@@ -439,6 +453,7 @@ class Reference:
         to_uuid: str,
         from_class_name: Optional[str] = None,
         to_class_name: Optional[str] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
     ) -> None:
         """
         Allows to link an object to an object uni-directionally.
@@ -473,6 +488,8 @@ class Reference:
             STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
             versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
             by default None
+        consistency_level : Optional[ConsistencyLevel], optional
+            Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
 
         Examples
         --------
@@ -533,6 +550,9 @@ class Reference:
         """
 
         is_server_version_14 = self._connection.server_version >= "1.14"
+        params = None
+        if consistency_level is not None:
+            params = {"consistency_level": ConsistencyLevel(consistency_level).value}
 
         if (from_class_name is None or to_class_name is None) and is_server_version_14:
             warnings.warn(
@@ -591,6 +611,7 @@ class Reference:
             response = self._connection.post(
                 path=path,
                 weaviate_object=beacon,
+                params=params,
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Reference was not added.") from conn_err
