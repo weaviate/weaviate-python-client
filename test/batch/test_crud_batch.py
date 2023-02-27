@@ -11,6 +11,7 @@ from weaviate.batch import Batch
 from weaviate.batch.crud_batch import WeaviateErrorRetryConf
 from weaviate.batch.requests import ObjectsBatchRequest, ReferenceBatchRequest
 from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.data.replication import ConsistencyLevel
 
 
 @pytest.mark.parametrize(
@@ -41,6 +42,7 @@ class TestBatch(unittest.TestCase):
         connection_error_retries: int = 3,
         batching_type: str = None,
         num_workers: int = 1,
+        consistency_level: ConsistencyLevel = None,
     ) -> None:
         """
         Check all configurable attributes of the Batch instance.
@@ -54,6 +56,7 @@ class TestBatch(unittest.TestCase):
         self.assertEqual(batch._connection_error_retries, connection_error_retries)
         self.assertEqual(batch._batching_type, batching_type)
         self.assertEqual(batch._num_workers, num_workers)
+        self.assertEqual(batch._consistency_level, consistency_level)
 
     # TEST SETTERS/GETTERS
 
@@ -917,6 +920,7 @@ class TestBatch(unittest.TestCase):
         mock_connection.post.assert_called_with(
             path="/batch/references",
             weaviate_object=[],
+            params=None,
         )
         self.assertEqual(mock_connection.post.call_count, 1)
 
@@ -925,10 +929,12 @@ class TestBatch(unittest.TestCase):
         mock_connection = mock_connection_func("post", status_code=200)
         batch = Batch(mock_connection)
         batch.timeout_retries = 2
+        batch.consistency_level = ConsistencyLevel.QUORUM
         batch._create_data("references", ReferenceBatchRequest())
         mock_connection.post.assert_called_with(
             path="/batch/references",
             weaviate_object=[],
+            params={"consistency_level": "QUORUM"},
         )
         self.assertEqual(mock_connection.post.call_count, 1)
 
@@ -950,12 +956,14 @@ class TestBatch(unittest.TestCase):
         ## test RequestsConnectionError
         mock_connection = mock_connection_func("post", side_effect=RequestsConnectionError("Test!"))
         batch = Batch(mock_connection)
+        batch.consistency_level = ConsistencyLevel.ONE
         with self.assertRaises(RequestsConnectionError) as error:
             batch._create_data("objects", ObjectsBatchRequest())
         check_error_message(self, error, requests_error_message)
         mock_connection.post.assert_called_with(
             path="/batch/objects",
             weaviate_object={"fields": ["ALL"], "objects": []},
+            params={"consistency_level": "ONE"},
         )
 
         ## test ReadTimeout, timeout_retries = 0
@@ -969,6 +977,7 @@ class TestBatch(unittest.TestCase):
         mock_connection.post.assert_called_with(
             path="/batch/references",
             weaviate_object=[],
+            params=None,
         )
         self.assertEqual(mock_connection.post.call_count, 1)
 
@@ -982,6 +991,7 @@ class TestBatch(unittest.TestCase):
         mock_connection.post.assert_called_with(
             path="/batch/objects",
             weaviate_object={"fields": ["ALL"], "objects": []},
+            params=None,
         )
         self.assertEqual(mock_connection.post.call_count, 3 + 1)
 
@@ -990,12 +1000,12 @@ class TestBatch(unittest.TestCase):
         mock_connection.timeout_config = (2, 100)
         batch = Batch(mock_connection)
         batch.connection_error_retries = 0
+        batch.consistency_level = ConsistencyLevel.ALL
         with self.assertRaises(RequestsConnectionError) as error:
             batch._create_data("references", ReferenceBatchRequest())
         check_startswith_error_message(self, error, requests_error_message)
         mock_connection.post.assert_called_with(
-            path="/batch/references",
-            weaviate_object=[],
+            path="/batch/references", weaviate_object=[], params={"consistency_level": "ALL"}
         )
         self.assertEqual(mock_connection.post.call_count, 1)
 
@@ -1009,6 +1019,7 @@ class TestBatch(unittest.TestCase):
         mock_connection.post.assert_called_with(
             path="/batch/objects",
             weaviate_object={"fields": ["ALL"], "objects": []},
+            params=None,
         )
         self.assertEqual(mock_connection.post.call_count, 3 + 1)
 
@@ -1025,9 +1036,9 @@ class TestBatch(unittest.TestCase):
             raise err
 
         mock_connection = mock_connection_func(
-            "post", side_effect=lambda path, weaviate_object: alternating_errors()
+            "post", side_effect=lambda path, weaviate_object, params: alternating_errors()
         )
-        mock_connection.timeout_config = (2, 100)
+        mock_connection.timeout_config = (2, 10)
         batch = Batch(mock_connection)
         batch.connection_error_retries = 2
         batch.timeout_retries = 2
@@ -1037,6 +1048,7 @@ class TestBatch(unittest.TestCase):
         mock_connection.post.assert_called_with(
             path="/batch/objects",
             weaviate_object={"fields": ["ALL"], "objects": []},
+            params=None,
         )
         self.assertEqual(mock_connection.post.call_count, 2 + 2 + 1)
 
@@ -1049,7 +1061,13 @@ class TestBatch(unittest.TestCase):
         mock_connection.post.assert_called_with(
             path="/batch/references",
             weaviate_object=[],
+            params=None,
         )
+
+        batch = Batch(mock_connection)
+        with self.assertRaises(ValueError) as error:
+            batch.consistency_level = 1
+        check_startswith_error_message(self, error, "1 is not a valid ConsistencyLevel")
 
     @patch("weaviate.batch.crud_batch.Batch._auto_create")
     def test_configure_call(self, mock_auto_create):
@@ -1059,13 +1077,17 @@ class TestBatch(unittest.TestCase):
 
         batch = Batch(mock_connection_func())
         self.check_instance(batch)
-
+        #
+        with self.assertRaises(ValueError) as error:
+            batch.configure(consistency_level=1)
+        check_startswith_error_message(self, error, "1 is not a valid ConsistencyLevel")
         #######################################################################
         # batching_type: None -> 'fixed'
         return_batch = batch.configure(
             batch_size=100,
             creation_time=20.76,
             timeout_retries=2,
+            consistency_level=ConsistencyLevel.ALL,
         )
         self.assertEqual(batch, return_batch)
         self.check_instance(
@@ -1074,6 +1096,7 @@ class TestBatch(unittest.TestCase):
             creation_time=20.76,
             timeout_retries=2,
             batching_type="fixed",
+            consistency_level="ALL",
         )
         mock_auto_create.assert_called()
         mock_auto_create.reset_mock()
@@ -1106,6 +1129,7 @@ class TestBatch(unittest.TestCase):
             creation_time=12.5,
             timeout_retries=10,
             dynamic=True,
+            consistency_level="QUORUM",
         )
         self.assertEqual(batch, return_batch)
         self.check_instance(
@@ -1116,6 +1140,7 @@ class TestBatch(unittest.TestCase):
             batching_type=None,
             recom_num_ref=200,  # does not change if not None
             recom_num_obj=200,  # does not change if not None
+            consistency_level=ConsistencyLevel.QUORUM,
         )
         mock_auto_create.assert_not_called()
 

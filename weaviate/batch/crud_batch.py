@@ -16,6 +16,8 @@ from requests import ReadTimeout, Response
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
+from weaviate.data.replication import ConsistencyLevel
+
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest, BatchResponse
 from ..error_msgs import (
     BATCH_REF_DEPRECATION_NEW_V14_CLS_NS_W,
@@ -268,7 +270,7 @@ class Batch:
         self._connection_error_retries = 3
         self._batching_type = None
         self._num_workers = 1
-
+        self._consistency_level = None
         # thread pool executor
         self._executor: Optional[BatchExecutor] = None
 
@@ -282,6 +284,7 @@ class Batch:
         callback: Optional[Callable[[dict], None]] = check_batch_result,
         dynamic: bool = False,
         num_workers: int = 1,
+        consistency_level: Optional[ConsistencyLevel] = None,
     ) -> "Batch":
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
@@ -339,6 +342,7 @@ class Batch:
             callback=callback,
             dynamic=dynamic,
             num_workers=num_workers,
+            consistency_level=consistency_level,
         )
 
     def __call__(
@@ -351,6 +355,7 @@ class Batch:
         callback: Optional[Callable[[dict], None]] = check_batch_result,
         dynamic: bool = False,
         num_workers: int = 1,
+        consistency_level: Optional[ConsistencyLevel] = None,
     ) -> "Batch":
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
@@ -398,6 +403,7 @@ class Batch:
         ValueError
             If the value of one of the arguments is wrong.
         """
+        self.consistency_level = consistency_level
         if creation_time is not None:
             _check_positive_num(creation_time, "creation_time", Real)
             self._creation_time = creation_time
@@ -602,12 +608,19 @@ class Batch:
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
+
+        params = None
+        if self._consistency_level is not None:
+            params = {"consistency_level": self._consistency_level}
+
         try:
             timeout_count = connection_count = batch_error_count = 0
             while True:
                 try:
                     response = self._connection.post(
-                        path="/batch/" + data_type, weaviate_object=batch_request.get_request_body()
+                        path="/batch/" + data_type,
+                        weaviate_object=batch_request.get_request_body(),
+                        params=params,
                     )
                 except ReadTimeout as error:
                     batch_request = self._batch_readd_after_timeout(data_type, batch_request)
@@ -1045,7 +1058,6 @@ class Batch:
             return
         timeout_occurred = False
         for done_future in as_completed(self._future_pool):
-
             response_objects, nr_objects = done_future.result()
 
             # handle objects response
@@ -1079,7 +1091,6 @@ class Batch:
 
         timeout_occurred = False
         for done_future in as_completed(reference_future_pool):
-
             response_references, nr_references = done_future.result()
 
             # handle references response
@@ -1228,6 +1239,10 @@ class Batch:
         if not isinstance(dry_run, bool):
             raise TypeError(f"'dry_run' must be of type bool. Given type: {type(class_name)}.")
 
+        params = None
+        if self._consistency_level is not None:
+            params = {"consistency_level": self._consistency_level}
+
         payload = {
             "match": {
                 "class": class_name,
@@ -1241,6 +1256,7 @@ class Batch:
             response = self._connection.delete(
                 path="/batch/objects",
                 weaviate_object=payload,
+                params=params,
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Batch delete was not successful.") from conn_err
@@ -1401,7 +1417,6 @@ class Batch:
 
     @batch_size.setter
     def batch_size(self, value: Optional[int]) -> None:
-
         if value is None:
             self._batch_size = None
             self._batching_type = None
@@ -1444,7 +1459,6 @@ class Batch:
 
     @dynamic.setter
     def dynamic(self, value: bool) -> None:
-
         if self._batching_type is None:
             return
 
@@ -1455,6 +1469,14 @@ class Batch:
         else:
             self._batching_type = "fixed"
         self._auto_create()
+
+    @property
+    def consistency_level(self, value: Union[ConsistencyLevel, None]) -> Union[str, None]:
+        return self._consistency_level
+
+    @consistency_level.setter
+    def consistency_level(self, x: Union[ConsistencyLevel, None]) -> None:
+        self._consistency_level = ConsistencyLevel(x).value if x else None
 
     @property
     def recommended_num_objects(self) -> Optional[int]:
@@ -1539,7 +1561,6 @@ class Batch:
 
     @creation_time.setter
     def creation_time(self, value: Real) -> None:
-
         _check_positive_num(value, "creation_time", Real)
         if self._recommended_num_references is not None:
             self._recommended_num_references = round(
@@ -1580,7 +1601,6 @@ class Batch:
 
     @timeout_retries.setter
     def timeout_retries(self, value: int) -> None:
-
         _check_non_negative(value, "timeout_retries", int)
         self._timeout_retries = value
 
