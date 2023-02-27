@@ -609,9 +609,7 @@ class Batch:
             If weaviate reports a none OK status.
         """
 
-        params = None
-        if self._consistency_level is not None:
-            params = {"consistency_level": self._consistency_level}
+        params = {"consistency_level": self._consistency_level} if self._consistency_level else None
 
         try:
             timeout_count = connection_count = batch_error_count = 0
@@ -1471,11 +1469,11 @@ class Batch:
         self._auto_create()
 
     @property
-    def consistency_level(self, value: Union[ConsistencyLevel, None]) -> Union[str, None]:
+    def consistency_level(self, value: Optional[Union[ConsistencyLevel, None]]) -> Union[str, None]:
         return self._consistency_level
 
     @consistency_level.setter
-    def consistency_level(self, x: Union[ConsistencyLevel, None]) -> None:
+    def consistency_level(self, x: Optional[Union[ConsistencyLevel, None]]) -> None:
         self._consistency_level = ConsistencyLevel(x).value if x else None
 
     @property
