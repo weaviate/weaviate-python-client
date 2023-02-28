@@ -1,7 +1,6 @@
 """
 GraphQL `Get` command.
 """
-import uuid
 from dataclasses import dataclass
 from json import dumps
 from typing import List, Union, Optional, Dict, Tuple
@@ -19,7 +18,7 @@ from weaviate.gql.filter import (
     Sort,
 )
 from weaviate.types import UUID
-from weaviate.util import image_encoder_b64, _capitalize_first_letter
+from weaviate.util import image_encoder_b64, _capitalize_first_letter, get_valid_uuid
 from weaviate.warnings import _Warnings
 
 
@@ -116,9 +115,7 @@ class GetBuilder(GraphQL):
         if not isinstance(after_uuid, UUID.__args__):  # __args__ is workaround for python 3.8
             raise TypeError("after_uuid must be of type UUID (str or uuid.UUID)")
 
-        if isinstance(after_uuid, str):
-            after_uuid = uuid.UUID(after_uuid)
-        self._after = f'after: "{after_uuid}"'
+        self._after = f'after: "{get_valid_uuid(after_uuid)}"'
         self._contains_filter = True
         return self
 

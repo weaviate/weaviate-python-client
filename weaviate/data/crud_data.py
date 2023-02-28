@@ -570,7 +570,7 @@ class DataObject:
             params["limit"] = limit
 
         if after is not None:
-            params["after"] = after
+            params["after"] = get_valid_uuid(after)
 
         if offset is not None:
             _check_positive_num(offset, "offset", int, include_zero=True)
