@@ -2,8 +2,8 @@ import pytest
 
 import weaviate
 
-GIT_HASH = "29e987d"
-SERVER_VERSION = "1.17.0-prealpha"
+GIT_HASH = "6ba9871"
+SERVER_VERSION = "1.18.0-alpha.0"
 NODE_NAME = "node1"
 NUM_OBJECT = 10
 
@@ -23,6 +23,7 @@ schema = {
 @pytest.fixture(scope="module")
 def client():
     client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
     yield client
     client.schema.delete_all()
 

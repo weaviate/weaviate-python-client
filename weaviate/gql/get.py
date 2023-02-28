@@ -17,7 +17,8 @@ from weaviate.gql.filter import (
     NearImage,
     Sort,
 )
-from weaviate.util import image_encoder_b64, _capitalize_first_letter
+from weaviate.types import UUID
+from weaviate.util import image_encoder_b64, _capitalize_first_letter, get_valid_uuid
 from weaviate.warnings import _Warnings
 
 
@@ -100,11 +101,23 @@ class GetBuilder(GraphQL):
         self._where: Optional[Where] = None  # To store the where filter if it is added
         self._limit: Optional[str] = None  # To store the limit filter if it is added
         self._offset: Optional[str] = None  # To store the offset filter if it is added
+        self._after: Optional[str] = None  # To store the offset filter if it is added
         self._near_ask: Optional[Filter] = None  # To store the `near`/`ask` clause if it is added
         self._contains_filter = False  # true if any filter is added
         self._sort: Optional[Sort] = None
         self._bm25: Optional[BM25] = None
         self._hybrid: Optional[Hybrid] = None
+
+    def with_after(self, after_uuid: UUID):
+        """Can be used to extract all elements by giving the last ID from the previous "page".
+
+        Requires limit to be set but cannot be combined with any other filters or search. Part of the Cursor API."""
+        if not isinstance(after_uuid, UUID.__args__):  # __args__ is workaround for python 3.8
+            raise TypeError("after_uuid must be of type UUID (str or uuid.UUID)")
+
+        self._after = f'after: "{get_valid_uuid(after_uuid)}"'
+        self._contains_filter = True
+        return self
 
     def with_where(self, content: dict) -> "GetBuilder":
         """
@@ -995,6 +1008,9 @@ class GetBuilder(GraphQL):
                 query += str(self._bm25)
             if self._hybrid is not None:
                 query += str(self._hybrid)
+            if self._after is not None:
+                query += self._after
+
             query += ")"
 
         additional_props = self._additional_to_str()

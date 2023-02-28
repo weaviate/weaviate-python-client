@@ -139,6 +139,25 @@ def test_query_get_with_limit(people_schema, limit: Optional[int]):
     client.schema.delete_all()
 
 
+def test_query_get_with_after(people_schema):
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+    client.schema.create(people_schema)
+
+    num_objects = 20
+    for i in range(num_objects):
+        with client.batch as batch:
+            batch.add_data_object({"name": f"name{i}"}, "Person")
+        batch.flush()
+
+    full_results = client.data_object.get(class_name="Person")
+    for i, person in enumerate(full_results["objects"][:-1]):
+        results = client.data_object.get(class_name="Person", limit=1, after=person["id"])
+        assert full_results["objects"][i + 1]["id"] == results["objects"][0]["id"]
+
+    client.schema.delete_all()
+
+
 @pytest.mark.parametrize("offset", [None, 0, 1, 5, 20, 50])
 def test_query_get_with_offset(people_schema, offset: Optional[int]):
     client = weaviate.Client("http://localhost:8080")

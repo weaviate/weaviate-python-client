@@ -4,7 +4,6 @@ Batch class definitions.
 import sys
 import threading
 import time
-import uuid
 import warnings
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -17,7 +16,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
-
+from weaviate.types import UUID
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest, BatchResponse
 from ..error_msgs import (
     BATCH_REF_DEPRECATION_NEW_V14_CLS_NS_W,
@@ -80,9 +79,6 @@ class WeaviateErrorRetryConf:
 
         if self.errors_to_include is not None and len(self.errors_to_include) == 0:
             raise ValueError("errors_to_include has 0 entries and no error will be retried.")
-
-
-UUID = Union[str, uuid.UUID]
 
 
 class BatchExecutor(ThreadPoolExecutor):
