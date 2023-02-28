@@ -113,7 +113,7 @@ class GetBuilder(GraphQL):
         """Can be used to extract all elements by giving the last ID from the previous "page".
 
         Requires limit to be set but cannot be combined with any other filters or search. Part of the Cursor API."""
-        if not isinstance(after_uuid, UUID):
+        if not isinstance(after_uuid, UUID.__args__):  # __args__ is workaround for python 3.8
             raise TypeError("after_uuid must be of type UUID (str or uuid.UUID)")
 
         if isinstance(after_uuid, str):
