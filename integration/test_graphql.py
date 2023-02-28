@@ -1,4 +1,5 @@
 import os
+import uuid
 
 import pytest
 
@@ -18,37 +19,48 @@ schema = {
     ]
 }
 
+SHIPS = [
+    {
+        "props": {"name": "HMS British Name", "size": 5, "description": "Super long description"},
+        "id": uuid.uuid4(),
+    },
+    {
+        "props": {
+            "name": "The dragon ship",
+            "size": 20,
+            "description": "Interesting things about dragons",
+        },
+        "id": uuid.uuid4(),
+    },
+    {
+        "props": {"name": "Blackbeard", "size": 43, "description": "Background info about movies"},
+        "id": uuid.uuid4(),
+    },
+    {"props": {"name": "Titanic", "size": 1, "description": "Everyone knows"}, "id": uuid.uuid4()},
+    {
+        "props": {"name": "Artemis", "size": 34, "description": "Name from some story"},
+        "id": uuid.uuid4(),
+    },
+    {
+        "props": {
+            "name": "The Crusty Crab",
+            "size": 303,
+            "description": "sponges, sponges, sponges",
+        },
+        "id": uuid.uuid4(),
+    },
+]
+
 
 @pytest.fixture(scope="module")
 def client():
     client = weaviate.Client("http://localhost:8080")
     client.schema.create(schema)
     with client.batch as batch:
-        batch.add_data_object(
-            {"name": "HMS British Name", "size": 5, "description": "Super long description"}, "Ship"
-        )
-        batch.add_data_object(
-            {
-                "name": "The dragon ship",
-                "size": 20,
-                "description": "Interesting things about dragons",
-            },
-            "Ship",
-        )
-        batch.add_data_object(
-            {"name": "Blackbeard", "size": 43, "description": "Background info about movies"},
-            "Ship",
-        )
-        batch.add_data_object(
-            {"name": "Titanic", "size": 1, "description": "Everyone knows"}, "Ship"
-        )
-        batch.add_data_object(
-            {"name": "Artemis", "size": 34, "description": "Name from some story"}, "Ship"
-        )
-        batch.add_data_object(
-            {"name": "The Crusty Crab", "size": 303, "description": "sponges, sponges, sponges"},
-            "Ship",
-        )
+        for ship in SHIPS:
+
+            batch.add_data_object(ship["props"], "Ship", ship["id"])
+
         batch.flush()
 
     yield client
@@ -68,6 +80,29 @@ def test_get_data(client):
         if obj["name"] == "Titanic":
             d_found = True
     assert a_found and d_found and len(objects) == 2
+
+
+def test_get_data_after(client):
+    full_results = client.query.get("Ship", ["name"]).with_additional(["id"]).do()
+    for i, ship in enumerate(full_results["data"]["Get"]["Ship"][:-1]):
+        result = (
+            client.query.get("Ship", ["name"])
+            .with_additional(["id"])
+            .with_limit(1)
+            .with_after(ship["_additional"]["id"])
+            .do()
+        )
+        assert (
+            result["data"]["Get"]["Ship"][0]["_additional"]["id"]
+            == full_results["data"]["Get"]["Ship"][i + 1]["_additional"]["id"]
+        )
+
+
+def test_get_data_after_wrong_types(client):
+    with pytest.raises(TypeError):
+        client.query.get("Ship", ["name"]).with_additional(["id"]).with_limit(1).with_after(
+            1234
+        ).do()
 
 
 def test_aggregate_data(client):
