@@ -15,6 +15,7 @@ from weaviate.exceptions import (
     ObjectAlreadyExistsException,
     UnexpectedStatusCodeException,
 )
+from weaviate.types import UUID
 from weaviate.util import (
     _get_dict_from_object,
     get_vector,
@@ -460,6 +461,7 @@ class DataObject:
         node_name: Optional[str] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
         limit: Optional[int] = None,
+        after: Optional[UUID] = None,
         offset: Optional[int] = None,
         sort: Optional[Dict[str, Union[str, bool, List[bool], List[str]]]] = None,
     ) -> List[dict]:
@@ -492,6 +494,9 @@ class DataObject:
         limit: Optional[int], optional
             The maximum number of data objects to return.
             by default None, which uses the weaviate default of 100 entries
+        after: Optional[UUID], optional
+           Can be used to extract all elements by giving the last ID from the previous "page". Requires limit to be set
+           but cannot be combined with any other filters or search. Part of the Cursor API.
         offset: Optional[int], optional
             The offset of objects returned, i.e. the starting index of the returned objects. Should be
             used in conjunction with the 'limit' parameter.
@@ -563,6 +568,9 @@ class DataObject:
         if limit is not None:
             _check_positive_num(limit, "limit", int, include_zero=False)
             params["limit"] = limit
+
+        if after is not None:
+            params["after"] = after
 
         if offset is not None:
             _check_positive_num(offset, "offset", int, include_zero=True)
