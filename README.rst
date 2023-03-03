@@ -1,6 +1,6 @@
 Weaviate python client
 ======================
-.. image:: https://raw.githubusercontent.com/semi-technologies/weaviate/19de0956c69b66c5552447e84d016f4fe29d12c9/docs/assets/weaviate-logo.png
+.. image:: https://raw.githubusercontent.com/weaviate/weaviate/19de0956c69b66c5552447e84d016f4fe29d12c9/docs/assets/weaviate-logo.png
     :width: 180
     :align: right
     :alt: Weaviate logo
@@ -38,15 +38,15 @@ Here are some articles on Weaviate:
 Documentation
 -------------
 
-- `Documentation <https://weaviate-python-client.rtfd.io>`_
-- Examples on how to use `weaviate-python` can also be found `here <https://weaviate.io/developers/weaviate/current/client-libraries/python.html>`_.
+- `Documentation <https://weaviate-python-client.readthedocs.io>`_
+- More examples can be found at `weaviate.io <https://weaviate.io/developers/weaviate/client-libraries/python>`_.
 
 Support
 -------
 
 - Use our `Slack Channel <https://join.slack.com/t/weaviate/shared_invite/zt-goaoifjr-o8FuVz9b1HLzhlUfyfddhw>`_ for support or any other question.
 - Use the ``weaviate`` tag on `StackOverflow <https://stackoverflow.com/questions/tagged/weaviate>`_  for questions.
-- For bugs and/or problems with the package submit a Github `issue <https://github.com/weaviate/weaviate-python-client/issues>`_.
+- For bugs and/or problems with the package, submit a GitHub `issue <https://github.com/weaviate/weaviate-python-client/issues>`_.
 
 Contributing
 ------------
