@@ -32,7 +32,6 @@ def get_random_port() -> int:
 
 
 class EmbeddedDB:
-    # TODO add a stop function that gets called when python process exits
     def __init__(self, options: EmbeddedOptions):
         self.port = options.port
         self.data_bind_port = get_random_port()
