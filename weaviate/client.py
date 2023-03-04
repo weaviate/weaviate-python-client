@@ -132,7 +132,9 @@ class Client:
         if embedded_options is None and not isinstance(url, str):
             raise TypeError(f"URL is expected to be string but is {type(url)}")
         if embedded_options is not None and isinstance(url, str) and len(url) > 0:
-            raise TypeError(f"URL is not expected to be set when using embedded_options but URL was {url}")
+            raise TypeError(
+                f"URL is not expected to be set when using embedded_options but URL was {url}"
+            )
         if embedded_options is not None:
             embedded_db = EmbeddedDB(options=embedded_options)
             embedded_db.start()
