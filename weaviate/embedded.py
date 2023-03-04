@@ -12,10 +12,14 @@ import socket
 from weaviate.exceptions import WeaviateStartUpError
 
 
+default_binary_path = str((Path.home() / ".cache/weaviate-embedded"))
+default_persistence_data_path = str((Path.home() / ".local/share/weaviate"))
+
+
 @dataclass
 class EmbeddedOptions:
-    persistence_data_path: str = str((Path.home() / ".local/share/weaviate"))
-    binary_path: str = str((Path.home() / ".local/bin/weaviate-embedded"))
+    persistence_data_path: str = os.environ.get("XDG_DATA_HOME", default_persistence_data_path)
+    binary_path: str = os.environ.get("XDG_CACHE_HOME", default_binary_path)
     binary_url: str = (
         "https://github.com/samos123/weaviate/releases/download/v1.17.3/weaviate-server"
     )
