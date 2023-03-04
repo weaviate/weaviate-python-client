@@ -50,13 +50,13 @@ class Client:
     def __init__(
         self,
         url: Optional[str] = None,
-        embedded_options: Optional[EmbeddedOptions] = None,
         auth_client_secret: Optional[AuthCredentials] = None,
         timeout_config: Union[Tuple[Real, Real], Real] = (10, 60),
         proxies: Union[dict, str, None] = None,
         trust_env: bool = False,
         additional_headers: Optional[dict] = None,
         startup_period: Optional[int] = 5,
+        embedded_options: Optional[EmbeddedOptions] = None,
     ):
         """
         Initialize a Client class instance.
@@ -94,7 +94,10 @@ class Client:
         startup_period : int or None
             How long the client will wait for weaviate to start before raising a RequestsConnectionError.
             If None the client will not wait at all. Default timeout is 5s.
-
+        embedded_options : weaviate.embedded.EmbeddedOptions or None, optional
+            Create an embedded Weaviate cluster inside the client
+            - You can pass weaviate.embedded.EmbeddedOptions() with default values
+            - Take a look at the attributes of weaviate.embedded.EmbeddedOptions to see what is configurable
         Examples
         --------
         Without Auth.
@@ -114,6 +117,11 @@ class Client:
         ...     url = 'http://localhost:8080',
         ...     auth_client_secret = my_credentials
         ... )
+
+        Creating a client with an embedded database:
+
+        >>> from weaviate.embedded import EmbeddedOptions
+        >>> client = Client(embedded_options=EmbeddedOptions())
 
         Raises
         ------
