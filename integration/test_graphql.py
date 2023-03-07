@@ -55,6 +55,7 @@ SHIPS = [
 @pytest.fixture(scope="module")
 def client():
     client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
     client.schema.create(schema)
     with client.batch as batch:
         for ship in SHIPS:
@@ -103,6 +104,31 @@ def test_get_data_after_wrong_types(client):
         client.query.get("Ship", ["name"]).with_additional(["id"]).with_limit(1).with_after(
             1234
         ).do()
+
+
+def test_multi_get_data(client, people_schema):
+    """Test GraphQL's MultiGet clause."""
+    client.schema.create(people_schema)
+    client.data_object.create(
+        {
+            "name": "John",
+        },
+        "Person",
+    )
+    result = client.query.multi_get(
+        [
+            client.query.get("Ship", ["name"])
+            .with_alias("one")
+            .with_sort({"path": ["name"], "order": "asc"}),
+            client.query.get("Ship", ["size"])
+            .with_alias("two")
+            .with_sort({"path": ["size"], "order": "asc"}),
+            client.query.get("Person", ["name"]),
+        ]
+    ).do()["data"]["Get"]
+    assert result["one"][0]["name"] == "Artemis"
+    assert result["two"][0]["size"] == 1
+    assert result["Person"][0]["name"] == "John"
 
 
 def test_aggregate_data(client):

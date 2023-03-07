@@ -1,7 +1,7 @@
 """
 GraphQL query module.
 """
-from typing import List, Union
+from typing import List, Union, Optional
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -9,6 +9,7 @@ from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 from .aggregate import AggregateBuilder
 from .get import GetBuilder
+from .multi_get import MultiGetBuilder
 
 
 class Query:
@@ -50,6 +51,28 @@ class Query:
         """
 
         return GetBuilder(class_name, properties, self._connection)
+
+    def multi_get(
+        self,
+        get: Optional[List],
+    ) -> MultiGetBuilder:
+        """
+        Instantiate a GetBuilder for GraphQL `get` requests.
+
+        Parameters
+        ----------
+        class_name : str
+            Class name of the objects to interact with.
+        properties : list of str, str or None
+            Properties of the objects to get, by default None
+
+        Returns
+        -------
+        GetBuilder
+            A GetBuilder to make GraphQL `get` requests from weaviate.
+        """
+
+        return MultiGetBuilder(get, self._connection)
 
     def aggregate(self, class_name: str) -> AggregateBuilder:
         """

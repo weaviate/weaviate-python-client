@@ -107,6 +107,7 @@ class GetBuilder(GraphQL):
         self._sort: Optional[Sort] = None
         self._bm25: Optional[BM25] = None
         self._hybrid: Optional[Hybrid] = None
+        self._alias: Optional[str] = None
 
     def with_after(self, after_uuid: UUID):
         """Can be used to extract all elements by giving the last ID from the previous "page".
@@ -979,6 +980,12 @@ class GetBuilder(GraphQL):
 
         self._additional["__one_level"].add(f'generate({task_and_prompt}){{{" ".join(results)}}}')
 
+    def with_alias(
+        self,
+        alias: str,
+    ):
+
+        self._alias = alias
         return self
 
     def build(self) -> str:
@@ -990,9 +997,12 @@ class GetBuilder(GraphQL):
         str
             The GraphQL query as a string.
         """
+        query = "{Get{"
 
-        query = "{Get{" + self._class_name
+        if self._alias is not None:
+            query += self._alias + ": "
         if self._contains_filter:
+            query += self._class_name
             query += "("
             if self._where is not None:
                 query += str(self._where)
