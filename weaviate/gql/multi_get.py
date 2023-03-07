@@ -43,7 +43,7 @@ class MultiGetBuilder(GraphQL):
         TypeError
             If 'get_builder' is of wrong type.
         """
-
+        get_names = []
         super().__init__(connection)
         if not isinstance(get_builder, List):
             raise TypeError(f"get_builder must be of type List but was {type(get_builder)}")
@@ -51,6 +51,12 @@ class MultiGetBuilder(GraphQL):
             if not isinstance(get, GetBuilder):
                 raise TypeError(
                     f"All objects in 'get_builder' must be of type 'GetBuilder' but at least one object was {type(get)}"
+                )
+            if get.name not in get_names:
+                get_names.append(get.name)
+            else:
+                raise TypeError(
+                    f"Objects in 'get_builder' can not have duplicate names but two were named: '{get.name}'. Queries can be renamed using an alias."
                 )
         self.get_builder: List[GetBuilder] = get_builder
 

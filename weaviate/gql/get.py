@@ -195,6 +195,10 @@ class GetBuilder(GraphQL):
         self._contains_filter = True
         return self
 
+    @property
+    def name(self) -> str:
+        return self._alias if self._alias else self._class_name
+
     def with_near_text(self, content: dict) -> "GetBuilder":
         """
         Set `nearText` filter. This filter can be used with text modules (text2vec).
@@ -984,12 +988,12 @@ class GetBuilder(GraphQL):
         self,
         alias: str,
     ):
-        """Gives an alias for the 'class_name'. Needs to be used if 'multi_get' requests the same 'class_name' twice.
+        """Gives an alias for the query. Needs to be used if 'multi_get' requests the same 'class_name' twice.
 
         Parameters
         ----------
         alias: str
-            The alias for the 'class_name'.
+            The alias for the query.
         """
 
         self._alias = alias
