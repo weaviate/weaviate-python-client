@@ -1,6 +1,18 @@
 Changelog
 =========
 
+Version 3.12.1
+--------------
+This minor version includes:
+
+- Extend CRUD operations for single data objects and reference with consistency level.
+
+- Extend batch operations with consistency level.
+
+- Add Cursor api.
+
+- Add support for azure backup module.
+
 Version 3.12.0
 --------------
 This minor version includes:
