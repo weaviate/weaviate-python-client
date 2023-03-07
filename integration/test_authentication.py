@@ -38,7 +38,7 @@ def wait_for_weaviate(url: str):
     except (RequestsHTTPError, RequestsConnectionError):
         pass
     raise WeaviateStartUpError(
-        f"Weaviate did not start up in 5 seconds. Either the Weaviate URL {url} is wrong or Weaivate did not start up in the interval given in 'startup_period'."
+        f"Weaviate did not start up in 5 seconds. Either the Weaviate URL {url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
     )
 
 
