@@ -1,11 +1,6 @@
-<<<<<<< HEAD
-import os
 import uuid
-
-=======
 import json
 import os
->>>>>>> e2f0e97 (added documentation)
 import pytest
 
 import weaviate
