@@ -1,7 +1,7 @@
 Changelog
 =========
 
-Version 3.12.1
+Version 3.13.0
 --------------
 This minor version includes:
 
