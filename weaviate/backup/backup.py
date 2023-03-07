@@ -17,6 +17,7 @@ STORAGE_NAMES = {
     "filesystem",
     "s3",
     "gcs",
+    "azure",
 }
 
 
@@ -56,7 +57,7 @@ class Backup:
             NOTE: Case insensitive.
         backend : str
             The backend storage where to create the backup. Currently available options are:
-                "filesystem", "s3" and "gsc".
+                "filesystem", "s3", "gcs" and "azure".
             NOTE: Case insensitive.
         include_classes : Union[List[str], str, None], optional
             The class/list of classes to be included in the backup. If not specified all classes
@@ -145,7 +146,7 @@ class Backup:
             NOTE: Case insensitive.
         backend : str
             The backend storage where the backup was created. Currently available options are:
-                "filesystem", "s3" and "gsc".
+                "filesystem", "s3", "gcs" and "azure".
             NOTE: Case insensitive.
 
         Returns
@@ -191,7 +192,7 @@ class Backup:
             NOTE: Case insensitive.
         backend : str
             The backend storage from where to restore the backup. Currently available options are:
-                "filesystem", "s3" and "gsc".
+                "filesystem", "s3", "gcs" and "azure".
             NOTE: Case insensitive.
         include_classes : Union[List[str], str, None], optional
             The class/list of classes to be included in the backup restore. If not specified all
@@ -275,7 +276,7 @@ class Backup:
             NOTE: Case insensitive.
         backend : str
             The backend storage where to create the backup. Currently available options are:
-                "filesystem", "s3" and "gsc".
+                "filesystem", "s3", "gcs" and "azure".
             NOTE: Case insensitive.
 
         Returns
@@ -319,7 +320,7 @@ def _get_and_validate_create_restore_arguments(
         The identifier name of the backup.
     backend : str
         The backend storage. Currently available options are:
-            "filesystem", "s3" and "gsc".
+            "filesystem", "s3", "gcs" and "azure".
     include_classes : Union[List[str], str, None]
         The class/list of classes to be included in the backup. If not specified all classes
         will be included. Either `include_classes` or `exclude_classes` can be set.
@@ -395,7 +396,7 @@ def _get_and_validate_get_status(backup_id: str, backend: str) -> Tuple[str, str
         NOTE: Case insensitive.
     backend : str
         The backend storage where to create the backup. Currently available options are:
-            "filesystem", "s3" and "gsc".
+            "filesystem", "s3", "gcs" and "azure".
         NOTE: Case insensitive.
 
     Returns
