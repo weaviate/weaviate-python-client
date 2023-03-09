@@ -3,6 +3,7 @@ import platform
 import signal
 import stat
 import subprocess
+import tarfile
 import time
 from dataclasses import dataclass
 import urllib.request
@@ -20,9 +21,7 @@ default_persistence_data_path = str((Path.home() / ".local/share/weaviate"))
 class EmbeddedOptions:
     persistence_data_path: str = os.environ.get("XDG_DATA_HOME", default_persistence_data_path)
     binary_path: str = os.environ.get("XDG_CACHE_HOME", default_binary_path)
-    binary_url: str = (
-        "https://github.com/samos123/weaviate/releases/download/v1.17.3/weaviate-server"
-    )
+    binary_url: str = "https://github.com/weaviate/weaviate/releases/download/v1.18.0/weaviate-v1.18.0-linux-amd64.tar.gz"
     port: int = 6666
     cluster_hostname: str = "embedded"
 
@@ -58,7 +57,13 @@ class EmbeddedDB:
                 f"Binary {self.options.binary_path} did not exist. "
                 f"Downloading binary from {self.options.binary_url}"
             )
-            urllib.request.urlretrieve(self.options.binary_url, self.options.binary_path)
+            urllib.request.urlretrieve(self.options.binary_url, self.options.binary_path + ".tgz")
+            binary_tar = tarfile.open(self.options.binary_path + ".tgz")
+            binary_tar.extract("weaviate", path=Path(self.options.binary_path).parent)
+            (Path(self.options.binary_path).parent / "weaviate").rename(
+                Path(self.options.binary_path)
+            )
+
             # Ensuring weaviate binary is executable
             file.chmod(file.stat().st_mode | stat.S_IEXEC)
 

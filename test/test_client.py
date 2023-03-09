@@ -114,13 +114,11 @@ class TestWeaviateClient(unittest.TestCase):
             )
 
         with patch(
-                "weaviate.client.Connection",
-                Mock(side_effect=lambda **kwargs: Mock(timeout_config=kwargs["timeout_config"])),
+            "weaviate.client.Connection",
+            Mock(side_effect=lambda **kwargs: Mock(timeout_config=kwargs["timeout_config"])),
         ) as mock_obj:
             with patch("weaviate.embedded.EmbeddedDB.start") as mocked_start:
-                Client(
-                    embedded_options=EmbeddedOptions()
-                )
+                Client(embedded_options=EmbeddedOptions())
                 args, kwargs = mock_obj.call_args_list[0]
                 self.assertEqual(kwargs["url"], "http://localhost:6666")
                 self.assertTrue(isinstance(kwargs["embedded_db"], EmbeddedDB))

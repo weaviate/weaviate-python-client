@@ -26,6 +26,14 @@ def test_embedded_ensure_binary_exists(tmp_path):
     assert Path(embedded_db.options.binary_path).is_file, True
 
 
+def test_embedded_ensure_binary_exists_same_as_tar_binary_name(tmp_path):
+    bin_path = tmp_path / "notcreated-yet/bin/weaviate"
+    assert bin_path.is_file, False
+    embedded_db = EmbeddedDB(EmbeddedOptions(binary_path=str(bin_path)))
+    embedded_db.ensure_weaviate_binary_exists()
+    assert Path(embedded_db.options.binary_path).is_file, True
+
+
 @pytest.fixture(scope="session")
 def embedded_db_binary_path(tmp_path_factory):
     embedded.weaviate_binary_path = (
