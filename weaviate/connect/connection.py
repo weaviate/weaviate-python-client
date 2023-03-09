@@ -16,7 +16,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests.exceptions import HTTPError as RequestsHTTPError
 from requests.exceptions import JSONDecodeError
 
-from weaviate.auth import AuthCredentials, AuthClientCredentials
+from weaviate.auth import AuthCredentials, AuthClientCredentials, AuthApiKey
 from weaviate.connect.authentication import _Auth
 from weaviate.exceptions import (
     AuthenticationFailedException,
@@ -141,7 +141,7 @@ class BaseConnection:
                 self._session = requests.Session()
                 return
 
-            if auth_client_secret is not None:
+            if auth_client_secret is not None and not isinstance(auth_client_secret, AuthApiKey):
                 _auth = _Auth(resp, auth_client_secret, self)
                 self._session = _auth.get_auth_session()
 
@@ -150,6 +150,9 @@ class BaseConnection:
                     self._create_background_token_refresh(_auth)
                 else:
                     self._create_background_token_refresh()
+            elif auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
+                self._headers["authorization"] = "Bearer " + auth_client_secret.api_key
+                self._session = requests.Session()
             else:
                 msg = f""""No login credentials provided. The weaviate instance at {self.url} requires login credentials.
 

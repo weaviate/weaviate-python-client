@@ -1,13 +1,13 @@
 import os
+import time
 import warnings
 from typing import Optional, Dict
 
 import pytest
 import requests
-import time
-from weaviate.exceptions import WeaviateStartUpError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests.exceptions import HTTPError as RequestsHTTPError
+
 import weaviate
 from weaviate import (
     AuthenticationFailedException,
@@ -15,6 +15,8 @@ from weaviate import (
     AuthClientPassword,
     AuthBearerToken,
 )
+from weaviate.auth import AuthApiKey
+from weaviate.exceptions import WeaviateStartUpError, UnexpectedStatusCodeException
 
 ANON_PORT = "8080"
 AZURE_PORT = "8081"
@@ -253,3 +255,20 @@ def test_bearer_token_without_refresh(recwarn):
     w = recwarn.pop()
     assert issubclass(w.category, UserWarning)
     assert str(w.message).startswith("Auth002")
+
+
+def test_api_key():
+    url = "http://127.0.0.1:" + WCS_PORT
+    assert is_auth_enabled(url)
+
+    client = weaviate.Client(url, auth_client_secret=AuthApiKey(api_key="my-secret-key"))
+    client.schema.delete_all()  # no exception, client works
+
+
+def test_api_key_wrong_key():
+    url = "http://127.0.0.1:" + WCS_PORT
+    assert is_auth_enabled(url)
+
+    with pytest.raises(UnexpectedStatusCodeException) as e:
+        weaviate.Client(url, auth_client_secret=AuthApiKey(api_key="wrong_key"))
+        assert e.value.status_code == 401
