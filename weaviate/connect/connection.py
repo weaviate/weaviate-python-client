@@ -191,11 +191,11 @@ class BaseConnection:
 
         def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]):
             time.sleep(max(refresh_time - 30, 1))
-            failed_refresh = False
             while not self._shutdown_background_event.is_set():
                 # use refresh token when available
                 try:
                     if "refresh_token" in self._session.token:
+                        assert isinstance(self._session, OAuth2Session)
                         self._session.token = self._session.refresh_token(
                             self._session.metadata["token_endpoint"]
                         )
@@ -209,9 +209,7 @@ class BaseConnection:
                 except (RequestsHTTPError, ReadTimeout) as exc:
                     # retry again after one second, might be an unstable connection
                     refresh_time = 1
-                    if not failed_refresh:
-                        failed_refresh = True
-                        _Warnings.token_refresh_failed(exc)
+                    _Warnings.token_refresh_failed(exc)
 
                 time.sleep(max(refresh_time, 1))
 

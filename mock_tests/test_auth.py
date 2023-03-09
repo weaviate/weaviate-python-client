@@ -167,3 +167,9 @@ def test_missing_scope(weaviate_auth_mock):
                 client_secret=CLIENT_SECRET, scope=None
             ),
         )
+
+
+def test_token_refresh_timeout(weaviate_auth_mock):
+    weaviate_auth_mock.expect_request("/auth").respond_with_json(
+        {"access_token": ACCESS_TOKEN, "expires_in": 500}
+    )
