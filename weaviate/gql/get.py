@@ -984,6 +984,8 @@ class GetBuilder(GraphQL):
 
         self._additional["__one_level"].add(f'generate({task_and_prompt}){{{" ".join(results)}}}')
 
+        return self
+
     def with_alias(
         self,
         alias: str,
