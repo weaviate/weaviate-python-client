@@ -68,4 +68,11 @@ class AuthBearerToken:
             _Warnings.auth_negative_expiration_time(self.expires_in)
 
 
-AuthCredentials = Union[AuthBearerToken, AuthClientPassword, AuthClientCredentials]
+@dataclass
+class AuthApiKey:
+    """Using the given API key to authenticate with weaviate."""
+
+    api_key: str
+
+
+AuthCredentials = Union[AuthBearerToken, AuthClientPassword, AuthClientCredentials, AuthApiKey]
