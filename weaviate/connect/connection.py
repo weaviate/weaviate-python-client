@@ -6,6 +6,7 @@ from __future__ import annotations
 import datetime
 import os
 import time
+import logging
 from numbers import Real
 from threading import Thread, Event
 from typing import Any, Dict, Tuple, Optional, Union
@@ -27,6 +28,8 @@ from weaviate.util import _check_positive_num, is_weaviate_domain
 from weaviate.warnings import _Warnings
 
 Session = Union[requests.sessions.Session, OAuth2Session]
+
+logger = logging.getLogger(__name__)
 
 
 class BaseConnection:
@@ -190,27 +193,34 @@ class BaseConnection:
         self._shutdown_background_event = Event()
 
         def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]):
+            logger.info("Starting background thread to refresh token")
             time.sleep(max(refresh_time - 30, 1))
             while not self._shutdown_background_event.is_set():
                 # use refresh token when available
                 try:
                     if "refresh_token" in self._session.token:
+                        logger.info("Refreshing using refresh token")
                         assert isinstance(self._session, OAuth2Session)
                         self._session.token = self._session.refresh_token(
                             self._session.metadata["token_endpoint"]
                         )
                         refresh_time = self._session.token.get("expires_in") - 30
+                        logger.info(f"Refreshing token using refrehs token successfull, refreshing in {refresh_time}")
                     else:
                         # client credentials usually does not contain a refresh token => get a new token using the
                         # saved credentials
+                        logger.info("Refreshing using client credentials")
                         assert _auth is not None
                         new_session = _auth.get_auth_session()
                         self._session.token = new_session.fetch_token()
+                        logger.info("Refreshing token using client credentials succesfull")
                 except (RequestsHTTPError, ReadTimeout) as exc:
                     # retry again after one second, might be an unstable connection
                     refresh_time = 1
-                    _Warnings.token_refresh_failed(exc)
+                    logger.error(exc)
+                    logger.warning("Token refresh failed, retrying in 1")
 
+                logger.info(f"Sleeping refresh thread for {refresh_time}")
                 time.sleep(max(refresh_time, 1))
 
         demon = Thread(
@@ -219,6 +229,7 @@ class BaseConnection:
             daemon=True,
             name="TokenRefresh",
         )
+        logger.info("Starting background thread with periodic refresh")
         demon.start()
 
     def close(self):
