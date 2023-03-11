@@ -193,7 +193,7 @@ class BaseConnection:
         self._shutdown_background_event = Event()
 
         def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]):
-            logger.info("Starting background thread to refresh token")
+            logger.info(f"Starting background thread to refresh token, next refresh in {refresh_time}")
             time.sleep(max(refresh_time - 30, 1))
             while not self._shutdown_background_event.is_set():
                 # use refresh token when available
@@ -205,7 +205,7 @@ class BaseConnection:
                             self._session.metadata["token_endpoint"]
                         )
                         refresh_time = self._session.token.get("expires_in") - 30
-                        logger.info(f"Refreshing token using refrehs token successfull, refreshing in {refresh_time}")
+                        logger.info(f"Refresh token successfull, refreshing in {refresh_time}")
                     else:
                         # client credentials usually does not contain a refresh token => get a new token using the
                         # saved credentials
@@ -217,10 +217,8 @@ class BaseConnection:
                 except (RequestsHTTPError, ReadTimeout) as exc:
                     # retry again after one second, might be an unstable connection
                     refresh_time = 1
-                    logger.error(exc)
-                    logger.warning("Token refresh failed, retrying in 1")
+                    logger.warning(f"Token refresh failed, retrying in 1. Exception: {exc}")
 
-                logger.info(f"Sleeping refresh thread for {refresh_time}")
                 time.sleep(max(refresh_time, 1))
 
         demon = Thread(
