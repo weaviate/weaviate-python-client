@@ -9,9 +9,9 @@ from dataclasses import dataclass
 import urllib.request
 from pathlib import Path
 import socket
+import warnings
 
 from weaviate.exceptions import WeaviateStartUpError
-
 
 default_binary_path = str((Path.home() / ".cache/weaviate-embedded"))
 default_persistence_data_path = str((Path.home() / ".local/share/weaviate"))
@@ -113,6 +113,8 @@ class EmbeddedDB:
             "ENABLE_MODULES",
             "text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,generative-openai,qna-openai",
         )
+
+        warnings.simplefilter("ignore", ResourceWarning)
         process = subprocess.Popen(
             [
                 f"{self.options.binary_path}",
