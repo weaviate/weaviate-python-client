@@ -9,4 +9,4 @@ class TestVersion(unittest.TestCase):
         Test the `__version__` global variable.
         """
 
-        self.assertEqual(weaviate.__version__, "3.13.0", "Check if the version is set correctly!")
+        self.assertEqual(weaviate.__version__, "3.14.0", "Check if the version is set correctly!")

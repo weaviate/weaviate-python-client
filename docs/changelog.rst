@@ -1,6 +1,15 @@
 Changelog
 =========
 
+Version 3.14.0
+--------------
+This minor version includes:
+
+- Support for API-Keys
+    .. code-block:: python
+
+        client = weaviate.Client(url, auth_client_secret=AuthApiKey(api_key="my-secret-key"))
+
 Version 3.13.0
 --------------
 This minor version includes:
