@@ -14,6 +14,7 @@ from .cluster import Cluster
 from .connect.connection import Connection
 from .contextionary import Contextionary
 from .data import DataObject
+from .embedded import EmbeddedDB, EmbeddedOptions
 from .exceptions import UnexpectedStatusCodeException
 from .gql import Query
 from .schema import Schema
@@ -48,13 +49,14 @@ class Client:
 
     def __init__(
         self,
-        url: str,
+        url: Optional[str] = None,
         auth_client_secret: Optional[AuthCredentials] = None,
         timeout_config: Union[Tuple[Real, Real], Real] = (10, 60),
         proxies: Union[dict, str, None] = None,
         trust_env: bool = False,
         additional_headers: Optional[dict] = None,
         startup_period: Optional[int] = 5,
+        embedded_options: Optional[EmbeddedOptions] = None,
     ):
         """
         Initialize a Client class instance.
@@ -92,7 +94,10 @@ class Client:
         startup_period : int or None
             How long the client will wait for weaviate to start before raising a RequestsConnectionError.
             If None the client will not wait at all. Default timeout is 5s.
-
+        embedded_options : weaviate.embedded.EmbeddedOptions or None, optional
+            Create an embedded Weaviate cluster inside the client
+            - You can pass weaviate.embedded.EmbeddedOptions() with default values
+            - Take a look at the attributes of weaviate.embedded.EmbeddedOptions to see what is configurable
         Examples
         --------
         Without Auth.
@@ -113,15 +118,30 @@ class Client:
         ...     auth_client_secret = my_credentials
         ... )
 
+        Creating a client with an embedded database:
+
+        >>> from weaviate.embedded import EmbeddedOptions
+        >>> client = Client(embedded_options=EmbeddedOptions())
+
         Raises
         ------
         TypeError
             If arguments are of a wrong data type.
         """
 
-        if not isinstance(url, str):
+        if embedded_options is None and not isinstance(url, str):
             raise TypeError(f"URL is expected to be string but is {type(url)}")
-        url = url.strip("/")
+        if embedded_options is not None and isinstance(url, str) and len(url) > 0:
+            raise TypeError(
+                f"URL is not expected to be set when using embedded_options but URL was {url}"
+            )
+        if embedded_options is not None:
+            embedded_db = EmbeddedDB(options=embedded_options)
+            embedded_db.start()
+            url = f"http://localhost:{embedded_db.port}"
+        else:
+            url = url.strip("/")
+            embedded_db = None
 
         self._connection = Connection(
             url=url,
@@ -131,6 +151,7 @@ class Client:
             trust_env=trust_env,
             additional_headers=additional_headers,
             startup_period=startup_period,
+            embedded_db=embedded_db,
         )
         self.classification = Classification(self._connection)
         self.schema = Schema(self._connection)

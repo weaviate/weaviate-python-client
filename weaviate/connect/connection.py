@@ -18,6 +18,7 @@ from requests.exceptions import JSONDecodeError
 
 from weaviate.auth import AuthCredentials, AuthClientCredentials, AuthApiKey
 from weaviate.connect.authentication import _Auth
+from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import (
     AuthenticationFailedException,
     UnexpectedStatusCodeException,
@@ -43,6 +44,7 @@ class BaseConnection:
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         startup_period: Optional[int],
+        embedded_db: EmbeddedDB = None,
     ):
         """
         Initialize a Connection class instance.
@@ -86,6 +88,7 @@ class BaseConnection:
         self._api_version_path = "/v1"
         self.url = url  # e.g. http://localhost:80
         self.timeout_config = timeout_config  # this uses the setter
+        self.embedded_db = embedded_db
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:
@@ -268,7 +271,8 @@ class BaseConnection:
         requests.ConnectionError
             If the DELETE request could not be made.
         """
-
+        if self.embedded_db is not None:
+            self.embedded_db.ensure_running()
         request_url = self.url + self._api_version_path + path
 
         return self._session.delete(
@@ -308,7 +312,8 @@ class BaseConnection:
         requests.ConnectionError
             If the PATCH request could not be made.
         """
-
+        if self.embedded_db is not None:
+            self.embedded_db.ensure_running()
         request_url = self.url + self._api_version_path + path
 
         return self._session.patch(
@@ -350,6 +355,8 @@ class BaseConnection:
         requests.ConnectionError
             If the POST request could not be made.
         """
+        if self.embedded_db is not None:
+            self.embedded_db.ensure_running()
         request_url = self.url + self._api_version_path + path
 
         return self._session.post(
@@ -389,7 +396,8 @@ class BaseConnection:
         requests.ConnectionError
             If the PUT request could not be made.
         """
-
+        if self.embedded_db is not None:
+            self.embedded_db.ensure_running()
         request_url = self.url + self._api_version_path + path
 
         return self._session.put(
@@ -425,7 +433,8 @@ class BaseConnection:
         requests.ConnectionError
             If the GET request could not be made.
         """
-
+        if self.embedded_db is not None:
+            self.embedded_db.ensure_running()
         if params is None:
             params = {}
 
@@ -468,7 +477,8 @@ class BaseConnection:
         requests.ConnectionError
             If the HEAD request could not be made.
         """
-
+        if self.embedded_db is not None:
+            self.embedded_db.ensure_running()
         request_url = self.url + self._api_version_path + path
 
         return self._session.head(
@@ -555,6 +565,7 @@ class Connection(BaseConnection):
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         startup_period: Optional[int],
+        embedded_db: EmbeddedDB = None,
     ):
         super().__init__(
             url,
@@ -564,6 +575,7 @@ class Connection(BaseConnection):
             trust_env,
             additional_headers,
             startup_period,
+            embedded_db,
         )
         self._server_version = self.get_meta()["version"]
         if self._server_version < "1.14":

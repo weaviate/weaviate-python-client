@@ -5,6 +5,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from test.util import mock_connection_func, check_error_message
 from weaviate import Client
+from weaviate.embedded import EmbeddedOptions, EmbeddedDB
 from weaviate.exceptions import UnexpectedStatusCodeException
 
 
@@ -45,6 +46,7 @@ class TestWeaviateClient(unittest.TestCase):
                 trust_env=False,
                 additional_headers=None,
                 startup_period=None,
+                embedded_db=None,
             )
 
         with patch(
@@ -66,6 +68,7 @@ class TestWeaviateClient(unittest.TestCase):
                 trust_env=False,
                 additional_headers={"Test": True},
                 startup_period=None,
+                embedded_db=None,
             )
 
         with patch(
@@ -83,6 +86,7 @@ class TestWeaviateClient(unittest.TestCase):
                 trust_env=False,
                 additional_headers=None,
                 startup_period=None,
+                embedded_db=None,
             )
 
         with patch(
@@ -106,7 +110,21 @@ class TestWeaviateClient(unittest.TestCase):
                 trust_env=True,
                 additional_headers=None,
                 startup_period=None,
+                embedded_db=None,
             )
+
+        with patch(
+            "weaviate.client.Connection",
+            Mock(side_effect=lambda **kwargs: Mock(timeout_config=kwargs["timeout_config"])),
+        ) as mock_obj:
+            with patch("weaviate.embedded.EmbeddedDB.start") as mocked_start:
+                Client(embedded_options=EmbeddedOptions())
+                args, kwargs = mock_obj.call_args_list[0]
+                self.assertEqual(kwargs["url"], "http://localhost:6666")
+                self.assertTrue(isinstance(kwargs["embedded_db"], EmbeddedDB))
+                self.assertTrue(kwargs["embedded_db"] is not None)
+                self.assertEqual(kwargs["embedded_db"].port, 6666)
+                mocked_start.assert_called_once()
 
     @patch("weaviate.client.Client.get_meta", return_value={"version": "1.13.2"})
     def test_is_ready(self, mock_get_meta_method):
