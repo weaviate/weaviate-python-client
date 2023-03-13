@@ -94,10 +94,10 @@ class _Warnings:
     @staticmethod
     def token_refresh_failed(exc: Exception):
         warnings.warn(
-            message=f"""Con001: Could not reach token issuer for the periodic refresh. This client will automatically retry to refreh. If this does not succeed, the client will become unauthenticated.
+            message=f"""Con001: Could not reach token issuer for the periodic refresh. This client will automatically
+            retry to refresh. If this does not succeed, the client will become unauthenticated.
             Causes might be an unstable internet connection or a problem with your authentication provider.
-            Note that this warning will only appear once.
-            {exc}
+            Exception: {exc}
             """,
             category=UserWarning,
             stacklevel=1,
