@@ -18,6 +18,8 @@ from ..warnings import _Warnings
 if TYPE_CHECKING:
     from . import BaseConnection
 
+AUTH_DEFAULT_TIMEOUT = 5
+
 
 class _Auth:
     def __init__(
@@ -83,7 +85,10 @@ class _Auth:
 
         # token endpoint and clientId are needed for token refresh
         return OAuth2Session(
-            token=token, token_endpoint=self._token_endpoint, client_id=self._client_id
+            token=token,
+            token_endpoint=self._token_endpoint,
+            client_id=self._client_id,
+            default_timeout=AUTH_DEFAULT_TIMEOUT,
         )
 
     def _get_session_user_pw(self, config: AuthClientPassword) -> OAuth2Session:
@@ -94,6 +99,7 @@ class _Auth:
             token_endpoint=self._token_endpoint,
             grant_type="password",
             scope=scope,
+            default_timeout=AUTH_DEFAULT_TIMEOUT,
         )
         token = session.fetch_token(username=config.username, password=config.password)
         if "refresh_token" not in token:
@@ -121,6 +127,7 @@ class _Auth:
             token_endpoint=self._token_endpoint,
             grant_type="client_credentials",
             token={"access_token": None, "expires_in": -100},
+            default_timeout=AUTH_DEFAULT_TIMEOUT,
         )
         # explicitly fetch tokens. Otherwise, authlib will do it in the background and we might have race-conditions
         session.fetch_token()
