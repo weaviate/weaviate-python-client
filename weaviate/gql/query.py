@@ -9,6 +9,7 @@ from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 from .aggregate import AggregateBuilder
 from .get import GetBuilder
+from .multi_get import MultiGetBuilder
 
 
 class Query:
@@ -50,6 +51,27 @@ class Query:
         """
 
         return GetBuilder(class_name, properties, self._connection)
+
+    def multi_get(
+        self,
+        get_builder: List[GetBuilder],
+    ) -> MultiGetBuilder:
+        """
+        Instantiate a MultiGetBuilder for GraphQL `multi_get` requests.
+        Bundels multiple get requests into one.
+
+        Parameters
+        ----------
+        get_builder : list of GetBuilder
+            List of GetBuilder objects for a single request each.
+
+        Returns
+        -------
+        MultiGetBuilder
+            A MultiGetBuilder to make GraphQL `get` multiple requests from weaviate.
+        """
+
+        return MultiGetBuilder(get_builder, self._connection)
 
     def aggregate(self, class_name: str) -> AggregateBuilder:
         """

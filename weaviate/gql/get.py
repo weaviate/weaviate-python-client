@@ -107,6 +107,7 @@ class GetBuilder(GraphQL):
         self._sort: Optional[Sort] = None
         self._bm25: Optional[BM25] = None
         self._hybrid: Optional[Hybrid] = None
+        self._alias: Optional[str] = None
 
     def with_after(self, after_uuid: UUID):
         """Can be used to extract all elements by giving the last ID from the previous "page".
@@ -193,6 +194,10 @@ class GetBuilder(GraphQL):
         self._where = Where(content)
         self._contains_filter = True
         return self
+
+    @property
+    def name(self) -> str:
+        return self._alias if self._alias else self._class_name
 
     def with_near_text(self, content: dict) -> "GetBuilder":
         """
@@ -981,17 +986,43 @@ class GetBuilder(GraphQL):
 
         return self
 
-    def build(self) -> str:
+    def with_alias(
+        self,
+        alias: str,
+    ):
+        """Gives an alias for the query. Needs to be used if 'multi_get' requests the same 'class_name' twice.
+
+        Parameters
+        ----------
+        alias: str
+            The alias for the query.
+        """
+
+        self._alias = alias
+        return self
+
+    def build(self, wrap_get: bool = True) -> str:
         """
         Build query filter as a string.
+
+        Parameters
+        ----------
+        wrap_get: bool
+            A boolean to decide wether {Get{...}} is placed around the query. Useful for multi_get.
 
         Returns
         -------
         str
             The GraphQL query as a string.
         """
+        if wrap_get:
+            query = "{Get{"
+        else:
+            query = ""
 
-        query = "{Get{" + self._class_name
+        if self._alias is not None:
+            query += self._alias + ": "
+        query += self._class_name
         if self._contains_filter:
             query += "("
             if self._where is not None:
@@ -1023,7 +1054,9 @@ class GetBuilder(GraphQL):
 
         properties = " ".join(self._properties) + self._additional_to_str()
         query += "{" + properties + "}"
-        return query + "}}"
+        if wrap_get:
+            query += "}}"
+        return query
 
     def _additional_to_str(self) -> str:
         """
