@@ -1,4 +1,5 @@
 import json
+import time
 import warnings
 
 import pytest
@@ -167,3 +168,39 @@ def test_missing_scope(weaviate_auth_mock):
                 client_secret=CLIENT_SECRET, scope=None
             ),
         )
+
+
+def test_token_refresh_timeout(weaviate_auth_mock, recwarn):
+    """Test that the token refresh background thread can handle timeouts of the auth server."""
+    first_request = True
+
+    # This handler lets the refresh request timeout for the first time. Then, the client retries the refresh which
+    # should succeed.
+    def handler(request: Request):
+        nonlocal first_request
+        if first_request:
+            time.sleep(6)  # Timeout for auth connections is 5s. We need to wait longer
+            first_request = False
+        return Response(json.dumps({"access_token": ACCESS_TOKEN + "_1", "expires_in": 31}))
+
+    weaviate_auth_mock.expect_request("/auth").respond_with_handler(handler)
+
+    # This handler only accepts the refreshed token, to make sure that the refresh happened
+    weaviate_auth_mock.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN + "_1"}
+    ).respond_with_json({})
+
+    client = weaviate.Client(
+        url=MOCK_SERVER_URL,
+        auth_client_secret=weaviate.AuthBearerToken(
+            ACCESS_TOKEN, refresh_token=REFRESH_TOKEN, expires_in=1  # force immediate refresh
+        ),
+    )
+
+    time.sleep(9)  # sleep longer than the timeout, to give client time to retry
+    client.schema.delete_all()
+
+    assert len(recwarn) == 1
+    w = recwarn.pop()
+    assert issubclass(w.category, UserWarning)
+    assert str(w.message).startswith("Con001")
