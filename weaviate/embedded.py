@@ -1,15 +1,15 @@
 import os
 import platform
 import signal
+import socket
 import stat
 import subprocess
 import tarfile
 import time
-from dataclasses import dataclass
 import urllib.request
-from pathlib import Path
-import socket
 import warnings
+from dataclasses import dataclass
+from pathlib import Path
 
 from weaviate.exceptions import WeaviateStartUpError
 
@@ -114,20 +114,22 @@ class EmbeddedDB:
             "text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,generative-openai,qna-openai",
         )
 
-        warnings.simplefilter("ignore", ResourceWarning)
-        process = subprocess.Popen(
-            [
-                f"{self.options.binary_path}",
-                "--host",
-                "127.0.0.1",
-                "--port",
-                str(self.port),
-                "--scheme",
-                "http",
-            ],
-            env=my_env,
-        )
-        self.pid = process.pid
+        # filter warning about running processes.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", ResourceWarning)
+            process = subprocess.Popen(
+                [
+                    f"{self.options.binary_path}",
+                    "--host",
+                    "127.0.0.1",
+                    "--port",
+                    str(self.port),
+                    "--scheme",
+                    "http",
+                ],
+                env=my_env,
+            )
+            self.pid = process.pid
         print(f"Started {self.options.binary_path}: process ID {self.pid}")
         self.wait_till_listening()
 
