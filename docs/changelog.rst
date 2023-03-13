@@ -1,6 +1,30 @@
 Changelog
 =========
 
+Version 3.15.0
+--------------
+This minor version includes:
+
+- Fixes refreshing of OIDC tokens on unstable connections
+- GraphQL Multiple queries and aliases support
+    .. code-block:: python
+
+        client.query.multi_get(
+                [
+                   client.query.get("Ship", ["name"]).with_alias("one"),
+                   client.query.get("Ship", ["size"]).with_alias("two"),
+                   client.query.get("Person", ["name"])
+                ]
+- Adds support for embedded weaviate version
+    .. code-block:: python
+
+        from weaviate import Client
+        from weaviate.embedded import EmbeddedOptions
+
+        # Create the embedded client which automatically launches a weaviate database in the background
+        client = Client(embedded_options=EmbeddedOptions())
+
+
 Version 3.14.0
 --------------
 This minor version includes:
