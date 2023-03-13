@@ -1,11 +1,17 @@
 Changelog
 =========
 
+Version 3.15.1
+--------------
+This patch version includes:
+
+- Fixes refreshing of OIDC tokens on unstable connections
+
+
 Version 3.15.0
 --------------
 This minor version includes:
 
-- Fixes refreshing of OIDC tokens on unstable connections
 - GraphQL Multiple queries and aliases support
     .. code-block:: python
 
