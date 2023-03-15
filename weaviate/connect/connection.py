@@ -126,6 +126,12 @@ class BaseConnection:
         ValueError
             If no authentication credentials provided but the Weaviate server has OpenID configured.
         """
+        # API keys are separate from OIDC and do not need any config from weaviate
+        if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
+            self._headers["authorization"] = "Bearer " + auth_client_secret.api_key
+            self._session = requests.Session()
+            return
+
         oidc_url = self.url + self._api_version_path + "/.well-known/openid-configuration"
         response = requests.get(
             oidc_url,
@@ -153,9 +159,6 @@ class BaseConnection:
                     self._create_background_token_refresh(_auth)
                 else:
                     self._create_background_token_refresh()
-            elif auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
-                self._headers["authorization"] = "Bearer " + auth_client_secret.api_key
-                self._session = requests.Session()
             else:
                 msg = f""""No login credentials provided. The weaviate instance at {self.url} requires login credentials.
 
