@@ -37,6 +37,7 @@ __all__ = [
     "AuthClientCredentials",
     "AuthClientPassword",
     "AuthBearerToken",
+    "AuthApiKey",
     "UnexpectedStatusCodeException",
     "ObjectAlreadyExistsException",
     "AuthenticationFailedException",
@@ -47,7 +48,7 @@ __all__ = [
 
 import sys
 
-from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken
+from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken, AuthApiKey
 from .batch.crud_batch import WeaviateErrorRetryConf
 from .client import Client
 from .data.replication import ConsistencyLevel

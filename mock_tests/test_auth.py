@@ -204,3 +204,18 @@ def test_token_refresh_timeout(weaviate_auth_mock, recwarn):
     w = recwarn.pop()
     assert issubclass(w.category, UserWarning)
     assert str(w.message).startswith("Con001")
+
+
+def test_with_simple_auth_no_oidc(weaviate_mock, recwarn):
+    weaviate_mock.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + "Super-secret-key"}
+    ).respond_with_json({})
+
+    client = weaviate.Client(
+        url=MOCK_SERVER_URL,
+        auth_client_secret=weaviate.AuthApiKey(api_key="Super-secret-key"),
+    )
+    client.schema.delete_all()
+
+    weaviate_mock.check_assertions()
+    assert len(recwarn) == 0

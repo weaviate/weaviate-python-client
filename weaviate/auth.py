@@ -75,4 +75,5 @@ class AuthApiKey:
     api_key: str
 
 
-AuthCredentials = Union[AuthBearerToken, AuthClientPassword, AuthClientCredentials, AuthApiKey]
+OidcAuth = Union[AuthBearerToken, AuthClientPassword, AuthClientCredentials]
+AuthCredentials = Union[OidcAuth, AuthApiKey]
