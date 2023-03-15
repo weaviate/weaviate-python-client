@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 3.15.2
+--------------
+This patch version includes:
+
+- Fixes API keys with Weaviate setups that do not have OIDC enabled.
+
 Version 3.15.1
 --------------
 This patch version includes:
