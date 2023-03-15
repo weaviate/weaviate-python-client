@@ -52,7 +52,7 @@ class Schema:
         Parameters
         ----------
         connection : weaviate.connect.Connection
-            Connection object to an active and running weaviate instance.
+            Connection object to an active and running Weaviate instance.
         """
 
         self._connection = connection
@@ -60,16 +60,32 @@ class Schema:
 
     def create(self, schema: Union[dict, str]) -> None:
         """
-        Create the schema at the weaviate instance.
+        Create the schema of the Weaviate instance, with all classes at once.
 
         Parameters
         ----------
         schema : dict or str
-            Schema as a python dict, or the path to a json file or a url of a json file.
+            Schema as a Python dict, or the path to a JSON file, or the URL of a JSON file.
 
         Examples
         --------
-        >>> author_class_schema = {
+        >>> article_class = {
+        ...     "class": "Article",
+        ...     "description": "An article written by an Author",
+        ...     "properties": [
+        ...         {
+        ...             "name": "title",
+        ...             "dataType": ["string"],
+        ...             "description": "The title the article",
+        ...         },
+        ...         {
+        ...             "name": "hasAuthors",
+        ...             "dataType": ["Author"],
+        ...             "description": "Authors this article has",
+        ...         }
+        ...     ]
+        ... }
+        >>> author_class = {
         ...     "class": "Author",
         ...     "description": "An Author class to store the author information",
         ...     "properties": [
@@ -85,7 +101,7 @@ class Schema:
         ...         }
         ...     ]
         ... }
-        >>> client.schema.create(author_class_schema)
+        >>> client.schema.create({"classes": [article_class, author_class]})
 
         If you have your schema saved in the './schema/my_schema.json' you can create it
         directly from the file.
@@ -97,11 +113,11 @@ class Schema:
         TypeError
             If the 'schema' is neither a string nor a dict.
         ValueError
-            If 'schema' can not be converted into a weaviate schema.
+            If 'schema' can not be converted into a Weaviate schema.
         requests.ConnectionError
-            If the network connection to weaviate fails.
+            If the network connection to Weaviate fails.
         weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+            If Weaviate reports a non-OK status.
         weaviate.SchemaValidationException
             If the 'schema' could not be validated against the standard format.
         """
@@ -114,12 +130,12 @@ class Schema:
 
     def create_class(self, schema_class: Union[dict, str]) -> None:
         """
-        Create a single class as part of the schema in weaviate.
+        Create a single class as part of the schema in Weaviate.
 
         Parameters
         ----------
         schema_class : dict or str
-            Class as a python dict, or the path to a json file or a url of a json file.
+            Class as a Python dict, or the path to a JSON file, or the URL of a JSON file.
 
         Examples
         --------
@@ -151,11 +167,11 @@ class Schema:
         TypeError
             If the 'schema_class' is neither a string nor a dict.
         ValueError
-            If 'schema_class' can not be converted into a weaviate schema.
+            If 'schema_class' can not be converted into a Weaviate schema.
         requests.ConnectionError
-            If the network connection to weaviate fails.
+            If the network connection to Weaviate fails.
         weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+            If Weaviate reports a non-OK status.
         weaviate.SchemaValidationException
             If the 'schema_class' could not be validated against the standard format.
         """
@@ -168,12 +184,12 @@ class Schema:
 
     def delete_class(self, class_name: str) -> None:
         """
-        Delete a schema class from weaviate. This deletes all associated data.
+        Delete a schema class from Weaviate. This deletes all associated data.
 
         Parameters
         ----------
         class_name : str
-            The class that should be deleted from weaviate.
+            The class that should be deleted from Weaviate.
 
         Examples
         --------
@@ -184,9 +200,9 @@ class Schema:
         TypeError
             If 'class_name' argument not of type str.
         requests.ConnectionError
-            If the network connection to weaviate fails.
+            If the network connection to Weaviate fails.
         weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+            If Weaviate reports a non-OK status.
         """
 
         if not isinstance(class_name, str):
@@ -216,12 +232,12 @@ class Schema:
 
     def contains(self, schema: Optional[Union[dict, str]] = None) -> bool:
         """
-        Check if weaviate already contains a schema.
+        Check if Weaviate already contains a schema.
 
         Parameters
         ----------
         schema : dict or str, optional
-            Schema as a python dict, or the path to a json file or a url of a json file.
+            Schema as a Python dict, or the path to a JSON file or the URL of a JSON file.
             If a schema is given it is checked if this specific schema is already loaded.
             It will test only this schema. If the given schema is a subset of the loaded
             schema it will still return true, by default None.
@@ -316,9 +332,9 @@ class Schema:
         Raises
         ------
         requests.ConnectionError
-            If the network connection to weaviate fails.
+            If the network connection to Weaviate fails.
         weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+            If Weaviate reports a non-OK status.
         """
 
         class_name = _capitalize_first_letter(class_name)
@@ -338,7 +354,7 @@ class Schema:
 
     def get(self, class_name: str = None) -> dict:
         """
-        Get the schema from weaviate.
+        Get the schema from Weaviate.
 
         Parameters
         ----------
@@ -350,7 +366,7 @@ class Schema:
         -------
         dict
             A dict containing the schema. The schema may be empty.
-            To see if a schema has already been loaded use `contains` method.
+            To see if a schema has already been loaded, use the `contains` method.
 
         Examples
         --------
@@ -426,9 +442,9 @@ class Schema:
         Raises
         ------
         requests.ConnectionError
-            If the network connection to weaviate fails.
+            If the network connection to Weaviate fails.
         weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+            If Weaviate reports a non-OK status.
         """
 
         path = "/schema"
@@ -472,9 +488,9 @@ class Schema:
         Raises
         ------
         requests.ConnectionError
-            If the network connection to weaviate fails.
+            If the network connection to Weaviate fails.
         weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+            If Weaviate reports a non-OK status.
         """
 
         if not isinstance(class_name, str):
@@ -542,9 +558,9 @@ class Schema:
         Raises
         ------
         requests.ConnectionError
-            If the network connection to weaviate fails.
+            If the network connection to Weaviate fails.
         weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+            If Weaviate reports a non-OK status.
         """
 
         if not isinstance(class_name, str):
@@ -597,7 +613,7 @@ class Schema:
 
     def _create_complex_properties_from_class(self, schema_class: dict) -> None:
         """
-        Add cross-references to already existing class.
+        Add cross-references to an already existing class.
 
         Parameters
         ----------
@@ -607,21 +623,20 @@ class Schema:
         Raises
         ------
         requests.ConnectionError
-            If the network connection to weaviate fails.
+            If the network connection to Weaviate fails.
         weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+            If Weaviate reports a non-OK status.
         """
 
         if "properties" not in schema_class:
-            # Class has no properties nothing to do
+            # Class has no properties - nothing to do
             return
         for property_ in schema_class["properties"]:
 
             if _property_is_primitive(property_["dataType"]):
                 continue
 
-            # create the property object
-            ## All complex dataTypes should be capitalized.
+            # Create the property object. All complex dataTypes should be capitalized.
             schema_property = {
                 "dataType": [_capitalize_first_letter(dtype) for dtype in property_["dataType"]],
                 "name": property_["name"],
@@ -648,7 +663,7 @@ class Schema:
         Parameters
         ----------
         schema_classes_list : list
-            A list of classes as they are found in a schema json description.
+            A list of classes as they are found in a schema JSON description.
         """
 
         for schema_class in schema_classes_list:
@@ -661,14 +676,14 @@ class Schema:
         Parameters
         ----------
         weaviate_class : dict
-            A single weaviate formatted class
+            A single Weaviate formatted class
 
         Raises
         ------
         requests.ConnectionError
-            If the network connection to weaviate fails.
+            If the network connection to Weaviate fails.
         weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+            If Weaviate reports a non-OK status.
         """
 
         # Create the class
@@ -701,7 +716,7 @@ class Schema:
         Parameters
         ----------
         schema_classes_list : list
-            A list of classes as they are found in a schema json description.
+            A list of classes as they are found in a schema JSON description.
         """
 
         for weaviate_class in schema_classes_list:
@@ -756,7 +771,7 @@ def _get_primitive_properties(properties_list: list) -> list:
 def _update_nested_dict(dict_1: dict, dict_2: dict) -> dict:
     """
     Update `dict_1` with elements from `dict_2` in a nested manner.
-    If a value of a key is a dict, it is going to be updated and not replaced by a the whole dict.
+    If a value of a key is a dict, it is going to be updated and not replaced by the whole dict.
 
     Parameters
     ----------
