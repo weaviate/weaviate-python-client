@@ -1,6 +1,7 @@
 """
 Batch class definitions.
 """
+import datetime
 import sys
 import threading
 import time
@@ -604,7 +605,6 @@ class Batch:
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
-
         params = {"consistency_level": self._consistency_level} if self._consistency_level else None
 
         try:
@@ -620,6 +620,11 @@ class Batch:
                     batch_request = self._batch_readd_after_timeout(data_type, batch_request)
                     # All elements have been added successfully. The timeout occurred while receiving the answer.
                     if len(batch_request) == 0:
+                        response = Response()
+                        response.status_code = 200
+                        response.elapsed = datetime.timedelta(
+                            self._connection.timeout_config[1] + 5
+                        )
                         break
                     _batch_create_error_handler(
                         retry=timeout_count,
