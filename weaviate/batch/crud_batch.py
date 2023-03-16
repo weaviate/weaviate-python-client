@@ -618,6 +618,9 @@ class Batch:
                     )
                 except ReadTimeout as error:
                     batch_request = self._batch_readd_after_timeout(data_type, batch_request)
+                    # All elements have been added successfully. The timeout occurred while receiving the answer.
+                    if len(batch_request) == 0:
+                        break
                     _batch_create_error_handler(
                         retry=timeout_count,
                         max_retries=self._timeout_retries,
