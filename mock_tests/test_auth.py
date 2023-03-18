@@ -140,17 +140,16 @@ def test_auth_header_without_weaviate_auth(weaviate_mock):
 
 def test_auth_header_with_catchall_proxy(weaviate_mock, recwarn):
     """Test that the client can handle situations in which a proxy returns a catchall page for all requests."""
-    bearer_token = "OTHER TOKEN"
-    weaviate_mock.expect_request(
-        "/v1/schema", headers={"Authorization": "Bearer " + bearer_token}
-    ).respond_with_json({})
+    weaviate_mock.expect_request("/v1/schema").respond_with_json({})
     weaviate_mock.expect_request("/v1/.well-known/openid-configuration").respond_with_data(
         "JsonCannotParseThis"
     )
 
     client = weaviate.Client(
         url=MOCK_SERVER_URL,
-        additional_headers={"Authorization": "Bearer " + bearer_token},
+        auth_client_secret=weaviate.AuthClientPassword(
+            username="test-username", password="test-password"
+        ),
     )
     client.schema.delete_all()  # some call that includes authorization
 
@@ -206,7 +205,7 @@ def test_token_refresh_timeout(weaviate_auth_mock, recwarn):
     assert str(w.message).startswith("Con001")
 
 
-def test_with_simple_auth_no_oidc(weaviate_mock, recwarn):
+def test_with_simple_auth_no_oidc_via_api_key(weaviate_mock, recwarn):
     weaviate_mock.expect_request(
         "/v1/schema", headers={"Authorization": "Bearer " + "Super-secret-key"}
     ).respond_with_json({})
@@ -214,6 +213,21 @@ def test_with_simple_auth_no_oidc(weaviate_mock, recwarn):
     client = weaviate.Client(
         url=MOCK_SERVER_URL,
         auth_client_secret=weaviate.AuthApiKey(api_key="Super-secret-key"),
+    )
+    client.schema.delete_all()
+
+    weaviate_mock.check_assertions()
+    assert len(recwarn) == 0
+
+
+def test_with_simple_auth_no_oidc_via_additional_headers(weaviate_mock, recwarn):
+    weaviate_mock.expect_request(
+        "/v1/schema",
+        headers={"Authorization": "Bearer " + "Super-secret-key"},
+    ).respond_with_json({})
+
+    client = weaviate.Client(
+        url=MOCK_SERVER_URL, additional_headers={"Authorization": "Bearer " + "Super-secret-key"}
     )
     client.schema.delete_all()
 

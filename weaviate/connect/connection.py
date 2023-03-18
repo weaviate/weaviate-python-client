@@ -132,6 +132,10 @@ class BaseConnection:
             self._session = requests.Session()
             return
 
+        if "authorization" in self._headers and auth_client_secret is None:
+            self._session = requests.Session()
+            return
+
         oidc_url = self.url + self._api_version_path + "/.well-known/openid-configuration"
         response = requests.get(
             oidc_url,
