@@ -1,13 +1,18 @@
-from pathlib import Path
-import pytest
-import time
 import os
 import signal
+import time
+from pathlib import Path
+from sys import platform
 from unittest.mock import patch
+
+import pytest
 
 from weaviate import embedded
 from weaviate.embedded import EmbeddedDB, EmbeddedOptions
 from weaviate.exceptions import WeaviateStartUpError
+
+if platform != "linux":
+    pytest.skip("Currently only supported on linux", allow_module_level=True)
 
 
 def test_embedded__init__():
