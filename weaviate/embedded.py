@@ -18,6 +18,7 @@ from weaviate.exceptions import WeaviateStartUpError
 
 DEFAULT_BINARY_PATH = str((Path.home() / ".cache/weaviate-embedded/"))
 DEFAULT_PERSISTENCE_DATA_PATH = str((Path.home() / ".local/share/weaviate"))
+GITHUB_RELEASE_DOWNLOAD_URL = "https://github.com/weaviate/weaviate/releases/download/"
 
 
 @dataclass
@@ -47,12 +48,11 @@ class EmbeddedDB:
         self.ensure_paths_exist()
         self.check_supported_platform()
         self._parsed_weaviate_version = ""
-        if self.options.version.startswith(
-            "https://github.com/weaviate/weaviate/releases/download/"
-        ):
-            self._parsed_weaviate_version = self.options.version.removeprefix(
-                "https://github.com/weaviate/weaviate/releases/download/"
-            ).split("/")[0]
+        if self.options.version.startswith(GITHUB_RELEASE_DOWNLOAD_URL):
+            # replace with str.removeprefix() after 3.8 has been deprecated
+            self._parsed_weaviate_version = self.options.version[
+                len(GITHUB_RELEASE_DOWNLOAD_URL) :
+            ].split("/")[0]
 
     def __del__(self):
         self.stop()
