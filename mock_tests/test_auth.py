@@ -222,8 +222,7 @@ def test_with_simple_auth_no_oidc_via_api_key(weaviate_mock, recwarn):
 
 def test_with_simple_auth_no_oidc_via_additional_headers(weaviate_mock, recwarn):
     weaviate_mock.expect_request(
-        "/v1/schema",
-        headers={"Authorization": "Bearer " + "Super-secret-key"},
+        "/v1/schema", headers={"Authorization": "Bearer " + "Super-secret-key"}
     ).respond_with_json({})
 
     client = weaviate.Client(
