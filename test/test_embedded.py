@@ -8,6 +8,7 @@ from unittest.mock import patch
 import pytest
 
 from weaviate import embedded
+import weaviate
 from weaviate.embedded import EmbeddedDB, EmbeddedOptions
 from weaviate.exceptions import WeaviateStartUpError
 
@@ -16,11 +17,11 @@ if platform != "linux":
 
 
 def test_embedded__init__():
-    assert EmbeddedDB(EmbeddedOptions(port=6666)).port == 6666
+    assert EmbeddedDB(EmbeddedOptions(port=6666)).options.port == 6666
 
 
 def test_embedded__init__non_default_port():
-    assert EmbeddedDB(EmbeddedOptions(port=30666)).port == 30666
+    assert EmbeddedDB(EmbeddedOptions(port=30666)).options.port == 30666
 
 
 def test_embedded_ensure_binary_exists(tmp_path):
@@ -47,7 +48,8 @@ def embedded_db_binary_path(tmp_path_factory):
 
 
 @pytest.mark.parametrize("options", [EmbeddedOptions(), EmbeddedOptions(port=30666)])
-def test_embedded_end_to_end(options, embedded_db_binary_path):
+def test_embedded_end_to_end(options, tmp_path):
+    options.binary_path = tmp_path
     embedded_db = EmbeddedDB(options=options)
     assert embedded_db.is_listening() is False
     with pytest.raises(WeaviateStartUpError):
@@ -72,18 +74,59 @@ def test_embedded_end_to_end(options, embedded_db_binary_path):
     embedded_db.stop()
 
 
-def test_embedded_multiple_instances(embedded_db_binary_path, tmp_path):
+def test_embedded_multiple_instances(tmp_path):
     embedded_db = EmbeddedDB(
         EmbeddedOptions(
-            cluster_hostname="db1", port=30664, persistence_data_path=(tmp_path / "db1").absolute()
+            cluster_hostname="db1",
+            port=30664,
+            persistence_data_path=(tmp_path / "db1").absolute(),
+            binary_path=tmp_path,
         )
     )
     embedded_db2 = EmbeddedDB(
         EmbeddedOptions(
-            cluster_hostname="db2", port=30665, persistence_data_path=(tmp_path / "db2").absolute()
+            cluster_hostname="db2",
+            port=30665,
+            persistence_data_path=(tmp_path / "db2").absolute(),
+            binary_path=tmp_path,
         )
     )
     embedded_db.ensure_running()
     assert embedded_db.is_listening() is True
     embedded_db2.ensure_running()
     assert embedded_db2.is_listening() is True
+
+
+def test_embedded_different_versions(tmp_path):
+    client1 = weaviate.Client(
+        embedded_options=EmbeddedOptions(
+            cluster_hostname="db1",
+            port=30664,
+            persistence_data_path=(tmp_path / "db1").absolute(),
+            binary_path=tmp_path,
+            version="https://github.com/weaviate/weaviate/releases/download/v1.18.1/weaviate-v1.18.1-linux-amd64.tar.gz",
+        )
+    )
+    client2 = weaviate.Client(
+        embedded_options=EmbeddedOptions(
+            cluster_hostname="db2",
+            port=30665,
+            persistence_data_path=(tmp_path / "db2").absolute(),
+            binary_path=tmp_path,
+            version="https://github.com/weaviate/weaviate/releases/download/v1.18.0/weaviate-v1.18.0-linux-amd64.tar.gz",
+        )
+    )
+    meta1 = client1.get_meta()
+    assert meta1["version"] == "1.18.1"
+    meta2 = client2.get_meta()
+    assert meta2["version"] == "1.18.0"
+
+
+def test_custom_env_vars(tmp_path):
+    client = weaviate.Client(
+        embedded_options=EmbeddedOptions(
+            binary_path=tmp_path, additional_env_vars={"ENABLE_MODULES": ""}
+        )
+    )
+    meta = client.get_meta()
+    assert len(meta["modules"]) == 0

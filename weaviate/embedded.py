@@ -1,3 +1,4 @@
+import hashlib
 import os
 import platform
 import signal
@@ -10,20 +11,24 @@ import urllib.request
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Dict, Optional
 
 from weaviate.exceptions import WeaviateStartUpError
 
-default_binary_path = str((Path.home() / ".cache/weaviate-embedded"))
-default_persistence_data_path = str((Path.home() / ".local/share/weaviate"))
+
+DEFAULT_BINARY_PATH = str((Path.home() / ".cache/weaviate-embedded/"))
+DEFAULT_PERSISTENCE_DATA_PATH = str((Path.home() / ".local/share/weaviate"))
 
 
 @dataclass
 class EmbeddedOptions:
-    persistence_data_path: str = os.environ.get("XDG_DATA_HOME", default_persistence_data_path)
-    binary_path: str = os.environ.get("XDG_CACHE_HOME", default_binary_path)
-    version: str = "https://github.com/weaviate/weaviate/releases/download/v1.18.0/weaviate-v1.18.0-linux-amd64.tar.gz"
+    persistence_data_path: str = os.environ.get("XDG_DATA_HOME", DEFAULT_PERSISTENCE_DATA_PATH)
+    binary_path: str = os.environ.get("XDG_CACHE_HOME", DEFAULT_BINARY_PATH)
+    version: str = "https://github.com/weaviate/weaviate/releases/download/v1.18.1/weaviate-v1.18.1-linux-amd64.tar.gz"
     port: int = 6666
+    hostname: str = "127.0.0.1"
     cluster_hostname: str = "embedded"
+    additional_env_vars: Optional[Dict[str, str]] = None
 
 
 def get_random_port() -> int:
@@ -36,44 +41,57 @@ def get_random_port() -> int:
 
 class EmbeddedDB:
     def __init__(self, options: EmbeddedOptions):
-        self.port = options.port
         self.data_bind_port = get_random_port()
         self.options = options
         self.pid = 0
         self.ensure_paths_exist()
         self.check_supported_platform()
+        self._parsed_weaviate_version = ""
+        if self.options.version.startswith(
+            "https://github.com/weaviate/weaviate/releases/download/"
+        ):
+            self._parsed_weaviate_version = self.options.version.removeprefix(
+                "https://github.com/weaviate/weaviate/releases/download/"
+            ).split("/")[0]
 
     def __del__(self):
         self.stop()
 
     def ensure_paths_exist(self):
-        Path(self.options.binary_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(self.options.binary_path).mkdir(parents=True, exist_ok=True)
         Path(self.options.persistence_data_path).mkdir(parents=True, exist_ok=True)
 
     def ensure_weaviate_binary_exists(self):
-        file = Path(self.options.binary_path)
-        if not file.exists():
+        self._weaviate_binary_path = Path(
+            self.options.binary_path,
+            "weaviate-"
+            + self._parsed_weaviate_version
+            + "-"
+            + str(hashlib.sha256(self.options.version.encode("utf-8")).hexdigest()),
+        )
+        if not self._weaviate_binary_path.exists():
             print(
-                f"Binary {self.options.binary_path} did not exist. "
-                f"Downloading binary from {self.options.version}"
+                f"Binary {self.options.binary_path} did not exist. Downloading binary from {self.options.version}"
             )
-            urllib.request.urlretrieve(self.options.version, self.options.binary_path + ".tgz")
-            binary_tar = tarfile.open(self.options.binary_path + ".tgz")
-            binary_tar.extract("weaviate", path=Path(self.options.binary_path).parent)
-            (Path(self.options.binary_path).parent / "weaviate").rename(
-                Path(self.options.binary_path)
-            )
+            tar_filename = Path(self.options.binary_path, "tmp_weaviate.tgz")
+            urllib.request.urlretrieve(self.options.version, tar_filename)
+            binary_tar = tarfile.open(tar_filename)
+            binary_tar.extract("weaviate", path=Path(self.options.binary_path))
+            (Path(self.options.binary_path) / "weaviate").rename(self._weaviate_binary_path)
+            os.remove(tar_filename)
 
             # Ensuring weaviate binary is executable
-            file.chmod(file.stat().st_mode | stat.S_IEXEC)
+            self._weaviate_binary_path.chmod(
+                self._weaviate_binary_path.stat().st_mode | stat.S_IEXEC
+            )
 
     def is_listening(self) -> bool:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            s.connect(("127.0.0.1", self.port))
+            s.connect((self.options.hostname, self.options.port))
             s.close()
             return True
-        except socket.error:
+        except (socket.error, ConnectionRefusedError):
             s.close()
             return False
 
@@ -86,10 +104,11 @@ class EmbeddedDB:
             retries -= 1
         if retries == 0:
             raise WeaviateStartUpError(
-                f"Embedded DB did not start listening on port {self.port} within {seconds} seconds"
+                f"Embedded DB did not start listening on port {self.options.port} within {seconds} seconds"
             )
 
-    def check_supported_platform(self):
+    @staticmethod
+    def check_supported_platform():
         if platform.system() in ["Darwin", "Windows"]:
             raise WeaviateStartUpError(
                 f"{platform.system()} is not supported with EmbeddedDB. Please upvote the feature request if "
@@ -98,11 +117,15 @@ class EmbeddedDB:
 
     def start(self):
         if self.is_listening():
-            print(f"embedded weaviate is already listing on port {self.port}")
+            print(f"embedded weaviate is already listing on port {self.options.port}")
             return
 
         self.ensure_weaviate_binary_exists()
         my_env = os.environ.copy()
+        if self.options.additional_env_vars is not None:
+            for key, value in self.options.additional_env_vars.items():
+                my_env.setdefault(key, value)
+
         my_env.setdefault("AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED", "true")
         my_env.setdefault("QUERY_DEFAULTS_LIMIT", "20")
         my_env.setdefault("PERSISTENCE_DATA_PATH", self.options.persistence_data_path)
@@ -119,11 +142,11 @@ class EmbeddedDB:
             warnings.simplefilter("ignore", ResourceWarning)
             process = subprocess.Popen(
                 [
-                    f"{self.options.binary_path}",
+                    f"{self._weaviate_binary_path}",
                     "--host",
-                    "127.0.0.1",
+                    self.options.hostname,
                     "--port",
-                    str(self.port),
+                    str(self.options.port),
                     "--scheme",
                     "http",
                 ],
@@ -146,6 +169,6 @@ class EmbeddedDB:
     def ensure_running(self):
         if not self.is_listening():
             print(
-                f"Embedded weaviate wasn't listening on port {self.port}, so starting embedded weaviate again"
+                f"Embedded weaviate wasn't listening on port {self.options.port}, so starting embedded weaviate again"
             )
             self.start()
