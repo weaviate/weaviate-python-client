@@ -125,7 +125,7 @@ class TestWeaviateClient(unittest.TestCase):
                     self.assertEqual(kwargs["url"], "http://localhost:6666")
                     self.assertTrue(isinstance(kwargs["embedded_db"], EmbeddedDB))
                     self.assertTrue(kwargs["embedded_db"] is not None)
-                    self.assertEqual(kwargs["embedded_db"].port, 6666)
+                    self.assertEqual(kwargs["embedded_db"].options.port, 6666)
                     mocked_start.assert_called_once()
 
     @patch("weaviate.client.Client.get_meta", return_value={"version": "1.13.2"})
