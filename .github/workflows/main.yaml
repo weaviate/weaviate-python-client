@@ -49,14 +49,13 @@ jobs:
         cache: 'pip' # caching pip dependencies
     - run: pip install -r requirements.txt
     - name: Run unittests
-      run: pytest --cov -v --cov-report=term-missing --cov=weaviate --cov-report xml:coverage.xml ${{ matrix.folder }}
-    - name: Upload to codecov
+      run: pytest --cov -v --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-${{ matrix.folder }}.xml ${{ matrix.folder }}
+    - name: Archive code coverage results
       if: matrix.version == '3.10' && (github.ref_name != 'main')
-      uses: codecov/codecov-action@v3
+      uses: actions/upload-artifact@v3
       with:
-        fail_ci_if_error: true
-        files: coverage.xml
-        flags: unittests
+        name: coverage-report-${{ matrix.folder }}
+        path: coverage-${{ matrix.folder }}.xml
 
   integration-tests:
     name: Run Integration Tests
@@ -82,17 +81,41 @@ jobs:
           OKTA_CLIENT_SECRET: ${{ secrets.OKTA_CLIENT_SECRET }}
           WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
           OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
-        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage.xml integration
+        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Run integration tests without auth secrets (for forks)
         if: ${{ github.event.pull_request.head.repo.fork }}
-        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage.xml integration
-      - name: Upload to codecov
+        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
+      - name: Archive code coverage results
         if: matrix.version == '3.10' && (github.ref_name != 'main')
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report-integration
+          path: coverage-integration.xml
+
+  Codecov:
+    needs: [Unit-Tests, Integration-Tests]
+    runs-on: ubuntu-latest
+    if: github.ref_name != 'main'
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download coverage artifacts integration
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage-report-mock_tests
+      - name: Download coverage artifacts integration
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage-report-test
+      - name: Download coverage unit
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage-report-integration
+      - name: Codecov
         uses: codecov/codecov-action@v3
         with:
           fail_ci_if_error: true
-          files: coverage.xml
-          flags: unittests
+          files: ./coverage-integration.xml, ./coverage-test.xml, ./coverage-mock_tests.xml
+          verbose: true
 
   build-and-add-artifact-and-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
