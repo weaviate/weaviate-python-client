@@ -966,37 +966,6 @@ class TestBatch(unittest.TestCase):
             params={"consistency_level": "ONE"},
         )
 
-        # ## test ReadTimeout, timeout_retries = 0
-        # mock_connection = mock_connection_func("post", side_effect=ReadTimeout("Test!"))
-        # mock_connection.timeout_config = (2, 100)
-        # batch = Batch(mock_connection)
-        # batch.timeout_retries = 0
-        # with self.assertRaises(ReadTimeout) as error:
-        #     batch_request = ReferenceBatchRequest()  # needs to have one entry
-        #     batch_request.add("test", str(uuid.uuid4()), "test", str(uuid.uuid4()), "test")
-        #     batch._create_data("references", batch_request)
-        # check_startswith_error_message(self, error, read_timeout_error_message("references"))
-        # mock_connection.post.assert_called_with(
-        #     path="/batch/references",
-        #     weaviate_object=[],
-        #     params=None,
-        # )
-        # self.assertEqual(mock_connection.post.call_count, 1)
-        #
-        # ## test ReadTimeout, timeout_retries = 3 (default)
-        # mock_connection = mock_connection_func("post", side_effect=ReadTimeout("Test!"))
-        # mock_connection.timeout_config = (2, 100)
-        # batch = Batch(mock_connection)
-        # with self.assertRaises(ReadTimeout) as error:
-        #     batch._create_data("objects", ObjectsBatchRequest())
-        # check_startswith_error_message(self, error, read_timeout_error_message("objects"))
-        # mock_connection.post.assert_called_with(
-        #     path="/batch/objects",
-        #     weaviate_object={"fields": ["ALL"], "objects": []},
-        #     params=None,
-        # )
-        # self.assertEqual(mock_connection.post.call_count, 3 + 1)
-
         ## test ConnectionError, connection_error_retries = 0
         mock_connection = mock_connection_func("post", side_effect=RequestsConnectionError("Test!"))
         mock_connection.timeout_config = (2, 100)

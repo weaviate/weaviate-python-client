@@ -1,6 +1,8 @@
+import json
+
 import pytest
 from pytest_httpserver import HTTPServer, HeaderValueMatcher
-
+from werkzeug.wrappers import Response
 
 MOCK_IP = "127.0.0.1"
 MOCK_PORT = 23536
@@ -28,6 +30,16 @@ def ready_mock(httpserver: HTTPServer):
 @pytest.fixture(scope="function")
 def weaviate_mock(ready_mock):
     ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.16"})
+    yield ready_mock
+
+
+@pytest.fixture(scope="function")
+def weaviate_no_auth_mock(ready_mock):
+    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.16"})
+    ready_mock.expect_request("/v1/.well-known/openid-configuration").respond_with_response(
+        Response(json.dumps({}), status=404)
+    )
+
     yield ready_mock
 
 
