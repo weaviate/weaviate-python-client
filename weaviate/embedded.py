@@ -78,7 +78,7 @@ class EmbeddedDB:
             binary_tar = tarfile.open(tar_filename)
             binary_tar.extract("weaviate", path=Path(self.options.binary_path))
             (Path(self.options.binary_path) / "weaviate").rename(self._weaviate_binary_path)
-            os.remove(tar_filename)
+            tar_filename.unlink()
 
             # Ensuring weaviate binary is executable
             self._weaviate_binary_path.chmod(

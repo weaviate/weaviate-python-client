@@ -32,6 +32,19 @@ def test_embedded_ensure_binary_exists(tmp_path):
     assert Path(embedded_db.options.binary_path).is_file, True
 
 
+def test_version_parsing(tmp_path):
+    embedded_db = EmbeddedDB(
+        EmbeddedOptions(
+            binary_path=str(tmp_path),
+            version="https://github.com/weaviate/weaviate/releases/download/v1.18.1/weaviate-v1.18.1-linux-amd64.tar.gz",
+        )
+    )
+    embedded_db.ensure_weaviate_binary_exists()
+    embedded_file_name = list(tmp_path.iterdir())
+    assert len(embedded_file_name) == 1  # .tgz file was deleted
+    assert "v1.18.1" in str(embedded_file_name[0])
+
+
 def test_embedded_ensure_binary_exists_same_as_tar_binary_name(tmp_path):
     bin_path = tmp_path / "notcreated-yet/bin/weaviate"
     assert bin_path.is_file, False
