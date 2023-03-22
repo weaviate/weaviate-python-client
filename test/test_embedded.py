@@ -1,11 +1,15 @@
 import os
 import signal
+import tarfile
 import time
 from pathlib import Path
 from sys import platform
 from unittest.mock import patch
 
 import pytest
+from pytest_httpserver import HTTPServer
+from werkzeug import Request, Response
+
 
 from weaviate import embedded
 import weaviate
@@ -43,6 +47,30 @@ def test_version_parsing(tmp_path):
     embedded_file_name = list(tmp_path.iterdir())
     assert len(embedded_file_name) == 1  # .tgz file was deleted
     assert "v1.18.1" in str(embedded_file_name[0])
+
+
+def test_download_no_version_parsing(httpserver: HTTPServer, tmp_path):
+    """Test downloading weaviate from a non-github url."""
+
+    def handler(request: Request):
+        with open(Path(tmp_path, "weaviate"), "w") as _:
+            with tarfile.open(Path(tmp_path, "tmp_weaviate.tgz"), "w:gz") as tar:
+                tar.add(Path(tmp_path, "weaviate"), arcname="weaviate")
+
+        return Response(open(Path(tmp_path, "tmp_weaviate.tgz"), mode="rb"))
+
+    httpserver.expect_request("/tmp_weaviate.tgz").respond_with_handler(handler)
+
+    print(httpserver.format_matchers())
+    embedded_db = EmbeddedDB(
+        EmbeddedOptions(
+            binary_path=str(tmp_path),
+            version=httpserver.url_for("/tmp_weaviate.tgz"),
+        )
+    )
+    embedded_db.ensure_weaviate_binary_exists()
+    embedded_file_name = list(tmp_path.iterdir())
+    assert len(embedded_file_name) == 1  # .tgz file was deleted
 
 
 def test_embedded_ensure_binary_exists_same_as_tar_binary_name(tmp_path):
