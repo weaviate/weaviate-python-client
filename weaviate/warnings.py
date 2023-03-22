@@ -67,7 +67,7 @@ class _Warnings:
     @staticmethod
     def weaviate_server_older_than_1_14(server_version: str):
         warnings.warn(
-            message=f"""Dep001: You are using the Weaviate Python Client version {version.__version__} which supports
+            message=f"""Dep001: You are using the Weaviate Python Client version {__version__} which supports
             changes and features of Weaviate >=1.14.x, but you are connected to Weaviate {server_version}.
             If you want to make use of these new changes/features using this Python Client version, upgrade your
             Weaviate instance.""",
