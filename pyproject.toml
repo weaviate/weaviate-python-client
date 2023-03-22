@@ -1,9 +1,13 @@
 [build-system]
 requires = [
     "setuptools >= 65",
+    "setuptools_scm[toml] >6.2",
     "wheel >= 0.38.1",
 ]
 build-backend = 'setuptools.build_meta'
+
+[tool.setuptools_scm]
+write_to = "weaviate/_version.py"
 
 [tool.black]
 line-length = 100
