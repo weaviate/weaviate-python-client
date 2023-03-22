@@ -1,7 +1,11 @@
 import warnings
+from importlib.metadata import version, PackageNotFoundError
 from typing import Optional
 
-import weaviate.version as version
+try:
+    __version__ = version("weaviate")
+except PackageNotFoundError:
+    __version__ = "unknown version"
 
 
 class _Warnings:

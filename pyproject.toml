@@ -7,7 +7,6 @@ requires = [
 build-backend = 'setuptools.build_meta'
 
 [tool.setuptools_scm]
-write_to = "weaviate/_version.py"
 
 [tool.black]
 line-length = 100
