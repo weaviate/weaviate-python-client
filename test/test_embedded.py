@@ -3,18 +3,17 @@ import signal
 import socket
 import tarfile
 import time
+import uuid
 from pathlib import Path
 from sys import platform
 from unittest.mock import patch
-import uuid
 
 import pytest
 from pytest_httpserver import HTTPServer
 from werkzeug import Request, Response
 
-
-from weaviate import embedded
 import weaviate
+from weaviate import embedded
 from weaviate.embedded import EmbeddedDB, EmbeddedOptions
 from weaviate.exceptions import WeaviateStartUpError
 
@@ -204,6 +203,7 @@ def test_weaviate_state(tmp_path: Path):
     assert sock.connect_ex(("127.0.0.1", port)) == 0  # running
     client._connection.embedded_db.stop()
     del client
+    time.sleep(5)  # give weaviate time to shut down
 
     assert sock.connect_ex(("127.0.0.1", port)) != 0  # not running anymore
 
