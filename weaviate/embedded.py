@@ -15,7 +15,6 @@ from typing import Dict, Optional
 
 from weaviate.exceptions import WeaviateStartUpError
 
-
 DEFAULT_BINARY_PATH = str((Path.home() / ".cache/weaviate-embedded/"))
 DEFAULT_PERSISTENCE_DATA_PATH = str((Path.home() / ".local/share/weaviate"))
 GITHUB_RELEASE_DOWNLOAD_URL = "https://github.com/weaviate/weaviate/releases/download/"
@@ -122,9 +121,6 @@ class EmbeddedDB:
 
         self.ensure_weaviate_binary_exists()
         my_env = os.environ.copy()
-        if self.options.additional_env_vars is not None:
-            for key, value in self.options.additional_env_vars.items():
-                my_env.setdefault(key, value)
 
         my_env.setdefault("AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED", "true")
         my_env.setdefault("QUERY_DEFAULTS_LIMIT", "20")
@@ -136,6 +132,9 @@ class EmbeddedDB:
             "ENABLE_MODULES",
             "text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,generative-openai,qna-openai",
         )
+
+        if self.options.additional_env_vars is not None:
+            my_env.update(self.options.additional_env_vars)
 
         # filter warning about running processes.
         with warnings.catch_warnings():
