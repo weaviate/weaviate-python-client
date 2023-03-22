@@ -943,13 +943,6 @@ class TestBatch(unittest.TestCase):
         #######################################################################
         ## error messages
         requests_error_message = "Batch was not added to weaviate."
-        # read_timeout_error_message = lambda data_type: (
-        #     f"The '{data_type}' creation was cancelled because it took "
-        #     "longer than the configured timeout of 100s. "
-        #     "Try reducing the batch size (currently 0) to a lower value. "
-        #     "Aim to on average complete batch request within less than 10s"
-        # )
-
         unexpected_error_message = lambda data: f"Create {data} in batch"
 
         #######################################################################
@@ -1005,25 +998,6 @@ class TestBatch(unittest.TestCase):
                 err = ReadTimeout
             i_for_alt_errors += 1
             raise err
-
-        # mock_connection = mock_connection_func(
-        #     "post", side_effect=lambda path, weaviate_object, params: alternating_errors()
-        # )
-        # mock_connection.timeout_config = (2, 10)
-        # batch = Batch(mock_connection)
-        # batch.connection_error_retries = 2
-        # batch.timeout_retries = 2
-        # with self.assertRaises(RequestsConnectionError) as error:
-        #     obj_batch = ObjectsBatchRequest()
-        #     obj_batch.add(class_name="test", data_object={})
-        #     batch._create_data("objects", obj_batch)
-        # check_startswith_error_message(self, error, requests_error_message)
-        # mock_connection.post.assert_called_with(
-        #     path="/batch/objects",
-        #     weaviate_object={"fields": ["ALL"], "objects": []},
-        #     params=None,
-        # )
-        # self.assertEqual(mock_connection.post.call_count, 2 + 2 + 1)
 
         ## test status_code != 200
         mock_connection = mock_connection_func("post", status_code=204)
