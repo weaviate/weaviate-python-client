@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ["3.7", "3.8", "3.9", "3.10"]
+        version: ["3.8", "3.9", "3.10", "3.11"]
         folder: ["test", "mock_tests"]
     steps:
     - uses: actions/checkout@v3
@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ["3.7", "3.8", "3.9", "3.10"]
+        version: [ "3.8", "3.9", "3.10", "3.11"]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
