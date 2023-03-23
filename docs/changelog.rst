@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Version 3.15.3
+--------------
+This patch version includes:
+
+- Improve embedded weaviate: Better folder structures, add support for env variables and support multiple versions.
+- Fix edge case for timeout retries: When all objects have been added no empty batch will be send.
+- Fix authentication via additional_headers
+
 Version 3.15.2
 --------------
 This patch version includes:
