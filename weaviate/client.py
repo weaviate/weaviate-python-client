@@ -138,7 +138,7 @@ class Client:
         if embedded_options is not None:
             embedded_db = EmbeddedDB(options=embedded_options)
             embedded_db.start()
-            url = f"http://localhost:{embedded_db.port}"
+            url = f"http://localhost:{embedded_db.options.port}"
         else:
             url = url.strip("/")
             embedded_db = None
