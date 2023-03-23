@@ -623,7 +623,7 @@ class Batch:
                         error=error,
                     )
                     timeout_count += 1
-                    batch_request = self._batch_readd_after_timeout(data_type, batch_request)
+                    batch_request = self._batch_retry_after_timeout(data_type, batch_request)
                     # All elements have been added successfully. The timeout occurred while receiving the answer.
                     if len(batch_request) == 0:
                         response = Response()
@@ -679,7 +679,7 @@ class Batch:
         with self._callback_lock:
             self._callback(response)
 
-    def _batch_readd_after_timeout(
+    def _batch_retry_after_timeout(
         self, data_type: str, batch_request: BatchRequest
     ) -> BatchRequest:
         """

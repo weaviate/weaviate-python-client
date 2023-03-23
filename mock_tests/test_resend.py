@@ -35,10 +35,10 @@ def test_retry_on_timeout(weaviate_no_auth_mock):
     After the timeout, the client checks if
     - An object with the given UUID already exists (using HEAD). Here 50% return that they do NOT exist, eg have to be
     resent.
-    - If an object exists, it is checked if the current version in weaviate is identical to the one that is currently
-    send. If not, the object in the batch is an update and has to be resent again
+    - If an object exists, it is checked if the current version in weaviate is identical to the one that is
+    sent in the batch. If not, the object in the batch is an update and has to be resent again
 
-    In total 75 are resend.
+    In total 75% are resend.
     """
     added_uuids = []
     first_request = True
@@ -51,6 +51,7 @@ def test_retry_on_timeout(weaviate_no_auth_mock):
             time.sleep(1)  # cause timeout
             first_request = False
         else:
+            # 75% of objects have to be resent
             assert len(request.json["objects"]) == n / 4 * 3
 
         return Response(json.dumps({}))
@@ -95,7 +96,7 @@ def test_retry_on_timeout_all_succesfull(weaviate_no_auth_mock):
     """Test that the client does not resend an empty batch."""
     n = 20
 
-    # handler only responds once => no batch has been resent
+    # handler only responds once => error if a batch is resent
     def handler_batch_objects(request: Request):
         nonlocal n
         assert len(request.json["objects"]) == n  # all objects are send the first time
