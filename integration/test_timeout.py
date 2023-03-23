@@ -1,4 +1,3 @@
-import time
 import uuid
 
 import weaviate
@@ -32,7 +31,6 @@ def test_low_timeout():
             {"stringProp": f"object-{i}", "intProp": i}, "ClassA", uuid=uuids[-1]
         )
     client.batch.flush()
-    time.sleep(0.1)
     result = client.query.aggregate("ClassA").with_meta_count().do()
     assert num_objects == result["data"]["Aggregate"]["ClassA"][0]["meta"]["count"]
 
