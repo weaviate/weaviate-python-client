@@ -15,8 +15,8 @@ from typing import Dict, Optional
 
 from weaviate.exceptions import WeaviateStartUpError
 
-DEFAULT_BINARY_PATH = str((Path.home() / ".cache/weaviate-embedded/"))
-DEFAULT_PERSISTENCE_DATA_PATH = str((Path.home() / ".local/share/weaviate"))
+DEFAULT_BINARY_PATH = str(Path.home() / ".cache/weaviate-embedded/")
+DEFAULT_PERSISTENCE_DATA_PATH = str(Path.home() / ".local/share/weaviate")
 GITHUB_RELEASE_DOWNLOAD_URL = "https://github.com/weaviate/weaviate/releases/download/"
 
 
