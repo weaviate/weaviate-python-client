@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 3.15.4
+--------------
+This patch version includes:
+
+- Fix imports of EmbeddedDB on Mac. It now properly raises an exception that MacOS is currently unsupported.
+
+
 Version 3.15.3
 --------------
 This patch version includes:
