@@ -42,8 +42,10 @@ __all__ = [
     "ObjectAlreadyExistsException",
     "AuthenticationFailedException",
     "SchemaValidationException",
+    "WeaviateStartUpError",
     "ConsistencyLevel",
     "WeaviateErrorRetryConf",
+    "EmbeddedOptions",
 ]
 
 import sys
@@ -52,11 +54,13 @@ from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken, Au
 from .batch.crud_batch import WeaviateErrorRetryConf
 from .client import Client
 from .data.replication import ConsistencyLevel
+from .embedded import EmbeddedOptions
 from .exceptions import (
     UnexpectedStatusCodeException,
     ObjectAlreadyExistsException,
     AuthenticationFailedException,
     SchemaValidationException,
+    WeaviateStartUpError,
 )
 from .version import __version__  # noqa
 
