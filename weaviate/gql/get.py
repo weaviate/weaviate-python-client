@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from json import dumps
 from typing import List, Union, Optional, Dict, Tuple
 
+from weaviate import util
 from weaviate.connect import Connection
 from weaviate.gql.filter import (
     Where,
@@ -977,10 +978,10 @@ class GetBuilder(GraphQL):
         task_and_prompt = ""
         if single_prompt is not None:
             results.append("singleResult")
-            task_and_prompt += f'singleResult:{{prompt:"{single_prompt}"}}'
+            task_and_prompt += f'singleResult:{{prompt:"{util.strip_newlines(single_prompt)}"}}'
         if grouped_task is not None:
             results.append("groupedResult")
-            task_and_prompt += f'groupedResult:{{task:"{grouped_task}"}}'
+            task_and_prompt += f'groupedResult:{{task:"{util.strip_newlines(grouped_task)}"}}'
 
         self._additional["__one_level"].add(f'generate({task_and_prompt}){{{" ".join(results)}}}')
 
