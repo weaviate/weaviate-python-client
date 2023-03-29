@@ -13,7 +13,7 @@ Version 3.15.3
 This patch version includes:
 
 - Improve embedded weaviate: Better folder structures, add support for env variables and support multiple versions.
-- Fix edge case for timeout retries: When all objects have been added no empty batch will be send.
+- Fix edge case for timeout retries: When all objects have been added, no empty batch will be send.
 - Fix authentication via additional_headers
 
 Version 3.15.2
@@ -48,7 +48,7 @@ This minor version includes:
         from weaviate import Client
         from weaviate.embedded import EmbeddedOptions
 
-        # Create the embedded client which automatically launches a weaviate database in the background
+        # Create the embedded client which automatically launches a Weaviate database in the background
         client = Client(embedded_options=EmbeddedOptions())
 
 

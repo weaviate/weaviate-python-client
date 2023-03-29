@@ -22,7 +22,7 @@ from .schema import Schema
 
 class Client:
     """
-    A python native weaviate Client class that encapsulates Weaviate functionalities in one object.
+    A python native Weaviate Client class that encapsulates Weaviate functionalities in one object.
     A Client instance creates all the needed objects to interact with Weaviate, and connects all of
     them to the same Weaviate instance. See below the Attributes of the Client instance. For the
     per attribute functionality see that attribute's documentation.
@@ -80,10 +80,10 @@ class Client:
             passed as a dict ('requests' format:
             https://docs.python-requests.org/en/stable/user/advanced/#proxies), str (HTTP/HTTPS
             protocols are going to use this proxy) or None.
-            By default None.
+            Default None.
         trust_env : bool, optional
             Whether to read proxies from the ENV variables: (HTTP_PROXY or http_proxy, HTTPS_PROXY
-            or https_proxy). By default False.
+            or https_proxy). Default False.
             NOTE: 'proxies' has priority over 'trust_env', i.e. if 'proxies' is NOT None,
             'trust_env' is ignored.
         additional_headers : dict or None
@@ -92,8 +92,8 @@ class Client:
                 {"X-OpenAI-Api-Key": "<THE-KEY>"}, {"X-HuggingFace-Api-Key": "<THE-KEY>"}
             by default None
         startup_period : int or None
-            How long the client will wait for weaviate to start before raising a RequestsConnectionError.
-            If None the client will not wait at all. Default timeout is 5s.
+            How long the client will wait for Weaviate to start before raising a RequestsConnectionError.
+            If None, the client won't wait at all. Default timeout is 5s.
         embedded_options : weaviate.embedded.EmbeddedOptions or None, optional
             Create an embedded Weaviate cluster inside the client
             - You can pass weaviate.embedded.EmbeddedOptions() with default values
