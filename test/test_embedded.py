@@ -132,7 +132,6 @@ def test_embedded_end_to_end(options, tmp_path):
 def test_embedded_multiple_instances(tmp_path):
     embedded_db = EmbeddedDB(
         EmbeddedOptions(
-            cluster_hostname="db1",
             port=30664,
             persistence_data_path=(tmp_path / "db1").absolute(),
             binary_path=tmp_path,
@@ -140,7 +139,6 @@ def test_embedded_multiple_instances(tmp_path):
     )
     embedded_db2 = EmbeddedDB(
         EmbeddedOptions(
-            cluster_hostname="db2",
             port=30665,
             persistence_data_path=(tmp_path / "db2").absolute(),
             binary_path=tmp_path,
@@ -155,7 +153,6 @@ def test_embedded_multiple_instances(tmp_path):
 def test_embedded_different_versions(tmp_path):
     client1 = weaviate.Client(
         embedded_options=EmbeddedOptions(
-            cluster_hostname="db1",
             port=30664,
             persistence_data_path=(tmp_path / "db1").absolute(),
             binary_path=tmp_path,
@@ -164,7 +161,6 @@ def test_embedded_different_versions(tmp_path):
     )
     client2 = weaviate.Client(
         embedded_options=EmbeddedOptions(
-            cluster_hostname="db2",
             port=30665,
             persistence_data_path=(tmp_path / "db2").absolute(),
             binary_path=tmp_path,
