@@ -27,7 +27,6 @@ class EmbeddedOptions:
     version: str = "https://github.com/weaviate/weaviate/releases/download/v1.18.1/weaviate-v1.18.1-linux-amd64.tar.gz"
     port: int = 6666
     hostname: str = "127.0.0.1"
-    cluster_hostname: str = "embedded"
     additional_env_vars: Optional[Dict[str, str]] = None
 
 
@@ -125,7 +124,6 @@ class EmbeddedDB:
         my_env.setdefault("AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED", "true")
         my_env.setdefault("QUERY_DEFAULTS_LIMIT", "20")
         my_env.setdefault("PERSISTENCE_DATA_PATH", self.options.persistence_data_path)
-        my_env.setdefault("CLUSTER_HOSTNAME", self.options.cluster_hostname)
         # Bug with weaviate requires setting gossip and data bind port
         my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(get_random_port()))
         my_env.setdefault(
