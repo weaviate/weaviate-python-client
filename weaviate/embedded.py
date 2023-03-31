@@ -131,6 +131,10 @@ class EmbeddedDB:
             "text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,generative-openai,qna-openai",
         )
 
+        # have a deterministic hostname in case of changes in the network name. This allows to run multiple parallel
+        # instances
+        my_env.setdefault("CLUSTER_HOSTNAME", f"Embedded_at_{self.options.port}")
+
         if self.options.additional_env_vars is not None:
             my_env.update(self.options.additional_env_vars)
 
