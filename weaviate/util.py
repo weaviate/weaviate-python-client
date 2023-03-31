@@ -553,3 +553,7 @@ def is_weaviate_domain(url: str) -> bool:
         or "semi.technology" in url.lower()
         or "weaviate.cloud" in url.lower()
     )
+
+
+def strip_newlines(s: str) -> str:
+    return s.replace("\n", " ")

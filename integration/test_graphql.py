@@ -1,6 +1,7 @@
-import uuid
 import json
 import os
+import uuid
+
 import pytest
 
 import weaviate
@@ -193,6 +194,10 @@ def test_hybrid_bm25(client):
         (
             "Describe the following as a Twitter Ad: {review}",
             "Describe the following as a Mastodon Ad: {review}",
+        ),
+        (
+            "Describe the following as a Twitter Ad: \n Review: {review} \n Name: {name}",
+            "Describe the following as a Mastodon Ad:  \n Review: {review} \n Name: {name}",
         ),
     ],
 )
