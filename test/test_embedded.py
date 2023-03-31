@@ -96,7 +96,7 @@ def test_embedded_ensure_binary_exists_same_as_tar_binary_name(tmp_path):
 
 
 @pytest.fixture(scope="session")
-def embedded_db_binary_path(tmp_path_factory):
+def embedded_db_binary_path(tmp_path_factory: pytest.TempPathFactory):
     embedded.weaviate_binary_path = (
         tmp_path_factory.mktemp("embedded-test") / "weaviate-embedded-binary"
     )
@@ -130,19 +130,19 @@ def test_embedded_end_to_end(options, tmp_path):
     embedded_db.stop()
 
 
-def test_embedded_multiple_instances(tmp_path):
+def test_embedded_multiple_instances(tmp_path_factory: pytest.TempPathFactory):
     embedded_db = EmbeddedDB(
         EmbeddedOptions(
             port=30664,
-            persistence_data_path=(tmp_path / "db1").absolute(),
-            binary_path=tmp_path,
+            persistence_data_path=tmp_path_factory.mktemp("data"),
+            binary_path=tmp_path_factory.mktemp("bin"),
         )
     )
     embedded_db2 = EmbeddedDB(
         EmbeddedOptions(
             port=30665,
-            persistence_data_path=(tmp_path / "db2").absolute(),
-            binary_path=tmp_path,
+            persistence_data_path=tmp_path_factory.mktemp("data"),
+            binary_path=tmp_path_factory.mktemp("bin"),
         )
     )
     embedded_db.ensure_running()
@@ -151,20 +151,20 @@ def test_embedded_multiple_instances(tmp_path):
     assert embedded_db2.is_listening() is True
 
 
-def test_embedded_different_versions(tmp_path):
+def test_embedded_different_versions(tmp_path_factory: pytest.TempPathFactory):
     client1 = weaviate.Client(
         embedded_options=EmbeddedOptions(
             port=30664,
-            persistence_data_path=(tmp_path / "db1").absolute(),
-            binary_path=tmp_path,
+            persistence_data_path=tmp_path_factory.mktemp("data"),
+            binary_path=tmp_path_factory.mktemp("bin"),
             version="https://github.com/weaviate/weaviate/releases/download/v1.18.1/weaviate-v1.18.1-linux-amd64.tar.gz",
         )
     )
     client2 = weaviate.Client(
         embedded_options=EmbeddedOptions(
             port=30665,
-            persistence_data_path=(tmp_path / "db2").absolute(),
-            binary_path=tmp_path,
+            persistence_data_path=tmp_path_factory.mktemp("data"),
+            binary_path=tmp_path_factory.mktemp("bin"),
             version="https://github.com/weaviate/weaviate/releases/download/v1.18.0/weaviate-v1.18.0-linux-amd64.tar.gz",
         )
     )
@@ -174,25 +174,26 @@ def test_embedded_different_versions(tmp_path):
     assert meta2["version"] == "1.18.0"
 
 
-def test_custom_env_vars(tmp_path: Path):
+def test_custom_env_vars(tmp_path_factory: pytest.TempPathFactory):
     client = weaviate.Client(
         embedded_options=EmbeddedOptions(
-            binary_path=tmp_path,
+            binary_path=tmp_path_factory.mktemp("bin"),
             additional_env_vars={"ENABLE_MODULES": ""},
-            persistence_data_path=tmp_path,
+            persistence_data_path=tmp_path_factory.mktemp("data"),
         )
     )
     meta = client.get_meta()
     assert len(meta["modules"]) == 0
 
 
-def test_weaviate_state(tmp_path: Path):
+def test_weaviate_state(tmp_path_factory: pytest.TempPathFactory):
     """Test that weaviate keeps the state between different runs."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     port = 36545
+    data_path = tmp_path_factory.mktemp("data")
     client = weaviate.Client(
         embedded_options=EmbeddedOptions(
-            binary_path=tmp_path, port=port, persistence_data_path=tmp_path
+            binary_path=tmp_path_factory.mktemp("bin"), port=port, persistence_data_path=data_path
         ),
         startup_period=10,
     )
@@ -206,7 +207,7 @@ def test_weaviate_state(tmp_path: Path):
 
     client = weaviate.Client(
         embedded_options=EmbeddedOptions(
-            binary_path=tmp_path, port=port, persistence_data_path=tmp_path
+            binary_path=tmp_path_factory.mktemp("bin"), port=port, persistence_data_path=data_path
         ),
         startup_period=10,
     )
@@ -214,11 +215,11 @@ def test_weaviate_state(tmp_path: Path):
     assert count["data"]["Aggregate"]["Person"][0]["meta"]["count"] == 1
 
 
-def test_version(tmp_path):
+def test_version(tmp_path_factory: pytest.TempPathFactory):
     client = weaviate.Client(
         embedded_options=EmbeddedOptions(
-            persistence_data_path=(tmp_path / "db1").absolute(),
-            binary_path=tmp_path,
+            persistence_data_path=tmp_path_factory.mktemp("data"),
+            binary_path=tmp_path_factory.mktemp("bin"),
             version="v1.18.2",
         )
     )
@@ -226,10 +227,12 @@ def test_version(tmp_path):
     assert meta["version"] == "1.18.2"
 
 
-def test_latest(tmp_path):
+def test_latest(tmp_path_factory: pytest.TempPathFactory):
     client = weaviate.Client(
         embedded_options=EmbeddedOptions(
-            persistence_data_path=tmp_path / "data", binary_path=tmp_path / "bin", version="latest"
+            persistence_data_path=tmp_path_factory.mktemp("data"),
+            binary_path=tmp_path_factory.mktemp("bin"),
+            version="latest",
         )
     )
     meta = client.get_meta()
