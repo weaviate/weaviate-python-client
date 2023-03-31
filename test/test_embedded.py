@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 import pytest
 from pytest_httpserver import HTTPServer
+import requests
 from werkzeug import Request, Response
 
 import weaviate
@@ -211,3 +212,26 @@ def test_weaviate_state(tmp_path: Path):
     )
     count = client.query.aggregate("Person").with_meta_count().do()
     assert count["data"]["Aggregate"]["Person"][0]["meta"]["count"] == 1
+
+
+def test_version(tmp_path):
+    client = weaviate.Client(
+        embedded_options=EmbeddedOptions(
+            persistence_data_path=(tmp_path / "db1").absolute(),
+            binary_path=tmp_path,
+            version="v1.18.2",
+        )
+    )
+    meta = client.get_meta()
+    assert meta["version"] == "1.18.2"
+
+
+def test_latest(tmp_path):
+    client = weaviate.Client(
+        embedded_options=EmbeddedOptions(
+            persistence_data_path=tmp_path / "data", binary_path=tmp_path / "bin", version="latest"
+        )
+    )
+    meta = client.get_meta()
+    latest = requests.get("https://api.github.com/repos/weaviate/weaviate/releases/latest").json()
+    assert "v" + meta["version"] == latest["tag_name"]

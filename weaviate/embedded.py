@@ -1,6 +1,7 @@
 import hashlib
 import os
 import platform
+import re
 import signal
 import socket
 import stat
@@ -9,9 +10,11 @@ import tarfile
 import time
 import urllib.request
 import warnings
+import requests
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional
+
 
 from weaviate.exceptions import WeaviateStartUpError
 
@@ -46,11 +49,42 @@ class EmbeddedDB:
         self.ensure_paths_exist()
         self.check_supported_platform()
         self._parsed_weaviate_version = ""
+        # regular expression to detect a version number: v[one digit].[1-2 digits].[1-2 digits] - nothing in front or back
+        pattern = re.compile(r"^v\d\.\d{1,2}\.\d{1,2}$")
         if self.options.version.startswith(GITHUB_RELEASE_DOWNLOAD_URL):
             # replace with str.removeprefix() after 3.8 has been deprecated
             self._parsed_weaviate_version = self.options.version[
                 len(GITHUB_RELEASE_DOWNLOAD_URL) :
             ].split("/")[0]
+            self._download_url = self.options.version
+        elif pattern.match(self.options.version):
+            self._parsed_weaviate_version = self.options.version
+            self._set_download_url_from_version(self.options.version)
+        elif self.options.version == "latest":
+            latest = requests.get(
+                "https://api.github.com/repos/weaviate/weaviate/releases/latest"
+            ).json()
+            self._set_download_url_from_version(latest["tag_name"])
+        else:
+            # no github url, but people might download weaviate from who-knows-where
+            self._download_url = self.options.version
+
+    def _set_download_url_from_version(self, version: str):
+        machine_type = platform.machine()
+        if machine_type == "x86_64":
+            machine_type = "amd64"
+        elif machine_type == "aarch64":
+            machine_type = "arm64"
+
+        self._download_url = (
+            GITHUB_RELEASE_DOWNLOAD_URL
+            + version
+            + "/weaviate-"
+            + version
+            + "-linux-"
+            + machine_type
+            + ".tar.gz"
+        )
 
     def __del__(self):
         self.stop()
@@ -69,10 +103,10 @@ class EmbeddedDB:
         )
         if not self._weaviate_binary_path.exists():
             print(
-                f"Binary {self.options.binary_path} did not exist. Downloading binary from {self.options.version}"
+                f"Binary {self.options.binary_path} did not exist. Downloading binary from {self._download_url}"
             )
             tar_filename = Path(self.options.binary_path, "tmp_weaviate.tgz")
-            urllib.request.urlretrieve(self.options.version, tar_filename)
+            urllib.request.urlretrieve(self._download_url, tar_filename)
             binary_tar = tarfile.open(tar_filename)
             binary_tar.extract("weaviate", path=Path(self.options.binary_path))
             (Path(self.options.binary_path) / "weaviate").rename(self._weaviate_binary_path)
