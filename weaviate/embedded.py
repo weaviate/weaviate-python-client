@@ -15,7 +15,9 @@ from pathlib import Path
 from typing import Dict, Optional
 
 import requests
+import validators as validators
 
+from weaviate import exceptions
 from weaviate.exceptions import WeaviateStartUpError
 
 DEFAULT_BINARY_PATH = str(Path.home() / ".cache/weaviate-embedded/")
@@ -52,14 +54,20 @@ class EmbeddedDB:
         # regular expression to detect a version number: v[one digit].[1-2 digits].[1-2 digits]
         # optionally there can be a "-rc.[1-2 digits]"
         # nothing in front or back
-        pattern = re.compile(r"^\d\.\d{1,2}\.\d{1,2}?(-rc\.\d{1,2}|$)$")
-        if self.options.version.startswith(GITHUB_RELEASE_DOWNLOAD_URL):
-            # replace with str.removeprefix() after 3.8 has been deprecated
-            self._parsed_weaviate_version = self.options.version[
-                len(GITHUB_RELEASE_DOWNLOAD_URL) :
-            ].split("/")[0]
+        version_pattern = re.compile(r"^\d\.\d{1,2}\.\d{1,2}?(-rc\.\d{1,2}|$)$")
+
+        if validators.url(self.options.version):
+            if not self.options.version.endswith(".tar.gz"):
+                raise exceptions.WeaviateEmbeddedInvalidVersion(self.options.version)
+
+            # for GitHub urls we can parse the version from the url
+            if self.options.version.startswith(GITHUB_RELEASE_DOWNLOAD_URL):
+                # replace with str.removeprefix() after 3.8 has been deprecated
+                self._parsed_weaviate_version = self.options.version[
+                    len(GITHUB_RELEASE_DOWNLOAD_URL) :
+                ].split("/")[0]
             self._download_url = self.options.version
-        elif pattern.match(self.options.version):
+        elif version_pattern.match(self.options.version):
             self._parsed_weaviate_version = self.options.version
             self._set_download_url_from_version(self.options.version)
         elif self.options.version == "latest":
@@ -68,8 +76,7 @@ class EmbeddedDB:
             ).json()
             self._set_download_url_from_version(latest["tag_name"])
         else:
-            # no GitHub url, but people might download weaviate from who-knows-where
-            self._download_url = self.options.version
+            raise exceptions.WeaviateEmbeddedInvalidVersion(self.options.version)
 
     def _set_download_url_from_version(self, version: str):
         machine_type = platform.machine()
