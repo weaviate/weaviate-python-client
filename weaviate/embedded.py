@@ -52,9 +52,11 @@ class EmbeddedDB:
         self.check_supported_platform()
         self._parsed_weaviate_version = ""
         # regular expression to detect a version number: v[one digit].[1-2 digits].[1-2 digits]
-        # optionally there can be a "-rc.[1-2 digits]"
+        # optionally there can be a "-rc/alpha/beta.[1-2 digits]"
         # nothing in front or back
-        version_pattern = re.compile(r"^\d\.\d{1,2}\.\d{1,2}?(-rc\.\d{1,2}|$)$")
+        version_pattern = re.compile(
+            r"^\d\.\d{1,2}\.\d{1,2}?(-rc\.\d{1,2}|-beta\.\d{1,2}|-alpha\.\d{1,2}|$)$"
+        )
 
         if validators.url(self.options.version):
             if not self.options.version.endswith(".tar.gz"):
