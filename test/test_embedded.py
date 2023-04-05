@@ -133,14 +133,14 @@ def test_embedded_end_to_end(options, tmp_path):
 def test_embedded_multiple_instances(tmp_path_factory: pytest.TempPathFactory):
     embedded_db = EmbeddedDB(
         EmbeddedOptions(
-            port=30664,
+            port=30662,
             persistence_data_path=tmp_path_factory.mktemp("data"),
             binary_path=tmp_path_factory.mktemp("bin"),
         )
     )
     embedded_db2 = EmbeddedDB(
         EmbeddedOptions(
-            port=30665,
+            port=30663,
             persistence_data_path=tmp_path_factory.mktemp("data"),
             binary_path=tmp_path_factory.mktemp("bin"),
         )
@@ -180,6 +180,7 @@ def test_custom_env_vars(tmp_path_factory: pytest.TempPathFactory):
             binary_path=tmp_path_factory.mktemp("bin"),
             additional_env_vars={"ENABLE_MODULES": ""},
             persistence_data_path=tmp_path_factory.mktemp("data"),
+            port=30666,
         )
     )
     meta = client.get_meta()
@@ -221,6 +222,7 @@ def test_version(tmp_path_factory: pytest.TempPathFactory):
             persistence_data_path=tmp_path_factory.mktemp("data"),
             binary_path=tmp_path_factory.mktemp("bin"),
             version="1.18.2",
+            port=30667,
         )
     )
     meta = client.get_meta()
@@ -233,6 +235,7 @@ def test_latest(tmp_path_factory: pytest.TempPathFactory):
             persistence_data_path=tmp_path_factory.mktemp("data"),
             binary_path=tmp_path_factory.mktemp("bin"),
             version="latest",
+            port=30668,
         )
     )
     meta = client.get_meta()
