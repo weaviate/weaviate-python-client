@@ -68,17 +68,18 @@ class EmbeddedDB:
                 ].split("/")[0]
             self._download_url = self.options.version
         elif version_pattern.match(self.options.version):
-            self._parsed_weaviate_version = self.options.version
-            self._set_download_url_from_version(self.options.version)
+            version_tag = "v" + self.options.version
+            self._parsed_weaviate_version = version_tag
+            self._set_download_url_from_version_tag(version_tag)
         elif self.options.version == "latest":
             latest = requests.get(
                 "https://api.github.com/repos/weaviate/weaviate/releases/latest"
             ).json()
-            self._set_download_url_from_version(latest["tag_name"])
+            self._set_download_url_from_version_tag(latest["tag_name"])
         else:
             raise exceptions.WeaviateEmbeddedInvalidVersion(self.options.version)
 
-    def _set_download_url_from_version(self, version: str):
+    def _set_download_url_from_version_tag(self, version: str):
         machine_type = platform.machine()
         if machine_type == "x86_64":
             machine_type = "amd64"

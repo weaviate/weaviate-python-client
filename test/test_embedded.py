@@ -16,7 +16,7 @@ from werkzeug import Request, Response
 import weaviate
 from weaviate import embedded, EmbeddedOptions
 from weaviate.embedded import EmbeddedDB
-from weaviate.exceptions import WeaviateStartUpError
+from weaviate.exceptions import WeaviateEmbeddedInvalidVersion, WeaviateStartUpError
 
 if platform != "linux":
     pytest.skip("Currently only supported on linux", allow_module_level=True)
@@ -65,18 +65,18 @@ def test_download_no_version_parsing(httpserver: HTTPServer, tmp_path):
 
     def handler(request: Request):
         with open(Path(tmp_path, "weaviate"), "w") as _:
-            with tarfile.open(Path(tmp_path, "tmp_weaviate.tgz"), "w:gz") as tar:
+            with tarfile.open(Path(tmp_path, "tmp_weaviate.tar.gz"), "w:gz") as tar:
                 tar.add(Path(tmp_path, "weaviate"), arcname="weaviate")
 
-        return Response(open(Path(tmp_path, "tmp_weaviate.tgz"), mode="rb"))
+        return Response(open(Path(tmp_path, "tmp_weaviate.tar.gz"), mode="rb"))
 
-    httpserver.expect_request("/tmp_weaviate.tgz").respond_with_handler(handler)
+    httpserver.expect_request("/tmp_weaviate.tar.gz").respond_with_handler(handler)
 
     bin_path = tmp_path / "bin"
     embedded_db = EmbeddedDB(
         EmbeddedOptions(
             binary_path=str(bin_path),
-            version=httpserver.url_for("/tmp_weaviate.tgz"),
+            version=httpserver.url_for("/tmp_weaviate.tar.gz"),
             persistence_data_path=tmp_path / "2",
         )
     )
@@ -220,7 +220,7 @@ def test_version(tmp_path_factory: pytest.TempPathFactory):
         embedded_options=EmbeddedOptions(
             persistence_data_path=tmp_path_factory.mktemp("data"),
             binary_path=tmp_path_factory.mktemp("bin"),
-            version="v1.18.2",
+            version="1.18.2",
         )
     )
     meta = client.get_meta()
@@ -238,3 +238,23 @@ def test_latest(tmp_path_factory: pytest.TempPathFactory):
     meta = client.get_meta()
     latest = requests.get("https://api.github.com/repos/weaviate/weaviate/releases/latest").json()
     assert "v" + meta["version"] == latest["tag_name"]
+
+
+@pytest.mark.parametrize(
+    "version",
+    [
+        "v1.16.6",
+        "sdgfsdfposdfjpsdf",
+        "httttp://github.com/weaviate/weaviate/releases/download/v1.18.0/weaviate-v1.18.0-linux-amd64.tar.gz",
+        "https://github.com/weaviate/weaviate/releases/download/v1.18.0/weaviate-v1.18.0-linux-amd64.tar",
+    ],
+)
+def test_invalid_version(tmp_path_factory: pytest.TempPathFactory, version):
+    with pytest.raises(WeaviateEmbeddedInvalidVersion):
+        weaviate.Client(
+            embedded_options=EmbeddedOptions(
+                persistence_data_path=tmp_path_factory.mktemp("data"),
+                binary_path=tmp_path_factory.mktemp("bin"),
+                version=version,
+            )
+        )
