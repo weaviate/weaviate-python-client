@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Version 3.15.5
+--------------
+This patch version includes:
+
+- EmbeddedDB now supports ``latest`` and versions (eg ``1.18.3``) as ``version`` argument.
+- Removed ``cluster_hostname`` from ``EmbeddedOptions``. It can still be set by using ``additional_env_vars``.
+- Fix multi-line queries for generative search.
+
 Version 3.15.4
 --------------
 This patch version includes:
