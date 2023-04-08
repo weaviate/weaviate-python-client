@@ -109,3 +109,17 @@ class MissingScopeException(WeaviateBaseError):
 
 class WeaviateStartUpError(WeaviateBaseError):
     """Is raised if weaviate does not start up in time."""
+
+
+class WeaviateEmbeddedInvalidVersion(WeaviateBaseError):
+    """Invalid version provided to Weaviate embedded."""
+
+    def __init__(self, url: str):
+        msg = """Invalid version provided to Weaviate embedded. It must be either:
+        - a url to a tar.gz file that contains a Weaviate binary
+        - a version number, eg "1.18.2"
+        - the string "latest" to download the latest non-beta version
+
+        Url provided was: {url}.
+        """
+        super().__init__(msg)
