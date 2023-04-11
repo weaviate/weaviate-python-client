@@ -9,6 +9,7 @@ from typing import List, Optional, Dict, Union
 import pytest
 
 import weaviate
+from weaviate.gql.get import ReferenceProperty
 
 
 def get_query_for_group(name):
@@ -474,3 +475,107 @@ def test_add_vector_and_vectorizer(client: weaviate.Client):
         class_name="Person",
     )
     assert object_without_vector["vector"] != [1] * 300
+
+
+def test_beacon_refs(people_schema):
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+    client.schema.create(people_schema)
+
+    persons = []
+    for i in range(10):
+        persons.append(uuid.uuid4())
+        client.data_object.create({"name": "randomName" + str(i)}, "Person", persons[-1])
+
+    client.data_object.create({}, "Call", "3ab05e06-2bb2-41d1-b5c5-e044f3aa9623")
+
+    # create refs
+    for i in range(5):
+        client.data_object.reference.add(
+            to_uuid=persons[i],
+            from_property_name="caller",
+            from_uuid="3ab05e06-2bb2-41d1-b5c5-e044f3aa9623",
+            from_class_name="Call",
+            to_class_name="Person",
+        )
+
+    result = client.query.get(
+        "Call",
+        [
+            "start",
+            ReferenceProperty(property_name="caller", in_class="Person", properties=["name"]),
+        ],
+    ).do()
+    callers = result["data"]["Get"]["Call"][0]["caller"]
+    assert len(callers) == 5
+    all_names = [caller["name"] for caller in callers]
+    assert all("randomName" + str(i) in all_names for i in range(5))
+
+
+def test_beacon_refs_multiple(people_schema):
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+    client.schema.create_class(
+        {
+            "class": "Person",
+            "description": "A person such as humans or personality known through culture",
+            "properties": [
+                {"name": "name", "dataType": ["string"]},
+                {"name": "age", "dataType": ["int"]},
+                {"name": "born_in", "dataType": ["text"]},
+            ],
+        }
+    )
+
+    client.schema.create_class(
+        {
+            "class": "Call",
+            "description": "A call between two Persons",
+            "properties": [
+                {"name": "caller", "dataType": ["Person"]},
+                {"name": "recipient", "dataType": ["Person"]},
+            ],
+        }
+    )
+
+    persons = []
+    for i in range(10):
+        persons.append(uuid.uuid4())
+        client.data_object.create(
+            {"name": "randomName" + str(i), "age": i, "born_in": "city" + str(i)},
+            "Person",
+            persons[-1],
+        )
+
+    call_uuids = [uuid.uuid4(), uuid.uuid4()]
+    client.data_object.create({}, "Call", call_uuids[0])
+    client.data_object.create({}, "Call", call_uuids[1])
+
+    # create refs
+    for i in range(4):
+        client.data_object.reference.add(call_uuids[i % 2], "caller", persons[i], "Call", "Person")
+        client.data_object.reference.add(
+            call_uuids[i % 2], "recipient", persons[i + 5], "Call", "Person"
+        )
+
+    result = client.query.get(
+        "Call",
+        [
+            ReferenceProperty(
+                property_name="caller", in_class="Person", properties=["name", "age"]
+            ),
+            ReferenceProperty(
+                property_name="recipient", in_class="Person", properties=["born_in", "age"]
+            ),
+        ],
+    ).do()
+    call1 = result["data"]["Get"]["Call"][0]
+    call2 = result["data"]["Get"]["Call"][1]
+
+    # each call has two callers and recipients and caller and recipient should contain different entries
+    for call in [call1, call2]:
+        assert len(call["caller"]) == 2
+        assert len(call["recipient"]) == 2
+
+        assert "age" in call["caller"][0] and "name" in call["caller"][0]
+        assert "age" in call["recipient"][0] and "born_in" in call["recipient"][0]

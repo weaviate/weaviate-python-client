@@ -73,14 +73,25 @@ class GroupBy:
         return f'groupBy:{{path:["{props}"], groups:{self.groups}, objectsPerGroup:{self.objects_per_group}}}'
 
 
+class ReferenceProperty:
+    property_name: str
+    in_class: str
+    properties: List[str]
+
+    def __str__(self) -> str:
+        props = " ".join(self.properties)
+        return self.property_name + "{... on " + self.in_class + "{" + props + "}}"
+
+
+PROPERTIES = Union[List[Union[str, ReferenceProperty]], str]
+
+
 class GetBuilder(GraphQL):
     """
     GetBuilder class used to create GraphQL queries.
     """
 
-    def __init__(
-        self, class_name: str, properties: Union[List[str], str, None], connection: Connection
-    ):
+    def __init__(self, class_name: str, properties: Optional[PROPERTIES], connection: Connection):
         """
         Initialize a GetBuilder class instance.
 
@@ -111,12 +122,14 @@ class GetBuilder(GraphQL):
             raise TypeError(
                 "properties must be of type str, " f"list of str or None but was {type(properties)}"
             )
-        for prop in properties:
-            if not isinstance(prop, str):
+
+        self._properties: List[str] = []
+        for _, prop in enumerate(properties):
+            if not isinstance(prop, str) and not isinstance(prop, ReferenceProperty):
                 raise TypeError("All the `properties` must be of type `str`!")
+            self._properties.append(str(prop))
 
         self._class_name: str = _capitalize_first_letter(class_name)
-        self._properties: List[str] = properties
         self._additional: dict = {"__one_level": set()}
         # '__one_level' refers to the additional properties that are just a single word, not a dict
         # thus '__one_level', only one level of complexity
