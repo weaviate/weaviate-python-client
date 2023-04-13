@@ -12,6 +12,7 @@ from typing import Any, Dict, Tuple, Optional, Union
 
 import requests
 from authlib.integrations.requests_client import OAuth2Session
+from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError, ReadTimeout
 from requests.exceptions import HTTPError as RequestsHTTPError
 from requests.exceptions import JSONDecodeError
@@ -28,6 +29,8 @@ from weaviate.util import _check_positive_num, is_weaviate_domain
 from weaviate.warnings import _Warnings
 
 Session = Union[requests.sessions.Session, OAuth2Session]
+
+DEFAULT_HTTP_POOL_SIZE = int(os.getenv("WEAVIATE_PYTHON_CONNECTION_POOL_SIZE", 20))
 
 
 class BaseConnection:
@@ -115,6 +118,7 @@ class BaseConnection:
             self.wait_for_weaviate(startup_period)
 
         self._create_session(auth_client_secret)
+        self._add_adapter_to_session()
 
     def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
         """Creates a request session.
@@ -187,6 +191,13 @@ class BaseConnection:
             self._session = requests.Session()
         else:
             self._session = requests.Session()
+
+    def _add_adapter_to_session(self):
+        adapter = HTTPAdapter(
+            pool_connections=DEFAULT_HTTP_POOL_SIZE, pool_maxsize=DEFAULT_HTTP_POOL_SIZE
+        )
+        self._session.mount("http://", adapter)
+        self._session.mount("https://", adapter)
 
     def _create_background_token_refresh(self, _auth: Optional[_Auth] = None):
         """Create a background thread that periodically refreshes access and refresh tokens.
