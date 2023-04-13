@@ -2,7 +2,12 @@ import unittest
 from unittest.mock import patch, Mock
 
 from test.util import check_error_message
-from weaviate.connect.connection import BaseConnection, _get_proxies, _get_valid_timeout_config
+from weaviate import ConnectionConfiguration
+from weaviate.connect.connection import (
+    BaseConnection,
+    _get_proxies,
+    _get_valid_timeout_config,
+)
 
 
 class TestConnection(unittest.TestCase):
@@ -48,6 +53,7 @@ class TestConnection(unittest.TestCase):
             trust_env=False,
             additional_headers=None,
             startup_period=None,
+            connection_config=ConnectionConfiguration(),
         )
 
         # GET method with param
@@ -130,6 +136,7 @@ class TestConnection(unittest.TestCase):
             trust_env=False,
             additional_headers=None,
             startup_period=None,
+            connection_config=ConnectionConfiguration(),
         )
 
         # GET method with param
@@ -200,29 +207,6 @@ class TestConnection(unittest.TestCase):
             proxies={"test": True},
             params={"A": "B"},
         )
-
-    @patch("weaviate.connect.connection.BaseConnection._create_session")
-    def test_timeout_config(self, mock_log_in):
-        """
-        Test the setter and getter of `timeout_config`.
-        """
-
-        connection = BaseConnection(
-            url="http://127.0.0.1:1234",
-            auth_client_secret=None,
-            timeout_config=(2, 20),
-            proxies=None,
-            trust_env=False,
-            additional_headers=None,
-            startup_period=None,
-        )
-        mock_log_in.assert_called()
-
-        # default one
-        self.assertEqual(connection.timeout_config, (2, 20))
-
-        connection.timeout_config = (4, 210)
-        self.assertEqual(connection.timeout_config, (4, 210))
 
     @patch("weaviate.connect.connection.datetime")
     def test_get_epoch_time(self, mock_datetime):

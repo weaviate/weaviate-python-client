@@ -14,11 +14,13 @@ from urllib.parse import urlparse
 
 import requests
 from authlib.integrations.requests_client import OAuth2Session
+from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError, ReadTimeout
 from requests.exceptions import HTTPError as RequestsHTTPError
 from requests.exceptions import JSONDecodeError
 
 from weaviate.auth import AuthCredentials, AuthClientCredentials, AuthApiKey
+from weaviate.configuration import ConnectionConfiguration
 from weaviate.connect.authentication import _Auth
 from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import (
@@ -55,6 +57,7 @@ class BaseConnection:
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         startup_period: Optional[int],
+        connection_config: ConnectionConfiguration,
         embedded_db: EmbeddedDB = None,
         grcp_port: Optional[int] = None,
     ):
@@ -146,6 +149,7 @@ class BaseConnection:
             self.wait_for_weaviate(startup_period)
 
         self._create_session(auth_client_secret)
+        self._add_adapter_to_session(connection_config)
 
     def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
         """Creates a request session.
@@ -226,6 +230,14 @@ class BaseConnection:
             return "Bearer " + self._session.token["access_token"]
 
         return ""
+
+    def _add_adapter_to_session(self, connection_config: ConnectionConfiguration):
+        adapter = HTTPAdapter(
+            pool_connections=connection_config.session_pool_connections,
+            pool_maxsize=connection_config.session_pool_maxsize,
+        )
+        self._session.mount("http://", adapter)
+        self._session.mount("https://", adapter)
 
     def _create_background_token_refresh(self, _auth: Optional[_Auth] = None):
         """Create a background thread that periodically refreshes access and refresh tokens.
@@ -618,6 +630,7 @@ class Connection(BaseConnection):
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         startup_period: Optional[int],
+        connection_config: ConnectionConfiguration,
         embedded_db: EmbeddedDB = None,
         grcp_port: Optional[int] = None,
     ):
@@ -629,6 +642,7 @@ class Connection(BaseConnection):
             trust_env,
             additional_headers,
             startup_period,
+            connection_config,
             embedded_db,
             grcp_port,
         )

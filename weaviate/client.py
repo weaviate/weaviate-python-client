@@ -165,6 +165,7 @@ class Client:
             startup_period=startup_period,
             embedded_db=embedded_db,
             grcp_port=config.grpc_port_experimental,
+            connection_config=config.connection_config,
         )
         self.classification = Classification(self._connection)
         self.schema = Schema(self._connection)
