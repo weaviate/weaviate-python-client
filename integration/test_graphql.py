@@ -164,22 +164,22 @@ def get_aggregation_from_aggregate_result(result):
     return result["data"]["Aggregate"]["Ship"][0]
 
 
-def test_bm25(client):
-    result = client.query.get("Ship", ["name"]).with_bm25("sponges", ["name", "description"]).do()
+@pytest.mark.parametrize("query", ["sponges", "sponges\n"])
+def test_bm25(client, query):
+    result = client.query.get("Ship", ["name"]).with_bm25(query, ["name", "description"]).do()
     assert len(result["data"]["Get"]["Ship"]) == 1
     assert result["data"]["Get"]["Ship"][0]["name"] == "The Crusty Crab"
 
 
 def test_bm25_no_result(client):
-    result = client.query.get("Ship", ["name"]).with_bm25("sponges", ["name"]).do()
+    result = client.query.get("Ship", ["name"]).with_bm25("sponges\n", ["name"]).do()
     assert len(result["data"]["Get"]["Ship"]) == 0
 
 
-def test_hybrid_bm25(client):
+@pytest.mark.parametrize("query", ["sponges", "sponges\n"])
+def test_hybrid_bm25(client, query: str):
     """Test hybrid search with alpha=0.5 to have a combination of BM25 and vector search."""
-    result = (
-        client.query.get("Ship", ["name"]).with_hybrid("sponges", alpha=0.5, vector=[1] * 300).do()
-    )
+    result = client.query.get("Ship", ["name"]).with_hybrid(query, alpha=0.5, vector=[1] * 300).do()
 
     # will find more results. "The Crusty Crab" is still first, because it matches with the BM25 search
     assert len(result["data"]["Get"]["Ship"]) >= 1
