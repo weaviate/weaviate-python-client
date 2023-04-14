@@ -29,7 +29,7 @@ class BM25:
     properties: Optional[List[str]]
 
     def __str__(self) -> str:
-        ret = f'query: "{self.query}"'
+        ret = f'query: "{util.strip_newlines(self.query)}"'
         if self.properties is not None and len(self.properties) > 0:
             props = '","'.join(self.properties)
             ret += f', properties: ["{props}"]'
@@ -43,7 +43,7 @@ class Hybrid:
     vector: List[float]
 
     def __str__(self) -> str:
-        ret = f'query: "{self.query}"'
+        ret = f'query: "{util.strip_newlines(self.query)}"'
         if self.vector is not None:
             ret += f", vector: {self.vector}"
         if self.alpha is not None:
