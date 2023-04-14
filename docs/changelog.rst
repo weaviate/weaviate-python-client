@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 3.15.6
+--------------
+This patch version includes:
+
+- Fix multi-line queries for BM25 and hybrid search.
+
+
 Version 3.15.5
 --------------
 This patch version includes:
