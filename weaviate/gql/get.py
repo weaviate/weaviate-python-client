@@ -1,9 +1,18 @@
 """
 GraphQL `Get` command.
 """
+import uuid
 from dataclasses import dataclass
 from json import dumps
 from typing import List, Union, Optional, Dict, Tuple
+
+try:
+    import grpc
+    from weaviate_grpc import weaviate_pb2, weaviate_pb2_grpc
+
+    has_gprc = True
+except ImportError:
+    has_gprc = False
 
 from weaviate import util
 from weaviate.connect import Connection
@@ -1058,6 +1067,54 @@ class GetBuilder(GraphQL):
         if wrap_get:
             query += "}}"
         return query
+
+    def do(self) -> dict:
+        """
+        Builds and runs the query.
+
+        Returns
+        -------
+        dict
+            The response of the query.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        """
+        gprc_enabled = (
+            has_gprc
+            and self._near_ask is not None
+            and isinstance(self._near_ask, NearVector)
+            # additional can only have one entry
+            and len(self._additional) == 1
+            and len(self._additional["__one_level"]) == 1
+            and "id" in self._additional["__one_level"]
+        )
+        print("has_gprc", has_gprc)
+        print("self._near_ask is not None", self._near_ask is not None)
+        print("len(self._additional) == 1", len(self._additional) == 1)
+        print(
+            'len(self._additional[“__one_level"]) == 1', len(self._additional["__one_level"]) == 1
+        )
+        print('"id" in self._additional["__one_level"]', "id" in self._additional["__one_level"])
+        if gprc_enabled:
+            assert isinstance(self._near_ask, NearVector)
+            req = weaviate_pb2.SearchRequest(
+                className=self._class_name,
+                limit=self._limit,
+                nearVector=weaviate_pb2.NearVectorParams(vector=self._near_ask._content["vector"]),
+            )
+            channel = grpc.insecure_channel("localhost:50051")
+            stub = weaviate_pb2_grpc.WeaviateStub(channel)
+            res = stub.Search(req)
+            res_ids = [{"_additional": {"id": str(uuid.UUID(res.id))}} for res in res.results]
+            results = {"data": {"Get": {self._class_name: res_ids}}}
+            return results
+        else:
+            return super().do()
 
     def _additional_to_str(self) -> str:
         """

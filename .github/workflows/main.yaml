@@ -28,7 +28,7 @@ jobs:
           cache: 'pip' # caching pip dependencies
       - run: pip install -r requirements.txt
       - name: "Flake 8"
-        run: flake8 .
+        run: flake8 weaviate test mock_tests integration
       - name: "Check release for pypi"
         run: |
           python -m build
@@ -63,6 +63,7 @@ jobs:
     strategy:
       matrix:
         version: [ "3.8", "3.9", "3.10", "3.11"]
+        optional_dependencies: [true, false]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -72,6 +73,9 @@ jobs:
       - run: |
           pip install -r requirements.txt
           pip install .
+      - name: Optional dependencies
+        if: matrix.optional_dependencies
+        run: pip install -r requirements_optional.txt
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh
       - name: Run integration tests with auth secrets
