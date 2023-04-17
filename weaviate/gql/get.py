@@ -10,9 +10,9 @@ try:
     import grpc
     from weaviate_grpc import weaviate_pb2, weaviate_pb2_grpc
 
-    has_gprc = True
+    has_grpc = True
 except ImportError:
-    has_gprc = False
+    has_grpc = False
 
 from weaviate import util
 from weaviate.connect import Connection
@@ -1084,28 +1084,28 @@ class GetBuilder(GraphQL):
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
-        gprc_enabled = (
-            has_gprc
+        grpc_enabled = (
+            has_grpc
             and self._near_ask is not None
             and isinstance(self._near_ask, NearVector)
             # additional can only have one entry
             and len(self._additional) == 1
             and len(self._additional["__one_level"]) == 1
             and "id" in self._additional["__one_level"]
+            and self._offset is None
+            and self._sort is None
+            and self._where is None
+            and self._properties is None
+            and self._bm25 is None
+            and self._hybrid is None
+            and self._after is None
         )
-        print("has_gprc", has_gprc)
-        print("self._near_ask is not None", self._near_ask is not None)
-        print("len(self._additional) == 1", len(self._additional) == 1)
-        print(
-            'len(self._additional[“__one_level"]) == 1', len(self._additional["__one_level"]) == 1
-        )
-        print('"id" in self._additional["__one_level"]', "id" in self._additional["__one_level"])
-        if gprc_enabled:
+        if grpc_enabled:
             assert isinstance(self._near_ask, NearVector)
             req = weaviate_pb2.SearchRequest(
                 className=self._class_name,
                 limit=self._limit,
-                nearVector=weaviate_pb2.NearVectorParams(vector=self._near_ask._content["vector"]),
+                nearVector=weaviate_pb2.NearVectorParams(vector=self._near_ask.content["vector"]),
             )
             channel = grpc.insecure_channel("localhost:50051")
             stub = weaviate_pb2_grpc.WeaviateStub(channel)

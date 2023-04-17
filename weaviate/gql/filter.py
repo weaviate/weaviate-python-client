@@ -109,6 +109,10 @@ class Filter(ABC):
         Should be implemented in each inheriting class.
         """
 
+    @property
+    def content(self):
+        return self._content
+
 
 class NearText(Filter):
     """
