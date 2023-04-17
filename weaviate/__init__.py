@@ -50,6 +50,13 @@ __all__ = [
 
 import sys
 
+from importlib.metadata import version, PackageNotFoundError
+
+try:
+    __version__ = version("weaviate")
+except PackageNotFoundError:
+    __version__ = "unknown version"
+
 from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken, AuthApiKey
 from .batch.crud_batch import WeaviateErrorRetryConf
 from .client import Client
@@ -62,7 +69,6 @@ from .exceptions import (
     SchemaValidationException,
     WeaviateStartUpError,
 )
-from .version import __version__  # noqa
 
 if not sys.warnoptions:
     import warnings

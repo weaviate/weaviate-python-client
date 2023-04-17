@@ -12,10 +12,16 @@
 
 import os
 import sys
+from importlib.metadata import version, PackageNotFoundError
 
 sys.path.insert(0, os.path.abspath(".."))
 
-from weaviate import __version__
+
+try:
+    __version__ = version("weaviate")
+except PackageNotFoundError:
+    # package is not installed
+    pass
 
 # -- Project information -----------------------------------------------------
 

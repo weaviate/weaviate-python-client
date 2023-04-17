@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ["3.7", "3.8", "3.9", "3.10"]
+        version: ["3.8", "3.9", "3.10", "3.11"]
         folder: ["test", "mock_tests"]
     steps:
     - uses: actions/checkout@v3
@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ["3.7", "3.8", "3.9", "3.10"]
+        version: [ "3.8", "3.9", "3.10", "3.11"]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -138,6 +138,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           path: "dist/*.whl"
+          name: weaviate-python-client-wheel
           retention-days: 7
       - name: Publish distribution 📦 to PyPI on new tags
         if: startsWith(github.ref, 'refs/tags')
