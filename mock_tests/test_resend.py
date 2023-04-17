@@ -15,7 +15,7 @@ def test_no_retry_on_timeout(weaviate_no_auth_mock):
     """Tests that expected timeout exception is raised."""
 
     def handler(request: Request):
-        time.sleep(1)  # cause timeout
+        time.sleep(1.5)  # cause timeout
         return Response(json.dumps({}))
 
     weaviate_no_auth_mock.expect_request("/v1/batch/objects").respond_with_handler(handler)
