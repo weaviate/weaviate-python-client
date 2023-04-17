@@ -1095,7 +1095,7 @@ class GetBuilder(GraphQL):
             and self._offset is None
             and self._sort is None
             and self._where is None
-            and self._properties is None
+            and (len(self._properties) == 0 or self._properties is None)
             and self._bm25 is None
             and self._hybrid is None
             and self._after is None
@@ -1104,7 +1104,7 @@ class GetBuilder(GraphQL):
             assert isinstance(self._near_ask, NearVector)
             req = weaviate_pb2.SearchRequest(
                 className=self._class_name,
-                limit=self._limit,
+                limit=int(self._limit[7:-1]),
                 nearVector=weaviate_pb2.NearVectorParams(vector=self._near_ask.content["vector"]),
             )
             channel = grpc.insecure_channel("localhost:50051")
