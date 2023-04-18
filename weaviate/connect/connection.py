@@ -27,6 +27,15 @@ from weaviate.exceptions import (
 from weaviate.util import _check_positive_num, is_weaviate_domain
 from weaviate.warnings import _Warnings
 
+try:
+    import grpc
+    from weaviate_grpc import weaviate_pb2_grpc
+
+    has_grpc = True
+except ImportError:
+    has_grpc = False
+
+
 Session = Union[requests.sessions.Session, OAuth2Session]
 
 
@@ -115,6 +124,11 @@ class BaseConnection:
             self.wait_for_weaviate(startup_period)
 
         self._create_session(auth_client_secret)
+
+        self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
+        if has_grpc:
+            channel = grpc.insecure_channel("localhost:50051")
+            self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(channel)
 
     def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
         """Creates a request session.
@@ -594,6 +608,10 @@ class Connection(BaseConnection):
         self._server_version = self.get_meta()["version"]
         if self._server_version < "1.14":
             _Warnings.weaviate_server_older_than_1_14(self._server_version)
+
+    @property
+    def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
+        return self._grpc_stub
 
     @property
     def server_version(self) -> str:

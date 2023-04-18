@@ -6,14 +6,6 @@ from dataclasses import dataclass
 from json import dumps
 from typing import List, Union, Optional, Dict, Tuple
 
-try:
-    import grpc
-    from weaviate_grpc import weaviate_pb2, weaviate_pb2_grpc
-
-    has_grpc = True
-except ImportError:
-    has_grpc = False
-
 from weaviate import util
 from weaviate.connect import Connection
 from weaviate.gql.filter import (
@@ -30,6 +22,11 @@ from weaviate.gql.filter import (
 from weaviate.types import UUID
 from weaviate.util import image_encoder_b64, _capitalize_first_letter, get_valid_uuid
 from weaviate.warnings import _Warnings
+
+try:
+    from weaviate_grpc import weaviate_pb2
+except ImportError:
+    pass
 
 
 @dataclass
@@ -109,7 +106,7 @@ class GetBuilder(GraphQL):
         # '__one_level' refers to the additional properties that are just a single word, not a dict
         # thus '__one_level', only one level of complexity
         self._where: Optional[Where] = None  # To store the where filter if it is added
-        self._limit: Optional[str] = None  # To store the limit filter if it is added
+        self._limit: Optional[int] = None  # To store the limit filter if it is added
         self._offset: Optional[str] = None  # To store the offset filter if it is added
         self._after: Optional[str] = None  # To store the offset filter if it is added
         self._near_ask: Optional[Filter] = None  # To store the `near`/`ask` clause if it is added
@@ -541,7 +538,7 @@ class GetBuilder(GraphQL):
         if limit < 1:
             raise ValueError("limit cannot be non-positive (limit >=1).")
 
-        self._limit = f"limit: {limit} "
+        self._limit = limit
         self._contains_filter = True
         return self
 
@@ -1038,7 +1035,7 @@ class GetBuilder(GraphQL):
             if self._where is not None:
                 query += str(self._where)
             if self._limit is not None:
-                query += self._limit
+                query += f"limit: {self._limit} "
             if self._offset is not None:
                 query += self._offset
             if self._near_ask is not None:
@@ -1085,7 +1082,7 @@ class GetBuilder(GraphQL):
             If weaviate reports a none OK status.
         """
         grpc_enabled = (
-            has_grpc
+            self._connection.grpc_stub is not None
             and self._near_ask is not None
             and isinstance(self._near_ask, NearVector)
             # additional can only have one entry
@@ -1104,12 +1101,10 @@ class GetBuilder(GraphQL):
             assert isinstance(self._near_ask, NearVector)
             req = weaviate_pb2.SearchRequest(
                 className=self._class_name,
-                limit=int(self._limit[7:-1]),
+                limit=self._limit,
                 nearVector=weaviate_pb2.NearVectorParams(vector=self._near_ask.content["vector"]),
             )
-            channel = grpc.insecure_channel("localhost:50051")
-            stub = weaviate_pb2_grpc.WeaviateStub(channel)
-            res = stub.Search(req)
+            res = self._connection.grpc_stub.Search(req)
             res_ids = [{"_additional": {"id": str(uuid.UUID(res.id))}} for res in res.results]
             results = {"data": {"Get": {self._class_name: res_ids}}}
             return results
