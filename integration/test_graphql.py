@@ -66,7 +66,6 @@ def client():
     client.schema.create(schema)
     with client.batch as batch:
         for ship in SHIPS:
-
             batch.add_data_object(ship["props"], "Ship", ship["id"])
 
         batch.flush()
@@ -88,6 +87,41 @@ def test_get_data(client):
         if obj["name"] == "Titanic":
             d_found = True
     assert a_found and d_found and len(objects) == 2
+
+
+def test_get_data_with_properties_default(client, people_schema):
+    """Test GraphQL's Get clause with properties default (None)."""
+    client.schema.create(people_schema)
+
+    person_id = uuid.uuid4()
+    group_id = uuid.uuid4()
+    client.data_object.create(
+        {
+            "name": "John",
+        },
+        "Person",
+        person_id,
+    )
+
+    client.data_object.create(
+        {
+            "name": "Group-Weaviate",
+        },
+        "Group",
+        group_id,
+    )
+
+    client.data_object.reference.add(
+        group_id,
+        "member",
+        person_id,
+        from_class_name="Group",
+        to_class_name="Person",
+    )
+
+    result = client.query.get("Group").with_limit(1).do()
+    objects = get_objects_from_result(result)
+    assert "name" in objects[0]
 
 
 def test_get_data_after(client):

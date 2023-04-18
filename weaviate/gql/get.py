@@ -18,6 +18,7 @@ from weaviate.gql.filter import (
     NearImage,
     Sort,
 )
+from weaviate.schema.crud_schema import Schema
 from weaviate.types import UUID
 from weaviate.util import image_encoder_b64, _capitalize_first_letter, get_valid_uuid
 from weaviate.warnings import _Warnings
@@ -58,7 +59,7 @@ class GetBuilder(GraphQL):
     """
 
     def __init__(
-        self, class_name: str, properties: Union[List[str], str, None], connection: Connection
+        self, class_name: str, properties: Union[List[str], str, None], connection: Connection, schema: Schema
     ):
         """
         Initialize a GetBuilder class instance.
@@ -68,10 +69,12 @@ class GetBuilder(GraphQL):
         class_name : str
             Class name of the objects to interact with.
         properties : str or list of str
-            Properties of the objects to interact with.
+            Properties of the objects to interact with. None means `all properties`.
         connection : weaviate.connect.Connection
             Connection object to an active and running Weaviate instance.
-
+        schema : weaviate.schema.crud_schema.Schema
+            A Schema object instance connected to the same Weaviate instance as the Client.
+            
         Raises
         ------
         TypeError
@@ -95,6 +98,7 @@ class GetBuilder(GraphQL):
                 raise TypeError("All the `properties` must be of type `str`!")
 
         self._class_name: str = _capitalize_first_letter(class_name)
+        self._schema: Schema = schema
         self._properties: List[str] = properties
         self._additional: dict = {"__one_level": set()}
         # '__one_level' refers to the additional properties that are just a single word, not a dict
@@ -1048,10 +1052,12 @@ class GetBuilder(GraphQL):
         additional_props = self._additional_to_str()
 
         if not (additional_props or self._properties):
-            raise AttributeError(
-                "No 'properties' or 'additional properties' specified to be returned. "
-                "At least one should be included."
-            )
+            """If no properties are given, get all non-reference properties."""
+            class_schema = self._schema.get(class_name=self._class_name)
+            non_reference_properties = [
+                prop["name"] for prop in class_schema["properties"] if prop["dataType"][0][0].islower()
+            ]
+            self._properties = non_reference_properties
 
         properties = " ".join(self._properties) + self._additional_to_str()
         query += "{" + properties + "}"

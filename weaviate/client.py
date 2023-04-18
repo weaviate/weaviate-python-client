@@ -158,7 +158,7 @@ class Client:
         self.contextionary = Contextionary(self._connection)
         self.batch = Batch(self._connection)
         self.data_object = DataObject(self._connection)
-        self.query = Query(self._connection)
+        self.query = Query(self._connection, self.schema)
         self.backup = Backup(self._connection)
         self.cluster = Cluster(self._connection)
 

@@ -7,6 +7,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.schema.crud_schema import Schema
 from .aggregate import AggregateBuilder
 from .get import GetBuilder
 from .multi_get import MultiGetBuilder
@@ -17,7 +18,7 @@ class Query:
     Query class used to make `get` and/or `aggregate` GraphQL queries.
     """
 
-    def __init__(self, connection: Connection):
+    def __init__(self, connection: Connection, schema: Schema):
         """
         Initialize a Classification class instance.
 
@@ -25,9 +26,12 @@ class Query:
         ----------
         connection : weaviate.connect.Connection
             Connection object to an active and running Weaviate instance.
+        schema : weaviate.schema.crud_schema.Schema
+            A Schema object instance connected to the same Weaviate instance as the Client.
         """
 
         self._connection = connection
+        self.schema = schema
 
     def get(
         self,
@@ -42,7 +46,7 @@ class Query:
         class_name : str
             Class name of the objects to interact with.
         properties : list of str, str or None
-            Properties of the objects to get, by default None
+            Properties of the objects to get, by default None. None means `all properties`.
 
         Returns
         -------
@@ -50,7 +54,7 @@ class Query:
             A GetBuilder to make GraphQL `get` requests from weaviate.
         """
 
-        return GetBuilder(class_name, properties, self._connection)
+        return GetBuilder(class_name, properties, self._connection, self.schema)
 
     def multi_get(
         self,

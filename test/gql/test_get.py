@@ -9,6 +9,7 @@ from weaviate.gql.get import GetBuilder, BM25, Hybrid
 
 mock_connection_v117 = Mock()
 mock_connection_v117.server_version = "1.17.4"
+mock_schema = Mock()
 
 
 @pytest.mark.parametrize(
@@ -67,7 +68,7 @@ def test_hybrid(query: str, vector: Optional[List[float]], alpha: Optional[float
 )
 def test_generative(single_prompt: str, grouped_task: str, expected: str):
     query = (
-        GetBuilder("Person", "name", mock_connection_v117)
+        GetBuilder("Person", "name", mock_connection_v117, mock_schema)
         .with_generate(single_prompt, grouped_task)
         .build()
     )
@@ -78,7 +79,7 @@ def test_generative(single_prompt: str, grouped_task: str, expected: str):
 @pytest.mark.parametrize("single_prompt,grouped_task", [(123, None), (None, None), (None, 123)])
 def test_generative_type(single_prompt: str, grouped_task: str):
     with pytest.raises(TypeError):
-        GetBuilder("Person", "name", mock_connection_v117).with_generate(
+        GetBuilder("Person", "name", mock_connection_v117, mock_schema).with_generate(
             single_prompt, grouped_task
         ).build()
 
@@ -97,20 +98,20 @@ class TestGetBuilder(unittest.TestCase):
 
         # invalid calls
         with self.assertRaises(TypeError) as error:
-            GetBuilder(1, ["a"], None)
+            GetBuilder(1, ["a"], None, mock_schema)
         check_error_message(self, error, class_name_error_msg)
 
         with self.assertRaises(TypeError) as error:
-            GetBuilder("A", 2, None)
+            GetBuilder("A", 2, None, mock_schema)
         check_error_message(self, error, properties_error_msg)
 
         with self.assertRaises(TypeError) as error:
-            GetBuilder("A", [True], None)
+            GetBuilder("A", [True], None, mock_schema)
         check_error_message(self, error, property_error_msg)
 
         # valid calls
-        GetBuilder("name", "prop", None)
-        GetBuilder("name", ["prop1", "prop2"], None)
+        GetBuilder("name", "prop", None, mock_schema)
+        GetBuilder("name", ["prop1", "prop2"], None, mock_schema)
 
     def test_build_with_limit(self):
         """
@@ -118,17 +119,17 @@ class TestGetBuilder(unittest.TestCase):
         """
 
         # valid calls
-        query = GetBuilder("Person", "name", None).with_limit(20).build()
+        query = GetBuilder("Person", "name", None, mock_schema).with_limit(20).build()
         self.assertEqual("{Get{Person(limit: 20 ){name}}}", query)
 
         # invalid calls
         limit_error_msg = "limit cannot be non-positive (limit >=1)."
         with self.assertRaises(ValueError) as error:
-            GetBuilder("A", ["str"], None).with_limit(0)
+            GetBuilder("A", ["str"], None, mock_schema).with_limit(0)
         check_error_message(self, error, limit_error_msg)
 
         with self.assertRaises(ValueError) as error:
-            GetBuilder("A", ["str"], None).with_limit(-1)
+            GetBuilder("A", ["str"], None, mock_schema).with_limit(-1)
         check_error_message(self, error, limit_error_msg)
 
     def test_build_with_offset(self):
@@ -137,16 +138,16 @@ class TestGetBuilder(unittest.TestCase):
         """
 
         # valid calls
-        query = GetBuilder("Person", "name", None).with_offset(20).build()
+        query = GetBuilder("Person", "name", None, mock_schema).with_offset(20).build()
         self.assertEqual("{Get{Person(offset: 20 ){name}}}", query)
 
-        query = GetBuilder("Person", "name", None).with_offset(0).build()
+        query = GetBuilder("Person", "name", None, mock_schema).with_offset(0).build()
         self.assertEqual("{Get{Person(offset: 0 ){name}}}", query)
 
         # invalid calls
         limit_error_msg = "offset cannot be non-positive (offset >=0)."
         with self.assertRaises(ValueError) as error:
-            GetBuilder("A", ["str"], None).with_offset(-1)
+            GetBuilder("A", ["str"], None, mock_schema).with_offset(-1)
         check_error_message(self, error, limit_error_msg)
 
     def test_build_with_where(self):
@@ -155,7 +156,7 @@ class TestGetBuilder(unittest.TestCase):
         """
 
         filter_name = {"path": ["name"], "operator": "Equal", "valueString": "A"}
-        query = GetBuilder("Person", "name", None).with_where(filter_name).build()
+        query = GetBuilder("Person", "name", None, mock_schema).with_where(filter_name).build()
         self.assertEqual(
             '{Get{Person(where: {path: ["name"] operator: Equal valueString: "A"} ){name}}}', query
         )
@@ -172,7 +173,7 @@ class TestGetBuilder(unittest.TestCase):
         }
 
         # valid calls
-        query = GetBuilder("Person", "name", None).with_near_text(near_text).build()
+        query = GetBuilder("Person", "name", None, mock_schema).with_near_text(near_text).build()
         self.assertEqual(
             '{Get{Person(nearText: {concepts: ["computer"] moveTo: {force: 0.5 concepts: ["science"]} autocorrect: true} ){name}}}',
             query,
@@ -185,7 +186,7 @@ class TestGetBuilder(unittest.TestCase):
 
         near_vector = {"vector": [1, 2, 3, 4, 5, 6, 7, 8, 9], "certainty": 0.55}
         with self.assertRaises(AttributeError) as error:
-            GetBuilder("Person", "name", None).with_near_vector(near_vector).with_near_text(
+            GetBuilder("Person", "name", None, mock_schema).with_near_vector(near_vector).with_near_text(
                 near_text
             )
         check_error_message(self, error, near_error_msg)
@@ -200,7 +201,7 @@ class TestGetBuilder(unittest.TestCase):
         # valid calls
         mock_connection = Mock()
         mock_connection.server_version = "1.14.0"
-        query = GetBuilder("Person", "name", mock_connection).with_near_vector(near_vector).build()
+        query = GetBuilder("Person", "name", mock_connection, mock_schema).with_near_vector(near_vector).build()
         self.assertEqual(
             "{Get{Person(nearVector: {vector: [1, 2, 3, 4, 5, 6, 7, 8, 9] certainty: 0.55} ){name}}}",
             query,
@@ -213,7 +214,7 @@ class TestGetBuilder(unittest.TestCase):
 
         near_object = {"id": "test_id", "certainty": 0.55}
         with self.assertRaises(AttributeError) as error:
-            GetBuilder("Person", "name", mock_connection).with_near_object(
+            GetBuilder("Person", "name", mock_connection, mock_schema).with_near_object(
                 near_object
             ).with_near_vector(near_vector)
         check_error_message(self, error, near_error_msg)
@@ -228,7 +229,7 @@ class TestGetBuilder(unittest.TestCase):
         # valid calls
         mock_connection = Mock()
         mock_connection.server_version = "1.14.0"
-        query = GetBuilder("Person", "name", mock_connection).with_near_object(near_object).build()
+        query = GetBuilder("Person", "name", mock_connection, mock_schema).with_near_object(near_object).build()
         self.assertEqual('{Get{Person(nearObject: {id: "test_id" certainty: 0.55} ){name}}}', query)
 
         # invalid calls
@@ -241,7 +242,7 @@ class TestGetBuilder(unittest.TestCase):
             "moveTo": {"concepts": ["science"], "force": 0.5},
         }
         with self.assertRaises(AttributeError) as error:
-            GetBuilder("Person", "name", mock_connection).with_near_text(
+            GetBuilder("Person", "name", mock_connection, mock_schema).with_near_text(
                 near_text
             ).with_near_object(near_object)
         check_error_message(self, error, near_error_msg)
@@ -256,14 +257,14 @@ class TestGetBuilder(unittest.TestCase):
 
         # valid calls
         ## encode False
-        query = GetBuilder("Person", "name", None).with_near_image(near_image, encode=False).build()
+        query = GetBuilder("Person", "name", None, mock_schema).with_near_image(near_image, encode=False).build()
         self.assertEqual(
             '{Get{Person(nearImage: {image: "test_image" certainty: 0.55} ){name}}}', query
         )
         mock_image_encoder_b64.assert_not_called()
 
         ## encode True
-        query = GetBuilder("Person", "name", None).with_near_image(near_image, encode=True).build()
+        query = GetBuilder("Person", "name", None, mock_schema).with_near_image(near_image, encode=True).build()
         self.assertEqual(
             '{Get{Person(nearImage: {image: "test_call" certainty: 0.55} ){name}}}', query
         )
@@ -279,7 +280,7 @@ class TestGetBuilder(unittest.TestCase):
             "moveTo": {"concepts": ["science"], "force": 0.5},
         }
         with self.assertRaises(AttributeError) as error:
-            GetBuilder("Person", "name", None).with_near_text(near_text).with_near_image(near_image)
+            GetBuilder("Person", "name", None, mock_schema).with_near_text(near_text).with_near_image(near_image)
         check_error_message(self, error, near_error_msg)
 
     def test_build_ask(self):
@@ -294,7 +295,7 @@ class TestGetBuilder(unittest.TestCase):
         }
 
         # valid calls
-        query = GetBuilder("Person", "name", None).with_ask(ask).build()
+        query = GetBuilder("Person", "name", None, mock_schema).with_ask(ask).build()
         self.assertEqual(
             '{Get{Person(ask: {question: "What is k8s?" certainty: 0.55 autocorrect: false} ){name}}}',
             query,
@@ -310,7 +311,7 @@ class TestGetBuilder(unittest.TestCase):
             "moveTo": {"concepts": ["science"], "force": 0.5},
         }
         with self.assertRaises(AttributeError) as error:
-            GetBuilder("Person", "name", None).with_near_text(near_text).with_ask(ask)
+            GetBuilder("Person", "name", None, mock_schema).with_near_text(near_text).with_ask(ask)
         check_error_message(self, error, near_error_msg)
 
     def test_build_with_additional(self):
@@ -320,22 +321,22 @@ class TestGetBuilder(unittest.TestCase):
 
         # valid calls
         ## `str` as argument
-        query = GetBuilder("Person", "name", None).with_additional("id").build()
+        query = GetBuilder("Person", "name", None, mock_schema).with_additional("id").build()
         self.assertEqual("{Get{Person{name _additional {id }}}}", query)
 
         ## list of `str` as argument
         query = (
-            GetBuilder("Person", "name", None).with_additional(["id", "certainty", "test"]).build()
+            GetBuilder("Person", "name", None, mock_schema).with_additional(["id", "certainty", "test"]).build()
         )
         self.assertEqual("{Get{Person{name _additional {certainty id test }}}}", query)
 
         ## dict with value `str` as argument
-        query = GetBuilder("Person", "name", None).with_additional({"classification": "id"}).build()
+        query = GetBuilder("Person", "name", None, mock_schema).with_additional({"classification": "id"}).build()
         self.assertEqual("{Get{Person{name _additional {classification {id } }}}}", query)
 
         ## dict with value list of `str` as argument
         query = (
-            GetBuilder("Person", "name", None)
+            GetBuilder("Person", "name", None, mock_schema)
             .with_additional({"classification": ["basedOn", "classifiedFields", "completed", "id"]})
             .build()
         )
@@ -347,7 +348,7 @@ class TestGetBuilder(unittest.TestCase):
         ## dict with value list of `tuple` as argument
         clause = {"token": ["entity", "word"]}
         settings = {"test1": 1, "test3": [True], "test2": 10.0}
-        query = GetBuilder("Person", "name", None).with_additional((clause, settings)).build()
+        query = GetBuilder("Person", "name", None, mock_schema).with_additional((clause, settings)).build()
         self.assertEqual(
             "{Get{Person{name _additional {token(test1: 1 test2: 10.0 test3: [true] ) {entity word } }}}}",
             query,
@@ -356,7 +357,7 @@ class TestGetBuilder(unittest.TestCase):
         ## dict with value list of `tuple` as argument
         clause = {"token": "certainty"}
         settings = {"test1": ["TEST"]}
-        query = GetBuilder("Person", "name", None).with_additional((clause, settings)).build()
+        query = GetBuilder("Person", "name", None, mock_schema).with_additional((clause, settings)).build()
         self.assertEqual(
             '{Get{Person{name _additional {token(test1: ["TEST"] ) {certainty } }}}}', query
         )
@@ -365,7 +366,7 @@ class TestGetBuilder(unittest.TestCase):
         clause = {"token": "certainty"}
         settings = {"test1": ["TEST"]}
         query = (
-            GetBuilder("Person", "name", None)
+            GetBuilder("Person", "name", None, mock_schema)
             .with_additional("test")
             .with_additional(["id", "certainty"])
             .with_additional({"classification": ["completed", "id"]})
@@ -379,7 +380,7 @@ class TestGetBuilder(unittest.TestCase):
 
         ## multiple calls
         query = (
-            GetBuilder("Person", None, None)
+            GetBuilder("Person", None, None, mock_schema)
             .with_additional("test")
             .with_additional(["id", "certainty"])
             .with_additional({"classification": ["completed", "id"]})
@@ -449,98 +450,98 @@ class TestGetBuilder(unittest.TestCase):
         )
 
         with self.assertRaises(TypeError) as error:
-            GetBuilder("Person", "name", None).with_additional(123)
+            GetBuilder("Person", "name", None, mock_schema).with_additional(123)
         check_error_message(self, error, prop_type_msg(int))
 
         with self.assertRaises(TypeError) as error:
-            GetBuilder("Person", "name", None).with_additional([123])
+            GetBuilder("Person", "name", None, mock_schema).with_additional([123])
         check_error_message(self, error, prop_list_msg)
 
         with self.assertRaises(TypeError) as error:
-            GetBuilder("Person", "name", None).with_additional({123: "Test"})
+            GetBuilder("Person", "name", None, mock_schema).with_additional({123: "Test"})
         check_error_message(self, error, prop_dict_key_msg)
 
         with self.assertRaises(TypeError) as error:
-            GetBuilder("Person", "name", None).with_additional({"test": True})
+            GetBuilder("Person", "name", None, mock_schema).with_additional({"test": True})
         check_error_message(self, error, prop_dict_value_msg(bool))
 
         with self.assertRaises(ValueError) as error:
-            GetBuilder("Person", "name", None).with_additional({"test": []})
+            GetBuilder("Person", "name", None, mock_schema).with_additional({"test": []})
         check_error_message(self, error, prop_dict_value_len)
 
         with self.assertRaises(TypeError) as error:
-            GetBuilder("Person", "name", None).with_additional({"test": [True]})
+            GetBuilder("Person", "name", None, mock_schema).with_additional({"test": [True]})
         check_error_message(self, error, prop_dict_value_item_msg)
 
         with self.assertRaises(TypeError) as error:
-            GetBuilder("Person", "name", None).with_additional({"test": [True]})
+            GetBuilder("Person", "name", None, mock_schema).with_additional({"test": [True]})
         check_error_message(self, error, prop_dict_value_item_msg)
 
         with self.assertRaises(ValueError) as error:
-            GetBuilder("Person", "name", None).with_additional((1,))
+            GetBuilder("Person", "name", None, mock_schema).with_additional((1,))
         check_error_message(self, error, prop_tuple_len_msg)
 
         with self.assertRaises(ValueError) as error:
-            GetBuilder("Person", "name", None).with_additional((1, 2, 3))
+            GetBuilder("Person", "name", None, mock_schema).with_additional((1, 2, 3))
         check_error_message(self, error, prop_tuple_len_msg)
 
         with self.assertRaises(TypeError) as error:
-            GetBuilder("Person", "name", None).with_additional(({1: "1"}, ["test"]))
+            GetBuilder("Person", "name", None, mock_schema).with_additional(({1: "1"}, ["test"]))
         check_error_message(self, error, prop_tuple_type_msg)
 
         with self.assertRaises(TypeError) as error:
-            GetBuilder("Person", "name", None).with_additional(([{1: "1"}], ["test"]))
+            GetBuilder("Person", "name", None, mock_schema).with_additional(([{1: "1"}], ["test"]))
         check_error_message(self, error, prop_tuple_type_msg)
 
         with self.assertRaises(TypeError) as error:
-            GetBuilder("Person", "name", None).with_additional((["test"], {1: "1"}))
+            GetBuilder("Person", "name", None, mock_schema).with_additional((["test"], {1: "1"}))
         check_error_message(self, error, prop_tuple_type_msg)
 
         clause = {"test1": 1, "test2": 2}
         with self.assertRaises(ValueError) as error:
-            GetBuilder("Person", "name", None).with_additional((clause, {"1": "1"}))
+            GetBuilder("Person", "name", None, mock_schema).with_additional((clause, {"1": "1"}))
         check_error_message(self, error, prop_tuple_clause_len_msg(clause))
 
         clause = {"test1": "1"}
         settings = {}
         with self.assertRaises(ValueError) as error:
-            GetBuilder("Person", "name", None).with_additional((clause, settings))
+            GetBuilder("Person", "name", None, mock_schema).with_additional((clause, settings))
         check_error_message(self, error, prop_tuple_settings_len_msg(settings))
 
         clause = {1: "1"}
         settings = {"test": 1}
         with self.assertRaises(TypeError) as error:
-            GetBuilder("Person", "name", None).with_additional((clause, settings))
+            GetBuilder("Person", "name", None, mock_schema).with_additional((clause, settings))
         check_error_message(self, error, prop_tuple_clause_key_type_msg)
 
         clause = {"test": "1"}
         settings = {"test": 1, 2: 2}
         with self.assertRaises(TypeError) as error:
-            GetBuilder("Person", "name", None).with_additional((clause, settings))
+            GetBuilder("Person", "name", None, mock_schema).with_additional((clause, settings))
         check_error_message(self, error, prop_tuple_settings_keys_type_msg)
 
         clause = {"test": "1"}
         settings = {2: 2}
         with self.assertRaises(TypeError) as error:
-            GetBuilder("Person", "name", None).with_additional((clause, settings))
+            GetBuilder("Person", "name", None, mock_schema).with_additional((clause, settings))
         check_error_message(self, error, prop_tuple_settings_keys_type_msg)
 
         clause = {"test": True}
         settings = {"test": 2}
         with self.assertRaises(TypeError) as error:
-            GetBuilder("Person", "name", None).with_additional((clause, settings))
+            GetBuilder("Person", "name", None, mock_schema).with_additional((clause, settings))
         check_error_message(self, error, prop_tuple_clause_value_type_msg(bool))
 
         clause = {"test": []}
         settings = {"test": 2}
         with self.assertRaises(ValueError) as error:
-            GetBuilder("Person", "name", None).with_additional((clause, settings))
+            GetBuilder("Person", "name", None, mock_schema).with_additional((clause, settings))
         check_error_message(self, error, prop_tuple_clause_value_len_msg)
 
         clause = {"test": ["1", "2", 3]}
         settings = {"test": 2}
         with self.assertRaises(TypeError) as error:
-            GetBuilder("Person", "name", None).with_additional((clause, settings))
+            GetBuilder("Person", "name", None, mock_schema).with_additional((clause, settings))
         check_error_message(self, error, prop_tuple_clause_values_items_type_msg)
 
     def test_build(self):
@@ -554,16 +555,16 @@ class TestGetBuilder(unittest.TestCase):
         )
 
         with self.assertRaises(AttributeError) as error:
-            query = GetBuilder("Group", [], None).build()
+            query = GetBuilder("Group", [], None, mock_schema).build()
         check_error_message(self, error, error_message)
 
-        query = GetBuilder("Group", "name", None).build()
+        query = GetBuilder("Group", "name", None, mock_schema).build()
         self.assertEqual("{Get{Group{name}}}", query)
 
-        query = GetBuilder("Group", ["name", "uuid"], None).build()
+        query = GetBuilder("Group", ["name", "uuid"], None, mock_schema).build()
         self.assertEqual("{Get{Group{name uuid}}}", query)
 
-        query = GetBuilder("Group", None, None).with_additional("distance").build()
+        query = GetBuilder("Group", None, None, mock_schema).with_additional("distance").build()
         self.assertEqual("{Get{Group{ _additional {distance }}}}", query)
 
         near_text = {
@@ -584,7 +585,7 @@ class TestGetBuilder(unittest.TestCase):
             ],
         }
         query = (
-            GetBuilder("Person", ["name", "uuid"], None)
+            GetBuilder("Person", ["name", "uuid"], None, mock_schema)
             .with_near_text(near_text)
             .with_where(or_filter)
             .with_limit(2)
@@ -601,8 +602,8 @@ class TestGetBuilder(unittest.TestCase):
         Test the capitalized class_name.
         """
 
-        get = GetBuilder("Test", ["prop"], None)
+        get = GetBuilder("Test", ["prop"], None, mock_schema)
         self.assertEqual(get._class_name, "Test")
 
-        get = GetBuilder("test", ["prop"], None)
+        get = GetBuilder("test", ["prop"], None, mock_schema)
         self.assertEqual(get._class_name, "Test")
