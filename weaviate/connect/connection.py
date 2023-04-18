@@ -99,6 +99,15 @@ class BaseConnection:
         self.timeout_config = timeout_config  # this uses the setter
         self.embedded_db = embedded_db
 
+        self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
+
+        if has_grpc:
+            host = self.url.split("//")[1]
+            host = host.split(":")[0]
+
+            channel = grpc.insecure_channel(f"{host}:50051")
+            self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(channel)
+
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:
             if not isinstance(additional_headers, dict):
@@ -124,11 +133,6 @@ class BaseConnection:
             self.wait_for_weaviate(startup_period)
 
         self._create_session(auth_client_secret)
-
-        self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
-        if has_grpc:
-            channel = grpc.insecure_channel("localhost:50051")
-            self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(channel)
 
     def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
         """Creates a request session.
@@ -201,6 +205,14 @@ class BaseConnection:
             self._session = requests.Session()
         else:
             self._session = requests.Session()
+
+    def get_current_bearer_token(self) -> str:
+        if "authorization" in self._headers:
+            return self._headers["authorization"]
+        elif isinstance(self._session, OAuth2Session):
+            return "Bearer " + self._session.token["access_token"]
+
+        return ""
 
     def _create_background_token_refresh(self, _auth: Optional[_Auth] = None):
         """Create a background thread that periodically refreshes access and refresh tokens.

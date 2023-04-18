@@ -1098,13 +1098,23 @@ class GetBuilder(GraphQL):
             and self._after is None
         )
         if grpc_enabled:
-            assert isinstance(self._near_ask, NearVector)
-            req = weaviate_pb2.SearchRequest(
-                className=self._class_name,
-                limit=self._limit,
-                nearVector=weaviate_pb2.NearVectorParams(vector=self._near_ask.content["vector"]),
+
+            metadata = ()
+            access_token = self._connection.get_current_bearer_token()
+            if len(access_token) > 0:
+                metadata = (("authorization", access_token),)
+
+            res, _ = self._connection.grpc_stub.Search.with_call(
+                weaviate_pb2.SearchRequest(
+                    className=self._class_name,
+                    limit=self._limit,
+                    nearVector=weaviate_pb2.NearVectorParams(
+                        vector=self._near_ask.content["vector"]
+                    ),
+                ),
+                metadata=metadata,
             )
-            res = self._connection.grpc_stub.Search(req)
+
             res_ids = [{"_additional": {"id": str(uuid.UUID(res.id))}} for res in res.results]
             results = {"data": {"Get": {self._class_name: res_ids}}}
             return results
