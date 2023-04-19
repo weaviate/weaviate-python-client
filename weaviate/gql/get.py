@@ -1,7 +1,6 @@
 """
 GraphQL `Get` command.
 """
-import uuid
 from dataclasses import dataclass
 from json import dumps
 from typing import List, Union, Optional, Dict, Tuple
@@ -1092,7 +1091,6 @@ class GetBuilder(GraphQL):
             and self._offset is None
             and self._sort is None
             and self._where is None
-            and (len(self._properties) == 0 or self._properties is None)
             and self._bm25 is None
             and self._hybrid is None
             and self._after is None
@@ -1103,7 +1101,6 @@ class GetBuilder(GraphQL):
             access_token = self._connection.get_current_bearer_token()
             if len(access_token) > 0:
                 metadata = (("authorization", access_token),)
-
             res, _ = self._connection.grpc_stub.Search.with_call(
                 weaviate_pb2.SearchRequest(
                     className=self._class_name,
@@ -1111,12 +1108,28 @@ class GetBuilder(GraphQL):
                     nearVector=weaviate_pb2.NearVectorParams(
                         vector=self._near_ask.content["vector"]
                     ),
+                    properties=self._properties,
+                    additional_properties=self._additional["__one_level"],
                 ),
                 metadata=metadata,
             )
 
-            res_ids = [{"_additional": {"id": str(uuid.UUID(res.id))}} for res in res.results]
-            results = {"data": {"Get": {self._class_name: res_ids}}}
+            get_results = []
+            for result in res.results:
+                get_result = {}
+
+                for key, val in result.properties.items():
+                    get_result[key] = val
+
+                if len(self._additional["__one_level"]) > 0:
+                    get_result["_additional"] = {}
+                if "id" in self._additional["__one_level"]:
+                    get_result["_additional"]["id"] = result.additional_properties.id
+
+                get_results.append(get_result)
+
+            # res_ids = [{"_additional": {"id": str(uuid.UUID(res.additional_properties.id))}} for res in res.results]
+            results = {"data": {"Get": {self._class_name: get_results}}}
             return results
         else:
             return super().do()
