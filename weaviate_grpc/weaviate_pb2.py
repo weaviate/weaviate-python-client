@@ -6,6 +6,7 @@ from google.protobuf.internal import builder as _builder
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import symbol_database as _symbol_database
+
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
@@ -14,26 +15,28 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import struct_pb2 as google_dot_protobuf_dot_struct__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0eweaviate.proto\x12\x0cweaviategrpc\x1a\x1cgoogle/protobuf/struct.proto\"\xcc\x01\n\rSearchRequest\x12\x11\n\tclassName\x18\x01 \x01(\t\x12\r\n\x05limit\x18\x02 \x01(\r\x12\x12\n\nproperties\x18\x03 \x03(\t\x12\x1d\n\x15\x61\x64\x64itional_properties\x18\x04 \x03(\t\x12\x32\n\nnearVector\x18\x05 \x01(\x0b\x32\x1e.weaviategrpc.NearVectorParams\x12\x32\n\nnearObject\x18\x06 \x01(\x0b\x32\x1e.weaviategrpc.NearObjectParams\"\"\n\x10NearVectorParams\x12\x0e\n\x06vector\x18\x01 \x03(\x02\"\x1e\n\x10NearObjectParams\x12\n\n\x02id\x18\x01 \x01(\t\"H\n\x0bSearchReply\x12+\n\x07results\x18\x01 \x03(\x0b\x32\x1a.weaviategrpc.SearchResult\x12\x0c\n\x04took\x18\x02 \x01(\x02\"y\n\x0cSearchResult\x12+\n\nproperties\x18\x01 \x01(\x0b\x32\x17.google.protobuf.Struct\x12<\n\x15\x61\x64\x64itional_properties\x18\x02 \x01(\x0b\x32\x1d.weaviategrpc.AdditionalProps\"\x1d\n\x0f\x41\x64\x64itionalProps\x12\n\n\x02id\x18\x01 \x01(\t2N\n\x08Weaviate\x12\x42\n\x06Search\x12\x1b.weaviategrpc.SearchRequest\x1a\x19.weaviategrpc.SearchReply\"\x00\x42#Z!github.com/weaviate/weaviate/grpcb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
+    b'\n\x0eweaviate.proto\x12\x0cweaviategrpc\x1a\x1cgoogle/protobuf/struct.proto"\xcf\x01\n\rSearchRequest\x12\x12\n\nclass_name\x18\x01 \x01(\t\x12\r\n\x05limit\x18\x02 \x01(\r\x12\x12\n\nproperties\x18\x03 \x03(\t\x12\x1d\n\x15\x61\x64\x64itional_properties\x18\x04 \x03(\t\x12\x33\n\x0bnear_vector\x18\x05 \x01(\x0b\x32\x1e.weaviategrpc.NearVectorParams\x12\x33\n\x0bnear_object\x18\x06 \x01(\x0b\x32\x1e.weaviategrpc.NearObjectParams""\n\x10NearVectorParams\x12\x0e\n\x06vector\x18\x01 \x03(\x02"\x1e\n\x10NearObjectParams\x12\n\n\x02id\x18\x01 \x01(\t"H\n\x0bSearchReply\x12+\n\x07results\x18\x01 \x03(\x0b\x32\x1a.weaviategrpc.SearchResult\x12\x0c\n\x04took\x18\x02 \x01(\x02"y\n\x0cSearchResult\x12+\n\nproperties\x18\x01 \x01(\x0b\x32\x17.google.protobuf.Struct\x12<\n\x15\x61\x64\x64itional_properties\x18\x02 \x01(\x0b\x32\x1d.weaviategrpc.AdditionalProps"\x1d\n\x0f\x41\x64\x64itionalProps\x12\n\n\x02id\x18\x01 \x01(\t2N\n\x08Weaviate\x12\x42\n\x06Search\x12\x1b.weaviategrpc.SearchRequest\x1a\x19.weaviategrpc.SearchReply"\x00\x42#Z!github.com/weaviate/weaviate/grpcb\x06proto3'
+)
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'weaviate_pb2', globals())
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "weaviate_pb2", globals())
 if _descriptor._USE_C_DESCRIPTORS == False:
 
-  DESCRIPTOR._options = None
-  DESCRIPTOR._serialized_options = b'Z!github.com/weaviate/weaviate/grpc'
-  _SEARCHREQUEST._serialized_start=63
-  _SEARCHREQUEST._serialized_end=267
-  _NEARVECTORPARAMS._serialized_start=269
-  _NEARVECTORPARAMS._serialized_end=303
-  _NEAROBJECTPARAMS._serialized_start=305
-  _NEAROBJECTPARAMS._serialized_end=335
-  _SEARCHREPLY._serialized_start=337
-  _SEARCHREPLY._serialized_end=409
-  _SEARCHRESULT._serialized_start=411
-  _SEARCHRESULT._serialized_end=532
-  _ADDITIONALPROPS._serialized_start=534
-  _ADDITIONALPROPS._serialized_end=563
-  _WEAVIATE._serialized_start=565
-  _WEAVIATE._serialized_end=643
+    DESCRIPTOR._options = None
+    DESCRIPTOR._serialized_options = b"Z!github.com/weaviate/weaviate/grpc"
+    _SEARCHREQUEST._serialized_start = 63
+    _SEARCHREQUEST._serialized_end = 270
+    _NEARVECTORPARAMS._serialized_start = 272
+    _NEARVECTORPARAMS._serialized_end = 306
+    _NEAROBJECTPARAMS._serialized_start = 308
+    _NEAROBJECTPARAMS._serialized_end = 338
+    _SEARCHREPLY._serialized_start = 340
+    _SEARCHREPLY._serialized_end = 412
+    _SEARCHRESULT._serialized_start = 414
+    _SEARCHRESULT._serialized_end = 535
+    _ADDITIONALPROPS._serialized_start = 537
+    _ADDITIONALPROPS._serialized_end = 566
+    _WEAVIATE._serialized_start = 568
+    _WEAVIATE._serialized_end = 646
 # @@protoc_insertion_point(module_scope)

@@ -1103,9 +1103,9 @@ class GetBuilder(GraphQL):
                 metadata = (("authorization", access_token),)
             res, _ = self._connection.grpc_stub.Search.with_call(
                 weaviate_pb2.SearchRequest(
-                    className=self._class_name,
+                    class_name=self._class_name,
                     limit=self._limit,
-                    nearVector=weaviate_pb2.NearVectorParams(
+                    near_vector=weaviate_pb2.NearVectorParams(
                         vector=self._near_ask.content["vector"]
                     ),
                     properties=self._properties,
@@ -1128,7 +1128,6 @@ class GetBuilder(GraphQL):
 
                 get_results.append(get_result)
 
-            # res_ids = [{"_additional": {"id": str(uuid.UUID(res.additional_properties.id))}} for res in res.results]
             results = {"data": {"Get": {self._class_name: get_results}}}
             return results
         else:
