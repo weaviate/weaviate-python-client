@@ -1083,7 +1083,7 @@ class GetBuilder(GraphQL):
         grpc_enabled = (
             self._connection.grpc_stub is not None
             and self._near_ask is not None
-            and isinstance(self._near_ask, NearVector)
+            and (isinstance(self._near_ask, NearVector) or isinstance(self._near_ask, NearObject))
             # additional can only have one entry
             and len(self._additional) == 1
             and len(self._additional["__one_level"]) == 1
@@ -1107,7 +1107,12 @@ class GetBuilder(GraphQL):
                     limit=self._limit,
                     near_vector=weaviate_pb2.NearVectorParams(
                         vector=self._near_ask.content["vector"]
-                    ),
+                    )
+                    if self._near_ask is not None and isinstance(self._near_ask, NearVector)
+                    else None,
+                    near_object=weaviate_pb2.NearObjectParams(id=self._near_ask.content["id"])
+                    if self._near_ask is not None and isinstance(self._near_ask, NearObject)
+                    else None,
                     properties=self._properties,
                     additional_properties=self._additional["__one_level"],
                 ),
