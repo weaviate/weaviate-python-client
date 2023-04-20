@@ -22,6 +22,11 @@ from weaviate.types import UUID
 from weaviate.util import image_encoder_b64, _capitalize_first_letter, get_valid_uuid
 from weaviate.warnings import _Warnings
 
+try:
+    from weaviate_grpc import weaviate_pb2
+except ImportError:
+    pass
+
 
 @dataclass
 class BM25:
@@ -100,7 +105,7 @@ class GetBuilder(GraphQL):
         # '__one_level' refers to the additional properties that are just a single word, not a dict
         # thus '__one_level', only one level of complexity
         self._where: Optional[Where] = None  # To store the where filter if it is added
-        self._limit: Optional[str] = None  # To store the limit filter if it is added
+        self._limit: Optional[int] = None  # To store the limit filter if it is added
         self._offset: Optional[str] = None  # To store the offset filter if it is added
         self._after: Optional[str] = None  # To store the offset filter if it is added
         self._near_ask: Optional[Filter] = None  # To store the `near`/`ask` clause if it is added
@@ -532,7 +537,7 @@ class GetBuilder(GraphQL):
         if limit < 1:
             raise ValueError("limit cannot be non-positive (limit >=1).")
 
-        self._limit = f"limit: {limit} "
+        self._limit = limit
         self._contains_filter = True
         return self
 
@@ -1029,7 +1034,7 @@ class GetBuilder(GraphQL):
             if self._where is not None:
                 query += str(self._where)
             if self._limit is not None:
-                query += self._limit
+                query += f"limit: {self._limit} "
             if self._offset is not None:
                 query += self._offset
             if self._near_ask is not None:
@@ -1058,6 +1063,88 @@ class GetBuilder(GraphQL):
         if wrap_get:
             query += "}}"
         return query
+
+    def do(self) -> dict:
+        """
+        Builds and runs the query.
+
+        Returns
+        -------
+        dict
+            The response of the query.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        """
+        grpc_enabled = (  # only implemented for some scenarios
+            self._connection.grpc_stub is not None
+            and self._near_ask is not None
+            and (isinstance(self._near_ask, NearVector) or isinstance(self._near_ask, NearObject))
+            and len(self._additional) == 1
+            and (
+                len(self._additional["__one_level"]) == 0 or "id" in self._additional["__one_level"]
+            )
+            and self._offset is None
+            and self._sort is None
+            and self._where is None
+            and self._bm25 is None
+            and self._hybrid is None
+            and self._after is None
+            and all("..." not in prop for prop in self._properties)  # no ref props
+        )
+        if grpc_enabled:
+
+            metadata = ()
+            access_token = self._connection.get_current_bearer_token()
+            if len(access_token) > 0:
+                metadata = (("authorization", access_token),)
+
+            res, _ = self._connection.grpc_stub.Search.with_call(
+                weaviate_pb2.SearchRequest(
+                    class_name=self._class_name,
+                    limit=self._limit,
+                    near_vector=weaviate_pb2.NearVectorParams(
+                        vector=self._near_ask.content["vector"],
+                        certainty=self._near_ask.content.get("certainty", None),
+                        distance=self._near_ask.content.get("distance", None),
+                    )
+                    if self._near_ask is not None and isinstance(self._near_ask, NearVector)
+                    else None,
+                    near_object=weaviate_pb2.NearObjectParams(
+                        id=self._near_ask.content["id"],
+                        certainty=self._near_ask.content.get("certainty", None),
+                        distance=self._near_ask.content.get("distance", None),
+                    )
+                    if self._near_ask is not None and isinstance(self._near_ask, NearObject)
+                    else None,
+                    properties=self._properties,
+                    additional_properties=self._additional["__one_level"],
+                ),
+                metadata=metadata,
+            )
+
+            get_results = []
+            for result in res.results:
+                get_result = {}
+
+                for key, val in result.properties.items():
+                    get_result[key] = val
+
+                if len(self._additional["__one_level"]) > 0:
+                    get_result["_additional"] = {}
+                if "id" in self._additional["__one_level"]:
+                    get_result["_additional"]["id"] = result.additional_properties.id
+
+                get_results.append(get_result)
+
+            results = {"data": {"Get": {self._class_name: get_results}}}
+            return results
+        else:
+            return super().do()
 
     def _additional_to_str(self) -> str:
         """

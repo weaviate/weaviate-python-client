@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import datetime
 import os
+import socket
 import time
 from numbers import Real
 from threading import Thread, Event
@@ -26,6 +27,15 @@ from weaviate.exceptions import (
 )
 from weaviate.util import _check_positive_num, is_weaviate_domain
 from weaviate.warnings import _Warnings
+
+try:
+    import grpc
+    from weaviate_grpc import weaviate_pb2_grpc
+
+    has_grpc = True
+except ImportError:
+    has_grpc = False
+
 
 Session = Union[requests.sessions.Session, OAuth2Session]
 
@@ -89,6 +99,22 @@ class BaseConnection:
         self.url = url  # e.g. http://localhost:80
         self.timeout_config = timeout_config  # this uses the setter
         self.embedded_db = embedded_db
+
+        self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
+
+        # create GRPC channel. If weaviate does not support GRPC, fallback to GraphQL is used.
+        if has_grpc:
+            host = self.url.split("//")[1]
+            host = host.split(":")[0]
+
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                s.connect((host, int(50051)))
+                s.shutdown(2)
+                channel = grpc.insecure_channel(f"{host}:50051")
+                self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(channel)
+            except ConnectionRefusedError:  # self._grpc_stub stays None
+                s.close()
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:
@@ -187,6 +213,14 @@ class BaseConnection:
             self._session = requests.Session()
         else:
             self._session = requests.Session()
+
+    def get_current_bearer_token(self) -> str:
+        if "authorization" in self._headers:
+            return self._headers["authorization"]
+        elif isinstance(self._session, OAuth2Session):
+            return "Bearer " + self._session.token["access_token"]
+
+        return ""
 
     def _create_background_token_refresh(self, _auth: Optional[_Auth] = None):
         """Create a background thread that periodically refreshes access and refresh tokens.
@@ -594,6 +628,10 @@ class Connection(BaseConnection):
         self._server_version = self.get_meta()["version"]
         if self._server_version < "1.14":
             _Warnings.weaviate_server_older_than_1_14(self._server_version)
+
+    @property
+    def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
+        return self._grpc_stub
 
     @property
     def server_version(self) -> str:

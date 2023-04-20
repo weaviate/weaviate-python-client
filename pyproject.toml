@@ -21,5 +21,6 @@ exclude = '''
   | build
   | dist
   | docs
+  | weaviate_grpc
 )/
 '''

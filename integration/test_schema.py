@@ -1,4 +1,5 @@
 from typing import Optional
+
 import pytest
 
 import weaviate
@@ -11,7 +12,7 @@ def client():
     client.schema.delete_all()
 
 
-@pytest.mark.parametrize("replicationFactor", [None, 2])
+@pytest.mark.parametrize("replicationFactor", [None, 1])
 def test_create_class_with_implicit_and_explicit_replication_factor(
     client, replicationFactor: Optional[int]
 ):
@@ -27,9 +28,9 @@ def test_create_class_with_implicit_and_explicit_replication_factor(
         ],
     }
     if replicationFactor is None:
-        expectedFactor = 1
+        expected_factor = 1
     else:
-        expectedFactor = replicationFactor
+        expected_factor = replicationFactor
         single_class["replicationConfig"] = {
             "factor": replicationFactor,
         }
@@ -37,6 +38,6 @@ def test_create_class_with_implicit_and_explicit_replication_factor(
     client.schema.create_class(single_class)
     created_class = client.schema.get("Barbecue")
     assert created_class["class"] == "Barbecue"
-    assert created_class["replicationConfig"]["factor"] == expectedFactor
+    assert created_class["replicationConfig"]["factor"] == expected_factor
 
     client.schema.delete_class("Barbecue")
