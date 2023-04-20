@@ -1080,11 +1080,10 @@ class GetBuilder(GraphQL):
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
-        grpc_enabled = (
+        grpc_enabled = (  # only implemented for some scenarios
             self._connection.grpc_stub is not None
             and self._near_ask is not None
             and (isinstance(self._near_ask, NearVector) or isinstance(self._near_ask, NearObject))
-            # additional can only have one entry
             and len(self._additional) == 1
             and (
                 len(self._additional["__one_level"]) == 0 or "id" in self._additional["__one_level"]

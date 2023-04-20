@@ -16,6 +16,7 @@ CLASS2 = {
     "class": "Test2",
     "properties": [
         {"name": "test", "dataType": ["string"]},
+        {"name": "abc", "dataType": ["int"]},
         {"name": "ref", "dataType": ["Test"]},
     ],
 }
@@ -49,7 +50,6 @@ UUID2 = "577887c1-4c6b-5594-aa62-f0c17883d9cf"
     ],
 )
 def test_grcp(with_limit: bool, additional_props, near: Dict[str, Any], properties):
-    pytest.skip("Local testing")
 
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
@@ -60,7 +60,7 @@ def test_grcp(with_limit: bool, additional_props, near: Dict[str, Any], properti
     # add objects and references
     client.data_object.create({"test": "test1"}, "Test", vector=VECTOR)
     client.data_object.create({"test": "test2", "abc": 5}, "Test", vector=VECTOR, uuid=UUID1)
-    client.data_object.create({"test": "test2"}, "Test2", vector=VECTOR, uuid=UUID2)
+    client.data_object.create({"test": "test2", "abc": 5}, "Test2", vector=VECTOR, uuid=UUID2)
     client.data_object.reference.add(
         from_uuid=UUID2,
         to_uuid=UUID1,
