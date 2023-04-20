@@ -1108,11 +1108,17 @@ class GetBuilder(GraphQL):
                     class_name=self._class_name,
                     limit=self._limit,
                     near_vector=weaviate_pb2.NearVectorParams(
-                        vector=self._near_ask.content["vector"]
+                        vector=self._near_ask.content["vector"],
+                        certainty=self._near_ask.content.get("certainty", None),
+                        distance=self._near_ask.content.get("distance", None),
                     )
                     if self._near_ask is not None and isinstance(self._near_ask, NearVector)
                     else None,
-                    near_object=weaviate_pb2.NearObjectParams(id=self._near_ask.content["id"])
+                    near_object=weaviate_pb2.NearObjectParams(
+                        id=self._near_ask.content["id"],
+                        certainty=self._near_ask.content.get("certainty", None),
+                        distance=self._near_ask.content.get("distance", None),
+                    )
                     if self._near_ask is not None and isinstance(self._near_ask, NearObject)
                     else None,
                     properties=self._properties,
