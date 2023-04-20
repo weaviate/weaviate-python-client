@@ -49,6 +49,8 @@ UUID2 = "577887c1-4c6b-5594-aa62-f0c17883d9cf"
     ],
 )
 def test_grcp(with_limit: bool, additional_props, near: Dict[str, Any], properties):
+    pytest.skip("Local testing")
+
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
 
