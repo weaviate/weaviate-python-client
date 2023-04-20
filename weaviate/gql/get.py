@@ -1086,14 +1086,16 @@ class GetBuilder(GraphQL):
             and (isinstance(self._near_ask, NearVector) or isinstance(self._near_ask, NearObject))
             # additional can only have one entry
             and len(self._additional) == 1
-            and len(self._additional["__one_level"]) == 1
-            and "id" in self._additional["__one_level"]
+            and (
+                len(self._additional["__one_level"]) == 0 or "id" in self._additional["__one_level"]
+            )
             and self._offset is None
             and self._sort is None
             and self._where is None
             and self._bm25 is None
             and self._hybrid is None
             and self._after is None
+            and all("..." not in prop for prop in self._properties)  # no ref props
         )
         if grpc_enabled:
 
