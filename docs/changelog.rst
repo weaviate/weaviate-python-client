@@ -1,6 +1,20 @@
 Changelog
 =========
 
+
+
+Version 3.16.0
+--------------
+This minor version includes:
+
+- **Experimental** support for GRPC.
+    - Can by enabled by installing the client with `pip install weaviate-client[GRPC]` or install the `grpcio` package manually.
+    - To disable uninstall the `grpcio` package.
+    - This will speed up certain GraphQL queries: `Get` with `NearObject` or `NearVector` if only non-reference queries are retrieved and no other options are set.
+
+- Removal of python 3.7 support. Minimum supported version is python 3.8
+- Removal of the WCS module. Note that the module was used to administrate old WCS instances and does not work anymore.
+
 Version 3.15.6
 --------------
 This patch version includes:
