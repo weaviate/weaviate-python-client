@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import datetime
 import os
+import socket
 import time
 from numbers import Real
 from threading import Thread, Event
@@ -101,12 +102,19 @@ class BaseConnection:
 
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
 
+        # create GRPC channel. If weaviate does not support GRPC, fallback to GraphQL is used.
         if has_grpc:
             host = self.url.split("//")[1]
             host = host.split(":")[0]
 
-            channel = grpc.insecure_channel(f"{host}:50051")
-            self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(channel)
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                s.connect((host, int(50051)))
+                s.shutdown(2)
+                channel = grpc.insecure_channel(f"{host}:50051")
+                self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(channel)
+            except ConnectionRefusedError:  # self._grpc_stub stays None
+                s.close()
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:

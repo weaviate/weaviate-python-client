@@ -1102,6 +1102,7 @@ class GetBuilder(GraphQL):
             access_token = self._connection.get_current_bearer_token()
             if len(access_token) > 0:
                 metadata = (("authorization", access_token),)
+
             res, _ = self._connection.grpc_stub.Search.with_call(
                 weaviate_pb2.SearchRequest(
                     class_name=self._class_name,
