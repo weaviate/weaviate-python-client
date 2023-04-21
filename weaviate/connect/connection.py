@@ -24,7 +24,7 @@ from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     WeaviateStartUpError,
 )
-from weaviate.util import _check_positive_num, is_weaviate_domain
+from weaviate.util import _check_positive_num, is_weaviate_domain, is_weaviate_too_old
 from weaviate.warnings import _Warnings
 
 Session = Union[requests.sessions.Session, OAuth2Session]
@@ -594,6 +594,8 @@ class Connection(BaseConnection):
         self._server_version = self.get_meta()["version"]
         if self._server_version < "1.14":
             _Warnings.weaviate_server_older_than_1_14(self._server_version)
+        if is_weaviate_too_old(self._server_version):
+            _Warnings.weaviate_too_old_vs_latest(self._server_version)
 
     @property
     def server_version(self) -> str:

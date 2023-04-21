@@ -106,3 +106,12 @@ class _Warnings:
             category=UserWarning,
             stacklevel=1,
         )
+
+    @staticmethod
+    def weaviate_too_old_vs_latest(server_version: str):
+        warnings.warn(
+            message=f"""Dep004: You are connected to Weaviate {server_version}.
+            Please consider upgrading to the latest version. See https://www.weaviate.io/developers/weaviate for details.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )

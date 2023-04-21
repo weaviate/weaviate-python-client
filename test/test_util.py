@@ -17,6 +17,8 @@ from weaviate.util import (
     get_domain_from_weaviate_url,
     _get_dict_from_object,
     _is_sub_schema,
+    parse_ver_str,
+    is_weaviate_too_old,
 )
 
 schema_set = {
@@ -455,7 +457,21 @@ class TestUtil(unittest.TestCase):
 
     @patch("weaviate.util.uuid_lib")
     def test_generate_uuid5(self, mock_uuid):
-
         result = generate_uuid5("TestID!", "Test!")
         self.assertIsInstance(result, str)
         mock_uuid.uuid5.assert_called()
+
+    def test_parse_ver_str(self):
+        assert parse_ver_str("v1.18.1") == parse_ver_str("1.18.1")
+        assert parse_ver_str("v1.18.1") == parse_ver_str("1.18.5")
+        assert parse_ver_str("1.1.5") == 1.01
+        assert parse_ver_str("v1.18.3") == 1.18
+        assert parse_ver_str("2.0.0") == 2.0
+
+    def test_is_weaviate_too_old(self):
+        for version in ["v1.0.0", "v1.10.5", "v1.15.3"]:
+            assert is_weaviate_too_old(version) is True
+            assert is_weaviate_too_old(version.replace("v", "")) is True
+        for version in ["v1.18.3", "v1.25.0", "v2.0.0"]:
+            assert is_weaviate_too_old(version) is False
+            assert is_weaviate_too_old(version.replace("v", "")) is False

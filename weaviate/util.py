@@ -12,8 +12,13 @@ from typing import Union, Sequence, Any, Optional, List, Dict
 
 import requests
 import validators
+import re
 
 from weaviate.exceptions import SchemaValidationException
+
+MINIMUM_NO_WARNING_VERSION = (
+    "v1.16.0"  # The minimum version of Weaviate that will not trigger an upgrade warning.
+)
 
 
 # MetaEnum and BaseEnum are required to support `in` statements:
@@ -557,3 +562,51 @@ def is_weaviate_domain(url: str) -> bool:
 
 def strip_newlines(s: str) -> str:
     return s.replace("\n", " ")
+
+
+def parse_ver_str(ver_str: str) -> float:
+    """
+    Parse a version string into a float.
+
+    Parameters
+    ----------
+    ver_str : str
+        The version string to parse. (e.g. "v1.18.2" or "1.18.0")
+
+    Returns
+    -------
+    float :
+        The parsed version as a float. (e.g. 1.18) Note: Ignores the patch version.
+    """
+    pattern = r"v?(\d+)\.(\d+)\.(\d+)"
+    match = re.match(pattern, ver_str)
+
+    if match:
+        ver_tup = tuple(map(int, match.groups()))
+        ver_num = ver_tup[0] + ver_tup[1] / 100
+        return ver_num
+    else:
+        raise ValueError(
+            f"Unable to parse a version from the input string: {ver_str}. Is it in the format '(v)x.y.z' (e.g. 'v1.18.2' or '1.18.0')?"
+        )
+
+
+def is_weaviate_too_old(current_version_str: str) -> bool:
+    """
+    Check if the user should be gently nudged to upgrade their Weaviate server version.
+
+    Parameters
+    ----------
+    current_version_str : str
+        The version of the Weaviate server that the client is connected to. (e.g. "v1.18.2" or "1.18.0")
+
+    Returns
+    -------
+    bool :
+    True if the user should be nudged to upgrade.
+
+    """
+
+    current_version = parse_ver_str(current_version_str)
+    minimum_version = parse_ver_str(MINIMUM_NO_WARNING_VERSION)
+    return minimum_version > current_version
