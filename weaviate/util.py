@@ -564,7 +564,7 @@ def strip_newlines(s: str) -> str:
     return s.replace("\n", " ")
 
 
-def parse_ver_str(ver_str: str) -> float:
+def parse_ver_str(ver_str: str) -> tuple:
     """
     Parse a version string into a float.
 
@@ -575,16 +575,18 @@ def parse_ver_str(ver_str: str) -> float:
 
     Returns
     -------
-    float :
-        The parsed version as a float. (e.g. 1.18) Note: Ignores the patch version.
+    tuple :
+        The parsed version as a tuple with len(2). (e.g. (1, 18)) Note: Ignores the patch version.
     """
-    pattern = r"v?(\d+)\.(\d+)\.(\d+)"
+    if ver_str.count(".") == 0:
+        ver_str = ver_str + ".0"
+
+    pattern = r"v?(\d+)\.(\d+)"
     match = re.match(pattern, ver_str)
 
     if match:
         ver_tup = tuple(map(int, match.groups()))
-        ver_num = ver_tup[0] + ver_tup[1] / 100
-        return ver_num
+        return ver_tup
     else:
         raise ValueError(
             f"Unable to parse a version from the input string: {ver_str}. Is it in the format '(v)x.y.z' (e.g. 'v1.18.2' or '1.18.0')?"

@@ -464,9 +464,14 @@ class TestUtil(unittest.TestCase):
     def test_parse_ver_str(self):
         assert parse_ver_str("v1.18.1") == parse_ver_str("1.18.1")
         assert parse_ver_str("v1.18.1") == parse_ver_str("1.18.5")
-        assert parse_ver_str("1.1.5") == 1.01
-        assert parse_ver_str("v1.18.3") == 1.18
-        assert parse_ver_str("2.0.0") == 2.0
+        assert len(parse_ver_str("v1.18.1")) == 2
+        assert len(parse_ver_str("1.1.5")) == 2
+        assert len(parse_ver_str("2")) == 2
+        assert parse_ver_str("1.1.5") == (1, 1)
+        assert parse_ver_str("v1.18.3") == (1, 18)
+        assert parse_ver_str("2") == (2, 0)
+        assert parse_ver_str("2.0.0") == (2, 0)
+        assert parse_ver_str("v2.05.5") == (2, 5)
 
     def test_is_weaviate_too_old(self):
         for version in ["v1.0.0", "v1.10.5", "v1.15.3"]:
