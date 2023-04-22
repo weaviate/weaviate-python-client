@@ -36,8 +36,13 @@ def test_create_class_with_implicit_and_explicit_replication_factor(
         }
 
     client.schema.create_class(single_class)
+    class_exists = client.schema.exists("Barbecue")
+    class_does_not_exist = client.schema.exists("Not-Barbecue")
     created_class = client.schema.get("Barbecue")
+    
     assert created_class["class"] == "Barbecue"
+    assert class_exists
+    assert not class_does_not_exist
     assert created_class["replicationConfig"]["factor"] == expected_factor
 
     client.schema.delete_class("Barbecue")
