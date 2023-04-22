@@ -352,6 +352,29 @@ class Schema:
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Update class schema configuration", response)
 
+    def exists(self, class_name: str) -> bool:
+        """
+        Check if a class exists in the schema.
+
+        Parameters
+        ----------
+        class_name : str
+            The class for which to check if it exists.
+
+        Returns
+        -------
+        bool
+            True if the class exists, False otherwise.
+        
+        Examples
+        --------
+        >>> client.schema.exists('Author')
+        True
+        """
+        
+        schema = self.get(class_name=class_name)
+        return len(schema["classes"]) > 0
+
     def get(self, class_name: str = None) -> dict:
         """
         Get the schema from Weaviate.
