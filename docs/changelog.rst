@@ -1,7 +1,11 @@
 Changelog
 =========
 
+Version 3.16.1
+--------------
+This patch version includes:
 
+- Fixes timeout error in detection of grpc.
 
 Version 3.16.0
 --------------
