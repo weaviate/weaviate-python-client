@@ -109,11 +109,16 @@ class BaseConnection:
 
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
+                s.settimeout(1.0)  # we're only pinging the port, 1s is plenty
                 s.connect((host, int(50051)))
                 s.shutdown(2)
                 channel = grpc.insecure_channel(f"{host}:50051")
                 self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(channel)
-            except ConnectionRefusedError:  # self._grpc_stub stays None
+            except (
+                ConnectionRefusedError,
+                TimeoutError,
+                socket.timeout,
+            ):  # self._grpc_stub stays None
                 s.close()
 
         self._headers = {"content-type": "application/json"}
