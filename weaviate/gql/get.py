@@ -1204,16 +1204,16 @@ class GetBuilder(GraphQL):
                 metadata=metadata,
             )
 
-            result = res.results[0]
+            objects = []
+            for result in res.results:
+                obj = self._convert_references_to_grpc_result(result.properties)
+                if len(self._additional["__one_level"]) > 0:
+                    obj["_additional"] = {}
+                if "id" in self._additional["__one_level"]:
+                    obj["_additional"]["id"] = result.additional_properties.id
+                objects.append(obj)
 
-            res = {self._class_name: [self._convert_references_to_grpc_result(result.properties)]}
-
-            if len(self._additional["__one_level"]) > 0:
-                res["_additional"] = {}
-            if "id" in self._additional["__one_level"]:
-                res["_additional"]["id"] = result.additional_properties.id
-
-            results = {"data": {"Get": res}}
+            results = {"data": {"Get": {self._class_name: objects}}}
             return results
         else:
             return super().do()
@@ -1225,7 +1225,7 @@ class GetBuilder(GraphQL):
 
         for ref_prop in properties.ref_props:
             result[ref_prop.prop_name] = [
-                self._convert_references_to_grpc_result(ref_prop.properties)
+                self._convert_references_to_grpc_result(prop) for prop in ref_prop.properties
             ]
 
         return result

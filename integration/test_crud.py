@@ -524,6 +524,7 @@ def test_beacon_refs_multiple(people_schema):
                 {"name": "age", "dataType": ["int"]},
                 {"name": "born_in", "dataType": ["text"]},
             ],
+            "vectorizer": "none",
         }
     )
 
@@ -535,6 +536,7 @@ def test_beacon_refs_multiple(people_schema):
                 {"name": "caller", "dataType": ["Person"]},
                 {"name": "recipient", "dataType": ["Person"]},
             ],
+            "vectorizer": "none",
         }
     )
 
@@ -585,7 +587,11 @@ def test_beacon_refs_nested():
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create_class(
-        {"class": "A", "properties": [{"name": "nonRef", "dataType": ["string"]}]}
+        {
+            "class": "A",
+            "properties": [{"name": "nonRef", "dataType": ["string"]}],
+            "vectorizer": "none",
+        }
     )
     client.schema.create_class(
         {
@@ -594,6 +600,7 @@ def test_beacon_refs_nested():
                 {"name": "nonRef", "dataType": ["string"]},
                 {"name": "refA", "dataType": ["A"]},
             ],
+            "vectorizer": "none",
         }
     )
     client.schema.create_class(
@@ -603,6 +610,7 @@ def test_beacon_refs_nested():
                 {"name": "nonRef", "dataType": ["string"]},
                 {"name": "refB", "dataType": ["B"]},
             ],
+            "vectorizer": "none",
         }
     )
     client.schema.create_class(
@@ -613,6 +621,7 @@ def test_beacon_refs_nested():
                 {"name": "refC", "dataType": ["C"]},
                 {"name": "refB", "dataType": ["B"]},
             ],
+            "vectorizer": "none",
         }
     )
 

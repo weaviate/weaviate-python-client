@@ -65,8 +65,8 @@ class ReturnRefProperties(_message.Message):
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     PROP_NAME_FIELD_NUMBER: _ClassVar[int]
     prop_name: str
-    properties: ReturnProperties
-    def __init__(self, properties: _Optional[_Union[ReturnProperties, _Mapping]] = ..., prop_name: _Optional[str] = ...) -> None: ...
+    properties: _containers.RepeatedCompositeFieldContainer[ReturnProperties]
+    def __init__(self, properties: _Optional[_Iterable[_Union[ReturnProperties, _Mapping]]] = ..., prop_name: _Optional[str] = ...) -> None: ...
 
 class SearchReply(_message.Message):
     __slots__ = ["results", "took"]
