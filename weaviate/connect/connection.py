@@ -114,7 +114,11 @@ class BaseConnection:
                 s.shutdown(2)
                 channel = grpc.insecure_channel(f"{host}:50051")
                 self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(channel)
-            except (ConnectionRefusedError, TimeoutError):  # self._grpc_stub stays None
+            except (
+                ConnectionRefusedError,
+                TimeoutError,
+                socket.timeout,
+            ):  # self._grpc_stub stays None
                 s.close()
 
         self._headers = {"content-type": "application/json"}
