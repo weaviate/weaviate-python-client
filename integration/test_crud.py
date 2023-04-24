@@ -9,7 +9,7 @@ from typing import List, Optional, Dict, Union
 import pytest
 
 import weaviate
-from weaviate.gql.get import ReferenceProperty
+from weaviate.gql.get import Reference
 
 
 def get_query_for_group(name):
@@ -503,7 +503,7 @@ def test_beacon_refs(people_schema):
         "Call",
         [
             "start",
-            ReferenceProperty(property_name="caller", in_class="Person", properties=["name"]),
+            Reference(reference_property="caller", linked_class="Person", properties=["name"]),
         ],
     ).do()
     callers = result["data"]["Get"]["Call"][0]["caller"]
@@ -561,11 +561,11 @@ def test_beacon_refs_multiple(people_schema):
     result = client.query.get(
         "Call",
         [
-            ReferenceProperty(
-                property_name="caller", in_class="Person", properties=["name", "age"]
+            Reference(
+                reference_property="caller", linked_class="Person", properties=["name", "age"]
             ),
-            ReferenceProperty(
-                property_name="recipient", in_class="Person", properties=["born_in", "age"]
+            Reference(
+                reference_property="recipient", linked_class="Person", properties=["born_in", "age"]
             ),
         ],
     ).do()
@@ -579,3 +579,85 @@ def test_beacon_refs_multiple(people_schema):
 
         assert "age" in call["caller"][0] and "name" in call["caller"][0]
         assert "age" in call["recipient"][0] and "born_in" in call["recipient"][0]
+
+
+def test_beacon_refs_nested():
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+    client.schema.create_class(
+        {"class": "A", "properties": [{"name": "nonRef", "dataType": ["string"]}]}
+    )
+    client.schema.create_class(
+        {
+            "class": "B",
+            "properties": [
+                {"name": "nonRef", "dataType": ["string"]},
+                {"name": "refA", "dataType": ["A"]},
+            ],
+        }
+    )
+    client.schema.create_class(
+        {
+            "class": "C",
+            "properties": [
+                {"name": "nonRef", "dataType": ["string"]},
+                {"name": "refB", "dataType": ["B"]},
+            ],
+        }
+    )
+    client.schema.create_class(
+        {
+            "class": "D",
+            "properties": [
+                {"name": "nonRef", "dataType": ["string"]},
+                {"name": "refC", "dataType": ["C"]},
+                {"name": "refB", "dataType": ["B"]},
+            ],
+        }
+    )
+
+    uuid_a = client.data_object.create({"nonRef": "A"}, "A")
+    uuid_b = client.data_object.create({"nonRef": "B"}, "B")
+    client.data_object.reference.add(uuid_b, "refA", uuid_a, "B", "A")
+
+    uuid_c = client.data_object.create({"nonRef": "C"}, "C")
+    client.data_object.reference.add(uuid_c, "refB", uuid_b, "C", "B")
+
+    uuid_d = client.data_object.create({"nonRef": "D"}, "D")
+    client.data_object.reference.add(uuid_d, "refC", uuid_c, "D", "C")
+    client.data_object.reference.add(uuid_d, "refB", uuid_b, "D", "B")
+
+    result = client.query.get(
+        "D",
+        [
+            "nonRef",
+            Reference(
+                reference_property="refC",
+                linked_class="C",
+                properties=[
+                    "nonRef",
+                    Reference(
+                        reference_property="refB",
+                        linked_class="B",
+                        properties=[
+                            "nonRef",
+                            Reference(
+                                reference_property="refA", linked_class="A", properties=["nonRef"]
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+            Reference(
+                reference_property="refB",
+                linked_class="B",
+                properties=[
+                    "nonRef",
+                    Reference(reference_property="refA", linked_class="A", properties=["nonRef"]),
+                ],
+            ),
+        ],
+    ).do()
+
+    assert result["data"]["Get"]["D"][0]["refC"][0]["refB"][0]["refA"][0]["nonRef"] == "A"
+    assert result["data"]["Get"]["D"][0]["refB"][0]["refA"][0]["nonRef"] == "A"

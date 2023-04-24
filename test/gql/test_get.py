@@ -6,7 +6,7 @@ import pytest
 
 from test.util import check_error_message
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.gql.get import GetBuilder, BM25, Hybrid, GroupBy, ReferenceProperty
+from weaviate.gql.get import GetBuilder, BM25, Hybrid, Reference, GroupBy
 
 mock_connection_v117 = Mock()
 mock_connection_v117.server_version = "1.17.4"
@@ -47,7 +47,7 @@ def test_bm25(query: str, properties: List[str], expected: str):
     ],
 )
 def test_get_references(property_name: str, in_class: str, properties: List[str], expected: str):
-    ref = ReferenceProperty(property_name, in_class, properties)
+    ref = Reference(property_name, in_class, properties)
     assert str(ref) == expected
 
 
@@ -152,7 +152,7 @@ class TestGetBuilder(unittest.TestCase):
         properties_error_msg = (
             "properties must be of type str, " f"list of str or None but was {int}"
         )
-        property_error_msg = "All the `properties` must be of type `str`!"
+        property_error_msg = "All the `properties` must be of type `str` or Reference!"
 
         # invalid calls
         with self.assertRaises(TypeError) as error:

@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:1.19.2
+    image: semitechnologies/weaviate:preview-grpc-non-ref-props2-22a3f56
     ports:
       - "8080:8080"
       - "50051:50051"

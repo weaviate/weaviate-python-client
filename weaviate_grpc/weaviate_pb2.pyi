@@ -32,6 +32,42 @@ class NearVectorParams(_message.Message):
     vector: _containers.RepeatedScalarFieldContainer[float]
     def __init__(self, vector: _Optional[_Iterable[float]] = ..., certainty: _Optional[float] = ..., distance: _Optional[float] = ...) -> None: ...
 
+class Properties(_message.Message):
+    __slots__ = ["non_ref_properties", "ref_properties"]
+    NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    non_ref_properties: _containers.RepeatedScalarFieldContainer[str]
+    ref_properties: _containers.RepeatedCompositeFieldContainer[RefProperties]
+    def __init__(self, non_ref_properties: _Optional[_Iterable[str]] = ..., ref_properties: _Optional[_Iterable[_Union[RefProperties, _Mapping]]] = ...) -> None: ...
+
+class RefProperties(_message.Message):
+    __slots__ = ["class_name", "linked_properties", "reference_property"]
+    CLASS_NAME_FIELD_NUMBER: _ClassVar[int]
+    LINKED_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    REFERENCE_PROPERTY_FIELD_NUMBER: _ClassVar[int]
+    class_name: str
+    linked_properties: Properties
+    reference_property: str
+    def __init__(self, class_name: _Optional[str] = ..., reference_property: _Optional[str] = ..., linked_properties: _Optional[_Union[Properties, _Mapping]] = ...) -> None: ...
+
+class ReturnProperties(_message.Message):
+    __slots__ = ["class_name", "non_ref_properties", "ref_props"]
+    CLASS_NAME_FIELD_NUMBER: _ClassVar[int]
+    NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    REF_PROPS_FIELD_NUMBER: _ClassVar[int]
+    class_name: str
+    non_ref_properties: _struct_pb2.Struct
+    ref_props: _containers.RepeatedCompositeFieldContainer[ReturnRefProperties]
+    def __init__(self, non_ref_properties: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., ref_props: _Optional[_Iterable[_Union[ReturnRefProperties, _Mapping]]] = ..., class_name: _Optional[str] = ...) -> None: ...
+
+class ReturnRefProperties(_message.Message):
+    __slots__ = ["prop_name", "properties"]
+    PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    PROP_NAME_FIELD_NUMBER: _ClassVar[int]
+    prop_name: str
+    properties: ReturnProperties
+    def __init__(self, properties: _Optional[_Union[ReturnProperties, _Mapping]] = ..., prop_name: _Optional[str] = ...) -> None: ...
+
 class SearchReply(_message.Message):
     __slots__ = ["results", "took"]
     RESULTS_FIELD_NUMBER: _ClassVar[int]
@@ -53,13 +89,13 @@ class SearchRequest(_message.Message):
     limit: int
     near_object: NearObjectParams
     near_vector: NearVectorParams
-    properties: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, class_name: _Optional[str] = ..., limit: _Optional[int] = ..., properties: _Optional[_Iterable[str]] = ..., additional_properties: _Optional[_Iterable[str]] = ..., near_vector: _Optional[_Union[NearVectorParams, _Mapping]] = ..., near_object: _Optional[_Union[NearObjectParams, _Mapping]] = ...) -> None: ...
+    properties: Properties
+    def __init__(self, class_name: _Optional[str] = ..., limit: _Optional[int] = ..., additional_properties: _Optional[_Iterable[str]] = ..., near_vector: _Optional[_Union[NearVectorParams, _Mapping]] = ..., near_object: _Optional[_Union[NearObjectParams, _Mapping]] = ..., properties: _Optional[_Union[Properties, _Mapping]] = ...) -> None: ...
 
 class SearchResult(_message.Message):
     __slots__ = ["additional_properties", "properties"]
     ADDITIONAL_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     additional_properties: AdditionalProps
-    properties: _struct_pb2.Struct
-    def __init__(self, properties: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., additional_properties: _Optional[_Union[AdditionalProps, _Mapping]] = ...) -> None: ...
+    properties: ReturnProperties
+    def __init__(self, properties: _Optional[_Union[ReturnProperties, _Mapping]] = ..., additional_properties: _Optional[_Union[AdditionalProps, _Mapping]] = ...) -> None: ...
