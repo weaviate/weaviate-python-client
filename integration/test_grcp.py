@@ -1,8 +1,9 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import pytest as pytest
 
 import weaviate
+from weaviate import Options, SetupOptions
 
 CLASS1 = {
     "class": "Test",
@@ -27,6 +28,7 @@ UUID1 = "577887c1-4c6b-5594-aa62-f0c17883d9bf"
 UUID2 = "577887c1-4c6b-5594-aa62-f0c17883d9cf"
 
 
+@pytest.mark.parametrize("grpc_port", [50051, None])
 @pytest.mark.parametrize("with_limit", [True, False])
 @pytest.mark.parametrize("additional_props", [None, "id", ["id"], ["id", "vector"]])
 @pytest.mark.parametrize(
@@ -49,9 +51,14 @@ UUID2 = "577887c1-4c6b-5594-aa62-f0c17883d9cf"
         ["test", "ref {... on Test {test abc _additional{id vector}}}"],
     ],
 )
-def test_grcp(with_limit: bool, additional_props, near: Dict[str, Any], properties):
+def test_grcp(
+    with_limit: bool, additional_props, near: Dict[str, Any], properties, grpc_port: Optional[int]
+):
 
-    client = weaviate.Client("http://localhost:8080")
+    client = weaviate.Client(
+        "http://localhost:8080",
+        additional_options=Options(setup=SetupOptions(grpc_port_experimental=grpc_port)),
+    )
     client.schema.delete_all()
 
     client.schema.create_class(CLASS1)

@@ -17,6 +17,7 @@ from .data import DataObject
 from .embedded import EmbeddedDB, EmbeddedOptions
 from .exceptions import UnexpectedStatusCodeException
 from .gql import Query
+from .options import Options
 from .schema import Schema
 
 
@@ -57,6 +58,7 @@ class Client:
         additional_headers: Optional[dict] = None,
         startup_period: Optional[int] = 5,
         embedded_options: Optional[EmbeddedOptions] = None,
+        additional_options: Optional[Options] = None,
     ):
         """
         Initialize a Client class instance.
@@ -98,6 +100,8 @@ class Client:
             Create an embedded Weaviate cluster inside the client
             - You can pass weaviate.embedded.EmbeddedOptions() with default values
             - Take a look at the attributes of weaviate.embedded.EmbeddedOptions to see what is configurable
+        additional_options: weaviate.Options, optional
+            Additional and advanced options for weaviate.
         Examples
         --------
         Without Auth.
@@ -143,6 +147,8 @@ class Client:
             url = url.strip("/")
             embedded_db = None
 
+        options = Options() if additional_options is None else additional_options
+
         self._connection = Connection(
             url=url,
             auth_client_secret=auth_client_secret,
@@ -152,6 +158,7 @@ class Client:
             additional_headers=additional_headers,
             startup_period=startup_period,
             embedded_db=embedded_db,
+            grcp_port=options.setup.grpc_port_experimental,
         )
         self.classification = Classification(self._connection)
         self.schema = Schema(self._connection)

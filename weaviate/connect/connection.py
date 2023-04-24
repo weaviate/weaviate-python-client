@@ -56,6 +56,7 @@ class BaseConnection:
         additional_headers: Optional[Dict[str, Any]],
         startup_period: Optional[int],
         embedded_db: EmbeddedDB = None,
+        grcp_port: Optional[int] = None,
     ):
         """
         Initialize a Connection class instance.
@@ -104,14 +105,14 @@ class BaseConnection:
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
 
         # create GRPC channel. If weaviate does not support GRPC, fallback to GraphQL is used.
-        if has_grpc:
+        if has_grpc and grcp_port is not None:
             parsed_url = urlparse(self.url)
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
                 s.settimeout(1.0)  # we're only pinging the port, 1s is plenty
-                s.connect((parsed_url.hostname, int(50051)))
+                s.connect((parsed_url.hostname, grcp_port))
                 s.shutdown(2)
-                channel = grpc.insecure_channel(f"{parsed_url.hostname}:50051")
+                channel = grpc.insecure_channel(f"{parsed_url.hostname}:{grcp_port}")
                 self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(channel)
             except (
                 ConnectionRefusedError,
@@ -618,6 +619,7 @@ class Connection(BaseConnection):
         additional_headers: Optional[Dict[str, Any]],
         startup_period: Optional[int],
         embedded_db: EmbeddedDB = None,
+        grcp_port: Optional[int] = None,
     ):
         super().__init__(
             url,
@@ -628,6 +630,7 @@ class Connection(BaseConnection):
             additional_headers,
             startup_period,
             embedded_db,
+            grcp_port,
         )
         self._server_version = self.get_meta()["version"]
         if self._server_version < "1.14":
