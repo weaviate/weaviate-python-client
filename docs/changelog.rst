@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 3.16.2
+--------------
+This patch version includes:
+
+- Fix `url` containing username and password.
+
 Version 3.16.1
 --------------
 This patch version includes:
