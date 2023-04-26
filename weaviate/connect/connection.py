@@ -10,6 +10,7 @@ import time
 from numbers import Real
 from threading import Thread, Event
 from typing import Any, Dict, Tuple, Optional, Union
+from urllib.parse import urlparse
 
 import requests
 from authlib.integrations.requests_client import OAuth2Session
@@ -104,15 +105,13 @@ class BaseConnection:
 
         # create GRPC channel. If weaviate does not support GRPC, fallback to GraphQL is used.
         if has_grpc:
-            host = self.url.split("//")[1]
-            host = host.split(":")[0]
-
+            parsed_url = urlparse(self.url)
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
                 s.settimeout(1.0)  # we're only pinging the port, 1s is plenty
-                s.connect((host, int(50051)))
+                s.connect((parsed_url.hostname, int(50051)))
                 s.shutdown(2)
-                channel = grpc.insecure_channel(f"{host}:50051")
+                channel = grpc.insecure_channel(f"{parsed_url.hostname}:50051")
                 self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(channel)
             except (
                 ConnectionRefusedError,
