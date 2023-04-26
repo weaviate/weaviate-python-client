@@ -11,13 +11,13 @@ from .backup import Backup
 from .batch import Batch
 from .classification import Classification
 from .cluster import Cluster
+from .configuration import Configuration
 from .connect.connection import Connection
 from .contextionary import Contextionary
 from .data import DataObject
 from .embedded import EmbeddedDB, EmbeddedOptions
 from .exceptions import UnexpectedStatusCodeException
 from .gql import Query
-from .options import Options
 from .schema import Schema
 
 
@@ -58,8 +58,8 @@ class Client:
         additional_headers: Optional[dict] = None,
         startup_period: Optional[int] = 5,
         embedded_options: Optional[EmbeddedOptions] = None,
-        additional_options: Optional[Options] = None,
-    ):
+        additional_config: Configuration = None,
+    ) -> object:
         """
         Initialize a Client class instance.
 
@@ -100,8 +100,8 @@ class Client:
             Create an embedded Weaviate cluster inside the client
             - You can pass weaviate.embedded.EmbeddedOptions() with default values
             - Take a look at the attributes of weaviate.embedded.EmbeddedOptions to see what is configurable
-        additional_options: weaviate.Options, optional
-            Additional and advanced options for weaviate.
+        additional_config: weaviate.Configuration, optional
+            Additional and advanced configuration options for weaviate.
         Examples
         --------
         Without Auth.
@@ -116,7 +116,7 @@ class Client:
 
         With Auth.
 
-        >>> my_credentials = weaviate.auth.AuthClientPassword(USER_NAME, MY_PASSWORD)
+        >>> my_credentials = weaviate.AuthClientPassword(USER_NAME, MY_PASSWORD)
         >>> client = Client(
         ...     url = 'http://localhost:8080',
         ...     auth_client_secret = my_credentials
@@ -124,8 +124,14 @@ class Client:
 
         Creating a client with an embedded database:
 
-        >>> from weaviate.embedded import EmbeddedOptions
+        >>> from weaviate import EmbeddedOptions
         >>> client = Client(embedded_options=EmbeddedOptions())
+
+        Creating a client with additional configurations:
+
+        >>> from weaviate import Configuration
+        >>> client = Client(additional_config=Configuration())
+
 
         Raises
         ------
@@ -147,7 +153,7 @@ class Client:
             url = url.strip("/")
             embedded_db = None
 
-        options = Options() if additional_options is None else additional_options
+        config = Configuration() if additional_config is None else additional_config
 
         self._connection = Connection(
             url=url,
@@ -158,7 +164,7 @@ class Client:
             additional_headers=additional_headers,
             startup_period=startup_period,
             embedded_db=embedded_db,
-            grcp_port=options.setup.grpc_port_experimental,
+            grcp_port=config.grpc_port_experimental,
         )
         self.classification = Classification(self._connection)
         self.schema = Schema(self._connection)
