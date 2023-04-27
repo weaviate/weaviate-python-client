@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch, Mock
 
 from test.util import check_error_message
-from weaviate import ConnectionConfiguration
+from weaviate import ConnectionConfig
 from weaviate.connect.connection import (
     BaseConnection,
     _get_proxies,
@@ -53,7 +53,7 @@ class TestConnection(unittest.TestCase):
             trust_env=False,
             additional_headers=None,
             startup_period=None,
-            connection_config=ConnectionConfiguration(),
+            connection_config=ConnectionConfig(),
         )
 
         # GET method with param
@@ -136,7 +136,7 @@ class TestConnection(unittest.TestCase):
             trust_env=False,
             additional_headers=None,
             startup_period=None,
-            connection_config=ConnectionConfiguration(),
+            connection_config=ConnectionConfig(),
         )
 
         # GET method with param

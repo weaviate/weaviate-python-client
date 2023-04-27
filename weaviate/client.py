@@ -11,7 +11,7 @@ from .backup import Backup
 from .batch import Batch
 from .classification import Classification
 from .cluster import Cluster
-from .configuration import Configuration
+from .config import Config
 from .connect.connection import Connection
 from .contextionary import Contextionary
 from .data import DataObject
@@ -58,7 +58,7 @@ class Client:
         additional_headers: Optional[dict] = None,
         startup_period: Optional[int] = 5,
         embedded_options: Optional[EmbeddedOptions] = None,
-        additional_config: Configuration = None,
+        additional_config: Config = None,
     ) -> object:
         """
         Initialize a Client class instance.
@@ -100,7 +100,7 @@ class Client:
             Create an embedded Weaviate cluster inside the client
             - You can pass weaviate.embedded.EmbeddedOptions() with default values
             - Take a look at the attributes of weaviate.embedded.EmbeddedOptions to see what is configurable
-        additional_config: weaviate.Configuration, optional
+        additional_config: weaviate.Config, optional
             Additional and advanced configuration options for weaviate.
         Examples
         --------
@@ -129,8 +129,8 @@ class Client:
 
         Creating a client with additional configurations:
 
-        >>> from weaviate import Configuration
-        >>> client = Client(additional_config=Configuration())
+        >>> from weaviate import Config
+        >>> client = Client(additional_config=Config())
 
 
         Raises
@@ -153,7 +153,7 @@ class Client:
             url = url.strip("/")
             embedded_db = None
 
-        config = Configuration() if additional_config is None else additional_config
+        config = Config() if additional_config is None else additional_config
 
         self._connection = Connection(
             url=url,

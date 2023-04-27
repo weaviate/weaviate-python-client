@@ -46,8 +46,8 @@ __all__ = [
     "ConsistencyLevel",
     "WeaviateErrorRetryConf",
     "EmbeddedOptions",
-    "Configuration",
-    "ConnectionConfiguration",
+    "Config",
+    "ConnectionConfig",
 ]
 
 import sys
@@ -71,7 +71,7 @@ from .exceptions import (
     SchemaValidationException,
     WeaviateStartUpError,
 )
-from .configuration import Configuration, ConnectionConfiguration
+from .config import Config, ConnectionConfig
 
 
 if not sys.warnoptions:

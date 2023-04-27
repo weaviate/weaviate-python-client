@@ -20,7 +20,7 @@ from requests.exceptions import HTTPError as RequestsHTTPError
 from requests.exceptions import JSONDecodeError
 
 from weaviate.auth import AuthCredentials, AuthClientCredentials, AuthApiKey
-from weaviate.configuration import ConnectionConfiguration
+from weaviate.config import ConnectionConfig
 from weaviate.connect.authentication import _Auth
 from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import (
@@ -57,7 +57,7 @@ class BaseConnection:
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         startup_period: Optional[int],
-        connection_config: ConnectionConfiguration,
+        connection_config: ConnectionConfig,
         embedded_db: EmbeddedDB = None,
         grcp_port: Optional[int] = None,
     ):
@@ -231,7 +231,7 @@ class BaseConnection:
 
         return ""
 
-    def _add_adapter_to_session(self, connection_config: ConnectionConfiguration):
+    def _add_adapter_to_session(self, connection_config: ConnectionConfig):
         adapter = HTTPAdapter(
             pool_connections=connection_config.session_pool_connections,
             pool_maxsize=connection_config.session_pool_maxsize,
@@ -630,7 +630,7 @@ class Connection(BaseConnection):
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         startup_period: Optional[int],
-        connection_config: ConnectionConfiguration,
+        connection_config: ConnectionConfig,
         embedded_db: EmbeddedDB = None,
         grcp_port: Optional[int] = None,
     ):

@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 import pytest as pytest
 
 import weaviate
-from weaviate import Configuration
+from weaviate import Config
 
 CLASS1 = {
     "class": "Test",
@@ -57,7 +57,7 @@ def test_grcp(
 
     client = weaviate.Client(
         "http://localhost:8080",
-        additional_config=Configuration(grpc_port_experimental=grpc_port),
+        additional_config=Config(grpc_port_experimental=grpc_port),
     )
     client.schema.delete_all()
 
