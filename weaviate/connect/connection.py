@@ -14,11 +14,13 @@ from urllib.parse import urlparse
 
 import requests
 from authlib.integrations.requests_client import OAuth2Session
+from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError, ReadTimeout
 from requests.exceptions import HTTPError as RequestsHTTPError
 from requests.exceptions import JSONDecodeError
 
 from weaviate.auth import AuthCredentials, AuthClientCredentials, AuthApiKey
+from weaviate.config import ConnectionConfig
 from weaviate.connect.authentication import _Auth
 from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import (
@@ -55,7 +57,9 @@ class BaseConnection:
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         startup_period: Optional[int],
+        connection_config: ConnectionConfig,
         embedded_db: EmbeddedDB = None,
+        grcp_port: Optional[int] = None,
     ):
         """
         Initialize a Connection class instance.
@@ -104,14 +108,14 @@ class BaseConnection:
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
 
         # create GRPC channel. If weaviate does not support GRPC, fallback to GraphQL is used.
-        if has_grpc:
+        if has_grpc and grcp_port is not None:
             parsed_url = urlparse(self.url)
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
                 s.settimeout(1.0)  # we're only pinging the port, 1s is plenty
-                s.connect((parsed_url.hostname, int(50051)))
+                s.connect((parsed_url.hostname, grcp_port))
                 s.shutdown(2)
-                channel = grpc.insecure_channel(f"{parsed_url.hostname}:50051")
+                channel = grpc.insecure_channel(f"{parsed_url.hostname}:{grcp_port}")
                 self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(channel)
             except (
                 ConnectionRefusedError,
@@ -145,6 +149,7 @@ class BaseConnection:
             self.wait_for_weaviate(startup_period)
 
         self._create_session(auth_client_secret)
+        self._add_adapter_to_session(connection_config)
 
     def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
         """Creates a request session.
@@ -225,6 +230,14 @@ class BaseConnection:
             return "Bearer " + self._session.token["access_token"]
 
         return ""
+
+    def _add_adapter_to_session(self, connection_config: ConnectionConfig):
+        adapter = HTTPAdapter(
+            pool_connections=connection_config.session_pool_connections,
+            pool_maxsize=connection_config.session_pool_maxsize,
+        )
+        self._session.mount("http://", adapter)
+        self._session.mount("https://", adapter)
 
     def _create_background_token_refresh(self, _auth: Optional[_Auth] = None):
         """Create a background thread that periodically refreshes access and refresh tokens.
@@ -617,7 +630,9 @@ class Connection(BaseConnection):
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         startup_period: Optional[int],
+        connection_config: ConnectionConfig,
         embedded_db: EmbeddedDB = None,
+        grcp_port: Optional[int] = None,
     ):
         super().__init__(
             url,
@@ -627,7 +642,9 @@ class Connection(BaseConnection):
             trust_env,
             additional_headers,
             startup_period,
+            connection_config,
             embedded_db,
+            grcp_port,
         )
         self._server_version = self.get_meta()["version"]
         if self._server_version < "1.14":

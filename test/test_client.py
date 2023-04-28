@@ -1,13 +1,13 @@
 import unittest
+from sys import platform
 from unittest.mock import patch, Mock
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from test.util import mock_connection_func, check_error_message
-from weaviate import Client
+from weaviate import Client, ConnectionConfig
 from weaviate.embedded import EmbeddedOptions, EmbeddedDB
 from weaviate.exceptions import UnexpectedStatusCodeException
-from sys import platform
 
 
 @patch("weaviate.client.Connection", Mock)
@@ -48,6 +48,8 @@ class TestWeaviateClient(unittest.TestCase):
                 additional_headers=None,
                 startup_period=None,
                 embedded_db=None,
+                grcp_port=None,
+                connection_config=ConnectionConfig(),
             )
 
         with patch(
@@ -70,6 +72,8 @@ class TestWeaviateClient(unittest.TestCase):
                 additional_headers={"Test": True},
                 startup_period=None,
                 embedded_db=None,
+                grcp_port=None,
+                connection_config=ConnectionConfig(),
             )
 
         with patch(
@@ -88,6 +92,8 @@ class TestWeaviateClient(unittest.TestCase):
                 additional_headers=None,
                 startup_period=None,
                 embedded_db=None,
+                grcp_port=None,
+                connection_config=ConnectionConfig(),
             )
 
         with patch(
@@ -112,6 +118,8 @@ class TestWeaviateClient(unittest.TestCase):
                 additional_headers=None,
                 startup_period=None,
                 embedded_db=None,
+                grcp_port=None,
+                connection_config=ConnectionConfig(),
             )
 
         if platform == "linux":

@@ -11,6 +11,7 @@ from .backup import Backup
 from .batch import Batch
 from .classification import Classification
 from .cluster import Cluster
+from .config import Config
 from .connect.connection import Connection
 from .contextionary import Contextionary
 from .data import DataObject
@@ -57,7 +58,8 @@ class Client:
         additional_headers: Optional[dict] = None,
         startup_period: Optional[int] = 5,
         embedded_options: Optional[EmbeddedOptions] = None,
-    ):
+        additional_config: Config = None,
+    ) -> object:
         """
         Initialize a Client class instance.
 
@@ -98,6 +100,8 @@ class Client:
             Create an embedded Weaviate cluster inside the client
             - You can pass weaviate.embedded.EmbeddedOptions() with default values
             - Take a look at the attributes of weaviate.embedded.EmbeddedOptions to see what is configurable
+        additional_config: weaviate.Config, optional
+            Additional and advanced configuration options for weaviate.
         Examples
         --------
         Without Auth.
@@ -112,7 +116,7 @@ class Client:
 
         With Auth.
 
-        >>> my_credentials = weaviate.auth.AuthClientPassword(USER_NAME, MY_PASSWORD)
+        >>> my_credentials = weaviate.AuthClientPassword(USER_NAME, MY_PASSWORD)
         >>> client = Client(
         ...     url = 'http://localhost:8080',
         ...     auth_client_secret = my_credentials
@@ -120,8 +124,14 @@ class Client:
 
         Creating a client with an embedded database:
 
-        >>> from weaviate.embedded import EmbeddedOptions
+        >>> from weaviate import EmbeddedOptions
         >>> client = Client(embedded_options=EmbeddedOptions())
+
+        Creating a client with additional configurations:
+
+        >>> from weaviate import Config
+        >>> client = Client(additional_config=Config())
+
 
         Raises
         ------
@@ -143,6 +153,8 @@ class Client:
             url = url.strip("/")
             embedded_db = None
 
+        config = Config() if additional_config is None else additional_config
+
         self._connection = Connection(
             url=url,
             auth_client_secret=auth_client_secret,
@@ -152,6 +164,8 @@ class Client:
             additional_headers=additional_headers,
             startup_period=startup_period,
             embedded_db=embedded_db,
+            grcp_port=config.grpc_port_experimental,
+            connection_config=config.connection_config,
         )
         self.classification = Classification(self._connection)
         self.schema = Schema(self._connection)
