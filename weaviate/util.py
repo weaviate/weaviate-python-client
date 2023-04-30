@@ -564,7 +564,7 @@ def strip_newlines(s: str) -> str:
     return s.replace("\n", " ")
 
 
-def parse_ver_str(ver_str: str) -> tuple:
+def parse_version_string(ver_str: str) -> tuple:
     """
     Parse a version string into a float.
 
@@ -609,6 +609,6 @@ def is_weaviate_too_old(current_version_str: str) -> bool:
 
     """
 
-    current_version = parse_ver_str(current_version_str)
-    minimum_version = parse_ver_str(MINIMUM_NO_WARNING_VERSION)
+    current_version = parse_version_string(current_version_str)
+    minimum_version = parse_version_string(MINIMUM_NO_WARNING_VERSION)
     return minimum_version > current_version
