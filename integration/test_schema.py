@@ -14,7 +14,7 @@ def client():
 
 @pytest.mark.parametrize("replicationFactor", [None, 1])
 def test_create_class_with_implicit_and_explicit_replication_factor(
-    client, replicationFactor: Optional[int]
+    client: weaviate.Client, replicationFactor: Optional[int]
 ):
     single_class = {
         "class": "Barbecue",
@@ -65,3 +65,16 @@ def test_tokenization(client, tokenization):
     assert created_class["class"] == "TokenTest"
 
     client.schema.delete_class("TokenTest")
+
+
+def test_class_exists(client: weaviate.Client):
+    single_class = {
+        "class": "Exists",
+    }
+
+    client.schema.create_class(single_class)
+    assert client.schema.exists("Exists") is True
+    assert client.schema.exists("DoesNotExists") is False
+
+    client.schema.delete_class("Exists")
+    assert client.schema.exists("Exists") is False
