@@ -1,6 +1,28 @@
 Changelog
 =========
 
+Version 3.17.0
+--------------
+This minor version includes:
+
+- Add support for groupBy to group objects:
+    .. code-block:: python
+
+           .with_group_by(properties=["caller"], groups=2, objects_per_group=3)
+
+
+- Add support for `uuid` and `uuid[]` datatypes.
+- Add `schema.exists(class)`.
+- Add support for `Support GQL Get{} tunable consistency`
+    .. code-block:: python
+
+        resp = (
+            client.query.get("Article", ["name"])
+            .with_additional("isConsistent")
+            .with_consistency_level(ConsistencyLevel.ALL)
+            .do()
+        )
+
 Version 3.16.2
 --------------
 This patch version includes:
