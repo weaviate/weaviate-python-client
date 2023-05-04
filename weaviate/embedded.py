@@ -161,7 +161,7 @@ class EmbeddedDB:
 
     def start(self):
         if self.is_listening():
-            print(f"embedded weaviate is already listing on port {self.options.port}")
+            print(f"embedded weaviate is already listening on port {self.options.port}")
             return
 
         self.ensure_weaviate_binary_exists()
