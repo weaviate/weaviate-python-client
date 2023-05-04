@@ -32,6 +32,8 @@ _PRIMITIVE_WEAVIATE_TYPES_SET = {
     "geoCoordinates",
     "blob",
     "phoneNumber",
+    "uuid",
+    "uuid[]",
 }
 
 
