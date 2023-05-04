@@ -1046,7 +1046,7 @@ class GetBuilder(GraphQL):
     def with_consistency_level(self, consistency_level: ConsistencyLevel):
         """Set the consistency level for the request."""
 
-        self._consistency_level = f"consistencyLevel: {consistency_level} "
+        self._consistency_level = f"consistencyLevel: {consistency_level.value} "
         self._contains_filter = True
         return self
 
