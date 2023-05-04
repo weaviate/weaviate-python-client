@@ -5,6 +5,7 @@ from unittest.mock import patch, Mock
 import pytest
 
 from test.util import check_error_message
+from weaviate.data.replication import ConsistencyLevel
 from weaviate.gql.get import GetBuilder, BM25, Hybrid, GroupBy
 
 mock_connection_v117 = Mock()
@@ -169,6 +170,28 @@ class TestGetBuilder(unittest.TestCase):
         with self.assertRaises(ValueError) as error:
             GetBuilder("A", ["str"], None).with_offset(-1)
         check_error_message(self, error, limit_error_msg)
+
+    def test_build_with_consistency_level(self):
+        """
+        Test the `with_consistency_level` method
+        """
+
+        query = (
+            GetBuilder("Person", "name", None).with_consistency_level(ConsistencyLevel.ONE).build()
+        )
+        self.assertEqual("{Get{Person(consistencyLevel: ONE ){name}}}", query)
+
+        query = (
+            GetBuilder("Person", "name", None)
+            .with_consistency_level(ConsistencyLevel.QUORUM)
+            .build()
+        )
+        self.assertEqual("{Get{Person(consistencyLevel: QUORUM ){name}}}", query)
+
+        query = (
+            GetBuilder("Person", "name", None).with_consistency_level(ConsistencyLevel.ALL).build()
+        )
+        self.assertEqual("{Get{Person(consistencyLevel: ALL ){name}}}", query)
 
     def test_build_with_where(self):
         """

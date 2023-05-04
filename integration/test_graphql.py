@@ -1,10 +1,12 @@
 import json
 import os
 import uuid
-
 import pytest
-
 import weaviate
+
+from pytest import FixtureRequest
+from weaviate.data.replication import ConsistencyLevel
+
 
 schema = {
     "classes": [
@@ -60,19 +62,34 @@ def people_schema() -> str:
 
 
 @pytest.fixture(scope="module")
-def client():
-    client = weaviate.Client("http://localhost:8080")
+def client(request):
+    port = 8080
+    opts = parse_client_options(request)
+    if opts:
+        if opts.get("cluster"):
+            port = 8087
+            for _, c in enumerate(schema["classes"]):
+                c["replicationConfig"] = {"factor": 2}
+
+    client = weaviate.Client(f"http://localhost:{port}")
     client.schema.delete_all()
     client.schema.create(schema)
     with client.batch as batch:
         for ship in SHIPS:
-
             batch.add_data_object(ship["props"], "Ship", ship["id"])
 
         batch.flush()
 
     yield client
     client.schema.delete_all()
+
+
+def parse_client_options(request: FixtureRequest) -> dict:
+    try:
+        if isinstance(request.param, dict):
+            return request.param
+    except AttributeError:
+        return
 
 
 def test_get_data(client):
@@ -222,6 +239,26 @@ def test_group_by(client, people_schema):
     # will find more results. "The Crusty Crab" is still first, because it matches with the BM25 search
     assert len(result["data"]["Get"]["Call"]) >= 1
     assert result["data"]["Get"]["Call"][0]["caller"][0]["name"] == "randomName0"
+
+
+@pytest.mark.parametrize(
+    "client,level",
+    [
+        ({"cluster": True}, ConsistencyLevel.ONE),
+        ({"cluster": True}, ConsistencyLevel.QUORUM),
+        ({"cluster": True}, ConsistencyLevel.ALL),
+    ],
+    indirect=["client"],
+)
+def test_consistency_level(client, level):
+    result = (
+        client.query.get("Ship", ["name"])
+        .with_consistency_level(level)
+        .with_additional("isConsistent")
+        .do()
+    )
+    for _, res in enumerate(get_objects_from_result(result)):
+        assert res["_additional"]["isConsistent"]
 
 
 @pytest.mark.parametrize(

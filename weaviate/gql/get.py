@@ -7,6 +7,7 @@ from typing import List, Union, Optional, Dict, Tuple
 
 from weaviate import util
 from weaviate.connect import Connection
+from weaviate.data.replication import ConsistencyLevel
 from weaviate.gql.filter import (
     Where,
     NearText,
@@ -126,11 +127,13 @@ class GetBuilder(GraphQL):
         self._hybrid: Optional[Hybrid] = None
         self._group_by: Optional[GroupBy] = None
         self._alias: Optional[str] = None
+        self._consistency_level: Optional[ConsistencyLevel] = None
 
     def with_after(self, after_uuid: UUID):
         """Can be used to extract all elements by giving the last ID from the previous "page".
 
-        Requires limit to be set but cannot be combined with any other filters or search. Part of the Cursor API."""
+        Requires limit to be set but cannot be combined with any other filters or search. Part of the Cursor API.
+        """
         if not isinstance(after_uuid, UUID.__args__):  # __args__ is workaround for python 3.8
             raise TypeError("after_uuid must be of type UUID (str or uuid.UUID)")
 
@@ -1040,6 +1043,13 @@ class GetBuilder(GraphQL):
         self._alias = alias
         return self
 
+    def with_consistency_level(self, consistency_level: ConsistencyLevel):
+        """Set the consistency level for the request."""
+
+        self._consistency_level = f"consistencyLevel: {consistency_level.value} "
+        self._contains_filter = True
+        return self
+
     def build(self, wrap_get: bool = True) -> str:
         """
         Build query filter as a string.
@@ -1082,6 +1092,8 @@ class GetBuilder(GraphQL):
                 query += str(self._group_by)
             if self._after is not None:
                 query += self._after
+            if self._consistency_level is not None:
+                query += self._consistency_level
 
             query += ")"
 
