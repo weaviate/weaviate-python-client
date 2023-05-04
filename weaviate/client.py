@@ -68,11 +68,13 @@ class Client:
         url : str
             The URL to the weaviate instance.
         auth_client_secret : weaviate.AuthCredentials or None, optional
+        # fmt: off
             Authenticate to weaviate by using one of the given authentication modes:
             - weaviate.auth.AuthBearerToken to use existing access and (optionally, but recommended) refresh tokens
             - weaviate.auth.AuthClientPassword to use username and password for oidc Resource Owner Password flow
             - weaviate.auth.AuthClientCredentials to use a client secret for oidc client credential flow
-            
+
+        # fmt: on
         timeout_config : tuple(Real, Real) or Real, optional
             Set the timeout configuration for all requests to the Weaviate server. It can be a
             real number or, a tuple of two real numbers: (connect timeout, read timeout).

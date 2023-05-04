@@ -32,6 +32,8 @@ _PRIMITIVE_WEAVIATE_TYPES_SET = {
     "geoCoordinates",
     "blob",
     "phoneNumber",
+    "uuid",
+    "uuid[]",
 }
 
 
@@ -75,7 +77,7 @@ class Schema:
         ...     "properties": [
         ...         {
         ...             "name": "title",
-        ...             "dataType": ["string"],
+        ...             "dataType": ["text"],
         ...             "description": "The title the article",
         ...         },
         ...         {
@@ -91,7 +93,7 @@ class Schema:
         ...     "properties": [
         ...         {
         ...             "name": "name",
-        ...             "dataType": ["string"],
+        ...             "dataType": ["text"],
         ...             "description": "The name of the author",
         ...         },
         ...         {
@@ -145,7 +147,7 @@ class Schema:
         ...     "properties": [
         ...         {
         ...             "name": "name",
-        ...             "dataType": ["string"],
+        ...             "dataType": ["text"],
         ...             "description": "The name of the author",
         ...         },
         ...         {
@@ -255,7 +257,7 @@ class Schema:
                 "properties": [
                     {
                         "name": "type",
-                        "dataType": ["string"],
+                        "dataType": ["text"],
                         "description": "The animal type",
                     }
                 ]
@@ -388,9 +390,7 @@ class Schema:
                 },
                 "properties": [
                     {
-                    "dataType": [
-                        "string"
-                    ],
+                    "dataType": ["text"],
                     "description": "The animal type",
                     "name": "type"
                     }
@@ -419,9 +419,7 @@ class Schema:
             },
             "properties": [
                 {
-                "dataType": [
-                    "string"
-                ],
+                "dataType": ["text"],
                 "description": "The animal type",
                 "name": "type"
                 }

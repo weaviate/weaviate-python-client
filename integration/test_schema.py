@@ -41,3 +41,27 @@ def test_create_class_with_implicit_and_explicit_replication_factor(
     assert created_class["replicationConfig"]["factor"] == expected_factor
 
     client.schema.delete_class("Barbecue")
+
+
+@pytest.mark.parametrize("data_type", ["uuid", "uuid[]"])
+def test_uuid_datatype(client, data_type):
+    single_class = {"class": "UuidTest", "properties": [{"dataType": [data_type], "name": "heat"}]}
+
+    client.schema.create_class(single_class)
+    created_class = client.schema.get("uuidTest")
+    assert created_class["class"] == "UuidTest"
+
+    client.schema.delete_class("UuidTest")
+
+
+@pytest.mark.parametrize("tokenization", ["word", "whitespace", "lowercase", "field"])
+def test_tokenization(client, tokenization):
+    single_class = {
+        "class": "TokenTest",
+        "properties": [{"dataType": ["text"], "name": "heat", "tokenization": tokenization}],
+    }
+    client.schema.create_class(single_class)
+    created_class = client.schema.get("TokenTest")
+    assert created_class["class"] == "TokenTest"
+
+    client.schema.delete_class("TokenTest")

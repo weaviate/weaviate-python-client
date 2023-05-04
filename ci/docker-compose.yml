@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-minimal-grpc-api-with-support-for-search-endpoint-d432b75
+    image: semitechnologies/weaviate:preview-group-by-arbitrary-prop-including-ref-return-top-k-per-group-77fe35f
     ports:
       - "8080:8080"
       - "50051:50051"
