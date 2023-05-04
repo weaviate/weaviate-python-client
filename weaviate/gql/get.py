@@ -57,6 +57,17 @@ class Hybrid:
         return "hybrid:{" + ret + "}"
 
 
+@dataclass
+class GroupBy:
+    path: List[str]
+    groups: int
+    objects_per_group: int
+
+    def __str__(self) -> str:
+        props = '","'.join(self.path)
+        return f'groupBy:{{path:["{props}"], groups:{self.groups}, objectsPerGroup:{self.objects_per_group}}}'
+
+
 class GetBuilder(GraphQL):
     """
     GetBuilder class used to create GraphQL queries.
@@ -113,6 +124,7 @@ class GetBuilder(GraphQL):
         self._sort: Optional[Sort] = None
         self._bm25: Optional[BM25] = None
         self._hybrid: Optional[Hybrid] = None
+        self._group_by: Optional[GroupBy] = None
         self._alias: Optional[str] = None
 
     def with_after(self, after_uuid: UUID):
@@ -953,6 +965,27 @@ class GetBuilder(GraphQL):
         self._contains_filter = True
         return self
 
+    def with_group_by(
+        self, properties: List[str], groups: int, objects_per_group: int
+    ) -> "GetBuilder":
+        """Retrieve groups of objects from Weaviate.
+
+        Note that the return values must be set using .with_additional() to see the output.
+
+        Parameters
+        ----------
+        properties: List[str]
+            Properties to group by
+        groups: int
+            Maximum number of groups
+        objects_per_group: int
+            Maximum number of objects per group
+
+        """
+        self._group_by = GroupBy(properties, groups, objects_per_group)
+        self._contains_filter = True
+        return self
+
     def with_generate(
         self, single_prompt: Optional[str] = None, grouped_task: Optional[str] = None
     ) -> "GetBuilder":
@@ -1045,6 +1078,8 @@ class GetBuilder(GraphQL):
                 query += str(self._bm25)
             if self._hybrid is not None:
                 query += str(self._hybrid)
+            if self._group_by is not None:
+                query += str(self._group_by)
             if self._after is not None:
                 query += self._after
 

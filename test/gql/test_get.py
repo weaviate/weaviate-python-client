@@ -5,7 +5,7 @@ from unittest.mock import patch, Mock
 import pytest
 
 from test.util import check_error_message
-from weaviate.gql.get import GetBuilder, BM25, Hybrid
+from weaviate.gql.get import GetBuilder, BM25, Hybrid, GroupBy
 
 mock_connection_v117 = Mock()
 mock_connection_v117.server_version = "1.17.4"
@@ -81,6 +81,27 @@ def test_generative_type(single_prompt: str, grouped_task: str):
         GetBuilder("Person", "name", mock_connection_v117).with_generate(
             single_prompt, grouped_task
         ).build()
+
+
+@pytest.mark.parametrize(
+    "properties,groups,max_groups,expected",
+    [
+        (
+            ["prop1", "prop2"],
+            2,
+            3,
+            'groupBy:{path:["prop1","prop2"], groups:2, objectsPerGroup:3}',
+        ),
+        (
+            ["prop1"],
+            4,
+            5,
+            'groupBy:{path:["prop1"], groups:4, objectsPerGroup:5}',
+        ),
+    ],
+)
+def test_groupy(properties: List[str], groups: int, max_groups: int, expected: str):
+    assert str(GroupBy(properties, groups, max_groups)) == expected
 
 
 class TestGetBuilder(unittest.TestCase):

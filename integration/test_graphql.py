@@ -186,6 +186,44 @@ def test_hybrid_bm25(client, query: str):
     assert result["data"]["Get"]["Ship"][0]["name"] == "The Crusty Crab"
 
 
+def test_group_by(client, people_schema):
+    """Test hybrid search with alpha=0.5 to have a combination of BM25 and vector search."""
+    client.schema.delete_all()
+    client.schema.create(people_schema)
+
+    persons = []
+    for i in range(10):
+        persons.append(uuid.uuid4())
+        client.data_object.create({"name": "randomName" + str(i)}, "Person", persons[-1])
+
+    client.data_object.create({}, "Call", "3ab05e06-2bb2-41d1-b5c5-e044f3aa9623")
+    client.data_object.create({}, "Call", "3ab05e06-2bb2-41d1-b5c5-e044f3aa9622")
+
+    # create refs
+    for i in range(5):
+        client.data_object.reference.add(
+            to_uuid=persons[i],
+            from_property_name="caller",
+            from_uuid="3ab05e06-2bb2-41d1-b5c5-e044f3aa9623"
+            if i % 2 == 0
+            else "3ab05e06-2bb2-41d1-b5c5-e044f3aa9622",
+            from_class_name="Call",
+            to_class_name="Person",
+        )
+
+    result = (
+        client.query.get("Call", ["caller{... on Person{name}}"])
+        .with_near_object({"id": "3ab05e06-2bb2-41d1-b5c5-e044f3aa9622"})
+        .with_group_by(properties=["caller"], groups=2, objects_per_group=3)
+        .with_additional("group{hits {_additional{vector}caller{... on Person{name}}}}")
+        .do()
+    )
+
+    # will find more results. "The Crusty Crab" is still first, because it matches with the BM25 search
+    assert len(result["data"]["Get"]["Call"]) >= 1
+    assert result["data"]["Get"]["Call"][0]["caller"][0]["name"] == "randomName0"
+
+
 @pytest.mark.parametrize(
     "single,grouped",
     [
