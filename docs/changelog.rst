@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 3.17.1
+--------------
+This patch version includes:
+
+- Fix schemas with new property keys `indexFilterable` and `indexSearchable`.
+
+
 Version 3.17.0
 --------------
 This minor version includes:
