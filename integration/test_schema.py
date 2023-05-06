@@ -68,9 +68,7 @@ def test_tokenization(client, tokenization):
 
 
 def test_class_exists(client: weaviate.Client):
-    single_class = {
-        "class": "Exists",
-    }
+    single_class = {"class": "Exists"}
 
     client.schema.create_class(single_class)
     assert client.schema.exists("Exists") is True
@@ -78,3 +76,19 @@ def test_class_exists(client: weaviate.Client):
 
     client.schema.delete_class("Exists")
     assert client.schema.exists("Exists") is False
+
+
+def test_schema_keys(client: weaviate.Client):
+    single_class = {
+        "class": "Author",
+        "properties": [
+            {
+                "indexFilterable": False,
+                "indexSearchable": False,
+                "dataType": ["text"],
+                "name": "name",
+            }
+        ],
+    }
+    client.schema.create_class(single_class)
+    assert client.schema.exists("Author")
