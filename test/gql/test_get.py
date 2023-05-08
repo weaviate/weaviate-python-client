@@ -30,19 +30,34 @@ def test_bm25(query: str, properties: List[str], expected: str):
 
 
 @pytest.mark.parametrize(
-    "query,vector,alpha,expected",
+    "query,vector,alpha,properties,expected",
     [
         (
             "query",
             [1, 2, 3],
             0.5,
+            None,
             'hybrid:{query: "query", vector: [1, 2, 3], alpha: 0.5}',
         ),
-        ("query", None, None, 'hybrid:{query: "query"}'),
+        ("query", None, None, None, 'hybrid:{query: "query"}'),
+        ("query", None, None, ["prop1"], 'hybrid:{query: "query", properties: ["prop1"]}'),
+        (
+            "query",
+            None,
+            None,
+            ["prop1", "prop2"],
+            'hybrid:{query: "query", properties: ["prop1","prop2"]}',
+        ),
     ],
 )
-def test_hybrid(query: str, vector: Optional[List[float]], alpha: Optional[float], expected: str):
-    hybrid = Hybrid(query, alpha, vector)
+def test_hybrid(
+    query: str,
+    vector: Optional[List[float]],
+    alpha: Optional[float],
+    properties: Optional[List[str]],
+    expected: str,
+):
+    hybrid = Hybrid(query, alpha, vector, properties)
     assert str(hybrid) == expected
 
 

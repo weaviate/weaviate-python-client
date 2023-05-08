@@ -1,12 +1,13 @@
 import json
 import os
 import uuid
+from typing import Optional, List
+
 import pytest
-import weaviate
-
 from pytest import FixtureRequest
-from weaviate.data.replication import ConsistencyLevel
 
+import weaviate
+from weaviate.data.replication import ConsistencyLevel
 
 schema = {
     "classes": [
@@ -194,13 +195,34 @@ def test_bm25_no_result(client):
 
 
 @pytest.mark.parametrize("query", ["sponges", "sponges\n"])
-def test_hybrid_bm25(client, query: str):
+def test_hybrid(client, query: str):
     """Test hybrid search with alpha=0.5 to have a combination of BM25 and vector search."""
     result = client.query.get("Ship", ["name"]).with_hybrid(query, alpha=0.5, vector=[1] * 300).do()
 
     # will find more results. "The Crusty Crab" is still first, because it matches with the BM25 search
     assert len(result["data"]["Get"]["Ship"]) >= 1
     assert result["data"]["Get"]["Ship"][0]["name"] == "The Crusty Crab"
+
+
+@pytest.mark.parametrize(
+    "properties,num_results",
+    [(None, 1), ([], 1), (["description"], 1), (["description", "name"], 1), (["name"], 0)],
+)
+def test_hybrid_properties(client, properties: Optional[List[str]], num_results: int):
+    """Test hybrid search with alpha=0.5 to have a combination of BM25 and vector search."""
+    result = (
+        client.query.get("Ship", ["name"])
+        .with_hybrid("sponges", alpha=0.0, properties=properties)
+        .do()
+    )
+
+    # "The Crusty Crab" has "sponges" in its description, it cannot be found in other properties
+    if num_results > 0:
+        assert len(result["data"]["Get"]["Ship"]) >= 1
+
+        assert result["data"]["Get"]["Ship"][0]["name"] == "The Crusty Crab"
+    else:
+        assert len(result["data"]["Get"]["Ship"]) == 0
 
 
 def test_group_by(client, people_schema):
