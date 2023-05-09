@@ -7,7 +7,9 @@ authlib>=1.1.0
 build
 twine
 wheel
-Sphinx>=5.3.0
+setuptools_scm
+Sphinx>=7.0.0
+
 grpcio-tools
 
 pytest==7.1.3
