@@ -2,7 +2,7 @@
 version: '3.4'
 services:
   weaviate-node-1:
-    image: semitechnologies/weaviate:preview-gql-handler-consistency-level-integration-4a12f55
+    image: semitechnologies/weaviate:1.19.0
     restart: on-failure:0
     ports:
       - "8087:8080"
@@ -38,7 +38,7 @@ services:
       PERSISTENCE_DATA_PATH: './weaviate-node-2'
       DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
       ENABLE_MODULES: text2vec-contextionary
-      CLUSTER_HOSTNAME: 'node2' 
+      CLUSTER_HOSTNAME: 'node2'
       CLUSTER_GOSSIP_BIND_PORT: '7112'
       CLUSTER_DATA_BIND_PORT: '7113'
       CLUSTER_JOIN: 'weaviate-node-1:7110'
