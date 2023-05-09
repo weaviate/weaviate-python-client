@@ -1,12 +1,19 @@
 Changelog
 =========
 
+Version 3.18.0
+--------------
+
+This minor version includes:
+
+- Add support for properties with hybrid search
+- Fixes documentation publishing on readthedocs
+
 Version 3.17.1
 --------------
 This patch version includes:
 
 - Fix schemas with new property keys `indexFilterable` and `indexSearchable`.
-
 
 Version 3.17.0
 --------------
