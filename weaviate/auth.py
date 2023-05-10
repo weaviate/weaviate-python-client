@@ -24,8 +24,10 @@ class AuthClientCredentials:
     scope: Optional[SCOPES] = None
 
     def __post_init__(self) -> None:
-        if isinstance(self.scope, str):
-            self.scope_list: List[str] = self.scope.split(" ")
+        if self.scope is None:
+            self.scope_list: List[str] = []
+        elif isinstance(self.scope, str):
+            self.scope_list = self.scope.split(" ")
         elif isinstance(self.scope, list):
             self.scope_list = self.scope
 
@@ -47,8 +49,10 @@ class AuthClientPassword:
     scope: Optional[SCOPES] = field(default_factory=lambda: ["offline_access"])
 
     def __post_init__(self) -> None:
-        if isinstance(self.scope, str):
-            self.scope_list: List[str] = self.scope.split(" ")
+        if self.scope is None:
+            self.scope_list: List[str] = []
+        elif isinstance(self.scope, str):
+            self.scope_list = self.scope.split(" ")
         elif isinstance(self.scope, list):
             self.scope_list = self.scope
 
