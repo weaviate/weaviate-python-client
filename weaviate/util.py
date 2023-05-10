@@ -13,6 +13,7 @@ import requests
 import validators
 
 from weaviate.exceptions import SchemaValidationException
+from weaviate.types import NUMBERS
 
 
 # MetaEnum and BaseEnum are required to support `in` statements:
@@ -512,7 +513,7 @@ def check_batch_result(
 
 
 def _check_positive_num(
-    value: Union[int, float], arg_name: str, data_type: type, include_zero: bool = False
+    value: NUMBERS, arg_name: str, data_type: type, include_zero: bool = False
 ) -> None:
     """
     Check if the `value` of the `arg_name` is a positive number.
@@ -559,17 +560,17 @@ def strip_newlines(s: str) -> str:
 
 
 def _get_valid_timeout_config(
-    timeout_config: Union[Tuple[float, float], float, None]
-) -> Tuple[float, float]:
+    timeout_config: Union[Tuple[NUMBERS, NUMBERS], NUMBERS, None]
+) -> Tuple[NUMBERS, NUMBERS]:
     """
     Validate and return TimeOut configuration.
 
     Parameters
     ----------
-    timeout_config : tuple(Real, Real) or Real or None, optional
+    timeout_config : tuple(NUMBERS, NUMBERS) or NUMBERS or None, optional
             Set the timeout configuration for all requests to the Weaviate server. It can be a
-            real number or, a tuple of two real numbers: (connect timeout, read timeout).
-            If only one real number is passed then both connect and read timeout will be set to
+            number or, a tuple of two numbers: (connect timeout, read timeout).
+            If only one number is passed then both connect and read timeout will be set to
             that value.
 
     Raises
@@ -582,7 +583,7 @@ def _get_valid_timeout_config(
         If 'timeout_config' is/contains negative number/s.
     """
 
-    if isinstance(timeout_config, float) and not isinstance(timeout_config, bool):
+    if isinstance(timeout_config, NUMBERS) and not isinstance(timeout_config, bool):
         if timeout_config <= 0.0:
             raise ValueError("'timeout_config' cannot be non-positive number/s!")
         return timeout_config, timeout_config
@@ -591,7 +592,7 @@ def _get_valid_timeout_config(
         raise TypeError("'timeout_config' should be a (or tuple of) positive real number/s!")
     if len(timeout_config) != 2:
         raise ValueError("'timeout_config' must be of length 2!")
-    if not (isinstance(timeout_config[0], float) and isinstance(timeout_config[1], float)) or (
+    if not (isinstance(timeout_config[0], NUMBERS) and isinstance(timeout_config[1], NUMBERS)) or (
         isinstance(timeout_config[0], bool) and isinstance(timeout_config[1], bool)
     ):
         raise TypeError("'timeout_config' must be tuple of real numbers")

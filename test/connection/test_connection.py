@@ -6,8 +6,8 @@ from weaviate import ConnectionConfig
 from weaviate.connect.connection import (
     BaseConnection,
     _get_proxies,
-    _get_valid_timeout_config,
 )
+from weaviate.util import _get_valid_timeout_config
 
 
 class TestConnection(unittest.TestCase):

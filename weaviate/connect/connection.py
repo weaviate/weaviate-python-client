@@ -27,6 +27,7 @@ from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     WeaviateStartUpError,
 )
+from weaviate.types import NUMBERS
 from weaviate.util import _check_positive_num, is_weaviate_domain
 from weaviate.warnings import _Warnings
 
@@ -40,7 +41,7 @@ except ImportError:
 
 
 Session = Union[requests.sessions.Session, OAuth2Session]
-TIMEOUT_TYPE_RETURN = Tuple[float, float]
+TIMEOUT_TYPE_RETURN = Tuple[NUMBERS, NUMBERS]
 
 
 class BaseConnection:

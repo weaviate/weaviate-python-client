@@ -18,14 +18,14 @@ class TestWeaviateClient(unittest.TestCase):
         Test the `__init__` method.
         """
 
-        type_error_message = "URL is expected to be string but is "
+        type_error_message = "Either url or embedded options must be present."
         # test invalid calls
         with self.assertRaises(TypeError) as error:
             Client(None)
-        check_error_message(self, error, type_error_message + str(type(None)))
+        check_error_message(self, error, type_error_message)
         with self.assertRaises(TypeError) as error:
             Client(42)
-        check_error_message(self, error, type_error_message + str(int))
+        check_error_message(self, error, "URL is expected to be string but is " + str(int))
 
         # test valid calls
         with patch(
@@ -213,9 +213,9 @@ class TestWeaviateClient(unittest.TestCase):
 
         client = Client("http://localhost:8080")
         # Request to weaviate returns 200
-        connection_mock = mock_connection_func("get", return_json="OK!")
+        connection_mock = mock_connection_func("get", return_json={"status": "OK!"})
         client._connection = connection_mock
-        self.assertEqual(client.get_open_id_configuration(), "OK!")
+        self.assertEqual(client.get_open_id_configuration(), {"status": "OK!"})
         connection_mock.get.assert_called_with(path="/.well-known/openid-configuration")
 
         # Request to weaviate returns 404

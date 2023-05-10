@@ -18,9 +18,10 @@ from .embedded import EmbeddedDB, EmbeddedOptions
 from .exceptions import UnexpectedStatusCodeException
 from .gql import Query
 from .schema import Schema
+from .types import NUMBERS
 from .util import _get_valid_timeout_config, _type_request_response
 
-TIMEOUT_TYPE = Union[Tuple[float, float], float]
+TIMEOUT_TYPE = Union[Tuple[NUMBERS, NUMBERS], NUMBERS]
 
 
 class Client:
@@ -277,7 +278,7 @@ class Client:
     ) -> Tuple[str, Optional[EmbeddedDB]]:
         if embedded_options is None and url is None:
             raise TypeError("Either url or embedded options must be present.")
-        elif embedded_options is not None and (url is not None and len(url) > 0):
+        elif embedded_options is not None and url is not None:
             raise TypeError(
                 f"URL is not expected to be set when using embedded_options but URL was {url}"
             )
