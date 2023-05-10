@@ -24,3 +24,24 @@ exclude = '''
   | weaviate_grpc
 )/
 '''
+
+[tool.mypy]
+python_version = "3.11"
+disallow_untyped_defs = true
+show_error_codes = true
+no_implicit_optional = true
+warn_return_any = true
+warn_unused_ignores = true
+exclude = ["weaviate_grpc", "docs", "mock_tests", "test", "integration"]
+
+[[tool.mypy.overrides]]
+module = "grpc.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "validators.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "authlib.integrations.requests_client.*"
+ignore_missing_imports = true
