@@ -583,19 +583,22 @@ def _get_valid_timeout_config(
         If 'timeout_config' is/contains negative number/s.
     """
 
-    if isinstance(timeout_config, NUMBERS) and not isinstance(timeout_config, bool):
+    def check_number(num: NUMBERS):
+        return isinstance(num, NUMBERS[0]) or isinstance(num, NUMBERS[1])
+
+    if check_number(timeout_config) and not isinstance(timeout_config, bool):
         if timeout_config <= 0.0:
             raise ValueError("'timeout_config' cannot be non-positive number/s!")
         return timeout_config, timeout_config
 
     if not isinstance(timeout_config, tuple):
-        raise TypeError("'timeout_config' should be a (or tuple of) positive real number/s!")
+        raise TypeError("'timeout_config' should be a (or tuple of) positive number/s!")
     if len(timeout_config) != 2:
         raise ValueError("'timeout_config' must be of length 2!")
-    if not (isinstance(timeout_config[0], NUMBERS) and isinstance(timeout_config[1], NUMBERS)) or (
+    if not (check_number(timeout_config[0]) and check_number(timeout_config[1])) or (
         isinstance(timeout_config[0], bool) and isinstance(timeout_config[1], bool)
     ):
-        raise TypeError("'timeout_config' must be tuple of real numbers")
+        raise TypeError("'timeout_config' must be tuple of numbers")
     if timeout_config[0] <= 0.0 or timeout_config[1] <= 0.0:
         raise ValueError("'timeout_config' cannot be non-positive number/s!")
     return timeout_config
