@@ -20,6 +20,7 @@ from weaviate.util import (
     _is_sub_schema,
     parse_version_string,
     is_weaviate_too_old,
+    MINIMUM_NO_WARNING_VERSION,
 )
 
 schema_set = {
@@ -475,15 +476,23 @@ class TestUtil(unittest.TestCase):
         assert parse_version_string("v2.05.5") == (2, 5)
 
 
+MINIMUM_NO_WARNING_VERSION_MAJOR, MINIMUM_NO_WARNING_VERSION_MINOR = parse_version_string(
+    MINIMUM_NO_WARNING_VERSION
+)
+MINIMUM_NO_WARNING_VERSION_MAJOR = int(MINIMUM_NO_WARNING_VERSION_MAJOR)
+MINIMUM_NO_WARNING_VERSION_MINOR = int(MINIMUM_NO_WARNING_VERSION_MINOR)
+
+
 @pytest.mark.parametrize(
     "version,too_old",
     [
-        ("v1.0.0", True),
-        ("v1.10.5", True),
-        ("v1.15.3", True),
-        ("v1.18.3", False),
-        ("v1.25.0", False),
-        ("v2.0.0", False),
+        (f"v{MINIMUM_NO_WARNING_VERSION_MAJOR-1}.{MINIMUM_NO_WARNING_VERSION_MINOR-1}.1", True),
+        (f"v{MINIMUM_NO_WARNING_VERSION_MAJOR-1}.{MINIMUM_NO_WARNING_VERSION_MINOR+1}.2", True),
+        (f"v{MINIMUM_NO_WARNING_VERSION_MAJOR}.{MINIMUM_NO_WARNING_VERSION_MINOR-1}.3", True),
+        (MINIMUM_NO_WARNING_VERSION, False),
+        (f"v{MINIMUM_NO_WARNING_VERSION_MAJOR}.{MINIMUM_NO_WARNING_VERSION_MINOR+1}.0", False),
+        (f"v{MINIMUM_NO_WARNING_VERSION_MAJOR+1}.{MINIMUM_NO_WARNING_VERSION_MINOR-1}.0", False),
+        (f"v{MINIMUM_NO_WARNING_VERSION_MAJOR+1}.{MINIMUM_NO_WARNING_VERSION_MINOR+1}.0", False),
     ],
 )
 def test_is_weaviate_too_old(version: str, too_old: bool):
