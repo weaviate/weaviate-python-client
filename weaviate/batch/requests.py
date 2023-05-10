@@ -3,7 +3,7 @@ BatchRequest class definitions.
 """
 import copy
 from abc import ABC, abstractmethod
-from typing import List, Sequence, Optional, Dict, Any
+from typing import List, Sequence, Optional, Dict, Any, Union
 from uuid import uuid4
 
 from weaviate.util import get_valid_uuid, get_vector
@@ -16,10 +16,10 @@ class BatchRequest(ABC):
     BatchRequest abstract class used as a interface for batch requests.
     """
 
-    def __init__(self):
-        self._items = []
+    def __init__(self) -> None:
+        self._items: List[Dict[str, Any]] = []
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._items)
 
     def is_empty(self) -> bool:
@@ -68,7 +68,7 @@ class BatchRequest(ABC):
         """Add objects to BatchRequest."""
 
     @abstractmethod
-    def get_request_body(self):
+    def get_request_body(self) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
         """Return the request body to be digested by weaviate that contains all batch items."""
 
     @abstractmethod
@@ -195,7 +195,7 @@ class ReferenceBatchRequest(BatchRequest):
             }
         )
 
-    def get_request_body(self) -> List[dict]:
+    def get_request_body(self) -> List[Dict[str, Any]]:
         """
         Get request body as a list of dictionaries, where each dictionary
         is a Weaviate-object reference.
@@ -279,18 +279,19 @@ class ObjectsBatchRequest(BatchRequest):
 
         batch_item = {"class": class_name, "properties": copy.deepcopy(data_object)}
         if uuid is not None:
-            batch_item["id"] = get_valid_uuid(uuid)
+            valid_uuid = get_valid_uuid(uuid)
         else:
-            batch_item["id"] = get_valid_uuid(uuid4())
+            valid_uuid = get_valid_uuid(uuid4())
+        batch_item["id"] = valid_uuid
 
         if vector is not None:
             batch_item["vector"] = get_vector(vector)
 
         self._items.append(batch_item)
 
-        return batch_item["id"]
+        return valid_uuid
 
-    def get_request_body(self) -> dict:
+    def get_request_body(self) -> Dict[str, Any]:
         """
         Get the request body as it is needed for the Weaviate server.
 

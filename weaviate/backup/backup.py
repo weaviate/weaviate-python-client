@@ -2,7 +2,7 @@
 Backup class definition.
 """
 from time import sleep
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Any, Dict
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -10,8 +10,9 @@ from weaviate.connect import Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     BackupFailedException,
+    EmptyResponseException,
 )
-from weaviate.util import _capitalize_first_letter
+from weaviate.util import _capitalize_first_letter, _type_request_response
 
 STORAGE_NAMES = {
     "filesystem",
@@ -135,7 +136,7 @@ class Backup:
                 sleep(1)
         return create_status
 
-    def get_create_status(self, backup_id: str, backend: str) -> bool:
+    def get_create_status(self, backup_id: str, backend: str) -> Dict[str, Any]:
         """
         Checks if a started classification job has completed.
 
@@ -172,7 +173,11 @@ class Backup:
             ) from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Backup status check", response)
-        return response.json()
+
+        typed_response = _type_request_response(response.json())
+        if typed_response is None:
+            raise EmptyResponseException()
+        return typed_response
 
     def restore(
         self,
@@ -265,7 +270,7 @@ class Backup:
                 sleep(1)
         return restore_status
 
-    def get_restore_status(self, backup_id: str, backend: str) -> bool:
+    def get_restore_status(self, backup_id: str, backend: str) -> Dict[str, Any]:
         """
         Checks if a started classification job has completed.
 
@@ -301,7 +306,10 @@ class Backup:
             ) from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Backup restore status check", response)
-        return response.json()
+        typed_response = _type_request_response(response.json())
+        if typed_response is None:
+            raise EmptyResponseException()
+        return typed_response
 
 
 def _get_and_validate_create_restore_arguments(

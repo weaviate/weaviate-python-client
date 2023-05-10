@@ -7,8 +7,7 @@ import os
 import uuid as uuid_lib
 from enum import Enum, EnumMeta
 from io import BufferedReader
-from numbers import Real
-from typing import Union, Sequence, Any, Optional, List, Dict
+from typing import Union, Sequence, Any, Optional, List, Dict, Tuple
 
 import requests
 import validators
@@ -20,7 +19,7 @@ from weaviate.exceptions import SchemaValidationException
 #    'ALL' in ConsistencyLevel == True
 #    12345 in ConsistencyLevel == False
 class MetaEnum(EnumMeta):
-    def __contains__(cls, item):
+    def __contains__(cls, item: Any) -> bool:
         try:
             # when item is type ConsistencyLevel
             return item.name in cls.__members__.keys()
@@ -329,11 +328,11 @@ def get_vector(vector: Sequence) -> list:
         return vector
     try:
         # if vector is numpy.ndarray or torch.Tensor
-        return vector.squeeze().tolist()
+        return vector.squeeze().tolist()  # type: ignore
     except AttributeError:
         try:
             # if vector is tf.Tensor
-            return vector.numpy().squeeze().tolist()
+            return vector.numpy().squeeze().tolist()  # type: ignore
         except AttributeError:
             raise TypeError(
                 "The type of the 'vector' argument is not supported!\n"
@@ -513,7 +512,7 @@ def check_batch_result(
 
 
 def _check_positive_num(
-    value: Real, arg_name: str, data_type: type, include_zero: bool = False
+    value: Union[int, float], arg_name: str, data_type: type, include_zero: bool = False
 ) -> None:
     """
     Check if the `value` of the `arg_name` is a positive number.
@@ -557,3 +556,52 @@ def is_weaviate_domain(url: str) -> bool:
 
 def strip_newlines(s: str) -> str:
     return s.replace("\n", " ")
+
+
+def _get_valid_timeout_config(
+    timeout_config: Union[Tuple[float, float], float, None]
+) -> Tuple[float, float]:
+    """
+    Validate and return TimeOut configuration.
+
+    Parameters
+    ----------
+    timeout_config : tuple(Real, Real) or Real or None, optional
+            Set the timeout configuration for all requests to the Weaviate server. It can be a
+            real number or, a tuple of two real numbers: (connect timeout, read timeout).
+            If only one real number is passed then both connect and read timeout will be set to
+            that value.
+
+    Raises
+    ------
+    TypeError
+        If arguments are of a wrong data type.
+    ValueError
+        If 'timeout_config' is not a tuple of 2.
+    ValueError
+        If 'timeout_config' is/contains negative number/s.
+    """
+
+    if isinstance(timeout_config, float) and not isinstance(timeout_config, bool):
+        if timeout_config <= 0.0:
+            raise ValueError("'timeout_config' cannot be non-positive number/s!")
+        return timeout_config, timeout_config
+
+    if not isinstance(timeout_config, tuple):
+        raise TypeError("'timeout_config' should be a (or tuple of) positive real number/s!")
+    if len(timeout_config) != 2:
+        raise ValueError("'timeout_config' must be of length 2!")
+    if not (isinstance(timeout_config[0], float) and isinstance(timeout_config[1], float)) or (
+        isinstance(timeout_config[0], bool) and isinstance(timeout_config[1], bool)
+    ):
+        raise TypeError("'timeout_config' must be tuple of real numbers")
+    if timeout_config[0] <= 0.0 or timeout_config[1] <= 0.0:
+        raise ValueError("'timeout_config' cannot be non-positive number/s!")
+    return timeout_config
+
+
+def _type_request_response(json_response: Any) -> Optional[Dict[str, Any]]:
+    if json_response is None:
+        return None
+    assert isinstance(json_response, dict)
+    return json_response

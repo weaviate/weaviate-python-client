@@ -1,7 +1,7 @@
 """
 GraphQL query module.
 """
-from typing import List, Union
+from typing import List, Union, Any, Dict
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -90,7 +90,7 @@ class Query:
 
         return AggregateBuilder(class_name, self._connection)
 
-    def raw(self, gql_query: str) -> dict:
+    def raw(self, gql_query: str) -> Dict[str, Any]:
         """
         Allows to send simple graph QL string queries.
         Be cautious of injection risks when generating query strings.
