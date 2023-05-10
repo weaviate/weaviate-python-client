@@ -117,8 +117,8 @@ class _Auth:
     def _get_session_client_credential(self, config: AuthClientCredentials) -> OAuth2Session:
         scope: List[str] = self._default_scopes.copy()
 
-        if config.scope is not None:
-            scope.extend(config.scope)
+        if config.scope_list is not None:
+            scope.extend(config.scope_list)
         if len(scope) == 0:
             # hardcode commonly used scopes
             if self._token_endpoint.startswith("https://login.microsoftonline.com"):

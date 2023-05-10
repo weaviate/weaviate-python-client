@@ -269,9 +269,9 @@ class TestConnection(unittest.TestCase):
 
         # incalid calls
         negative_num_error_message = "'timeout_config' cannot be non-positive number/s!"
-        type_error_message = "'timeout_config' should be a (or tuple of) positive real number/s!"
+        type_error_message = "'timeout_config' should be a (or tuple of) positive number/s!"
         value_error_message = "'timeout_config' must be of length 2!"
-        value_types_error_message = "'timeout_config' must be tuple of real numbers"
+        value_types_error_message = "'timeout_config' must be tuple of numbers"
 
         ## wrong type
         with self.assertRaises(TypeError) as error:
