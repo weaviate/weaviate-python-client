@@ -584,7 +584,7 @@ def _get_valid_timeout_config(
     """
 
     def check_number(num: NUMBERS):
-        return isinstance(num, NUMBERS[0]) or isinstance(num, NUMBERS[1])
+        return isinstance(num, float) or isinstance(num, int)
 
     if check_number(timeout_config) and not isinstance(timeout_config, bool):
         if timeout_config <= 0.0:

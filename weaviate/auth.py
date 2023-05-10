@@ -25,7 +25,9 @@ class AuthClientCredentials:
 
     def __post_init__(self) -> None:
         if isinstance(self.scope, str):
-            self.scope = self.scope.split(" ")
+            self.scope_list: List[str] = self.scope.split(" ")
+        elif isinstance(self.scope, list):
+            self.scope_list = self.scope
 
 
 @dataclass
@@ -47,6 +49,8 @@ class AuthClientPassword:
     def __post_init__(self) -> None:
         if isinstance(self.scope, str):
             self.scope_list: List[str] = self.scope.split(" ")
+        elif isinstance(self.scope, list):
+            self.scope_list = self.scope
 
 
 @dataclass
