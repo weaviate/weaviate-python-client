@@ -46,7 +46,7 @@ class Query:
         class_name : str
             Class name of the objects to interact with.
         properties : list of str, str or None
-            Properties of the objects to get, by default None. None means `all properties`.
+            Properties of the objects to get, by default None. None means `all non-referrence properties` (this happens only if no additional properties are given).
 
         Returns
         -------

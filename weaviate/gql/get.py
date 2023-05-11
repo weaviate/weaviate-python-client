@@ -69,7 +69,7 @@ class GetBuilder(GraphQL):
         class_name : str
             Class name of the objects to interact with.
         properties : str or list of str
-            Properties of the objects to interact with. None means `all properties`.
+            Properties of the objects to interact with. None means `all non-referrence properties` (this happens only if no additional properties are given).
         connection : weaviate.connect.Connection
             Connection object to an active and running Weaviate instance.
         schema : weaviate.schema.crud_schema.Schema
@@ -1052,7 +1052,7 @@ class GetBuilder(GraphQL):
         additional_props = self._additional_to_str()
 
         if not (additional_props or self._properties):
-            """If no properties are given, get all non-reference properties."""
+            # If no properties and no additional properties are given, get all non-reference properties.
             class_schema = self._schema.get(class_name=self._class_name)
             non_reference_properties = [
                 prop["name"] for prop in class_schema["properties"] if prop["dataType"][0][0].islower()
