@@ -90,7 +90,7 @@ def test_get_data(client):
 
 
 def test_get_data_with_properties_default(client, people_schema):
-    """Test GraphQL's Get clause with properties default (None)."""
+    """Test GraphQL's Get clause with properties default (None) and no additional properties specified."""
     client.schema.create(people_schema)
 
     person_id = uuid.uuid4()
@@ -119,10 +119,13 @@ def test_get_data_with_properties_default(client, people_schema):
         to_class_name="Person",
     )
 
-    result = client.query.get("Group").with_limit(1).do()
-    objects = get_objects_from_result(result)
-    assert "name" in objects[0]
+    result_without_additional_props = client.query.get("Group").with_limit(1).do()
+    result_with_additional_props = client.query.get("Group").with_limit(1).with_additional(["id"]).do()
+    objects_without_additional_props = get_objects_from_result(result_without_additional_props)
+    objects_with_additional_props = get_objects_from_result(result_with_additional_props)
 
+    assert "name" in objects_without_additional_props[0]
+    assert "id" in objects_with_additional_props[0]["_additional"]
 
 def test_get_data_after(client):
     full_results = client.query.get("Ship", ["name"]).with_additional(["id"]).do()
