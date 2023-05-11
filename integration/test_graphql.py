@@ -314,6 +314,9 @@ def test_generative_openai(single: str, grouped: str):
             {"name": "name", "dataType": ["string"]},
             {"name": "review", "dataType": ["string"]},
         ],
+        "moduleConfig": {
+            "generative-openai": {}
+        }
     }
     client.schema.create_class(wine_class)
     client.data_object.create(
