@@ -6,12 +6,6 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
-class AdditionalProps(_message.Message):
-    __slots__ = ["id"]
-    ID_FIELD_NUMBER: _ClassVar[int]
-    id: str
-    def __init__(self, id: _Optional[str] = ...) -> None: ...
-
 class NearObjectParams(_message.Message):
     __slots__ = ["certainty", "distance", "id"]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
@@ -41,16 +35,22 @@ class Properties(_message.Message):
     def __init__(self, non_ref_properties: _Optional[_Iterable[str]] = ..., ref_properties: _Optional[_Iterable[_Union[RefProperties, _Mapping]]] = ...) -> None: ...
 
 class RefProperties(_message.Message):
-    __slots__ = ["class_name", "linked_properties", "reference_property"]
-    CLASS_NAME_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ["linked_class", "linked_properties", "reference_property"]
+    LINKED_CLASS_FIELD_NUMBER: _ClassVar[int]
     LINKED_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     REFERENCE_PROPERTY_FIELD_NUMBER: _ClassVar[int]
-    class_name: str
+    linked_class: str
     linked_properties: Properties
     reference_property: str
-    def __init__(self, class_name: _Optional[str] = ..., reference_property: _Optional[str] = ..., linked_properties: _Optional[_Union[Properties, _Mapping]] = ...) -> None: ...
+    def __init__(self, linked_class: _Optional[str] = ..., reference_property: _Optional[str] = ..., linked_properties: _Optional[_Union[Properties, _Mapping]] = ...) -> None: ...
 
-class ReturnProperties(_message.Message):
+class ResultAdditionalProps(_message.Message):
+    __slots__ = ["id"]
+    ID_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    def __init__(self, id: _Optional[str] = ...) -> None: ...
+
+class ResultProperties(_message.Message):
     __slots__ = ["class_name", "non_ref_properties", "ref_props"]
     CLASS_NAME_FIELD_NUMBER: _ClassVar[int]
     NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
@@ -65,8 +65,8 @@ class ReturnRefProperties(_message.Message):
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     PROP_NAME_FIELD_NUMBER: _ClassVar[int]
     prop_name: str
-    properties: _containers.RepeatedCompositeFieldContainer[ReturnProperties]
-    def __init__(self, properties: _Optional[_Iterable[_Union[ReturnProperties, _Mapping]]] = ..., prop_name: _Optional[str] = ...) -> None: ...
+    properties: _containers.RepeatedCompositeFieldContainer[ResultProperties]
+    def __init__(self, properties: _Optional[_Iterable[_Union[ResultProperties, _Mapping]]] = ..., prop_name: _Optional[str] = ...) -> None: ...
 
 class SearchReply(_message.Message):
     __slots__ = ["results", "took"]
@@ -96,6 +96,6 @@ class SearchResult(_message.Message):
     __slots__ = ["additional_properties", "properties"]
     ADDITIONAL_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
-    additional_properties: AdditionalProps
-    properties: ReturnProperties
-    def __init__(self, properties: _Optional[_Union[ReturnProperties, _Mapping]] = ..., additional_properties: _Optional[_Union[AdditionalProps, _Mapping]] = ...) -> None: ...
+    additional_properties: ResultAdditionalProps
+    properties: ResultProperties
+    def __init__(self, properties: _Optional[_Union[ResultProperties, _Mapping]] = ..., additional_properties: _Optional[_Union[ResultAdditionalProps, _Mapping]] = ...) -> None: ...

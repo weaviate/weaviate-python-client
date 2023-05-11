@@ -1218,7 +1218,7 @@ class GetBuilder(GraphQL):
         else:
             return super().do()
 
-    def _convert_references_to_grpc_result(self, properties: weaviate_pb2.ReturnProperties) -> Dict:
+    def _convert_references_to_grpc_result(self, properties: weaviate_pb2.ResultProperties) -> Dict:
         result = {}
         for name, non_ref_prop in properties.non_ref_properties.items():
             result[name] = non_ref_prop
