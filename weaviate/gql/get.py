@@ -73,14 +73,26 @@ class GroupBy:
         return f'groupBy:{{path:["{props}"], groups:{self.groups}, objectsPerGroup:{self.objects_per_group}}}'
 
 
+@dataclass
+class Reference:
+    reference_property: str
+    linked_class: str
+    properties: List[Union[str, "Reference"]]
+
+    def __str__(self) -> str:
+        props = " ".join(str(x) for x in self.properties)
+        return self.reference_property + "{... on " + self.linked_class + "{" + props + "}}"
+
+
+PROPERTIES = Union[List[Union[str, Reference]], str]
+
+
 class GetBuilder(GraphQL):
     """
     GetBuilder class used to create GraphQL queries.
     """
 
-    def __init__(
-        self, class_name: str, properties: Union[List[str], str, None], connection: Connection
-    ):
+    def __init__(self, class_name: str, properties: Optional[PROPERTIES], connection: Connection):
         """
         Initialize a GetBuilder class instance.
 
@@ -111,12 +123,14 @@ class GetBuilder(GraphQL):
             raise TypeError(
                 "properties must be of type str, " f"list of str or None but was {type(properties)}"
             )
+
+        self._properties: List[Union[str, Reference]] = []
         for prop in properties:
-            if not isinstance(prop, str):
-                raise TypeError("All the `properties` must be of type `str`!")
+            if not isinstance(prop, str) and not isinstance(prop, Reference):
+                raise TypeError("All the `properties` must be of type `str` or Reference!")
+            self._properties.append(prop)
 
         self._class_name: str = _capitalize_first_letter(class_name)
-        self._properties: List[str] = properties
         self._additional: dict = {"__one_level": set()}
         # '__one_level' refers to the additional properties that are just a single word, not a dict
         # thus '__one_level', only one level of complexity
@@ -1116,7 +1130,7 @@ class GetBuilder(GraphQL):
                 "At least one should be included."
             )
 
-        properties = " ".join(self._properties) + self._additional_to_str()
+        properties = " ".join(str(x) for x in self._properties) + self._additional_to_str()
         query += "{" + properties + "}"
         if wrap_get:
             query += "}}"
@@ -1140,8 +1154,11 @@ class GetBuilder(GraphQL):
         """
         grpc_enabled = (  # only implemented for some scenarios
             self._connection.grpc_stub is not None
-            and self._near_ask is not None
-            and (isinstance(self._near_ask, NearVector) or isinstance(self._near_ask, NearObject))
+            and (
+                self._near_ask is None
+                or isinstance(self._near_ask, NearVector)
+                or isinstance(self._near_ask, NearObject)
+            )
             and len(self._additional) == 1
             and (
                 len(self._additional["__one_level"]) == 0 or "id" in self._additional["__one_level"]
@@ -1152,7 +1169,9 @@ class GetBuilder(GraphQL):
             and self._bm25 is None
             and self._hybrid is None
             and self._after is None
-            and all("..." not in prop for prop in self._properties)  # no ref props
+            and all(
+                "..." not in prop for prop in self._properties if isinstance(prop, str)
+            )  # no ref props as strings
         )
         if grpc_enabled:
 
@@ -1179,30 +1198,53 @@ class GetBuilder(GraphQL):
                     )
                     if self._near_ask is not None and isinstance(self._near_ask, NearObject)
                     else None,
-                    properties=self._properties,
+                    properties=self._convert_references_to_grpc(self._properties),
                     additional_properties=self._additional["__one_level"],
                 ),
                 metadata=metadata,
             )
 
-            get_results = []
+            objects = []
             for result in res.results:
-                get_result = {}
-
-                for key, val in result.properties.items():
-                    get_result[key] = val
-
+                obj = self._convert_references_to_grpc_result(result.properties)
                 if len(self._additional["__one_level"]) > 0:
-                    get_result["_additional"] = {}
+                    obj["_additional"] = {}
                 if "id" in self._additional["__one_level"]:
-                    get_result["_additional"]["id"] = result.additional_properties.id
+                    obj["_additional"]["id"] = result.additional_properties.id
+                objects.append(obj)
 
-                get_results.append(get_result)
-
-            results = {"data": {"Get": {self._class_name: get_results}}}
+            results = {"data": {"Get": {self._class_name: objects}}}
             return results
         else:
             return super().do()
+
+    def _convert_references_to_grpc_result(self, properties: weaviate_pb2.ResultProperties) -> Dict:
+        result = {}
+        for name, non_ref_prop in properties.non_ref_properties.items():
+            result[name] = non_ref_prop
+
+        for ref_prop in properties.ref_props:
+            result[ref_prop.prop_name] = [
+                self._convert_references_to_grpc_result(prop) for prop in ref_prop.properties
+            ]
+
+        return result
+
+    def _convert_references_to_grpc(
+        self, properties: List[Union[Reference, str]]
+    ) -> weaviate_pb2.Properties:
+        return weaviate_pb2.Properties(
+            non_ref_properties=[prop for prop in properties if isinstance(prop, str)],
+            ref_properties=[
+                weaviate_pb2.RefProperties(
+                    class_name=prop.linked_class,
+                    reference_property=prop.reference_property,
+                    linked_properties=self._convert_references_to_grpc(prop.properties),
+                )
+                for prop in properties
+                if isinstance(prop, Reference)
+            ],
+        )
 
     def _additional_to_str(self) -> str:
         """
