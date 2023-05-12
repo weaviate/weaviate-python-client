@@ -1,13 +1,14 @@
 """
 GraphQL `Get` command.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, Field, fields
 from json import dumps
 from typing import List, Union, Optional, Dict, Tuple
 
 from weaviate import util
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
+from weaviate.exceptions import AdditionalPropertiesException
 from weaviate.gql.filter import (
     Where,
     NearText,
@@ -87,6 +88,34 @@ class Reference:
 PROPERTIES = Union[List[Union[str, Reference]], str]
 
 
+@dataclass
+class AdditionalProperties:
+    uuid: bool = False
+    vector: bool = False
+    creationTimeUnix: bool = False
+    lastUpdateTimeUnix: bool = False
+    distance: bool = False
+    certainty: bool = False
+    score: bool = False
+    explainScore: bool = False
+
+    def __str__(self) -> str:
+        additional_props: List[str] = []
+        cls_fields: Tuple[Field, ...] = fields(self.__class__)
+        for field in cls_fields:
+            if issubclass(field.type, bool):
+                enabled: bool = getattr(self, field.name)
+                if enabled:
+                    name = field.name
+                    if field.name == "uuid":  # id is reserved python name
+                        name = "id"
+                    additional_props.append(name)
+        if len(additional_props) > 0:
+            return "_additional{" + " ".join(additional_props) + "}"
+        else:
+            return ""
+
+
 class GetBuilder(GraphQL):
     """
     GetBuilder class used to create GraphQL queries.
@@ -134,6 +163,7 @@ class GetBuilder(GraphQL):
         self._additional: dict = {"__one_level": set()}
         # '__one_level' refers to the additional properties that are just a single word, not a dict
         # thus '__one_level', only one level of complexity
+        self._additional_dataclass: Optional[AdditionalProperties] = None
         self._where: Optional[Where] = None  # To store the where filter if it is added
         self._limit: Optional[int] = None  # To store the limit filter if it is added
         self._offset: Optional[str] = None  # To store the offset filter if it is added
@@ -657,7 +687,10 @@ class GetBuilder(GraphQL):
         return self
 
     def with_additional(
-        self, properties: Union[List, str, Dict[str, Union[List[str], str]], Tuple[dict, dict]]
+        self,
+        properties: Union[
+            List, str, Dict[str, Union[List[str], str]], Tuple[dict, dict], AdditionalProperties
+        ],
     ) -> "GetBuilder":
         """
         Add additional properties (i.e. properties from `_additional` clause). See Examples below.
@@ -832,6 +865,17 @@ class GetBuilder(GraphQL):
         TypeError
             If one of the property is not of a correct data type.
         """
+        if isinstance(properties, AdditionalProperties):
+            if len(self._additional) > 1 or len(self._additional["__one_level"]) > 0:
+                raise AdditionalPropertiesException(
+                    str(self._additional), str(self._additional_dataclass)
+                )
+            self._additional_dataclass = properties
+            return self
+        elif self._additional_dataclass is not None:
+            raise AdditionalPropertiesException(
+                str(self._additional), str(self._additional_dataclass)
+            )
 
         if isinstance(properties, str):
             self._additional["__one_level"].add(properties)
@@ -1197,7 +1241,17 @@ class GetBuilder(GraphQL):
                     if self._near_ask is not None and isinstance(self._near_ask, NearObject)
                     else None,
                     properties=self._convert_references_to_grpc(self._properties),
-                    additional_properties=self._additional["__one_level"],
+                    additional_properties=weaviate_pb2.AdditionalProperties(
+                        uuid=self._additional_dataclass.uuid,
+                        vector=self._additional_dataclass.vector,
+                        creationTimeUnix=self._additional_dataclass.creationTimeUnix,
+                        lastUpdateTimeUnix=self._additional_dataclass.lastUpdateTimeUnix,
+                        distance=self._additional_dataclass.distance,
+                        explainScore=self._additional_dataclass.explainScore,
+                        score=self._additional_dataclass.score,
+                    )
+                    if self._additional_dataclass is not None
+                    else None,
                     bm25_search=weaviate_pb2.BM25SearchParams(
                         properties=self._bm25.properties, query=self._bm25.query
                     )
@@ -1218,16 +1272,48 @@ class GetBuilder(GraphQL):
             objects = []
             for result in res.results:
                 obj = self._convert_references_to_grpc_result(result.properties)
-                if len(self._additional["__one_level"]) > 0:
-                    obj["_additional"] = {}
-                if "id" in self._additional["__one_level"]:
-                    obj["_additional"]["id"] = result.additional_properties.id
+                additional = self._extract_additional_properties(result.additional_properties)
+                if len(additional) > 0:
+                    obj["_additional"] = additional
                 objects.append(obj)
 
             results = {"data": {"Get": {self._class_name: objects}}}
             return results
         else:
             return super().do()
+
+    def _extract_additional_properties(
+        self, props: weaviate_pb2.ResultAdditionalProps
+    ) -> Dict[str, str]:
+        additional_props = {}
+        if self._additional_dataclass is None:
+            return additional_props
+
+        if self._additional_dataclass.uuid:
+            additional_props["id"] = props.id
+        if self._additional_dataclass.vector:
+            additional_props["vector"] = (
+                [float(num) for num in props.vector] if len(props.vector) > 0 else None
+            )
+        if self._additional_dataclass.distance:
+            additional_props["distance"] = props.distance if props.distance_present else None
+        if self._additional_dataclass.certainty:
+            additional_props["certainty"] = props.certainty if props.certainty_present else None
+        if self._additional_dataclass.creationTimeUnix:
+            additional_props["creationTimeUnix"] = (
+                str(props.creation_time_unix) if props.creation_time_unix_present else None
+            )
+        if self._additional_dataclass.lastUpdateTimeUnix:
+            additional_props["lastUpdateTimeUnix"] = (
+                str(props.last_update_time_unix) if props.last_update_time_unix_present else None
+            )
+        if self._additional_dataclass.score:
+            additional_props["score"] = props.score if props.score_present else None
+        if self._additional_dataclass.explainScore:
+            additional_props["explainScore"] = (
+                props.explain_score if props.explain_score_present else None
+            )
+        return additional_props
 
     def _convert_references_to_grpc_result(self, properties: weaviate_pb2.ResultProperties) -> Dict:
         result = {}
@@ -1248,7 +1334,7 @@ class GetBuilder(GraphQL):
             non_ref_properties=[prop for prop in properties if isinstance(prop, str)],
             ref_properties=[
                 weaviate_pb2.RefProperties(
-                    class_name=prop.linked_class,
+                    linked_class=prop.linked_class,
                     reference_property=prop.reference_property,
                     linked_properties=self._convert_references_to_grpc(prop.properties),
                 )
@@ -1266,6 +1352,8 @@ class GetBuilder(GraphQL):
         str
             The converted self._additional.
         """
+        if self._additional_dataclass is not None:
+            return str(self._additional_dataclass)
 
         str_to_return = " _additional {"
 

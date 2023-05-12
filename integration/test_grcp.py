@@ -21,7 +21,7 @@ CLASS2 = {
         {"name": "ref", "dataType": ["Test"]},
     ],
 }
-VECTOR = [1, 2, 3] * 100  # match with vectorizer vector length
+VECTOR = [1.5, 2.5, 3.5] * 100  # match with vectorizer vector length
 
 
 UUID1 = "577887c1-4c6b-5594-aa62-f0c17883d9bf"
@@ -100,3 +100,38 @@ def test_grcp(
     result = query.do()
     assert "Test2" in result["data"]["Get"]
     assert "test" in result["data"]["Get"]["Test2"][0]
+
+
+def test_additional():
+    client_grpc = weaviate.Client(
+        "http://localhost:8080",
+        additional_config=Config(grpc_port_experimental=50051),
+    )
+    client_grpc.schema.delete_all()
+
+    client_grpc.schema.create_class(CLASS1)
+    client_grpc.data_object.create({"test": "test"}, "Test", vector=VECTOR)
+    client_gql = weaviate.Client("http://localhost:8080")
+
+    results = []
+    for client in [client_gql, client_grpc]:
+        query = client.query.get("Test").with_additional(
+            weaviate.AdditionalProperties(
+                uuid=True,
+                vector=True,
+                creationTimeUnix=True,
+                lastUpdateTimeUnix=True,
+                distance=True,
+            )
+        )
+        result = query.do()
+        assert "Test" in result["data"]["Get"]
+
+        results.append(result)
+
+    result_gql = results[0]["data"]["Get"]["Test"][0]["_additional"]
+    result_grpc = results[1]["data"]["Get"]["Test"][0]["_additional"]
+
+    assert sorted(result_gql.keys()) == sorted(result_grpc.keys())
+    for key in result_gql.keys():
+        assert result_gql[key] == result_grpc[key]

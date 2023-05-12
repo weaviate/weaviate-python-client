@@ -48,6 +48,8 @@ __all__ = [
     "EmbeddedOptions",
     "Config",
     "ConnectionConfig",
+    "AdditionalProperties",
+    "Reference",
 ]
 
 import sys
@@ -72,7 +74,7 @@ from .exceptions import (
     WeaviateStartUpError,
 )
 from .config import Config, ConnectionConfig
-
+from .gql.get import AdditionalProperties, Reference
 
 if not sys.warnoptions:
     import warnings

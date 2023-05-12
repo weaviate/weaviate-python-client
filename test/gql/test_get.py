@@ -6,10 +6,28 @@ import pytest
 
 from test.util import check_error_message
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.gql.get import GetBuilder, BM25, Hybrid, Reference, GroupBy
+from weaviate.gql.get import GetBuilder, BM25, Hybrid, Reference, GroupBy, AdditionalProperties
 
 mock_connection_v117 = Mock()
 mock_connection_v117.server_version = "1.17.4"
+
+
+@pytest.mark.parametrize(
+    "props,expected",
+    [
+        (AdditionalProperties(uuid=True), "_additional{id}"),
+        (
+            AdditionalProperties(uuid=True, vector=True, explainScore=True),
+            "_additional{id vector explainScore}",
+        ),
+        (
+            AdditionalProperties(uuid=False, vector=True, explainScore=True, score=True),
+            "_additional{vector score explainScore}",
+        ),
+    ],
+)
+def test_additional_props(props: AdditionalProperties, expected: str):
+    assert str(props) == expected
 
 
 @pytest.mark.parametrize(
