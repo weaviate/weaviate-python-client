@@ -1166,8 +1166,6 @@ class GetBuilder(GraphQL):
             and self._offset is None
             and self._sort is None
             and self._where is None
-            and self._bm25 is None
-            and self._hybrid is None
             and self._after is None
             and all(
                 "..." not in prop for prop in self._properties if isinstance(prop, str)
@@ -1200,6 +1198,19 @@ class GetBuilder(GraphQL):
                     else None,
                     properties=self._convert_references_to_grpc(self._properties),
                     additional_properties=self._additional["__one_level"],
+                    bm25_search=weaviate_pb2.BM25SearchParams(
+                        properties=self._bm25.properties, query=self._bm25.query
+                    )
+                    if self._bm25 is not None
+                    else None,
+                    hybrid_search=weaviate_pb2.HybridSearchParams(
+                        properties=self._hybrid.properties,
+                        query=self._hybrid.query,
+                        alpha=self._hybrid.alpha,
+                        vector=self._hybrid.vector,
+                    )
+                    if self._hybrid is not None
+                    else None,
                 ),
                 metadata=metadata,
             )
