@@ -107,6 +107,20 @@ class MissingScopeException(WeaviateBaseError):
     """Scope was not provided with client credential flow."""
 
 
+class AdditionalPropertiesException(WeaviateBaseError):
+    """Additional properties were provided multiple times."""
+
+    def __init__(self, additional_dict: str, additional_dataclass: str):
+        msg = f"""
+        Cannot add AdditionalProperties class together with string-additional properties. Did you call
+            .with_additional() multiple times?.
+             Current additional properties already present:
+                - strings: {additional_dict}
+                - AdditionalProperties class: {additional_dataclass}
+        """
+        super().__init__(msg)
+
+
 class WeaviateStartUpError(WeaviateBaseError):
     """Is raised if weaviate does not start up in time."""
 
@@ -115,7 +129,7 @@ class WeaviateEmbeddedInvalidVersion(WeaviateBaseError):
     """Invalid version provided to Weaviate embedded."""
 
     def __init__(self, url: str):
-        msg = """Invalid version provided to Weaviate embedded. It must be either:
+        msg = f"""Invalid version provided to Weaviate embedded. It must be either:
         - a url to a tar.gz file that contains a Weaviate binary
         - a version number, eg "1.18.2"
         - the string "latest" to download the latest non-beta version
