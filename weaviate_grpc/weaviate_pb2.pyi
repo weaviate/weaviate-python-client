@@ -6,6 +6,26 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
+class BM25SearchParams(_message.Message):
+    __slots__ = ["properties", "query"]
+    PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    QUERY_FIELD_NUMBER: _ClassVar[int]
+    properties: _containers.RepeatedScalarFieldContainer[str]
+    query: str
+    def __init__(self, query: _Optional[str] = ..., properties: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class HybridSearchParams(_message.Message):
+    __slots__ = ["alpha", "properties", "query", "vector"]
+    ALPHA_FIELD_NUMBER: _ClassVar[int]
+    PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    QUERY_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_FIELD_NUMBER: _ClassVar[int]
+    alpha: float
+    properties: _containers.RepeatedScalarFieldContainer[str]
+    query: str
+    vector: _containers.RepeatedScalarFieldContainer[float]
+    def __init__(self, query: _Optional[str] = ..., properties: _Optional[_Iterable[str]] = ..., vector: _Optional[_Iterable[float]] = ..., alpha: _Optional[float] = ...) -> None: ...
+
 class NearObjectParams(_message.Message):
     __slots__ = ["certainty", "distance", "id"]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
@@ -77,20 +97,24 @@ class SearchReply(_message.Message):
     def __init__(self, results: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ..., took: _Optional[float] = ...) -> None: ...
 
 class SearchRequest(_message.Message):
-    __slots__ = ["additional_properties", "class_name", "limit", "near_object", "near_vector", "properties"]
+    __slots__ = ["additional_properties", "bm25_search", "class_name", "hybrid_search", "limit", "near_object", "near_vector", "properties"]
     ADDITIONAL_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    BM25_SEARCH_FIELD_NUMBER: _ClassVar[int]
     CLASS_NAME_FIELD_NUMBER: _ClassVar[int]
+    HYBRID_SEARCH_FIELD_NUMBER: _ClassVar[int]
     LIMIT_FIELD_NUMBER: _ClassVar[int]
     NEAR_OBJECT_FIELD_NUMBER: _ClassVar[int]
     NEAR_VECTOR_FIELD_NUMBER: _ClassVar[int]
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     additional_properties: _containers.RepeatedScalarFieldContainer[str]
+    bm25_search: BM25SearchParams
     class_name: str
+    hybrid_search: HybridSearchParams
     limit: int
     near_object: NearObjectParams
     near_vector: NearVectorParams
     properties: Properties
-    def __init__(self, class_name: _Optional[str] = ..., limit: _Optional[int] = ..., additional_properties: _Optional[_Iterable[str]] = ..., near_vector: _Optional[_Union[NearVectorParams, _Mapping]] = ..., near_object: _Optional[_Union[NearObjectParams, _Mapping]] = ..., properties: _Optional[_Union[Properties, _Mapping]] = ...) -> None: ...
+    def __init__(self, class_name: _Optional[str] = ..., limit: _Optional[int] = ..., additional_properties: _Optional[_Iterable[str]] = ..., near_vector: _Optional[_Union[NearVectorParams, _Mapping]] = ..., near_object: _Optional[_Union[NearObjectParams, _Mapping]] = ..., properties: _Optional[_Union[Properties, _Mapping]] = ..., hybrid_search: _Optional[_Union[HybridSearchParams, _Mapping]] = ..., bm25_search: _Optional[_Union[BM25SearchParams, _Mapping]] = ...) -> None: ...
 
 class SearchResult(_message.Message):
     __slots__ = ["additional_properties", "properties"]

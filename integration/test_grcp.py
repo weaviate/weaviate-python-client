@@ -32,7 +32,7 @@ UUID2 = "577887c1-4c6b-5594-aa62-f0c17883d9cf"
 @pytest.mark.parametrize("with_limit", [True, False])
 @pytest.mark.parametrize("additional_props", [None, "id", ["id"], ["id", "vector"]])
 @pytest.mark.parametrize(
-    "near",
+    "search",
     [
         {"vector": VECTOR, "certainty": 0.5},
         {"vector": VECTOR, "distance": 0.5},
@@ -40,6 +40,8 @@ UUID2 = "577887c1-4c6b-5594-aa62-f0c17883d9cf"
         {"id": UUID2},
         {"id": UUID2, "certainty": 0.5},
         {"id": UUID2, "distance": 0.5},
+        {"bm25": ""},
+        {"hybrid": ""},
     ],
 )
 @pytest.mark.parametrize(
@@ -52,7 +54,7 @@ UUID2 = "577887c1-4c6b-5594-aa62-f0c17883d9cf"
     ],
 )
 def test_grcp(
-    with_limit: bool, additional_props, near: Dict[str, Any], properties, grpc_port: Optional[int]
+    with_limit: bool, additional_props, search: Dict[str, Any], properties, grpc_port: Optional[int]
 ):
 
     client = weaviate.Client(
@@ -65,9 +67,9 @@ def test_grcp(
     client.schema.create_class(CLASS2)
 
     # add objects and references
-    client.data_object.create({"test": "test1"}, "Test", vector=VECTOR)
-    client.data_object.create({"test": "test2", "abc": 5}, "Test", vector=VECTOR, uuid=UUID1)
-    client.data_object.create({"test": "test2", "abc": 5}, "Test2", vector=VECTOR, uuid=UUID2)
+    client.data_object.create({"test": "test"}, "Test", vector=VECTOR)
+    client.data_object.create({"test": "test", "abc": 5}, "Test", vector=VECTOR, uuid=UUID1)
+    client.data_object.create({"test": "test", "abc": 5}, "Test2", vector=VECTOR, uuid=UUID2)
     client.data_object.reference.add(
         from_uuid=UUID2,
         to_uuid=UUID1,
@@ -84,12 +86,16 @@ def test_grcp(
     if additional_props is not None:
         query.with_additional(additional_props)
 
-    if "vector" in near:
-        query.with_near_vector(near)
-    if "id" in near:
-        query.with_near_object(near)
-    if "concepts" in near:
-        query.with_near_text(near)
+    if "vector" in search:
+        query.with_near_vector(search)
+    elif "id" in search:
+        query.with_near_object(search)
+    elif "concepts" in search:
+        query.with_near_text(search)
+    elif "bm25" in search:
+        query.with_bm25(query="test", properties=["test"])
+    elif "hybrid" in search:
+        query.with_hybrid(query="test", properties=["test"], alpha=0.5, vector=VECTOR)
 
     result = query.do()
     assert "Test2" in result["data"]["Get"]

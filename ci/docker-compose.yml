@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-grpc-non-ref-props2-22a3f56
+    image: semitechnologies/weaviate:preview-hybrid-bm25-for-grpc-f0ed9dc
     ports:
       - "8080:8080"
       - "50051:50051"

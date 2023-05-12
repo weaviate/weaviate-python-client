@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import struct_pb2 as google_dot_protobuf_dot_struct__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0eweaviate.proto\x12\x0cweaviategrpc\x1a\x1cgoogle/protobuf/struct.proto\"\xe9\x01\n\rSearchRequest\x12\x12\n\nclass_name\x18\x01 \x01(\t\x12\r\n\x05limit\x18\x02 \x01(\r\x12\x1d\n\x15\x61\x64\x64itional_properties\x18\x03 \x03(\t\x12\x33\n\x0bnear_vector\x18\x04 \x01(\x0b\x32\x1e.weaviategrpc.NearVectorParams\x12\x33\n\x0bnear_object\x18\x05 \x01(\x0b\x32\x1e.weaviategrpc.NearObjectParams\x12,\n\nproperties\x18\x06 \x01(\x0b\x32\x18.weaviategrpc.Properties\"]\n\nProperties\x12\x1a\n\x12non_ref_properties\x18\x01 \x03(\t\x12\x33\n\x0eref_properties\x18\x02 \x03(\x0b\x32\x1b.weaviategrpc.RefProperties\"v\n\rRefProperties\x12\x14\n\x0clinked_class\x18\x01 \x01(\t\x12\x1a\n\x12reference_property\x18\x02 \x01(\t\x12\x33\n\x11linked_properties\x18\x03 \x01(\x0b\x32\x18.weaviategrpc.Properties\"l\n\x10NearVectorParams\x12\x0e\n\x06vector\x18\x01 \x03(\x02\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x42\x0c\n\n_certaintyB\x0b\n\t_distance\"h\n\x10NearObjectParams\x12\n\n\x02id\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x42\x0c\n\n_certaintyB\x0b\n\t_distance\"H\n\x0bSearchReply\x12+\n\x07results\x18\x01 \x03(\x0b\x32\x1a.weaviategrpc.SearchResult\x12\x0c\n\x04took\x18\x02 \x01(\x02\"\x86\x01\n\x0cSearchResult\x12\x32\n\nproperties\x18\x01 \x01(\x0b\x32\x1e.weaviategrpc.ResultProperties\x12\x42\n\x15\x61\x64\x64itional_properties\x18\x02 \x01(\x0b\x32#.weaviategrpc.ResultAdditionalProps\"#\n\x15ResultAdditionalProps\x12\n\n\x02id\x18\x01 \x01(\t\"\x91\x01\n\x10ResultProperties\x12\x33\n\x12non_ref_properties\x18\x01 \x01(\x0b\x32\x17.google.protobuf.Struct\x12\x34\n\tref_props\x18\x02 \x03(\x0b\x32!.weaviategrpc.ReturnRefProperties\x12\x12\n\nclass_name\x18\x03 \x01(\t\"\\\n\x13ReturnRefProperties\x12\x32\n\nproperties\x18\x01 \x03(\x0b\x32\x1e.weaviategrpc.ResultProperties\x12\x11\n\tprop_name\x18\x02 \x01(\t2N\n\x08Weaviate\x12\x42\n\x06Search\x12\x1b.weaviategrpc.SearchRequest\x1a\x19.weaviategrpc.SearchReply\"\x00\x42#Z!github.com/weaviate/weaviate/grpcb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0eweaviate.proto\x12\x0cweaviategrpc\x1a\x1cgoogle/protobuf/struct.proto\"\xd7\x02\n\rSearchRequest\x12\x12\n\nclass_name\x18\x01 \x01(\t\x12\r\n\x05limit\x18\x02 \x01(\r\x12\x1d\n\x15\x61\x64\x64itional_properties\x18\x03 \x03(\t\x12\x33\n\x0bnear_vector\x18\x04 \x01(\x0b\x32\x1e.weaviategrpc.NearVectorParams\x12\x33\n\x0bnear_object\x18\x05 \x01(\x0b\x32\x1e.weaviategrpc.NearObjectParams\x12,\n\nproperties\x18\x06 \x01(\x0b\x32\x18.weaviategrpc.Properties\x12\x37\n\rhybrid_search\x18\x07 \x01(\x0b\x32 .weaviategrpc.HybridSearchParams\x12\x33\n\x0b\x62m25_search\x18\x08 \x01(\x0b\x32\x1e.weaviategrpc.BM25SearchParams\"]\n\nProperties\x12\x1a\n\x12non_ref_properties\x18\x01 \x03(\t\x12\x33\n\x0eref_properties\x18\x02 \x03(\x0b\x32\x1b.weaviategrpc.RefProperties\"V\n\x12HybridSearchParams\x12\r\n\x05query\x18\x01 \x01(\t\x12\x12\n\nproperties\x18\x02 \x03(\t\x12\x0e\n\x06vector\x18\x03 \x03(\x02\x12\r\n\x05\x61lpha\x18\x04 \x01(\x02\"5\n\x10\x42M25SearchParams\x12\r\n\x05query\x18\x01 \x01(\t\x12\x12\n\nproperties\x18\x02 \x03(\t\"v\n\rRefProperties\x12\x14\n\x0clinked_class\x18\x01 \x01(\t\x12\x1a\n\x12reference_property\x18\x02 \x01(\t\x12\x33\n\x11linked_properties\x18\x03 \x01(\x0b\x32\x18.weaviategrpc.Properties\"l\n\x10NearVectorParams\x12\x0e\n\x06vector\x18\x01 \x03(\x02\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x42\x0c\n\n_certaintyB\x0b\n\t_distance\"h\n\x10NearObjectParams\x12\n\n\x02id\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x42\x0c\n\n_certaintyB\x0b\n\t_distance\"H\n\x0bSearchReply\x12+\n\x07results\x18\x01 \x03(\x0b\x32\x1a.weaviategrpc.SearchResult\x12\x0c\n\x04took\x18\x02 \x01(\x02\"\x86\x01\n\x0cSearchResult\x12\x32\n\nproperties\x18\x01 \x01(\x0b\x32\x1e.weaviategrpc.ResultProperties\x12\x42\n\x15\x61\x64\x64itional_properties\x18\x02 \x01(\x0b\x32#.weaviategrpc.ResultAdditionalProps\"#\n\x15ResultAdditionalProps\x12\n\n\x02id\x18\x01 \x01(\t\"\x91\x01\n\x10ResultProperties\x12\x33\n\x12non_ref_properties\x18\x01 \x01(\x0b\x32\x17.google.protobuf.Struct\x12\x34\n\tref_props\x18\x02 \x03(\x0b\x32!.weaviategrpc.ReturnRefProperties\x12\x12\n\nclass_name\x18\x03 \x01(\t\"\\\n\x13ReturnRefProperties\x12\x32\n\nproperties\x18\x01 \x03(\x0b\x32\x1e.weaviategrpc.ResultProperties\x12\x11\n\tprop_name\x18\x02 \x01(\t2N\n\x08Weaviate\x12\x42\n\x06Search\x12\x1b.weaviategrpc.SearchRequest\x1a\x19.weaviategrpc.SearchReply\"\x00\x42#Z!github.com/weaviate/weaviate/grpcb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'weaviate_pb2', globals())
@@ -23,25 +23,29 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
   DESCRIPTOR._serialized_options = b'Z!github.com/weaviate/weaviate/grpc'
   _SEARCHREQUEST._serialized_start=63
-  _SEARCHREQUEST._serialized_end=296
-  _PROPERTIES._serialized_start=298
-  _PROPERTIES._serialized_end=391
-  _REFPROPERTIES._serialized_start=393
-  _REFPROPERTIES._serialized_end=511
-  _NEARVECTORPARAMS._serialized_start=513
-  _NEARVECTORPARAMS._serialized_end=621
-  _NEAROBJECTPARAMS._serialized_start=623
-  _NEAROBJECTPARAMS._serialized_end=727
-  _SEARCHREPLY._serialized_start=729
-  _SEARCHREPLY._serialized_end=801
-  _SEARCHRESULT._serialized_start=804
-  _SEARCHRESULT._serialized_end=938
-  _RESULTADDITIONALPROPS._serialized_start=940
-  _RESULTADDITIONALPROPS._serialized_end=975
-  _RESULTPROPERTIES._serialized_start=978
-  _RESULTPROPERTIES._serialized_end=1123
-  _RETURNREFPROPERTIES._serialized_start=1125
-  _RETURNREFPROPERTIES._serialized_end=1217
-  _WEAVIATE._serialized_start=1219
-  _WEAVIATE._serialized_end=1297
+  _SEARCHREQUEST._serialized_end=406
+  _PROPERTIES._serialized_start=408
+  _PROPERTIES._serialized_end=501
+  _HYBRIDSEARCHPARAMS._serialized_start=503
+  _HYBRIDSEARCHPARAMS._serialized_end=589
+  _BM25SEARCHPARAMS._serialized_start=591
+  _BM25SEARCHPARAMS._serialized_end=644
+  _REFPROPERTIES._serialized_start=646
+  _REFPROPERTIES._serialized_end=764
+  _NEARVECTORPARAMS._serialized_start=766
+  _NEARVECTORPARAMS._serialized_end=874
+  _NEAROBJECTPARAMS._serialized_start=876
+  _NEAROBJECTPARAMS._serialized_end=980
+  _SEARCHREPLY._serialized_start=982
+  _SEARCHREPLY._serialized_end=1054
+  _SEARCHRESULT._serialized_start=1057
+  _SEARCHRESULT._serialized_end=1191
+  _RESULTADDITIONALPROPS._serialized_start=1193
+  _RESULTADDITIONALPROPS._serialized_end=1228
+  _RESULTPROPERTIES._serialized_start=1231
+  _RESULTPROPERTIES._serialized_end=1376
+  _RETURNREFPROPERTIES._serialized_start=1378
+  _RETURNREFPROPERTIES._serialized_end=1470
+  _WEAVIATE._serialized_start=1472
+  _WEAVIATE._serialized_end=1550
 # @@protoc_insertion_point(module_scope)
