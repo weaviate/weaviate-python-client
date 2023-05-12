@@ -116,6 +116,7 @@ class BaseConnection:
                 s.settimeout(1.0)  # we're only pinging the port, 1s is plenty
                 s.connect((parsed_url.hostname, grcp_port))
                 s.shutdown(2)
+                s.close()
                 channel = grpc.insecure_channel(f"{parsed_url.hostname}:{grcp_port}")
                 self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(channel)
             except (
