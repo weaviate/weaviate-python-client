@@ -3,7 +3,7 @@ DataObject class definition.
 """
 import uuid as uuid_lib
 import warnings
-from typing import Union, Optional, List, Sequence, Dict
+from typing import Union, Optional, List, Sequence, Dict, Any
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -464,7 +464,7 @@ class DataObject:
         after: Optional[UUID] = None,
         offset: Optional[int] = None,
         sort: Optional[Dict[str, Union[str, bool, List[bool], List[str]]]] = None,
-    ) -> List[dict]:
+    ) -> Optional[Dict[str, Any]]:
         """
         Gets objects from weaviate, the maximum number of objects returned is 100.
         If 'uuid' is None, all objects are returned. If 'uuid' is specified the result is the same

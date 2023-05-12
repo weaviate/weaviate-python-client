@@ -7,7 +7,6 @@ import datetime
 import os
 import socket
 import time
-from numbers import Real
 from threading import Thread, Event
 from typing import Any, Dict, Tuple, Optional, Union
 from urllib.parse import urlparse
@@ -28,6 +27,7 @@ from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     WeaviateStartUpError,
 )
+from weaviate.types import NUMBERS
 from weaviate.util import _check_positive_num, is_weaviate_domain
 from weaviate.warnings import _Warnings
 
@@ -41,6 +41,7 @@ except ImportError:
 
 
 Session = Union[requests.sessions.Session, OAuth2Session]
+TIMEOUT_TYPE_RETURN = Tuple[NUMBERS, NUMBERS]
 
 
 class BaseConnection:
@@ -52,13 +53,13 @@ class BaseConnection:
         self,
         url: str,
         auth_client_secret: Optional[AuthCredentials],
-        timeout_config: Union[Tuple[Real, Real], Real],
+        timeout_config: TIMEOUT_TYPE_RETURN,
         proxies: Union[dict, str, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         startup_period: Optional[int],
         connection_config: ConnectionConfig,
-        embedded_db: EmbeddedDB = None,
+        embedded_db: Optional[EmbeddedDB] = None,
         grcp_port: Optional[int] = None,
     ):
         """
@@ -71,10 +72,10 @@ class BaseConnection:
         auth_client_secret : weaviate.auth.AuthCredentials, optional
             Credentials to authenticate with a weaviate instance. The credentials are not saved within the client and
             authentication is done via authentication tokens.
-        timeout_config : tuple(Real, Real) or Real, optional
+        timeout_config : tuple(float, float) or float, optional
             Set the timeout configuration for all requests to the Weaviate server. It can be a
-            real number or, a tuple of two real numbers: (connect timeout, read timeout).
-            If only one real number is passed then both connect and read timeout will be set to
+            float or, a tuple of two floats: (connect timeout, read timeout).
+            If only one float is passed then both connect and read timeout will be set to
             that value.
         proxies : dict, str or None, optional
             Proxies to be used for requests. Are used by both 'requests' and 'aiohttp'. Can be
@@ -102,7 +103,7 @@ class BaseConnection:
 
         self._api_version_path = "/v1"
         self.url = url  # e.g. http://localhost:80
-        self.timeout_config = timeout_config  # this uses the setter
+        self.timeout_config: TIMEOUT_TYPE_RETURN = timeout_config
         self.embedded_db = embedded_db
 
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
@@ -555,34 +556,34 @@ class BaseConnection:
         )
 
     @property
-    def timeout_config(self) -> Tuple[Real, Real]:
+    def timeout_config(self) -> TIMEOUT_TYPE_RETURN:
         """
         Getter/setter for `timeout_config`.
 
         Parameters
         ----------
-        timeout_config : tuple(Real, Real) or Real, optional
+        timeout_config : tuple(float, float), optional
             For Setter only: Set the timeout configuration for all requests to the Weaviate server.
-            It can be a real number or, a tuple of two real numbers:
+            It can be a float or, a tuple of two floats:
                     (connect timeout, read timeout).
-            If only one real number is passed then both connect and read timeout will be set to
+            If only one float is passed then both connect and read timeout will be set to
             that value.
 
         Returns
         -------
-        Tuple[Real, Real]
+        Tuple[float, float]
             For Getter only: Requests Timeout configuration.
         """
 
         return self._timeout_config
 
     @timeout_config.setter
-    def timeout_config(self, timeout_config: Union[Tuple[Real, Real], Real]):
+    def timeout_config(self, timeout_config: TIMEOUT_TYPE_RETURN):
         """
         Setter for `timeout_config`. (docstring should be only in the Getter)
         """
 
-        self._timeout_config = _get_valid_timeout_config(timeout_config)
+        self._timeout_config = timeout_config
 
     @property
     def proxies(self) -> dict:
@@ -625,13 +626,13 @@ class Connection(BaseConnection):
         self,
         url: str,
         auth_client_secret: Optional[AuthCredentials],
-        timeout_config: Union[Tuple[Real, Real], Real],
+        timeout_config: TIMEOUT_TYPE_RETURN,
         proxies: Union[dict, str, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         startup_period: Optional[int],
         connection_config: ConnectionConfig,
-        embedded_db: EmbeddedDB = None,
+        embedded_db: Optional[EmbeddedDB] = None,
         grcp_port: Optional[int] = None,
     ):
         super().__init__(
@@ -738,43 +739,3 @@ def _get_proxies(proxies: Union[dict, str, None], trust_env: bool) -> dict:
         proxies["https"] = https_proxy[0] if https_proxy[0] else https_proxy[1]
 
     return proxies
-
-
-def _get_valid_timeout_config(timeout_config: Union[Tuple[Real, Real], Real, None]):
-    """
-    Validate and return TimeOut configuration.
-
-    Parameters
-    ----------
-    timeout_config : tuple(Real, Real) or Real or None, optional
-            Set the timeout configuration for all requests to the Weaviate server. It can be a
-            real number or, a tuple of two real numbers: (connect timeout, read timeout).
-            If only one real number is passed then both connect and read timeout will be set to
-            that value.
-
-    Raises
-    ------
-    TypeError
-        If arguments are of a wrong data type.
-    ValueError
-        If 'timeout_config' is not a tuple of 2.
-    ValueError
-        If 'timeout_config' is/contains negative number/s.
-    """
-
-    if isinstance(timeout_config, Real) and not isinstance(timeout_config, bool):
-        if timeout_config <= 0.0:
-            raise ValueError("'timeout_config' cannot be non-positive number/s!")
-        return timeout_config, timeout_config
-
-    if not isinstance(timeout_config, tuple):
-        raise TypeError("'timeout_config' should be a (or tuple of) positive real number/s!")
-    if len(timeout_config) != 2:
-        raise ValueError("'timeout_config' must be of length 2!")
-    if not (isinstance(timeout_config[0], Real) and isinstance(timeout_config[1], Real)) or (
-        isinstance(timeout_config[0], bool) and isinstance(timeout_config[1], bool)
-    ):
-        raise TypeError("'timeout_config' must be tuple of real numbers")
-    if timeout_config[0] <= 0.0 or timeout_config[1] <= 0.0:
-        raise ValueError("'timeout_config' cannot be non-positive number/s!")
-    return timeout_config

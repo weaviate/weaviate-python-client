@@ -1,8 +1,7 @@
 """
 Client class definition.
 """
-from numbers import Real
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, Dict, Any
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -12,13 +11,17 @@ from .batch import Batch
 from .classification import Classification
 from .cluster import Cluster
 from .config import Config
-from .connect.connection import Connection
+from .connect.connection import Connection, TIMEOUT_TYPE_RETURN
 from .contextionary import Contextionary
 from .data import DataObject
 from .embedded import EmbeddedDB, EmbeddedOptions
 from .exceptions import UnexpectedStatusCodeException
 from .gql import Query
 from .schema import Schema
+from .types import NUMBERS
+from .util import _get_valid_timeout_config, _type_request_response
+
+TIMEOUT_TYPE = Union[Tuple[NUMBERS, NUMBERS], NUMBERS]
 
 
 class Client:
@@ -52,14 +55,14 @@ class Client:
         self,
         url: Optional[str] = None,
         auth_client_secret: Optional[AuthCredentials] = None,
-        timeout_config: Union[Tuple[Real, Real], Real] = (10, 60),
+        timeout_config: TIMEOUT_TYPE = (10, 60),
         proxies: Union[dict, str, None] = None,
         trust_env: bool = False,
         additional_headers: Optional[dict] = None,
         startup_period: Optional[int] = 5,
         embedded_options: Optional[EmbeddedOptions] = None,
-        additional_config: Config = None,
-    ) -> object:
+        additional_config: Optional[Config] = None,
+    ) -> None:
         """
         Initialize a Client class instance.
 
@@ -141,27 +144,13 @@ class Client:
         TypeError
             If arguments are of a wrong data type.
         """
-
-        if embedded_options is None and not isinstance(url, str):
-            raise TypeError(f"URL is expected to be string but is {type(url)}")
-        if embedded_options is not None and isinstance(url, str) and len(url) > 0:
-            raise TypeError(
-                f"URL is not expected to be set when using embedded_options but URL was {url}"
-            )
-        if embedded_options is not None:
-            embedded_db = EmbeddedDB(options=embedded_options)
-            embedded_db.start()
-            url = f"http://localhost:{embedded_db.options.port}"
-        else:
-            url = url.strip("/")
-            embedded_db = None
-
+        url, embedded_db = self.__parse_url_and_embedded_db(url, embedded_options)
         config = Config() if additional_config is None else additional_config
 
         self._connection = Connection(
             url=url,
             auth_client_secret=auth_client_secret,
-            timeout_config=timeout_config,
+            timeout_config=_get_valid_timeout_config(timeout_config),
             proxies=proxies,
             trust_env=trust_env,
             additional_headers=additional_headers,
@@ -231,7 +220,7 @@ class Client:
 
         return self._connection.get_meta()
 
-    def get_open_id_configuration(self) -> Optional[dict]:
+    def get_open_id_configuration(self) -> Optional[Dict[str, Any]]:
         """
         Get the openid-configuration.
 
@@ -248,19 +237,19 @@ class Client:
 
         response = self._connection.get(path="/.well-known/openid-configuration")
         if response.status_code == 200:
-            return response.json()
+            return _type_request_response(response.json())
         if response.status_code == 404:
             return None
         raise UnexpectedStatusCodeException("Meta endpoint", response)
 
     @property
-    def timeout_config(self) -> Tuple[Real, Real]:
+    def timeout_config(self) -> TIMEOUT_TYPE_RETURN:
         """
         Getter/setter for `timeout_config`.
 
         Parameters
         ----------
-        timeout_config : tuple(Real, Real) or Real, optional
+        timeout_config : tuple(float, float) or float, optional
             For Getter only: Set the timeout configuration for all requests to the Weaviate server.
             It can be a real number or, a tuple of two real numbers:
                     (connect timeout, read timeout).
@@ -269,21 +258,41 @@ class Client:
 
         Returns
         -------
-        Tuple[Real, Real]
+        Tuple[float, float]
             For Getter only: Requests Timeout configuration.
         """
 
         return self._connection.timeout_config
 
     @timeout_config.setter
-    def timeout_config(self, timeout_config: Union[Tuple[Real, Real], Real]):
+    def timeout_config(self, timeout_config: TIMEOUT_TYPE) -> None:
         """
         Setter for `timeout_config`. (docstring should be only in the Getter)
         """
 
-        self._connection.timeout_config = timeout_config
+        self._connection.timeout_config = _get_valid_timeout_config(timeout_config)
 
-    def __del__(self):
+    @staticmethod
+    def __parse_url_and_embedded_db(
+        url: Optional[str], embedded_options: Optional[EmbeddedOptions]
+    ) -> Tuple[str, Optional[EmbeddedDB]]:
+        if embedded_options is None and url is None:
+            raise TypeError("Either url or embedded options must be present.")
+        elif embedded_options is not None and url is not None:
+            raise TypeError(
+                f"URL is not expected to be set when using embedded_options but URL was {url}"
+            )
+
+        if embedded_options is not None:
+            embedded_db = EmbeddedDB(options=embedded_options)
+            embedded_db.start()
+            return f"http://localhost:{embedded_db.options.port}", embedded_db
+
+        if not isinstance(url, str):
+            raise TypeError(f"URL is expected to be string but is {type(url)}")
+        return url.strip("/"), None
+
+    def __del__(self) -> None:
         # in case an exception happens before definition of these members
         if hasattr(self, "_connection"):
             self._connection.close()
