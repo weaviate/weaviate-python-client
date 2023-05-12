@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:1.19.0
+    image: semitechnologies/weaviate:1.19.2
     ports:
       - 8085:8085
     restart: on-failure:0
