@@ -125,7 +125,7 @@ class GetBuilder(GraphQL):
             )
 
         self._properties: List[Union[str, Reference]] = []
-        for _, prop in enumerate(properties):
+        for prop in properties:
             if not isinstance(prop, str) and not isinstance(prop, Reference):
                 raise TypeError("All the `properties` must be of type `str` or Reference!")
             self._properties.append(prop)
