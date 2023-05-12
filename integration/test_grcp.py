@@ -21,7 +21,7 @@ CLASS2 = {
         {"name": "ref", "dataType": ["Test"]},
     ],
 }
-VECTOR = [1.1, 2.1, 3.1] * 100  # match with vectorizer vector length
+VECTOR = [1.5, 2.5, 3.5] * 100  # match with vectorizer vector length
 
 
 UUID1 = "577887c1-4c6b-5594-aa62-f0c17883d9bf"
@@ -134,4 +134,4 @@ def test_additional():
 
     assert sorted(result_gql.keys()) == sorted(result_grpc.keys())
     for key in result_gql.keys():
-        assert str(result_gql[key]) == result_grpc[key]
+        assert result_gql[key] == result_grpc[key]

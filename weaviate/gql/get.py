@@ -1286,29 +1286,32 @@ class GetBuilder(GraphQL):
         self, props: weaviate_pb2.ResultAdditionalProps
     ) -> Dict[str, str]:
         additional_props = {}
+        if self._additional_dataclass is None:
+            return additional_props
+
         if self._additional_dataclass.uuid:
             additional_props["id"] = props.id
         if self._additional_dataclass.vector:
             additional_props["vector"] = (
-                [float(num) for num in props.vector] if len(props.vector) > 0 else "None"
+                [float(num) for num in props.vector] if len(props.vector) > 0 else None
             )
         if self._additional_dataclass.distance:
-            additional_props["distance"] = props.distance if props.distance_present else "None"
+            additional_props["distance"] = props.distance if props.distance_present else None
         if self._additional_dataclass.certainty:
-            additional_props["certainty"] = props.certainty if props.certainty_present else "None"
+            additional_props["certainty"] = props.certainty if props.certainty_present else None
         if self._additional_dataclass.creationTimeUnix:
             additional_props["creationTimeUnix"] = (
-                str(props.creation_time_unix) if props.creation_time_unix_present else "None"
+                str(props.creation_time_unix) if props.creation_time_unix_present else None
             )
         if self._additional_dataclass.lastUpdateTimeUnix:
             additional_props["lastUpdateTimeUnix"] = (
-                str(props.last_update_time_unix) if props.last_update_time_unix_present else "None"
+                str(props.last_update_time_unix) if props.last_update_time_unix_present else None
             )
         if self._additional_dataclass.score:
-            additional_props["score"] = props.score if props.score_present else "None"
+            additional_props["score"] = props.score if props.score_present else None
         if self._additional_dataclass.explainScore:
             additional_props["explainScore"] = (
-                props.explain_score if props.explain_score_present else "None"
+                props.explain_score if props.explain_score_present else None
             )
         return additional_props
 
@@ -1331,7 +1334,7 @@ class GetBuilder(GraphQL):
             non_ref_properties=[prop for prop in properties if isinstance(prop, str)],
             ref_properties=[
                 weaviate_pb2.RefProperties(
-                    class_name=prop.linked_class,
+                    linked_class=prop.linked_class,
                     reference_property=prop.reference_property,
                     linked_properties=self._convert_references_to_grpc(prop.properties),
                 )
