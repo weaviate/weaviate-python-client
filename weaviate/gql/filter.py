@@ -15,7 +15,6 @@ from weaviate.error_msgs import FILTER_BEACON_V14_CLS_NS_W
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import get_vector
 
-
 VALUE_TYPES = {
     "valueString",
     "valueText",
@@ -72,9 +71,7 @@ class GraphQL(ABC):
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
-
         query = self.build()
-
         try:
             response = self._connection.post(path="/graphql", weaviate_object={"query": query})
         except RequestsConnectionError as conn_err:
@@ -111,6 +108,10 @@ class Filter(ABC):
         """
         Should be implemented in each inheriting class.
         """
+
+    @property
+    def content(self):
+        return self._content
 
 
 class NearText(Filter):

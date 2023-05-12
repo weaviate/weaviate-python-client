@@ -1,6 +1,66 @@
 Changelog
 =========
 
+Version 3.18.0
+--------------
+
+This minor version includes:
+
+- Add support for properties with hybrid search
+- Fixes documentation publishing on readthedocs
+
+Version 3.17.1
+--------------
+This patch version includes:
+
+- Fix schemas with new property keys `indexFilterable` and `indexSearchable`.
+
+Version 3.17.0
+--------------
+This minor version includes:
+
+- Add support for groupBy to group objects:
+    .. code-block:: python
+
+           .with_group_by(properties=["caller"], groups=2, objects_per_group=3)
+
+
+- Add support for `uuid` and `uuid[]` datatypes.
+- Add `schema.exists(class)`.
+- Add support for `Support GQL Get{} tunable consistency`
+    .. code-block:: python
+
+        resp = (
+            client.query.get("Article", ["name"])
+            .with_additional("isConsistent")
+            .with_consistency_level(ConsistencyLevel.ALL)
+            .do()
+        )
+
+Version 3.16.2
+--------------
+This patch version includes:
+
+- Fix `url` containing username and password.
+
+Version 3.16.1
+--------------
+This patch version includes:
+
+- Fixes timeout error in detection of grpc.
+
+Version 3.16.0
+--------------
+This minor version includes:
+
+- **Experimental** support for GRPC.
+    - Can by enabled by installing the client with `pip install weaviate-client[GRPC]` or install the `grpcio` package manually.
+    - To disable uninstall the `grpcio` package.
+    - This will speed up certain GraphQL queries: `Get` with `NearObject` or `NearVector` if only non-reference queries are retrieved and no other options are set.
+
+- Removal of python 3.7 support. Minimum supported version is python 3.8
+- Removal of the WCS module. Note that the module was used to administrate old WCS instances and does not work anymore.
+
 Version 3.15.6
 --------------
 This patch version includes:

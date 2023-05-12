@@ -1,7 +1,7 @@
 """
 GraphQL query module.
 """
-from typing import List, Union
+from typing import List, Any, Dict, Optional
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -9,7 +9,7 @@ from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.schema.crud_schema import Schema
 from .aggregate import AggregateBuilder
-from .get import GetBuilder
+from .get import GetBuilder, PROPERTIES
 from .multi_get import MultiGetBuilder
 
 
@@ -36,7 +36,7 @@ class Query:
     def get(
         self,
         class_name: str,
-        properties: Union[List[str], str, None] = None,
+        properties: Optional[PROPERTIES] = None,
     ) -> GetBuilder:
         """
         Instantiate a GetBuilder for GraphQL `get` requests.
@@ -45,8 +45,9 @@ class Query:
         ----------
         class_name : str
             Class name of the objects to interact with.
-        properties : list of str, str or None
+        properties : list of str and ReferenceProperty, str or None
             Properties of the objects to get, by default None. None means `all non-referrence properties` (this happens only if no additional properties are given).
+
 
         Returns
         -------
@@ -56,13 +57,14 @@ class Query:
 
         return GetBuilder(class_name, properties, self._connection, self.schema)
 
+
     def multi_get(
         self,
         get_builder: List[GetBuilder],
     ) -> MultiGetBuilder:
         """
         Instantiate a MultiGetBuilder for GraphQL `multi_get` requests.
-        Bundels multiple get requests into one.
+        Bundles multiple get requests into one.
 
         Parameters
         ----------
@@ -94,7 +96,7 @@ class Query:
 
         return AggregateBuilder(class_name, self._connection)
 
-    def raw(self, gql_query: str) -> dict:
+    def raw(self, gql_query: str) -> Dict[str, Any]:
         """
         Allows to send simple graph QL string queries.
         Be cautious of injection risks when generating query strings.

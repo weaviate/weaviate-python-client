@@ -5,11 +5,30 @@ from unittest.mock import patch, Mock
 import pytest
 
 from test.util import check_error_message
-from weaviate.gql.get import GetBuilder, BM25, Hybrid
+from weaviate.data.replication import ConsistencyLevel
+from weaviate.gql.get import GetBuilder, BM25, Hybrid, Reference, GroupBy, AdditionalProperties
 
 mock_connection_v117 = Mock()
 mock_connection_v117.server_version = "1.17.4"
 mock_schema = Mock()
+
+
+@pytest.mark.parametrize(
+    "props,expected",
+    [
+        (AdditionalProperties(uuid=True), "_additional{id}"),
+        (
+            AdditionalProperties(uuid=True, vector=True, explainScore=True),
+            "_additional{id vector explainScore}",
+        ),
+        (
+            AdditionalProperties(uuid=False, vector=True, explainScore=True, score=True),
+            "_additional{vector score explainScore}",
+        ),
+    ],
+)
+def test_additional_props(props: AdditionalProperties, expected: str):
+    assert str(props) == expected
 
 
 @pytest.mark.parametrize(
@@ -30,19 +49,56 @@ def test_bm25(query: str, properties: List[str], expected: str):
 
 
 @pytest.mark.parametrize(
-    "query,vector,alpha,expected",
+    "property_name,in_class,properties,expected",
+    [
+        (
+            "property",
+            "class",
+            ["title"],
+            "property{... on class{title}}",
+        ),
+        (
+            "property",
+            "class",
+            ["title", "document", "date"],
+            "property{... on class{title document date}}",
+        ),
+    ],
+)
+def test_get_references(property_name: str, in_class: str, properties: List[str], expected: str):
+    ref = Reference(property_name, in_class, properties)
+    assert str(ref) == expected
+
+
+@pytest.mark.parametrize(
+    "query,vector,alpha,properties,expected",
     [
         (
             "query",
             [1, 2, 3],
             0.5,
+            None,
             'hybrid:{query: "query", vector: [1, 2, 3], alpha: 0.5}',
         ),
-        ("query", None, None, 'hybrid:{query: "query"}'),
+        ("query", None, None, None, 'hybrid:{query: "query"}'),
+        ("query", None, None, ["prop1"], 'hybrid:{query: "query", properties: ["prop1"]}'),
+        (
+            "query",
+            None,
+            None,
+            ["prop1", "prop2"],
+            'hybrid:{query: "query", properties: ["prop1","prop2"]}',
+        ),
     ],
 )
-def test_hybrid(query: str, vector: Optional[List[float]], alpha: Optional[float], expected: str):
-    hybrid = Hybrid(query, alpha, vector)
+def test_hybrid(
+    query: str,
+    vector: Optional[List[float]],
+    alpha: Optional[float],
+    properties: Optional[List[str]],
+    expected: str,
+):
+    hybrid = Hybrid(query, alpha, vector, properties)
     assert str(hybrid) == expected
 
 
@@ -84,6 +140,27 @@ def test_generative_type(single_prompt: str, grouped_task: str):
         ).build()
 
 
+@pytest.mark.parametrize(
+    "properties,groups,max_groups,expected",
+    [
+        (
+            ["prop1", "prop2"],
+            2,
+            3,
+            'groupBy:{path:["prop1","prop2"], groups:2, objectsPerGroup:3}',
+        ),
+        (
+            ["prop1"],
+            4,
+            5,
+            'groupBy:{path:["prop1"], groups:4, objectsPerGroup:5}',
+        ),
+    ],
+)
+def test_groupy(properties: List[str], groups: int, max_groups: int, expected: str):
+    assert str(GroupBy(properties, groups, max_groups)) == expected
+
+
 class TestGetBuilder(unittest.TestCase):
     def test___init__(self):
         """
@@ -94,7 +171,7 @@ class TestGetBuilder(unittest.TestCase):
         properties_error_msg = (
             "properties must be of type str, " f"list of str or None but was {int}"
         )
-        property_error_msg = "All the `properties` must be of type `str`!"
+        property_error_msg = "All the `properties` must be of type `str` or Reference!"
 
         # invalid calls
         with self.assertRaises(TypeError) as error:
@@ -149,6 +226,28 @@ class TestGetBuilder(unittest.TestCase):
         with self.assertRaises(ValueError) as error:
             GetBuilder("A", ["str"], None, mock_schema).with_offset(-1)
         check_error_message(self, error, limit_error_msg)
+
+    def test_build_with_consistency_level(self):
+        """
+        Test the `with_consistency_level` method
+        """
+
+        query = (
+            GetBuilder("Person", "name", None).with_consistency_level(ConsistencyLevel.ONE).build()
+        )
+        self.assertEqual("{Get{Person(consistencyLevel: ONE ){name}}}", query)
+
+        query = (
+            GetBuilder("Person", "name", None)
+            .with_consistency_level(ConsistencyLevel.QUORUM)
+            .build()
+        )
+        self.assertEqual("{Get{Person(consistencyLevel: QUORUM ){name}}}", query)
+
+        query = (
+            GetBuilder("Person", "name", None).with_consistency_level(ConsistencyLevel.ALL).build()
+        )
+        self.assertEqual("{Get{Person(consistencyLevel: ALL ){name}}}", query)
 
     def test_build_with_where(self):
         """

@@ -18,7 +18,16 @@ CLASS_KEYS = {
     "replicationConfig",
 }
 
-PROPERTY_KEYS = {"dataType", "name", "moduleConfig", "description", "indexInverted", "tokenization"}
+PROPERTY_KEYS = {
+    "dataType",
+    "name",
+    "moduleConfig",
+    "description",
+    "indexInverted",
+    "tokenization",
+    "indexFilterable",
+    "indexSearchable",
+}
 
 
 def validate_schema(schema: dict) -> None:
