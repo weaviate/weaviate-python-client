@@ -135,3 +135,25 @@ def test_additional():
     assert sorted(result_gql.keys()) == sorted(result_grpc.keys())
     for key in result_gql.keys():
         assert result_gql[key] == result_grpc[key]
+
+
+def test_grpc_errors():
+    client = weaviate.Client(
+        "http://localhost:8080",
+        additional_config=Config(grpc_port_experimental=50051),
+    )
+    class_name = "grpc_class_validation"
+    if client.schema.exists(class_name):
+        client.schema.delete_class(class_name)
+
+    client.data_object.create({"test": "test"}, class_name)
+
+    # class errors
+    res = client.query.get(class_name + "does_not_exist", ["test"]).do()
+    assert "errors" in res
+    assert "data" not in res
+
+    # prop errors
+    res = client.query.get(class_name, ["test", "made_up_prop"]).do()
+    assert "errors" in res
+    assert "data" not in res

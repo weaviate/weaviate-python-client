@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-add-additional-properties-to-grpc-39c4c45
+    image: semitechnologies/weaviate:preview-validate-search-c804a73
     ports:
       - "8080:8080"
       - "50051:50051"

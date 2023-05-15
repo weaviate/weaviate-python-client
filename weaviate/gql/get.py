@@ -5,6 +5,8 @@ from dataclasses import dataclass, Field, fields
 from json import dumps
 from typing import List, Union, Optional, Dict, Tuple
 
+import grpc
+
 from weaviate import util
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
@@ -1222,62 +1224,66 @@ class GetBuilder(GraphQL):
             if len(access_token) > 0:
                 metadata = (("authorization", access_token),)
 
-            res, _ = self._connection.grpc_stub.Search.with_call(
-                weaviate_pb2.SearchRequest(
-                    class_name=self._class_name,
-                    limit=self._limit,
-                    near_vector=weaviate_pb2.NearVectorParams(
-                        vector=self._near_ask.content["vector"],
-                        certainty=self._near_ask.content.get("certainty", None),
-                        distance=self._near_ask.content.get("distance", None),
-                    )
-                    if self._near_ask is not None and isinstance(self._near_ask, NearVector)
-                    else None,
-                    near_object=weaviate_pb2.NearObjectParams(
-                        id=self._near_ask.content["id"],
-                        certainty=self._near_ask.content.get("certainty", None),
-                        distance=self._near_ask.content.get("distance", None),
-                    )
-                    if self._near_ask is not None and isinstance(self._near_ask, NearObject)
-                    else None,
-                    properties=self._convert_references_to_grpc(self._properties),
-                    additional_properties=weaviate_pb2.AdditionalProperties(
-                        uuid=self._additional_dataclass.uuid,
-                        vector=self._additional_dataclass.vector,
-                        creationTimeUnix=self._additional_dataclass.creationTimeUnix,
-                        lastUpdateTimeUnix=self._additional_dataclass.lastUpdateTimeUnix,
-                        distance=self._additional_dataclass.distance,
-                        explainScore=self._additional_dataclass.explainScore,
-                        score=self._additional_dataclass.score,
-                    )
-                    if self._additional_dataclass is not None
-                    else None,
-                    bm25_search=weaviate_pb2.BM25SearchParams(
-                        properties=self._bm25.properties, query=self._bm25.query
-                    )
-                    if self._bm25 is not None
-                    else None,
-                    hybrid_search=weaviate_pb2.HybridSearchParams(
-                        properties=self._hybrid.properties,
-                        query=self._hybrid.query,
-                        alpha=self._hybrid.alpha,
-                        vector=self._hybrid.vector,
-                    )
-                    if self._hybrid is not None
-                    else None,
-                ),
-                metadata=metadata,
-            )
+            try:
+                res, _ = self._connection.grpc_stub.Search.with_call(
+                    weaviate_pb2.SearchRequest(
+                        class_name=self._class_name,
+                        limit=self._limit,
+                        near_vector=weaviate_pb2.NearVectorParams(
+                            vector=self._near_ask.content["vector"],
+                            certainty=self._near_ask.content.get("certainty", None),
+                            distance=self._near_ask.content.get("distance", None),
+                        )
+                        if self._near_ask is not None and isinstance(self._near_ask, NearVector)
+                        else None,
+                        near_object=weaviate_pb2.NearObjectParams(
+                            id=self._near_ask.content["id"],
+                            certainty=self._near_ask.content.get("certainty", None),
+                            distance=self._near_ask.content.get("distance", None),
+                        )
+                        if self._near_ask is not None and isinstance(self._near_ask, NearObject)
+                        else None,
+                        properties=self._convert_references_to_grpc(self._properties),
+                        additional_properties=weaviate_pb2.AdditionalProperties(
+                            uuid=self._additional_dataclass.uuid,
+                            vector=self._additional_dataclass.vector,
+                            creationTimeUnix=self._additional_dataclass.creationTimeUnix,
+                            lastUpdateTimeUnix=self._additional_dataclass.lastUpdateTimeUnix,
+                            distance=self._additional_dataclass.distance,
+                            explainScore=self._additional_dataclass.explainScore,
+                            score=self._additional_dataclass.score,
+                        )
+                        if self._additional_dataclass is not None
+                        else None,
+                        bm25_search=weaviate_pb2.BM25SearchParams(
+                            properties=self._bm25.properties, query=self._bm25.query
+                        )
+                        if self._bm25 is not None
+                        else None,
+                        hybrid_search=weaviate_pb2.HybridSearchParams(
+                            properties=self._hybrid.properties,
+                            query=self._hybrid.query,
+                            alpha=self._hybrid.alpha,
+                            vector=self._hybrid.vector,
+                        )
+                        if self._hybrid is not None
+                        else None,
+                    ),
+                    metadata=metadata,
+                )
 
-            objects = []
-            for result in res.results:
-                obj = self._convert_references_to_grpc_result(result.properties)
-                additional = self._extract_additional_properties(result.additional_properties)
-                if len(additional) > 0:
-                    obj["_additional"] = additional
-                objects.append(obj)
+                objects = []
+                for result in res.results:
+                    obj = self._convert_references_to_grpc_result(result.properties)
+                    additional = self._extract_additional_properties(result.additional_properties)
+                    if len(additional) > 0:
+                        obj["_additional"] = additional
+                    objects.append(obj)
 
-            results = {"data": {"Get": {self._class_name: objects}}}
+                results = {"data": {"Get": {self._class_name: objects}}}
+
+            except grpc.RpcError as e:
+                results = {"errors": [e.details()]}
             return results
         else:
             return super().do()
