@@ -1214,7 +1214,9 @@ class GetBuilder(GraphQL):
             and self._where is None
             and self._after is None
             and all(
-                "..." not in prop for prop in self._properties if isinstance(prop, str)
+                "..." not in prop and "_additional" not in prop
+                for prop in self._properties
+                if isinstance(prop, str)
             )  # no ref props as strings
         )
         if grpc_enabled:
