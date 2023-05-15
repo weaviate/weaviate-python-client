@@ -6,7 +6,7 @@ import pytest
 
 from test.util import check_error_message
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.gql.get import GetBuilder, BM25, Hybrid, Reference, GroupBy, AdditionalProperties
+from weaviate.gql.get import GetBuilder, BM25, Hybrid, LinkTo, GroupBy, AdditionalProperties
 
 mock_connection_v117 = Mock()
 mock_connection_v117.server_version = "1.17.4"
@@ -65,7 +65,7 @@ def test_bm25(query: str, properties: List[str], expected: str):
     ],
 )
 def test_get_references(property_name: str, in_class: str, properties: List[str], expected: str):
-    ref = Reference(property_name, in_class, properties)
+    ref = LinkTo(property_name, in_class, properties)
     assert str(ref) == expected
 
 
