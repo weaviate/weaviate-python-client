@@ -1,4 +1,5 @@
 import json
+import time
 from typing import Dict
 
 import pytest
@@ -6,8 +7,7 @@ from pytest_httpserver import HTTPServer
 from werkzeug import Request, Response
 
 import weaviate
-from mock_tests.conftest import MOCK_SERVER_URL
-import time
+from mock_tests.conftest import MOCK_SERVER_URL, MOCK_IP, MOCK_PORT
 
 
 @pytest.mark.parametrize(
@@ -67,3 +67,8 @@ def test_wait_for_weaviate(httpserver: HTTPServer):
     httpserver.expect_request("/v1/.well-known/ready").respond_with_handler(handler)
     start_time = time.time()
     weaviate.Client(url=MOCK_SERVER_URL, startup_period=30)
+
+
+def test_user_pw_in_url(weaviate_mock):
+    """Test that user and pw can be in the url."""
+    weaviate.Client(url="http://user:pw@" + MOCK_IP + ":" + str(MOCK_PORT))  # no exception

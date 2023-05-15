@@ -1,10 +1,13 @@
 import json
 import os
 import uuid
+from typing import Optional, List
 
 import pytest
+from pytest import FixtureRequest
 
 import weaviate
+from weaviate.data.replication import ConsistencyLevel
 
 schema = {
     "classes": [
@@ -60,19 +63,34 @@ def people_schema() -> str:
 
 
 @pytest.fixture(scope="module")
-def client():
-    client = weaviate.Client("http://localhost:8080")
+def client(request):
+    port = 8080
+    opts = parse_client_options(request)
+    if opts:
+        if opts.get("cluster"):
+            port = 8087
+            for _, c in enumerate(schema["classes"]):
+                c["replicationConfig"] = {"factor": 2}
+
+    client = weaviate.Client(f"http://localhost:{port}")
     client.schema.delete_all()
     client.schema.create(schema)
     with client.batch as batch:
         for ship in SHIPS:
-
             batch.add_data_object(ship["props"], "Ship", ship["id"])
 
         batch.flush()
 
     yield client
     client.schema.delete_all()
+
+
+def parse_client_options(request: FixtureRequest) -> dict:
+    try:
+        if isinstance(request.param, dict):
+            return request.param
+    except AttributeError:
+        return
 
 
 def test_get_data(client):
@@ -177,13 +195,92 @@ def test_bm25_no_result(client):
 
 
 @pytest.mark.parametrize("query", ["sponges", "sponges\n"])
-def test_hybrid_bm25(client, query: str):
+def test_hybrid(client, query: str):
     """Test hybrid search with alpha=0.5 to have a combination of BM25 and vector search."""
     result = client.query.get("Ship", ["name"]).with_hybrid(query, alpha=0.5, vector=[1] * 300).do()
 
     # will find more results. "The Crusty Crab" is still first, because it matches with the BM25 search
     assert len(result["data"]["Get"]["Ship"]) >= 1
     assert result["data"]["Get"]["Ship"][0]["name"] == "The Crusty Crab"
+
+
+@pytest.mark.parametrize(
+    "properties,num_results",
+    [(None, 1), ([], 1), (["description"], 1), (["description", "name"], 1), (["name"], 0)],
+)
+def test_hybrid_properties(client, properties: Optional[List[str]], num_results: int):
+    """Test hybrid search with alpha=0.5 to have a combination of BM25 and vector search."""
+    result = (
+        client.query.get("Ship", ["name"])
+        .with_hybrid("sponges", alpha=0.0, properties=properties)
+        .do()
+    )
+
+    # "The Crusty Crab" has "sponges" in its description, it cannot be found in other properties
+    if num_results > 0:
+        assert len(result["data"]["Get"]["Ship"]) >= 1
+
+        assert result["data"]["Get"]["Ship"][0]["name"] == "The Crusty Crab"
+    else:
+        assert len(result["data"]["Get"]["Ship"]) == 0
+
+
+def test_group_by(client, people_schema):
+    """Test hybrid search with alpha=0.5 to have a combination of BM25 and vector search."""
+    client.schema.delete_all()
+    client.schema.create(people_schema)
+
+    persons = []
+    for i in range(10):
+        persons.append(uuid.uuid4())
+        client.data_object.create({"name": "randomName" + str(i)}, "Person", persons[-1])
+
+    client.data_object.create({}, "Call", "3ab05e06-2bb2-41d1-b5c5-e044f3aa9623")
+    client.data_object.create({}, "Call", "3ab05e06-2bb2-41d1-b5c5-e044f3aa9622")
+
+    # create refs
+    for i in range(5):
+        client.data_object.reference.add(
+            to_uuid=persons[i],
+            from_property_name="caller",
+            from_uuid="3ab05e06-2bb2-41d1-b5c5-e044f3aa9623"
+            if i % 2 == 0
+            else "3ab05e06-2bb2-41d1-b5c5-e044f3aa9622",
+            from_class_name="Call",
+            to_class_name="Person",
+        )
+
+    result = (
+        client.query.get("Call", ["caller{... on Person{name}}"])
+        .with_near_object({"id": "3ab05e06-2bb2-41d1-b5c5-e044f3aa9622"})
+        .with_group_by(properties=["caller"], groups=2, objects_per_group=3)
+        .with_additional("group{hits {_additional{vector}caller{... on Person{name}}}}")
+        .do()
+    )
+
+    # will find more results. "The Crusty Crab" is still first, because it matches with the BM25 search
+    assert len(result["data"]["Get"]["Call"]) >= 1
+    assert result["data"]["Get"]["Call"][0]["caller"][0]["name"] == "randomName0"
+
+
+@pytest.mark.parametrize(
+    "client,level",
+    [
+        ({"cluster": True}, ConsistencyLevel.ONE),
+        ({"cluster": True}, ConsistencyLevel.QUORUM),
+        ({"cluster": True}, ConsistencyLevel.ALL),
+    ],
+    indirect=["client"],
+)
+def test_consistency_level(client, level):
+    result = (
+        client.query.get("Ship", ["name"])
+        .with_consistency_level(level)
+        .with_additional("isConsistent")
+        .do()
+    )
+    for _, res in enumerate(get_objects_from_result(result)):
+        assert res["_additional"]["isConsistent"]
 
 
 @pytest.mark.parametrize(
@@ -217,6 +314,7 @@ def test_generative_openai(single: str, grouped: str):
             {"name": "name", "dataType": ["string"]},
             {"name": "review", "dataType": ["string"]},
         ],
+        "moduleConfig": {"generative-openai": {}},
     }
     client.schema.create_class(wine_class)
     client.data_object.create(

@@ -3,34 +3,46 @@
 # This file only contains a selection of the most common options. For a full
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
+import contextlib
+import os
+import sys
+
+from pkg_resources import DistributionNotFound, get_distribution
 
 # -- Path setup --------------------------------------------------------------
-
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-import os
-import sys
-from importlib.metadata import version, PackageNotFoundError
-
 sys.path.insert(0, os.path.abspath(".."))
 
 
+@contextlib.contextmanager
+def chdir(directory):
+    curdir = os.curdir
+    try:
+        os.chdir(directory)
+        yield
+    finally:
+        os.chdir(curdir)
+
+
 try:
-    __version__ = version("weaviate")
-except PackageNotFoundError:
-    # package is not installed
-    pass
+    dist = get_distribution("weaviate")
+except DistributionNotFound:
+    # The project is not installed in readthedocs environment. Read the version with setuptools_scm.
+    import setuptools_scm
+
+    with chdir(".."):
+        release = setuptools_scm.get_version()
+else:
+    release = dist.version
 
 # -- Project information -----------------------------------------------------
 
 project = "Weaviate Python Client"
 copyright = "2021-2023, Weaviate"
 author = "Weaviate"
-
-# The full version, including alpha/beta/rc tags
-release = __version__
 
 
 # -- General configuration ---------------------------------------------------

@@ -9,6 +9,7 @@ from typing import List, Optional, Dict, Union
 import pytest
 
 import weaviate
+from weaviate.gql.get import Reference
 
 
 def get_query_for_group(name):
@@ -474,3 +475,198 @@ def test_add_vector_and_vectorizer(client: weaviate.Client):
         class_name="Person",
     )
     assert object_without_vector["vector"] != [1] * 300
+
+
+def test_beacon_refs(people_schema):
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+    client.schema.create(people_schema)
+
+    persons = []
+    for i in range(10):
+        persons.append(uuid.uuid4())
+        client.data_object.create({"name": "randomName" + str(i)}, "Person", persons[-1])
+
+    client.data_object.create({}, "Call", "3ab05e06-2bb2-41d1-b5c5-e044f3aa9623")
+
+    # create refs
+    for i in range(5):
+        client.data_object.reference.add(
+            to_uuid=persons[i],
+            from_property_name="caller",
+            from_uuid="3ab05e06-2bb2-41d1-b5c5-e044f3aa9623",
+            from_class_name="Call",
+            to_class_name="Person",
+        )
+
+    result = client.query.get(
+        "Call",
+        [
+            "start",
+            Reference(reference_property="caller", linked_class="Person", properties=["name"]),
+        ],
+    ).do()
+    callers = result["data"]["Get"]["Call"][0]["caller"]
+    assert len(callers) == 5
+    all_names = [caller["name"] for caller in callers]
+    assert all("randomName" + str(i) in all_names for i in range(5))
+
+
+def test_beacon_refs_multiple(people_schema):
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+    client.schema.create_class(
+        {
+            "class": "Person",
+            "description": "A person such as humans or personality known through culture",
+            "properties": [
+                {"name": "name", "dataType": ["string"]},
+                {"name": "age", "dataType": ["int"]},
+                {"name": "born_in", "dataType": ["text"]},
+            ],
+            "vectorizer": "none",
+        }
+    )
+
+    client.schema.create_class(
+        {
+            "class": "Call",
+            "description": "A call between two Persons",
+            "properties": [
+                {"name": "caller", "dataType": ["Person"]},
+                {"name": "recipient", "dataType": ["Person"]},
+            ],
+            "vectorizer": "none",
+        }
+    )
+
+    persons = []
+    for i in range(10):
+        persons.append(uuid.uuid4())
+        client.data_object.create(
+            {"name": "randomName" + str(i), "age": i, "born_in": "city" + str(i)},
+            "Person",
+            persons[-1],
+        )
+
+    call_uuids = [uuid.uuid4(), uuid.uuid4()]
+    client.data_object.create({}, "Call", call_uuids[0])
+    client.data_object.create({}, "Call", call_uuids[1])
+
+    # create refs
+    for i in range(4):
+        client.data_object.reference.add(call_uuids[i % 2], "caller", persons[i], "Call", "Person")
+        client.data_object.reference.add(
+            call_uuids[i % 2], "recipient", persons[i + 5], "Call", "Person"
+        )
+
+    result = client.query.get(
+        "Call",
+        [
+            Reference(
+                reference_property="caller", linked_class="Person", properties=["name", "age"]
+            ),
+            Reference(
+                reference_property="recipient", linked_class="Person", properties=["born_in", "age"]
+            ),
+        ],
+    ).do()
+    call1 = result["data"]["Get"]["Call"][0]
+    call2 = result["data"]["Get"]["Call"][1]
+
+    # each call has two callers and recipients and caller and recipient should contain different entries
+    for call in [call1, call2]:
+        assert len(call["caller"]) == 2
+        assert len(call["recipient"]) == 2
+
+        assert "age" in call["caller"][0] and "name" in call["caller"][0]
+        assert "age" in call["recipient"][0] and "born_in" in call["recipient"][0]
+
+
+def test_beacon_refs_nested():
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+    client.schema.create_class(
+        {
+            "class": "A",
+            "properties": [{"name": "nonRef", "dataType": ["string"]}],
+            "vectorizer": "none",
+        }
+    )
+    client.schema.create_class(
+        {
+            "class": "B",
+            "properties": [
+                {"name": "nonRef", "dataType": ["string"]},
+                {"name": "refA", "dataType": ["A"]},
+            ],
+            "vectorizer": "none",
+        }
+    )
+    client.schema.create_class(
+        {
+            "class": "C",
+            "properties": [
+                {"name": "nonRef", "dataType": ["string"]},
+                {"name": "refB", "dataType": ["B"]},
+            ],
+            "vectorizer": "none",
+        }
+    )
+    client.schema.create_class(
+        {
+            "class": "D",
+            "properties": [
+                {"name": "nonRef", "dataType": ["string"]},
+                {"name": "refC", "dataType": ["C"]},
+                {"name": "refB", "dataType": ["B"]},
+            ],
+            "vectorizer": "none",
+        }
+    )
+
+    uuid_a = client.data_object.create({"nonRef": "A"}, "A")
+    uuid_b = client.data_object.create({"nonRef": "B"}, "B")
+    client.data_object.reference.add(uuid_b, "refA", uuid_a, "B", "A")
+
+    uuid_c = client.data_object.create({"nonRef": "C"}, "C")
+    client.data_object.reference.add(uuid_c, "refB", uuid_b, "C", "B")
+
+    uuid_d = client.data_object.create({"nonRef": "D"}, "D")
+    client.data_object.reference.add(uuid_d, "refC", uuid_c, "D", "C")
+    client.data_object.reference.add(uuid_d, "refB", uuid_b, "D", "B")
+
+    result = client.query.get(
+        "D",
+        [
+            "nonRef",
+            Reference(
+                reference_property="refC",
+                linked_class="C",
+                properties=[
+                    "nonRef",
+                    Reference(
+                        reference_property="refB",
+                        linked_class="B",
+                        properties=[
+                            "nonRef",
+                            Reference(
+                                reference_property="refA", linked_class="A", properties=["nonRef"]
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+            Reference(
+                reference_property="refB",
+                linked_class="B",
+                properties=[
+                    "nonRef",
+                    Reference(reference_property="refA", linked_class="A", properties=["nonRef"]),
+                ],
+            ),
+        ],
+    ).do()
+
+    assert result["data"]["Get"]["D"][0]["refC"][0]["refB"][0]["refA"][0]["nonRef"] == "A"
+    assert result["data"]["Get"]["D"][0]["refB"][0]["refA"][0]["nonRef"] == "A"

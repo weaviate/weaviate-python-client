@@ -7,14 +7,14 @@ import os
 import uuid as uuid_lib
 from enum import Enum, EnumMeta
 from io import BufferedReader
-from numbers import Real
-from typing import Union, Sequence, Any, Optional, List, Dict
+from typing import Union, Sequence, Any, Optional, List, Dict, Tuple
 
 import requests
 import validators
 import re
 
 from weaviate.exceptions import SchemaValidationException
+from weaviate.types import NUMBERS
 
 MINIMUM_NO_WARNING_VERSION = (
     "v1.16.0"  # The minimum version of Weaviate that will not trigger an upgrade warning.
@@ -25,7 +25,7 @@ MINIMUM_NO_WARNING_VERSION = (
 #    'ALL' in ConsistencyLevel == True
 #    12345 in ConsistencyLevel == False
 class MetaEnum(EnumMeta):
-    def __contains__(cls, item):
+    def __contains__(cls, item: Any) -> bool:
         try:
             # when item is type ConsistencyLevel
             return item.name in cls.__members__.keys()
@@ -334,11 +334,11 @@ def get_vector(vector: Sequence) -> list:
         return vector
     try:
         # if vector is numpy.ndarray or torch.Tensor
-        return vector.squeeze().tolist()
+        return vector.squeeze().tolist()  # type: ignore
     except AttributeError:
         try:
             # if vector is tf.Tensor
-            return vector.numpy().squeeze().tolist()
+            return vector.numpy().squeeze().tolist()  # type: ignore
         except AttributeError:
             raise TypeError(
                 "The type of the 'vector' argument is not supported!\n"
@@ -518,7 +518,7 @@ def check_batch_result(
 
 
 def _check_positive_num(
-    value: Real, arg_name: str, data_type: type, include_zero: bool = False
+    value: NUMBERS, arg_name: str, data_type: type, include_zero: bool = False
 ) -> None:
     """
     Check if the `value` of the `arg_name` is a positive number.
@@ -612,3 +612,55 @@ def is_weaviate_too_old(current_version_str: str) -> bool:
     current_version = parse_version_string(current_version_str)
     minimum_version = parse_version_string(MINIMUM_NO_WARNING_VERSION)
     return minimum_version > current_version
+
+
+def _get_valid_timeout_config(
+    timeout_config: Union[Tuple[NUMBERS, NUMBERS], NUMBERS, None]
+) -> Tuple[NUMBERS, NUMBERS]:
+    """
+    Validate and return TimeOut configuration.
+
+    Parameters
+    ----------
+    timeout_config : tuple(NUMBERS, NUMBERS) or NUMBERS or None, optional
+            Set the timeout configuration for all requests to the Weaviate server. It can be a
+            number or, a tuple of two numbers: (connect timeout, read timeout).
+            If only one number is passed then both connect and read timeout will be set to
+            that value.
+
+    Raises
+    ------
+    TypeError
+        If arguments are of a wrong data type.
+    ValueError
+        If 'timeout_config' is not a tuple of 2.
+    ValueError
+        If 'timeout_config' is/contains negative number/s.
+    """
+
+    def check_number(num: NUMBERS):
+        return isinstance(num, float) or isinstance(num, int)
+
+    if check_number(timeout_config) and not isinstance(timeout_config, bool):
+        if timeout_config <= 0.0:
+            raise ValueError("'timeout_config' cannot be non-positive number/s!")
+        return timeout_config, timeout_config
+
+    if not isinstance(timeout_config, tuple):
+        raise TypeError("'timeout_config' should be a (or tuple of) positive number/s!")
+    if len(timeout_config) != 2:
+        raise ValueError("'timeout_config' must be of length 2!")
+    if not (check_number(timeout_config[0]) and check_number(timeout_config[1])) or (
+        isinstance(timeout_config[0], bool) and isinstance(timeout_config[1], bool)
+    ):
+        raise TypeError("'timeout_config' must be tuple of numbers")
+    if timeout_config[0] <= 0.0 or timeout_config[1] <= 0.0:
+        raise ValueError("'timeout_config' cannot be non-positive number/s!")
+    return timeout_config
+
+
+def _type_request_response(json_response: Any) -> Optional[Dict[str, Any]]:
+    if json_response is None:
+        return None
+    assert isinstance(json_response, dict)
+    return json_response

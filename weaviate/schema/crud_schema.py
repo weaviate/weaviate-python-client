@@ -32,6 +32,8 @@ _PRIMITIVE_WEAVIATE_TYPES_SET = {
     "geoCoordinates",
     "blob",
     "phoneNumber",
+    "uuid",
+    "uuid[]",
 }
 
 
@@ -75,7 +77,7 @@ class Schema:
         ...     "properties": [
         ...         {
         ...             "name": "title",
-        ...             "dataType": ["string"],
+        ...             "dataType": ["text"],
         ...             "description": "The title the article",
         ...         },
         ...         {
@@ -91,7 +93,7 @@ class Schema:
         ...     "properties": [
         ...         {
         ...             "name": "name",
-        ...             "dataType": ["string"],
+        ...             "dataType": ["text"],
         ...             "description": "The name of the author",
         ...         },
         ...         {
@@ -145,7 +147,7 @@ class Schema:
         ...     "properties": [
         ...         {
         ...             "name": "name",
-        ...             "dataType": ["string"],
+        ...             "dataType": ["text"],
         ...             "description": "The name of the author",
         ...         },
         ...         {
@@ -230,6 +232,50 @@ class Schema:
         for _class in classes:
             self.delete_class(_class["class"])
 
+    def exists(self, class_name: str) -> bool:
+        """
+        Check if class exists in Weaviate.
+
+        Parameters
+        ----------
+        class_name : str
+            The class that should be deleted from Weaviate.
+
+        Examples
+        --------
+        >>> client.schema.exists(class_name="Exists")
+        True
+
+        >>> client.schema.exists(class_name="DoesNotExists")
+        False
+
+        Returns
+        -------
+        bool
+            True if the class exists,
+            False otherwise.
+        """
+
+        if not isinstance(class_name, str):
+            raise TypeError(
+                f"'class_name' argument must be of type `str`! Given type: {type(class_name)}."
+            )
+
+        path = f"/schema/{_capitalize_first_letter(class_name)}"
+
+        try:
+            response = self._connection.get(path=path)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                "Checking class existence could not be done."
+            ) from conn_err
+        if response.status_code == 200:
+            return True
+        elif response.status_code == 404:
+            return False
+
+        raise UnexpectedStatusCodeException("Check if class exists", response)
+
     def contains(self, schema: Optional[Union[dict, str]] = None) -> bool:
         """
         Check if Weaviate already contains a schema.
@@ -255,7 +301,7 @@ class Schema:
                 "properties": [
                     {
                         "name": "type",
-                        "dataType": ["string"],
+                        "dataType": ["text"],
                         "description": "The animal type",
                     }
                 ]
@@ -388,9 +434,7 @@ class Schema:
                 },
                 "properties": [
                     {
-                    "dataType": [
-                        "string"
-                    ],
+                    "dataType": ["text"],
                     "description": "The animal type",
                     "name": "type"
                     }
@@ -419,9 +463,7 @@ class Schema:
             },
             "properties": [
                 {
-                "dataType": [
-                    "string"
-                ],
+                "dataType": ["text"],
                 "description": "The animal type",
                 "name": "type"
                 }

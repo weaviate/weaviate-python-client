@@ -1,0 +1,45 @@
+---
+version: '3.4'
+services:
+  weaviate-node-1:
+    image: semitechnologies/weaviate:1.19.2
+    restart: on-failure:0
+    ports:
+      - "8087:8080"
+    environment:
+      CONTEXTIONARY_URL: contextionary:9999
+      QUERY_DEFAULTS_LIMIT: 20
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: "./weaviate-node-1"
+      DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
+      ENABLE_MODULES: text2vec-contextionary
+      CLUSTER_GOSSIP_BIND_PORT: "7110"
+      CLUSTER_DATA_BIND_PORT: "7111"
+
+  weaviate-node-2:
+    init: true
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    image: semitechnologies/weaviate:preview-gql-handler-consistency-level-integration-4a12f55
+    ports:
+    - 8088:8080
+    - 6061:6060
+    restart: on-failure:0
+    environment:
+      CONTEXTIONARY_URL: contextionary:9999
+      LOG_LEVEL: 'debug'
+      QUERY_DEFAULTS_LIMIT: 20
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: './weaviate-node-2'
+      DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
+      ENABLE_MODULES: text2vec-contextionary
+      CLUSTER_HOSTNAME: 'node2'
+      CLUSTER_GOSSIP_BIND_PORT: '7112'
+      CLUSTER_DATA_BIND_PORT: '7113'
+      CLUSTER_JOIN: 'weaviate-node-1:7110'
+...

@@ -44,7 +44,7 @@ def get_random_port() -> int:
 
 
 class EmbeddedDB:
-    def __init__(self, options: EmbeddedOptions):
+    def __init__(self, options: EmbeddedOptions) -> None:
         self.data_bind_port = get_random_port()
         self.options = options
         self.pid = 0
@@ -81,7 +81,7 @@ class EmbeddedDB:
         else:
             raise exceptions.WeaviateEmbeddedInvalidVersion(self.options.version)
 
-    def _set_download_url_from_version_tag(self, version: str):
+    def _set_download_url_from_version_tag(self, version: str) -> None:
         machine_type = platform.machine()
         if machine_type == "x86_64":
             machine_type = "amd64"
@@ -98,14 +98,14 @@ class EmbeddedDB:
             + ".tar.gz"
         )
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.stop()
 
-    def ensure_paths_exist(self):
+    def ensure_paths_exist(self) -> None:
         Path(self.options.binary_path).mkdir(parents=True, exist_ok=True)
         Path(self.options.persistence_data_path).mkdir(parents=True, exist_ok=True)
 
-    def ensure_weaviate_binary_exists(self):
+    def ensure_weaviate_binary_exists(self) -> None:
         self._weaviate_binary_path = Path(
             self.options.binary_path,
             "weaviate-"
@@ -139,7 +139,7 @@ class EmbeddedDB:
             s.close()
             return False
 
-    def wait_till_listening(self):
+    def wait_till_listening(self) -> None:
         seconds = 30
         sleep_interval = 0.1
         retries = int(seconds / sleep_interval)
@@ -152,16 +152,16 @@ class EmbeddedDB:
             )
 
     @staticmethod
-    def check_supported_platform():
+    def check_supported_platform() -> None:
         if platform.system() in ["Darwin", "Windows"]:
             raise WeaviateStartUpError(
                 f"{platform.system()} is not supported with EmbeddedDB. Please upvote the feature request if "
                 f"you want this: https://github.com/weaviate/weaviate-python-client/issues/239"
             )
 
-    def start(self):
+    def start(self) -> None:
         if self.is_listening():
-            print(f"embedded weaviate is already listing on port {self.options.port}")
+            print(f"embedded weaviate is already listening on port {self.options.port}")
             return
 
         self.ensure_weaviate_binary_exists()
@@ -203,7 +203,7 @@ class EmbeddedDB:
         print(f"Started {self.options.binary_path}: process ID {self.pid}")
         self.wait_till_listening()
 
-    def stop(self):
+    def stop(self) -> None:
         if self.pid > 0:
             try:
                 os.kill(self.pid, signal.SIGTERM)
@@ -213,7 +213,7 @@ class EmbeddedDB:
                     f"was not found. So not doing anything"
                 )
 
-    def ensure_running(self):
+    def ensure_running(self) -> None:
         if not self.is_listening():
             print(
                 f"Embedded weaviate wasn't listening on port {self.options.port}, so starting embedded weaviate again"

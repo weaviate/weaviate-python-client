@@ -1,12 +1,14 @@
 """
 GraphQL `Get` command.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, Field, fields
 from json import dumps
 from typing import List, Union, Optional, Dict, Tuple
 
 from weaviate import util
 from weaviate.connect import Connection
+from weaviate.data.replication import ConsistencyLevel
+from weaviate.exceptions import AdditionalPropertiesException
 from weaviate.gql.filter import (
     Where,
     NearText,
@@ -21,6 +23,11 @@ from weaviate.gql.filter import (
 from weaviate.types import UUID
 from weaviate.util import image_encoder_b64, _capitalize_first_letter, get_valid_uuid
 from weaviate.warnings import _Warnings
+
+try:
+    from weaviate_grpc import weaviate_pb2
+except ImportError:
+    pass
 
 
 @dataclass
@@ -39,8 +46,9 @@ class BM25:
 @dataclass
 class Hybrid:
     query: str
-    alpha: float
-    vector: List[float]
+    alpha: Optional[float]
+    vector: Optional[List[float]]
+    properties: Optional[List[str]]
 
     def __str__(self) -> str:
         ret = f'query: "{util.strip_newlines(self.query)}"'
@@ -48,8 +56,64 @@ class Hybrid:
             ret += f", vector: {self.vector}"
         if self.alpha is not None:
             ret += f", alpha: {self.alpha}"
+        if self.properties is not None and len(self.properties) > 0:
+            props = '","'.join(self.properties)
+            ret += f', properties: ["{props}"]'
 
         return "hybrid:{" + ret + "}"
+
+
+@dataclass
+class GroupBy:
+    path: List[str]
+    groups: int
+    objects_per_group: int
+
+    def __str__(self) -> str:
+        props = '","'.join(self.path)
+        return f'groupBy:{{path:["{props}"], groups:{self.groups}, objectsPerGroup:{self.objects_per_group}}}'
+
+
+@dataclass
+class Reference:
+    reference_property: str
+    linked_class: str
+    properties: List[Union[str, "Reference"]]
+
+    def __str__(self) -> str:
+        props = " ".join(str(x) for x in self.properties)
+        return self.reference_property + "{... on " + self.linked_class + "{" + props + "}}"
+
+
+PROPERTIES = Union[List[Union[str, Reference]], str]
+
+
+@dataclass
+class AdditionalProperties:
+    uuid: bool = False
+    vector: bool = False
+    creationTimeUnix: bool = False
+    lastUpdateTimeUnix: bool = False
+    distance: bool = False
+    certainty: bool = False
+    score: bool = False
+    explainScore: bool = False
+
+    def __str__(self) -> str:
+        additional_props: List[str] = []
+        cls_fields: Tuple[Field, ...] = fields(self.__class__)
+        for field in cls_fields:
+            if issubclass(field.type, bool):
+                enabled: bool = getattr(self, field.name)
+                if enabled:
+                    name = field.name
+                    if field.name == "uuid":  # id is reserved python name
+                        name = "id"
+                    additional_props.append(name)
+        if len(additional_props) > 0:
+            return "_additional{" + " ".join(additional_props) + "}"
+        else:
+            return ""
 
 
 class GetBuilder(GraphQL):
@@ -57,9 +121,7 @@ class GetBuilder(GraphQL):
     GetBuilder class used to create GraphQL queries.
     """
 
-    def __init__(
-        self, class_name: str, properties: Union[List[str], str, None], connection: Connection
-    ):
+    def __init__(self, class_name: str, properties: Optional[PROPERTIES], connection: Connection):
         """
         Initialize a GetBuilder class instance.
 
@@ -90,17 +152,20 @@ class GetBuilder(GraphQL):
             raise TypeError(
                 "properties must be of type str, " f"list of str or None but was {type(properties)}"
             )
+
+        self._properties: List[Union[str, Reference]] = []
         for prop in properties:
-            if not isinstance(prop, str):
-                raise TypeError("All the `properties` must be of type `str`!")
+            if not isinstance(prop, str) and not isinstance(prop, Reference):
+                raise TypeError("All the `properties` must be of type `str` or Reference!")
+            self._properties.append(prop)
 
         self._class_name: str = _capitalize_first_letter(class_name)
-        self._properties: List[str] = properties
         self._additional: dict = {"__one_level": set()}
         # '__one_level' refers to the additional properties that are just a single word, not a dict
         # thus '__one_level', only one level of complexity
+        self._additional_dataclass: Optional[AdditionalProperties] = None
         self._where: Optional[Where] = None  # To store the where filter if it is added
-        self._limit: Optional[str] = None  # To store the limit filter if it is added
+        self._limit: Optional[int] = None  # To store the limit filter if it is added
         self._offset: Optional[str] = None  # To store the offset filter if it is added
         self._after: Optional[str] = None  # To store the offset filter if it is added
         self._near_ask: Optional[Filter] = None  # To store the `near`/`ask` clause if it is added
@@ -108,12 +173,15 @@ class GetBuilder(GraphQL):
         self._sort: Optional[Sort] = None
         self._bm25: Optional[BM25] = None
         self._hybrid: Optional[Hybrid] = None
+        self._group_by: Optional[GroupBy] = None
         self._alias: Optional[str] = None
+        self._consistency_level: Optional[ConsistencyLevel] = None
 
     def with_after(self, after_uuid: UUID):
         """Can be used to extract all elements by giving the last ID from the previous "page".
 
-        Requires limit to be set but cannot be combined with any other filters or search. Part of the Cursor API."""
+        Requires limit to be set but cannot be combined with any other filters or search. Part of the Cursor API.
+        """
         if not isinstance(after_uuid, UUID.__args__):  # __args__ is workaround for python 3.8
             raise TypeError("after_uuid must be of type UUID (str or uuid.UUID)")
 
@@ -532,7 +600,7 @@ class GetBuilder(GraphQL):
         if limit < 1:
             raise ValueError("limit cannot be non-positive (limit >=1).")
 
-        self._limit = f"limit: {limit} "
+        self._limit = limit
         self._contains_filter = True
         return self
 
@@ -619,7 +687,10 @@ class GetBuilder(GraphQL):
         return self
 
     def with_additional(
-        self, properties: Union[List, str, Dict[str, Union[List[str], str]], Tuple[dict, dict]]
+        self,
+        properties: Union[
+            List, str, Dict[str, Union[List[str], str]], Tuple[dict, dict], AdditionalProperties
+        ],
     ) -> "GetBuilder":
         """
         Add additional properties (i.e. properties from `_additional` clause). See Examples below.
@@ -794,6 +865,17 @@ class GetBuilder(GraphQL):
         TypeError
             If one of the property is not of a correct data type.
         """
+        if isinstance(properties, AdditionalProperties):
+            if len(self._additional) > 1 or len(self._additional["__one_level"]) > 0:
+                raise AdditionalPropertiesException(
+                    str(self._additional), str(self._additional_dataclass)
+                )
+            self._additional_dataclass = properties
+            return self
+        elif self._additional_dataclass is not None:
+            raise AdditionalPropertiesException(
+                str(self._additional), str(self._additional_dataclass)
+            )
 
         if isinstance(properties, str):
             self._additional["__one_level"].add(properties)
@@ -927,7 +1009,11 @@ class GetBuilder(GraphQL):
         return self
 
     def with_hybrid(
-        self, query: str, alpha: Optional[float] = None, vector: Optional[List[float]] = None
+        self,
+        query: str,
+        alpha: Optional[float] = None,
+        vector: Optional[List[float]] = None,
+        properties: Optional[List[str]] = None,
     ):
         """Get objects using bm25 and vector, then combine the results using a reciprocal ranking algorithm.
 
@@ -943,8 +1029,32 @@ class GetBuilder(GraphQL):
             Vector that is searched for. If 'None', weaviate will use the configured text-to-vector module to create a
             vector from the "query" field.
             By default, None
+        properties: Optional[List[str]]:
+            Which properties should be searched by BM25. Does not have any effect for vector search. If None or empty
+            all properties are searched.
         """
-        self._hybrid = Hybrid(query, alpha, vector)
+        self._hybrid = Hybrid(query, alpha, vector, properties)
+        self._contains_filter = True
+        return self
+
+    def with_group_by(
+        self, properties: List[str], groups: int, objects_per_group: int
+    ) -> "GetBuilder":
+        """Retrieve groups of objects from Weaviate.
+
+        Note that the return values must be set using .with_additional() to see the output.
+
+        Parameters
+        ----------
+        properties: List[str]
+            Properties to group by
+        groups: int
+            Maximum number of groups
+        objects_per_group: int
+            Maximum number of objects per group
+
+        """
+        self._group_by = GroupBy(properties, groups, objects_per_group)
         self._contains_filter = True
         return self
 
@@ -1002,6 +1112,13 @@ class GetBuilder(GraphQL):
         self._alias = alias
         return self
 
+    def with_consistency_level(self, consistency_level: ConsistencyLevel):
+        """Set the consistency level for the request."""
+
+        self._consistency_level = f"consistencyLevel: {consistency_level.value} "
+        self._contains_filter = True
+        return self
+
     def build(self, wrap_get: bool = True) -> str:
         """
         Build query filter as a string.
@@ -1029,7 +1146,7 @@ class GetBuilder(GraphQL):
             if self._where is not None:
                 query += str(self._where)
             if self._limit is not None:
-                query += self._limit
+                query += f"limit: {self._limit} "
             if self._offset is not None:
                 query += self._offset
             if self._near_ask is not None:
@@ -1040,8 +1157,12 @@ class GetBuilder(GraphQL):
                 query += str(self._bm25)
             if self._hybrid is not None:
                 query += str(self._hybrid)
+            if self._group_by is not None:
+                query += str(self._group_by)
             if self._after is not None:
                 query += self._after
+            if self._consistency_level is not None:
+                query += self._consistency_level
 
             query += ")"
 
@@ -1053,11 +1174,174 @@ class GetBuilder(GraphQL):
                 "At least one should be included."
             )
 
-        properties = " ".join(self._properties) + self._additional_to_str()
+        properties = " ".join(str(x) for x in self._properties) + self._additional_to_str()
         query += "{" + properties + "}"
         if wrap_get:
             query += "}}"
         return query
+
+    def do(self) -> dict:
+        """
+        Builds and runs the query.
+
+        Returns
+        -------
+        dict
+            The response of the query.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        """
+        grpc_enabled = (  # only implemented for some scenarios
+            self._connection.grpc_stub is not None
+            and (
+                self._near_ask is None
+                or isinstance(self._near_ask, NearVector)
+                or isinstance(self._near_ask, NearObject)
+            )
+            and len(self._additional) == 1
+            and (
+                len(self._additional["__one_level"]) == 0 or "id" in self._additional["__one_level"]
+            )
+            and self._offset is None
+            and self._sort is None
+            and self._where is None
+            and self._after is None
+            and all(
+                "..." not in prop for prop in self._properties if isinstance(prop, str)
+            )  # no ref props as strings
+        )
+        if grpc_enabled:
+
+            metadata = ()
+            access_token = self._connection.get_current_bearer_token()
+            if len(access_token) > 0:
+                metadata = (("authorization", access_token),)
+
+            res, _ = self._connection.grpc_stub.Search.with_call(
+                weaviate_pb2.SearchRequest(
+                    class_name=self._class_name,
+                    limit=self._limit,
+                    near_vector=weaviate_pb2.NearVectorParams(
+                        vector=self._near_ask.content["vector"],
+                        certainty=self._near_ask.content.get("certainty", None),
+                        distance=self._near_ask.content.get("distance", None),
+                    )
+                    if self._near_ask is not None and isinstance(self._near_ask, NearVector)
+                    else None,
+                    near_object=weaviate_pb2.NearObjectParams(
+                        id=self._near_ask.content["id"],
+                        certainty=self._near_ask.content.get("certainty", None),
+                        distance=self._near_ask.content.get("distance", None),
+                    )
+                    if self._near_ask is not None and isinstance(self._near_ask, NearObject)
+                    else None,
+                    properties=self._convert_references_to_grpc(self._properties),
+                    additional_properties=weaviate_pb2.AdditionalProperties(
+                        uuid=self._additional_dataclass.uuid,
+                        vector=self._additional_dataclass.vector,
+                        creationTimeUnix=self._additional_dataclass.creationTimeUnix,
+                        lastUpdateTimeUnix=self._additional_dataclass.lastUpdateTimeUnix,
+                        distance=self._additional_dataclass.distance,
+                        explainScore=self._additional_dataclass.explainScore,
+                        score=self._additional_dataclass.score,
+                    )
+                    if self._additional_dataclass is not None
+                    else None,
+                    bm25_search=weaviate_pb2.BM25SearchParams(
+                        properties=self._bm25.properties, query=self._bm25.query
+                    )
+                    if self._bm25 is not None
+                    else None,
+                    hybrid_search=weaviate_pb2.HybridSearchParams(
+                        properties=self._hybrid.properties,
+                        query=self._hybrid.query,
+                        alpha=self._hybrid.alpha,
+                        vector=self._hybrid.vector,
+                    )
+                    if self._hybrid is not None
+                    else None,
+                ),
+                metadata=metadata,
+            )
+
+            objects = []
+            for result in res.results:
+                obj = self._convert_references_to_grpc_result(result.properties)
+                additional = self._extract_additional_properties(result.additional_properties)
+                if len(additional) > 0:
+                    obj["_additional"] = additional
+                objects.append(obj)
+
+            results = {"data": {"Get": {self._class_name: objects}}}
+            return results
+        else:
+            return super().do()
+
+    def _extract_additional_properties(
+        self, props: weaviate_pb2.ResultAdditionalProps
+    ) -> Dict[str, str]:
+        additional_props = {}
+        if self._additional_dataclass is None:
+            return additional_props
+
+        if self._additional_dataclass.uuid:
+            additional_props["id"] = props.id
+        if self._additional_dataclass.vector:
+            additional_props["vector"] = (
+                [float(num) for num in props.vector] if len(props.vector) > 0 else None
+            )
+        if self._additional_dataclass.distance:
+            additional_props["distance"] = props.distance if props.distance_present else None
+        if self._additional_dataclass.certainty:
+            additional_props["certainty"] = props.certainty if props.certainty_present else None
+        if self._additional_dataclass.creationTimeUnix:
+            additional_props["creationTimeUnix"] = (
+                str(props.creation_time_unix) if props.creation_time_unix_present else None
+            )
+        if self._additional_dataclass.lastUpdateTimeUnix:
+            additional_props["lastUpdateTimeUnix"] = (
+                str(props.last_update_time_unix) if props.last_update_time_unix_present else None
+            )
+        if self._additional_dataclass.score:
+            additional_props["score"] = props.score if props.score_present else None
+        if self._additional_dataclass.explainScore:
+            additional_props["explainScore"] = (
+                props.explain_score if props.explain_score_present else None
+            )
+        return additional_props
+
+    def _convert_references_to_grpc_result(self, properties: weaviate_pb2.ResultProperties) -> Dict:
+        result = {}
+        for name, non_ref_prop in properties.non_ref_properties.items():
+            result[name] = non_ref_prop
+
+        for ref_prop in properties.ref_props:
+            result[ref_prop.prop_name] = [
+                self._convert_references_to_grpc_result(prop) for prop in ref_prop.properties
+            ]
+
+        return result
+
+    def _convert_references_to_grpc(
+        self, properties: List[Union[Reference, str]]
+    ) -> weaviate_pb2.Properties:
+        return weaviate_pb2.Properties(
+            non_ref_properties=[prop for prop in properties if isinstance(prop, str)],
+            ref_properties=[
+                weaviate_pb2.RefProperties(
+                    linked_class=prop.linked_class,
+                    reference_property=prop.reference_property,
+                    linked_properties=self._convert_references_to_grpc(prop.properties),
+                )
+                for prop in properties
+                if isinstance(prop, Reference)
+            ],
+        )
 
     def _additional_to_str(self) -> str:
         """
@@ -1068,6 +1352,8 @@ class GetBuilder(GraphQL):
         str
             The converted self._additional.
         """
+        if self._additional_dataclass is not None:
+            return str(self._additional_dataclass)
 
         str_to_return = " _additional {"
 

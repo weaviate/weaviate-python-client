@@ -1,5 +1,3 @@
-import time
-
 import pytest
 
 import weaviate
@@ -41,25 +39,6 @@ schema = {
     ]
 }
 
-query = """
-{
-  Get {
-      Message {
-        content
-        _additional {
-            id
-        }
-        labeled {
-          ... on Label {
-            name
-            description
-          }
-        }
-      }
-    }
-}
-"""
-
 
 @pytest.fixture(scope="module")
 def client():
@@ -95,14 +74,18 @@ def test_contextual(client):
         {"content": "thank you for reminding the world of our cause"}, "Message"
     )
 
-    time.sleep(2.0)
     client.classification.schedule().with_type("text2vec-contextionary-contextual").with_class_name(
         "Message"
     ).with_based_on_properties(["content"]).with_classify_properties(
         ["labeled"]
     ).with_wait_for_completion().do()
 
-    result = client.query.raw(query)
+    result = (
+        client.query.get("Message", ["content", "labeled {... on Label {name description}}"])
+        .with_additional(["id", "classification{basedOn, id}"])
+        .do()
+    )
     labeled_messages = result["data"]["Get"]["Message"]
     for message in labeled_messages:
         assert message["labeled"] is not None
+        assert message["_additional"]["id"] is not None

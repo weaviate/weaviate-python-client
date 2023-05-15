@@ -16,31 +16,36 @@ from weaviate.exceptions import MissingScopeException, AuthenticationFailedExcep
 from ..warnings import _Warnings
 
 if TYPE_CHECKING:
-    from . import BaseConnection
+    from .connection import BaseConnection
 
 AUTH_DEFAULT_TIMEOUT = 5
+OIDC_CONFIG = Dict[str, Union[str, List[str]]]
 
 
 class _Auth:
     def __init__(
         self,
-        oidc_config: Dict[str, Union[str, List[str]]],
+        oidc_config: OIDC_CONFIG,
         credentials: AuthCredentials,
         connection: BaseConnection,
     ) -> None:
         self._credentials: AuthCredentials = credentials
         self._connection: BaseConnection = connection
-
-        self._open_id_config_url: str = oidc_config["href"]
-        self._client_id: str = oidc_config["clientId"]
+        config_url = oidc_config["href"]
+        client_id = oidc_config["clientId"]
+        assert isinstance(config_url, str) and isinstance(client_id, str)
+        self._open_id_config_url: str = config_url
+        self._client_id: str = client_id
         self._default_scopes: List[str] = []
         if "scopes" in oidc_config:
-            self._default_scopes = oidc_config["scopes"]
+            default_scopes = oidc_config["scopes"]
+            assert isinstance(default_scopes, list)
+            self._default_scopes = default_scopes
 
         self._token_endpoint: str = self._get_token_endpoint()
         self._validate(oidc_config)
 
-    def _validate(self, oidc_config: Dict[str, str]) -> None:
+    def _validate(self, oidc_config: OIDC_CONFIG) -> None:
         if isinstance(self._credentials, AuthClientPassword):
             if self._token_endpoint.startswith("https://login.microsoftonline.com"):
                 raise AuthenticationFailedException(
@@ -60,7 +65,9 @@ class _Auth:
 
     def _get_token_endpoint(self) -> str:
         response_auth = requests.get(self._open_id_config_url, proxies=self._connection.proxies)
-        return response_auth.json()["token_endpoint"]
+        response = response_auth.json()["token_endpoint"]
+        assert isinstance(response, str)
+        return response
 
     def get_auth_session(self) -> OAuth2Session:
         if isinstance(self._credentials, AuthBearerToken):
@@ -74,7 +81,7 @@ class _Auth:
         return session
 
     def _get_session_auth_bearer_token(self, config: AuthBearerToken) -> OAuth2Session:
-        token = {"access_token": config.access_token}
+        token: Dict[str, Union[str, int]] = {"access_token": config.access_token}
         if config.expires_in is not None:
             token["expires_in"] = config.expires_in
         if config.refresh_token is not None:
@@ -93,7 +100,7 @@ class _Auth:
 
     def _get_session_user_pw(self, config: AuthClientPassword) -> OAuth2Session:
         scope: List[str] = self._default_scopes.copy()
-        scope.extend(config.scope)
+        scope.extend(config.scope_list)
         session = OAuth2Session(
             client_id=self._client_id,
             token_endpoint=self._token_endpoint,
@@ -110,8 +117,8 @@ class _Auth:
     def _get_session_client_credential(self, config: AuthClientCredentials) -> OAuth2Session:
         scope: List[str] = self._default_scopes.copy()
 
-        if config.scope is not None:
-            scope.extend(config.scope)
+        if config.scope_list is not None:
+            scope.extend(config.scope_list)
         if len(scope) == 0:
             # hardcode commonly used scopes
             if self._token_endpoint.startswith("https://login.microsoftonline.com"):

@@ -10,7 +10,7 @@ except PackageNotFoundError:
 
 class _Warnings:
     @staticmethod
-    def auth_with_anon_weaviate():
+    def auth_with_anon_weaviate() -> None:
         warnings.warn(
             message="""Auth001: The client was configured to use authentication, but weaviate is configured without
                     authentication. Are you sure this is correct?""",
@@ -19,7 +19,7 @@ class _Warnings:
         )
 
     @staticmethod
-    def auth_no_refresh_token(auth_len: Optional[int] = None):
+    def auth_no_refresh_token(auth_len: Optional[int] = None) -> None:
         if auth_len is not None:
             msg = f"The current access token is only valid for {auth_len}s."
         else:
@@ -40,13 +40,13 @@ class _Warnings:
         )
 
     @staticmethod
-    def auth_negative_expiration_time(expires_in: int):
+    def auth_negative_expiration_time(expires_in: int) -> None:
         msg = f"""Auth003: Access token expiration time is negative: {expires_in}."""
 
         warnings.warn(message=msg, category=UserWarning, stacklevel=1)
 
     @staticmethod
-    def auth_header_and_auth_secret():
+    def auth_header_and_auth_secret() -> None:
         msg = """Auth004: Received an authentication header and an auth_client_secret parameter.
 
          The auth_client_secret takes precedence over the header and the authentication header will be ignored. Use
@@ -56,7 +56,7 @@ class _Warnings:
         warnings.warn(message=msg, category=UserWarning, stacklevel=1)
 
     @staticmethod
-    def auth_cannot_parse_oidc_config(url: str):
+    def auth_cannot_parse_oidc_config(url: str) -> None:
         msg = f"""Auth005: Could not parse Weaviates OIDC configuration, using unauthenticated access. If you added
         an authorization header yourself it will be unaffected.
 
@@ -65,7 +65,7 @@ class _Warnings:
         warnings.warn(message=msg, category=UserWarning, stacklevel=1)
 
     @staticmethod
-    def weaviate_server_older_than_1_14(server_version: str):
+    def weaviate_server_older_than_1_14(server_version: str) -> None:
         warnings.warn(
             message=f"""Dep001: You are using the Weaviate Python Client version {__version__} which supports
             changes and features of Weaviate >=1.14.x, but you are connected to Weaviate {server_version}.
@@ -76,7 +76,7 @@ class _Warnings:
         )
 
     @staticmethod
-    def manual_batching():
+    def manual_batching() -> None:
         warnings.warn(
             message="""Dep002: You are batching manually. This means you are NOT using the client's built-in
             multi-threading. Setting `batch_size` in `client.batch.configure()`  to an int value will enabled automatic
@@ -87,7 +87,7 @@ class _Warnings:
         )
 
     @staticmethod
-    def weaviate_too_old_for_openai(server_version: str):
+    def weaviate_too_old_for_openai(server_version: str) -> None:
         warnings.warn(
             message=f"""Dep003: You are trying to use the generative search, but you are connected to Weaviate {server_version}.
             Support for generative search was added in weaviate version 1.17.3.""",
@@ -96,7 +96,7 @@ class _Warnings:
         )
 
     @staticmethod
-    def token_refresh_failed(exc: Exception):
+    def token_refresh_failed(exc: Exception) -> None:
         warnings.warn(
             message=f"""Con001: Could not reach token issuer for the periodic refresh. This client will automatically
             retry to refresh. If this does not succeed, the client will become unauthenticated.

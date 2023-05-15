@@ -1,8 +1,7 @@
 """
 Client class definition.
 """
-from numbers import Real
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, Dict, Any
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -11,13 +10,18 @@ from .backup import Backup
 from .batch import Batch
 from .classification import Classification
 from .cluster import Cluster
-from .connect.connection import Connection
+from .config import Config
+from .connect.connection import Connection, TIMEOUT_TYPE_RETURN
 from .contextionary import Contextionary
 from .data import DataObject
 from .embedded import EmbeddedDB, EmbeddedOptions
 from .exceptions import UnexpectedStatusCodeException
 from .gql import Query
 from .schema import Schema
+from .types import NUMBERS
+from .util import _get_valid_timeout_config, _type_request_response
+
+TIMEOUT_TYPE = Union[Tuple[NUMBERS, NUMBERS], NUMBERS]
 
 
 class Client:
@@ -51,13 +55,14 @@ class Client:
         self,
         url: Optional[str] = None,
         auth_client_secret: Optional[AuthCredentials] = None,
-        timeout_config: Union[Tuple[Real, Real], Real] = (10, 60),
+        timeout_config: TIMEOUT_TYPE = (10, 60),
         proxies: Union[dict, str, None] = None,
         trust_env: bool = False,
         additional_headers: Optional[dict] = None,
         startup_period: Optional[int] = 5,
         embedded_options: Optional[EmbeddedOptions] = None,
-    ):
+        additional_config: Optional[Config] = None,
+    ) -> None:
         """
         Initialize a Client class instance.
 
@@ -66,10 +71,13 @@ class Client:
         url : str
             The URL to the weaviate instance.
         auth_client_secret : weaviate.AuthCredentials or None, optional
+        # fmt: off
             Authenticate to weaviate by using one of the given authentication modes:
             - weaviate.auth.AuthBearerToken to use existing access and (optionally, but recommended) refresh tokens
             - weaviate.auth.AuthClientPassword to use username and password for oidc Resource Owner Password flow
             - weaviate.auth.AuthClientCredentials to use a client secret for oidc client credential flow
+
+        # fmt: on
         timeout_config : tuple(Real, Real) or Real, optional
             Set the timeout configuration for all requests to the Weaviate server. It can be a
             real number or, a tuple of two real numbers: (connect timeout, read timeout).
@@ -98,6 +106,8 @@ class Client:
             Create an embedded Weaviate cluster inside the client
             - You can pass weaviate.embedded.EmbeddedOptions() with default values
             - Take a look at the attributes of weaviate.embedded.EmbeddedOptions to see what is configurable
+        additional_config: weaviate.Config, optional
+            Additional and advanced configuration options for weaviate.
         Examples
         --------
         Without Auth.
@@ -112,7 +122,7 @@ class Client:
 
         With Auth.
 
-        >>> my_credentials = weaviate.auth.AuthClientPassword(USER_NAME, MY_PASSWORD)
+        >>> my_credentials = weaviate.AuthClientPassword(USER_NAME, MY_PASSWORD)
         >>> client = Client(
         ...     url = 'http://localhost:8080',
         ...     auth_client_secret = my_credentials
@@ -120,38 +130,34 @@ class Client:
 
         Creating a client with an embedded database:
 
-        >>> from weaviate.embedded import EmbeddedOptions
+        >>> from weaviate import EmbeddedOptions
         >>> client = Client(embedded_options=EmbeddedOptions())
+
+        Creating a client with additional configurations:
+
+        >>> from weaviate import Config
+        >>> client = Client(additional_config=Config())
+
 
         Raises
         ------
         TypeError
             If arguments are of a wrong data type.
         """
-
-        if embedded_options is None and not isinstance(url, str):
-            raise TypeError(f"URL is expected to be string but is {type(url)}")
-        if embedded_options is not None and isinstance(url, str) and len(url) > 0:
-            raise TypeError(
-                f"URL is not expected to be set when using embedded_options but URL was {url}"
-            )
-        if embedded_options is not None:
-            embedded_db = EmbeddedDB(options=embedded_options)
-            embedded_db.start()
-            url = f"http://localhost:{embedded_db.options.port}"
-        else:
-            url = url.strip("/")
-            embedded_db = None
+        url, embedded_db = self.__parse_url_and_embedded_db(url, embedded_options)
+        config = Config() if additional_config is None else additional_config
 
         self._connection = Connection(
             url=url,
             auth_client_secret=auth_client_secret,
-            timeout_config=timeout_config,
+            timeout_config=_get_valid_timeout_config(timeout_config),
             proxies=proxies,
             trust_env=trust_env,
             additional_headers=additional_headers,
             startup_period=startup_period,
             embedded_db=embedded_db,
+            grcp_port=config.grpc_port_experimental,
+            connection_config=config.connection_config,
         )
         self.classification = Classification(self._connection)
         self.schema = Schema(self._connection)
@@ -214,7 +220,7 @@ class Client:
 
         return self._connection.get_meta()
 
-    def get_open_id_configuration(self) -> Optional[dict]:
+    def get_open_id_configuration(self) -> Optional[Dict[str, Any]]:
         """
         Get the openid-configuration.
 
@@ -231,19 +237,19 @@ class Client:
 
         response = self._connection.get(path="/.well-known/openid-configuration")
         if response.status_code == 200:
-            return response.json()
+            return _type_request_response(response.json())
         if response.status_code == 404:
             return None
         raise UnexpectedStatusCodeException("Meta endpoint", response)
 
     @property
-    def timeout_config(self) -> Tuple[Real, Real]:
+    def timeout_config(self) -> TIMEOUT_TYPE_RETURN:
         """
         Getter/setter for `timeout_config`.
 
         Parameters
         ----------
-        timeout_config : tuple(Real, Real) or Real, optional
+        timeout_config : tuple(float, float) or float, optional
             For Getter only: Set the timeout configuration for all requests to the Weaviate server.
             It can be a real number or, a tuple of two real numbers:
                     (connect timeout, read timeout).
@@ -252,21 +258,41 @@ class Client:
 
         Returns
         -------
-        Tuple[Real, Real]
+        Tuple[float, float]
             For Getter only: Requests Timeout configuration.
         """
 
         return self._connection.timeout_config
 
     @timeout_config.setter
-    def timeout_config(self, timeout_config: Union[Tuple[Real, Real], Real]):
+    def timeout_config(self, timeout_config: TIMEOUT_TYPE) -> None:
         """
         Setter for `timeout_config`. (docstring should be only in the Getter)
         """
 
-        self._connection.timeout_config = timeout_config
+        self._connection.timeout_config = _get_valid_timeout_config(timeout_config)
 
-    def __del__(self):
+    @staticmethod
+    def __parse_url_and_embedded_db(
+        url: Optional[str], embedded_options: Optional[EmbeddedOptions]
+    ) -> Tuple[str, Optional[EmbeddedDB]]:
+        if embedded_options is None and url is None:
+            raise TypeError("Either url or embedded options must be present.")
+        elif embedded_options is not None and url is not None:
+            raise TypeError(
+                f"URL is not expected to be set when using embedded_options but URL was {url}"
+            )
+
+        if embedded_options is not None:
+            embedded_db = EmbeddedDB(options=embedded_options)
+            embedded_db.start()
+            return f"http://localhost:{embedded_db.options.port}", embedded_db
+
+        if not isinstance(url, str):
+            raise TypeError(f"URL is expected to be string but is {type(url)}")
+        return url.strip("/"), None
+
+    def __del__(self) -> None:
         # in case an exception happens before definition of these members
         if hasattr(self, "_connection"):
             self._connection.close()

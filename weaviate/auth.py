@@ -23,9 +23,13 @@ class AuthClientCredentials:
     client_secret: str
     scope: Optional[SCOPES] = None
 
-    def __post_init__(self):
-        if isinstance(self.scope, str):
-            self.scope = self.scope.split(" ")
+    def __post_init__(self) -> None:
+        if self.scope is None:
+            self.scope_list: List[str] = []
+        elif isinstance(self.scope, str):
+            self.scope_list = self.scope.split(" ")
+        elif isinstance(self.scope, list):
+            self.scope_list = self.scope
 
 
 @dataclass
@@ -44,9 +48,13 @@ class AuthClientPassword:
     password: str
     scope: Optional[SCOPES] = field(default_factory=lambda: ["offline_access"])
 
-    def __post_init__(self):
-        if isinstance(self.scope, str):
-            self.scope = self.scope.split(" ")
+    def __post_init__(self) -> None:
+        if self.scope is None:
+            self.scope_list: List[str] = []
+        elif isinstance(self.scope, str):
+            self.scope_list = self.scope.split(" ")
+        elif isinstance(self.scope, list):
+            self.scope_list = self.scope
 
 
 @dataclass
@@ -63,7 +71,7 @@ class AuthBearerToken:
     expires_in: int = 60
     refresh_token: Optional[str] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.expires_in and self.expires_in < 0:
             _Warnings.auth_negative_expiration_time(self.expires_in)
 
