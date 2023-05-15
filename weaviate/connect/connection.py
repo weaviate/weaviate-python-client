@@ -27,8 +27,8 @@ from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     WeaviateStartUpError,
 )
-from weaviate.util import _check_positive_num, is_weaviate_domain, is_weaviate_too_old
 from weaviate.types import NUMBERS
+from weaviate.util import _check_positive_num, is_weaviate_domain, is_weaviate_too_old
 from weaviate.warnings import _Warnings
 
 try:
