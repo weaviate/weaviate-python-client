@@ -2,6 +2,7 @@ import unittest
 import uuid as uuid_lib
 from copy import deepcopy
 from unittest.mock import patch, Mock
+import pytest
 
 from test.util import check_error_message
 from weaviate import SchemaValidationException
@@ -17,6 +18,9 @@ from weaviate.util import (
     get_domain_from_weaviate_url,
     _get_dict_from_object,
     _is_sub_schema,
+    parse_version_string,
+    is_weaviate_too_old,
+    MINIMUM_NO_WARNING_VERSION,
 )
 
 schema_set = {
@@ -455,7 +459,41 @@ class TestUtil(unittest.TestCase):
 
     @patch("weaviate.util.uuid_lib")
     def test_generate_uuid5(self, mock_uuid):
-
         result = generate_uuid5("TestID!", "Test!")
         self.assertIsInstance(result, str)
         mock_uuid.uuid5.assert_called()
+
+    def test_parse_version_string(self):
+        assert parse_version_string("v1.18.1") == parse_version_string("1.18.1")
+        assert parse_version_string("v1.18.1") == parse_version_string("1.18.5")
+        assert len(parse_version_string("v1.18.1")) == 2
+        assert len(parse_version_string("1.1.5")) == 2
+        assert len(parse_version_string("2")) == 2
+        assert parse_version_string("v1.18.3") == (1, 18)
+        assert parse_version_string("1.1.5") == (1, 1)
+        assert parse_version_string("2") == (2, 0)
+        assert parse_version_string("2.0.0") == (2, 0)
+        assert parse_version_string("v2.05.5") == (2, 5)
+
+
+MINIMUM_NO_WARNING_VERSION_MAJOR, MINIMUM_NO_WARNING_VERSION_MINOR = parse_version_string(
+    MINIMUM_NO_WARNING_VERSION
+)
+MINIMUM_NO_WARNING_VERSION_MAJOR = int(MINIMUM_NO_WARNING_VERSION_MAJOR)
+MINIMUM_NO_WARNING_VERSION_MINOR = int(MINIMUM_NO_WARNING_VERSION_MINOR)
+
+
+@pytest.mark.parametrize(
+    "version,too_old",
+    [
+        (f"v{MINIMUM_NO_WARNING_VERSION_MAJOR-1}.{MINIMUM_NO_WARNING_VERSION_MINOR-1}.1", True),
+        (f"v{MINIMUM_NO_WARNING_VERSION_MAJOR-1}.{MINIMUM_NO_WARNING_VERSION_MINOR+1}.2", True),
+        (f"v{MINIMUM_NO_WARNING_VERSION_MAJOR}.{MINIMUM_NO_WARNING_VERSION_MINOR-1}.3", True),
+        (MINIMUM_NO_WARNING_VERSION, False),
+        (f"v{MINIMUM_NO_WARNING_VERSION_MAJOR}.{MINIMUM_NO_WARNING_VERSION_MINOR+1}.0", False),
+        (f"v{MINIMUM_NO_WARNING_VERSION_MAJOR+1}.{MINIMUM_NO_WARNING_VERSION_MINOR-1}.0", False),
+        (f"v{MINIMUM_NO_WARNING_VERSION_MAJOR+1}.{MINIMUM_NO_WARNING_VERSION_MINOR+1}.0", False),
+    ],
+)
+def test_is_weaviate_too_old(version: str, too_old: bool):
+    assert is_weaviate_too_old(version) is too_old
