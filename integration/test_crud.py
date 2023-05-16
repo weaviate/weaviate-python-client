@@ -9,7 +9,7 @@ from typing import List, Optional, Dict, Union
 import pytest
 
 import weaviate
-from weaviate.gql.get import Reference
+from weaviate.gql.get import LinkTo
 
 
 def get_query_for_group(name):
@@ -503,7 +503,7 @@ def test_beacon_refs(people_schema):
         "Call",
         [
             "start",
-            Reference(reference_property="caller", linked_class="Person", properties=["name"]),
+            LinkTo(link_on="caller", linked_class="Person", properties=["name"]),
         ],
     ).do()
     callers = result["data"]["Get"]["Call"][0]["caller"]
@@ -563,12 +563,8 @@ def test_beacon_refs_multiple(people_schema):
     result = client.query.get(
         "Call",
         [
-            Reference(
-                reference_property="caller", linked_class="Person", properties=["name", "age"]
-            ),
-            Reference(
-                reference_property="recipient", linked_class="Person", properties=["born_in", "age"]
-            ),
+            LinkTo(link_on="caller", linked_class="Person", properties=["name", "age"]),
+            LinkTo(link_on="recipient", linked_class="Person", properties=["born_in", "age"]),
         ],
     ).do()
     call1 = result["data"]["Get"]["Call"][0]
@@ -640,29 +636,27 @@ def test_beacon_refs_nested():
         "D",
         [
             "nonRef",
-            Reference(
-                reference_property="refC",
+            LinkTo(
+                link_on="refC",
                 linked_class="C",
                 properties=[
                     "nonRef",
-                    Reference(
-                        reference_property="refB",
+                    LinkTo(
+                        link_on="refB",
                         linked_class="B",
                         properties=[
                             "nonRef",
-                            Reference(
-                                reference_property="refA", linked_class="A", properties=["nonRef"]
-                            ),
+                            LinkTo(link_on="refA", linked_class="A", properties=["nonRef"]),
                         ],
                     ),
                 ],
             ),
-            Reference(
-                reference_property="refB",
+            LinkTo(
+                link_on="refB",
                 linked_class="B",
                 properties=[
                     "nonRef",
-                    Reference(reference_property="refA", linked_class="A", properties=["nonRef"]),
+                    LinkTo(link_on="refA", linked_class="A", properties=["nonRef"]),
                 ],
             ),
         ],

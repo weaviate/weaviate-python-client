@@ -75,17 +75,17 @@ class GroupBy:
 
 
 @dataclass
-class Reference:
-    reference_property: str
+class LinkTo:
+    link_on: str
     linked_class: str
-    properties: List[Union[str, "Reference"]]
+    properties: List[Union[str, "LinkTo"]]
 
     def __str__(self) -> str:
         props = " ".join(str(x) for x in self.properties)
-        return self.reference_property + "{... on " + self.linked_class + "{" + props + "}}"
+        return self.link_on + "{... on " + self.linked_class + "{" + props + "}}"
 
 
-PROPERTIES = Union[List[Union[str, Reference]], str]
+PROPERTIES = Union[List[Union[str, LinkTo]], str]
 
 
 @dataclass
@@ -153,9 +153,9 @@ class GetBuilder(GraphQL):
                 "properties must be of type str, " f"list of str or None but was {type(properties)}"
             )
 
-        self._properties: List[Union[str, Reference]] = []
+        self._properties: List[Union[str, LinkTo]] = []
         for prop in properties:
-            if not isinstance(prop, str) and not isinstance(prop, Reference):
+            if not isinstance(prop, str) and not isinstance(prop, LinkTo):
                 raise TypeError("All the `properties` must be of type `str` or Reference!")
             self._properties.append(prop)
 
@@ -1328,18 +1328,18 @@ class GetBuilder(GraphQL):
         return result
 
     def _convert_references_to_grpc(
-        self, properties: List[Union[Reference, str]]
+        self, properties: List[Union[LinkTo, str]]
     ) -> weaviate_pb2.Properties:
         return weaviate_pb2.Properties(
             non_ref_properties=[prop for prop in properties if isinstance(prop, str)],
             ref_properties=[
                 weaviate_pb2.RefProperties(
                     linked_class=prop.linked_class,
-                    reference_property=prop.reference_property,
+                    reference_property=prop.link_on,
                     linked_properties=self._convert_references_to_grpc(prop.properties),
                 )
                 for prop in properties
-                if isinstance(prop, Reference)
+                if isinstance(prop, LinkTo)
             ],
         )
 

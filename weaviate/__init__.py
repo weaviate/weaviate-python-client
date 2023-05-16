@@ -49,7 +49,7 @@ __all__ = [
     "Config",
     "ConnectionConfig",
     "AdditionalProperties",
-    "Reference",
+    "LinkTo",
 ]
 
 import sys
@@ -74,7 +74,7 @@ from .exceptions import (
     WeaviateStartUpError,
 )
 from .config import Config, ConnectionConfig
-from .gql.get import AdditionalProperties, Reference
+from .gql.get import AdditionalProperties, LinkTo
 
 if not sys.warnoptions:
     import warnings
