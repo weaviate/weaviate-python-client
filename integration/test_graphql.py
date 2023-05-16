@@ -145,6 +145,7 @@ def test_get_data_with_properties_default(client, people_schema):
 
     assert "name" in objects_without_additional_props[0]
     assert "id" in objects_with_additional_props[0]["_additional"]
+    assert "name" not in objects_with_additional_props[0]
 
 def test_get_data_after(client):
     full_results = client.query.get("Ship", ["name"]).with_additional(["id"]).do()
