@@ -9,8 +9,8 @@ from sys import platform
 from unittest.mock import patch
 
 import pytest
-from pytest_httpserver import HTTPServer
 import requests
+from pytest_httpserver import HTTPServer
 from werkzeug import Request, Response
 
 import weaviate
@@ -136,6 +136,7 @@ def test_embedded_multiple_instances(tmp_path_factory: pytest.TempPathFactory):
             port=30662,
             persistence_data_path=tmp_path_factory.mktemp("data"),
             binary_path=tmp_path_factory.mktemp("bin"),
+            additional_env_vars={"GRPC_PORT": "50053"},
         )
     )
     embedded_db2 = EmbeddedDB(
@@ -143,6 +144,7 @@ def test_embedded_multiple_instances(tmp_path_factory: pytest.TempPathFactory):
             port=30663,
             persistence_data_path=tmp_path_factory.mktemp("data"),
             binary_path=tmp_path_factory.mktemp("bin"),
+            additional_env_vars={"GRPC_PORT": "50054"},
         )
     )
     embedded_db.ensure_running()
@@ -178,7 +180,7 @@ def test_custom_env_vars(tmp_path_factory: pytest.TempPathFactory):
     client = weaviate.Client(
         embedded_options=EmbeddedOptions(
             binary_path=tmp_path_factory.mktemp("bin"),
-            additional_env_vars={"ENABLE_MODULES": ""},
+            additional_env_vars={"ENABLE_MODULES": "", "GRPC_PORT": "50057"},
             persistence_data_path=tmp_path_factory.mktemp("data"),
             port=30666,
         )
@@ -194,7 +196,10 @@ def test_weaviate_state(tmp_path_factory: pytest.TempPathFactory):
     data_path = tmp_path_factory.mktemp("data")
     client = weaviate.Client(
         embedded_options=EmbeddedOptions(
-            binary_path=tmp_path_factory.mktemp("bin"), port=port, persistence_data_path=data_path
+            binary_path=tmp_path_factory.mktemp("bin"),
+            port=port,
+            persistence_data_path=data_path,
+            additional_env_vars={"GRPC_PORT": "50058"},
         ),
         startup_period=10,
     )
@@ -208,7 +213,10 @@ def test_weaviate_state(tmp_path_factory: pytest.TempPathFactory):
 
     client = weaviate.Client(
         embedded_options=EmbeddedOptions(
-            binary_path=tmp_path_factory.mktemp("bin"), port=port, persistence_data_path=data_path
+            binary_path=tmp_path_factory.mktemp("bin"),
+            port=port,
+            persistence_data_path=data_path,
+            additional_env_vars={"GRPC_PORT": "50059"},
         ),
         startup_period=10,
     )
@@ -236,6 +244,7 @@ def test_latest(tmp_path_factory: pytest.TempPathFactory):
             binary_path=tmp_path_factory.mktemp("bin"),
             version="latest",
             port=30668,
+            additional_env_vars={"GRPC_PORT": "50060"},
         )
     )
     meta = client.get_meta()
