@@ -9,7 +9,7 @@ from weaviate.schema.validate_schema import check_property
 from weaviate.util import _get_dict_from_object, _capitalize_first_letter
 
 
-class Property:
+class CrudProperty:
     """
     Property class used to create object properties.
     """

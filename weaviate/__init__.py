@@ -50,6 +50,20 @@ __all__ = [
     "ConnectionConfig",
     "AdditionalProperties",
     "LinkTo",
+    "Class",
+    "Property",
+    "InvertedIndexConfig",
+    "Stopwords",
+    "BM25config",
+    "ReplicationConfig",
+    "ShardingConfig",
+    "VectorIndexConfig",
+    "StopwordsPreset",
+    "VectorDistance",
+    "Vectorizer",
+    "Tokenization",
+    "VectorIndexType",
+    "DataType",
 ]
 
 import sys
@@ -75,6 +89,22 @@ from .exceptions import (
 )
 from .config import Config, ConnectionConfig
 from .gql.get import AdditionalProperties, LinkTo
+from .types import (
+    Class,
+    Property,
+    InvertedIndexConfig,
+    Stopwords,
+    BM25config,
+    ReplicationConfig,
+    ShardingConfig,
+    VectorIndexConfig,
+    StopwordsPreset,
+    VectorDistance,
+    Vectorizer,
+    Tokenization,
+    VectorIndexType,
+    DataType,
+)
 
 if not sys.warnoptions:
     import warnings

@@ -3,6 +3,7 @@ from typing import Optional
 import pytest
 
 import weaviate
+from weaviate.types import Property, Class, DataType
 
 
 @pytest.fixture(scope="module")
@@ -92,3 +93,49 @@ def test_schema_keys(client: weaviate.Client):
     }
     client.schema.create_class(single_class)
     assert client.schema.exists("Author")
+
+
+@pytest.mark.parametrize(
+    "schema_class, expected",
+    [
+        (Class(name="testClass"), {"class": "TestClass"}),
+        (
+            Class(
+                name="testClass",
+                properties=[
+                    Property(name="Prop1", dataType=DataType.UUID),
+                    Property(name="Prop2", dataType=DataType.TEXT_ARRAY),
+                ],
+            ),
+            {
+                "class": "TestClass",
+                "properties": [
+                    {"name": "prop1", "dataType": ["uuid"]},
+                    {"name": "prop2", "dataType": ["text[]"]},
+                ],
+            },
+        ),
+    ],
+)
+def test_dataclass_schema(client: weaviate.Client, schema_class, expected):
+    if client.schema.exists(schema_class.name):
+        client.schema.delete_class(schema_class.name)
+
+    client.schema.create_class(schema_class)
+    schema = client.schema.get(schema_class.name)
+
+    for key, val in expected.items():
+        assert key in schema
+        if isinstance(val, dict):
+            schema2 = schema[key]
+            for key2 in val.keys():
+                assert key2 in schema2
+                assert schema[key2] == expected[key2]
+        elif isinstance(val, list):
+            for i in range(len(val)):
+                schema2 = schema[key][i]
+                for key2 in val[i].keys():
+                    assert key2 in schema2
+                    assert schema2[key2] == val[i][key2]
+        else:
+            assert schema[key] == expected[key]

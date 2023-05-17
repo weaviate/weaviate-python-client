@@ -8,7 +8,7 @@ from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     SchemaValidationException,
 )
-from weaviate.schema.properties import Property
+from weaviate.schema.properties import CrudProperty
 
 
 class TestCRUDProperty(unittest.TestCase):
@@ -17,7 +17,7 @@ class TestCRUDProperty(unittest.TestCase):
         Test `create` method.
         """
 
-        prop = Property(Mock())
+        prop = CrudProperty(Mock())
 
         # invalid calls
         error_message = "Class name must be of type str but is "
@@ -33,19 +33,21 @@ class TestCRUDProperty(unittest.TestCase):
             prop.create("Class", {})
         check_error_message(self, error, check_property_error_message)
 
-        prop = Property(mock_connection_func("post", side_effect=RequestsConnectionError("Test!")))
+        prop = CrudProperty(
+            mock_connection_func("post", side_effect=RequestsConnectionError("Test!"))
+        )
         with self.assertRaises(RequestsConnectionError) as error:
             prop.create("Class", {"name": "test", "dataType": ["test_type"]})
         check_error_message(self, error, requests_error_message)
 
-        prop = Property(mock_connection_func("post", status_code=404))
+        prop = CrudProperty(mock_connection_func("post", status_code=404))
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             prop.create("Class", {"name": "test", "dataType": ["test_type"]})
         check_startswith_error_message(self, error, "Add property to class")
 
         # valid calls
         connection_mock = mock_connection_func("post")  # Mock calling weaviate
-        prop = Property(connection_mock)
+        prop = CrudProperty(connection_mock)
 
         test_prop = {
             "dataType": ["string"],

@@ -5,7 +5,6 @@ import base64
 import json
 import os
 import uuid as uuid_lib
-from enum import Enum, EnumMeta
 from io import BufferedReader
 from typing import Union, Sequence, Any, Optional, List, Dict, Tuple
 
@@ -14,28 +13,12 @@ import validators
 import re
 
 from weaviate.exceptions import SchemaValidationException
+from weaviate.types import Class
 from weaviate.types import NUMBERS
 
 MINIMUM_NO_WARNING_VERSION = (
     "v1.16.0"  # The minimum version of Weaviate that will not trigger an upgrade warning.
 )
-
-
-# MetaEnum and BaseEnum are required to support `in` statements:
-#    'ALL' in ConsistencyLevel == True
-#    12345 in ConsistencyLevel == False
-class MetaEnum(EnumMeta):
-    def __contains__(cls, item: Any) -> bool:
-        try:
-            # when item is type ConsistencyLevel
-            return item.name in cls.__members__.keys()
-        except AttributeError:
-            # when item is type str
-            return item in cls.__members__.keys()
-
-
-class BaseEnum(Enum, metaclass=MetaEnum):
-    pass
 
 
 def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
@@ -138,7 +121,7 @@ def generate_local_beacon(
     return {"beacon": f"weaviate://localhost/{class_name}/{uuid}"}
 
 
-def _get_dict_from_object(object_: Union[str, dict]) -> dict:
+def _get_dict_from_object(object_: Union[dict, str, Class]) -> dict:
     """
     Takes an object that should describe a dict
     e.g. a schema or an object and tries to retrieve the dict.
@@ -166,10 +149,12 @@ def _get_dict_from_object(object_: Union[str, dict]) -> dict:
     if object_ is None:
         raise TypeError("argument is None")
 
-    if isinstance(object_, dict):
+    if isinstance(object_, Class):
+        return object_.to_dict()
+    elif isinstance(object_, dict):
         # Object is already a dict
         return object_
-    if isinstance(object_, str):
+    elif isinstance(object_, str):
         if validators.url(object_):
             # Object is URL
             response = requests.get(object_)

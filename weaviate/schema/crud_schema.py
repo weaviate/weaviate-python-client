@@ -7,13 +7,14 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
-from weaviate.schema.properties import Property
+from weaviate.schema.properties import CrudProperty
 from weaviate.schema.validate_schema import (
     validate_schema,
     check_class,
     CLASS_KEYS,
     PROPERTY_KEYS,
 )
+from weaviate.types import Class
 from weaviate.util import _get_dict_from_object, _is_sub_schema, _capitalize_first_letter
 
 _PRIMITIVE_WEAVIATE_TYPES_SET = {
@@ -43,7 +44,7 @@ class Schema:
 
     Attributes
     ----------
-    property : weaviate.schema.properties.Property
+    property : weaviate.schema.properties.CrudProperty
         A Property object to create new schema property/ies.
     """
 
@@ -58,9 +59,9 @@ class Schema:
         """
 
         self._connection = connection
-        self.property = Property(self._connection)
+        self.property = CrudProperty(self._connection)
 
-    def create(self, schema: Union[dict, str]) -> None:
+    def create(self, schema: Union[dict, str, Class]) -> None:
         """
         Create the schema of the Weaviate instance, with all classes at once.
 
