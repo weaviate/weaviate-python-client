@@ -1,6 +1,40 @@
 Changelog
 =========
 
+
+Version 3.19.0
+--------------
+
+This minor version includes:
+
+- Increases default embedded version to 1.19.3
+- Clients emits warning if used weaviate version is too old (3 versions behind latest minor version)
+- Adds native support for querying reference properties
+    .. code-block:: python
+
+        result = client.query.get(
+          "Article", ["title", "url", "wordCount", LinkTo(link_on="caller", linked_class="Person", properties=["name"])]
+             )
+
+- Adds dataclasses to easier access to additional properties
+    .. code-block:: python
+
+        query = client.query.get("Test").with_additional(
+                    weaviate.AdditionalProperties(
+                        uuid=True,
+                        vector=True,
+                        creationTimeUnix=True,
+                        lastUpdateTimeUnix=True,
+                        distance=True,
+                    )
+                )
+
+- Typing fixes
+- Expand support for *experimental* GRPC API and add support for
+    - BM25 and hybrid search
+    - Additional properties (via dataclass shown above)
+    - Querying reference properties (via dataclass shown above)
+
 Version 3.18.0
 --------------
 
