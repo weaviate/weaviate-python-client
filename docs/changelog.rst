@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 3.19.1
+--------------
+This patch version includes:
+
+- Fixes imports of of `weaviate_pb2`.
 
 Version 3.19.0
 --------------
