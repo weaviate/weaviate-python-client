@@ -1283,7 +1283,7 @@ class GetBuilder(GraphQL):
             return super().do()
 
     def _extract_additional_properties(
-        self, props: "weaviate_pb2.ResultAdditionalProps"
+        self, props: weaviate_pb2.ResultAdditionalProps
     ) -> Dict[str, str]:
         additional_props = {}
         if self._additional_dataclass is None:
@@ -1315,9 +1315,7 @@ class GetBuilder(GraphQL):
             )
         return additional_props
 
-    def _convert_references_to_grpc_result(
-        self, properties: "weaviate_pb2.ResultProperties"
-    ) -> Dict:
+    def _convert_references_to_grpc_result(self, properties: weaviate_pb2.ResultProperties) -> Dict:
         result = {}
         for name, non_ref_prop in properties.non_ref_properties.items():
             result[name] = non_ref_prop
@@ -1331,7 +1329,7 @@ class GetBuilder(GraphQL):
 
     def _convert_references_to_grpc(
         self, properties: List[Union[LinkTo, str]]
-    ) -> "weaviate_pb2.Properties":
+    ) -> weaviate_pb2.Properties:
         return weaviate_pb2.Properties(
             non_ref_properties=[prop for prop in properties if isinstance(prop, str)],
             ref_properties=[
