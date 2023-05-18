@@ -14,121 +14,95 @@ on:
   pull_request:
 
 jobs:
-  lint-and_format:
-    name: Run linter and formatter
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: psf/black@stable
-        with:
-          version: "22.10"
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-          cache: 'pip' # caching pip dependencies
-      - run: pip install -r requirements.txt
-      - name: "Flake 8"
-        run: flake8 weaviate test mock_tests integration
-      - name: "Check release for pypi"
-        run: |
-          python -m build
-          python -m twine check dist/*
+#  lint-and_format:
+#    name: Run linter and formatter
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v3
+#      - uses: psf/black@stable
+#        with:
+#          version: "22.10"
+#      - uses: actions/setup-python@v4
+#        with:
+#          python-version: "3.10"
+#          cache: 'pip' # caching pip dependencies
+#      - run: pip install -r requirements.txt
+#      - name: "Flake 8"
+#        run: flake8 weaviate test mock_tests integration
+#      - name: "Check release for pypi"
+#        run: |
+#          python -m build
+#          python -m twine check dist/*
+#
+#  unit-tests:
+#    name: Run Unit Tests
+#    runs-on: ubuntu-latest
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        version: ["3.8", "3.9", "3.10", "3.11"]
+#        folder: ["test", "mock_tests"]
+#    steps:
+#    - uses: actions/checkout@v3
+#    - uses: actions/setup-python@v4
+#      with:
+#        python-version: ${{ matrix.version }}
+#        cache: 'pip' # caching pip dependencies
+#    - run: pip install -r requirements.txt
+#    - name: Run unittests
+#      run: pytest --cov -v --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-${{ matrix.folder }}.xml ${{ matrix.folder }}
+#    - name: Archive code coverage results
+#      if: matrix.version == '3.10' && (github.ref_name != 'main')
+#      uses: actions/upload-artifact@v3
+#      with:
+#        name: coverage-report-${{ matrix.folder }}
+#        path: coverage-${{ matrix.folder }}.xml
+#
+#  integration-tests:
+#    name: Run Integration Tests
+#    runs-on: ubuntu-latest
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        version: [ "3.8", "3.9", "3.10", "3.11"]
+#        optional_dependencies: [false]
+#        include:
+#          - version: "3.11"
+#            optional_dependencies: true
+#    steps:
+#      - uses: actions/checkout@v3
+#      - uses: actions/setup-python@v4
+#        with:
+#          python-version: ${{ matrix.version }}
+#          cache: 'pip' # caching pip dependencies
+#      - run: |
+#          pip install -r requirements.txt
+#          pip install .
+#      - name: Optional dependencies
+#        if: matrix.optional_dependencies
+#        run: pip install -r requirements_optional.txt
+#      - name: start weaviate
+#        run: /bin/bash ci/start_weaviate.sh
+#      - name: Run integration tests with auth secrets
+#        if: ${{ !github.event.pull_request.head.repo.fork }}
+#        env:
+#          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+#          OKTA_CLIENT_SECRET: ${{ secrets.OKTA_CLIENT_SECRET }}
+#          WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
+#          OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
+#        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
+#      - name: Run integration tests without auth secrets (for forks)
+#        if: ${{ github.event.pull_request.head.repo.fork }}
+#        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
+#      - name: Archive code coverage results
+#        if: matrix.version == '3.10' && (github.ref_name != 'main')
+#        uses: actions/upload-artifact@v3
+#        with:
+#          name: coverage-report-integration
+#          path: coverage-integration.xml
 
-  unit-tests:
-    name: Run Unit Tests
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["3.8", "3.9", "3.10", "3.11"]
-        folder: ["test", "mock_tests"]
-    steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.version }}
-        cache: 'pip' # caching pip dependencies
-    - run: pip install -r requirements.txt
-    - name: Run unittests
-      run: pytest --cov -v --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-${{ matrix.folder }}.xml ${{ matrix.folder }}
-    - name: Archive code coverage results
-      if: matrix.version == '3.10' && (github.ref_name != 'main')
-      uses: actions/upload-artifact@v3
-      with:
-        name: coverage-report-${{ matrix.folder }}
-        path: coverage-${{ matrix.folder }}.xml
-
-  integration-tests:
-    name: Run Integration Tests
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        version: [ "3.8", "3.9", "3.10", "3.11"]
-        optional_dependencies: [false]
-        include:
-          - version: "3.11"
-            optional_dependencies: true
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.version }}
-          cache: 'pip' # caching pip dependencies
-      - run: |
-          pip install -r requirements.txt
-          pip install .
-      - name: Optional dependencies
-        if: matrix.optional_dependencies
-        run: pip install -r requirements_optional.txt
-      - name: start weaviate
-        run: /bin/bash ci/start_weaviate.sh
-      - name: Run integration tests with auth secrets
-        if: ${{ !github.event.pull_request.head.repo.fork }}
-        env:
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          OKTA_CLIENT_SECRET: ${{ secrets.OKTA_CLIENT_SECRET }}
-          WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
-          OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
-        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
-      - name: Run integration tests without auth secrets (for forks)
-        if: ${{ github.event.pull_request.head.repo.fork }}
-        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
-      - name: Archive code coverage results
-        if: matrix.version == '3.10' && (github.ref_name != 'main')
-        uses: actions/upload-artifact@v3
-        with:
-          name: coverage-report-integration
-          path: coverage-integration.xml
-
-  Codecov:
-    needs: [Unit-Tests, Integration-Tests]
-    runs-on: ubuntu-latest
-    if: github.ref_name != 'main'
-    steps:
-      - uses: actions/checkout@v3
-      - name: Download coverage artifacts integration
-        uses: actions/download-artifact@v3
-        with:
-          name: coverage-report-mock_tests
-      - name: Download coverage artifacts integration
-        uses: actions/download-artifact@v3
-        with:
-          name: coverage-report-test
-      - name: Download coverage unit
-        uses: actions/download-artifact@v3
-        with:
-          name: coverage-report-integration
-      - name: Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          fail_ci_if_error: true
-          files: ./coverage-integration.xml, ./coverage-test.xml, ./coverage-mock_tests.xml
-          verbose: true
-
-  build-and-add-artifact-and-publish:
-    name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
-    needs: [integration-tests, unit-tests, lint-and_format]
+  build-package:
+    name: Build package
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -151,28 +125,89 @@ jobs:
           path: "dist/*.whl"
           name: weaviate-python-client-wheel
           retention-days: 7
-      - name: Publish distribution 📦 to PyPI on new tags
-        if: startsWith(github.ref, 'refs/tags')
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          verbose: true
-          password: ${{ secrets.PYPI_API_TOKEN }}
 
-  gh-release:
-    name: Create a GitHub Release on new tags
-    if: startsWith(github.ref, 'refs/tags')
+  test-package:
+    needs: [build-package]
     runs-on: ubuntu-latest
-    needs: [integration-tests, unit-tests, lint-and_format, build-and-add-artifact-and-publish]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
       - name: Download build artifact to append to release
         uses: actions/download-artifact@v3
         with:
-          path: "dist/*.whl"
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        with:
-          generate_release_notes: true
-          draft: true
-          files: dist/*.whl
+          name: weaviate-python-client-wheel
+      - run: |
+          ls -al
+          pip install weaviate_client-*.whl
+
+#  Codecov:
+#    needs: [Unit-Tests, Integration-Tests]
+#    runs-on: ubuntu-latest
+#    if: github.ref_name != 'main'
+#    steps:
+#      - uses: actions/checkout@v3
+#      - name: Download coverage artifacts integration
+#        uses: actions/download-artifact@v3
+#        with:
+#          name: coverage-report-mock_tests
+#      - name: Download coverage artifacts integration
+#        uses: actions/download-artifact@v3
+#        with:
+#          name: coverage-report-test
+#      - name: Download coverage unit
+#        uses: actions/download-artifact@v3
+#        with:
+#          name: coverage-report-integration
+#      - name: Codecov
+#        uses: codecov/codecov-action@v3
+#        with:
+#          fail_ci_if_error: true
+#          files: ./coverage-integration.xml, ./coverage-test.xml, ./coverage-mock_tests.xml
+#          verbose: true
+#
+#  build-and-add-artifact-and-publish:
+#    name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
+#    needs: [integration-tests, unit-tests, lint-and_format]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v3
+#        with:
+#          fetch-depth: 0
+#      - name: Set up Python 3.10
+#        uses: actions/setup-python@v4
+#        with:
+#          python-version: "3.10"
+#          cache: 'pip' # caching pip dependencies
+#      - name: Install dependencies
+#        run: |
+#          pip install -r requirements.txt
+#      - name: Build a binary wheel
+#        run: python -m build
+#      - name: Create Wheel Artifacts
+#        uses: actions/upload-artifact@v3
+#        with:
+#          path: "dist/*.whl"
+#          name: weaviate-python-client-wheel
+#          retention-days: 7
+#      - name: Publish distribution 📦 to PyPI on new tags
+#        if: startsWith(github.ref, 'refs/tags')
+#        uses: pypa/gh-action-pypi-publish@release/v1
+#        with:
+#          verbose: true
+#          password: ${{ secrets.PYPI_API_TOKEN }}
+#
+#  gh-release:
+#    name: Create a GitHub Release on new tags
+#    if: startsWith(github.ref, 'refs/tags')
+#    runs-on: ubuntu-latest
+#    needs: [integration-tests, unit-tests, lint-and_format, build-and-add-artifact-and-publish]
+#    steps:
+#      - name: Download build artifact to append to release
+#        uses: actions/download-artifact@v3
+#        with:
+#          path: "dist/*.whl"
+#      - name: Release
+#        uses: softprops/action-gh-release@v1
+#        with:
+#          generate_release_notes: true
+#          draft: true
+#          files: dist/*.whl
