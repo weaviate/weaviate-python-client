@@ -121,14 +121,14 @@ class EmbeddedDB:
             print(
                 f"Binary {self.options.binary_path} did not exist. Downloading binary from {self._download_url}"
             )
-            if self.options.version.endswith(".tar.gz"):
+            if self._download_url.endswith(".tar.gz"):
                 tar_filename = Path(self.options.binary_path, "tmp_weaviate.tgz")
                 urllib.request.urlretrieve(self._download_url, tar_filename)
                 binary_tar = tarfile.open(tar_filename)
                 binary_tar.extract("weaviate", path=Path(self.options.binary_path))
                 tar_filename.unlink()
             else:
-                assert self.options.version.endswith(".zip")
+                assert self._download_url.endswith(".zip")
                 zip_filename = Path(self.options.binary_path, "tmp_weaviate.zip")
                 urllib.request.urlretrieve(self._download_url, zip_filename)
                 with zipfile.ZipFile(zip_filename, "r") as zip_ref:
