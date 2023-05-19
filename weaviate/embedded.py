@@ -9,6 +9,7 @@ import tarfile
 import time
 import urllib.request
 import warnings
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional
@@ -58,7 +59,9 @@ class EmbeddedDB:
         )
 
         if validators.url(self.options.version):
-            if not self.options.version.endswith(".tar.gz"):
+            if not self.options.version.endswith(".tar.gz") and not self.options.version.endswith(
+                ".zip"
+            ):
                 raise exceptions.WeaviateEmbeddedInvalidVersion(self.options.version)
 
             # for GitHub urls we can parse the version from the url
@@ -116,12 +119,20 @@ class EmbeddedDB:
             print(
                 f"Binary {self.options.binary_path} did not exist. Downloading binary from {self._download_url}"
             )
-            tar_filename = Path(self.options.binary_path, "tmp_weaviate.tgz")
-            urllib.request.urlretrieve(self._download_url, tar_filename)
-            binary_tar = tarfile.open(tar_filename)
-            binary_tar.extract("weaviate", path=Path(self.options.binary_path))
+            if self.options.version.endswith(".tar.gz"):
+                tar_filename = Path(self.options.binary_path, "tmp_weaviate.tgz")
+                urllib.request.urlretrieve(self._download_url, tar_filename)
+                binary_tar = tarfile.open(tar_filename)
+                binary_tar.extract("weaviate", path=Path(self.options.binary_path))
+                tar_filename.unlink()
+            else:
+                assert self.options.version.endswith(".zip")
+                zip_filename = Path(self.options.binary_path, "tmp_weaviate.zip")
+                urllib.request.urlretrieve(self._download_url, zip_filename)
+                with zipfile.ZipFile(zip_filename, "r") as zip_ref:
+                    zip_ref.extract("weaviate", path=Path(self.options.binary_path))
+
             (Path(self.options.binary_path) / "weaviate").rename(self._weaviate_binary_path)
-            tar_filename.unlink()
 
             # Ensuring weaviate binary is executable
             self._weaviate_binary_path.chmod(
@@ -152,7 +163,7 @@ class EmbeddedDB:
 
     @staticmethod
     def check_supported_platform() -> None:
-        if platform.system() in ["Darwin", "Windows"]:
+        if platform.system() in ["Windows"]:
             raise WeaviateStartUpError(
                 f"{platform.system()} is not supported with EmbeddedDB. Please upvote the feature request if "
                 f"you want this: https://github.com/weaviate/weaviate-python-client/issues/239"
