@@ -27,7 +27,7 @@ from weaviate.util import (
 
 class DataObject:
     """
-    DataObject class used to manipulate object to/from weaviate.
+    DataObject class used to manipulate object to/from Weaviate.
 
     Attributes
     ----------
@@ -42,7 +42,7 @@ class DataObject:
         Parameters
         ----------
         connection : weaviate.connect.Connection
-            Connection object to an active and running weaviate instance.
+            Connection object to an active and running Weaviate instance.
         """
 
         self._connection = connection
@@ -57,7 +57,7 @@ class DataObject:
         consistency_level: Optional[ConsistencyLevel] = None,
     ) -> str:
         """
-        Takes a dict describing the object and adds it to weaviate.
+        Takes a dict describing the object and adds it to Weaviate.
 
         Parameters
         ----------
@@ -68,7 +68,7 @@ class DataObject:
             Class name associated with the object given.
         uuid : str, uuid.UUID or None, optional
             Object will be created under this uuid if it is provided.
-            Otherwise, weaviate will generate a uuid for this object,
+            Otherwise, Weaviate will generate a uuid for this object,
             by default None.
         vector: Sequence or None, optional
             Embedding for the object.
@@ -110,12 +110,12 @@ class DataObject:
         ValueError
             If argument contains an invalid value.
         weaviate.ObjectAlreadyExistsException
-            If an object with the given uuid already exists within weaviate.
+            If an object with the given uuid already exists within Weaviate.
         weaviate.UnexpectedStatusCodeException
             If creating the object in Weaviate failed for a different reason,
             more information is given in the exception.
         requests.ConnectionError
-            If the network connection to weaviate fails.
+            If the network connection to Weaviate fails.
         """
 
         if not isinstance(class_name, str):
@@ -162,7 +162,7 @@ class DataObject:
         consistency_level: Optional[ConsistencyLevel] = None,
     ) -> None:
         """
-        Update the given object with the already existing object in weaviate.
+        Update an already existing object in Weaviate with the given data object.
         Overwrites only the specified fields, the unspecified ones remain unchanged.
 
         Parameters
@@ -233,9 +233,9 @@ class DataObject:
         ValueError
             If argument contains an invalid value.
         requests.ConnectionError
-            If the network connection to weaviate fails.
+            If the network connection to Weaviate fails.
         weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none successful status.
+            If Weaviate reports a none successful status.
         """
         params = None
         if consistency_level is not None:
@@ -330,9 +330,9 @@ class DataObject:
         ValueError
             If argument contains an invalid value.
         requests.ConnectionError
-            If the network connection to weaviate fails.
+            If the network connection to Weaviate fails.
         weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+            If Weaviate reports a none OK status.
         """
         params = None
         if consistency_level is not None:
@@ -438,9 +438,9 @@ class DataObject:
         ValueError
             If argument contains an invalid value.
         requests.ConnectionError
-            If the network connection to weaviate fails.
+            If the network connection to Weaviate fails.
         weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+            If Weaviate reports a none OK status.
         """
 
         return self.get(
@@ -466,7 +466,7 @@ class DataObject:
         sort: Optional[Dict[str, Union[str, bool, List[bool], List[str]]]] = None,
     ) -> Optional[Dict[str, Any]]:
         """
-        Gets objects from weaviate, the maximum number of objects returned is 100.
+        Gets objects from Weaviate, the maximum number of objects returned is 100.
         If 'uuid' is None, all objects are returned. If 'uuid' is specified the result is the same
         as for `get_by_uuid` method.
 
@@ -493,7 +493,7 @@ class DataObject:
             consistency_level param.
         limit: Optional[int], optional
             The maximum number of data objects to return.
-            by default None, which uses the weaviate default of 100 entries
+            by default None, which uses the Weaviate default of 100 entries
         after: Optional[UUID], optional
            Can be used to extract all elements by giving the last ID from the previous "page". Requires limit to be set
            but cannot be combined with any other filters or search. Part of the Cursor API.
@@ -523,9 +523,9 @@ class DataObject:
         ValueError
             If argument contains an invalid value.
         requests.ConnectionError
-            If the network connection to weaviate fails.
+            If the network connection to Weaviate fails.
         weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+            If Weaviate reports a none OK status.
         """
         is_server_version_14 = self._connection.server_version >= "1.14"
 
@@ -633,7 +633,7 @@ class DataObject:
         consistency_level: Optional[ConsistencyLevel] = None,
     ) -> None:
         """
-        Delete an existing object from weaviate.
+        Delete an existing object from Weaviate.
 
         Parameters
         ----------
@@ -677,9 +677,9 @@ class DataObject:
         Raises
         ------
         requests.ConnectionError
-            If the network connection to weaviate fails.
+            If the network connection to Weaviate fails.
         weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+            If Weaviate reports a none OK status.
         TypeError
             If parameter has the wrong type.
         ValueError
@@ -733,7 +733,7 @@ class DataObject:
         consistency_level: Optional[ConsistencyLevel] = None,
     ) -> bool:
         """
-        Check if the object exist in weaviate.
+        Check if the object exist in Weaviate.
 
         Parameters
         ----------
@@ -772,9 +772,9 @@ class DataObject:
         Raises
         ------
         requests.ConnectionError
-            If the network connection to weaviate fails.
+            If the network connection to Weaviate fails.
         weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+            If Weaviate reports a none OK status.
         TypeError
             If parameter has the wrong type.
         ValueError
@@ -829,7 +829,7 @@ class DataObject:
         vector: Sequence = None,
     ) -> dict:
         """
-        Validate an object against weaviate.
+        Validate an object against Weaviate.
 
         Parameters
         ----------
@@ -839,7 +839,7 @@ class DataObject:
         class_name : str
             Name of the class of the object that should be validated.
         uuid : str, uuid.UUID or None, optional
-            The UUID of the object that should be validated against weaviate.
+            The UUID of the object that should be validated against Weaviate.
             by default None.
         vector: Sequence or None, optional
             The embedding of the object that should be validated.
@@ -889,7 +889,7 @@ class DataObject:
         weaviate.UnexpectedStatusCodeException
             If validating the object against Weaviate failed with a different reason.
         requests.ConnectionError
-            If the network connection to weaviate fails.
+            If the network connection to Weaviate fails.
         """
 
         loaded_data_object = _get_dict_from_object(data_object)
@@ -912,7 +912,7 @@ class DataObject:
             response = self._connection.post(path=path, weaviate_object=weaviate_obj)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                "Object was not validated against weaviate."
+                "Object was not validated against Weaviate."
             ) from conn_err
 
         result: dict = {"error": None}
@@ -929,7 +929,7 @@ class DataObject:
 
 def _get_params(additional_properties: Optional[List[str]], with_vector: bool) -> dict:
     """
-    Get underscore properties in the format accepted by weaviate.
+    Get underscore properties in the format accepted by Weaviate.
 
     Parameters
     ----------
@@ -941,7 +941,7 @@ def _get_params(additional_properties: Optional[List[str]], with_vector: bool) -
     Returns
     -------
     dict
-        A dictionary including weaviate-accepted additional properties
+        A dictionary including Weaviate-accepted additional properties
         and/or `vector` property.
 
     Raises
