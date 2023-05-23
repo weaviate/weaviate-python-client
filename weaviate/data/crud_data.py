@@ -169,7 +169,7 @@ class DataObject:
         ----------
         data_object : dict or str
             The object states the fields that should be updated.
-            Fields not specified by in the 'data_object' remain unchanged.
+            Fields not specified in the 'data_object' remain unchanged.
             Fields that are None will not be changed.
             If type is str it should be either an URL or a file.
         class_name : str
