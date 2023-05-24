@@ -1059,7 +1059,10 @@ class GetBuilder(GraphQL):
         return self
 
     def with_generate(
-        self, single_prompt: Optional[str] = None, grouped_task: Optional[str] = None
+        self,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
     ) -> "GetBuilder":
         """Generate responses using the OpenAI generative search.
 
@@ -1067,8 +1070,11 @@ class GetBuilder(GraphQL):
 
         Parameters
         ----------
-        grouped_task: Optional[str]
+        grouped_: Optional[str]
             The task to generate a grouped response. One
+        grouped_properties: Optional[List[str]]:
+            The properties whose contents are added to the prompts. If None or empty,
+            all text properties contents are added.
         single_prompt: Optional[str]
             The prompt to generate a single response.
         """
@@ -1091,7 +1097,13 @@ class GetBuilder(GraphQL):
             task_and_prompt += f'singleResult:{{prompt:"{util.strip_newlines(single_prompt)}"}}'
         if grouped_task is not None:
             results.append("groupedResult")
-            task_and_prompt += f'groupedResult:{{task:"{util.strip_newlines(grouped_task)}"}}'
+            args = []
+            if grouped_task is not None:
+                args.append(f'task:"{util.strip_newlines(grouped_task)}"')
+            if grouped_properties is not None and len(grouped_properties) > 0:
+                props = '","'.join(grouped_properties)
+                args.append(f'properties:["{props}"]')
+            task_and_prompt += f'groupedResult:{{{",".join(args)}}}'
 
         self._additional["__one_level"].add(f'generate({task_and_prompt}){{{" ".join(results)}}}')
 
