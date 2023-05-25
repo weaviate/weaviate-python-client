@@ -144,6 +144,10 @@ class BaseConnection:
             _Warnings.auth_header_and_auth_secret()
             self._headers.pop("authorization")
 
+        # if there are API keys included add them right away to headers
+        if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
+            self._headers["authorization"] = "Bearer " + auth_client_secret.api_key
+
         self._session: Session
         self._shutdown_background_event: Optional[Event] = None
 
@@ -166,7 +170,6 @@ class BaseConnection:
         """
         # API keys are separate from OIDC and do not need any config from weaviate
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
-            self._headers["authorization"] = "Bearer " + auth_client_secret.api_key
             self._session = requests.Session()
             return
 
@@ -177,7 +180,7 @@ class BaseConnection:
         oidc_url = self.url + self._api_version_path + "/.well-known/openid-configuration"
         response = requests.get(
             oidc_url,
-            headers={"content-type": "application/json"},
+            headers=self._get_request_header(),
             timeout=self._timeout_config,
             proxies=self._proxies,
         )
@@ -609,13 +612,13 @@ class BaseConnection:
         ready_url = self.url + self._api_version_path + "/.well-known/ready"
         for _i in range(startup_period):
             try:
-                requests.get(ready_url).raise_for_status()
+                requests.get(ready_url, headers=self._get_request_header()).raise_for_status()
                 return
             except (RequestsHTTPError, RequestsConnectionError):
                 time.sleep(1)
 
         try:
-            requests.get(ready_url).raise_for_status()
+            requests.get(ready_url, headers=self._get_request_header()).raise_for_status()
             return
         except (RequestsHTTPError, RequestsConnectionError) as error:
             raise WeaviateStartUpError(

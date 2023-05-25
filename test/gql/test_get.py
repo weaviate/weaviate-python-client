@@ -102,29 +102,46 @@ def test_hybrid(
 
 
 @pytest.mark.parametrize(
-    "single_prompt,grouped_task,expected",
+    "single_prompt,grouped_task,grouped_properties,expected",
     [
         (
             "What is the meaning of life?",
+            None,
             None,
             """generate(singleResult:{prompt:"What is the meaning of life?"}){error singleResult} """,
         ),
         (
             None,
             "Explain why these magazines or newspapers are about finance",
+            None,
             """generate(groupedResult:{task:"Explain why these magazines or newspapers are about finance"}){error groupedResult} """,
         ),
         (
             "What is the meaning of life?",
             "Explain why these magazines or newspapers are about finance",
+            None,
             """generate(singleResult:{prompt:"What is the meaning of life?"}groupedResult:{task:"Explain why these magazines or newspapers are about finance"}){error singleResult groupedResult} """,
+        ),
+        (
+            None,
+            "Explain why these magazines or newspapers are about finance",
+            ["description"],
+            """generate(groupedResult:{task:"Explain why these magazines or newspapers are about finance",properties:["description"]}){error groupedResult} """,
+        ),
+        (
+            "What is the meaning of life?",
+            "Explain why these magazines or newspapers are about finance",
+            ["title", "description"],
+            """generate(singleResult:{prompt:"What is the meaning of life?"}groupedResult:{task:"Explain why these magazines or newspapers are about finance",properties:["title","description"]}){error singleResult groupedResult} """,
         ),
     ],
 )
-def test_generative(single_prompt: str, grouped_task: str, expected: str):
+def test_generative(
+    single_prompt: str, grouped_task: str, grouped_properties: List[str], expected: str
+):
     query = (
         GetBuilder("Person", "name", mock_connection_v117)
-        .with_generate(single_prompt, grouped_task)
+        .with_generate(single_prompt, grouped_task, grouped_properties)
         .build()
     )
     expected_query = "{Get{Person{name _additional {" + expected + "}}}}"
