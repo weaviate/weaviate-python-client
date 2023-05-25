@@ -331,3 +331,13 @@ def test_generative_openai(single: str, grouped: str):
         .do()
     )
     assert result["data"]["Get"]["Wine"][0]["_additional"]["generate"]["error"] is None
+
+    grouped_properties = ["review"]
+    result = (
+        client.query.get("Wine", ["name", "review"])
+        .with_generate(
+            single_prompt=single, grouped_task=grouped, grouped_properties=grouped_properties
+        )
+        .do()
+    )
+    assert result["data"]["Get"]["Wine"][0]["_additional"]["generate"]["error"] is None
