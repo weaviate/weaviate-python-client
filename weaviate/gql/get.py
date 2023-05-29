@@ -1070,8 +1070,8 @@ class GetBuilder(GraphQL):
 
         Parameters
         ----------
-        grouped_: Optional[str]
-            The task to generate a grouped response. One
+        grouped_task: Optional[str]
+            The task to generate a grouped response.
         grouped_properties: Optional[List[str]]:
             The properties whose contents are added to the prompts. If None or empty,
             all text properties contents are added.
@@ -1095,7 +1095,9 @@ class GetBuilder(GraphQL):
         if single_prompt is not None:
             results.append("singleResult")
             task_and_prompt += f'singleResult:{{prompt:"{util.strip_newlines(single_prompt)}"}}'
-        if grouped_task is not None:
+        if grouped_task is not None or (
+            grouped_properties is not None and len(grouped_properties) > 0
+        ):
             results.append("groupedResult")
             args = []
             if grouped_task is not None:

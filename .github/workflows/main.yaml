@@ -164,12 +164,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [integration-tests, unit-tests, lint-and_format, build-and-add-artifact-and-publish]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
       - name: Download build artifact to append to release
         uses: actions/download-artifact@v3
         with:
-          path: "dist/*.whl"
+          name: weaviate-python-client-wheel
+          path: dist
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
