@@ -16,6 +16,7 @@ CLASS_KEYS = {
     "invertedIndexConfig",
     "shardingConfig",
     "replicationConfig",
+    "multiTenancyConfig",
 }
 
 PROPERTY_KEYS = {
@@ -92,6 +93,7 @@ def check_class(class_definition: dict) -> None:
             "invertedIndexConfig",
             "shardingConfig",
             "replicationConfig",
+            "multiTenancyConfig",
         ]:
             _check_key_type(key, class_definition[key], dict)
         if key in ["properties"]:

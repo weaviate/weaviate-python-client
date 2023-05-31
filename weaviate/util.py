@@ -170,23 +170,66 @@ def _get_dict_from_object(object_: Union[str, dict]) -> dict:
         # Object is already a dict
         return object_
     if isinstance(object_, str):
-        if validators.url(object_):
-            # Object is URL
-            response = requests.get(object_)
-            if response.status_code == 200:
-                return response.json()
-            raise ValueError("Could not download file " + object_)
-
-        if not os.path.isfile(object_):
-            # Object is neither file nor URL
-            raise ValueError("No file found at location " + object_)
-        # Object is file
-        with open(object_, "r") as file:
-            return json.load(file)
+        return _get_dict_from_str(object_)
     raise TypeError(
         "Argument is not of the supported types. Supported types are "
         "url or file path as string or schema as dict."
     )
+
+
+def _get_dict_from_list_object(object_: Union[str, dict]) -> dict:
+    """
+    Takes an object that should describe a dict
+    e.g. a schema or an object and tries to retrieve the dict.
+
+    Parameters
+    ----------
+    object_ : str or list
+        The object from which to retrieve the dict.
+        Can be a python dict, or the path to a json file or a url of a json file.
+
+    Returns
+    -------
+    dict
+        The object as a dict.
+
+    Raises
+    ------
+    TypeError
+        If 'object_' is neither a string nor a dict.
+    ValueError
+        If no dict can be retrieved from object.
+    """
+
+    # check if objects files is url
+    if object_ is None:
+        raise TypeError("argument is None")
+
+    if isinstance(object_, list):
+        # Object is an array of objects
+        return object_
+    if isinstance(object_, str):
+        return _get_dict_from_str(object_)
+    raise TypeError(
+        "Argument is not of the supported types. Supported types are "
+        "url or file path as string or list."
+    )
+
+
+def _get_dict_from_str(object_: str) -> dict:
+    if validators.url(object_):
+        # Object is URL
+        response = requests.get(object_)
+        if response.status_code == 200:
+            return response.json()
+        raise ValueError("Could not download file " + object_)
+
+    if not os.path.isfile(object_):
+        # Object is neither file nor URL
+        raise ValueError("No file found at location " + object_)
+    # Object is file
+    with open(object_, "r") as file:
+        return json.load(file)
 
 
 def is_weaviate_object_url(url: str) -> bool:

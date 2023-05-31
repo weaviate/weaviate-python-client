@@ -114,7 +114,7 @@ class TestDataObject(unittest.TestCase):
         uuid = data_object.create(object_, class_name, id_)
         self.assertEqual(uuid, "0")
         connection_mock.post.assert_called_with(
-            path="/objects", weaviate_object=rest_object, params=None
+            path="/objects", weaviate_object=rest_object, params={}
         )
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
@@ -148,7 +148,7 @@ class TestDataObject(unittest.TestCase):
         uuid = data_object.create(object_, "karaokeSongs", id_, vector)
         self.assertEqual(uuid, "0")
         connection_mock.post.assert_called_with(
-            path="/objects", weaviate_object=rest_object, params=None
+            path="/objects", weaviate_object=rest_object, params={}
         )
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_called()
@@ -233,7 +233,7 @@ class TestDataObject(unittest.TestCase):
         connection_mock.patch.assert_called_with(
             path="/objects/ae6d51d6-b4ea-5a03-a808-6aae990bdebf",
             weaviate_object=weaviate_obj,
-            params=None,
+            params={},
         )
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
@@ -250,7 +250,7 @@ class TestDataObject(unittest.TestCase):
         connection_mock.patch.assert_called_with(
             path="/objects/ae6d51d6-b4ea-5a03-a808-6aae990bdebf",
             weaviate_object=weaviate_obj,
-            params=None,
+            params={},
         )
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
@@ -340,7 +340,7 @@ class TestDataObject(unittest.TestCase):
         connection_mock.put.assert_called_with(
             path="/objects/27be9d8d-1da1-4d52-821f-bc7e2a25247d",
             weaviate_object=weaviate_obj,
-            params=None,
+            params={},
         )
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
@@ -357,7 +357,7 @@ class TestDataObject(unittest.TestCase):
         connection_mock.put.assert_called_with(
             path="/objects/27be9d8d-1da1-4d52-821f-bc7e2a25247d",
             weaviate_object=weaviate_obj,
-            params=None,
+            params={},
         )
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
@@ -437,7 +437,7 @@ class TestDataObject(unittest.TestCase):
         data_object.delete(object_id)
         connection_mock.delete.assert_called_with(
             path="/objects/" + object_id,
-            params=None,
+            params={},
         )
 
         data_object.delete(object_id, None, ConsistencyLevel.ALL)
@@ -463,6 +463,7 @@ class TestDataObject(unittest.TestCase):
             with_vector=True,
             node_name=None,
             consistency_level=None,
+            tenant_key=None,
         )
 
         data_object.get_by_id(uuid="UUID2", additional_properties=["Test"], with_vector=False)
@@ -473,6 +474,7 @@ class TestDataObject(unittest.TestCase):
             with_vector=False,
             node_name=None,
             consistency_level=None,
+            tenant_key=None,
         )
 
         data_object.get_by_id(
@@ -488,6 +490,7 @@ class TestDataObject(unittest.TestCase):
             with_vector=False,
             node_name=None,
             consistency_level=ConsistencyLevel.QUORUM,
+            tenant_key=None,
         )
 
         data_object.get_by_id(
@@ -500,6 +503,7 @@ class TestDataObject(unittest.TestCase):
             with_vector=False,
             node_name="node1",
             consistency_level=None,
+            tenant_key=None,
         )
 
         connection_mock = Mock()
@@ -609,7 +613,7 @@ class TestDataObject(unittest.TestCase):
         self.assertEqual(result, True)
         connection_mock.head.assert_called_with(
             path="/objects/1d420c9c-98cb-11ec-9db6-1e008a366d49",
-            params=None,
+            params={},
         )
 
         connection_mock = mock_connection_func("head", status_code=404)

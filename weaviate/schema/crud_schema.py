@@ -14,7 +14,12 @@ from weaviate.schema.validate_schema import (
     CLASS_KEYS,
     PROPERTY_KEYS,
 )
-from weaviate.util import _get_dict_from_object, _is_sub_schema, _capitalize_first_letter
+from weaviate.util import (
+    _get_dict_from_object,
+    _is_sub_schema,
+    _capitalize_first_letter,
+    _get_dict_from_list_object,
+)
 
 _PRIMITIVE_WEAVIATE_TYPES_SET = {
     "string",
@@ -763,6 +768,53 @@ class Schema:
 
         for weaviate_class in schema_classes_list:
             self._create_class_with_primitives(weaviate_class)
+
+    def create_class_tenants(self, class_name: str, tenants: Union[dict, str]) -> None:
+        """
+        Create classes tenants in Weaviate.
+
+        Parameters
+        ----------
+        tenants : dict or str
+            Class as a Python dict, or the path to a JSON file, or the URL of a JSON file.
+
+        Examples
+        --------
+        >>> tenants = [
+        ...    { "name": "Tenant1" },
+        ...    { "name": "Tenant2" }
+        ... ]
+        >>> client.schema.create_tenants(tenants)
+
+        If you have your tenants json file saved in the './schema/tenants.json' you can create it
+        directly from the file.
+
+        >>> client.schema.create_tenants('./schema/tenants.json')
+
+        Raises
+        ------
+        TypeError
+            If the 'tenants' is neither a string nor a dict.
+        ValueError
+            If 'tenants' can not be converted.
+        requests.ConnectionError
+            If the network connection to Weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If Weaviate reports a non-OK status.
+        weaviate.SchemaValidationException
+            If the 'schema_class' could not be validated against the standard format.
+        """
+
+        loaded_tenants = _get_dict_from_list_object(tenants)
+        path = "/schema/" + class_name + "/tenants"
+        try:
+            response = self._connection.post(path=path, weaviate_object=loaded_tenants)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                "Classess tenants may not have been created properly."
+            ) from conn_err
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException("Create classes tenants", response)
 
 
 def _property_is_primitive(data_type_list: list) -> bool:

@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:1.19.2
+    image: semitechnologies/weaviate:preview-enforce-tenant-object-separation-and-tenant-key-immutability-4c47396
     ports:
       - 8085:8085
     restart: on-failure:0

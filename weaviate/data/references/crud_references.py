@@ -45,6 +45,7 @@ class Reference:
         from_class_name: Optional[str] = None,
         to_class_name: Optional[str] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
+        tenant_key: Optional[str] = None,
     ) -> None:
         """
         Remove a reference to another object. Equal to removing one direction of an edge from the
@@ -72,6 +73,8 @@ class Reference:
             by default None
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
+        tenant_key: str on None, optional
+            Defined in multitenancy config tenantKey setting.
 
         Examples
         --------
@@ -156,9 +159,11 @@ class Reference:
         """
 
         is_server_version_14 = self._connection.server_version >= "1.14"
-        params = None
+        params = {}
         if consistency_level is not None:
-            params = {"consistency_level": ConsistencyLevel(consistency_level).value}
+            params["consistency_level"] = ConsistencyLevel(consistency_level).value
+        if tenant_key is not None:
+            params["tenant_key"] = tenant_key
 
         if (from_class_name is None or to_class_name is None) and is_server_version_14:
             warnings.warn(
@@ -229,6 +234,7 @@ class Reference:
         from_class_name: Optional[str] = None,
         to_class_names: Union[list, str, None] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
+        tenant_key: Optional[str] = None,
     ) -> None:
         """
         Allows to update all references in that property with a new set of references.
@@ -269,6 +275,8 @@ class Reference:
             by default None
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
+        tenant_key: str on None, optional
+            Defined in multitenancy config tenantKey setting.
 
         Examples
         --------
@@ -351,9 +359,11 @@ class Reference:
         """
 
         is_server_version_14 = self._connection.server_version >= "1.14"
-        params = None
+        params = {}
         if consistency_level is not None:
-            params = {"consistency_level": ConsistencyLevel(consistency_level).value}
+            params["consistency_level"] = ConsistencyLevel(consistency_level).value
+        if tenant_key is not None:
+            params["tenant_key"] = tenant_key
 
         if (from_class_name is None or to_class_names is None) and is_server_version_14:
             warnings.warn(
@@ -454,6 +464,7 @@ class Reference:
         from_class_name: Optional[str] = None,
         to_class_name: Optional[str] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
+        tenant_key: Optional[str] = None,
     ) -> None:
         """
         Allows to link an object to an object uni-directionally.
@@ -490,6 +501,8 @@ class Reference:
             by default None
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
+        tenant_key: str on None, optional
+            Defined in multitenancy config tenantKey setting.
 
         Examples
         --------
@@ -550,9 +563,11 @@ class Reference:
         """
 
         is_server_version_14 = self._connection.server_version >= "1.14"
-        params = None
+        params = {}
         if consistency_level is not None:
-            params = {"consistency_level": ConsistencyLevel(consistency_level).value}
+            params["consistency_level"] = ConsistencyLevel(consistency_level).value
+        if tenant_key is not None:
+            params["tenant_key"] = tenant_key
 
         if (from_class_name is None or to_class_name is None) and is_server_version_14:
             warnings.warn(

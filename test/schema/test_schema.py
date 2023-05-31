@@ -129,6 +129,11 @@ schema_company_local = {  # NOTE: should be the same as file schema_company.json
     ]
 }
 
+tenants_local = [  # NOTE: should be the same as file tenants.json
+    {"name": "Tenant1"},
+    {"name": "Tenant2"},
+]
+
 
 class TestSchema(unittest.TestCase):
     def test_create(self):
@@ -673,3 +678,23 @@ class TestSchema(unittest.TestCase):
         self.assertEqual(
             test_func(properties_list), [{"dataType": ["text"]}, {"dataType": ["int"]}]
         )
+
+    def test_create_tenants(self):
+        """
+        Test the `create_tenants` method.
+        """
+
+        schema = Schema(Mock())
+
+        # mock function calls
+        mock_create_class_tenants = Mock()
+        schema.create_class_tenants = mock_create_class_tenants
+
+        schema.create_class_tenants("class", "test/schema/tenants.json")  # with read from file
+        mock_create_class_tenants.assert_called_with("class", "test/schema/tenants.json")
+
+        tenants_list = [
+            {"name", "tenant"},
+        ]
+        schema.create_class_tenants("class", tenants_list)  # with object
+        mock_create_class_tenants.assert_called_with("class", tenants_list)

@@ -189,7 +189,12 @@ class TestSchemaValidation(unittest.TestCase):
         max_valid = {
             "class": "Boat",
             "description": "boat swiming on the water",
-            "properties": [],
+            "properties": [
+                {
+                    "dataType": ["text"],
+                    "name": "tenant",
+                }
+            ],
             "vectorIndexType": "hnsw",
             "vectorIndexConfig": {},
             "moduleConfig": {},
@@ -197,6 +202,7 @@ class TestSchemaValidation(unittest.TestCase):
             "replicationConfig": {
                 "factor": 1,
             },
+            "multiTenancyConfig": {"enabled": True, "tenantKey": "tenant"},
         }
         check_class(max_valid)
         # minimal must contain class key as string

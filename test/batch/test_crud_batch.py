@@ -920,7 +920,7 @@ class TestBatch(unittest.TestCase):
         mock_connection.post.assert_called_with(
             path="/batch/references",
             weaviate_object=[],
-            params=None,
+            params={},
         )
         self.assertEqual(mock_connection.post.call_count, 1)
 
@@ -983,7 +983,7 @@ class TestBatch(unittest.TestCase):
         mock_connection.post.assert_called_with(
             path="/batch/objects",
             weaviate_object={"fields": ["ALL"], "objects": []},
-            params=None,
+            params={},
         )
         self.assertEqual(mock_connection.post.call_count, 3 + 1)
 
@@ -1008,7 +1008,7 @@ class TestBatch(unittest.TestCase):
         mock_connection.post.assert_called_with(
             path="/batch/references",
             weaviate_object=[],
-            params=None,
+            params={},
         )
 
         batch = Batch(mock_connection)

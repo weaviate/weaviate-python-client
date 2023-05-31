@@ -664,3 +664,221 @@ def test_beacon_refs_nested():
 
     assert result["data"]["Get"]["D"][0]["refC"][0]["refB"][0]["refA"][0]["nonRef"] == "A"
     assert result["data"]["Get"]["D"][0]["refB"][0]["refA"][0]["nonRef"] == "A"
+
+
+def test_tenants():
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+    tenants = [
+        {"name": "tenantA"},
+        {"name": "tenantB"},
+        {"name": "tenantC"},
+    ]
+
+    class_name_document = "Document"
+    client.schema.create_class(
+        {
+            "class": class_name_document,
+            "properties": [
+                {"name": "tenant", "dataType": ["text"]},
+                {"name": "title", "dataType": ["text"]},
+            ],
+            "vectorizer": "text2vec-contextionary",
+            "multiTenancyConfig": {"enabled": True, "tenantKey": "tenant"},
+        }
+    )
+    client.schema.create_class_tenants(
+        class_name=class_name_document,
+        tenants=tenants,
+    )
+    document_uuids = [
+        "00000000-0000-0000-0000-000000000011",
+        "00000000-0000-0000-0000-000000000022",
+        "00000000-0000-0000-0000-000000000033",
+    ]
+    document_titles = ["GAN", "OpenAI", "SpaceX"]
+    for i in range(0, len(document_uuids)):
+        client.data_object.create(
+            class_name=class_name_document,
+            uuid=document_uuids[i],
+            data_object={
+                "title": document_titles[i],
+                "tenant": tenants[i]["name"],
+            },
+            tenant_key=tenants[i]["name"],
+        )
+
+    class_name_passage = "Passage"
+    client.schema.create_class(
+        {
+            "class": class_name_passage,
+            "properties": [
+                {"name": "tenant", "dataType": ["text"]},
+                {"name": "content", "dataType": ["text"]},
+                {"name": "ofDocument", "dataType": ["Document"]},
+            ],
+            "vectorizer": "text2vec-contextionary",
+            "multiTenancyConfig": {"enabled": True, "tenantKey": "tenant"},
+        }
+    )
+    client.schema.create_class_tenants(
+        class_name=class_name_passage,
+        tenants=tenants,
+    )
+
+    passage_uuids = [
+        "00000000-0000-0000-0000-000000000001",
+        "00000000-0000-0000-0000-000000000002",
+        "00000000-0000-0000-0000-000000000003",
+    ]
+    txts = [
+        "A generative adversarial network (GAN) is a class of machine learning frameworks designed "
+        + "by Ian Goodfellow and his colleagues in June 2014.",
+        "OpenAI is an American artificial intelligence (AI) research laboratory consisting of the non-profit "
+        + "OpenAI Incorporated and its for-profit subsidiary corporation OpenAI Limited Partnership.",
+        "The Space Exploration Technologies Corporation, commonly referred to as SpaceX is an American "
+        + "spacecraft manufacturer, launcher, and satellite communications company headquartered in Hawthorne, California.",
+    ]
+
+    for i in range(0, len(passage_uuids)):
+        client.data_object.create(
+            class_name=class_name_passage,
+            uuid=passage_uuids[i],
+            data_object={
+                "content": txts[i],
+                "tenant": tenants[i]["name"],
+            },
+            tenant_key=tenants[i]["name"],
+        )
+
+    for i in range(0, len(passage_uuids)):
+        passage = client.data_object.get_by_id(
+            class_name=class_name_passage,
+            uuid=passage_uuids[i],
+            tenant_key=tenants[i]["name"],
+        )
+        assert passage["properties"]["tenant"] == tenants[i]["name"]
+        assert passage["properties"]["content"] == txts[i]
+
+    for i in range(0, len(passage_uuids)):
+        client.data_object.replace(
+            class_name=class_name_passage,
+            uuid=passage_uuids[i],
+            data_object={
+                "content": txts[len(txts) - i - 1],
+                "tenant": tenants[i]["name"],
+            },
+            tenant_key=tenants[i]["name"],
+        )
+
+    for i in range(0, len(passage_uuids)):
+        exists = client.data_object.exists(
+            class_name=class_name_passage,
+            uuid=passage_uuids[i],
+            tenant_key=tenants[i]["name"],
+        )
+        assert exists
+        passage = client.data_object.get_by_id(
+            class_name=class_name_passage,
+            uuid=passage_uuids[i],
+            tenant_key=tenants[i]["name"],
+        )
+        assert passage["properties"]["tenant"] == tenants[i]["name"]
+        assert passage["properties"]["content"] == txts[len(txts) - i - 1]
+
+    for i in range(0, len(passage_uuids)):
+        client.data_object.update(
+            class_name=class_name_passage,
+            uuid=passage_uuids[i],
+            data_object={
+                "content": tenants[i]["name"],
+            },
+            tenant_key=tenants[i]["name"],
+        )
+
+    for i in range(0, len(passage_uuids)):
+        passage = client.data_object.get_by_id(
+            class_name=class_name_passage,
+            uuid=passage_uuids[i],
+            tenant_key=tenants[i]["name"],
+        )
+        assert passage["properties"]["tenant"] == tenants[i]["name"]
+        assert passage["properties"]["content"] == tenants[i]["name"]
+
+    # references
+    for i in range(0, len(passage_uuids)):
+        client.data_object.reference.add(
+            passage_uuids[i],
+            "ofDocument",
+            document_uuids[i],
+            from_class_name="Passage",
+            to_class_name="Document",
+            tenant_key=tenants[i]["name"],
+        )
+
+    for i in range(0, len(passage_uuids)):
+        passage = client.data_object.get_by_id(
+            class_name=class_name_passage,
+            uuid=passage_uuids[i],
+            tenant_key=tenants[i]["name"],
+        )
+        assert len(passage["properties"]["ofDocument"]) == 1
+
+    # uncomment when it will be working
+    # for i in range(0, len(passage_uuids)):
+    #     client.data_object.reference.update(
+    #         passage_uuids[i],
+    #         "ofDocument",
+    #         document_uuids[i],
+    #         from_class_name="Passage",
+    #         to_class_names="Document",
+    #         tenant_key=tenants[i]["name"],
+    #     )
+
+    for i in range(0, len(passage_uuids)):
+        client.data_object.reference.delete(
+            passage_uuids[i],
+            "ofDocument",
+            document_uuids[i],
+            from_class_name="Passage",
+            to_class_name="Document",
+            tenant_key=tenants[i]["name"],
+        )
+
+    for i in range(0, len(passage_uuids)):
+        passage = client.data_object.get_by_id(
+            class_name=class_name_passage,
+            uuid=passage_uuids[i],
+            tenant_key=tenants[i]["name"],
+        )
+        assert len(passage["properties"]["ofDocument"]) == 0
+
+    for i in range(0, len(passage_uuids)):
+        client.data_object.delete(
+            class_name=class_name_passage,
+            uuid=passage_uuids[i],
+            tenant_key=tenants[i]["name"],
+        )
+
+    for i in range(0, len(passage_uuids)):
+        exists = client.data_object.exists(
+            class_name=class_name_passage,
+            uuid=passage_uuids[i],
+            tenant_key=tenants[i]["name"],
+        )
+        assert not exists
+
+    for i in range(0, len(document_uuids)):
+        client.data_object.delete(
+            class_name=class_name_document,
+            uuid=document_uuids[i],
+            tenant_key=tenants[i]["name"],
+        )
+
+    for i in range(0, len(document_uuids)):
+        exists = client.data_object.exists(
+            class_name=class_name_document,
+            uuid=document_uuids[i],
+            tenant_key=tenants[i]["name"],
+        )
+        assert not exists
