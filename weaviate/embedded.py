@@ -2,7 +2,6 @@ import hashlib
 import os
 import platform
 import re
-import signal
 import socket
 import stat
 import subprocess
@@ -47,7 +46,7 @@ class EmbeddedDB:
     def __init__(self, options: EmbeddedOptions) -> None:
         self.data_bind_port = get_random_port()
         self.options = options
-        self.pid = 0
+        self.process: Optional[subprocess.Popen[bytes]] = None
         self.ensure_paths_exist()
         self.check_supported_platform()
         self._parsed_weaviate_version = ""
@@ -199,18 +198,19 @@ class EmbeddedDB:
                 ],
                 env=my_env,
             )
-            self.pid = process.pid
-        print(f"Started {self.options.binary_path}: process ID {self.pid}")
+            self.process = process
+        print(f"Started {self.options.binary_path}: process ID {self.process.pid}")
         self.wait_till_listening()
 
     def stop(self) -> None:
-        if self.pid > 0:
+        if self.process is not None:
             try:
-                os.kill(self.pid, signal.SIGTERM)
+                self.process.terminate()
+                self.process.wait()
             except ProcessLookupError:
                 print(
-                    f"Tried to stop embedded weaviate process {self.pid}. Process {self.pid} "
-                    f"was not found. So not doing anything"
+                    f"""Tried to stop embedded weaviate process {self.process.pid}. Process was not found. So not doing
+                    anything"""
                 )
 
     def ensure_running(self) -> None:
