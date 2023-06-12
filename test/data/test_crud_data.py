@@ -635,7 +635,7 @@ class TestDataObject(unittest.TestCase):
             lambda dt: f"'uuid' must be of type str or uuid.UUID, but was: {dt}"
         )
         class_name_error_message = lambda dt: f"Expected class_name of type `str` but was: {dt}"
-        requests_error_message = "Object was not validated against weaviate."
+        requests_error_message = "Object was not validated against Weaviate."
         unexpected_error_message = "Validate object"
 
         # test exceptions
