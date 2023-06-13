@@ -11,7 +11,7 @@ import urllib.request
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 import requests
 import validators as validators
@@ -26,8 +26,10 @@ GITHUB_RELEASE_DOWNLOAD_URL = "https://github.com/weaviate/weaviate/releases/dow
 
 @dataclass
 class EmbeddedOptions:
-    persistence_data_path: str = os.environ.get("XDG_DATA_HOME", DEFAULT_PERSISTENCE_DATA_PATH)
-    binary_path: str = os.environ.get("XDG_CACHE_HOME", DEFAULT_BINARY_PATH)
+    persistence_data_path: Union[Path, str] = os.environ.get(
+        "XDG_DATA_HOME", DEFAULT_PERSISTENCE_DATA_PATH
+    )
+    binary_path: Union[Path, str] = os.environ.get("XDG_CACHE_HOME", DEFAULT_BINARY_PATH)
     version: str = "1.19.7"
     port: int = 6666
     hostname: str = "127.0.0.1"
