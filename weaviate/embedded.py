@@ -9,9 +9,9 @@ import tarfile
 import time
 import urllib.request
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, TextIO
 
 import requests
 import validators as validators
@@ -25,6 +25,24 @@ GITHUB_RELEASE_DOWNLOAD_URL = "https://github.com/weaviate/weaviate/releases/dow
 
 
 @dataclass
+class OutputSilent:
+    pass
+
+
+@dataclass
+class OutputStdout:
+    pass
+
+
+@dataclass
+class OutputFile:
+    log_file: Union[Path, str]
+
+
+Output = Union[OutputSilent, OutputStdout, OutputFile]
+
+
+@dataclass
 class EmbeddedOptions:
     persistence_data_path: Union[Path, str] = os.environ.get(
         "XDG_DATA_HOME", DEFAULT_PERSISTENCE_DATA_PATH
@@ -34,6 +52,8 @@ class EmbeddedOptions:
     port: int = 6666
     hostname: str = "127.0.0.1"
     additional_env_vars: Optional[Dict[str, str]] = None
+    stdout: Output = field(default_factory=OutputSilent)
+    stderr: Output = field(default_factory=OutputStdout)
 
 
 def get_random_port() -> int:
@@ -188,6 +208,10 @@ class EmbeddedDB:
         # filter warning about running processes.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", ResourceWarning)
+            kwarg = {}
+            self._output(self.options.stdout, "stdout", kwarg)
+            self._output(self.options.stderr, "stderr", kwarg)
+
             process = subprocess.Popen(
                 [
                     f"{self._weaviate_binary_path}",
@@ -199,10 +223,23 @@ class EmbeddedDB:
                     "http",
                 ],
                 env=my_env,
+                **kwarg,
             )
             self.process = process
         print(f"Started {self.options.binary_path}: process ID {self.process.pid}")
         self.wait_till_listening()
+
+    @staticmethod
+    def _output(output: Output, key, kwarg: Dict[str, Union[int, TextIO]]) -> None:
+        if isinstance(output, OutputStdout):
+            return
+        elif isinstance(output, OutputSilent):
+            kwarg[key] = subprocess.DEVNULL
+        else:
+            assert isinstance(output, OutputFile)
+            log = open(output.log_file, "a")
+            log.flush()
+            kwarg[key] = log
 
     def stop(self) -> None:
         if self.process is not None:

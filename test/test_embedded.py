@@ -15,7 +15,7 @@ from werkzeug import Request, Response
 
 import weaviate
 from weaviate import embedded, EmbeddedOptions
-from weaviate.embedded import EmbeddedDB
+from weaviate.embedded import EmbeddedDB, OutputSilent, OutputStdout, OutputFile
 from weaviate.exceptions import WeaviateEmbeddedInvalidVersion, WeaviateStartUpError
 
 if platform != "linux":
@@ -270,3 +270,49 @@ def test_invalid_version(tmp_path_factory: pytest.TempPathFactory, version):
                 version=version,
             )
         )
+
+
+def test_output_silent(tmp_path_factory: pytest.TempPathFactory, capsys):
+    weaviate.Client(
+        embedded_options=EmbeddedOptions(
+            persistence_data_path=tmp_path_factory.mktemp("data"),
+            binary_path=tmp_path_factory.mktemp("bin"),
+            port=30669,
+            stdout=OutputSilent(),
+            stderr=OutputSilent(),
+        )
+    )
+    captured = capsys.readouterr()
+    assert (
+        len(captured.out) <= 250
+    )  # some log messages from the client about downloading are in the log
+    assert len(captured.err) == 0
+
+
+def test_output_stdout(tmp_path_factory: pytest.TempPathFactory, capsys):
+    weaviate.Client(
+        embedded_options=EmbeddedOptions(
+            persistence_data_path=tmp_path_factory.mktemp("data"),
+            binary_path=tmp_path_factory.mktemp("bin"),
+            port=30669,
+            stdout=OutputStdout(),
+            stderr=OutputStdout(),
+        )
+    )
+    captured = capsys.readouterr()
+    assert len(captured.out) > 250 or len(captured.err) > 250
+
+
+def test_output_file(tmp_path_factory: pytest.TempPathFactory):
+    log = tmp_path_factory.mktemp("log") / "file.log"
+    weaviate.Client(
+        embedded_options=EmbeddedOptions(
+            persistence_data_path=tmp_path_factory.mktemp("data"),
+            binary_path=tmp_path_factory.mktemp("bin"),
+            port=30669,
+            stdout=OutputFile(log),
+            stderr=OutputFile(log),
+        )
+    )
+    with open(log) as f:
+        assert len(f.readlines()) > 0
