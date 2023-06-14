@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 3.20.1
+--------------
+This patch version includes:
+
+- Fix imports without GRPC package
+- Improve shutdown handling with Weaviate Embedded
+
 Version 3.20.0
 --------------
 
@@ -8,7 +15,7 @@ This minor version includes:
 
 - Increase maximum version of request library to `2.31.0`. This also updates to urllib 2.0. This may contain minor breaking changes if you use urllib in other projects in the same virtual environment.
 - Add licensing information to pypi package
-- Increase default embedded version t0 1.19.7
+- Increase default embedded version to 1.19.7
 
 Version 3.19.2
 --------------
