@@ -5,8 +5,6 @@ from dataclasses import dataclass, Field, fields
 from json import dumps
 from typing import List, Union, Optional, Dict, Tuple
 
-import grpc
-
 from weaviate import util
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
@@ -28,6 +26,7 @@ from weaviate.warnings import _Warnings
 
 try:
     from weaviate_grpc import weaviate_pb2
+    import grpc
 except ImportError:
     pass
 
