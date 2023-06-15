@@ -84,11 +84,17 @@ class EmbeddedDB:
             raise exceptions.WeaviateEmbeddedInvalidVersion(self.options.version)
 
     def _set_download_url_from_version_tag(self, version: str) -> None:
-        machine_type = platform.machine()
-        if machine_type == "x86_64":
-            machine_type = "amd64"
-        elif machine_type == "aarch64":
-            machine_type = "arm64"
+
+        if platform.system() == "Darwin":
+            machine_type = "all"
+            package_format = "zip"
+        else:
+            machine_type = platform.machine()
+            if machine_type == "x86_64":
+                machine_type = "amd64"
+            elif machine_type == "aarch64":
+                machine_type = "arm64"
+            package_format = "tar.gz"
 
         self._download_url = (
             GITHUB_RELEASE_DOWNLOAD_URL
@@ -99,7 +105,8 @@ class EmbeddedDB:
             + platform.system()
             + "-"
             + machine_type
-            + ".tar.gz"
+            + "."
+            + package_format
         )
 
     def __del__(self) -> None:
