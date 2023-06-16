@@ -7,6 +7,7 @@ from test.util import mock_connection_func, check_error_message, check_startswit
 from weaviate.data.references import Reference
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.data.replication import ConsistencyLevel
+from weaviate.schema.crud_schema import Tenant
 
 
 class TestReference(unittest.TestCase):
@@ -98,7 +99,7 @@ class TestReference(unittest.TestCase):
             "hasItem",
             f"http://localhost:8080/v1/objects/{self.uuid_2}",
             consistency_level="ONE",
-            tenant_key="tenantA",
+            tenant=Tenant(name="tenantA"),
         )
 
         connection_mock.delete.assert_called_with(
@@ -213,12 +214,12 @@ class TestReference(unittest.TestCase):
             params={"consistency_level": "ALL"},
         )
 
-        # 3. using weaviate url and tenant_key
+        # 3. using weaviate url and tenant
         reference.add(
             "weaviate://localhost/f8def983-87e7-4e21-bf10-e32e2de3efcf",
             "hasItem",
             "weaviate://localhost/e40aaef5-d3e5-44f1-8ec4-3eafc8475078",
-            tenant_key="tenantA",
+            tenant=Tenant(name="tenantA"),
         )
         connection_mock.post.assert_called_with(
             path="/objects/f8def983-87e7-4e21-bf10-e32e2de3efcf/references/hasItem",
@@ -346,7 +347,7 @@ class TestReference(unittest.TestCase):
                 "d671dc52-dce4-46e7-8731-b722f19420c8",
             ],
             consistency_level=ConsistencyLevel.QUORUM,
-            tenant_key="tenantA",
+            tenant=Tenant(name="tenantA"),
         )
         connection_mock.put.assert_called_with(
             path="/objects/4e44db9b-7f9c-4cf4-a3a0-b57024eefed0/references/hasAwards",

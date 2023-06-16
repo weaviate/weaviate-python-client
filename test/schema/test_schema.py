@@ -8,6 +8,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.schema import Schema
+from weaviate.schema.crud_schema import Tenant
 from weaviate.util import _capitalize_first_letter
 
 company_test_schema = {
@@ -128,11 +129,6 @@ schema_company_local = {  # NOTE: should be the same as file schema_company.json
         },
     ]
 }
-
-tenants_local = [  # NOTE: should be the same as file tenants.json
-    {"name": "Tenant1"},
-    {"name": "Tenant2"},
-]
 
 
 class TestSchema(unittest.TestCase):
@@ -690,11 +686,6 @@ class TestSchema(unittest.TestCase):
         mock_create_class_tenants = Mock()
         schema.create_class_tenants = mock_create_class_tenants
 
-        schema.create_class_tenants("class", "test/schema/tenants.json")  # with read from file
-        mock_create_class_tenants.assert_called_with("class", "test/schema/tenants.json")
-
-        tenants_list = [
-            {"name", "tenant"},
-        ]
-        schema.create_class_tenants("class", tenants_list)  # with object
-        mock_create_class_tenants.assert_called_with("class", tenants_list)
+        tenants = [Tenant(name="Tenant1"), Tenant(name="Tenant2")]
+        schema.create_class_tenants("class", tenants)  # with read from file
+        mock_create_class_tenants.assert_called_with("class", tenants)

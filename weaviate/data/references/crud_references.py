@@ -18,6 +18,7 @@ from weaviate.util import (
     _capitalize_first_letter,
 )
 from weaviate.data.replication import ConsistencyLevel
+from weaviate.schema.crud_schema import Tenant
 
 
 class Reference:
@@ -45,7 +46,7 @@ class Reference:
         from_class_name: Optional[str] = None,
         to_class_name: Optional[str] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
-        tenant_key: Optional[str] = None,
+        tenant: Optional[Tenant] = None,
     ) -> None:
         """
         Remove a reference to another object. Equal to removing one direction of an edge from the
@@ -73,8 +74,8 @@ class Reference:
             by default None
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
-        tenant_key: str on None, optional
-            Defined in multitenancy config tenantKey setting.
+        tenant: Optional[Tenant], optional
+            The name of the tenant for which this operation is being performed.
 
         Examples
         --------
@@ -162,8 +163,8 @@ class Reference:
         params = {}
         if consistency_level is not None:
             params["consistency_level"] = ConsistencyLevel(consistency_level).value
-        if tenant_key is not None:
-            params["tenant_key"] = tenant_key
+        if tenant is not None:
+            params["tenant_key"] = tenant.name
 
         if (from_class_name is None or to_class_name is None) and is_server_version_14:
             warnings.warn(
@@ -234,7 +235,7 @@ class Reference:
         from_class_name: Optional[str] = None,
         to_class_names: Union[list, str, None] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
-        tenant_key: Optional[str] = None,
+        tenant: Optional[Tenant] = None,
     ) -> None:
         """
         Allows to update all references in that property with a new set of references.
@@ -275,8 +276,8 @@ class Reference:
             by default None
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
-        tenant_key: str on None, optional
-            Defined in multitenancy config tenantKey setting.
+        tenant: Optional[Tenant], optional
+            The name of the tenant for which this operation is being performed.
 
         Examples
         --------
@@ -362,8 +363,8 @@ class Reference:
         params = {}
         if consistency_level is not None:
             params["consistency_level"] = ConsistencyLevel(consistency_level).value
-        if tenant_key is not None:
-            params["tenant_key"] = tenant_key
+        if tenant is not None:
+            params["tenant_key"] = tenant.name
 
         if (from_class_name is None or to_class_names is None) and is_server_version_14:
             warnings.warn(
@@ -464,7 +465,7 @@ class Reference:
         from_class_name: Optional[str] = None,
         to_class_name: Optional[str] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
-        tenant_key: Optional[str] = None,
+        tenant: Optional[Tenant] = None,
     ) -> None:
         """
         Allows to link an object to an object uni-directionally.
@@ -501,8 +502,8 @@ class Reference:
             by default None
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
-        tenant_key: str on None, optional
-            Defined in multitenancy config tenantKey setting.
+        tenant: Optional[Tenant], optional
+            The name of the tenant for which this operation is being performed.
 
         Examples
         --------
@@ -566,8 +567,8 @@ class Reference:
         params = {}
         if consistency_level is not None:
             params["consistency_level"] = ConsistencyLevel(consistency_level).value
-        if tenant_key is not None:
-            params["tenant_key"] = tenant_key
+        if tenant is not None:
+            params["tenant_key"] = tenant.name
 
         if (from_class_name is None or to_class_name is None) and is_server_version_14:
             warnings.warn(

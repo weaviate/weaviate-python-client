@@ -17,7 +17,6 @@ from weaviate.util import (
     get_valid_uuid,
     get_domain_from_weaviate_url,
     _get_dict_from_object,
-    _get_dict_from_list_object,
     _is_sub_schema,
     parse_version_string,
     is_weaviate_too_old,
@@ -109,8 +108,6 @@ schema_company = {
         },
     ]
 }
-
-tenants = [{"name": "Tenant1"}, {"name": "Tenant2"}]
 
 
 class TestUtil(unittest.TestCase):
@@ -204,46 +201,6 @@ class TestUtil(unittest.TestCase):
         # read from URL
         path = "https://raw.githubusercontent.com/semi-technologies/weaviate-python-client/main/test/schema/schema_company.json"
         self.assertEqual(_get_dict_from_object(path), schema_company)
-
-    def test_get_dict_from_list_object(self):
-        """
-        Test the `_get_dict_from_list_object` function.
-        """
-
-        none_error_message = "argument is None"
-        file_error_message = "No file found at location "
-        url_error_message = "Could not download file "
-        type_error_message = (
-            "Argument is not of the supported types. Supported types are "
-            "url or file path as string or list."
-        )
-        # test wrong type None
-        with self.assertRaises(TypeError) as error:
-            _get_dict_from_list_object(None)
-        check_error_message(self, error, none_error_message)
-        # wrong data type
-        with self.assertRaises(TypeError) as error:
-            _get_dict_from_list_object({"key": 1234})
-        check_error_message(self, error, type_error_message)
-        # wrong path
-        with self.assertRaises(ValueError) as error:
-            _get_dict_from_list_object("not_a_path_or_url.txt")
-        check_error_message(self, error, file_error_message + "not_a_path_or_url.txt")
-        # wrong URL or non existing one or failure of requests.get
-        with patch("weaviate.util.requests") as mock_obj:
-            result_mock = Mock()
-            result_mock.status_code = 404
-            mock_obj.get.return_value = result_mock
-            with self.assertRaises(ValueError) as error:
-                _get_dict_from_list_object("http://www.url.com")
-            check_error_message(self, error, url_error_message + "http://www.url.com")
-            mock_obj.get.assert_called()
-
-        # valid calls
-        self.assertEqual(_get_dict_from_list_object([{"key": "val"}]), [{"key": "val"}])
-        # read from file
-        path = "/".join(__file__.split("/")[:-1])
-        self.assertEqual(_get_dict_from_list_object(f"{path}/schema/tenants.json"), tenants)
 
     def test_is_weaviate_object_url(self):
         """

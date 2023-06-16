@@ -2,6 +2,7 @@
 Schema class definition.
 """
 from typing import Union, Optional
+from dataclasses import dataclass, asdict
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -18,7 +19,6 @@ from weaviate.util import (
     _get_dict_from_object,
     _is_sub_schema,
     _capitalize_first_letter,
-    _get_dict_from_list_object,
 )
 
 _PRIMITIVE_WEAVIATE_TYPES_SET = {
@@ -40,6 +40,19 @@ _PRIMITIVE_WEAVIATE_TYPES_SET = {
     "uuid",
     "uuid[]",
 }
+
+
+@dataclass
+class Tenant:
+    """
+    Tenant class used to describe a tenant in Weaviate.
+
+    Parameters
+    ----------
+    name: the name of the tenant, used as tenant_key.
+    """
+
+    name: str
 
 
 class Schema:
@@ -769,27 +782,21 @@ class Schema:
         for weaviate_class in schema_classes_list:
             self._create_class_with_primitives(weaviate_class)
 
-    def create_class_tenants(self, class_name: str, tenants: Union[dict, str]) -> None:
+    def create_class_tenants(self, class_name: str, tenants: list) -> None:
         """
-        Create classes tenants in Weaviate.
+        Create class's tenants in Weaviate.
 
         Parameters
         ----------
-        tenants : dict or str
-            Class as a Python dict, or the path to a JSON file, or the URL of a JSON file.
+        class_name : str
+            The class for which we add tenants.
+        tenants : list[Tenant]
+            List of Tenants.
 
         Examples
         --------
-        >>> tenants = [
-        ...    { "name": "Tenant1" },
-        ...    { "name": "Tenant2" }
-        ... ]
-        >>> client.schema.create_tenants(tenants)
-
-        If you have your tenants json file saved in the './schema/tenants.json' you can create it
-        directly from the file.
-
-        >>> client.schema.create_tenants('./schema/tenants.json')
+        >>> tenants = [ Tenant(name="Tenant1"), Tenant(name="Tenant2") ]
+        >>> client.schema.create_tenants("class_name", tenants)
 
         Raises
         ------
@@ -805,13 +812,16 @@ class Schema:
             If the 'schema_class' could not be validated against the standard format.
         """
 
-        loaded_tenants = _get_dict_from_list_object(tenants)
+        loaded_tenants = []
+        for tenant in tenants:
+            loaded_tenants.append(asdict(tenant))
+
         path = "/schema/" + class_name + "/tenants"
         try:
             response = self._connection.post(path=path, weaviate_object=loaded_tenants)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                "Classess tenants may not have been created properly."
+                "Classes tenants may not have been created properly."
             ) from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Create classes tenants", response)

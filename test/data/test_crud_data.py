@@ -463,7 +463,7 @@ class TestDataObject(unittest.TestCase):
             with_vector=True,
             node_name=None,
             consistency_level=None,
-            tenant_key=None,
+            tenant=None,
         )
 
         data_object.get_by_id(uuid="UUID2", additional_properties=["Test"], with_vector=False)
@@ -474,7 +474,7 @@ class TestDataObject(unittest.TestCase):
             with_vector=False,
             node_name=None,
             consistency_level=None,
-            tenant_key=None,
+            tenant=None,
         )
 
         data_object.get_by_id(
@@ -490,7 +490,7 @@ class TestDataObject(unittest.TestCase):
             with_vector=False,
             node_name=None,
             consistency_level=ConsistencyLevel.QUORUM,
-            tenant_key=None,
+            tenant=None,
         )
 
         data_object.get_by_id(
@@ -503,7 +503,7 @@ class TestDataObject(unittest.TestCase):
             with_vector=False,
             node_name="node1",
             consistency_level=None,
-            tenant_key=None,
+            tenant=None,
         )
 
         connection_mock = Mock()

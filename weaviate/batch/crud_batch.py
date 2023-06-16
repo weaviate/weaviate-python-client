@@ -17,6 +17,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
+from weaviate.schema.crud_schema import Tenant
 from weaviate.types import UUID
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest, BatchResponse
 from ..error_msgs import (
@@ -44,7 +45,7 @@ class WeaviateErrorRetryConf:
     Parameters
     ----------
     number_retries: int
-       How often a batch that includes objects with errors should be retried. Must be >=1.
+        How often a batch that includes objects with errors should be retried. Must be >=1.
     errors_to_exclude: Optional[List[str]]
         Which errors should NOT be retried. All other errors will be retried. An object will be skipped, when the given
         string is part of the weaviate error message.
@@ -268,7 +269,7 @@ class Batch:
         self._batching_type = None
         self._num_workers = 1
         self._consistency_level = None
-        self._tenant_key = None
+        self._tenant = None
         # thread pool executor
         self._executor: Optional[BatchExecutor] = None
 
@@ -283,7 +284,7 @@ class Batch:
         dynamic: bool = False,
         num_workers: int = 1,
         consistency_level: Optional[ConsistencyLevel] = None,
-        tenant_key: Optional[str] = None,
+        tenant: Optional[Tenant] = None,
     ) -> "Batch":
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
@@ -318,8 +319,8 @@ class Batch:
             The maximal number of concurrent threads to run batch import. Only used for non-MANUAL
             batching. i.e. is used only with AUTO or DYNAMIC batching.
             By default, the multi-threading is disabled. Use with care to not overload your weaviate instance.
-        tenant_key: str on None, optional
-            Defined in multitenancy config tenantKey setting.
+        tenant: Optional[Tenant], optional
+            The name of the tenant for which this operation is being performed.
 
         Returns
         -------
@@ -344,7 +345,7 @@ class Batch:
             dynamic=dynamic,
             num_workers=num_workers,
             consistency_level=consistency_level,
-            tenant_key=tenant_key,
+            tenant=tenant,
         )
 
     def __call__(
@@ -358,7 +359,7 @@ class Batch:
         dynamic: bool = False,
         num_workers: int = 1,
         consistency_level: Optional[ConsistencyLevel] = None,
-        tenant_key: Optional[str] = None,
+        tenant: Optional[Tenant] = None,
     ) -> "Batch":
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
@@ -393,8 +394,8 @@ class Batch:
             The maximal number of concurrent threads to run batch import. Only used for non-MANUAL
             batching. i.e. is used only with AUTO or DYNAMIC batching.
             By default, the multi-threading is disabled. Use with care to not overload your weaviate instance.
-        tenant_key: str on None, optional
-            Defined in multitenancy config tenantKey setting.
+        tenant: Optional[Tenant], optional
+            The name of the tenant for which this operation is being performed.
 
         Returns
         -------
@@ -409,7 +410,7 @@ class Batch:
             If the value of one of the arguments is wrong.
         """
         self.consistency_level = consistency_level
-        self.tenant_key = tenant_key
+        self.tenant = tenant
         if creation_time is not None:
             _check_positive_num(creation_time, "creation_time", Real)
             self._creation_time = creation_time
@@ -617,8 +618,8 @@ class Batch:
         params = {}
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level
-        if self._tenant_key is not None:
-            params["tenant_key"] = self._tenant_key
+        if self._tenant is not None:
+            params["tenant_key"] = self._tenant.name
 
         try:
             timeout_count = connection_count = batch_error_count = 0
@@ -1257,8 +1258,8 @@ class Batch:
         params = {}
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level
-        if self._tenant_key is not None:
-            params["tenant_key"] = self._tenant_key
+        if self._tenant is not None:
+            params["tenant_key"] = self._tenant.name
 
         payload = {
             "match": {
@@ -1496,12 +1497,12 @@ class Batch:
         self._consistency_level = ConsistencyLevel(x).value if x else None
 
     @property
-    def tenant_key(self, value: Optional[str]) -> Union[str, None]:
-        return self._tenant_key
+    def tenant(self, value: Optional[Tenant]) -> Union[Tenant, None]:
+        return self._tenant
 
-    @tenant_key.setter
-    def tenant_key(self, x: Optional[str]) -> None:
-        self._tenant_key = x
+    @tenant.setter
+    def tenant(self, x: Optional[Tenant]) -> None:
+        self._tenant = x
 
     @property
     def recommended_num_objects(self) -> Optional[int]:

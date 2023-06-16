@@ -50,6 +50,7 @@ __all__ = [
     "ConnectionConfig",
     "AdditionalProperties",
     "LinkTo",
+    "Tenant",
 ]
 
 import sys
@@ -65,6 +66,7 @@ from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken, Au
 from .batch.crud_batch import WeaviateErrorRetryConf
 from .client import Client
 from .data.replication import ConsistencyLevel
+from .schema.crud_schema import Tenant
 from .embedded import EmbeddedOptions
 from .exceptions import (
     UnexpectedStatusCodeException,

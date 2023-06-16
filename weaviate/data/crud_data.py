@@ -10,6 +10,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.connect import Connection
 from weaviate.data.references import Reference
 from weaviate.data.replication import ConsistencyLevel
+from weaviate.schema.crud_schema import Tenant
 from weaviate.error_msgs import DATA_DEPRECATION_NEW_V14_CLS_NS_W, DATA_DEPRECATION_OLD_V14_CLS_NS_W
 from weaviate.exceptions import (
     ObjectAlreadyExistsException,
@@ -55,7 +56,7 @@ class DataObject:
         uuid: Union[str, uuid_lib.UUID, None] = None,
         vector: Optional[Sequence] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
-        tenant_key: Optional[str] = None,
+        tenant: Optional[Tenant] = None,
     ) -> str:
         """
         Takes a dict describing the object and adds it to Weaviate.
@@ -82,8 +83,8 @@ class DataObject:
             by default None.
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
-        tenant_key: str on None, optional
-            Defined in multitenancy config tenantKey setting.
+        tenant: Optional[Tenant], optional
+            The name of the tenant for which this operation is being performed.
 
         Examples
         --------
@@ -139,8 +140,8 @@ class DataObject:
         params = {}
         if consistency_level is not None:
             params["consistency_level"] = ConsistencyLevel(consistency_level).value
-        if tenant_key is not None:
-            params["tenant_key"] = tenant_key
+        if tenant is not None:
+            params["tenant_key"] = tenant.name
         try:
             response = self._connection.post(path=path, weaviate_object=weaviate_obj, params=params)
         except RequestsConnectionError as conn_err:
@@ -165,7 +166,7 @@ class DataObject:
         uuid: Union[str, uuid_lib.UUID],
         vector: Optional[Sequence] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
-        tenant_key: Optional[str] = None,
+        tenant: Optional[Tenant] = None,
     ) -> None:
         """
         Update an already existing object in Weaviate with the given data object.
@@ -193,8 +194,8 @@ class DataObject:
             by default None.
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
-        tenant_key: str on None, optional
-            Defined in multitenancy config tenantKey setting.
+        tenant: Optional[Tenant], optional
+            The name of the tenant for which this operation is being performed.
 
         Examples
         --------
@@ -248,8 +249,8 @@ class DataObject:
         params = {}
         if consistency_level is not None:
             params["consistency_level"] = ConsistencyLevel(consistency_level).value
-        if tenant_key is not None:
-            params["tenant_key"] = tenant_key
+        if tenant is not None:
+            params["tenant_key"] = tenant.name
         weaviate_obj, path = self._create_object_for_update(data_object, class_name, uuid, vector)
         try:
             response = self._connection.patch(
@@ -271,7 +272,7 @@ class DataObject:
         uuid: Union[str, uuid_lib.UUID],
         vector: Optional[Sequence] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
-        tenant_key: Optional[str] = None,
+        tenant: Optional[Tenant] = None,
     ) -> None:
         """
         Replace an already existing object with the given data object.
@@ -297,8 +298,8 @@ class DataObject:
             by default None.
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
-        tenant_key: str on None, optional
-            Defined in multitenancy config tenantKey setting.
+        tenant: Optional[Tenant], optional
+            The name of the tenant for which this operation is being performed.
 
         Examples
         --------
@@ -350,8 +351,8 @@ class DataObject:
         params = {}
         if consistency_level is not None:
             params["consistency_level"] = ConsistencyLevel(consistency_level).value
-        if tenant_key is not None:
-            params["tenant_key"] = tenant_key
+        if tenant is not None:
+            params["tenant_key"] = tenant.name
         weaviate_obj, path = self._create_object_for_update(data_object, class_name, uuid, vector)
         try:
             response = self._connection.put(path=path, weaviate_object=weaviate_obj, params=params)
@@ -401,7 +402,7 @@ class DataObject:
         class_name: Optional[str] = None,
         node_name: Optional[str] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
-        tenant_key: Optional[str] = None,
+        tenant: Optional[Tenant] = None,
     ) -> Optional[dict]:
         """
         Get an object as dict.
@@ -421,8 +422,8 @@ class DataObject:
             STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
             versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
             by default None
-        tenant_key: str on None, optional
-            Defined in multitenancy config tenantKey setting.
+        tenant: Optional[Tenant], optional
+            The name of the tenant for which this operation is being performed.
 
         Examples
         --------
@@ -468,7 +469,7 @@ class DataObject:
             class_name=class_name,
             node_name=node_name,
             consistency_level=consistency_level,
-            tenant_key=tenant_key,
+            tenant=tenant,
         )
 
     def get(
@@ -483,7 +484,7 @@ class DataObject:
         after: Optional[UUID] = None,
         offset: Optional[int] = None,
         sort: Optional[Dict[str, Union[str, bool, List[bool], List[str]]]] = None,
-        tenant_key: Optional[str] = None,
+        tenant: Optional[Tenant] = None,
     ) -> Optional[Dict[str, Any]]:
         """
         Gets objects from Weaviate, the maximum number of objects returned is 100.
@@ -530,8 +531,8 @@ class DataObject:
                 If a list is used, it needs to have the same length as 'sort'. Each properties order is then decided individually.
                 If 'sort['order_asc']' is True, the properties are sorted in ascending order. If it is False, they are sorted in descending order.
                 if 'sort['order_asc']' is not given, all properties are sorted in ascending order.
-        tenant_key: str on None, optional
-            Defined in multitenancy config tenantKey setting.
+        tenant: Optional[Tenant], optional
+            The name of the tenant for which this operation is being performed.
 
         Returns
         -------
@@ -584,8 +585,8 @@ class DataObject:
         if consistency_level is not None:
             params["consistency_level"] = ConsistencyLevel(consistency_level).value
 
-        if tenant_key is not None:
-            params["tenant_key"] = tenant_key
+        if tenant is not None:
+            params["tenant_key"] = tenant.name
 
         if node_name is not None:
             params["node_name"] = node_name
@@ -656,7 +657,7 @@ class DataObject:
         uuid: Union[str, uuid_lib.UUID],
         class_name: Optional[str] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
-        tenant_key: Optional[str] = None,
+        tenant: Optional[Tenant] = None,
     ) -> None:
         """
         Delete an existing object from Weaviate.
@@ -672,8 +673,8 @@ class DataObject:
             by default None
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
-        tenant_key: str on None, optional
-            Defined in multitenancy config tenantKey setting.
+        tenant: Optional[Tenant], optional
+            The name of the tenant for which this operation is being performed.
 
         Examples
         --------
@@ -743,8 +744,8 @@ class DataObject:
         params = {}
         if consistency_level is not None:
             params = {"consistency_level": ConsistencyLevel(consistency_level).value}
-        if tenant_key is not None:
-            params["tenant_key"] = tenant_key
+        if tenant is not None:
+            params["tenant_key"] = tenant.name
         try:
             response = self._connection.delete(
                 path=path,
@@ -762,7 +763,7 @@ class DataObject:
         uuid: Union[str, uuid_lib.UUID],
         class_name: Optional[str] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
-        tenant_key: Optional[str] = None,
+        tenant: Optional[Tenant] = None,
     ) -> bool:
         """
         Check if the object exist in Weaviate.
@@ -778,8 +779,8 @@ class DataObject:
             by default None
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
-        tenant_key: str on None, optional
-            Defined in multitenancy config tenantKey setting.
+        tenant: Optional[Tenant], optional
+            The name of the tenant for which this operation is being performed.
 
         Examples
         --------
@@ -841,8 +842,8 @@ class DataObject:
         params = {}
         if consistency_level is not None:
             params = {"consistency_level": ConsistencyLevel(consistency_level).value}
-        if tenant_key is not None:
-            params["tenant_key"] = tenant_key
+        if tenant is not None:
+            params["tenant_key"] = tenant.name
 
         try:
             response = self._connection.head(

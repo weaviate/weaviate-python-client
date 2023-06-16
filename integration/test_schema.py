@@ -2,6 +2,7 @@ from typing import Optional
 
 import pytest
 
+from weaviate import Tenant
 import weaviate
 
 
@@ -109,5 +110,10 @@ def test_class_tenants(client: weaviate.Client):
     client.schema.create_class(single_class)
     assert client.schema.exists(class_name)
 
-    tenants = [{"name": "Tenant1"}, {"name": "Tenant2"}, {"name": "Tenant3"}, {"name": "Tenant4"}]
+    tenants = [
+        Tenant(name="Tenant1"),
+        Tenant(name="Tenant2"),
+        Tenant(name="Tenant3"),
+        Tenant(name="Tenant4"),
+    ]
     client.schema.create_class_tenants(class_name, tenants)
