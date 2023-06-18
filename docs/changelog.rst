@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 3.21.0
+--------------
+
+This minor version includes:
+- Weaviate Embedded supports MacOs
+
 Version 3.20.1
 --------------
 This patch version includes:
