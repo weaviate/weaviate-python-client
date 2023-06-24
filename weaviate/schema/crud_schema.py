@@ -239,7 +239,7 @@ class Schema:
         Parameters
         ----------
         class_name : str
-            The class that should be deleted from Weaviate.
+            The class whose existence is being checked.
 
         Examples
         --------
