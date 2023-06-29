@@ -12,7 +12,6 @@ from weaviate.exceptions import (
 
 class TestCluster(unittest.TestCase):
     def test_get_nodes_status(self):
-
         # error messages
 
         unexpected_err_msg = "Nodes status"

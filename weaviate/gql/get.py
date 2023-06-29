@@ -1233,7 +1233,6 @@ class GetBuilder(GraphQL):
             )  # no ref props as strings
         )
         if grpc_enabled:
-
             metadata = ()
             access_token = self._connection.get_current_bearer_token()
             if len(access_token) > 0:

@@ -17,7 +17,7 @@ from weaviate.exceptions import SchemaValidationException
 from weaviate.types import NUMBERS
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"
-MAXIMUM_MINOR_VERSION_DELTA = 3 # The maximum delta between minor versions of Weaviate Client that will not trigger an upgrade warning.
+MAXIMUM_MINOR_VERSION_DELTA = 3  # The maximum delta between minor versions of Weaviate Client that will not trigger an upgrade warning.
 MINIMUM_NO_WARNING_VERSION = (
     "v1.16.0"  # The minimum version of Weaviate that will not trigger an upgrade warning.
 )
@@ -615,6 +615,7 @@ def is_weaviate_too_old(current_version_str: str) -> bool:
     minimum_version = parse_version_string(MINIMUM_NO_WARNING_VERSION)
     return minimum_version > current_version
 
+
 def is_weaviate_client_too_old(current_version_str: str, latest_version_str: str) -> bool:
     """
     Check if the user should be gently nudged to upgrade their Weaviate client version.
@@ -642,6 +643,7 @@ def is_weaviate_client_too_old(current_version_str: str, latest_version_str: str
         return minimum_version > current_version
     except ValueError as e:
         return False
+
 
 def _get_valid_timeout_config(
     timeout_config: Union[Tuple[NUMBERS, NUMBERS], NUMBERS, None]

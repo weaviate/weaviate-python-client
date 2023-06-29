@@ -28,7 +28,13 @@ from weaviate.exceptions import (
     WeaviateStartUpError,
 )
 from weaviate.types import NUMBERS
-from weaviate.util import _check_positive_num, is_weaviate_domain, is_weaviate_too_old, is_weaviate_client_too_old, PYPI_PACKAGE_URL
+from weaviate.util import (
+    _check_positive_num,
+    is_weaviate_domain,
+    is_weaviate_too_old,
+    is_weaviate_client_too_old,
+    PYPI_PACKAGE_URL,
+)
 from weaviate.warnings import _Warnings
 from weaviate import __version__ as client_version
 
@@ -657,10 +663,10 @@ class Connection(BaseConnection):
             _Warnings.weaviate_server_older_than_1_14(self._server_version)
         if is_weaviate_too_old(self._server_version):
             _Warnings.weaviate_too_old_vs_latest(self._server_version)
-        
+
         pkg_info = requests.get(PYPI_PACKAGE_URL).json()
-        pkg_info = pkg_info.get('info', {})
-        latest_version = pkg_info.get('version', 'unknown version')
+        pkg_info = pkg_info.get("info", {})
+        latest_version = pkg_info.get("version", "unknown version")
         if is_weaviate_client_too_old(client_version, latest_version):
             _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
 

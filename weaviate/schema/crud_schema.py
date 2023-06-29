@@ -674,7 +674,6 @@ class Schema:
             # Class has no properties - nothing to do
             return
         for property_ in schema_class["properties"]:
-
             if _property_is_primitive(property_["dataType"]):
                 continue
 

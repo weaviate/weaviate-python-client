@@ -55,7 +55,6 @@ UUID2 = "577887c1-4c6b-5594-aa62-f0c17883d9cf"
 def test_grcp(
     with_limit: bool, additional_props, search: Dict[str, Any], properties, grpc_port: Optional[int]
 ):
-
     client = weaviate.Client(
         "http://localhost:8080",
         additional_config=Config(grpc_port_experimental=grpc_port),

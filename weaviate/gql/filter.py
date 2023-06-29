@@ -297,7 +297,6 @@ class NearObject(Filter):
             _check_type(var_name="distance", value=self._content["distance"], dtype=float)
 
     def __str__(self):
-
         near_object = f'nearObject: {{{self.obj_id}: "{self._content[self.obj_id]}"'
         if "certainty" in self._content:
             near_object += f' certainty: {self._content["certainty"]}'
@@ -504,7 +503,6 @@ class Sort(Filter):
             )
 
     def __str__(self) -> str:
-
         sort = "sort: ["
         for clause in self._content["sort"]:
             sort += f"{{ path: {dumps(clause['path'])} order: {clause['order']} }} "

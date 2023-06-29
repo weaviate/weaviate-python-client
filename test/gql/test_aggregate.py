@@ -9,7 +9,6 @@ from weaviate.gql.aggregate import AggregateBuilder
 
 class TestAggregateBuilder(unittest.TestCase):
     def setUp(self):
-
         self.aggregate = AggregateBuilder("Object", None)
 
     def test_with_meta_count(self):
