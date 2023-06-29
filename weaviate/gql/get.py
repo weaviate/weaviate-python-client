@@ -26,6 +26,7 @@ from weaviate.warnings import _Warnings
 
 try:
     from weaviate_grpc import weaviate_pb2
+    import grpc
 except ImportError:
     pass
 
@@ -1070,8 +1071,8 @@ class GetBuilder(GraphQL):
 
         Parameters
         ----------
-        grouped_: Optional[str]
-            The task to generate a grouped response. One
+        grouped_task: Optional[str]
+            The task to generate a grouped response.
         grouped_properties: Optional[List[str]]:
             The properties whose contents are added to the prompts. If None or empty,
             all text properties contents are added.
@@ -1095,7 +1096,9 @@ class GetBuilder(GraphQL):
         if single_prompt is not None:
             results.append("singleResult")
             task_and_prompt += f'singleResult:{{prompt:"{util.strip_newlines(single_prompt)}"}}'
-        if grouped_task is not None:
+        if grouped_task is not None or (
+            grouped_properties is not None and len(grouped_properties) > 0
+        ):
             results.append("groupedResult")
             args = []
             if grouped_task is not None:
@@ -1224,7 +1227,9 @@ class GetBuilder(GraphQL):
             and self._where is None
             and self._after is None
             and all(
-                "..." not in prop for prop in self._properties if isinstance(prop, str)
+                "..." not in prop and "_additional" not in prop
+                for prop in self._properties
+                if isinstance(prop, str)
             )  # no ref props as strings
         )
         if grpc_enabled:
@@ -1234,62 +1239,66 @@ class GetBuilder(GraphQL):
             if len(access_token) > 0:
                 metadata = (("authorization", access_token),)
 
-            res, _ = self._connection.grpc_stub.Search.with_call(
-                weaviate_pb2.SearchRequest(
-                    class_name=self._class_name,
-                    limit=self._limit,
-                    near_vector=weaviate_pb2.NearVectorParams(
-                        vector=self._near_ask.content["vector"],
-                        certainty=self._near_ask.content.get("certainty", None),
-                        distance=self._near_ask.content.get("distance", None),
-                    )
-                    if self._near_ask is not None and isinstance(self._near_ask, NearVector)
-                    else None,
-                    near_object=weaviate_pb2.NearObjectParams(
-                        id=self._near_ask.content["id"],
-                        certainty=self._near_ask.content.get("certainty", None),
-                        distance=self._near_ask.content.get("distance", None),
-                    )
-                    if self._near_ask is not None and isinstance(self._near_ask, NearObject)
-                    else None,
-                    properties=self._convert_references_to_grpc(self._properties),
-                    additional_properties=weaviate_pb2.AdditionalProperties(
-                        uuid=self._additional_dataclass.uuid,
-                        vector=self._additional_dataclass.vector,
-                        creationTimeUnix=self._additional_dataclass.creationTimeUnix,
-                        lastUpdateTimeUnix=self._additional_dataclass.lastUpdateTimeUnix,
-                        distance=self._additional_dataclass.distance,
-                        explainScore=self._additional_dataclass.explainScore,
-                        score=self._additional_dataclass.score,
-                    )
-                    if self._additional_dataclass is not None
-                    else None,
-                    bm25_search=weaviate_pb2.BM25SearchParams(
-                        properties=self._bm25.properties, query=self._bm25.query
-                    )
-                    if self._bm25 is not None
-                    else None,
-                    hybrid_search=weaviate_pb2.HybridSearchParams(
-                        properties=self._hybrid.properties,
-                        query=self._hybrid.query,
-                        alpha=self._hybrid.alpha,
-                        vector=self._hybrid.vector,
-                    )
-                    if self._hybrid is not None
-                    else None,
-                ),
-                metadata=metadata,
-            )
+            try:
+                res, _ = self._connection.grpc_stub.Search.with_call(
+                    weaviate_pb2.SearchRequest(
+                        class_name=self._class_name,
+                        limit=self._limit,
+                        near_vector=weaviate_pb2.NearVectorParams(
+                            vector=self._near_ask.content["vector"],
+                            certainty=self._near_ask.content.get("certainty", None),
+                            distance=self._near_ask.content.get("distance", None),
+                        )
+                        if self._near_ask is not None and isinstance(self._near_ask, NearVector)
+                        else None,
+                        near_object=weaviate_pb2.NearObjectParams(
+                            id=self._near_ask.content["id"],
+                            certainty=self._near_ask.content.get("certainty", None),
+                            distance=self._near_ask.content.get("distance", None),
+                        )
+                        if self._near_ask is not None and isinstance(self._near_ask, NearObject)
+                        else None,
+                        properties=self._convert_references_to_grpc(self._properties),
+                        additional_properties=weaviate_pb2.AdditionalProperties(
+                            uuid=self._additional_dataclass.uuid,
+                            vector=self._additional_dataclass.vector,
+                            creationTimeUnix=self._additional_dataclass.creationTimeUnix,
+                            lastUpdateTimeUnix=self._additional_dataclass.lastUpdateTimeUnix,
+                            distance=self._additional_dataclass.distance,
+                            explainScore=self._additional_dataclass.explainScore,
+                            score=self._additional_dataclass.score,
+                        )
+                        if self._additional_dataclass is not None
+                        else None,
+                        bm25_search=weaviate_pb2.BM25SearchParams(
+                            properties=self._bm25.properties, query=self._bm25.query
+                        )
+                        if self._bm25 is not None
+                        else None,
+                        hybrid_search=weaviate_pb2.HybridSearchParams(
+                            properties=self._hybrid.properties,
+                            query=self._hybrid.query,
+                            alpha=self._hybrid.alpha,
+                            vector=self._hybrid.vector,
+                        )
+                        if self._hybrid is not None
+                        else None,
+                    ),
+                    metadata=metadata,
+                )
 
-            objects = []
-            for result in res.results:
-                obj = self._convert_references_to_grpc_result(result.properties)
-                additional = self._extract_additional_properties(result.additional_properties)
-                if len(additional) > 0:
-                    obj["_additional"] = additional
-                objects.append(obj)
+                objects = []
+                for result in res.results:
+                    obj = self._convert_references_to_grpc_result(result.properties)
+                    additional = self._extract_additional_properties(result.additional_properties)
+                    if len(additional) > 0:
+                        obj["_additional"] = additional
+                    objects.append(obj)
 
-            results = {"data": {"Get": {self._class_name: objects}}}
+                results = {"data": {"Get": {self._class_name: objects}}}
+
+            except grpc.RpcError as e:
+                results = {"errors": [e.details()]}
             return results
         else:
             return super().do()

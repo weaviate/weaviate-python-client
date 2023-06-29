@@ -2,7 +2,6 @@ import hashlib
 import os
 import platform
 import re
-import signal
 import socket
 import stat
 import subprocess
@@ -10,6 +9,7 @@ import tarfile
 import time
 import urllib.request
 import warnings
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional
@@ -29,7 +29,7 @@ GITHUB_RELEASE_DOWNLOAD_URL = "https://github.com/weaviate/weaviate/releases/dow
 class EmbeddedOptions:
     persistence_data_path: str = os.environ.get("XDG_DATA_HOME", DEFAULT_PERSISTENCE_DATA_PATH)
     binary_path: str = os.environ.get("XDG_CACHE_HOME", DEFAULT_BINARY_PATH)
-    version: str = "1.19.3"
+    version: str = "1.19.8"
     port: int = 6666
     hostname: str = "127.0.0.1"
     additional_env_vars: Optional[Dict[str, str]] = None
@@ -47,7 +47,7 @@ class EmbeddedDB:
     def __init__(self, options: EmbeddedOptions) -> None:
         self.data_bind_port = get_random_port()
         self.options = options
-        self.pid = 0
+        self.process: Optional[subprocess.Popen[bytes]] = None
         self.ensure_paths_exist()
         self.check_supported_platform()
         self._parsed_weaviate_version = ""
@@ -59,7 +59,9 @@ class EmbeddedDB:
         )
 
         if validators.url(self.options.version):
-            if not self.options.version.endswith(".tar.gz"):
+            if not self.options.version.endswith(".tar.gz") and not self.options.version.endswith(
+                ".zip"
+            ):
                 raise exceptions.WeaviateEmbeddedInvalidVersion(self.options.version)
 
             # for GitHub urls we can parse the version from the url
@@ -82,20 +84,29 @@ class EmbeddedDB:
             raise exceptions.WeaviateEmbeddedInvalidVersion(self.options.version)
 
     def _set_download_url_from_version_tag(self, version: str) -> None:
-        machine_type = platform.machine()
-        if machine_type == "x86_64":
-            machine_type = "amd64"
-        elif machine_type == "aarch64":
-            machine_type = "arm64"
+
+        if platform.system() == "Darwin":
+            machine_type = "all"
+            package_format = "zip"
+        else:
+            machine_type = platform.machine()
+            if machine_type == "x86_64":
+                machine_type = "amd64"
+            elif machine_type == "aarch64":
+                machine_type = "arm64"
+            package_format = "tar.gz"
 
         self._download_url = (
             GITHUB_RELEASE_DOWNLOAD_URL
             + version
             + "/weaviate-"
             + version
-            + "-linux-"
+            + "-"
+            + platform.system()
+            + "-"
             + machine_type
-            + ".tar.gz"
+            + "."
+            + package_format
         )
 
     def __del__(self) -> None:
@@ -117,12 +128,20 @@ class EmbeddedDB:
             print(
                 f"Binary {self.options.binary_path} did not exist. Downloading binary from {self._download_url}"
             )
-            tar_filename = Path(self.options.binary_path, "tmp_weaviate.tgz")
-            urllib.request.urlretrieve(self._download_url, tar_filename)
-            binary_tar = tarfile.open(tar_filename)
-            binary_tar.extract("weaviate", path=Path(self.options.binary_path))
+            if self._download_url.endswith(".tar.gz"):
+                tar_filename = Path(self.options.binary_path, "tmp_weaviate.tgz")
+                urllib.request.urlretrieve(self._download_url, tar_filename)
+                binary_tar = tarfile.open(tar_filename)
+                binary_tar.extract("weaviate", path=Path(self.options.binary_path))
+                tar_filename.unlink()
+            else:
+                assert self._download_url.endswith(".zip")
+                zip_filename = Path(self.options.binary_path, "tmp_weaviate.zip")
+                urllib.request.urlretrieve(self._download_url, zip_filename)
+                with zipfile.ZipFile(zip_filename, "r") as zip_ref:
+                    zip_ref.extract("weaviate", path=Path(self.options.binary_path))
+
             (Path(self.options.binary_path) / "weaviate").rename(self._weaviate_binary_path)
-            tar_filename.unlink()
 
             # Ensuring weaviate binary is executable
             self._weaviate_binary_path.chmod(
@@ -153,7 +172,7 @@ class EmbeddedDB:
 
     @staticmethod
     def check_supported_platform() -> None:
-        if platform.system() in ["Darwin", "Windows"]:
+        if platform.system() in ["Windows"]:
             raise WeaviateStartUpError(
                 f"{platform.system()} is not supported with EmbeddedDB. Please upvote the feature request if "
                 f"you want this: https://github.com/weaviate/weaviate-python-client/issues/239"
@@ -199,18 +218,19 @@ class EmbeddedDB:
                 ],
                 env=my_env,
             )
-            self.pid = process.pid
-        print(f"Started {self.options.binary_path}: process ID {self.pid}")
+            self.process = process
+        print(f"Started {self.options.binary_path}: process ID {self.process.pid}")
         self.wait_till_listening()
 
     def stop(self) -> None:
-        if self.pid > 0:
+        if self.process is not None:
             try:
-                os.kill(self.pid, signal.SIGTERM)
+                self.process.terminate()
+                self.process.wait()
             except ProcessLookupError:
                 print(
-                    f"Tried to stop embedded weaviate process {self.pid}. Process {self.pid} "
-                    f"was not found. So not doing anything"
+                    f"""Tried to stop embedded weaviate process {self.process.pid}. Process was not found. So not doing
+                    anything"""
                 )
 
     def ensure_running(self) -> None:

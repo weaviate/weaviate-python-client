@@ -49,8 +49,7 @@ UUID2 = "577887c1-4c6b-5594-aa62-f0c17883d9cf"
     [
         "test",
         ["test", "abc"],
-        ["test", "_additional{id}"],
-        ["test", "ref {... on Test {test abc _additional{id vector}}}"],
+        ["test", "ref {... on Test {test abc}}"],
     ],
 )
 def test_grcp(
@@ -135,3 +134,26 @@ def test_additional():
     assert sorted(result_gql.keys()) == sorted(result_grpc.keys())
     for key in result_gql.keys():
         assert result_gql[key] == result_grpc[key]
+
+
+def test_grpc_errors():
+    client = weaviate.Client(
+        "http://localhost:8080",
+        additional_config=Config(grpc_port_experimental=50051),
+    )
+    classname = CLASS1["class"]
+    if client.schema.exists(classname):
+        client.schema.delete_class(classname)
+    client.schema.create_class(CLASS1)
+
+    client.data_object.create({"test": "test"}, classname)
+
+    # class errors
+    res = client.query.get(classname + "does_not_exist", ["test"]).do()
+    assert "errors" in res
+    assert "data" not in res
+
+    # prop errors
+    res = client.query.get(classname, ["test", "made_up_prop"]).do()
+    assert "errors" in res
+    assert "data" not in res

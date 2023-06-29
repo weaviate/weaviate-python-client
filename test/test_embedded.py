@@ -122,7 +122,7 @@ def test_embedded_end_to_end(options, tmp_path):
         )
 
     # killing the process should restart it again when ensure running is called
-    os.kill(embedded_db.pid, signal.SIGTERM)
+    os.kill(embedded_db.process.pid, signal.SIGTERM)
     time.sleep(0.2)
     assert embedded_db.is_listening() is False
     embedded_db.ensure_running()
