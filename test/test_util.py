@@ -476,21 +476,6 @@ class TestUtil(unittest.TestCase):
         assert parse_version_string("2.0.0") == (2, 0)
         assert parse_version_string("v2.05.5") == (2, 5)
 
-    def test__is_weaviate_client_too_old(self):
-        cases = [
-            ("v1.18.1", "v1.18.1", False),
-            ("v1.0.0", "v1.3.1", False),
-            ("v1.0.0", "v1.4.0", True),
-            ("unknown", "v1.4.0", False),
-            ("v1.4.0", "unknown", False),
-            ("v0.4.0", "v1.16.16", True),
-            ("v0.4.0", "v1.4.0", True),
-            ("v0.4.0", "v1.0.0", True),
-        ]
-        for case in cases:
-            current_version, latest_version, too_old = case
-            assert is_weaviate_client_too_old(current_version, latest_version) == too_old
-
 
 MINIMUM_NO_WARNING_VERSION_MAJOR, MINIMUM_NO_WARNING_VERSION_MINOR = parse_version_string(
     MINIMUM_NO_WARNING_VERSION
@@ -513,3 +498,20 @@ MINIMUM_NO_WARNING_VERSION_MINOR = int(MINIMUM_NO_WARNING_VERSION_MINOR)
 )
 def test_is_weaviate_too_old(version: str, too_old: bool):
     assert is_weaviate_too_old(version) is too_old
+
+
+@pytest.mark.parametrize(
+    "current_version,latest_version,too_old",
+    [
+        ("v1.18.1", "v1.18.1", False),
+        ("v1.0.0", "v1.3.1", False),
+        ("v1.0.0", "v1.4.0", True),
+        ("unknown", "v1.4.0", False),
+        ("v1.4.0", "unknown", False),
+        ("v0.4.0", "v1.16.16", True),
+        ("v0.4.0", "v1.4.0", True),
+        ("v0.4.0", "v1.0.0", True),
+    ],
+)
+def test_is_weaviate_client_too_old(current_version: str, latest_version: str, too_old: bool):
+    assert is_weaviate_client_too_old(current_version, latest_version) is too_old
