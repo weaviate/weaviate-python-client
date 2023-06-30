@@ -284,7 +284,6 @@ class Batch:
         dynamic: bool = False,
         num_workers: int = 1,
         consistency_level: Optional[ConsistencyLevel] = None,
-        tenant: Optional[Tenant] = None,
     ) -> "Batch":
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
@@ -319,8 +318,6 @@ class Batch:
             The maximal number of concurrent threads to run batch import. Only used for non-MANUAL
             batching. i.e. is used only with AUTO or DYNAMIC batching.
             By default, the multi-threading is disabled. Use with care to not overload your weaviate instance.
-        tenant: Optional[Tenant], optional
-            The name of the tenant for which this operation is being performed.
 
         Returns
         -------
@@ -345,7 +342,6 @@ class Batch:
             dynamic=dynamic,
             num_workers=num_workers,
             consistency_level=consistency_level,
-            tenant=tenant,
         )
 
     def __call__(
@@ -359,7 +355,6 @@ class Batch:
         dynamic: bool = False,
         num_workers: int = 1,
         consistency_level: Optional[ConsistencyLevel] = None,
-        tenant: Optional[Tenant] = None,
     ) -> "Batch":
         """
         Configure the instance to your needs. (`__call__` and `configure` methods are the same).
@@ -394,8 +389,6 @@ class Batch:
             The maximal number of concurrent threads to run batch import. Only used for non-MANUAL
             batching. i.e. is used only with AUTO or DYNAMIC batching.
             By default, the multi-threading is disabled. Use with care to not overload your weaviate instance.
-        tenant: Optional[Tenant], optional
-            The name of the tenant for which this operation is being performed.
 
         Returns
         -------
@@ -410,7 +403,6 @@ class Batch:
             If the value of one of the arguments is wrong.
         """
         self.consistency_level = consistency_level
-        self.tenant = tenant
         if creation_time is not None:
             _check_positive_num(creation_time, "creation_time", Real)
             self._creation_time = creation_time
@@ -458,6 +450,7 @@ class Batch:
         class_name: str,
         uuid: Optional[UUID] = None,
         vector: Optional[Sequence] = None,
+        tenant: Optional[str] = None,
     ) -> str:
         """
         Add one object to this batch.
@@ -500,6 +493,7 @@ class Batch:
             data_object=data_object,
             uuid=uuid,
             vector=vector,
+            tenant=tenant,
         )
 
         if self._batching_type:
@@ -514,6 +508,7 @@ class Batch:
         from_property_name: str,
         to_object_uuid: UUID,
         to_object_class_name: Optional[str] = None,
+        tenant: Optional[str] = None,
     ) -> None:
         """
         Add one reference to this batch.
@@ -537,6 +532,8 @@ class Batch:
             STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
             versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
             by default None
+        tenant: str, optional
+            Name of the tenant.
 
         Raises
         ------
@@ -576,6 +573,7 @@ class Batch:
             from_property_name=from_property_name,
             to_object_uuid=to_object_uuid,
             to_object_class_name=to_object_class_name,
+            tenant=tenant,
         )
 
         if self._batching_type:
@@ -619,7 +617,7 @@ class Batch:
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level
         if self._tenant is not None:
-            params["tenant_key"] = self._tenant.name
+            params["tenant"] = self._tenant.name
 
         try:
             timeout_count = connection_count = batch_error_count = 0

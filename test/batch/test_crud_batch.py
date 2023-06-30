@@ -687,20 +687,14 @@ class TestBatch(unittest.TestCase):
         batch.add_data_object({}, "Test")
         self.assertEqual(batch._objects_batch.add.call_count, 1)
         batch._objects_batch.add.assert_called_with(
-            class_name="Test",
-            data_object={},
-            uuid=None,
-            vector=None,
+            class_name="Test", data_object={}, uuid=None, vector=None, tenant=None
         )
         mock_auto_create.assert_not_called()
 
         batch.add_data_object({}, "Test")
         self.assertEqual(batch._objects_batch.add.call_count, 2)
         batch._objects_batch.add.assert_called_with(
-            class_name="Test",
-            data_object={},
-            uuid=None,
-            vector=None,
+            class_name="Test", data_object={}, uuid=None, vector=None, tenant=None
         )
         mock_auto_create.assert_not_called()
 
@@ -710,10 +704,7 @@ class TestBatch(unittest.TestCase):
         batch.add_data_object({}, "Test")
         self.assertEqual(batch._objects_batch.add.call_count, 3)
         batch._objects_batch.add.assert_called_with(
-            class_name="Test",
-            data_object={},
-            uuid=None,
-            vector=None,
+            class_name="Test", data_object={}, uuid=None, vector=None, tenant=None
         )
         mock_auto_create.assert_called()
         mock_auto_create.reset_mock()
@@ -724,10 +715,7 @@ class TestBatch(unittest.TestCase):
         batch.add_data_object({}, "Test")
         self.assertEqual(batch._objects_batch.add.call_count, 4)
         batch._objects_batch.add.assert_called_with(
-            class_name="Test",
-            data_object={},
-            uuid=None,
-            vector=None,
+            class_name="Test", data_object={}, uuid=None, vector=None, tenant=None
         )
         mock_auto_create.assert_called()
         mock_auto_create.reset_mock()
@@ -735,10 +723,7 @@ class TestBatch(unittest.TestCase):
         batch.add_data_object({}, "test")
         self.assertEqual(batch._objects_batch.add.call_count, 5)
         batch._objects_batch.add.assert_called_with(
-            class_name="Test",
-            data_object={},
-            uuid=None,
-            vector=None,
+            class_name="Test", data_object={}, uuid=None, vector=None, tenant=None
         )
         mock_auto_create.assert_called()
         mock_auto_create.reset_mock()
@@ -765,6 +750,7 @@ class TestBatch(unittest.TestCase):
             from_property_name="test",
             to_object_uuid="f0153f24-3923-4046-919b-6a3e8fd37392",
             to_object_class_name=None,
+            tenant=None,
         )
         mock_auto_create.assert_not_called()
 
@@ -781,6 +767,7 @@ class TestBatch(unittest.TestCase):
             from_property_name="test",
             to_object_uuid="f0153f24-3923-4046-919b-6a3e8fd37394",
             to_object_class_name=None,
+            tenant=None,
         )
         mock_auto_create.assert_not_called()
 
@@ -800,6 +787,7 @@ class TestBatch(unittest.TestCase):
             from_property_name="test",
             to_object_uuid="f0153f24-3923-4046-919b-6a3e8fd37397",
             to_object_class_name=None,
+            tenant=None,
         )
         mock_auto_create.assert_called()
         mock_auto_create.reset_mock()
@@ -820,6 +808,7 @@ class TestBatch(unittest.TestCase):
             from_property_name="test",
             to_object_uuid="f0153f24-3923-4046-919b-6a3e8fd37399",
             to_object_class_name=None,
+            tenant=None,
         )
         mock_auto_create.assert_called()
         mock_auto_create.reset_mock()
@@ -837,6 +826,7 @@ class TestBatch(unittest.TestCase):
             from_property_name="test",
             to_object_uuid="f0153f24-3923-4046-919b-6a3e8fd37319",
             to_object_class_name=None,
+            tenant=None,
         )
         mock_auto_create.assert_called()
         mock_auto_create.reset_mock()

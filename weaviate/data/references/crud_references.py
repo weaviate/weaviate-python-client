@@ -2,11 +2,12 @@
 Reference class definition.
 """
 import warnings
-from typing import Union, Optional
+from typing import Union, Optional, List
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
+from weaviate.data.replication import ConsistencyLevel
 from weaviate.error_msgs import (
     REF_DEPRECATION_NEW_V14_CLS_NS_W,
     REF_DEPRECATION_OLD_V14_FROM_CLS_NS_W,
@@ -17,8 +18,6 @@ from weaviate.util import (
     get_valid_uuid,
     _capitalize_first_letter,
 )
-from weaviate.data.replication import ConsistencyLevel
-from weaviate.schema.crud_schema import Tenant
 
 
 class Reference:
@@ -46,7 +45,7 @@ class Reference:
         from_class_name: Optional[str] = None,
         to_class_name: Optional[str] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
-        tenant: Optional[Tenant] = None,
+        tenant: Optional[str] = None,
     ) -> None:
         """
         Remove a reference to another object. Equal to removing one direction of an edge from the
@@ -74,7 +73,7 @@ class Reference:
             by default None
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
-        tenant: Optional[Tenant], optional
+        tenant: Optional[str], optional
             The name of the tenant for which this operation is being performed.
 
         Examples
@@ -163,8 +162,6 @@ class Reference:
         params = {}
         if consistency_level is not None:
             params["consistency_level"] = ConsistencyLevel(consistency_level).value
-        if tenant is not None:
-            params["tenant_key"] = tenant.name
 
         if (from_class_name is None or to_class_name is None) and is_server_version_14:
             warnings.warn(
@@ -213,6 +210,9 @@ class Reference:
                 to_uuid=to_uuid,
             )
 
+        if tenant is not None:
+            beacon["tenant"] = tenant
+
         if from_class_name and is_server_version_14:
             _class_name = _capitalize_first_letter(from_class_name)
             path = f"/objects/{_class_name}/{from_uuid}/references/{from_property_name}"
@@ -231,11 +231,11 @@ class Reference:
         self,
         from_uuid: str,
         from_property_name: str,
-        to_uuids: Union[list, str],
+        to_uuids: Union[List[str], str],
         from_class_name: Optional[str] = None,
-        to_class_names: Union[list, str, None] = None,
+        to_class_names: Union[List[str], str, None] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
-        tenant: Optional[Tenant] = None,
+        tenant: Optional[str] = None,
     ) -> None:
         """
         Allows to update all references in that property with a new set of references.
@@ -276,7 +276,7 @@ class Reference:
             by default None
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
-        tenant: Optional[Tenant], optional
+        tenant: Optional[str]
             The name of the tenant for which this operation is being performed.
 
         Examples
@@ -363,8 +363,6 @@ class Reference:
         params = {}
         if consistency_level is not None:
             params["consistency_level"] = ConsistencyLevel(consistency_level).value
-        if tenant is not None:
-            params["tenant_key"] = tenant.name
 
         if (from_class_name is None or to_class_names is None) and is_server_version_14:
             warnings.warn(
@@ -445,6 +443,10 @@ class Reference:
         else:
             path = f"/objects/{from_uuid}/references/{from_property_name}"
 
+        if tenant is not None:
+            for beacon in beacons:
+                beacon["tenant"] = tenant
+
         try:
             response = self._connection.put(
                 path=path,
@@ -465,7 +467,7 @@ class Reference:
         from_class_name: Optional[str] = None,
         to_class_name: Optional[str] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
-        tenant: Optional[Tenant] = None,
+        tenant: Optional[str] = None,
     ) -> None:
         """
         Allows to link an object to an object uni-directionally.
@@ -502,7 +504,7 @@ class Reference:
             by default None
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
-        tenant: Optional[Tenant], optional
+        tenant: Optional[str]
             The name of the tenant for which this operation is being performed.
 
         Examples
@@ -567,8 +569,6 @@ class Reference:
         params = {}
         if consistency_level is not None:
             params["consistency_level"] = ConsistencyLevel(consistency_level).value
-        if tenant is not None:
-            params["tenant_key"] = tenant.name
 
         if (from_class_name is None or to_class_name is None) and is_server_version_14:
             warnings.warn(
@@ -622,6 +622,9 @@ class Reference:
             path = f"/objects/{_class_name}/{from_uuid}/references/{from_property_name}"
         else:
             path = f"/objects/{from_uuid}/references/{from_property_name}"
+
+        if tenant is not None:
+            beacon["tenant"] = tenant
 
         try:
             response = self._connection.post(

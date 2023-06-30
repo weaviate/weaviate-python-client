@@ -2,7 +2,7 @@
 version: '3.4'
 services:
   weaviate-node-1:
-    image: semitechnologies/weaviate:preview-enforce-tenant-object-separation-and-tenant-key-immutability-4c47396
+    image: semitechnologies/weaviate:1.20.0-prealpha-ce45d2a
     restart: on-failure:0
     ports:
       - "8087:8080"

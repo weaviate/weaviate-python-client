@@ -9,8 +9,8 @@ from typing import List, Optional, Dict, Union
 import pytest
 
 import weaviate
-from weaviate.gql.get import LinkTo
 from weaviate import Tenant
+from weaviate.gql.get import LinkTo
 
 
 def get_query_for_group(name):
@@ -684,8 +684,8 @@ def test_tenants():
                 {"name": "tenant", "dataType": ["text"]},
                 {"name": "title", "dataType": ["text"]},
             ],
-            "vectorizer": "text2vec-contextionary",
-            "multiTenancyConfig": {"enabled": True, "tenantKey": "tenant"},
+            "vectorizer": "none",
+            "multiTenancyConfig": {"enabled": True},
         }
     )
     client.schema.create_class_tenants(
@@ -703,10 +703,10 @@ def test_tenants():
             class_name=class_name_document,
             uuid=document_uuids[i],
             data_object={
-                "title": document_titles[i],
                 "tenant": tenants[i].name,
+                "title": document_titles[i],
             },
-            tenant=tenants[i],
+            tenant=tenants[i].name,
         )
 
     class_name_passage = "Passage"
@@ -718,8 +718,8 @@ def test_tenants():
                 {"name": "content", "dataType": ["text"]},
                 {"name": "ofDocument", "dataType": ["Document"]},
             ],
-            "vectorizer": "text2vec-contextionary",
-            "multiTenancyConfig": {"enabled": True, "tenantKey": "tenant"},
+            "vectorizer": "none",
+            "multiTenancyConfig": {"enabled": True},
         }
     )
     client.schema.create_class_tenants(
@@ -732,20 +732,7 @@ def test_tenants():
         "00000000-0000-0000-0000-000000000002",
         "00000000-0000-0000-0000-000000000003",
     ]
-    txts = [
-        """
-        A generative adversarial network (GAN) is a class of machine learning frameworks designed
-        by Ian Goodfellow and his colleagues in June 2014.
-        """,
-        """
-        OpenAI is an American artificial intelligence (AI) research laboratory consisting of the non-profit
-        OpenAI Incorporated and its for-profit subsidiary corporation OpenAI Limited Partnership.
-        """,
-        """
-        The Space Exploration Technologies Corporation, commonly referred to as SpaceX is an American
-        spacecraft manufacturer, launcher, and satellite communications company headquartered in Hawthorne, California.
-        """,
-    ]
+    txts = ["Txt1", "Txt2", "Txt3"]
 
     for i in range(0, len(passage_uuids)):
         client.data_object.create(
@@ -755,14 +742,14 @@ def test_tenants():
                 "content": txts[i],
                 "tenant": tenants[i].name,
             },
-            tenant=tenants[i],
+            tenant=tenants[i].name,
         )
 
     for i in range(0, len(passage_uuids)):
         passage = client.data_object.get_by_id(
             class_name=class_name_passage,
             uuid=passage_uuids[i],
-            tenant=tenants[i],
+            tenant=tenants[i].name,
         )
         assert passage["properties"]["tenant"] == tenants[i].name
         assert passage["properties"]["content"] == txts[i]
@@ -775,20 +762,20 @@ def test_tenants():
                 "content": txts[len(txts) - i - 1],
                 "tenant": tenants[i].name,
             },
-            tenant=tenants[i],
+            tenant=tenants[i].name,
         )
 
     for i in range(0, len(passage_uuids)):
         exists = client.data_object.exists(
             class_name=class_name_passage,
             uuid=passage_uuids[i],
-            tenant=tenants[i],
+            tenant=tenants[i].name,
         )
         assert exists
         passage = client.data_object.get_by_id(
             class_name=class_name_passage,
             uuid=passage_uuids[i],
-            tenant=tenants[i],
+            tenant=tenants[i].name,
         )
         assert passage["properties"]["tenant"] == tenants[i].name
         assert passage["properties"]["content"] == txts[len(txts) - i - 1]
@@ -800,14 +787,14 @@ def test_tenants():
             data_object={
                 "content": tenants[i].name,
             },
-            tenant=tenants[i],
+            tenant=tenants[i].name,
         )
 
     for i in range(0, len(passage_uuids)):
         passage = client.data_object.get_by_id(
             class_name=class_name_passage,
             uuid=passage_uuids[i],
-            tenant=tenants[i],
+            tenant=tenants[i].name,
         )
         assert passage["properties"]["tenant"] == tenants[i].name
         assert passage["properties"]["content"] == tenants[i].name
@@ -820,14 +807,14 @@ def test_tenants():
             document_uuids[i],
             from_class_name="Passage",
             to_class_name="Document",
-            tenant=tenants[i],
+            tenant=tenants[i].name,
         )
 
     for i in range(0, len(passage_uuids)):
         passage = client.data_object.get_by_id(
             class_name=class_name_passage,
             uuid=passage_uuids[i],
-            tenant=tenants[i],
+            tenant=tenants[i].name,
         )
         assert len(passage["properties"]["ofDocument"]) == 1
 
@@ -839,7 +826,7 @@ def test_tenants():
     #         document_uuids[i],
     #         from_class_name="Passage",
     #         to_class_names="Document",
-    #         tenant=tenants[i],
+    #         tenant=tenants[i].name,
     #     )
 
     for i in range(0, len(passage_uuids)):
@@ -849,14 +836,14 @@ def test_tenants():
             document_uuids[i],
             from_class_name="Passage",
             to_class_name="Document",
-            tenant=tenants[i],
+            tenant=tenants[i].name,
         )
 
     for i in range(0, len(passage_uuids)):
         passage = client.data_object.get_by_id(
             class_name=class_name_passage,
             uuid=passage_uuids[i],
-            tenant=tenants[i],
+            tenant=tenants[i].name,
         )
         assert len(passage["properties"]["ofDocument"]) == 0
 
@@ -864,14 +851,14 @@ def test_tenants():
         client.data_object.delete(
             class_name=class_name_passage,
             uuid=passage_uuids[i],
-            tenant=tenants[i],
+            tenant=tenants[i].name,
         )
 
     for i in range(0, len(passage_uuids)):
         exists = client.data_object.exists(
             class_name=class_name_passage,
             uuid=passage_uuids[i],
-            tenant=tenants[i],
+            tenant=tenants[i].name,
         )
         assert not exists
 
@@ -879,13 +866,13 @@ def test_tenants():
         client.data_object.delete(
             class_name=class_name_document,
             uuid=document_uuids[i],
-            tenant=tenants[i],
+            tenant=tenants[i].name,
         )
 
     for i in range(0, len(document_uuids)):
         exists = client.data_object.exists(
             class_name=class_name_document,
             uuid=document_uuids[i],
-            tenant=tenants[i],
+            tenant=tenants[i].name,
         )
         assert not exists

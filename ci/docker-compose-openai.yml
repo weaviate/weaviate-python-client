@@ -9,7 +9,7 @@ services:
       - '8086'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-enforce-tenant-object-separation-and-tenant-key-immutability-4c47396
+    image: semitechnologies/weaviate:1.20.0-prealpha-ce45d2a
     ports:
       - 8086:8086
     restart: on-failure:0
