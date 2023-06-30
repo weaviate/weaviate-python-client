@@ -17,7 +17,6 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.schema.crud_schema import Tenant
 from weaviate.types import UUID
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest, BatchResponse
 from ..error_msgs import (
@@ -269,7 +268,6 @@ class Batch:
         self._batching_type = None
         self._num_workers = 1
         self._consistency_level = None
-        self._tenant = None
         # thread pool executor
         self._executor: Optional[BatchExecutor] = None
 
@@ -616,8 +614,6 @@ class Batch:
         params = {}
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level
-        if self._tenant is not None:
-            params["tenant"] = self._tenant.name
 
         try:
             timeout_count = connection_count = batch_error_count = 0
@@ -1256,8 +1252,6 @@ class Batch:
         params = {}
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level
-        if self._tenant is not None:
-            params["tenant_key"] = self._tenant.name
 
         payload = {
             "match": {
@@ -1493,14 +1487,6 @@ class Batch:
     @consistency_level.setter
     def consistency_level(self, x: Optional[Union[ConsistencyLevel, None]]) -> None:
         self._consistency_level = ConsistencyLevel(x).value if x else None
-
-    @property
-    def tenant(self, value: Optional[Tenant]) -> Union[Tenant, None]:
-        return self._tenant
-
-    @tenant.setter
-    def tenant(self, x: Optional[Tenant]) -> None:
-        self._tenant = x
 
     @property
     def recommended_num_objects(self) -> Optional[int]:
