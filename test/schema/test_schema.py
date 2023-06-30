@@ -8,7 +8,6 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.schema import Schema
-from weaviate.schema.crud_schema import Tenant
 from weaviate.util import _capitalize_first_letter
 
 company_test_schema = {
@@ -674,18 +673,3 @@ class TestSchema(unittest.TestCase):
         self.assertEqual(
             test_func(properties_list), [{"dataType": ["text"]}, {"dataType": ["int"]}]
         )
-
-    def test_create_tenants(self):
-        """
-        Test the `create_tenants` method.
-        """
-
-        schema = Schema(Mock())
-
-        # mock function calls
-        mock_create_class_tenants = Mock()
-        schema.add_class_tenants = mock_create_class_tenants
-
-        tenants = [Tenant(name="Tenant1"), Tenant(name="Tenant2")]
-        schema.add_class_tenants("class", tenants)  # with read from file
-        mock_create_class_tenants.assert_called_with("class", tenants)
