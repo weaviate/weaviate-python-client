@@ -708,6 +708,8 @@ def test_tenants():
             },
             tenant=tenants[i].name,
         )
+    documents = client.data_object.get(class_name=class_name_document, tenant=tenants[0].name)
+    assert len(documents["objects"]) == 1
 
     class_name_passage = "Passage"
     client.schema.create_class(
@@ -753,6 +755,8 @@ def test_tenants():
         )
         assert passage["properties"]["tenant"] == tenants[i].name
         assert passage["properties"]["content"] == txts[i]
+    passages = client.data_object.get(class_name=class_name_passage, tenant=tenants[0].name)
+    assert len(passages["objects"]) == 1
 
     for i in range(0, len(passage_uuids)):
         client.data_object.replace(
