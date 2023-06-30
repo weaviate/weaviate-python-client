@@ -684,8 +684,8 @@ class TestSchema(unittest.TestCase):
 
         # mock function calls
         mock_create_class_tenants = Mock()
-        schema.create_class_tenants = mock_create_class_tenants
+        schema.add_class_tenants = mock_create_class_tenants
 
         tenants = [Tenant(name="Tenant1"), Tenant(name="Tenant2")]
-        schema.create_class_tenants("class", tenants)  # with read from file
+        schema.add_class_tenants("class", tenants)  # with read from file
         mock_create_class_tenants.assert_called_with("class", tenants)

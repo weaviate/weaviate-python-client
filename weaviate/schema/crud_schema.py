@@ -1,8 +1,8 @@
 """
 Schema class definition.
 """
-from typing import Union, Optional
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
+from typing import Union, Optional, List
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -49,7 +49,7 @@ class Tenant:
 
     Parameters
     ----------
-    name: the name of the tenant, used as tenant_key.
+    name: the name of the tenant.
     """
 
     name: str
@@ -782,7 +782,7 @@ class Schema:
         for weaviate_class in schema_classes_list:
             self._create_class_with_primitives(weaviate_class)
 
-    def create_class_tenants(self, class_name: str, tenants: list) -> None:
+    def add_class_tenants(self, class_name: str, tenants: List[Tenant]) -> None:
         """
         Create class's tenants in Weaviate.
 
@@ -790,31 +790,25 @@ class Schema:
         ----------
         class_name : str
             The class for which we add tenants.
-        tenants : list[Tenant]
+        tenants : List[Tenant]
             List of Tenants.
 
         Examples
         --------
         >>> tenants = [ Tenant(name="Tenant1"), Tenant(name="Tenant2") ]
-        >>> client.schema.create_tenants("class_name", tenants)
+        >>> client.schema.add_class_tenants("class_name", tenants)
 
         Raises
         ------
         TypeError
-            If the 'tenants' is neither a string nor a dict.
-        ValueError
-            If 'tenants' can not be converted.
+            If 'tenants' has not the correct type.
         requests.ConnectionError
             If the network connection to Weaviate fails.
         weaviate.UnexpectedStatusCodeException
             If Weaviate reports a non-OK status.
-        weaviate.SchemaValidationException
-            If the 'schema_class' could not be validated against the standard format.
         """
 
-        loaded_tenants = []
-        for tenant in tenants:
-            loaded_tenants.append(asdict(tenant))
+        loaded_tenants = [{"name": tenant.name} for tenant in tenants]
 
         path = "/schema/" + class_name + "/tenants"
         try:

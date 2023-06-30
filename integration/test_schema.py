@@ -2,8 +2,8 @@ from typing import Optional
 
 import pytest
 
-from weaviate import Tenant
 import weaviate
+from weaviate import Tenant
 
 
 @pytest.fixture(scope="module")
@@ -116,4 +116,4 @@ def test_class_tenants(client: weaviate.Client):
         Tenant(name="Tenant3"),
         Tenant(name="Tenant4"),
     ]
-    client.schema.create_class_tenants(class_name, tenants)
+    client.schema.add_class_tenants(class_name, tenants)

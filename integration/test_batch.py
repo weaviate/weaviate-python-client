@@ -131,7 +131,7 @@ def test_add_object_batch_with_tenant():
                 "multiTenancyConfig": {"enabled": True},
             },
         )
-        client.schema.create_class_tenants(name, [Tenant("tenant" + str(i)) for i in range(5)])
+        client.schema.add_class_tenants(name, [Tenant("tenant" + str(i)) for i in range(5)])
 
     nr_objects = 100
     objects = []
@@ -181,7 +181,7 @@ def test_add_ref_batch_with_tenant():
     )
 
     for name in class_names:
-        client.schema.create_class_tenants(name, [Tenant("tenant" + str(i)) for i in range(5)])
+        client.schema.add_class_tenants(name, [Tenant("tenant" + str(i)) for i in range(5)])
 
     nr_objects = 100
     objects_class0 = []

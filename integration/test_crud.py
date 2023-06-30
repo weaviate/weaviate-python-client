@@ -688,7 +688,7 @@ def test_tenants():
             "multiTenancyConfig": {"enabled": True},
         }
     )
-    client.schema.create_class_tenants(
+    client.schema.add_class_tenants(
         class_name=class_name_document,
         tenants=tenants,
     )
@@ -722,7 +722,7 @@ def test_tenants():
             "multiTenancyConfig": {"enabled": True},
         }
     )
-    client.schema.create_class_tenants(
+    client.schema.add_class_tenants(
         class_name=class_name_passage,
         tenants=tenants,
     )
