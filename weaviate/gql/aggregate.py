@@ -3,6 +3,7 @@ GraphQL `Aggregate` command.
 """
 import json
 from typing import List, Optional
+
 from weaviate.connect import Connection
 from weaviate.util import _capitalize_first_letter
 from .filter import (
@@ -41,6 +42,16 @@ class AggregateBuilder(GraphQL):
         self._group_by_properties: Optional[List[str]] = None
         self._uses_filter: bool = False
         self._near: Optional[Filter] = None
+        self._tenant: Optional[str] = None
+
+    def with_tenant(self, tenant: str) -> "AggregateBuilder":
+        """Sets a tenant for the query."""
+        if not isinstance(tenant, str):
+            raise TypeError("tenant must be of type str")
+
+        self._tenant = tenant
+        self._uses_filter = True
+        return self
 
     def with_meta_count(self) -> "AggregateBuilder":
         """
@@ -409,6 +420,9 @@ class AggregateBuilder(GraphQL):
                 query += str(self._near)
             if self._object_limit:
                 query += f"objectLimit: {self._object_limit}"
+            if self._tenant is not None:
+                query += f'tenant: "{self._tenant}"'
+
             query += ")"
 
         # Body

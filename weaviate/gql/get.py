@@ -180,7 +180,7 @@ class GetBuilder(GraphQL):
         self._consistency_level: Optional[ConsistencyLevel] = None
 
     def with_tenant(self, tenant: str):
-        """Sets a tenant for the request."""
+        """Sets a tenant for the query."""
         if not isinstance(tenant, str):
             raise TypeError("tenant must be of type str")
 

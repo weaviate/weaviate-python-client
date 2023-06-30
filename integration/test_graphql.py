@@ -359,7 +359,7 @@ def test_graphql_with_tenant():
     client.schema.create_class(schema_class)
     client.schema.add_class_tenants(schema_class["class"], [Tenant(tenant) for tenant in tenants])
 
-    nr_objects = 100
+    nr_objects = 101
     with client.batch() as batch:
         for i in range(nr_objects):
             batch.add_data_object(
@@ -375,9 +375,29 @@ def test_graphql_with_tenant():
     results = (
         client.query.get(schema_class["class"]).with_additional("id").with_tenant(tenants[0]).do()
     )
-    assert len(results["data"]["Get"][schema_class["class"]]) == nr_objects // 2
+    assert len(results["data"]["Get"][schema_class["class"]]) == nr_objects // 2 + 1
 
     results = (
         client.query.get(schema_class["class"]).with_additional("id").with_tenant(tenants[1]).do()
     )
     assert len(results["data"]["Get"][schema_class["class"]]) == nr_objects // 2
+
+    results = client.query.aggregate(schema_class["class"]).with_meta_count().do()
+    assert results["data"]["Aggregate"][schema_class["class"]] is None
+    assert results["errors"] is not None
+
+    results = (
+        client.query.aggregate(schema_class["class"]).with_meta_count().with_tenant(tenants[0]).do()
+    )
+    assert (
+        int(results["data"]["Aggregate"][schema_class["class"]][0]["meta"]["count"])
+        == nr_objects // 2 + 1
+    )
+
+    results = (
+        client.query.aggregate(schema_class["class"]).with_meta_count().with_tenant(tenants[1]).do()
+    )
+    assert (
+        int(results["data"]["Aggregate"][schema_class["class"]][0]["meta"]["count"])
+        == nr_objects // 2
+    )
