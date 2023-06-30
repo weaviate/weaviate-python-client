@@ -15,7 +15,6 @@ from weaviate.exceptions import (
     ObjectAlreadyExistsException,
     UnexpectedStatusCodeException,
 )
-from weaviate.schema.crud_schema import Tenant
 from weaviate.types import UUID
 from weaviate.util import (
     _get_dict_from_object,
@@ -83,7 +82,7 @@ class DataObject:
             by default None.
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
-        tenant: Optional[Tenant], optional
+        tenant: Optional[str], optional
             The name of the tenant for which this operation is being performed.
 
         Examples
@@ -194,7 +193,7 @@ class DataObject:
             by default None.
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
-        tenant: Optional[Tenant], optional
+        tenant: Optional[str], optional
             The name of the tenant for which this operation is being performed.
 
         Examples
@@ -299,7 +298,7 @@ class DataObject:
             by default None.
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
-        tenant: Optional[Tenant], optional
+        tenant: Optional[str], optional
             The name of the tenant for which this operation is being performed.
 
         Examples
@@ -764,7 +763,7 @@ class DataObject:
         uuid: Union[str, uuid_lib.UUID],
         class_name: Optional[str] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
-        tenant: Optional[Tenant] = None,
+        tenant: Optional[str] = None,
     ) -> bool:
         """
         Check if the object exist in Weaviate.
