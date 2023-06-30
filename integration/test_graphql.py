@@ -7,6 +7,7 @@ import pytest
 from pytest import FixtureRequest
 
 import weaviate
+from weaviate import Tenant
 from weaviate.data.replication import ConsistencyLevel
 
 schema = {
@@ -343,3 +344,40 @@ def test_generative_openai(single: str, grouped: str):
         .do()
     )
     assert result["data"]["Get"]["Wine"][0]["_additional"]["generate"]["error"] is None
+
+
+def test_graphql_with_tenant():
+    client = weaviate.Client("http://127.0.0.1:8080")
+    client.schema.delete_all()
+    schema_class = {
+        "class": "GraphQlTenantClass",
+        "vectorizer": "none",
+        "multiTenancyConfig": {"enabled": True},
+    }
+
+    tenants = ["tenant1", "tenant2"]
+    client.schema.create_class(schema_class)
+    client.schema.add_class_tenants(schema_class["class"], [Tenant(tenant) for tenant in tenants])
+
+    nr_objects = 100
+    with client.batch() as batch:
+        for i in range(nr_objects):
+            batch.add_data_object(
+                class_name=schema_class["class"], tenant=tenants[i % 2], data_object={}
+            )
+
+    # no results without tenant
+    results = client.query.get(schema_class["class"]).with_additional("id").do()
+    assert results["data"]["Get"][schema_class["class"]] is None
+    assert results["errors"] is not None
+
+    # get call with tenant only returns the objects for a given tenant
+    results = (
+        client.query.get(schema_class["class"]).with_additional("id").with_tenant(tenants[0]).do()
+    )
+    assert len(results["data"]["Get"][schema_class["class"]]) == nr_objects // 2
+
+    results = (
+        client.query.get(schema_class["class"]).with_additional("id").with_tenant(tenants[1]).do()
+    )
+    assert len(results["data"]["Get"][schema_class["class"]]) == nr_objects // 2
