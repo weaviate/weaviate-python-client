@@ -162,6 +162,8 @@ class Reference:
         params = {}
         if consistency_level is not None:
             params["consistency_level"] = ConsistencyLevel(consistency_level).value
+        if tenant is not None:
+            params["tenant"] = tenant
 
         if (from_class_name is None or to_class_name is None) and is_server_version_14:
             warnings.warn(
@@ -209,9 +211,6 @@ class Reference:
             beacon = _get_beacon(
                 to_uuid=to_uuid,
             )
-
-        if tenant is not None:
-            beacon["tenant"] = tenant
 
         if from_class_name and is_server_version_14:
             _class_name = _capitalize_first_letter(from_class_name)
@@ -363,6 +362,8 @@ class Reference:
         params = {}
         if consistency_level is not None:
             params["consistency_level"] = ConsistencyLevel(consistency_level).value
+        if tenant is not None:
+            params["tenant"] = tenant
 
         if (from_class_name is None or to_class_names is None) and is_server_version_14:
             warnings.warn(
@@ -442,10 +443,6 @@ class Reference:
             path = f"/objects/{_class_name}/{from_uuid}/references/{from_property_name}"
         else:
             path = f"/objects/{from_uuid}/references/{from_property_name}"
-
-        if tenant is not None:
-            for beacon in beacons:
-                beacon["tenant"] = tenant
 
         try:
             response = self._connection.put(
@@ -569,6 +566,8 @@ class Reference:
         params = {}
         if consistency_level is not None:
             params["consistency_level"] = ConsistencyLevel(consistency_level).value
+        if tenant is not None:
+            params["tenant"] = tenant
 
         if (from_class_name is None or to_class_name is None) and is_server_version_14:
             warnings.warn(
@@ -622,9 +621,6 @@ class Reference:
             path = f"/objects/{_class_name}/{from_uuid}/references/{from_property_name}"
         else:
             path = f"/objects/{from_uuid}/references/{from_property_name}"
-
-        if tenant is not None:
-            beacon["tenant"] = tenant
 
         try:
             response = self._connection.post(

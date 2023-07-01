@@ -822,16 +822,15 @@ def test_tenants():
         )
         assert len(passage["properties"]["ofDocument"]) == 1
 
-    # uncomment when it will be working
-    # for i in range(0, len(passage_uuids)):
-    #     client.data_object.reference.update(
-    #         passage_uuids[i],
-    #         "ofDocument",
-    #         document_uuids[i],
-    #         from_class_name="Passage",
-    #         to_class_names="Document",
-    #         tenant=tenants[i].name,
-    #     )
+    for i in range(0, len(passage_uuids)):
+        client.data_object.reference.update(
+            passage_uuids[i],
+            "ofDocument",
+            document_uuids[i],
+            from_class_name="Passage",
+            to_class_names="Document",
+            tenant=tenants[i].name,
+        )
 
     for i in range(0, len(passage_uuids)):
         client.data_object.reference.delete(
