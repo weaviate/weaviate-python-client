@@ -854,6 +854,36 @@ class Schema:
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Delete classes tenants", response)
 
+    def get_class_tenants(self, class_name: str) -> List[Tenant]:
+        """Get class's tenants in Weaviate.
+
+        Parameters
+        ----------
+        class_name : str
+            The class for which we get tenants.
+
+        Examples
+        --------
+        >>> client.schema.get_class_tenants("class_name")
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to Weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If Weaviate reports a non-OK status.
+        """
+        path = "/schema/" + class_name + "/tenants"
+        try:
+            response = self._connection.get(path=path)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Could not get class tenants.") from conn_err
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException("Get classes tenants", response)
+
+        tenant_resp = response.json()
+        return [Tenant(tenant["name"]) for tenant in tenant_resp]
+
 
 def _property_is_primitive(data_type_list: list) -> bool:
     """

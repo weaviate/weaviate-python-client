@@ -198,9 +198,7 @@ def test_bm25_no_result(client):
 @pytest.mark.parametrize("query", ["sponges", "sponges\n"])
 def test_hybrid(client, query: str):
     """Test hybrid search with alpha=0.5 to have a combination of BM25 and vector search."""
-    result = (
-        client.query.get("Ship", ["name"]).with_hybrid(query, alpha=0.0001, vector=[1] * 300).do()
-    )
+    result = client.query.get("Ship", ["name", "description"]).with_hybrid(query, alpha=0.5).do()
 
     # will find more results. "The Crusty Crab" is still first, because it matches with the BM25 search
     assert len(result["data"]["Get"]["Ship"]) >= 1

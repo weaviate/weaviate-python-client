@@ -109,9 +109,9 @@ def test_class_tenants(client: weaviate.Client):
         Tenant(name="Tenant4"),
     ]
     client.schema.add_class_tenants(class_name, tenants)
-    resp = client.cluster.get_nodes_status()
-    assert len(resp[0]["shards"]) == len(tenants)
+    tenants_get = client.schema.get_class_tenants(class_name)
+    assert len(tenants_get) == len(tenants)
 
     client.schema.remove_class_tenants(class_name, ["Tenant2", "Tenant4"])
-    resp = client.cluster.get_nodes_status()
-    assert len(resp[0]["shards"]) == 2
+    tenants_get = client.schema.get_class_tenants(class_name)
+    assert len(tenants_get) == 2
