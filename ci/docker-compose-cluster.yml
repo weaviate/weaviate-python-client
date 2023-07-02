@@ -2,7 +2,7 @@
 version: '3.4'
 services:
   weaviate-node-1:
-    image: semitechnologies/weaviate:1.20.0-prealpha-ce45d2a
+    image: semitechnologies/weaviate:1.20.0-prealpha-628c8ff
     restart: on-failure:0
     ports:
       - "8087:8080"
@@ -25,7 +25,7 @@ services:
       - '8080'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-gql-handler-consistency-level-integration-4a12f55
+    image: semitechnologies/weaviate:1.20.0-prealpha-628c8ff
     ports:
       - 8088:8080
       - 6061:6060

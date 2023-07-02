@@ -1,8 +1,8 @@
 import unittest
-from weaviate.schema.validate_schema import validate_schema, check_class, check_property
-from weaviate.exceptions import SchemaValidationException
-from test.util import check_error_message
 
+from test.util import check_error_message
+from weaviate.exceptions import SchemaValidationException
+from weaviate.schema.validate_schema import validate_schema, check_class, check_property
 
 valid_schema_with_all_properties = {
     "classes": [
@@ -202,7 +202,7 @@ class TestSchemaValidation(unittest.TestCase):
             "replicationConfig": {
                 "factor": 1,
             },
-            "multiTenancyConfig": {"enabled": True, "tenantKey": "tenant"},
+            "multiTenancyConfig": {"enabled": True},
         }
         check_class(max_valid)
         # minimal must contain class key as string

@@ -784,7 +784,7 @@ class Schema:
 
     def add_class_tenants(self, class_name: str, tenants: List[Tenant]) -> None:
         """
-        Create class's tenants in Weaviate.
+        Add class's tenants in Weaviate.
 
         Parameters
         ----------
@@ -815,10 +815,44 @@ class Schema:
             response = self._connection.post(path=path, weaviate_object=loaded_tenants)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                "Classes tenants may not have been created properly."
+                "Classes tenants may not have been added properly."
             ) from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Create classes tenants", response)
+            raise UnexpectedStatusCodeException("Add classes tenants", response)
+
+    def remove_class_tenants(self, class_name: str, tenants: List[str]) -> None:
+        """
+        Remove class's tenants in Weaviate.
+
+        Parameters
+        ----------
+        class_name : str
+            The class for which we remove tenants.
+        tenants : List[str]
+            List of tenant names to remove from the given class.
+
+        Examples
+        --------
+        >>> client.schema.remove_class_tenants("class_name", ["Tenant1", "Tenant2"])
+
+        Raises
+        ------
+        TypeError
+            If 'tenants' has not the correct type.
+        requests.ConnectionError
+            If the network connection to Weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If Weaviate reports a non-OK status.
+        """
+        path = "/schema/" + class_name + "/tenants"
+        try:
+            response = self._connection.delete(path=path, weaviate_object=tenants)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                "Classes tenants may not have been deleted."
+            ) from conn_err
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException("Delete classes tenants", response)
 
 
 def _property_is_primitive(data_type_list: list) -> bool:
