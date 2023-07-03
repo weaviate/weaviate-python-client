@@ -135,6 +135,7 @@ class ReferenceBatchRequest(BatchRequest):
         from_property_name: str,
         to_object_uuid: str,
         to_object_class_name: Optional[str] = None,
+        tenant: Optional[str] = None,
     ) -> None:
         """
         Add one Weaviate-object reference to this batch. Does NOT validate the consistency of the
@@ -183,17 +184,20 @@ class ReferenceBatchRequest(BatchRequest):
         else:
             to_beacon = f"weaviate://localhost/{to_object_uuid}"
 
-        self._items.append(
-            {
-                "from": "weaviate://localhost/"
-                + from_object_class_name
-                + "/"
-                + from_object_uuid
-                + "/"
-                + from_property_name,
-                "to": to_beacon,
-            }
-        )
+        item = {
+            "from": "weaviate://localhost/"
+            + from_object_class_name
+            + "/"
+            + from_object_uuid
+            + "/"
+            + from_property_name,
+            "to": to_beacon,
+        }
+
+        if tenant is not None:
+            item["tenant"] = tenant
+
+        self._items.append(item)
 
     def get_request_body(self) -> List[Dict[str, Any]]:
         """
@@ -236,6 +240,7 @@ class ObjectsBatchRequest(BatchRequest):
         class_name: str,
         uuid: Optional[str] = None,
         vector: Optional[Sequence] = None,
+        tenant: Optional[str] = None,
     ) -> str:
         """
         Add one object to this batch. Does NOT validate the consistency of the object against
@@ -258,6 +263,8 @@ class ObjectsBatchRequest(BatchRequest):
 
             Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`,
             by default None.
+        tenant: str, optional
+            Tenant of the object
 
         Returns
         -------
@@ -286,6 +293,8 @@ class ObjectsBatchRequest(BatchRequest):
 
         if vector is not None:
             batch_item["vector"] = get_vector(vector)
+        if tenant is not None:
+            batch_item["tenant"] = tenant
 
         self._items.append(batch_item)
 

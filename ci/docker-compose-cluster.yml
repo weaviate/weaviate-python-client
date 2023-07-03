@@ -2,7 +2,7 @@
 version: '3.4'
 services:
   weaviate-node-1:
-    image: semitechnologies/weaviate:1.19.2
+    image: semitechnologies/weaviate:1.20.0-prealpha-628c8ff
     restart: on-failure:0
     ports:
       - "8087:8080"
@@ -19,16 +19,16 @@ services:
   weaviate-node-2:
     init: true
     command:
-    - --host
-    - 0.0.0.0
-    - --port
-    - '8080'
-    - --scheme
-    - http
-    image: semitechnologies/weaviate:preview-gql-handler-consistency-level-integration-4a12f55
+      - --host
+      - 0.0.0.0
+      - --port
+      - '8080'
+      - --scheme
+      - http
+    image: semitechnologies/weaviate:1.20.0-prealpha-628c8ff
     ports:
-    - 8088:8080
-    - 6061:6060
+      - 8088:8080
+      - 6061:6060
     restart: on-failure:0
     environment:
       CONTEXTIONARY_URL: contextionary:9999

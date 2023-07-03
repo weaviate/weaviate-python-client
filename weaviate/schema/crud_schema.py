@@ -1,7 +1,8 @@
 """
 Schema class definition.
 """
-from typing import Union, Optional
+from dataclasses import dataclass
+from typing import Union, Optional, List
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -14,7 +15,11 @@ from weaviate.schema.validate_schema import (
     CLASS_KEYS,
     PROPERTY_KEYS,
 )
-from weaviate.util import _get_dict_from_object, _is_sub_schema, _capitalize_first_letter
+from weaviate.util import (
+    _get_dict_from_object,
+    _is_sub_schema,
+    _capitalize_first_letter,
+)
 
 _PRIMITIVE_WEAVIATE_TYPES_SET = {
     "string",
@@ -35,6 +40,19 @@ _PRIMITIVE_WEAVIATE_TYPES_SET = {
     "uuid",
     "uuid[]",
 }
+
+
+@dataclass
+class Tenant:
+    """
+    Tenant class used to describe a tenant in Weaviate.
+
+    Parameters
+    ----------
+    name: the name of the tenant.
+    """
+
+    name: str
 
 
 class Schema:
@@ -763,6 +781,108 @@ class Schema:
 
         for weaviate_class in schema_classes_list:
             self._create_class_with_primitives(weaviate_class)
+
+    def add_class_tenants(self, class_name: str, tenants: List[Tenant]) -> None:
+        """
+        Add class's tenants in Weaviate.
+
+        Parameters
+        ----------
+        class_name : str
+            The class for which we add tenants.
+        tenants : List[Tenant]
+            List of Tenants.
+
+        Examples
+        --------
+        >>> tenants = [ Tenant(name="Tenant1"), Tenant(name="Tenant2") ]
+        >>> client.schema.add_class_tenants("class_name", tenants)
+
+        Raises
+        ------
+        TypeError
+            If 'tenants' has not the correct type.
+        requests.ConnectionError
+            If the network connection to Weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If Weaviate reports a non-OK status.
+        """
+
+        loaded_tenants = [{"name": tenant.name} for tenant in tenants]
+
+        path = "/schema/" + class_name + "/tenants"
+        try:
+            response = self._connection.post(path=path, weaviate_object=loaded_tenants)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                "Classes tenants may not have been added properly."
+            ) from conn_err
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException("Add classes tenants", response)
+
+    def remove_class_tenants(self, class_name: str, tenants: List[str]) -> None:
+        """
+        Remove class's tenants in Weaviate.
+
+        Parameters
+        ----------
+        class_name : str
+            The class for which we remove tenants.
+        tenants : List[str]
+            List of tenant names to remove from the given class.
+
+        Examples
+        --------
+        >>> client.schema.remove_class_tenants("class_name", ["Tenant1", "Tenant2"])
+
+        Raises
+        ------
+        TypeError
+            If 'tenants' has not the correct type.
+        requests.ConnectionError
+            If the network connection to Weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If Weaviate reports a non-OK status.
+        """
+        path = "/schema/" + class_name + "/tenants"
+        try:
+            response = self._connection.delete(path=path, weaviate_object=tenants)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                "Classes tenants may not have been deleted."
+            ) from conn_err
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException("Delete classes tenants", response)
+
+    def get_class_tenants(self, class_name: str) -> List[Tenant]:
+        """Get class's tenants in Weaviate.
+
+        Parameters
+        ----------
+        class_name : str
+            The class for which we get tenants.
+
+        Examples
+        --------
+        >>> client.schema.get_class_tenants("class_name")
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to Weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If Weaviate reports a non-OK status.
+        """
+        path = "/schema/" + class_name + "/tenants"
+        try:
+            response = self._connection.get(path=path)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Could not get class tenants.") from conn_err
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException("Get classes tenants", response)
+
+        tenant_resp = response.json()
+        return [Tenant(tenant["name"]) for tenant in tenant_resp]
 
 
 def _property_is_primitive(data_type_list: list) -> bool:

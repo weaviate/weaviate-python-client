@@ -3,6 +3,7 @@ from typing import Optional
 import pytest
 
 import weaviate
+from weaviate import Tenant
 
 
 @pytest.fixture(scope="module")
@@ -92,3 +93,25 @@ def test_schema_keys(client: weaviate.Client):
     }
     client.schema.create_class(single_class)
     assert client.schema.exists("Author")
+
+
+def test_class_tenants(client: weaviate.Client):
+    class_name = "MultiTenancySchemaTest"
+    single_class = {"class": class_name, "multiTenancyConfig": {"enabled": True}}
+    client.schema.delete_all()
+    client.schema.create_class(single_class)
+    assert client.schema.exists(class_name)
+
+    tenants = [
+        Tenant(name="Tenant1"),
+        Tenant(name="Tenant2"),
+        Tenant(name="Tenant3"),
+        Tenant(name="Tenant4"),
+    ]
+    client.schema.add_class_tenants(class_name, tenants)
+    tenants_get = client.schema.get_class_tenants(class_name)
+    assert len(tenants_get) == len(tenants)
+
+    client.schema.remove_class_tenants(class_name, ["Tenant2", "Tenant4"])
+    tenants_get = client.schema.get_class_tenants(class_name)
+    assert len(tenants_get) == 2

@@ -44,7 +44,7 @@ class WeaviateErrorRetryConf:
     Parameters
     ----------
     number_retries: int
-       How often a batch that includes objects with errors should be retried. Must be >=1.
+        How often a batch that includes objects with errors should be retried. Must be >=1.
     errors_to_exclude: Optional[List[str]]
         Which errors should NOT be retried. All other errors will be retried. An object will be skipped, when the given
         string is part of the weaviate error message.
@@ -448,6 +448,7 @@ class Batch:
         class_name: str,
         uuid: Optional[UUID] = None,
         vector: Optional[Sequence] = None,
+        tenant: Optional[str] = None,
     ) -> str:
         """
         Add one object to this batch.
@@ -490,6 +491,7 @@ class Batch:
             data_object=data_object,
             uuid=uuid,
             vector=vector,
+            tenant=tenant,
         )
 
         if self._batching_type:
@@ -504,6 +506,7 @@ class Batch:
         from_property_name: str,
         to_object_uuid: UUID,
         to_object_class_name: Optional[str] = None,
+        tenant: Optional[str] = None,
     ) -> None:
         """
         Add one reference to this batch.
@@ -527,6 +530,8 @@ class Batch:
             STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
             versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
             by default None
+        tenant: str, optional
+            Name of the tenant.
 
         Raises
         ------
@@ -566,6 +571,7 @@ class Batch:
             from_property_name=from_property_name,
             to_object_uuid=to_object_uuid,
             to_object_class_name=to_object_class_name,
+            tenant=tenant,
         )
 
         if self._batching_type:
@@ -605,7 +611,9 @@ class Batch:
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
-        params = {"consistency_level": self._consistency_level} if self._consistency_level else None
+        params = {}
+        if self._consistency_level is not None:
+            params["consistency_level"] = self._consistency_level
 
         try:
             timeout_count = connection_count = batch_error_count = 0
@@ -1241,9 +1249,9 @@ class Batch:
         if not isinstance(dry_run, bool):
             raise TypeError(f"'dry_run' must be of type bool. Given type: {type(class_name)}.")
 
-        params = None
+        params = {}
         if self._consistency_level is not None:
-            params = {"consistency_level": self._consistency_level}
+            params["consistency_level"] = self._consistency_level
 
         payload = {
             "match": {

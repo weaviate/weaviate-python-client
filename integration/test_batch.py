@@ -1,11 +1,11 @@
-from dataclasses import dataclass
 import uuid
+from dataclasses import dataclass
 from typing import Union, Sequence, Optional
 
 import pytest
 
 import weaviate
-
+from weaviate import Tenant
 
 UUID = Union[str, uuid.UUID]
 
@@ -112,3 +112,115 @@ def test_add_reference(
 
     response = client.batch.create_references()
     assert has_batch_errors(response) is False, str(response)
+
+
+def test_add_object_batch_with_tenant():
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+
+    # create two classes and add 5 tenants each
+    class_names = ["BatchTestMultiTenant1", "BatchTestMultiTenant2"]
+    for name in class_names:
+        client.schema.create_class(
+            {
+                "class": name,
+                "vectorizer": "none",
+                "properties": [
+                    {"name": "tenantAsProp", "dataType": ["text"]},
+                ],
+                "multiTenancyConfig": {"enabled": True},
+            },
+        )
+        client.schema.add_class_tenants(name, [Tenant("tenant" + str(i)) for i in range(5)])
+
+    nr_objects = 100
+    objects = []
+    with client.batch() as batch:
+        for i in range(nr_objects):
+            obj_uuid = uuid.uuid4()
+            objects.append((obj_uuid, class_names[i % 2], "tenant" + str(i % 5)))
+            batch.add_data_object(
+                class_name=class_names[i % 2],
+                tenant="tenant" + str(i % 5),
+                data_object={"tenantAsProp": "tenant" + str(i % 5)},
+                uuid=obj_uuid,
+            )
+
+    for obj in objects:
+        retObj = client.data_object.get_by_id(obj[0], class_name=obj[1], tenant=obj[2])
+        assert retObj["properties"]["tenantAsProp"] == obj[2]
+
+    for name in class_names:
+        client.schema.delete_class(name)
+
+
+def test_add_ref_batch_with_tenant():
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+
+    # create two classes and add 5 tenants each
+    class_names = ["BatchRefTestMultiTenant0", "BatchRefTestMultiTenant1"]
+    client.schema.create_class(
+        {
+            "class": class_names[0],
+            "vectorizer": "none",
+            "multiTenancyConfig": {"enabled": True},
+        },
+    )
+
+    client.schema.create_class(
+        {
+            "class": class_names[1],
+            "vectorizer": "none",
+            "properties": [
+                {"name": "tenantAsProp", "dataType": ["text"]},
+                {"name": "ref", "dataType": [class_names[0]]},
+            ],
+            "multiTenancyConfig": {"enabled": True},
+        },
+    )
+
+    for name in class_names:
+        client.schema.add_class_tenants(name, [Tenant("tenant" + str(i)) for i in range(5)])
+
+    nr_objects = 100
+    objects_class0 = []
+    objects_class1 = []
+    with client.batch() as batch:
+        for i in range(nr_objects):
+            tenant = "tenant" + str(i % 5)
+            obj_uuid0 = uuid.uuid4()
+            objects_class0.append(obj_uuid0)
+            batch.add_data_object(
+                class_name=class_names[0], tenant=tenant, data_object={}, uuid=obj_uuid0
+            )
+
+            obj_uuid1 = uuid.uuid4()
+            objects_class1.append((obj_uuid1, "tenant" + str(i % 5)))
+            batch.add_data_object(
+                class_name=class_names[1],
+                tenant=tenant,
+                data_object={"tenantAsProp": tenant},
+                uuid=obj_uuid1,
+            )
+
+            # add refs between classes for all tenants
+            batch.add_reference(
+                from_property_name="ref",
+                from_object_class_name=class_names[1],
+                from_object_uuid=obj_uuid1,
+                to_object_class_name=class_names[0],
+                to_object_uuid=obj_uuid0,
+                tenant=tenant,
+            )
+
+    for i, obj in enumerate(objects_class1):
+        ret_obj = client.data_object.get_by_id(obj[0], class_name=class_names[1], tenant=obj[1])
+        assert ret_obj["properties"]["tenantAsProp"] == obj[1]
+        assert (
+            ret_obj["properties"]["ref"][0]["beacon"]
+            == f"weaviate://localhost/{class_names[0]}/{objects_class0[i]}"
+        )
+
+    for name in reversed(class_names):
+        client.schema.delete_class(name)

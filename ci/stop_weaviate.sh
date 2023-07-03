@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -eou pipefail
 
 docker-compose -f ci/docker-compose.yml down --remove-orphans
 docker-compose -f ci/docker-compose-azure.yml down --remove-orphans

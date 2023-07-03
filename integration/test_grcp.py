@@ -49,7 +49,7 @@ UUID2 = "577887c1-4c6b-5594-aa62-f0c17883d9cf"
     [
         "test",
         ["test", "abc"],
-        ["test", "ref {... on Test {test abc}}"],
+        ["test", "ref {... on Test {test abc _additional{id vector}}}"],
     ],
 )
 def test_grcp(

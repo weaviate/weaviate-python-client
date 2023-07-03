@@ -176,7 +176,17 @@ class GetBuilder(GraphQL):
         self._hybrid: Optional[Hybrid] = None
         self._group_by: Optional[GroupBy] = None
         self._alias: Optional[str] = None
+        self._tenant: Optional[str] = None
         self._consistency_level: Optional[ConsistencyLevel] = None
+
+    def with_tenant(self, tenant: str):
+        """Sets a tenant for the query."""
+        if not isinstance(tenant, str):
+            raise TypeError("tenant must be of type str")
+
+        self._tenant = tenant
+        self._contains_filter = True
+        return self
 
     def with_after(self, after_uuid: UUID):
         """Can be used to extract all elements by giving the last ID from the previous "page".
@@ -1178,6 +1188,8 @@ class GetBuilder(GraphQL):
                 query += self._after
             if self._consistency_level is not None:
                 query += self._consistency_level
+            if self._tenant is not None:
+                query += f'tenant: "{self._tenant}"'
 
             query += ")"
 

@@ -5,8 +5,8 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 from weaviate.data.references import Reference
-from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.data.replication import ConsistencyLevel
+from weaviate.exceptions import UnexpectedStatusCodeException
 
 
 class TestReference(unittest.TestCase):
@@ -77,7 +77,7 @@ class TestReference(unittest.TestCase):
         connection_mock.delete.assert_called_with(
             path=f"/objects/{self.uuid_1}/references/myProperty",
             weaviate_object={"beacon": f"weaviate://localhost/{self.uuid_2}"},
-            params=None,
+            params={},
         )
 
         reference.delete(
@@ -171,7 +171,7 @@ class TestReference(unittest.TestCase):
         connection_mock.post.assert_called_with(
             path="/objects/3250b0b8-eaf7-499b-ac68-9084c9c82d0f/references/hasItem",
             weaviate_object={"beacon": "weaviate://localhost/99725f35-f12a-4f36-a2e2-0d41501f4e0e"},
-            params=None,
+            params={},
         )
 
         # 2. using url
@@ -183,7 +183,7 @@ class TestReference(unittest.TestCase):
         connection_mock.post.assert_called_with(
             path="/objects/7591be77-5959-4386-9828-423fc5096e87/references/hasItem",
             weaviate_object={"beacon": "weaviate://localhost/1cd80c11-29f0-453f-823c-21547b1511f0"},
-            params=None,
+            params={},
         )
 
         # 3. using weaviate url
@@ -287,7 +287,7 @@ class TestReference(unittest.TestCase):
             weaviate_object=[
                 {"beacon": "weaviate://localhost/fc041624-4ddf-4b76-8e09-a5b0b9f9f832"}
             ],
-            params=None,
+            params={},
         )
 
         reference.update(

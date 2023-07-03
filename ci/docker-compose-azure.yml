@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:1.19.2
+    image: semitechnologies/weaviate:1.20.0-prealpha-628c8ff
     ports:
       - 8081:8081
     restart: on-failure:0
@@ -25,4 +25,3 @@ services:
       AUTHORIZATION_ADMINLIST_ENABLED: 'true'
       AUTHORIZATION_ADMINLIST_USERS: 'b6bf8e1d-d398-4e5d-8f1b-50fda9146a64'
 ...
-

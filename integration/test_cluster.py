@@ -2,8 +2,8 @@ import pytest
 
 import weaviate
 
-GIT_HASH = "c804a73"
-SERVER_VERSION = "1.19.3"
+GIT_HASH = "7702266"
+SERVER_VERSION = "1.20.0-prealpha"
 NODE_NAME = "node1"
 NUM_OBJECT = 10
 
@@ -34,7 +34,7 @@ def test_get_nodes_status_without_data(client):
     assert len(resp) == 1
     assert resp[0]["gitHash"] == GIT_HASH
     assert resp[0]["name"] == NODE_NAME
-    assert len(resp[0]["shards"]) == 0
+    assert resp[0]["shards"] is None  # no class given
     assert resp[0]["stats"]["objectCount"] == 0
     assert resp[0]["stats"]["shardCount"] == 0
     assert resp[0]["status"] == "HEALTHY"

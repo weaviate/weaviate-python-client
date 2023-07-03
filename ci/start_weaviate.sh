@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -eou pipefail
 
 echo "Run Docker compose"
 nohup docker-compose -f ci/docker-compose.yml up -d

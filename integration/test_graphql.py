@@ -7,6 +7,7 @@ import pytest
 from pytest import FixtureRequest
 
 import weaviate
+from weaviate import Tenant
 from weaviate.data.replication import ConsistencyLevel
 
 schema = {
@@ -197,7 +198,7 @@ def test_bm25_no_result(client):
 @pytest.mark.parametrize("query", ["sponges", "sponges\n"])
 def test_hybrid(client, query: str):
     """Test hybrid search with alpha=0.5 to have a combination of BM25 and vector search."""
-    result = client.query.get("Ship", ["name"]).with_hybrid(query, alpha=0.5, vector=[1] * 300).do()
+    result = client.query.get("Ship", ["name", "description"]).with_hybrid(query, alpha=0.5).do()
 
     # will find more results. "The Crusty Crab" is still first, because it matches with the BM25 search
     assert len(result["data"]["Get"]["Ship"]) >= 1
@@ -341,3 +342,60 @@ def test_generative_openai(single: str, grouped: str):
         .do()
     )
     assert result["data"]["Get"]["Wine"][0]["_additional"]["generate"]["error"] is None
+
+
+def test_graphql_with_tenant():
+    client = weaviate.Client("http://127.0.0.1:8080")
+    client.schema.delete_all()
+    schema_class = {
+        "class": "GraphQlTenantClass",
+        "vectorizer": "none",
+        "multiTenancyConfig": {"enabled": True},
+    }
+
+    tenants = ["tenant1", "tenant2"]
+    client.schema.create_class(schema_class)
+    client.schema.add_class_tenants(schema_class["class"], [Tenant(tenant) for tenant in tenants])
+
+    nr_objects = 101
+    with client.batch() as batch:
+        for i in range(nr_objects):
+            batch.add_data_object(
+                class_name=schema_class["class"], tenant=tenants[i % 2], data_object={}
+            )
+
+    # no results without tenant
+    results = client.query.get(schema_class["class"]).with_additional("id").do()
+    assert results["data"]["Get"][schema_class["class"]] is None
+    assert results["errors"] is not None
+
+    # get call with tenant only returns the objects for a given tenant
+    results = (
+        client.query.get(schema_class["class"]).with_additional("id").with_tenant(tenants[0]).do()
+    )
+    assert len(results["data"]["Get"][schema_class["class"]]) == nr_objects // 2 + 1
+
+    results = (
+        client.query.get(schema_class["class"]).with_additional("id").with_tenant(tenants[1]).do()
+    )
+    assert len(results["data"]["Get"][schema_class["class"]]) == nr_objects // 2
+
+    results = client.query.aggregate(schema_class["class"]).with_meta_count().do()
+    assert results["data"]["Aggregate"][schema_class["class"]] is None
+    assert results["errors"] is not None
+
+    results = (
+        client.query.aggregate(schema_class["class"]).with_meta_count().with_tenant(tenants[0]).do()
+    )
+    assert (
+        int(results["data"]["Aggregate"][schema_class["class"]][0]["meta"]["count"])
+        == nr_objects // 2 + 1
+    )
+
+    results = (
+        client.query.aggregate(schema_class["class"]).with_meta_count().with_tenant(tenants[1]).do()
+    )
+    assert (
+        int(results["data"]["Aggregate"][schema_class["class"]][0]["meta"]["count"])
+        == nr_objects // 2
+    )
