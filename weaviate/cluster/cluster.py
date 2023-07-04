@@ -1,6 +1,8 @@
 """
 Cluster class definition.
 """
+from typing import Optional
+
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
@@ -27,9 +29,14 @@ class Cluster:
 
         self._connection = connection
 
-    def get_nodes_status(self) -> list:
+    def get_nodes_status(self, class_name: Optional[str] = None) -> list:
         """
         Get the nodes status.
+
+        Parameters
+        ----------
+        class_name : Optional[str]
+            Get the status for the given class. If not given all classes will be included.
 
         Returns
         -------
@@ -45,11 +52,12 @@ class Cluster:
         weaviate.EmptyResponseException
             If the response is empty.
         """
+        path = "/nodes"
+        if class_name is not None:
+            path += "/" + class_name
 
         try:
-            response = self._connection.get(
-                path="/nodes",
-            )
+            response = self._connection.get(path=path)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
                 "Get nodes status failed due to connection error"
