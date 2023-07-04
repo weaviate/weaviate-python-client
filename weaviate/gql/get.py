@@ -177,7 +177,17 @@ class GetBuilder(GraphQL):
         self._group_by: Optional[GroupBy] = None
         self._alias: Optional[str] = None
         self._tenant: Optional[str] = None
+        self._autocut: Optional[int] = None
         self._consistency_level: Optional[ConsistencyLevel] = None
+
+    def with_autocut(self, autocut: int):
+        """Cuts off irrelevant results based on "jumps" in scores."""
+        if not isinstance(autocut, int):
+            raise TypeError("autocut must be of type int")
+
+        self._autocut = autocut
+        self._contains_filter = True
+        return self
 
     def with_tenant(self, tenant: str):
         """Sets a tenant for the query."""
@@ -1190,6 +1200,8 @@ class GetBuilder(GraphQL):
                 query += self._consistency_level
             if self._tenant is not None:
                 query += f'tenant: "{self._tenant}"'
+            if self._autocut is not None:
+                query += f"autocut: {self._autocut}"
 
             query += ")"
 
