@@ -6,7 +6,15 @@ import pytest
 
 from test.util import check_error_message
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.gql.get import GetBuilder, BM25, Hybrid, LinkTo, GroupBy, AdditionalProperties
+from weaviate.gql.get import (
+    GetBuilder,
+    BM25,
+    Hybrid,
+    LinkTo,
+    GroupBy,
+    AdditionalProperties,
+    HybridFusionType,
+)
 
 mock_connection_v117 = Mock()
 mock_connection_v117.server_version = "1.17.4"
@@ -70,23 +78,49 @@ def test_get_references(property_name: str, in_class: str, properties: List[str]
 
 
 @pytest.mark.parametrize(
-    "query,vector,alpha,properties,expected",
+    "query,vector,alpha,properties,fusion_type,expected",
     [
         (
             "query",
             [1, 2, 3],
             0.5,
             None,
+            None,
             'hybrid:{query: "query", vector: [1, 2, 3], alpha: 0.5}',
         ),
-        ("query", None, None, None, 'hybrid:{query: "query"}'),
-        ("query", None, None, ["prop1"], 'hybrid:{query: "query", properties: ["prop1"]}'),
+        ("query", None, None, None, None, 'hybrid:{query: "query"}'),
+        ("query", None, None, ["prop1"], None, 'hybrid:{query: "query", properties: ["prop1"]}'),
         (
             "query",
             None,
             None,
             ["prop1", "prop2"],
+            None,
             'hybrid:{query: "query", properties: ["prop1","prop2"]}',
+        ),
+        (
+            "query",
+            None,
+            None,
+            None,
+            HybridFusionType.RANKED,
+            'hybrid:{query: "query", fusionType: rankedFusion}',
+        ),
+        (
+            "query",
+            None,
+            None,
+            None,
+            HybridFusionType.RELATIVE_SCORE,
+            'hybrid:{query: "query", fusionType: relativeScoreFusion}',
+        ),
+        (
+            "query",
+            None,
+            None,
+            None,
+            "relativeScoreFusion",
+            'hybrid:{query: "query", fusionType: relativeScoreFusion}',
         ),
     ],
 )
@@ -95,9 +129,10 @@ def test_hybrid(
     vector: Optional[List[float]],
     alpha: Optional[float],
     properties: Optional[List[str]],
+    fusion_type: HybridFusionType,
     expected: str,
 ):
-    hybrid = Hybrid(query, alpha, vector, properties)
+    hybrid = Hybrid(query, alpha, vector, properties, fusion_type)
     assert str(hybrid) == expected
 
 

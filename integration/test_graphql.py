@@ -9,6 +9,7 @@ from pytest import FixtureRequest
 import weaviate
 from weaviate import Tenant
 from weaviate.data.replication import ConsistencyLevel
+from weaviate.gql.get import HybridFusionType
 
 schema = {
     "classes": [
@@ -196,9 +197,16 @@ def test_bm25_no_result(client):
 
 
 @pytest.mark.parametrize("query", ["sponges", "sponges\n"])
-def test_hybrid(client, query: str):
+@pytest.mark.parametrize(
+    "fusion_type", [HybridFusionType.RANKED, HybridFusionType.RELATIVE_SCORE, None]
+)
+def test_hybrid(client, query: str, fusion_type: Optional[HybridFusionType]):
     """Test hybrid search with alpha=0.5 to have a combination of BM25 and vector search."""
-    result = client.query.get("Ship", ["name", "description"]).with_hybrid(query, alpha=0.5).do()
+    result = (
+        client.query.get("Ship", ["name", "description"])
+        .with_hybrid(query, alpha=0.5, fusion_type=fusion_type)
+        .do()
+    )
 
     # will find more results. "The Crusty Crab" is still first, because it matches with the BM25 search
     assert len(result["data"]["Get"]["Ship"]) >= 1

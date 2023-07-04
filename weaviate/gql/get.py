@@ -2,6 +2,7 @@
 GraphQL `Get` command.
 """
 from dataclasses import dataclass, Field, fields
+from enum import Enum
 from json import dumps
 from typing import List, Union, Optional, Dict, Tuple
 
@@ -21,7 +22,7 @@ from weaviate.gql.filter import (
     Sort,
 )
 from weaviate.types import UUID
-from weaviate.util import image_encoder_b64, _capitalize_first_letter, get_valid_uuid
+from weaviate.util import image_encoder_b64, _capitalize_first_letter, get_valid_uuid, BaseEnum
 from weaviate.warnings import _Warnings
 
 try:
@@ -44,12 +45,18 @@ class BM25:
         return "bm25:{" + ret + "}"
 
 
+class HybridFusionType(str, BaseEnum):
+    RANKED = "rankedFusion"
+    RELATIVE_SCORE = "relativeScoreFusion"
+
+
 @dataclass
 class Hybrid:
     query: str
     alpha: Optional[float]
     vector: Optional[List[float]]
     properties: Optional[List[str]]
+    fusion_type: Optional[HybridFusionType]
 
     def __str__(self) -> str:
         ret = f'query: "{util.strip_newlines(self.query)}"'
@@ -60,6 +67,11 @@ class Hybrid:
         if self.properties is not None and len(self.properties) > 0:
             props = '","'.join(self.properties)
             ret += f', properties: ["{props}"]'
+        if self.fusion_type is not None:
+            if isinstance(self.fusion_type, Enum):
+                ret += f", fusionType: {self.fusion_type.value}"
+            else:
+                ret += f", fusionType: {self.fusion_type}"
 
         return "hybrid:{" + ret + "}"
 
@@ -1025,6 +1037,7 @@ class GetBuilder(GraphQL):
         alpha: Optional[float] = None,
         vector: Optional[List[float]] = None,
         properties: Optional[List[str]] = None,
+        fusion_type: Optional[HybridFusionType] = None,
     ):
         """Get objects using bm25 and vector, then combine the results using a reciprocal ranking algorithm.
 
@@ -1043,8 +1056,10 @@ class GetBuilder(GraphQL):
         properties: Optional[List[str]]:
             Which properties should be searched by BM25. Does not have any effect for vector search. If None or empty
             all properties are searched.
+        fusion_type: Optional[HybridFusionType]:
+            Which fusion type should be used to merge keyword and vector search.
         """
-        self._hybrid = Hybrid(query, alpha, vector, properties)
+        self._hybrid = Hybrid(query, alpha, vector, properties, fusion_type)
         self._contains_filter = True
         return self
 
