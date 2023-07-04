@@ -20,6 +20,7 @@ schema = {
                 {"dataType": ["string"], "description": "description", "name": "description"},
                 {"dataType": ["int"], "description": "size", "name": "size"},
             ],
+            "vectorizer": "text2vec-contextionary",
         }
     ]
 }
@@ -224,6 +225,19 @@ def test_hybrid_properties(client, properties: Optional[List[str]], num_results:
         assert result["data"]["Get"]["Ship"][0]["name"] == "The Crusty Crab"
     else:
         assert len(result["data"]["Get"]["Ship"]) == 0
+
+
+@pytest.mark.parametrize("autocut,num_results", [(1, 1), (2, 6), (-1, len(SHIPS))])
+def test_autocut(client, autocut, num_results):
+    result = (
+        client.query.get("Ship", ["name"])
+        .with_hybrid(query="sponges", properties=["name", "description"], alpha=0.5)
+        .with_autocut(autocut)
+        .with_limit(len(SHIPS))
+        .do()
+    )
+    assert len(result["data"]["Get"]["Ship"]) == num_results
+    assert result["data"]["Get"]["Ship"][0]["name"] == "The Crusty Crab"
 
 
 def test_group_by(client, people_schema):
