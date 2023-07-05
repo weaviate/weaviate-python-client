@@ -58,6 +58,22 @@ class TestAggregateBuilder(unittest.TestCase):
             '{Aggregate{Object(groupBy: ["name"]){groupedBy { value }name { count }}}}', query
         )
 
+    def test_with_limit(self):
+        """
+        Test the `with_limit` method.
+        """
+
+        query = (
+            self.aggregate.with_meta_count()
+            .with_where({"operator": "Equal", "valueString": "B", "path": ["name"]})
+            .with_limit(10)
+            .build()
+        )
+        self.assertEqual(
+            '{Aggregate{Object(where: {path: ["name"] operator: Equal valueString: "B"} limit: 10){meta{count}}}}',
+            query,
+        )
+
     def test_do(self):
         """
         Test the `do` method.
