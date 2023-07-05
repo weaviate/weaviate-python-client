@@ -176,12 +176,37 @@ def test_aggregate_data(client):
     assert "name" in aggregation, "Missing name property"
 
 
+def test_aggregate_data_with_group_by_and_limit(client):
+    """Test GraphQL's Aggregate clause with group_by and limit."""
+    result = (
+        client.query.aggregate("Ship")
+        .with_fields("name{count}")
+        .with_limit(2)
+        .with_group_by_filter(["name"])
+        .do()
+    )
+
+    objects = get_objects_from_aggregate_result(result)
+    assert len(objects) == 2, "Expected 2 results"
+
+
+def test_aggregate_data_with_just_limit(client):
+    """Test GraphQL's Aggregate clause with only limit. It's idempotent."""
+    result = client.query.aggregate("Ship").with_fields("name{count}").with_limit(2).do()
+
+    objects = get_objects_from_aggregate_result(result)
+    assert objects == [{'name': {'count': len(SHIPS)}}], f"Expected only meta count for {len(SHIPS)} results"
+
 def get_objects_from_result(result):
     return result["data"]["Get"]["Ship"]
 
 
 def get_aggregation_from_aggregate_result(result):
     return result["data"]["Aggregate"]["Ship"][0]
+
+
+def get_objects_from_aggregate_result(result):
+    return result["data"]["Aggregate"]["Ship"]
 
 
 @pytest.mark.parametrize("query", ["sponges", "sponges\n"])
