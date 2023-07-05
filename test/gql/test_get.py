@@ -13,7 +13,7 @@ from weaviate.gql.get import (
     LinkTo,
     GroupBy,
     AdditionalProperties,
-    HybridFusionType,
+    HybridFusion,
 )
 
 mock_connection_v117 = Mock()
@@ -103,7 +103,7 @@ def test_get_references(property_name: str, in_class: str, properties: List[str]
             None,
             None,
             None,
-            HybridFusionType.RANKED,
+            HybridFusion.RANKED,
             'hybrid:{query: "query", fusionType: rankedFusion}',
         ),
         (
@@ -111,7 +111,7 @@ def test_get_references(property_name: str, in_class: str, properties: List[str]
             None,
             None,
             None,
-            HybridFusionType.RELATIVE_SCORE,
+            HybridFusion.RELATIVE_SCORE,
             'hybrid:{query: "query", fusionType: relativeScoreFusion}',
         ),
         (
@@ -129,7 +129,7 @@ def test_hybrid(
     vector: Optional[List[float]],
     alpha: Optional[float],
     properties: Optional[List[str]],
-    fusion_type: HybridFusionType,
+    fusion_type: HybridFusion,
     expected: str,
 ):
     hybrid = Hybrid(query, alpha, vector, properties, fusion_type)

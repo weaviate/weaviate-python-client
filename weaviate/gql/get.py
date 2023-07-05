@@ -45,7 +45,7 @@ class BM25:
         return "bm25:{" + ret + "}"
 
 
-class HybridFusionType(str, BaseEnum):
+class HybridFusion(str, BaseEnum):
     RANKED = "rankedFusion"
     RELATIVE_SCORE = "relativeScoreFusion"
 
@@ -56,7 +56,7 @@ class Hybrid:
     alpha: Optional[float]
     vector: Optional[List[float]]
     properties: Optional[List[str]]
-    fusion_type: Optional[HybridFusionType]
+    fusion_type: Optional[HybridFusion]
 
     def __str__(self) -> str:
         ret = f'query: "{util.strip_newlines(self.query)}"'
@@ -1037,7 +1037,7 @@ class GetBuilder(GraphQL):
         alpha: Optional[float] = None,
         vector: Optional[List[float]] = None,
         properties: Optional[List[str]] = None,
-        fusion_type: Optional[HybridFusionType] = None,
+        fusion_type: Optional[HybridFusion] = None,
     ):
         """Get objects using bm25 and vector, then combine the results using a reciprocal ranking algorithm.
 

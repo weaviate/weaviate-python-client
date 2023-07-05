@@ -9,7 +9,7 @@ from pytest import FixtureRequest
 import weaviate
 from weaviate import Tenant
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.gql.get import HybridFusionType
+from weaviate.gql.get import HybridFusion
 
 schema = {
     "classes": [
@@ -197,10 +197,8 @@ def test_bm25_no_result(client):
 
 
 @pytest.mark.parametrize("query", ["sponges", "sponges\n"])
-@pytest.mark.parametrize(
-    "fusion_type", [HybridFusionType.RANKED, HybridFusionType.RELATIVE_SCORE, None]
-)
-def test_hybrid(client, query: str, fusion_type: Optional[HybridFusionType]):
+@pytest.mark.parametrize("fusion_type", [HybridFusion.RANKED, HybridFusion.RELATIVE_SCORE, None])
+def test_hybrid(client, query: str, fusion_type: Optional[HybridFusion]):
     """Test hybrid search with alpha=0.5 to have a combination of BM25 and vector search."""
     result = (
         client.query.get("Ship", ["name", "description"])
