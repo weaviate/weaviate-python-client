@@ -69,7 +69,8 @@ class AggregateBuilder(GraphQL):
 
     def with_object_limit(self, limit: int) -> "AggregateBuilder":
         """
-        Set objectLimit to limit vector search results only when with near<MEDIA> filter.
+        Set objectLimit to limit vector search results used within the aggregation query
+        only when with near<MEDIA> filter.
 
         Parameters
         ----------
@@ -87,7 +88,7 @@ class AggregateBuilder(GraphQL):
 
     def with_limit(self, limit: int) -> "AggregateBuilder":
         """
-        Set limit to limit the number of returned results.
+        Set limit to limit the number of returned results from the aggregation query.
 
         Parameters
         ----------
