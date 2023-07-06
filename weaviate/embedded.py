@@ -84,7 +84,6 @@ class EmbeddedDB:
             raise exceptions.WeaviateEmbeddedInvalidVersion(self.options.version)
 
     def _set_download_url_from_version_tag(self, version: str) -> None:
-
         if platform.system() == "Darwin":
             machine_type = "all"
             package_format = "zip"

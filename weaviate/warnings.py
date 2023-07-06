@@ -115,3 +115,12 @@ class _Warnings:
             category=DeprecationWarning,
             stacklevel=1,
         )
+
+    @staticmethod
+    def weaviate_client_too_old_vs_latest(client_version: str, latest_version: str):
+        warnings.warn(
+            message=f"""Dep005: You are using weaviate-client version {client_version}. The latest version is {latest_version}.
+            Please consider upgrading to the latest version. See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
