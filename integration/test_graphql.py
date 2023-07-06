@@ -195,7 +195,10 @@ def test_aggregate_data_with_just_limit(client):
     result = client.query.aggregate("Ship").with_fields("name{count}").with_limit(2).do()
 
     objects = get_objects_from_aggregate_result(result)
-    assert objects == [{'name': {'count': len(SHIPS)}}], f"Expected only meta count for {len(SHIPS)} results"
+    assert objects == [
+        {"name": {"count": len(SHIPS)}}
+    ], f"Expected only meta count for {len(SHIPS)} results"
+
 
 def get_objects_from_result(result):
     return result["data"]["Get"]["Ship"]
