@@ -1,6 +1,18 @@
 Changelog
 =========
 
+Version 3.22.0
+--------------
+This minor version includes:
+
+- Multi-tenancy
+- Aggregate with limit
+- Autocut
+- Fusion type for hybrid search
+- Client emits a warning when it is outdated (three minor version behind last release on pypi)
+- Increase default embedded version to 1.19.12
+
+
 Version 3.21.0
 --------------
 
