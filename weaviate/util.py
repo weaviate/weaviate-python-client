@@ -4,6 +4,7 @@ Helper functions!
 import base64
 import json
 import os
+import re
 import uuid as uuid_lib
 from enum import Enum, EnumMeta
 from io import BufferedReader
@@ -11,7 +12,6 @@ from typing import Union, Sequence, Any, Optional, List, Dict, Tuple
 
 import requests
 import validators
-import re
 
 from weaviate.exceptions import SchemaValidationException
 from weaviate.types import NUMBERS
@@ -641,7 +641,7 @@ def is_weaviate_client_too_old(current_version_str: str, latest_version_str: str
         minimum_minor = max(latest_minor - MAXIMUM_MINOR_VERSION_DELTA, 0)
         minimum_version = (latest_major, minimum_minor)
         return minimum_version > current_version
-    except ValueError as e:
+    except ValueError:
         return False
 
 
