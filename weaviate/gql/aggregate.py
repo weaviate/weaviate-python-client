@@ -43,6 +43,7 @@ class AggregateBuilder(GraphQL):
         self._uses_filter: bool = False
         self._near: Optional[Filter] = None
         self._tenant: Optional[str] = None
+        self._limit: Optional[int] = None
 
     def with_tenant(self, tenant: str) -> "AggregateBuilder":
         """Sets a tenant for the query."""
@@ -68,7 +69,8 @@ class AggregateBuilder(GraphQL):
 
     def with_object_limit(self, limit: int) -> "AggregateBuilder":
         """
-        Set objectLimit to limit vector search results only when with near<MEDIA> filter.
+        Set objectLimit to limit vector search results used within the aggregation query
+        only when with near<MEDIA> filter.
 
         Parameters
         ----------
@@ -82,6 +84,24 @@ class AggregateBuilder(GraphQL):
         """
 
         self._object_limit = limit
+        return self
+
+    def with_limit(self, limit: int) -> "AggregateBuilder":
+        """
+        Set limit to limit the number of returned results from the aggregation query.
+
+        Parameters
+        ----------
+        limit : int
+            The limit.
+
+        Returns
+        -------
+        weaviate.gql.aggregate.AggregateBuilder
+            Updated AggregateBuilder.
+        """
+
+        self._limit = limit
         return self
 
     def with_fields(self, field: str) -> "AggregateBuilder":
@@ -422,6 +442,8 @@ class AggregateBuilder(GraphQL):
                 query += f"objectLimit: {self._object_limit}"
             if self._tenant is not None:
                 query += f'tenant: "{self._tenant}"'
+            if self._limit is not None:
+                query += f"limit: {self._limit}"
 
             query += ")"
 
