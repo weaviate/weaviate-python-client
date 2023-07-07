@@ -665,11 +665,14 @@ class Connection(BaseConnection):
         if is_weaviate_too_old(self._server_version):
             _Warnings.weaviate_too_old_vs_latest(self._server_version)
 
-        pkg_info = requests.get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
-        pkg_info = pkg_info.get("info", {})
-        latest_version = pkg_info.get("version", "unknown version")
-        if is_weaviate_client_too_old(client_version, latest_version):
-            _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
+        try:
+            pkg_info = requests.get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
+            pkg_info = pkg_info.get("info", {})
+            latest_version = pkg_info.get("version", "unknown version")
+            if is_weaviate_client_too_old(client_version, latest_version):
+                _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
+        except RequestsConnectionError:
+            pass  # air-gaped environments
 
     @property
     def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
