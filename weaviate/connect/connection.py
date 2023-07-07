@@ -18,6 +18,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError, Read
 from requests.exceptions import HTTPError as RequestsHTTPError
 from requests.exceptions import JSONDecodeError
 
+from weaviate import __version__ as client_version
 from weaviate.auth import AuthCredentials, AuthClientCredentials, AuthApiKey
 from weaviate.config import ConnectionConfig
 from weaviate.connect.authentication import _Auth
@@ -36,7 +37,6 @@ from weaviate.util import (
     PYPI_PACKAGE_URL,
 )
 from weaviate.warnings import _Warnings
-from weaviate import __version__ as client_version
 
 try:
     import grpc
@@ -49,6 +49,7 @@ except ImportError:
 
 Session = Union[requests.sessions.Session, OAuth2Session]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBERS, NUMBERS]
+PYPI_TIMEOUT = 1
 
 
 class BaseConnection:
@@ -664,7 +665,7 @@ class Connection(BaseConnection):
         if is_weaviate_too_old(self._server_version):
             _Warnings.weaviate_too_old_vs_latest(self._server_version)
 
-        pkg_info = requests.get(PYPI_PACKAGE_URL).json()
+        pkg_info = requests.get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
         pkg_info = pkg_info.get("info", {})
         latest_version = pkg_info.get("version", "unknown version")
         if is_weaviate_client_too_old(client_version, latest_version):
