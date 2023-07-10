@@ -162,7 +162,9 @@ def test_add_object_batch_with_tenant():
             tenant=objects[1][2],
         )
 
-        retObj = client.data_object.get_by_id(objects[0][0], class_name=objects[0][1], tenant=objects[0][2])
+        retObj = client.data_object.get_by_id(
+            objects[0][0], class_name=objects[0][1], tenant=objects[0][2]
+        )
         assert retObj["properties"]["tenantAsProp"] == objects[0][2]
 
     # test batch delete with correct tenant id
@@ -177,7 +179,9 @@ def test_add_object_batch_with_tenant():
             tenant=objects[0][2],
         )
 
-        retObj = client.data_object.get_by_id(objects[0][0], class_name=objects[0][1], tenant=objects[0][2])
+        retObj = client.data_object.get_by_id(
+            objects[0][0], class_name=objects[0][1], tenant=objects[0][2]
+        )
         assert retObj is None
 
     for name in class_names:
