@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 3.22.1
+--------------
+This patch version includes:
+
+- Fix "is client outdated"-check in air-gaped environments
+- Add `tenant` to batch delete
+
 Version 3.22.0
 --------------
 This minor version includes:
