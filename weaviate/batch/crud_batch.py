@@ -1165,6 +1165,7 @@ class Batch:
         where: dict,
         output: str = "minimal",
         dry_run: bool = False,
+        tenant: Optional[str] = None,
     ) -> dict:
         """
         Delete objects that match the 'match' in batch.
@@ -1252,6 +1253,8 @@ class Batch:
         params = {}
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level
+        if tenant is not None:
+            params["tenant"] = tenant
 
         payload = {
             "match": {
