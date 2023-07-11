@@ -23,19 +23,38 @@ mock_connection_v117.server_version = "1.17.4"
 @pytest.mark.parametrize(
     "props,expected",
     [
-        (AdditionalProperties(uuid=True), "_additional{id}"),
+        (AdditionalProperties(uuid=True), " _additional{id} "),
         (
             AdditionalProperties(uuid=True, vector=True, explainScore=True),
-            "_additional{id vector explainScore}",
+            " _additional{id vector explainScore} ",
         ),
         (
             AdditionalProperties(uuid=False, vector=True, explainScore=True, score=True),
-            "_additional{vector score explainScore}",
+            " _additional{vector score explainScore} ",
         ),
     ],
 )
 def test_additional_props(props: AdditionalProperties, expected: str):
     assert str(props) == expected
+
+
+@pytest.mark.parametrize(
+    "additional_props,expected",
+    [
+        (AdditionalProperties(uuid=True), " _additional{id} "),
+    ],
+)
+def test_getbuilder_with_additional_props(additional_props: AdditionalProperties, expected: str):
+    query = (
+        GetBuilder("TestClass", "name", mock_connection_v117)
+        .with_additional(additional_props)
+        .build()
+    )
+    expected_query = "{Get{TestClass{name" + expected + "}}}"
+    assert (
+        "name_" not in expected_query
+    )  # Check that the prop name is not being concatnated to _additional
+    assert query == expected_query
 
 
 @pytest.mark.parametrize(
