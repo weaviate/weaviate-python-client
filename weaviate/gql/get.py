@@ -124,7 +124,7 @@ class AdditionalProperties:
                         name = "id"
                     additional_props.append(name)
         if len(additional_props) > 0:
-            return "_additional{" + " ".join(additional_props) + "}"
+            return " _additional{" + " ".join(additional_props) + "} "
         else:
             return ""
 
