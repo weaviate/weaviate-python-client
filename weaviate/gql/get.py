@@ -21,9 +21,9 @@ from weaviate.gql.filter import (
     NearImage,
     Sort,
 )
-from weaviate.types import UUID
 from weaviate.util import image_encoder_b64, _capitalize_first_letter, get_valid_uuid, BaseEnum
 from weaviate.warnings import _Warnings
+from weaviate.weaviate_types import UUID
 
 try:
     from weaviate_grpc import weaviate_pb2

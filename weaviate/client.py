@@ -10,6 +10,7 @@ from .backup import Backup
 from .batch import Batch
 from .classification import Classification
 from .cluster import Cluster
+from .collection import Collection
 from .config import Config
 from .connect.connection import Connection, TIMEOUT_TYPE_RETURN
 from .contextionary import Contextionary
@@ -18,8 +19,8 @@ from .embedded import EmbeddedDB, EmbeddedOptions
 from .exceptions import UnexpectedStatusCodeException
 from .gql import Query
 from .schema import Schema
-from .types import NUMBERS
 from .util import _get_valid_timeout_config, _type_request_response
+from .weaviate_types import NUMBERS
 
 TIMEOUT_TYPE = Union[Tuple[NUMBERS, NUMBERS], NUMBERS]
 
@@ -167,6 +168,7 @@ class Client:
         self.query = Query(self._connection)
         self.backup = Backup(self._connection)
         self.cluster = Cluster(self._connection)
+        self.collection = Collection(self._connection)
 
     def is_ready(self) -> bool:
         """

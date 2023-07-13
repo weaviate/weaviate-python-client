@@ -28,7 +28,6 @@ from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     WeaviateStartUpError,
 )
-from weaviate.types import NUMBERS
 from weaviate.util import (
     _check_positive_num,
     is_weaviate_domain,
@@ -37,6 +36,7 @@ from weaviate.util import (
     PYPI_PACKAGE_URL,
 )
 from weaviate.warnings import _Warnings
+from weaviate.weaviate_types import NUMBERS
 
 try:
     import grpc

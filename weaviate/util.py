@@ -14,7 +14,7 @@ import requests
 import validators
 
 from weaviate.exceptions import SchemaValidationException
-from weaviate.types import NUMBERS
+from weaviate.weaviate_types import NUMBERS
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"
 MAXIMUM_MINOR_VERSION_DELTA = 3  # The maximum delta between minor versions of Weaviate Client that will not trigger an upgrade warning.

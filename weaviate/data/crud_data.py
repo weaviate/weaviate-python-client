@@ -15,7 +15,6 @@ from weaviate.exceptions import (
     ObjectAlreadyExistsException,
     UnexpectedStatusCodeException,
 )
-from weaviate.types import UUID
 from weaviate.util import (
     _get_dict_from_object,
     get_vector,
@@ -23,6 +22,7 @@ from weaviate.util import (
     _capitalize_first_letter,
     _check_positive_num,
 )
+from weaviate.weaviate_types import UUID
 
 
 class DataObject:

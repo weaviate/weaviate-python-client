@@ -17,7 +17,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.types import UUID
+from weaviate.weaviate_types import UUID
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest, BatchResponse
 from ..error_msgs import (
     BATCH_REF_DEPRECATION_NEW_V14_CLS_NS_W,
