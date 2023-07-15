@@ -719,6 +719,29 @@ class GetBuilder(GraphQL):
         self._contains_filter = True
         return self
 
+    def with_metadata(
+        self,
+        uuid: bool = False,
+        vector: bool = False,
+        creationTimeUnix: bool = False,
+        lastUpdateTimeUnix: bool = False,
+        distance: bool = False,
+        certainty: bool = False,
+        score: bool = False,
+        explainScore: bool = False,
+    ) -> "GetBuilder":
+        self._additional_dataclass = AdditionalProperties(
+            uuid=uuid,
+            vector=vector,
+            creationTimeUnix=creationTimeUnix,
+            lastUpdateTimeUnix=lastUpdateTimeUnix,
+            distance=distance,
+            certainty=certainty,
+            score=score,
+            explainScore=explainScore,
+        )
+        return self
+
     def with_additional(
         self,
         properties: Union[

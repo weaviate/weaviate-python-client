@@ -112,7 +112,7 @@ def test_get_data(client):
 
 
 def test_get_data_after(client):
-    full_results = client.query.get("Ship", ["name"]).with_additional(["id"]).do()
+    full_results = client.query.get("Ship", ["name"]).with_metadata(uuid=True).do()
     for i, ship in enumerate(full_results["data"]["Get"]["Ship"][:-1]):
         result = (
             client.query.get("Ship", ["name"])
