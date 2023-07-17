@@ -723,22 +723,22 @@ class GetBuilder(GraphQL):
         self,
         uuid: bool = False,
         vector: bool = False,
-        creationTimeUnix: bool = False,
-        lastUpdateTimeUnix: bool = False,
+        creation_time_unix: bool = False,
+        last_update_time_unix: bool = False,
         distance: bool = False,
         certainty: bool = False,
         score: bool = False,
-        explainScore: bool = False,
+        explain_score: bool = False,
     ) -> "GetBuilder":
         self._additional_dataclass = AdditionalProperties(
             uuid=uuid,
             vector=vector,
-            creationTimeUnix=creationTimeUnix,
-            lastUpdateTimeUnix=lastUpdateTimeUnix,
+            creationTimeUnix=creation_time_unix,
+            lastUpdateTimeUnix=last_update_time_unix,
             distance=distance,
             certainty=certainty,
             score=score,
-            explainScore=explainScore,
+            explainScore=explain_score,
         )
         return self
 
