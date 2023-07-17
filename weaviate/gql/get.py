@@ -4,10 +4,7 @@ GraphQL `Get` command.
 from dataclasses import dataclass, Field, fields
 from enum import Enum
 from json import dumps
-from typing import List, Union, Optional, Dict, Tuple, Any
-
-import pydantic as pydantic
-from pydantic import BaseModel
+from typing import List, Union, Optional, Dict, Tuple
 
 from weaviate import util
 from weaviate.connect import Connection
@@ -104,18 +101,6 @@ class LinkTo:
 PROPERTIES = Union[List[Union[str, LinkTo]], str]
 
 
-class MetadataReturn(BaseModel):
-    uuid: Optional[UUID] = pydantic.Field(None, alias="id")
-    vector: Optional[List[float]] = None
-    creation_time_unix: Optional[int] = pydantic.Field(None, alias="creationTimeUnix")
-    last_update_time_unix: Optional[int] = pydantic.Field(None, alias="lastUpdateTimeUnix")
-    distance: Optional[float] = None
-    certainty: Optional[float] = None
-    score: Optional[float] = None
-    explain_score: Optional[str] = pydantic.Field(None, alias="explainScore")
-    is_consistent: Optional[bool] = pydantic.Field(None, alias="isConsistent")
-
-
 @dataclass
 class AdditionalProperties:
     uuid: bool = False
@@ -126,7 +111,6 @@ class AdditionalProperties:
     certainty: bool = False
     score: bool = False
     explainScore: bool = False
-    isConsistent: bool = False
 
     def __str__(self) -> str:
         additional_props: List[str] = []
@@ -739,24 +723,22 @@ class GetBuilder(GraphQL):
         self,
         uuid: bool = False,
         vector: bool = False,
-        creation_time_unix: bool = False,
-        last_update_time_unix: bool = False,
+        creationTimeUnix: bool = False,
+        lastUpdateTimeUnix: bool = False,
         distance: bool = False,
         certainty: bool = False,
         score: bool = False,
-        explain_score: bool = False,
-        is_consistent: bool = False,
+        explainScore: bool = False,
     ) -> "GetBuilder":
         self._additional_dataclass = AdditionalProperties(
             uuid=uuid,
             vector=vector,
-            creationTimeUnix=creation_time_unix,
-            lastUpdateTimeUnix=last_update_time_unix,
+            creationTimeUnix=creationTimeUnix,
+            lastUpdateTimeUnix=lastUpdateTimeUnix,
             distance=distance,
             certainty=certainty,
             score=score,
-            explainScore=explain_score,
-            isConsistent=is_consistent,
+            explainScore=explainScore,
         )
         return self
 
@@ -1371,7 +1353,7 @@ class GetBuilder(GraphQL):
                     obj = self._convert_references_to_grpc_result(result.properties)
                     additional = self._extract_additional_properties(result.additional_properties)
                     if len(additional) > 0:
-                        obj["metadata"] = MetadataReturn(**additional)
+                        obj["_additional"] = additional
                     objects.append(obj)
 
                 results = {"data": {"Get": {self._class_name: objects}}}
@@ -1380,24 +1362,7 @@ class GetBuilder(GraphQL):
                 results = {"errors": [e.details()]}
             return results
         else:
-            response_json = super().do()
-            if self._additional_dataclass is not None:
-                self.__gql_to_metadata(response_json)
-            return response_json
-
-    def __gql_to_metadata(self, response_json: Dict[str, Any]):
-        try:
-            classes: Dict[str, List[Dict[str, Any]]] = response_json["data"]["Get"]
-            for single_class in classes:
-                for i, _ in enumerate(response_json["data"]["Get"][single_class]):
-                    additional = response_json["data"]["Get"][single_class][i]["_additional"]
-
-                    response_json["data"]["Get"][single_class][i]["metadata"] = MetadataReturn(
-                        **additional
-                    )
-                    del response_json["data"]["Get"][single_class][i]["_additional"]
-        except KeyError:  # skip on errors
-            return
+            return super().do()
 
     def _extract_additional_properties(
         self, props: "weaviate_pb2.ResultAdditionalProps"

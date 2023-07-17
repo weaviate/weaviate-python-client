@@ -113,22 +113,26 @@ def test_additional():
 
     results = []
     for client in [client_gql, client_grpc]:
-        query = client.query.get("Test").with_metadata(
-            uuid=True,
-            vector=True,
-            creation_time_unix=True,
-            last_update_time_unix=True,
-            distance=True,
+        query = client.query.get("Test").with_additional(
+            weaviate.AdditionalProperties(
+                uuid=True,
+                vector=True,
+                creationTimeUnix=True,
+                lastUpdateTimeUnix=True,
+                distance=True,
+            )
         )
         result = query.do()
         assert "Test" in result["data"]["Get"]
 
         results.append(result)
 
-    result_gql = results[0]["data"]["Get"]["Test"][0]["metadata"]
-    result_grpc = results[1]["data"]["Get"]["Test"][0]["metadata"]
+    result_gql = results[0]["data"]["Get"]["Test"][0]["_additional"]
+    result_grpc = results[1]["data"]["Get"]["Test"][0]["_additional"]
 
-    assert result_gql == result_grpc
+    assert sorted(result_gql.keys()) == sorted(result_grpc.keys())
+    for key in result_gql.keys():
+        assert result_gql[key] == result_grpc[key]
 
 
 def test_grpc_errors():

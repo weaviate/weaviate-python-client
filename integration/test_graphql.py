@@ -9,7 +9,7 @@ from pytest import FixtureRequest
 import weaviate
 from weaviate import Tenant
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.gql.get import HybridFusion, MetadataReturn
+from weaviate.gql.get import HybridFusion
 
 schema = {
     "classes": [
@@ -116,15 +116,22 @@ def test_get_data_after(client):
     for i, ship in enumerate(full_results["data"]["Get"]["Ship"][:-1]):
         result = (
             client.query.get("Ship", ["name"])
-            .with_metadata(uuid=True)
+            .with_additional(["id"])
             .with_limit(1)
-            .with_after(ship["metadata"].uuid)
+            .with_after(ship["_additional"]["id"])
             .do()
         )
         assert (
-            result["data"]["Get"]["Ship"][0]["metadata"]
-            == full_results["data"]["Get"]["Ship"][i + 1]["metadata"]
+            result["data"]["Get"]["Ship"][0]["_additional"]["id"]
+            == full_results["data"]["Get"]["Ship"][i + 1]["_additional"]["id"]
         )
+
+
+def test_get_data_after_wrong_types(client):
+    with pytest.raises(TypeError):
+        client.query.get("Ship", ["name"]).with_additional(["id"]).with_limit(1).with_after(
+            1234
+        ).do()
 
 
 def test_multi_get_data(client, people_schema):
@@ -318,12 +325,11 @@ def test_consistency_level(client, level):
     result = (
         client.query.get("Ship", ["name"])
         .with_consistency_level(level)
-        .with_metadata(is_consistent=True)
+        .with_additional("isConsistent")
         .do()
     )
     for _, res in enumerate(get_objects_from_result(result)):
-        meta: MetadataReturn = res["metadata"]
-        assert meta.is_consistent
+        assert res["_additional"]["isConsistent"]
 
 
 @pytest.mark.parametrize(
