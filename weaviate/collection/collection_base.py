@@ -1,5 +1,5 @@
 import uuid as uuid_package
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -69,9 +69,14 @@ class CollectionBase:
     def __init__(self, connection: Connection):
         self._connection = connection
 
-    def _create(self, model: CollectionConfigBase) -> None:
+    def _create(
+        self, model: CollectionConfigBase, properties: Optional[List[Dict[str, Any]]] = None
+    ) -> None:
+        weaviate_object = model.to_dict()
+        if properties is not None:
+            weaviate_object["properties"] = properties
         try:
-            response = self._connection.post(path="/schema", weaviate_object=model.to_dict())
+            response = self._connection.post(path="/schema", weaviate_object=weaviate_object)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Class may not have been created properly.") from conn_err
         if response.status_code != 200:

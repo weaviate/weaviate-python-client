@@ -172,7 +172,7 @@ class Client:
         self.collection = Collection(self._connection)
 
     def collection_model(self, _type: Type[Model]) -> CollectionModel[Model]:
-        return CollectionModel[_type](self._connection)
+        return CollectionModel[_type](self._connection, _type)
 
     def is_ready(self) -> bool:
         """

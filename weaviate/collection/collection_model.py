@@ -70,14 +70,8 @@ UserModelType: TypeAlias = Type[BaseProperty]
 Model = TypeVar("Model", bound=BaseProperty)
 
 
-class CollectionConfigModel(CollectionConfigBase, Generic[Model]):
-    properties: Type[Model]
-
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
-        ret_dict["properties"] = self.properties.type_to_dict(self.properties)
-
-        return ret_dict
+class CollectionConfigModel(CollectionConfigBase):
+    pass
 
 
 @dataclass
@@ -97,7 +91,7 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
         weaviate_obj: Dict[str, Any] = {
             "class": self._name,
             "properties": obj.model_dump(exclude={"uuid", "vector"}),
-            "id": obj.uuid,
+            "id": str(obj.uuid),
         }
         if obj.vector is not None:
             weaviate_obj["vector"] = obj.vector
@@ -130,7 +124,7 @@ class CollectionModel(CollectionBase, Generic[Model]):
         self._model = model
 
     def create(self, config: CollectionConfigModel) -> CollectionObjectModel[Model]:
-        super()._create(config)
+        super()._create(config, self._model.type_to_dict(self._model))
 
         return CollectionObjectModel[Model](self._connection, config.name, self._model)
 
