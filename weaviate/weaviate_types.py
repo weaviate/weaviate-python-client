@@ -1,11 +1,9 @@
-import hashlib
-import typing
 import uuid as uuid_package
 from dataclasses import dataclass
 from enum import Enum
-from typing import Union, Dict, Any, Optional, List, Type, Set, TypeVar, TypeAlias
+from typing import Union, Dict, Any, Optional, List, Set, TypeAlias
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 UUID: TypeAlias = Union[str, uuid_package.UUID]
 NUMBERS: TypeAlias = Union[int, float]
@@ -122,52 +120,6 @@ class InvertedIndexConfig(BaseModel):
     indexNullState: bool = False
 
 
-class BaseProperty(BaseModel):
-    uuid: UUID = Field(default=uuid_package.uuid4())
-    vector: Optional[List[float]] = None
-
-    def props_to_dict(self) -> Dict[str, Any]:
-        return {
-            name: value
-            for name, value in self.model_fields.items()
-            if name not in BaseProperty.model_fields
-        }
-
-    @field_validator("uuid")
-    def create_valid_uuid(cls, input_uuid: UUID) -> uuid_package.UUID:
-        if isinstance(input_uuid, uuid_package.UUID):
-            return input_uuid
-
-        # see if str is already a valid uuid
-        try:
-            return uuid_package.UUID(input_uuid)
-        except ValueError:
-            hex_string = hashlib.md5(input_uuid.encode("UTF-8")).hexdigest()
-            return uuid_package.UUID(hex=hex_string)
-
-    @staticmethod
-    def type_to_dict(model: Type["BaseProperty"]) -> List[Dict[str, Any]]:
-        types = typing.get_type_hints(model)
-        return [
-            {
-                "name": name.capitalize(),
-                "dataType": [
-                    PYTHON_TYPE_TO_DATATYPE[BaseProperty._remove_optional_type(types[name])]
-                ],
-            }
-            for name, value in model.model_fields.items()
-            if name not in BaseProperty.model_fields
-        ]
-
-    @staticmethod
-    def _remove_optional_type(python_type: Type[type]) -> Type[type]:
-        args = typing.get_args(python_type)
-        if len(args) == 0:
-            return python_type
-
-        return [t for t in args if t is not None][0]
-
-
 class CollectionConfigBase(BaseModel):
     name: str
     vectorIndexType: Optional[VectorIndexType] = None
@@ -191,19 +143,6 @@ class CollectionConfigBase(BaseModel):
                 ret_dict[cls_field] = str(val)
             else:
                 ret_dict[cls_field] = val.to_dict()
-
-        return ret_dict
-
-
-Model = TypeVar("Model", bound=BaseProperty)
-
-
-class CollectionConfigModel(CollectionConfigBase):
-    properties: Type[Model]
-
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
-        ret_dict["properties"] = self.properties.type_to_dict(self.properties)
 
         return ret_dict
 
