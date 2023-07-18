@@ -1,15 +1,14 @@
 import hashlib
 import typing
-import uuid
+import uuid as uuid_package
 from dataclasses import dataclass
 from enum import Enum
-from typing import Union, Dict, Any, Tuple, Optional, List, Type
+from typing import Union, Dict, Any, Optional, List, Type, Set, TypeVar, TypeAlias
 
 from pydantic import BaseModel, Field, field_validator
 
-UUID = Union[str, uuid.UUID]
-NUMBERS = Union[int, float]
-
+UUID: TypeAlias = Union[str, uuid_package.UUID]
+NUMBERS: TypeAlias = Union[int, float]
 
 PYTHON_TYPE_TO_DATATYPE = {"text": str, str: "text", "int": int, int: "int"}
 
@@ -123,23 +122,8 @@ class InvertedIndexConfig(BaseModel):
     indexNullState: bool = False
 
 
-class Property(BaseModel):
-    name: str
-    dataType: DataType
-    indexFilterable: Optional[bool] = None
-    indexSearchable: Optional[bool] = None
-    tokenization: Optional[Tokenization] = None
-    description: Optional[str] = None
-    moduleConfig: Optional[ModuleConfig] = None
-
-    def to_dict(self):
-        ret_dict = super().model_dump(exclude_none=True)
-        ret_dict["dataType"] = [ret_dict["dataType"]]
-        return ret_dict
-
-
 class BaseProperty(BaseModel):
-    uuid: UUID = Field(default=uuid.uuid4())
+    uuid: UUID = Field(default=uuid_package.uuid4())
     vector: Optional[List[float]] = None
 
     def props_to_dict(self) -> Dict[str, Any]:
@@ -150,12 +134,16 @@ class BaseProperty(BaseModel):
         }
 
     @field_validator("uuid")
-    def create_valid_uuid(cls, input_uuid: UUID) -> str:
+    def create_valid_uuid(cls, input_uuid: UUID) -> uuid_package.UUID:
+        if isinstance(input_uuid, uuid_package.UUID):
+            return input_uuid
+
+        # see if str is already a valid uuid
         try:
-            return str(uuid.UUID(input_uuid))
+            return uuid_package.UUID(input_uuid)
         except ValueError:
             hex_string = hashlib.md5(input_uuid.encode("UTF-8")).hexdigest()
-            return str(uuid.UUID(hex=hex_string))
+            return uuid_package.UUID(hex=hex_string)
 
     @staticmethod
     def type_to_dict(model: Type["BaseProperty"]) -> List[Dict[str, Any]]:
@@ -180,9 +168,8 @@ class BaseProperty(BaseModel):
         return [t for t in args if t is not None][0]
 
 
-class CollectionConfig(BaseModel):
+class CollectionConfigBase(BaseModel):
     name: str
-    properties: Optional[Type[BaseProperty]] = None
     vectorIndexType: Optional[VectorIndexType] = None
     vectorizer: Optional[Vectorizer] = None
     vectorIndexConfig: Optional[VectorIndexConfig] = None
@@ -193,11 +180,8 @@ class CollectionConfig(BaseModel):
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = {"class": self.name.capitalize()}
-        if self.properties is not None:
-            ret_dict["properties"] = self.properties.type_to_dict(self.properties)
 
-        cls_fields: Tuple[str, ...] = self.model_fields
-        for cls_field in cls_fields:
+        for cls_field in self.model_fields:
             val = getattr(self, cls_field)
             if cls_field in ["name", "properties"] or val is None:
                 continue
@@ -209,3 +193,82 @@ class CollectionConfig(BaseModel):
                 ret_dict[cls_field] = val.to_dict()
 
         return ret_dict
+
+
+Model = TypeVar("Model", bound=BaseProperty)
+
+
+class CollectionConfigModel(CollectionConfigBase):
+    properties: Type[Model]
+
+    def to_dict(self) -> Dict[str, Any]:
+        ret_dict = super().to_dict()
+        ret_dict["properties"] = self.properties.type_to_dict(self.properties)
+
+        return ret_dict
+
+
+class Property(BaseModel):
+    name: str
+    dataType: DataType
+    indexFilterable: Optional[bool] = None
+    indexSearchable: Optional[bool] = None
+    tokenization: Optional[Tokenization] = None
+    description: Optional[str] = None
+    moduleConfig: Optional[ModuleConfig] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        ret_dict = super().model_dump(exclude_none=True)
+        ret_dict["dataType"] = [ret_dict["dataType"]]
+        return ret_dict
+
+
+class CollectionConfig(CollectionConfigBase):
+    properties: Optional[List[Property]] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        ret_dict = super().to_dict()
+        if self.properties is not None:
+            ret_dict["properties"] = [prop.to_dict() for prop in self.properties]
+
+        return ret_dict
+
+
+class Metadata(BaseModel):
+    vector: bool = False
+    distance: bool = False
+    certainty: bool = False
+    score: bool = False
+    explain_score: bool = Field(alias="explainScore", default=False)
+    is_consistent: bool = Field(alias="isConsistent", default=False)
+
+    def _get_fields(self) -> Set[str]:
+        additional_props: Set[str] = set()
+        for field, value in self.model_fields.items():
+            enabled: bool = getattr(self, field)
+            if enabled:
+                name = value.alias if value.alias is not None else field
+                additional_props.add(name)
+        return additional_props
+
+    def to_graphql(self) -> str:
+        additional_props = self._get_fields()
+        if len(additional_props) > 0:
+            return "_additional{" + " ".join(additional_props) + "}"
+        else:
+            return ""
+
+    def to_rest(self) -> str:
+        return ",".join(self._get_fields())
+
+
+class MetadataReturn(BaseModel):
+    uuid: Optional[UUID] = Field(None, alias="id")
+    vector: Optional[List[float]] = None
+    creation_time_unix: Optional[int] = Field(None, alias="creationTimeUnix")
+    last_update_time_unix: Optional[int] = Field(None, alias="lastUpdateTimeUnix")
+    distance: Optional[float] = None
+    certainty: Optional[float] = None
+    score: Optional[float] = None
+    explain_score: Optional[str] = Field(None, alias="explainScore")
+    is_consistent: Optional[bool] = Field(None, alias="isConsistent")

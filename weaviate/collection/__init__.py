@@ -1,3 +1,3 @@
 __all__ = ["Collection"]
 
-from .collection import Collection
+from weaviate.collection.collection import Collection

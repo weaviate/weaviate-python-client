@@ -11,6 +11,7 @@ from .batch import Batch
 from .classification import Classification
 from .cluster import Cluster
 from .collection import Collection
+from .collection.collection_model import CollectionModel
 from .config import Config
 from .connect.connection import Connection, TIMEOUT_TYPE_RETURN
 from .contextionary import Contextionary
@@ -169,6 +170,7 @@ class Client:
         self.backup = Backup(self._connection)
         self.cluster = Cluster(self._connection)
         self.collection = Collection(self._connection)
+        self.collection_model = CollectionModel(self._connection)
 
     def is_ready(self) -> bool:
         """
