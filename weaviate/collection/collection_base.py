@@ -5,7 +5,9 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException, ObjectAlreadyExistsException
-from weaviate.weaviate_types import CollectionConfigBase, UUID, Metadata
+from weaviate.util import _to_beacons
+from weaviate.weaviate_classes import CollectionConfigBase, UUID, Metadata
+from weaviate.weaviate_types import UUIDS
 
 
 class CollectionObjectBase:
@@ -64,21 +66,54 @@ class CollectionObjectBase:
             return None
         raise UnexpectedStatusCodeException("Get object/s", response)
 
-    def _reference_add(self, from_uuid: str, from_property_name: str, to_uuid: str) -> None:
+    def _reference_add(self, from_uuid: str, from_property_name: str, to_uuids: UUIDS) -> None:
+        params: Dict[str, str] = {}
+
+        path = f"/objects/{self._name}/{from_uuid}/references/{from_property_name}"
+        beacons = _to_beacons(to_uuids)
+        for beacon in beacons:
+            try:
+                response = self._connection.post(
+                    path=path,
+                    weaviate_object=beacon,
+                    params=params,
+                )
+            except RequestsConnectionError as conn_err:
+                raise RequestsConnectionError("Reference was not added.") from conn_err
+            if response.status_code != 200:
+                raise UnexpectedStatusCodeException("Add property reference to object", response)
+
+    def _reference_delete(self, from_uuid: str, from_property_name: str, to_uuids: UUIDS) -> None:
+        params: Dict[str, str] = {}
+
+        path = f"/objects/{self._name}/{from_uuid}/references/{from_property_name}"
+        beacons = _to_beacons(to_uuids)
+        for beacon in beacons:
+            try:
+                response = self._connection.delete(
+                    path=path,
+                    weaviate_object=beacon,
+                    params=params,
+                )
+            except RequestsConnectionError as conn_err:
+                raise RequestsConnectionError("Reference was not added.") from conn_err
+            if response.status_code != 204:
+                raise UnexpectedStatusCodeException("Add property reference to object", response)
+
+    def _reference_replace(self, from_uuid: str, from_property_name: str, to_uuids: UUIDS) -> None:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self._name}/{from_uuid}/references/{from_property_name}"
         try:
-            response = self._connection.post(
+            response = self._connection.put(
                 path=path,
-                weaviate_object={"beacon": f"weaviate://localhost/{to_uuid}"},
+                weaviate_object=_to_beacons(to_uuids),
                 params=params,
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Reference was not added.") from conn_err
-        if response.status_code == 200:
-            return
-        raise UnexpectedStatusCodeException("Add property reference to object", response)
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException("Add property reference to object", response)
 
 
 class CollectionBase:

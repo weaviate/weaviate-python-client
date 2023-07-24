@@ -8,7 +8,7 @@ import os
 import socket
 import time
 from threading import Thread, Event
-from typing import Any, Dict, Tuple, Optional, Union
+from typing import Any, Dict, Tuple, Optional, Union, List
 from urllib.parse import urlparse
 
 import requests
@@ -449,7 +449,7 @@ class BaseConnection:
     def put(
         self,
         path: str,
-        weaviate_object: dict,
+        weaviate_object: Union[Dict[str, Any], List[Dict[str, Any]]],
         params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """

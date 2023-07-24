@@ -3,7 +3,8 @@ from dataclasses import dataclass
 from typing import Dict, Any, Optional, List
 
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
-from weaviate.weaviate_types import CollectionConfig, UUID, MetadataReturn, Metadata, RefToObject
+from weaviate.weaviate_classes import CollectionConfig, MetadataReturn, Metadata, RefToObject
+from weaviate.weaviate_types import UUIDS, UUID
 
 
 @dataclass
@@ -49,8 +50,20 @@ class CollectionObject(CollectionObjectBase):
 
         return [self._json_to_object(obj) for obj in ret["objects"]]
 
-    def reference_add(self, from_uuid: str, from_property: str, to_uuid: str) -> None:
-        self._reference_add(from_uuid=from_uuid, from_property_name=from_property, to_uuid=to_uuid)
+    def reference_add(self, from_uuid: str, from_property: str, to_uuids: UUIDS) -> None:
+        self._reference_add(
+            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
+        )
+
+    def reference_delete(self, from_uuid: str, from_property: str, to_uuids: UUIDS) -> None:
+        self._reference_delete(
+            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
+        )
+
+    def reference_replace(self, from_uuid: str, from_property: str, to_uuids: UUIDS) -> None:
+        self._reference_replace(
+            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
+        )
 
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object:
         return _Object(

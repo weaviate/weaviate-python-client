@@ -10,13 +10,13 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
-from weaviate.weaviate_types import (
+from weaviate.weaviate_classes import (
     CollectionConfigBase,
     PYTHON_TYPE_TO_DATATYPE,
-    UUID,
     Metadata,
     MetadataReturn,
 )
+from weaviate.weaviate_types import UUID
 
 
 class BaseProperty(BaseModel):

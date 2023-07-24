@@ -14,7 +14,7 @@ import requests
 import validators
 
 from weaviate.exceptions import SchemaValidationException
-from weaviate.weaviate_types import NUMBERS
+from weaviate.weaviate_types import NUMBERS, UUIDS, UUID
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"
 MAXIMUM_MINOR_VERSION_DELTA = 3  # The maximum delta between minor versions of Weaviate Client that will not trigger an upgrade warning.
@@ -695,3 +695,10 @@ def _type_request_response(json_response: Any) -> Optional[Dict[str, Any]]:
         return None
     assert isinstance(json_response, dict)
     return json_response
+
+
+def _to_beacons(uuids: UUIDS) -> List[Dict[str, str]]:
+    if isinstance(uuids, UUID):
+        uuids = [uuids]
+
+    return [{"beacon": f"weaviate://localhost/{uuid_to}"} for uuid_to in uuids]
