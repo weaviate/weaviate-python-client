@@ -64,6 +64,22 @@ class CollectionObjectBase:
             return None
         raise UnexpectedStatusCodeException("Get object/s", response)
 
+    def _reference_add(self, from_uuid: str, from_property_name: str, to_uuid: str) -> None:
+        params: Dict[str, str] = {}
+
+        path = f"/objects/{self._name}/{from_uuid}/references/{from_property_name}"
+        try:
+            response = self._connection.post(
+                path=path,
+                weaviate_object={"beacon": f"weaviate://localhost/{to_uuid}"},
+                params=params,
+            )
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Reference was not added.") from conn_err
+        if response.status_code == 200:
+            return
+        raise UnexpectedStatusCodeException("Add property reference to object", response)
+
 
 class CollectionBase:
     def __init__(self, connection: Connection):
@@ -71,7 +87,7 @@ class CollectionBase:
 
     def _create(
         self, model: CollectionConfigBase, properties: Optional[List[Dict[str, Any]]] = None
-    ) -> None:
+    ) -> str:
         weaviate_object = model.to_dict()
         if properties is not None:
             weaviate_object["properties"] = properties
@@ -81,3 +97,7 @@ class CollectionBase:
             raise RequestsConnectionError("Class may not have been created properly.") from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Create class", response)
+
+        collection_name = response.json()["class"]
+        assert isinstance(collection_name, str)
+        return collection_name

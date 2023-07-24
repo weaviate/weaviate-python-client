@@ -162,8 +162,18 @@ class Property(BaseModel):
         return ret_dict
 
 
+class ReferenceProperty(BaseModel):
+    name: str
+    reference_class_name: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        ret_dict = super().model_dump(exclude_none=True)
+        ret_dict["dataType"] = [self.reference_class_name.capitalize()]
+        return ret_dict
+
+
 class CollectionConfig(CollectionConfigBase):
-    properties: Optional[List[Property]] = None
+    properties: Optional[List[Union[Property, ReferenceProperty]]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
@@ -211,3 +221,15 @@ class MetadataReturn(BaseModel):
     score: Optional[float] = None
     explain_score: Optional[str] = Field(None, alias="explainScore")
     is_consistent: Optional[bool] = Field(None, alias="isConsistent")
+
+
+@dataclass
+class RefToObject:
+    uuids_to: Union[List[UUID], UUID]
+
+    def to_beacon(self) -> List[Dict[str, str]]:
+        uuids_to = self.uuids_to
+        if isinstance(uuids_to, UUID):
+            uuids_to = [uuids_to]
+
+        return [{"beacon": f"weaviate://localhost/{uuid_to}"} for uuid_to in uuids_to]

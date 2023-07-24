@@ -57,12 +57,14 @@ class BaseProperty(BaseModel):
         ]
 
     @staticmethod
-    def _remove_optional_type(python_type: Type[type]) -> Type[type]:
+    def _remove_optional_type(python_type: type) -> type:
         args = typing.get_args(python_type)
         if len(args) == 0:
             return python_type
 
-        return [t for t in args if t is not None][0]
+        return_type = [t for t in args if t is not None][0]
+        assert isinstance(return_type, type)
+        return return_type
 
 
 UserModelType: TypeAlias = Type[BaseProperty]
@@ -124,9 +126,9 @@ class CollectionModel(CollectionBase, Generic[Model]):
         self._model = model
 
     def create(self, config: CollectionConfigModel) -> CollectionObjectModel[Model]:
-        super()._create(config, self._model.type_to_dict(self._model))
+        name = super()._create(config, self._model.type_to_dict(self._model))
 
-        return CollectionObjectModel[Model](self._connection, config.name, self._model)
+        return CollectionObjectModel[Model](self._connection, name, self._model)
 
     def get(self, collection_name: str) -> CollectionObjectModel[Model]:
         path = f"/schema/{collection_name.capitalize()}"

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Dict, Any, Optional, List
 
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
-from weaviate.weaviate_types import CollectionConfig, UUID, MetadataReturn, Metadata
+from weaviate.weaviate_types import CollectionConfig, UUID, MetadataReturn, Metadata, RefToObject
 
 
 @dataclass
@@ -21,11 +21,16 @@ class CollectionObject(CollectionObjectBase):
     ) -> uuid_package.UUID:
         weaviate_obj: Dict[str, Any] = {
             "class": self._name,
-            "properties": data,
+            "properties": {
+                key: val if not isinstance(val, RefToObject) else val.to_beacon()
+                for key, val in data.items()
+            },
         }
 
         if uuid is not None:
             weaviate_obj["id"] = str(uuid)
+        else:
+            weaviate_obj["id"] = str(uuid_package.uuid4())
 
         if vector is not None:
             weaviate_obj["vector"] = vector
@@ -44,6 +49,9 @@ class CollectionObject(CollectionObjectBase):
 
         return [self._json_to_object(obj) for obj in ret["objects"]]
 
+    def reference_add(self, from_uuid: str, from_property: str, to_uuid: str) -> None:
+        self._reference_add(from_uuid=from_uuid, from_property_name=from_property, to_uuid=to_uuid)
+
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object:
         return _Object(
             data={prop: val for prop, val in obj["properties"].items()},
@@ -53,9 +61,9 @@ class CollectionObject(CollectionObjectBase):
 
 class Collection(CollectionBase):
     def create(self, config: CollectionConfig) -> CollectionObject:
-        super()._create(config)
+        name = super()._create(config)
 
-        return CollectionObject(self._connection, config.name)
+        return CollectionObject(self._connection, name)
 
     def get(self, collection_name: str) -> CollectionObject:
         return CollectionObject(self._connection, collection_name)

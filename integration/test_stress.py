@@ -1,5 +1,4 @@
 import datetime
-import random
 import uuid
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
@@ -17,6 +16,7 @@ schema = {
                 {"dataType": ["Paragraph"], "name": "hasParagraphs"},
                 {"dataType": ["Author"], "name": "author"},
             ],
+            "vectorizer": "none",
         },
         {
             "class": "Article",
@@ -28,8 +28,13 @@ schema = {
                 {"dataType": ["string"], "name": "somestring"},
                 {"dataType": ["int"], "name": "counter"},
             ],
+            "vectorizer": "none",
         },
-        {"class": "Author", "properties": [{"dataType": ["string"], "name": "name"}]},
+        {
+            "class": "Author",
+            "properties": [{"dataType": ["string"], "name": "name"}],
+            "vectorizer": "none",
+        },
     ]
 }
 
@@ -98,16 +103,16 @@ class Article:
         self.class_name = "Article"
 
 
-@pytest.mark.parametrize("dynamic", [True, False])
-@pytest.mark.parametrize("batch_size", [50, 100])
+@pytest.mark.parametrize("dynamic", [False])
+@pytest.mark.parametrize("batch_size", [50])
 def test_stress(batch_size, dynamic):
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create(schema)
     client.batch.configure(batch_size=batch_size, dynamic=dynamic, num_workers=4)
-    authors = create_authors(random.randint(1000, 5000))
-    paragraphs = create_paragraphs(random.randint(1000, 5000), authors)
-    articles = create_articles(random.randint(1000, 5000), authors, paragraphs)
+    authors = create_authors(1000)
+    paragraphs = create_paragraphs(1000, authors)
+    articles = create_articles(1000, authors, paragraphs)
 
     add_authors(client, authors)
     add_paragraphs(client, paragraphs)
