@@ -2,7 +2,7 @@ import hashlib
 import typing
 import uuid as uuid_package
 from dataclasses import dataclass
-from typing import Type, Optional, Any, List, Dict, Generic, TypeAlias, TypeVar, Tuple
+from typing import Type, Optional, Any, List, Set, Dict, Generic, TypeAlias, TypeVar, Tuple, Union
 
 from pydantic import BaseModel, Field, create_model, field_validator
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -10,25 +10,70 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.util import _to_beacons
 from weaviate.weaviate_classes import (
     CollectionConfigBase,
     PYTHON_TYPE_TO_DATATYPE,
     Metadata,
     MetadataReturn,
 )
-from weaviate.weaviate_types import UUID
+from weaviate.weaviate_types import UUID, UUIDS
+
+
+@dataclass
+class ReferenceTo:
+    _type: Type
 
 
 class BaseProperty(BaseModel):
     uuid: UUID = Field(default=uuid_package.uuid4())
     vector: Optional[List[float]] = None
 
-    def props_to_dict(self) -> Dict[str, Any]:
-        return {
-            name: value
-            for name, value in self.model_fields.items()
-            if name not in BaseProperty.model_fields
+    # def __new__(cls, *args, **kwargs):
+    #     #
+    #     build = super().__new__(cls)
+    #     # fields, class_vars = collect_model_fields(cls)
+    #     for name, field in build.model_fields.items():
+    #         if name not in BaseProperty.model_fields:
+    #             field_type = build._remove_optional_type(field.annotation)
+    #             if inspect.isclass(field_type):
+    #                 if field.annotation not in PYTHON_TYPE_TO_DATATYPE:
+    #                     build.model_fields[name] = fields.FieldInfo(annotation=typing.Optional[UUID], default=None)
+    #
+    #     build.__class_vars__.update(build.__class_vars__)
+    #     return build
+    #
+    #
+    # make references optional by default - does not work
+    def __init__(self, **data) -> None:
+
+        # self.model_rebuild()
+        super().__init__(**data)
+        self._reference_fields: Set[str] = {
+            name
+            for name, field in self.model_fields.items()
+            if field.metadata is not None
+            and len(field.metadata) > 0
+            and name not in BaseProperty.model_fields
         }
+
+    @staticmethod
+    def get_ref_fields(model: Type["BaseProperty"]) -> Set[str]:
+        return {
+            name
+            for name, field in model.model_fields.items()
+            if field.metadata is not None
+            and len(field.metadata) > 0
+            and name not in BaseProperty.model_fields
+        }
+
+    def props_to_dict(self) -> Dict[str, Any]:
+        c = self.model_dump(exclude=(self._reference_fields.union({"uuid", "vector"})))
+        for name in self._reference_fields:
+            val = getattr(self, name, None)
+            if val is not None:
+                c[name] = _to_beacons(val)
+        return c
 
     @field_validator("uuid")
     def create_valid_uuid(cls, input_uuid: UUID) -> uuid_package.UUID:
@@ -45,16 +90,35 @@ class BaseProperty(BaseModel):
     @staticmethod
     def type_to_dict(model: Type["BaseProperty"]) -> List[Dict[str, Any]]:
         types = typing.get_type_hints(model)
-        return [
+
+        non_optional_types = {
+            name: BaseProperty._remove_optional_type(tt)
+            for name, tt in types.items()
+            if name not in BaseProperty.model_fields
+        }
+
+        properties = [
             {
                 "name": name.capitalize(),
-                "dataType": [
-                    PYTHON_TYPE_TO_DATATYPE[BaseProperty._remove_optional_type(types[name])]
-                ],
+                "dataType": [PYTHON_TYPE_TO_DATATYPE[non_optional_types[name]]],
             }
-            for name in model.model_fields.keys()
-            if name not in BaseProperty.model_fields
+            for name, field in model.model_fields.items()
+            if field.metadata is None
+            or len(field.metadata) == 0
+            and name not in BaseProperty.model_fields
         ]
+        properties.extend(
+            {
+                "name": name.capitalize(),
+                "dataType": [field.metadata[0]._type.__name__],
+            }
+            for name, field in model.model_fields.items()
+            if field.metadata is not None
+            and len(field.metadata) > 0
+            and name not in BaseProperty.model_fields
+        )
+
+        return properties
 
     @staticmethod
     def _remove_optional_type(python_type: type) -> type:
@@ -63,13 +127,20 @@ class BaseProperty(BaseModel):
             return python_type
 
         return_type = [t for t in args if t is not None][0]
-        assert isinstance(return_type, type)
         return return_type
 
 
-UserModelType: TypeAlias = Type[BaseProperty]
-
 Model = TypeVar("Model", bound=BaseProperty)
+
+
+class RefToObjectModel(BaseModel, Generic[Model]):
+    uuids_to: Union[List[UUID], UUID] = Field()
+
+    def to_beacon(self) -> List[Dict[str, str]]:
+        return _to_beacons(self.uuids_to)
+
+
+UserModelType: TypeAlias = Type[BaseProperty]
 
 
 class CollectionConfigModel(CollectionConfigBase):
@@ -92,7 +163,7 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
 
         weaviate_obj: Dict[str, Any] = {
             "class": self._name,
-            "properties": obj.model_dump(exclude={"uuid", "vector"}),
+            "properties": obj.props_to_dict(),
             "id": str(obj.uuid),
         }
         if obj.vector is not None:
@@ -116,7 +187,35 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
 
         return [self._json_to_object(obj) for obj in ret["objects"]]
 
+    def reference_add(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
+        self._reference_add(
+            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
+        )
+
+    def reference_delete(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
+        self._reference_delete(
+            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
+        )
+
+    def reference_replace(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
+        self._reference_replace(
+            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
+        )
+
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Model]:
+        for ref in self._model.get_ref_fields(self._model):
+            if ref not in obj["properties"]:
+                continue
+
+            beacons = obj["properties"][ref]
+            uuids = []
+            for beacon in beacons:
+                uri = beacon["beacon"]
+                assert isinstance(uri, str)
+                uuids.append(uri.split("/")[-1])
+
+            obj["properties"][ref] = uuids
+
         return _Object[Model](data=self._model(**obj["properties"]), metadata=MetadataReturn(**obj))
 
 

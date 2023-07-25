@@ -50,17 +50,17 @@ class CollectionObject(CollectionObjectBase):
 
         return [self._json_to_object(obj) for obj in ret["objects"]]
 
-    def reference_add(self, from_uuid: str, from_property: str, to_uuids: UUIDS) -> None:
+    def reference_add(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
         self._reference_add(
             from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
         )
 
-    def reference_delete(self, from_uuid: str, from_property: str, to_uuids: UUIDS) -> None:
+    def reference_delete(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
         self._reference_delete(
             from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
         )
 
-    def reference_replace(self, from_uuid: str, from_property: str, to_uuids: UUIDS) -> None:
+    def reference_replace(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
         self._reference_replace(
             from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
         )

@@ -100,7 +100,7 @@ class CollectionObjectBase:
             if response.status_code != 204:
                 raise UnexpectedStatusCodeException("Add property reference to object", response)
 
-    def _reference_replace(self, from_uuid: str, from_property_name: str, to_uuids: UUIDS) -> None:
+    def _reference_replace(self, from_uuid: UUID, from_property_name: str, to_uuids: UUIDS) -> None:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self._name}/{from_uuid}/references/{from_property_name}"

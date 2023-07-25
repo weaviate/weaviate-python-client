@@ -7,7 +7,8 @@ from pydantic import BaseModel, Field
 from weaviate.util import _to_beacons
 from weaviate.weaviate_types import UUID
 
-PYTHON_TYPE_TO_DATATYPE = {"text": str, str: "text", "int": int, int: "int"}
+DATATYPE_TO_PYTHON_TYPE = {"text": str, "int": int}
+PYTHON_TYPE_TO_DATATYPE = {val: key for key, val in DATATYPE_TO_PYTHON_TYPE.items()}
 
 
 class DataType(str, Enum):
@@ -26,15 +27,6 @@ class DataType(str, Enum):
     GEO_COORDINATES = "geoCoordinates"
     BLOB = "blob"
     PHONE_NUMBER = "phoneNumber"
-
-
-def python_type_to_datatype(datatype: type) -> str:
-    if datatype == str:
-        return DataType.TEXT.value
-    elif datatype == List[str]:
-        return DataType.TEXT_ARRAY.value
-    else:
-        return DataType.INT.value
 
 
 class VectorIndexType(str, Enum):
