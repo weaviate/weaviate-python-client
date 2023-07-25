@@ -480,6 +480,188 @@ class TestGetBuilder(unittest.TestCase):
             GetBuilder("Person", "name", None).with_near_text(near_text).with_near_image(near_image)
         check_error_message(self, error, near_error_msg)
 
+    @patch("weaviate.gql.get.file_encoder_b64", side_effect=lambda x: "test_call")
+    def test_build_near_audio(self, mock_file_encoder_b64):
+        """
+        Test the `with_near_object` method.
+        """
+
+        near_audio = {"audio": "test_audio", "certainty": 0.55}
+
+        # valid calls
+        ## encode False
+        query = GetBuilder("Person", "name", None).with_near_audio(near_audio, encode=False).build()
+        self.assertEqual(
+            '{Get{Person(nearAudio: {audio: "test_audio" certainty: 0.55} ){name}}}', query
+        )
+        mock_file_encoder_b64.assert_not_called()
+
+        ## encode True
+        query = GetBuilder("Person", "name", None).with_near_audio(near_audio, encode=True).build()
+        self.assertEqual(
+            '{Get{Person(nearAudio: {audio: "test_call" certainty: 0.55} ){name}}}', query
+        )
+        mock_file_encoder_b64.assert_called()
+
+        # invalid calls
+        near_error_msg = (
+            "Cannot use multiple 'near' filters, or a 'near' filter along with a 'ask' filter!"
+        )
+
+        near_text = {
+            "concepts": "computer",
+            "moveTo": {"concepts": ["science"], "force": 0.5},
+        }
+        with self.assertRaises(AttributeError) as error:
+            GetBuilder("Person", "name", None).with_near_text(near_text).with_near_audio(near_audio)
+        check_error_message(self, error, near_error_msg)
+
+    @patch("weaviate.gql.get.file_encoder_b64", side_effect=lambda x: "test_call")
+    def test_build_near_video(self, mock_file_encoder_b64):
+        """
+        Test the `with_near_object` method.
+        """
+
+        near_video = {"video": "test_video", "certainty": 0.55}
+
+        # valid calls
+        ## encode False
+        query = GetBuilder("Person", "name", None).with_near_video(near_video, encode=False).build()
+        self.assertEqual(
+            '{Get{Person(nearVideo: {video: "test_video" certainty: 0.55} ){name}}}', query
+        )
+        mock_file_encoder_b64.assert_not_called()
+
+        ## encode True
+        query = GetBuilder("Person", "name", None).with_near_video(near_video, encode=True).build()
+        self.assertEqual(
+            '{Get{Person(nearVideo: {video: "test_call" certainty: 0.55} ){name}}}', query
+        )
+        mock_file_encoder_b64.assert_called()
+
+        # invalid calls
+        near_error_msg = (
+            "Cannot use multiple 'near' filters, or a 'near' filter along with a 'ask' filter!"
+        )
+
+        near_text = {
+            "concepts": "computer",
+            "moveTo": {"concepts": ["science"], "force": 0.5},
+        }
+        with self.assertRaises(AttributeError) as error:
+            GetBuilder("Person", "name", None).with_near_text(near_text).with_near_video(near_video)
+        check_error_message(self, error, near_error_msg)
+
+    @patch("weaviate.gql.get.file_encoder_b64", side_effect=lambda x: "test_call")
+    def test_build_near_depth(self, mock_file_encoder_b64):
+        """
+        Test the `with_near_object` method.
+        """
+
+        near_depth = {"depth": "test_depth", "certainty": 0.55}
+
+        # valid calls
+        ## encode False
+        query = GetBuilder("Person", "name", None).with_near_depth(near_depth, encode=False).build()
+        self.assertEqual(
+            '{Get{Person(nearDepth: {depth: "test_depth" certainty: 0.55} ){name}}}', query
+        )
+        mock_file_encoder_b64.assert_not_called()
+
+        ## encode True
+        query = GetBuilder("Person", "name", None).with_near_depth(near_depth, encode=True).build()
+        self.assertEqual(
+            '{Get{Person(nearDepth: {depth: "test_call" certainty: 0.55} ){name}}}', query
+        )
+        mock_file_encoder_b64.assert_called()
+
+        # invalid calls
+        near_error_msg = (
+            "Cannot use multiple 'near' filters, or a 'near' filter along with a 'ask' filter!"
+        )
+
+        near_text = {
+            "concepts": "computer",
+            "moveTo": {"concepts": ["science"], "force": 0.5},
+        }
+        with self.assertRaises(AttributeError) as error:
+            GetBuilder("Person", "name", None).with_near_text(near_text).with_near_depth(near_depth)
+        check_error_message(self, error, near_error_msg)
+
+    @patch("weaviate.gql.get.file_encoder_b64", side_effect=lambda x: "test_call")
+    def test_build_near_thermal(self, mock_file_encoder_b64):
+        """
+        Test the `with_near_object` method.
+        """
+
+        near_thermal = {"thermal": "test_thermal", "certainty": 0.55}
+
+        # valid calls
+        ## encode False
+        query = (
+            GetBuilder("Person", "name", None).with_near_thermal(near_thermal, encode=False).build()
+        )
+        self.assertEqual(
+            '{Get{Person(nearThermal: {thermal: "test_thermal" certainty: 0.55} ){name}}}', query
+        )
+        mock_file_encoder_b64.assert_not_called()
+
+        ## encode True
+        query = (
+            GetBuilder("Person", "name", None).with_near_thermal(near_thermal, encode=True).build()
+        )
+        self.assertEqual(
+            '{Get{Person(nearThermal: {thermal: "test_call" certainty: 0.55} ){name}}}', query
+        )
+        mock_file_encoder_b64.assert_called()
+
+        # invalid calls
+        near_error_msg = (
+            "Cannot use multiple 'near' filters, or a 'near' filter along with a 'ask' filter!"
+        )
+
+        near_text = {
+            "concepts": "computer",
+            "moveTo": {"concepts": ["science"], "force": 0.5},
+        }
+        with self.assertRaises(AttributeError) as error:
+            GetBuilder("Person", "name", None).with_near_text(near_text).with_near_thermal(
+                near_thermal
+            )
+        check_error_message(self, error, near_error_msg)
+
+    @patch("weaviate.gql.get.file_encoder_b64", side_effect=lambda x: "test_call")
+    def test_build_near_imu(self, mock_file_encoder_b64):
+        """
+        Test the `with_near_object` method.
+        """
+
+        near_imu = {"imu": "test_imu", "certainty": 0.55}
+
+        # valid calls
+        ## encode False
+        query = GetBuilder("Person", "name", None).with_near_imu(near_imu, encode=False).build()
+        self.assertEqual('{Get{Person(nearIMU: {imu: "test_imu" certainty: 0.55} ){name}}}', query)
+        mock_file_encoder_b64.assert_not_called()
+
+        ## encode True
+        query = GetBuilder("Person", "name", None).with_near_imu(near_imu, encode=True).build()
+        self.assertEqual('{Get{Person(nearIMU: {imu: "test_call" certainty: 0.55} ){name}}}', query)
+        mock_file_encoder_b64.assert_called()
+
+        # invalid calls
+        near_error_msg = (
+            "Cannot use multiple 'near' filters, or a 'near' filter along with a 'ask' filter!"
+        )
+
+        near_text = {
+            "concepts": "computer",
+            "moveTo": {"concepts": ["science"], "force": 0.5},
+        }
+        with self.assertRaises(AttributeError) as error:
+            GetBuilder("Person", "name", None).with_near_text(near_text).with_near_imu(near_imu)
+        check_error_message(self, error, near_error_msg)
+
     def test_build_ask(self):
         """
         Test the `with_ask` method.

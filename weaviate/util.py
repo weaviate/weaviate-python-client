@@ -79,6 +79,44 @@ def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
     return base64.b64encode(content).decode("utf-8")
 
 
+def file_encoder_b64(file_or_file_path: Union[str, BufferedReader]) -> str:
+    """
+    Encode a file in a Weaviate understandable format from a binary read file or by providing
+    the file path.
+
+    Parameters
+    ----------
+    file_or_file_path : str, io.BufferedReader
+        The binary read file or the path to the file.
+
+    Returns
+    -------
+    str
+        Encoded file.
+
+    Raises
+    ------
+    ValueError
+        If the argument is str and does not point to an existing file.
+    TypeError
+        If the argument is of a wrong data type.
+    """
+
+    if isinstance(file_or_file_path, str):
+        if not os.path.isfile(file_or_file_path):
+            raise ValueError("No file found at location " + file_or_file_path)
+        with open(file_or_file_path, "br") as file:
+            content = file.read()
+
+    elif isinstance(file_or_file_path, BufferedReader):
+        content = file_or_file_path.read()
+    else:
+        raise TypeError(
+            '"file_or_file_path" should be a file path or a binary read file' " (io.BufferedReader)"
+        )
+    return base64.b64encode(content).decode("utf-8")
+
+
 def image_decoder_b64(encoded_image: str) -> bytes:
     """
     Decode image from a Weaviate format image.
