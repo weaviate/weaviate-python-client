@@ -1,9 +1,11 @@
 import uuid as uuid_package
-from typing import Dict, Any, Optional, List
+from copy import copy
+from typing import Dict, Any, Optional, List, Tuple
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
+from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException, ObjectAlreadyExistsException
 from weaviate.util import _to_beacons
 from weaviate.weaviate_classes import CollectionConfigBase, UUID, Metadata
@@ -14,11 +16,45 @@ class CollectionObjectBase:
     def __init__(self, connection: Connection, name: str) -> None:
         self._connection = connection
         self._name = name
+        self._tenant: Optional[str] = None
+        self._consistency_level: Optional[str] = None
+
+    def _with_tenant(self, tenant: Optional[str] = None) -> "CollectionObjectBase":
+        new = copy(self)
+        new._tenant = tenant
+        return new
+
+    def _with_consistency_level(
+        self, consistency_level: Optional[ConsistencyLevel] = None
+    ) -> "CollectionObjectBase":
+        new = copy(self)
+        new._consistency_level = (
+            ConsistencyLevel(consistency_level).value if consistency_level is not None else None
+        )
+        return new
+
+    def _apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        if self._tenant is not None:
+            params["tenant"] = self._tenant
+        if self._consistency_level is not None:
+            params["consistency_level"] = self._consistency_level
+        return params
+
+    def _apply_context_to_params_and_object(
+        self, params: Dict[str, Any], obj: Dict[str, Any]
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        if self._tenant is not None:
+            obj["tenant"] = self._tenant
+        if self._consistency_level is not None:
+            params["consistency_level"] = self._consistency_level
+        return params, obj
 
     def _insert(self, weaviate_obj: Dict[str, Any]) -> uuid_package.UUID:
         path = "/objects"
         try:
-            response = self._connection.post(path=path, weaviate_object=weaviate_obj, params={})
+            response = self._connection.post(
+                path=path, weaviate_object=weaviate_obj, params=self._apply_context({})
+            )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Object was not added to Weaviate.") from conn_err
         if response.status_code == 200:
@@ -33,10 +69,9 @@ class CollectionObjectBase:
 
     def delete(self, uuid: UUID) -> None:
         path = f"/objects/{self._name}/{uuid}"
-        params: Dict[str, str] = {}
 
         try:
-            response = self._connection.delete(path=path, params=params)
+            response = self._connection.delete(path=path, params=self._apply_context({}))
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Object could not be deleted.") from conn_err
         if response.status_code == 204:
@@ -46,8 +81,10 @@ class CollectionObjectBase:
 
     def _replace(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
         path = f"/objects/{self._name}/{uuid}"
+        params, weaviate_obj = self._apply_context_to_params_and_object({}, weaviate_obj)
+
         try:
-            response = self._connection.put(path=path, weaviate_object=weaviate_obj, params={})
+            response = self._connection.put(path=path, weaviate_object=weaviate_obj, params=params)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Object was not replaced.") from conn_err
         if response.status_code == 200:
@@ -56,8 +93,12 @@ class CollectionObjectBase:
 
     def _update(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
         path = f"/objects/{self._name}/{uuid}"
+        params, weaviate_obj = self._apply_context_to_params_and_object({}, weaviate_obj)
+
         try:
-            response = self._connection.patch(path=path, weaviate_object=weaviate_obj, params={})
+            response = self._connection.patch(
+                path=path, weaviate_object=weaviate_obj, params=params
+            )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Object was not updated.") from conn_err
         if response.status_code == 204:
@@ -67,16 +108,17 @@ class CollectionObjectBase:
     def _get_by_id(
         self, uuid: UUID, metadata: Optional[Metadata] = None
     ) -> Optional[Dict[str, Any]]:
-        params: Dict[str, Any] = {}
         path = f"/objects/{self._name}/{uuid}"
 
-        return self._get_from_weaviate(params=params, path=path, metadata=metadata)
+        return self._get_from_weaviate(params=self._apply_context({}), path=path, metadata=metadata)
 
     def _get(self, metadata: Optional[Metadata] = None) -> Optional[Dict[str, Any]]:
         path = "/objects"
         params: Dict[str, Any] = {"class": self._name}
 
-        return self._get_from_weaviate(params=params, path=path, metadata=metadata)
+        return self._get_from_weaviate(
+            params=self._apply_context(params), path=path, metadata=metadata
+        )
 
     def _get_from_weaviate(
         self, params: Dict[str, Any], path: str, metadata: Optional[Metadata] = None
@@ -109,7 +151,7 @@ class CollectionObjectBase:
                 response = self._connection.post(
                     path=path,
                     weaviate_object=beacon,
-                    params=params,
+                    params=self._apply_context(params),
                 )
             except RequestsConnectionError as conn_err:
                 raise RequestsConnectionError("Reference was not added.") from conn_err
@@ -126,7 +168,7 @@ class CollectionObjectBase:
                 response = self._connection.delete(
                     path=path,
                     weaviate_object=beacon,
-                    params=params,
+                    params=self._apply_context(params),
                 )
             except RequestsConnectionError as conn_err:
                 raise RequestsConnectionError("Reference was not added.") from conn_err
@@ -139,9 +181,7 @@ class CollectionObjectBase:
         path = f"/objects/{self._name}/{from_uuid}/references/{from_property_name}"
         try:
             response = self._connection.put(
-                path=path,
-                weaviate_object=_to_beacons(to_uuids),
-                params=params,
+                path=path, weaviate_object=_to_beacons(to_uuids), params=self._apply_context(params)
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Reference was not added.") from conn_err

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Dict, Any, Optional, List
 
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
+from weaviate.data.replication import ConsistencyLevel
 from weaviate.weaviate_classes import CollectionConfig, MetadataReturn, Metadata, RefToObject
 from weaviate.weaviate_types import UUIDS, UUID
 
@@ -14,6 +15,14 @@ class _Object:
 
 
 class CollectionObject(CollectionObjectBase):
+    def with_tenant(self, tenant: Optional[str] = None) -> "CollectionObject":
+        return self._with_tenant(tenant)
+
+    def with_consistency_level(
+        self, consistency_level: Optional[ConsistencyLevel] = None
+    ) -> "CollectionObject":
+        return self._with_consistency_level(consistency_level)
+
     def insert(
         self,
         data: Dict[str, Any],
@@ -35,6 +44,7 @@ class CollectionObject(CollectionObjectBase):
 
         if vector is not None:
             weaviate_obj["vector"] = vector
+
         return self._insert(weaviate_obj)
 
     def replace(

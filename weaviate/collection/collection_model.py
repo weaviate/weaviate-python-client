@@ -9,6 +9,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.connect import Connection
+from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _to_beacons
 from weaviate.weaviate_classes import (
@@ -179,6 +180,14 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
     def __init__(self, connection: Connection, name: str, dynamic_model: Type[Model]) -> None:
         super().__init__(connection, name)
         self._model: Type[Model] = dynamic_model
+
+    def with_tenant(self, tenant: Optional[str] = None) -> "CollectionObjectModel":
+        return self._with_tenant(tenant)
+
+    def with_consistency_level(
+        self, consistency_level: Optional[ConsistencyLevel] = None
+    ) -> "CollectionObjectModel":
+        return self._with_consistency_level(consistency_level)
 
     def insert(self, obj: Model) -> uuid_package.UUID:
         self._model.model_validate(obj)
