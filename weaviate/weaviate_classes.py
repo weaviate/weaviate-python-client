@@ -137,14 +137,17 @@ class CollectionConfigBase(BaseModel):
         return ret_dict
 
 
-class Property(BaseModel):
-    name: str
-    dataType: DataType
+class PropertyConfig(BaseModel):
     indexFilterable: Optional[bool] = None
     indexSearchable: Optional[bool] = None
     tokenization: Optional[Tokenization] = None
     description: Optional[str] = None
     moduleConfig: Optional[ModuleConfig] = None
+
+
+class Property(PropertyConfig, BaseModel):
+    name: str
+    dataType: DataType
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().model_dump(exclude_none=True)

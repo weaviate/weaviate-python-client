@@ -16,13 +16,14 @@ from weaviate.weaviate_classes import (
     PYTHON_TYPE_TO_DATATYPE,
     Metadata,
     MetadataReturn,
+    PropertyConfig,
 )
 from weaviate.weaviate_types import UUID, UUIDS
 
 
 @dataclass
 class ReferenceTo:
-    _type: Type
+    ref_type: Type
 
 
 class BaseProperty(BaseModel):
@@ -47,25 +48,35 @@ class BaseProperty(BaseModel):
     # make references optional by default - does not work
     def __init__(self, **data) -> None:
         super().__init__(**data)
-        self._reference_fields: Set[str] = {
-            name
-            for name, field in self.model_fields.items()
-            if field.metadata is not None
-            and len(field.metadata) > 0
-            and name not in BaseProperty.model_fields
-        }
+        self._reference_fields: Set[str] = self.get_ref_fields(type(self))
 
         self._reference_to_class: Dict[str, str] = {}
         for ref in self._reference_fields:
-            self._reference_to_class[ref] = self.model_fields[ref].metadata[0]._type.__name__
+            self._reference_to_class[ref] = self.model_fields[ref].metadata[0].ref_type.__name__
 
     @staticmethod
     def get_ref_fields(model: Type["BaseProperty"]) -> Set[str]:
         return {
             name
             for name, field in model.model_fields.items()
-            if field.metadata is not None
-            and len(field.metadata) > 0
+            if (
+                field.metadata is not None
+                and len(field.metadata) > 0
+                and isinstance(field.metadata[0], ReferenceTo)
+            )
+            and name not in BaseProperty.model_fields
+        }
+
+    @staticmethod
+    def get_non_ref_fields(model: Type["BaseProperty"]) -> Set[str]:
+        return {
+            name
+            for name, field in model.model_fields.items()
+            if (
+                field.metadata is None
+                or len(field.metadata) == 0
+                or isinstance(field.metadata[0], PropertyConfig)
+            )
             and name not in BaseProperty.model_fields
         }
 
@@ -99,25 +110,28 @@ class BaseProperty(BaseModel):
             if name not in BaseProperty.model_fields
         }
 
-        properties = [
-            {
+        non_ref_fields = model.get_non_ref_fields(model)
+        properties = []
+        for name in non_ref_fields:
+            prop = {
                 "name": name.capitalize(),
                 "dataType": [PYTHON_TYPE_TO_DATATYPE[non_optional_types[name]]],
             }
-            for name, field in model.model_fields.items()
-            if field.metadata is None
-            or len(field.metadata) == 0
-            and name not in BaseProperty.model_fields
-        ]
+            metadata_list = model.model_fields[name].metadata
+            if metadata_list is not None and len(metadata_list) > 0:
+                metadata = metadata_list[0]
+                if isinstance(metadata, PropertyConfig):
+                    prop.update(metadata.model_dump(exclude_unset=True, exclude_none=True))
+
+            properties.append(prop)
+
+        reference_fields = model.get_ref_fields(model)
         properties.extend(
             {
                 "name": name.capitalize(),
-                "dataType": [field.metadata[0]._type.__name__],
+                "dataType": [model.model_fields[name].metadata[0].ref_type.__name__],
             }
-            for name, field in model.model_fields.items()
-            if field.metadata is not None
-            and len(field.metadata) > 0
-            and name not in BaseProperty.model_fields
+            for name in reference_fields
         )
 
         return properties
