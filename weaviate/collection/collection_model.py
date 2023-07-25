@@ -80,8 +80,14 @@ class BaseProperty(BaseModel):
             and name not in BaseProperty.model_fields
         }
 
-    def props_to_dict(self) -> Dict[str, Any]:
-        c = self.model_dump(exclude=(self._reference_fields.union({"uuid", "vector"})))
+    def props_to_dict(self, update: bool = False) -> Dict[str, Any]:
+        fields_to_exclude: Set[str] = self._reference_fields.union({"uuid", "vector"})
+        if update:
+            fields_to_exclude.union(
+                {field for field in self.model_fields.keys() if field not in self.model_fields_set}
+            )
+
+        c = self.model_dump(exclude=fields_to_exclude)
         for ref in self._reference_fields:
             val = getattr(self, ref, None)
             if val is not None:
@@ -187,6 +193,30 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
 
         self._insert(weaviate_obj)
         return uuid_package.UUID(str(obj.uuid))
+
+    def replace(self, obj: Model, uuid: UUID) -> None:
+        self._model.model_validate(obj)
+
+        weaviate_obj: Dict[str, Any] = {
+            "class": self._name,
+            "properties": obj.props_to_dict(),
+        }
+        if obj.vector is not None:
+            weaviate_obj["vector"] = obj.vector
+
+        self._replace(weaviate_obj, uuid)
+
+    def update(self, obj: Model, uuid: UUID) -> None:
+        self._model.model_validate(obj)
+
+        weaviate_obj: Dict[str, Any] = {
+            "class": self._name,
+            "properties": obj.props_to_dict(update=True),
+        }
+        if obj.vector is not None:
+            weaviate_obj["vector"] = obj.vector
+
+        self._update(weaviate_obj, uuid)
 
     def get_by_id(
         self, uuid: UUID, metadata: Optional[Metadata] = None

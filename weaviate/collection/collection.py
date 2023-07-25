@@ -37,6 +37,36 @@ class CollectionObject(CollectionObjectBase):
             weaviate_obj["vector"] = vector
         return self._insert(weaviate_obj)
 
+    def replace(
+        self, data: Dict[str, Any], uuid: UUID, vector: Optional[List[float]] = None
+    ) -> None:
+        weaviate_obj: Dict[str, Any] = {
+            "class": self._name,
+            "properties": {
+                key: val if not isinstance(val, RefToObject) else val.to_beacon()
+                for key, val in data.items()
+            },
+        }
+        if vector is not None:
+            weaviate_obj["vector"] = vector
+
+        self._replace(weaviate_obj, uuid=uuid)
+
+    def update(
+        self, data: Dict[str, Any], uuid: UUID, vector: Optional[List[float]] = None
+    ) -> None:
+        weaviate_obj: Dict[str, Any] = {
+            "class": self._name,
+            "properties": {
+                key: val if not isinstance(val, RefToObject) else val.to_beacon()
+                for key, val in data.items()
+            },
+        }
+        if vector is not None:
+            weaviate_obj["vector"] = vector
+
+        self._update(weaviate_obj, uuid=uuid)
+
     def get_by_id(self, uuid: UUID, metadata: Optional[Metadata]) -> Optional[_Object]:
         ret = self._get_by_id(uuid=uuid, metadata=metadata)
         if ret is None:

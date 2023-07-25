@@ -31,6 +31,39 @@ class CollectionObjectBase:
             pass
         raise UnexpectedStatusCodeException("Creating object", response)
 
+    def delete(self, uuid: UUID) -> None:
+        path = f"/objects/{self._name}/{uuid}"
+        params: Dict[str, str] = {}
+
+        try:
+            response = self._connection.delete(path=path, params=params)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Object could not be deleted.") from conn_err
+        if response.status_code == 204:
+            # Successfully deleted
+            return
+        raise UnexpectedStatusCodeException("Delete object", response)
+
+    def _replace(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
+        path = f"/objects/{self._name}/{uuid}"
+        try:
+            response = self._connection.put(path=path, weaviate_object=weaviate_obj, params={})
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Object was not replaced.") from conn_err
+        if response.status_code == 200:
+            return
+        raise UnexpectedStatusCodeException("Replacing object", response)
+
+    def _update(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
+        path = f"/objects/{self._name}/{uuid}"
+        try:
+            response = self._connection.patch(path=path, weaviate_object=weaviate_obj, params={})
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Object was not updated.") from conn_err
+        if response.status_code == 204:
+            return
+        raise UnexpectedStatusCodeException("Update object", response)
+
     def _get_by_id(
         self, uuid: UUID, metadata: Optional[Metadata] = None
     ) -> Optional[Dict[str, Any]]:
