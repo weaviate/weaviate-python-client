@@ -121,11 +121,17 @@ class CollectionBase:
         self._connection = connection
 
     def _create(
-        self, model: CollectionConfigBase, properties: Optional[List[Dict[str, Any]]] = None
+        self,
+        model: CollectionConfigBase,
+        properties: Optional[List[Dict[str, Any]]] = None,
+        name: Optional[str] = None,
     ) -> str:
         weaviate_object = model.to_dict()
         if properties is not None:
             weaviate_object["properties"] = properties
+        if name is not None:
+            weaviate_object["class"] = name.capitalize()
+
         try:
             response = self._connection.post(path="/schema", weaviate_object=weaviate_object)
         except RequestsConnectionError as conn_err:

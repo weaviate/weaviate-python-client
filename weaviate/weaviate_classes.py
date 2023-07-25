@@ -112,7 +112,6 @@ class InvertedIndexConfig(BaseModel):
 
 
 class CollectionConfigBase(BaseModel):
-    name: str
     vectorIndexType: Optional[VectorIndexType] = None
     vectorizer: Optional[Vectorizer] = None
     vectorIndexConfig: Optional[VectorIndexConfig] = None
@@ -122,7 +121,7 @@ class CollectionConfigBase(BaseModel):
     invertedIndexConfig: Optional[InvertedIndexConfig] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        ret_dict = {"class": self.name.capitalize()}
+        ret_dict = {}
 
         for cls_field in self.model_fields:
             val = getattr(self, cls_field)
@@ -164,10 +163,13 @@ class ReferenceProperty(BaseModel):
 
 
 class CollectionConfig(CollectionConfigBase):
+    name: str
     properties: Optional[List[Union[Property, ReferenceProperty]]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
+        ret_dict["class"] = self.name.capitalize()
+
         if self.properties is not None:
             ret_dict["properties"] = [prop.to_dict() for prop in self.properties]
 

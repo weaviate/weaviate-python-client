@@ -46,8 +46,6 @@ class BaseProperty(BaseModel):
     #
     # make references optional by default - does not work
     def __init__(self, **data) -> None:
-
-        # self.model_rebuild()
         super().__init__(**data)
         self._reference_fields: Set[str] = {
             name
@@ -56,6 +54,10 @@ class BaseProperty(BaseModel):
             and len(field.metadata) > 0
             and name not in BaseProperty.model_fields
         }
+
+        self._reference_to_class: Dict[str, str] = {}
+        for ref in self._reference_fields:
+            self._reference_to_class[ref] = self.model_fields[ref].metadata[0]._type.__name__
 
     @staticmethod
     def get_ref_fields(model: Type["BaseProperty"]) -> Set[str]:
@@ -69,10 +71,10 @@ class BaseProperty(BaseModel):
 
     def props_to_dict(self) -> Dict[str, Any]:
         c = self.model_dump(exclude=(self._reference_fields.union({"uuid", "vector"})))
-        for name in self._reference_fields:
-            val = getattr(self, name, None)
+        for ref in self._reference_fields:
+            val = getattr(self, ref, None)
             if val is not None:
-                c[name] = _to_beacons(val)
+                c[ref] = _to_beacons(val, self._reference_to_class[ref])
         return c
 
     @field_validator("uuid")
@@ -225,12 +227,13 @@ class CollectionModel(CollectionBase, Generic[Model]):
         self._model = model
 
     def create(self, config: CollectionConfigModel) -> CollectionObjectModel[Model]:
-        name = super()._create(config, self._model.type_to_dict(self._model))
+        name = super()._create(config, self._model.type_to_dict(self._model), self._model.__name__)
 
         return CollectionObjectModel[Model](self._connection, name, self._model)
 
-    def get(self, collection_name: str) -> CollectionObjectModel[Model]:
-        path = f"/schema/{collection_name.capitalize()}"
+    def get(self) -> CollectionObjectModel[Model]:
+        collection_name = self._model.__name__.capitalize()
+        path = f"/schema/{collection_name}"
 
         try:
             response = self._connection.get(path=path)

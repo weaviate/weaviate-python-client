@@ -697,8 +697,11 @@ def _type_request_response(json_response: Any) -> Optional[Dict[str, Any]]:
     return json_response
 
 
-def _to_beacons(uuids: UUIDS) -> List[Dict[str, str]]:
+def _to_beacons(uuids: UUIDS, to_class: str = "") -> List[Dict[str, str]]:
     if isinstance(uuids, UUID):
         uuids = [uuids]
 
-    return [{"beacon": f"weaviate://localhost/{uuid_to}"} for uuid_to in uuids]
+    if len(to_class) > 0:
+        to_class = to_class + "/"
+
+    return [{"beacon": f"weaviate://localhost/{to_class}{uuid_to}"} for uuid_to in uuids]
