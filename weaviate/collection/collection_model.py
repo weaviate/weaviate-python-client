@@ -24,7 +24,15 @@ from weaviate.weaviate_types import UUID, UUIDS
 
 @dataclass
 class ReferenceTo:
-    ref_type: Type
+    ref_type: Union[Type, str]
+
+    @property
+    def name(self) -> str:
+        if isinstance(self.ref_type, type):
+            return self.ref_type.__name__.lower().capitalize()
+        else:
+            assert isinstance(self.ref_type, str)
+            return self.ref_type.lower().capitalize()
 
 
 class BaseProperty(BaseModel):
@@ -53,7 +61,7 @@ class BaseProperty(BaseModel):
 
         self._reference_to_class: Dict[str, str] = {}
         for ref in self._reference_fields:
-            self._reference_to_class[ref] = self.model_fields[ref].metadata[0].ref_type.__name__
+            self._reference_to_class[ref] = self.model_fields[ref].metadata[0].name
 
     @staticmethod
     def get_ref_fields(model: Type["BaseProperty"]) -> Set[str]:
@@ -136,7 +144,7 @@ class BaseProperty(BaseModel):
         properties.extend(
             {
                 "name": name.capitalize(),
-                "dataType": [model.model_fields[name].metadata[0].ref_type.__name__],
+                "dataType": [model.model_fields[name].metadata[0].name],
             }
             for name in reference_fields
         )
