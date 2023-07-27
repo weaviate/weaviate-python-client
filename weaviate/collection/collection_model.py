@@ -35,6 +35,12 @@ class ReferenceTo:
             return self.ref_type.lower().capitalize()
 
 
+@dataclass
+class BatchReference:
+    from_uuid: UUID
+    to_uuid: UUID
+
+
 class BaseProperty(BaseModel):
     uuid: UUID = Field(default=uuid_package.uuid4())
     vector: Optional[List[float]] = None
@@ -278,6 +284,16 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
         self._reference_replace(
             from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
         )
+
+    def reference_batch_add(self, from_property: str, refs: List[BatchReference]) -> None:
+        refs_dict = [
+            {
+                "from": f"weaviate://localhost/{self._name}/{ref.from_uuid}/{from_property}",
+                "to": f"weaviate://localhost/{ref.to_uuid}",
+            }
+            for ref in refs
+        ]
+        self._reference_batch_add(refs_dict)
 
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Model]:
         for ref in self._model.get_ref_fields(self._model):

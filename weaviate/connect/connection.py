@@ -406,7 +406,7 @@ class BaseConnection:
     def post(
         self,
         path: str,
-        weaviate_object: dict,
+        weaviate_object: Union[List[Dict[str, Any]], Dict[str, Any]],
         params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """

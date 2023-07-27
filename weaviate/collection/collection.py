@@ -21,6 +21,12 @@ class DataObject:
     vector: Optional[List[float]] = None
 
 
+@dataclass
+class BatchReference:
+    from_uuid: UUID
+    to_uuid: UUID
+
+
 class CollectionObject(CollectionObjectBase):
     def with_tenant(self, tenant: Optional[str] = None) -> "CollectionObject":
         return self._with_tenant(tenant)
@@ -116,6 +122,16 @@ class CollectionObject(CollectionObjectBase):
         self._reference_add(
             from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
         )
+
+    def reference_batch_add(self, from_property: str, refs: List[BatchReference]) -> None:
+        refs_dict = [
+            {
+                "from": f"weaviate://localhost/{self._name}/{ref.from_uuid}/{from_property}",
+                "to": f"weaviate://localhost/{ref.to_uuid}",
+            }
+            for ref in refs
+        ]
+        self._reference_batch_add(refs_dict)
 
     def reference_delete(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
         self._reference_delete(

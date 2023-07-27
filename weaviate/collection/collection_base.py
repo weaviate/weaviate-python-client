@@ -176,6 +176,22 @@ class CollectionObjectBase:
             if response.status_code != 200:
                 raise UnexpectedStatusCodeException("Add property reference to object", response)
 
+    def _reference_batch_add(self, refs: List[Dict[str, str]]):
+        params: Dict[str, str] = {}
+        if self._consistency_level is not None:
+            params["consistency_level"] = self._consistency_level
+
+        if self._tenant is not None:
+            for ref in refs:
+                ref["tenant"] = self._tenant
+
+        response = self._connection.post(
+            path="/batch/references", weaviate_object=refs, params=params
+        )
+        if response.status_code == 200:
+            return response
+        raise UnexpectedStatusCodeException("Send ref batch", response)
+
     def _reference_delete(self, from_uuid: str, from_property_name: str, to_uuids: UUIDS) -> None:
         params: Dict[str, str] = {}
 
