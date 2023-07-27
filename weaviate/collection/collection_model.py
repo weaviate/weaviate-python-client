@@ -211,6 +211,20 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
         self._insert(weaviate_obj)
         return uuid_package.UUID(str(obj.uuid))
 
+    def insert_many(self, objects: List[Model]) -> List[uuid_package.UUID]:
+        for obj in objects:
+            self._model.model_validate(obj)
+
+        weaviate_objs: List[Dict[str, Any]] = [
+            {
+                "class": self._name,
+                "properties": obj.props_to_dict(),
+                "id": str(obj.uuid),
+            }
+            for obj in objects
+        ]
+        self._insert_many(weaviate_objs)
+
     def replace(self, obj: Model, uuid: UUID) -> None:
         self._model.model_validate(obj)
 

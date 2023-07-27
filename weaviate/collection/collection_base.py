@@ -67,6 +67,24 @@ class CollectionObjectBase:
             pass
         raise UnexpectedStatusCodeException("Creating object", response)
 
+    def _insert_many(self, objects: List[Dict[str, Any]]):
+        params: Dict[str, str] = {}
+        if self._consistency_level is not None:
+            params["consistency_level"] = self._consistency_level
+
+        if self._tenant is not None:
+            for obj in objects:
+                obj["tenant"] = self._tenant
+
+        response = self._connection.post(
+            path="/batch/objects",
+            weaviate_object={"fields": ["ALL"], "objects": objects},
+            params=params,
+        )
+        if response.status_code == 200:
+            return response
+        raise UnexpectedStatusCodeException("Send object batch", response)
+
     def delete(self, uuid: UUID) -> None:
         path = f"/objects/{self._name}/{uuid}"
 

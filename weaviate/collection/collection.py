@@ -14,6 +14,13 @@ class _Object:
     data: Dict[str, Any]
 
 
+@dataclass
+class DataObject:
+    data: Dict[str, Any]
+    uuid: Optional[UUID] = None
+    vector: Optional[List[float]] = None
+
+
 class CollectionObject(CollectionObjectBase):
     def with_tenant(self, tenant: Optional[str] = None) -> "CollectionObject":
         return self._with_tenant(tenant)
@@ -46,6 +53,21 @@ class CollectionObject(CollectionObjectBase):
             weaviate_obj["vector"] = vector
 
         return self._insert(weaviate_obj)
+
+    def insert_many(self, objects: List[DataObject]) -> List[uuid_package.UUID]:
+        weaviate_objs: List[Dict[str, Any]] = [
+            {
+                "class": self._name,
+                "properties": {
+                    key: val if not isinstance(val, RefToObject) else val.to_beacon()
+                    for key, val in obj.data.items()
+                },
+                "id": str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
+            }
+            for obj in objects
+        ]
+
+        self._insert_many(weaviate_objs)
 
     def replace(
         self, data: Dict[str, Any], uuid: UUID, vector: Optional[List[float]] = None
