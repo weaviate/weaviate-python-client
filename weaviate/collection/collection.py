@@ -1,9 +1,10 @@
 import uuid as uuid_package
 from dataclasses import dataclass
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional, List, Union, Tuple
 
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.collection.collection_classes import Errors
+from weaviate.collection.grpc import GrpcBuilderBase, HybridFusion, ReturnValues
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.weaviate_classes import CollectionConfig, MetadataReturn, Metadata, RefToObject
 from weaviate.weaviate_types import UUIDS, UUID, BEACON
@@ -26,6 +27,34 @@ class DataObject:
 class BatchReference:
     from_uuid: UUID
     to_uuid: UUID
+
+
+class GrpcBuilder(GrpcBuilderBase):
+    def get(
+        self,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+    ) -> List[_Object]:
+        return [self.__dict_to_obj(obj) for obj in self._get(limit, offset, after)]
+
+    def hybrid(
+        self,
+        query: str,
+        alpha: Optional[float] = None,
+        vector: Optional[List[float]] = None,
+        properties: Optional[List[str]] = None,
+        fusion_type: Optional[HybridFusion] = None,
+    ) -> List[_Object]:
+        objects = self._hybrid(query, alpha, vector, properties, fusion_type)
+        return [self.__dict_to_obj(obj) for obj in objects]
+
+    def bm25(self, query: str, properties: Optional[List[str]] = None) -> List[_Object]:
+        return [self.__dict_to_obj(obj) for obj in self._bm25(query, properties)]
+
+    @staticmethod
+    def __dict_to_obj(obj: Tuple[Dict[str, Any], MetadataReturn]) -> _Object:
+        return _Object(data=obj[0], metadata=obj[1])
 
 
 class CollectionObject(CollectionObjectBase):
@@ -114,6 +143,10 @@ class CollectionObject(CollectionObjectBase):
             return []
 
         return [self._json_to_object(obj) for obj in ret["objects"]]
+
+    @property
+    def get_grpc(self) -> ReturnValues[GrpcBuilder]:
+        return ReturnValues[GrpcBuilder](GrpcBuilder(self._connection, self._name))
 
     def reference_add(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
         self._reference_add(

@@ -9,6 +9,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.collection.collection_classes import Errors
+from weaviate.collection.grpc import GrpcBuilderBase, HybridFusion, ReturnValues
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException
@@ -159,6 +160,23 @@ class BaseProperty(BaseModel):
         return properties
 
     @staticmethod
+    def get_non_optional_fields(model: Type["BaseProperty"]) -> Set[str]:
+        types = typing.get_type_hints(model)
+
+        non_optional_types = {
+            name: BaseProperty._remove_optional_type(tt)
+            for name, tt in types.items()
+            if name not in BaseProperty.model_fields
+        }
+
+        non_optional_fields: Set[str] = set()
+        for field in non_optional_types.keys():
+            if types[field] == non_optional_types[field]:
+                non_optional_fields.add(field)
+
+        return non_optional_fields
+
+    @staticmethod
     def _remove_optional_type(python_type: type) -> type:
         args = typing.get_args(python_type)
         if len(args) == 0:
@@ -189,6 +207,38 @@ class CollectionConfigModel(CollectionConfigBase):
 class _Object(Generic[Model]):
     data: Model
     metadata: MetadataReturn
+
+
+class GrpcBuilderModel(Generic[Model], GrpcBuilderBase):
+    def __init__(self, connection: Connection, name: str, model: Type[Model]):
+        default_properties = model.get_non_optional_fields(model)
+        super().__init__(connection, name, default_properties)
+        self._model: Type[Model] = model
+
+    def get(
+        self,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+    ) -> List[_Object[Model]]:
+        return [self.__dict_to_obj(obj) for obj in self._get(limit, offset, after)]
+
+    def hybrid(
+        self,
+        query: str,
+        alpha: Optional[float] = None,
+        vector: Optional[List[float]] = None,
+        properties: Optional[List[str]] = None,
+        fusion_type: Optional[HybridFusion] = None,
+    ) -> List[_Object[Model]]:
+        objects = self._hybrid(query, alpha, vector, properties, fusion_type)
+        return [self.__dict_to_obj(obj) for obj in objects]
+
+    def bm25(self, query: str, properties: Optional[List[str]] = None) -> List[_Object[Model]]:
+        return [self.__dict_to_obj(obj) for obj in self._bm25(query, properties)]
+
+    def __dict_to_obj(self, obj: Tuple[Dict[str, Any], MetadataReturn]) -> _Object[Model]:
+        return _Object[Model](data=self._model(**obj[0]), metadata=obj[1])
 
 
 class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
@@ -270,6 +320,12 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
             return None
 
         return [self._json_to_object(obj) for obj in ret["objects"]]
+
+    @property
+    def get_grpc(self) -> ReturnValues[GrpcBuilderModel[Model]]:
+        return ReturnValues[GrpcBuilderModel[Model]](
+            GrpcBuilderModel[Model](self._connection, self._name, self._model)
+        )
 
     def reference_add(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
         self._reference_add(
