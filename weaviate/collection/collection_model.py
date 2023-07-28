@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, create_model, field_validator
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
+from weaviate.collection.collection_classes import Errors
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException
@@ -19,7 +20,7 @@ from weaviate.weaviate_classes import (
     MetadataReturn,
     PropertyConfig,
 )
-from weaviate.weaviate_types import UUID, UUIDS
+from weaviate.weaviate_types import UUID, UUIDS, BEACON
 
 
 @dataclass
@@ -217,7 +218,7 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
         self._insert(weaviate_obj)
         return uuid_package.UUID(str(obj.uuid))
 
-    def insert_many(self, objects: List[Model]) -> List[uuid_package.UUID]:
+    def insert_many(self, objects: List[Model]) -> List[Union[uuid_package.UUID, Errors]]:
         for obj in objects:
             self._model.model_validate(obj)
 
@@ -229,7 +230,7 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
             }
             for obj in objects
         ]
-        self._insert_many(weaviate_objs)
+        return self._insert_many(weaviate_objs)
 
     def replace(self, obj: Model, uuid: UUID) -> None:
         self._model.model_validate(obj)
@@ -288,8 +289,8 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
     def reference_batch_add(self, from_property: str, refs: List[BatchReference]) -> None:
         refs_dict = [
             {
-                "from": f"weaviate://localhost/{self._name}/{ref.from_uuid}/{from_property}",
-                "to": f"weaviate://localhost/{ref.to_uuid}",
+                "from": BEACON + f"{self._name}/{ref.from_uuid}/{from_property}",
+                "to": BEACON + str(ref.to_uuid),
             }
             for ref in refs
         ]

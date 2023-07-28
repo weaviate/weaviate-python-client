@@ -1,11 +1,12 @@
 import uuid as uuid_package
 from dataclasses import dataclass
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Union
 
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
+from weaviate.collection.collection_classes import Errors
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.weaviate_classes import CollectionConfig, MetadataReturn, Metadata, RefToObject
-from weaviate.weaviate_types import UUIDS, UUID
+from weaviate.weaviate_types import UUIDS, UUID, BEACON
 
 
 @dataclass
@@ -48,19 +49,15 @@ class CollectionObject(CollectionObjectBase):
                 key: val if not isinstance(val, RefToObject) else val.to_beacon()
                 for key, val in data.items()
             },
+            "id": str(uuid if uuid is not None else uuid_package.uuid4()),
         }
-
-        if uuid is not None:
-            weaviate_obj["id"] = str(uuid)
-        else:
-            weaviate_obj["id"] = str(uuid_package.uuid4())
 
         if vector is not None:
             weaviate_obj["vector"] = vector
 
         return self._insert(weaviate_obj)
 
-    def insert_many(self, objects: List[DataObject]) -> List[uuid_package.UUID]:
+    def insert_many(self, objects: List[DataObject]) -> List[Union[uuid_package.UUID, Errors]]:
         weaviate_objs: List[Dict[str, Any]] = [
             {
                 "class": self._name,
@@ -73,7 +70,7 @@ class CollectionObject(CollectionObjectBase):
             for obj in objects
         ]
 
-        self._insert_many(weaviate_objs)
+        return self._insert_many(weaviate_objs)
 
     def replace(
         self, data: Dict[str, Any], uuid: UUID, vector: Optional[List[float]] = None
@@ -126,8 +123,8 @@ class CollectionObject(CollectionObjectBase):
     def reference_batch_add(self, from_property: str, refs: List[BatchReference]) -> None:
         refs_dict = [
             {
-                "from": f"weaviate://localhost/{self._name}/{ref.from_uuid}/{from_property}",
-                "to": f"weaviate://localhost/{ref.to_uuid}",
+                "from": BEACON + f"{self._name}/{ref.from_uuid}/{from_property}",
+                "to": BEACON + str(ref.to_uuid),
             }
             for ref in refs
         ]
