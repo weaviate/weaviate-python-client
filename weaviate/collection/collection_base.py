@@ -264,3 +264,30 @@ class CollectionBase:
         collection_name = response.json()["class"]
         assert isinstance(collection_name, str)
         return collection_name
+
+    def delete(self, name: str) -> None:
+        path = f"/schema/{name.lower().capitalize()}"
+        try:
+            response = self._connection.delete(path=path)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Deletion of class.") from conn_err
+        if response.status_code == 200:
+            return
+
+        UnexpectedStatusCodeException("Delete collection", response)
+
+    def exists(self, name: str) -> bool:
+        path = f"/schema/{name.lower().capitalize()}"
+
+        try:
+            response = self._connection.get(path=path)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                "Checking class existence could not be done."
+            ) from conn_err
+        if response.status_code == 200:
+            return True
+        elif response.status_code == 404:
+            return False
+
+        raise UnexpectedStatusCodeException("Check if class exists", response)
