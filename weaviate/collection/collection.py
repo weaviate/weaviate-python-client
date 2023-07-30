@@ -191,3 +191,6 @@ class Collection(CollectionBase):
 
     def delete(self, name: str) -> None:
         self._delete(name)
+
+    def exists(self, name: str) -> bool:
+        return self._exists(name)

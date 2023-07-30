@@ -459,4 +459,9 @@ class CollectionModel(CollectionBase):
     def delete(self, model: Union[str, Type[Model]]) -> None:
         if isinstance(model, str):
             return self._delete(model)
-        self._delete(model.__name__)
+        return self._delete(model.__name__)
+
+    def exists(self, model: Union[str, Type[Model]]) -> bool:
+        if isinstance(model, str):
+            return self._exists(model)
+        return self._exists(model.__name__)

@@ -265,6 +265,19 @@ class CollectionBase:
         assert isinstance(collection_name, str)
         return collection_name
 
+    def _exists(self, name: str) -> bool:
+        path = f"/schema/{name.lower().capitalize()}"
+        try:
+            response = self._connection.head(path=path)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Existenz of class.") from conn_err
+        if response.status_code == 200:
+            return True
+        elif response.status_code == 404:
+            return False
+
+        UnexpectedStatusCodeException("collection exists", response)
+
     def _delete(self, name: str) -> None:
         path = f"/schema/{name.lower().capitalize()}"
         try:
