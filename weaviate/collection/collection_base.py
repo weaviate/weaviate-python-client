@@ -265,7 +265,7 @@ class CollectionBase:
         assert isinstance(collection_name, str)
         return collection_name
 
-    def delete(self, name: str) -> None:
+    def _delete(self, name: str) -> None:
         path = f"/schema/{name.lower().capitalize()}"
         try:
             response = self._connection.delete(path=path)

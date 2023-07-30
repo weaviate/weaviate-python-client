@@ -188,3 +188,6 @@ class Collection(CollectionBase):
 
     def get(self, collection_name: str) -> CollectionObject:
         return CollectionObject(self._connection, collection_name)
+
+    def delete(self, name: str) -> None:
+        self.delete(name)

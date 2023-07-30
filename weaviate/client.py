@@ -1,7 +1,7 @@
 """
 Client class definition.
 """
-from typing import Optional, Tuple, Type, Union, Dict, Any
+from typing import Optional, Tuple, Union, Dict, Any
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -11,7 +11,7 @@ from .batch import Batch
 from .classification import Classification
 from .cluster import Cluster
 from .collection import Collection
-from .collection.collection_model import CollectionModel, Model
+from .collection.collection_model import CollectionModel
 from .config import Config
 from .connect.connection import Connection, TIMEOUT_TYPE_RETURN
 from .contextionary import Contextionary
@@ -170,9 +170,7 @@ class Client:
         self.backup = Backup(self._connection)
         self.cluster = Cluster(self._connection)
         self.collection = Collection(self._connection)
-
-    def collection_model(self, _type: Type[Model]) -> CollectionModel[Model]:
-        return CollectionModel[_type](self._connection, _type)
+        self.collection_model = CollectionModel(self._connection)
 
     def is_ready(self) -> bool:
         """

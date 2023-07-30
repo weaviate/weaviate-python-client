@@ -379,18 +379,18 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
         return _Object[Model](data=self._model(**obj["properties"]), metadata=MetadataReturn(**obj))
 
 
-class CollectionModel(CollectionBase, Generic[Model]):
-    def __init__(self, connection: Connection, model: Type[Model]):
+class CollectionModel(CollectionBase):
+    def __init__(self, connection: Connection):
         super().__init__(connection)
-        self._model = model
 
-    def create(self, config: CollectionConfigModel) -> CollectionObjectModel[Model]:
-        name = super()._create(config, self._model.type_to_dict(self._model), self._model.__name__)
+    def create(
+        self, config: CollectionConfigModel, model: Type[Model]
+    ) -> CollectionObjectModel[Model]:
+        name = super()._create(config, model.type_to_dict(model), model.__name__)
+        return CollectionObjectModel[Model](self._connection, name, model)
 
-        return CollectionObjectModel[Model](self._connection, name, self._model)
-
-    def get(self) -> CollectionObjectModel[Model]:
-        collection_name = self._model.__name__.capitalize()
+    def get(self, model: Type[Model]) -> CollectionObjectModel[Model]:
+        collection_name = model.__name__.capitalize()
         path = f"/schema/{collection_name}"
 
         try:
@@ -401,7 +401,7 @@ class CollectionModel(CollectionBase, Generic[Model]):
             raise UnexpectedStatusCodeException("Get schema", response)
 
         response_json = response.json()
-        model_props = self._model.type_to_dict(self._model)
+        model_props = model.type_to_dict(model)
         schema_props = [
             {"name": prop["name"], "dataType": prop["dataType"]}
             for prop in response_json["properties"]
@@ -418,7 +418,7 @@ class CollectionModel(CollectionBase, Generic[Model]):
 
         if compare(model_props, schema_props):
             raise TypeError("Schemas not compatible")
-        return CollectionObjectModel[Model](self._connection, collection_name, self._model)
+        return CollectionObjectModel[Model](self._connection, collection_name, model)
 
     def get_dynamic(
         self, collection_name: str
@@ -437,6 +437,11 @@ class CollectionModel(CollectionBase, Generic[Model]):
             prop["name"]: (PYTHON_TYPE_TO_DATATYPE[prop["dataType"][0]], None)
             for prop in response_json["properties"]
         }
-        model = create_model(response_json["class"], **fields, __base__=self._model)
+        model = create_model(response_json["class"], **fields, __base__=BaseProperty)
 
         return CollectionObjectModel(self._connection, collection_name, model), model
+
+    def delete(self, model: Union[str, Type[Model]]) -> None:
+        if isinstance(model, str):
+            return self._delete(model)
+        self._delete(model.__name__)
