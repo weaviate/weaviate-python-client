@@ -14,7 +14,7 @@ import requests
 import validators
 
 from weaviate.exceptions import SchemaValidationException
-from weaviate.weaviate_types import NUMBERS, UUIDS, UUID
+from weaviate.weaviate_types import NUMBER, UUIDS, UUID
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"
 MAXIMUM_MINOR_VERSION_DELTA = 3  # The maximum delta between minor versions of Weaviate Client that will not trigger an upgrade warning.
@@ -520,7 +520,7 @@ def check_batch_result(
 
 
 def _check_positive_num(
-    value: NUMBERS, arg_name: str, data_type: type, include_zero: bool = False
+    value: NUMBER, arg_name: str, data_type: type, include_zero: bool = False
 ) -> None:
     """
     Check if the `value` of the `arg_name` is a positive number.
@@ -646,8 +646,8 @@ def is_weaviate_client_too_old(current_version_str: str, latest_version_str: str
 
 
 def _get_valid_timeout_config(
-    timeout_config: Union[Tuple[NUMBERS, NUMBERS], NUMBERS, None]
-) -> Tuple[NUMBERS, NUMBERS]:
+    timeout_config: Union[Tuple[NUMBER, NUMBER], NUMBER, None]
+) -> Tuple[NUMBER, NUMBER]:
     """
     Validate and return TimeOut configuration.
 
@@ -669,7 +669,7 @@ def _get_valid_timeout_config(
         If 'timeout_config' is/contains negative number/s.
     """
 
-    def check_number(num: NUMBERS):
+    def check_number(num: NUMBER):
         return isinstance(num, float) or isinstance(num, int)
 
     if check_number(timeout_config) and not isinstance(timeout_config, bool):

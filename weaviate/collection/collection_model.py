@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 import typing
 import uuid as uuid_package
@@ -17,13 +18,27 @@ from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _to_beacons
 from weaviate.weaviate_classes import (
     CollectionConfigBase,
-    PYTHON_TYPE_TO_DATATYPE,
     Metadata,
     MetadataReturn,
     Tokenization,
     ModuleConfig,
 )
-from weaviate.weaviate_types import UUID, UUIDS, BEACON
+from weaviate.weaviate_types import UUID, UUIDS, BEACON, GEO_COORDINATES
+
+DATATYPE_TO_PYTHON_TYPE = {
+    "text": str,
+    "int": int,
+    "text[]": List[str],
+    "int[]": List[int],
+    "boolean": bool,
+    "boolean[]": List[bool],
+    "number": float,
+    "number[]": List[float],
+    "date": datetime.datetime,
+    "date[]": List[datetime.datetime],
+    "geoCoordinates": GEO_COORDINATES,
+}
+PYTHON_TYPE_TO_DATATYPE = {val: key for key, val in DATATYPE_TO_PYTHON_TYPE.items()}
 
 
 @dataclass

@@ -190,4 +190,4 @@ class Collection(CollectionBase):
         return CollectionObject(self._connection, collection_name)
 
     def delete(self, name: str) -> None:
-        self.delete(name)
+        self._delete(name)

@@ -21,9 +21,9 @@ from .exceptions import UnexpectedStatusCodeException
 from .gql import Query
 from .schema import Schema
 from .util import _get_valid_timeout_config, _type_request_response
-from .weaviate_types import NUMBERS
+from .weaviate_types import NUMBER
 
-TIMEOUT_TYPE = Union[Tuple[NUMBERS, NUMBERS], NUMBERS]
+TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
 
 class Client:

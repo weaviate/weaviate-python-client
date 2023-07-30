@@ -36,7 +36,7 @@ from weaviate.util import (
     PYPI_PACKAGE_URL,
 )
 from weaviate.warnings import _Warnings
-from weaviate.weaviate_types import NUMBERS
+from weaviate.weaviate_types import NUMBER
 
 try:
     import grpc
@@ -48,7 +48,7 @@ except ImportError:
 
 
 Session = Union[requests.sessions.Session, OAuth2Session]
-TIMEOUT_TYPE_RETURN = Tuple[NUMBERS, NUMBERS]
+TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
 PYPI_TIMEOUT = 1
 
 
