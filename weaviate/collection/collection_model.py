@@ -203,12 +203,17 @@ class BaseProperty(BaseModel):
 
     @staticmethod
     def _remove_optional_type(python_type: type) -> type:
+        is_list = typing.get_origin(python_type) == list
         args = typing.get_args(python_type)
         if len(args) == 0:
             return python_type
 
         return_type = [t for t in args if t is not None][0]
-        return return_type
+
+        if is_list:
+            return typing.List[return_type]
+        else:
+            return return_type
 
 
 Model = TypeVar("Model", bound=BaseProperty)

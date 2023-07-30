@@ -268,7 +268,7 @@ class CollectionBase:
     def _exists(self, name: str) -> bool:
         path = f"/schema/{name.lower().capitalize()}"
         try:
-            response = self._connection.head(path=path)
+            response = self._connection.get(path=path)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Existenz of class.") from conn_err
         if response.status_code == 200:
