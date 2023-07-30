@@ -1,10 +1,10 @@
 import datetime
 import hashlib
 import typing
-import uuid as uuid_package
 from dataclasses import dataclass
 from typing import Type, Optional, Any, List, Set, Dict, Generic, TypeAlias, TypeVar, Tuple, Union
 
+import uuid as uuid_package
 from pydantic import BaseModel, Field, create_model, field_validator
 from pydantic_core._pydantic_core import PydanticUndefined
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -80,7 +80,7 @@ class BatchReference:
 
 
 class BaseProperty(BaseModel):
-    uuid: UUID = Field(default=uuid_package.uuid4())
+    uuid: UUID = Field(default_factory=uuid_package.uuid4)
     vector: Optional[List[float]] = None
 
     # def __new__(cls, *args, **kwargs):
@@ -198,7 +198,9 @@ class BaseProperty(BaseModel):
     @staticmethod
     def get_non_optional_fields(model: Type["BaseProperty"]) -> Set[str]:
         return {
-            field for field, val in model.model_fields.items() if val.default == PydanticUndefined
+            field
+            for field, val in model.model_fields.items()
+            if val.default == PydanticUndefined and field not in BaseProperty.model_fields.keys()
         }
 
     @staticmethod
@@ -241,8 +243,7 @@ class _Object(Generic[Model]):
 
 class GrpcBuilderModel(Generic[Model], GrpcBuilderBase):
     def __init__(self, connection: Connection, name: str, model: Type[Model]):
-        default_properties = model.get_non_optional_fields(model)
-        super().__init__(connection, name, default_properties)
+        super().__init__(connection, name, model.get_non_optional_fields(model))
         self._model: Type[Model] = model
 
     def get(
@@ -272,9 +273,10 @@ class GrpcBuilderModel(Generic[Model], GrpcBuilderBase):
 
 
 class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
-    def __init__(self, connection: Connection, name: str, dynamic_model: Type[Model]) -> None:
+    def __init__(self, connection: Connection, name: str, model: Type[Model]) -> None:
         super().__init__(connection, name)
-        self._model: Type[Model] = dynamic_model
+        self._model: Type[Model] = model
+        self._default_props = model.get_non_optional_fields(model)
 
     def with_tenant(self, tenant: Optional[str] = None) -> "CollectionObjectModel":
         return self._with_tenant(tenant)
@@ -396,7 +398,17 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
 
             obj["properties"][ref] = uuids
 
-        return _Object[Model](data=self._model(**obj["properties"]), metadata=MetadataReturn(**obj))
+        # weaviate does not save none values, so we need to add them to pass model validation
+        for prop in self._default_props:
+            if prop not in obj["properties"]:
+                obj["properties"][prop] = None
+
+        model_object = _Object[Model](
+            data=self._model(**obj["properties"]), metadata=MetadataReturn(**obj)
+        )
+        model_object.data.uuid = model_object.metadata.uuid
+        model_object.data.vector = model_object.metadata.vector
+        return model_object
 
 
 class CollectionModel(CollectionBase):

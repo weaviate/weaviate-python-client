@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Union, Dict, Any, Optional, List, Set
 
+import uuid as uuid_package
 from pydantic import BaseModel, Field
 
 from weaviate.util import _to_beacons
@@ -205,7 +206,7 @@ class Metadata(BaseModel):
 
 
 class MetadataReturn(BaseModel):
-    uuid: Optional[UUID] = Field(None, alias="id")
+    uuid: Optional[uuid_package.UUID] = Field(None, alias="id")
     vector: Optional[List[float]] = None
     creation_time_unix: Optional[int] = Field(None, alias="creationTimeUnix")
     last_update_time_unix: Optional[int] = Field(None, alias="lastUpdateTimeUnix")
