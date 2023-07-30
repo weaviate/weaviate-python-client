@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from weaviate.util import _to_beacons
 from weaviate.weaviate_types import UUID
 
-DATATYPE_TO_PYTHON_TYPE = {"text": str, "int": int}
+DATATYPE_TO_PYTHON_TYPE = {"text": str, "int": int, "text[]": List[str], "int[]": List[int]}
 PYTHON_TYPE_TO_DATATYPE = {val: key for key, val in DATATYPE_TO_PYTHON_TYPE.items()}
 
 

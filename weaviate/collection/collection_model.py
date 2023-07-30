@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Type, Optional, Any, List, Set, Dict, Generic, TypeAlias, TypeVar, Tuple, Union
 
 from pydantic import BaseModel, Field, create_model, field_validator
+from pydantic_core._pydantic_core import PydanticUndefined
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
@@ -19,9 +20,29 @@ from weaviate.weaviate_classes import (
     PYTHON_TYPE_TO_DATATYPE,
     Metadata,
     MetadataReturn,
-    PropertyConfig,
+    Tokenization,
+    ModuleConfig,
 )
 from weaviate.weaviate_types import UUID, UUIDS, BEACON
+
+
+@dataclass
+class PropertyConfig:
+    indexFilterable: Optional[bool] = None
+    indexSearchable: Optional[bool] = None
+    tokenization: Optional[Tokenization] = None
+    description: Optional[str] = None
+    moduleConfig: Optional[ModuleConfig] = None
+
+    # tmp solution. replace with a pydantic BaseModel, see bugreport: https://github.com/pydantic/pydantic/issues/6948
+    def model_dump(self, exclude_unset: bool = True, exclude_none: bool = True) -> Dict[str, Any]:
+        return {
+            "indexFilterable": self.indexFilterable,
+            "indexSearchable": self.indexSearchable,
+            "tokenization": self.tokenization,
+            "description": self.description,
+            "moduleConfig": self.moduleConfig,
+        }
 
 
 @dataclass
@@ -161,20 +182,9 @@ class BaseProperty(BaseModel):
 
     @staticmethod
     def get_non_optional_fields(model: Type["BaseProperty"]) -> Set[str]:
-        types = typing.get_type_hints(model)
-
-        non_optional_types = {
-            name: BaseProperty._remove_optional_type(tt)
-            for name, tt in types.items()
-            if name not in BaseProperty.model_fields
+        return {
+            field for field, val in model.model_fields.items() if val.default == PydanticUndefined
         }
-
-        non_optional_fields: Set[str] = set()
-        for field in non_optional_types.keys():
-            if types[field] == non_optional_types[field]:
-                non_optional_fields.add(field)
-
-        return non_optional_fields
 
     @staticmethod
     def _remove_optional_type(python_type: type) -> type:
