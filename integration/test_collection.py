@@ -2,6 +2,8 @@ import pytest as pytest
 import uuid
 
 import weaviate
+from weaviate import Config
+from weaviate.collection.grpc import HybridFusion
 from weaviate.weaviate_classes import (
     CollectionConfig,
     Property,
@@ -14,7 +16,9 @@ from weaviate.weaviate_classes import (
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.Client("http://localhost:8080")
+    client = weaviate.Client(
+        "http://localhost:8080", additional_config=Config(grpc_port_experimental=50051)
+    )
     client.schema.delete_all()
     yield client
     client.schema.delete_all()
@@ -92,3 +96,24 @@ def test_references(client):
 
     collection.reference_replace(from_uuid=uuid_from2, from_property="ref", to_uuids=[])
     assert len(collection.get_by_id(uuid_from2).data["ref"]) == 0
+
+
+@pytest.mark.parametrize(
+    "fusion_type",
+    [HybridFusion.RANKED, HybridFusion.RELATIVE_SCORE],
+)
+def test_search_hybrid(client, fusion_type):
+    collection = client.collection.create(
+        CollectionConfig(
+            name="Testing",
+            properties=[Property(name="Name", dataType=DataType.TEXT)],
+            vectorizer=Vectorizer.TEXT2VEC_CONTEXTIONARY,
+        )
+    )
+    collection.insert({"Name": "some name"}, uuid.uuid4())
+    collection.insert({"Name": "other word"}, uuid.uuid4())
+    res = collection.get_grpc.with_return_values(uuid=True).hybrid(
+        alpha=0, query="name", fusion_type=fusion_type
+    )
+    assert len(res) == 1
+    client.collection.delete("Testing")

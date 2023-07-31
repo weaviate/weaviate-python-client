@@ -62,7 +62,7 @@ class GrpcBuilderBase:
         self._hybrid_alpha: Optional[float] = None
         self._hybrid_vector: Optional[List[float]] = None
         self._hybrid_properties: Optional[List[str]] = None
-        self._hybrid_fusion_type: Optional[HybridFusion] = None
+        self._hybrid_fusion_type: Optional[weaviate_pb2.HybridSearchParams.FusionType] = None
 
         self._bm25_query: Optional[str] = None
         self._bm25_properties: Optional[List[str]] = None
@@ -105,7 +105,11 @@ class GrpcBuilderBase:
         self._hybrid_alpha = alpha
         self._hybrid_vector = vector
         self._hybrid_properties = properties
-        self._hybrid_fusion_type = fusion_type
+        self._hybrid_fusion_type = (
+            weaviate_pb2.HybridSearchParams.FusionType.Value(fusion_type.name)
+            if fusion_type is not None
+            else None
+        )
         self._limit = limit
         self._autocut = autocut
 
@@ -181,6 +185,7 @@ class GrpcBuilderBase:
                         query=self._hybrid_query,
                         alpha=self._hybrid_alpha,
                         vector=self._hybrid_vector,
+                        fusion_type=self._hybrid_fusion_type,
                     )
                     if self._hybrid_query is not None
                     else None,

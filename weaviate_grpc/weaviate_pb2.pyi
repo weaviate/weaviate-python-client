@@ -1,5 +1,6 @@
 from google.protobuf import struct_pb2 as _struct_pb2
 from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
@@ -35,16 +36,22 @@ class BM25SearchParams(_message.Message):
     def __init__(self, query: _Optional[str] = ..., properties: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class HybridSearchParams(_message.Message):
-    __slots__ = ["alpha", "properties", "query", "vector"]
+    __slots__ = ["alpha", "fusion_type", "properties", "query", "vector"]
+    class FusionType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = []
     ALPHA_FIELD_NUMBER: _ClassVar[int]
+    FUSION_TYPE_FIELD_NUMBER: _ClassVar[int]
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     QUERY_FIELD_NUMBER: _ClassVar[int]
+    RANKED: HybridSearchParams.FusionType
+    RELATIVE_SCORE: HybridSearchParams.FusionType
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     alpha: float
+    fusion_type: HybridSearchParams.FusionType
     properties: _containers.RepeatedScalarFieldContainer[str]
     query: str
     vector: _containers.RepeatedScalarFieldContainer[float]
-    def __init__(self, query: _Optional[str] = ..., properties: _Optional[_Iterable[str]] = ..., vector: _Optional[_Iterable[float]] = ..., alpha: _Optional[float] = ...) -> None: ...
+    def __init__(self, query: _Optional[str] = ..., properties: _Optional[_Iterable[str]] = ..., vector: _Optional[_Iterable[float]] = ..., alpha: _Optional[float] = ..., fusion_type: _Optional[_Union[HybridSearchParams.FusionType, str]] = ...) -> None: ...
 
 class NearObjectParams(_message.Message):
     __slots__ = ["certainty", "distance", "id"]
