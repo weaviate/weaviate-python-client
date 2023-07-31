@@ -1,6 +1,7 @@
-import uuid as uuid_package
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, List, Union, Tuple
+
+import uuid as uuid_package
 
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.collection.collection_classes import Errors
@@ -131,7 +132,7 @@ class CollectionObject(CollectionObjectBase):
 
         self._update(weaviate_obj, uuid=uuid)
 
-    def get_by_id(self, uuid: UUID, metadata: Optional[Metadata]) -> Optional[_Object]:
+    def get_by_id(self, uuid: UUID, metadata: Optional[Metadata] = None) -> Optional[_Object]:
         ret = self._get_by_id(uuid=uuid, metadata=metadata)
         if ret is None:
             return ret
