@@ -422,7 +422,10 @@ class CollectionModel(CollectionBase):
         return CollectionObjectModel[Model](self._connection, name, model)
 
     def get(self, model: Type[Model]) -> CollectionObjectModel[Model]:
-        collection_name = model.__name__.capitalize()
+        collection_name = model.__name__[0].upper()
+        if len(model.__name__) > 1:
+            collection_name += model.__name__[1:]
+
         path = f"/schema/{collection_name}"
 
         try:

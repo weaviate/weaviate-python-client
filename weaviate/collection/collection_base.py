@@ -1,7 +1,7 @@
-import uuid as uuid_package
 from copy import copy
 from typing import Dict, Any, Optional, List, Tuple, Union
 
+import uuid as uuid_package
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.collection_classes import Errors, Error
@@ -252,7 +252,7 @@ class CollectionBase:
         if properties is not None:
             weaviate_object["properties"] = properties
         if name is not None:
-            weaviate_object["class"] = name.capitalize()
+            weaviate_object["class"] = name
 
         try:
             response = self._connection.post(path="/schema", weaviate_object=weaviate_object)

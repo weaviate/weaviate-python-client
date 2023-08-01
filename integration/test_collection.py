@@ -73,7 +73,7 @@ def test_references(client):
     )
     uuid_to = ref_collection.insert(data={})
     collection_config = CollectionConfig(
-        name="Something",
+        name="SomethingElse",
         properties=[ReferenceProperty(name="ref", reference_class_name="RefClass2")],
         vectorizer=Vectorizer.NONE,
     )
