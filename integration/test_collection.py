@@ -11,6 +11,7 @@ from weaviate.weaviate_classes import (
     Vectorizer,
     ReferenceProperty,
     RefToObject,
+    Metadata,
 )
 
 
@@ -202,3 +203,65 @@ def test_autocut(client):
         query="rain", autocut=1, alpha=0, fusion_type=HybridFusion.RELATIVE_SCORE
     )
     assert len(objects) == 1 * 4
+
+
+def test_near_vector(client):
+    client.collection.delete("TestNearVector")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestNearVector",
+            properties=[Property(name="Name", dataType=DataType.TEXT)],
+            vectorizer=Vectorizer.TEXT2VEC_CONTEXTIONARY,
+        )
+    )
+    uuid_banana = collection.insert({"Name": "Banana"})
+    collection.insert({"Name": "Fruit"})
+    collection.insert({"Name": "car"})
+    collection.insert({"Name": "Mountain"})
+
+    banana = collection.get_by_id(uuid_banana, metadata=Metadata(vector=True))
+
+    full_objects = collection.get_grpc.with_return_values(
+        distance=True, certainty=True
+    ).near_vector(banana.metadata.vector)
+    assert len(full_objects) == 4
+
+    objects_distance = collection.get_grpc.with_return_values(
+        distance=True, certainty=True
+    ).near_vector(banana.metadata.vector, distance=full_objects[2].metadata.distance)
+    assert len(objects_distance) == 3
+
+    objects_distance = collection.get_grpc.with_return_values(
+        distance=True, certainty=True
+    ).near_vector(banana.metadata.vector, certainty=full_objects[2].metadata.certainty)
+    assert len(objects_distance) == 3
+
+
+def test_near_object(client):
+    client.collection.delete("TestNearVector")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestNearVector",
+            properties=[Property(name="Name", dataType=DataType.TEXT)],
+            vectorizer=Vectorizer.TEXT2VEC_CONTEXTIONARY,
+        )
+    )
+    uuid_banana = collection.insert({"Name": "Banana"})
+    collection.insert({"Name": "Fruit"})
+    collection.insert({"Name": "car"})
+    collection.insert({"Name": "Mountain"})
+
+    full_objects = collection.get_grpc.with_return_values(
+        distance=True, certainty=True
+    ).near_object(uuid_banana)
+    assert len(full_objects) == 4
+
+    objects_distance = collection.get_grpc.with_return_values(
+        distance=True, certainty=True
+    ).near_object(uuid_banana, distance=full_objects[2].metadata.distance)
+    assert len(objects_distance) == 3
+
+    objects_distance = collection.get_grpc.with_return_values(
+        distance=True, certainty=True
+    ).near_object(uuid_banana, certainty=full_objects[2].metadata.certainty)
+    assert len(objects_distance) == 3

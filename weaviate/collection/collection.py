@@ -61,6 +61,29 @@ class GrpcBuilder(GrpcBuilderBase):
     ) -> List[_Object]:
         return [self.__dict_to_obj(obj) for obj in self._bm25(query, properties, limit, autocut)]
 
+    def near_vector(
+        self,
+        vector: List[float],
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        autocut: Optional[int] = None,
+    ) -> List[_Object]:
+        return [
+            self.__dict_to_obj(obj)
+            for obj in self._near_vector(vector, certainty, distance, autocut)
+        ]
+
+    def near_object(
+        self,
+        obj: UUID,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        autocut: Optional[int] = None,
+    ) -> List[_Object]:
+        return [
+            self.__dict_to_obj(obj) for obj in self._near_object(obj, certainty, distance, autocut)
+        ]
+
     @staticmethod
     def __dict_to_obj(obj: Tuple[Dict[str, Any], MetadataReturn]) -> _Object:
         return _Object(data=obj[0], metadata=obj[1])

@@ -68,8 +68,9 @@ class GrpcBuilderBase:
         self._bm25_properties: Optional[List[str]] = None
 
         self._near_vector_vec: Optional[List[float]] = None
-        self._near_vector_certainty: Optional[float] = None
-        self._near_vector_distance: Optional[float] = None
+        self._near_object_obj: Optional[UUID] = None
+        self._near_certainty: Optional[float] = None
+        self._near_distance: Optional[float] = None
 
     def add_return_values(self, props: Optional[PROPERTIES], metadata: Optional[_Metadata]):
         if props is not None:
@@ -129,15 +130,32 @@ class GrpcBuilderBase:
 
         return self.__call()
 
-    def near_vector(
+    def _near_vector(
         self,
         vector: List[float],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
+        autocut: Optional[int] = None,
     ):
         self._near_vector_vec = vector
-        self._near_vector_certainty = certainty
-        self._near_vector_distance = distance
+        self._near_certainty = certainty
+        self._near_distance = distance
+        self._autocut = autocut
+
+        return self.__call()
+
+    def _near_object(
+        self,
+        near_object: UUID,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        autocut: Optional[int] = None,
+    ):
+        self._near_object_obj = near_object
+        self._near_certainty = certainty
+        self._near_distance = distance
+        self._autocut = autocut
+        return self.__call()
 
     def __call(self):
         metadata = ()
@@ -154,18 +172,18 @@ class GrpcBuilderBase:
                     autocut=self._autocut,
                     near_vector=weaviate_pb2.NearVectorParams(
                         vector=self._near_vector_vec,
-                        certainty=self._near_vector_certainty,
-                        distance=self._near_vector_distance,
+                        certainty=self._near_certainty,
+                        distance=self._near_distance,
                     )
                     if self._near_vector_vec is not None
                     else None,
-                    # near_object=weaviate_pb2.NearObjectParams(
-                    #     id=self._near_ask.content["id"],
-                    #     certainty=self._near_ask.content.get("certainty", None),
-                    #     distance=self._near_ask.content.get("distance", None),
-                    # )
-                    # if self._near_ask is not None and isinstance(self._near_ask, NearObject)
-                    # else None,
+                    near_object=weaviate_pb2.NearObjectParams(
+                        id=str(self._near_object_obj),
+                        certainty=self._near_certainty,
+                        distance=self._near_distance,
+                    )
+                    if self._near_object_obj is not None
+                    else None,
                     properties=self._convert_references_to_grpc(self._default_props),
                     additional_properties=weaviate_pb2.AdditionalProperties(
                         uuid=self._metadata.uuid,
@@ -173,6 +191,7 @@ class GrpcBuilderBase:
                         creationTimeUnix=self._metadata.creationTimeUnix,
                         lastUpdateTimeUnix=self._metadata.lastUpdateTimeUnix,
                         distance=self._metadata.distance,
+                        certainty=self._metadata.certainty,
                         explainScore=self._metadata.explainScore,
                         score=self._metadata.score,
                     )
