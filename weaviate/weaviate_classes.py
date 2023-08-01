@@ -159,7 +159,10 @@ class ReferenceProperty(BaseModel):
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().model_dump(exclude_none=True)
-        ret_dict["dataType"] = [self.reference_class_name.capitalize()]
+        ref_collection_name = self.reference_class_name[0].upper()
+        if len(self.reference_class_name) > 1:
+            ref_collection_name += self.reference_class_name[1:]
+        ret_dict["dataType"] = [ref_collection_name]
         return ret_dict
 
 
