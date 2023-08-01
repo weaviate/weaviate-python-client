@@ -46,12 +46,20 @@ class GrpcBuilder(GrpcBuilderBase):
         vector: Optional[List[float]] = None,
         properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
+        limit: Optional[int] = None,
+        autocut: Optional[int] = None,
     ) -> List[_Object]:
-        objects = self._hybrid(query, alpha, vector, properties, fusion_type)
+        objects = self._hybrid(query, alpha, vector, properties, fusion_type, limit, autocut)
         return [self.__dict_to_obj(obj) for obj in objects]
 
-    def bm25(self, query: str, properties: Optional[List[str]] = None) -> List[_Object]:
-        return [self.__dict_to_obj(obj) for obj in self._bm25(query, properties)]
+    def bm25(
+        self,
+        query: str,
+        properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        autocut: Optional[int] = None,
+    ) -> List[_Object]:
+        return [self.__dict_to_obj(obj) for obj in self._bm25(query, properties, limit, autocut)]
 
     @staticmethod
     def __dict_to_obj(obj: Tuple[Dict[str, Any], MetadataReturn]) -> _Object:

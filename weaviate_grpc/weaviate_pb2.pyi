@@ -150,24 +150,30 @@ class SearchReply(_message.Message):
     def __init__(self, results: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ..., took: _Optional[float] = ...) -> None: ...
 
 class SearchRequest(_message.Message):
-    __slots__ = ["additional_properties", "bm25_search", "class_name", "hybrid_search", "limit", "near_object", "near_vector", "properties"]
+    __slots__ = ["additional_properties", "after", "autocut", "bm25_search", "class_name", "hybrid_search", "limit", "near_object", "near_vector", "offset", "properties"]
     ADDITIONAL_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    AFTER_FIELD_NUMBER: _ClassVar[int]
+    AUTOCUT_FIELD_NUMBER: _ClassVar[int]
     BM25_SEARCH_FIELD_NUMBER: _ClassVar[int]
     CLASS_NAME_FIELD_NUMBER: _ClassVar[int]
     HYBRID_SEARCH_FIELD_NUMBER: _ClassVar[int]
     LIMIT_FIELD_NUMBER: _ClassVar[int]
     NEAR_OBJECT_FIELD_NUMBER: _ClassVar[int]
     NEAR_VECTOR_FIELD_NUMBER: _ClassVar[int]
+    OFFSET_FIELD_NUMBER: _ClassVar[int]
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     additional_properties: AdditionalProperties
+    after: str
+    autocut: int
     bm25_search: BM25SearchParams
     class_name: str
     hybrid_search: HybridSearchParams
     limit: int
     near_object: NearObjectParams
     near_vector: NearVectorParams
+    offset: int
     properties: Properties
-    def __init__(self, class_name: _Optional[str] = ..., limit: _Optional[int] = ..., additional_properties: _Optional[_Union[AdditionalProperties, _Mapping]] = ..., near_vector: _Optional[_Union[NearVectorParams, _Mapping]] = ..., near_object: _Optional[_Union[NearObjectParams, _Mapping]] = ..., properties: _Optional[_Union[Properties, _Mapping]] = ..., hybrid_search: _Optional[_Union[HybridSearchParams, _Mapping]] = ..., bm25_search: _Optional[_Union[BM25SearchParams, _Mapping]] = ...) -> None: ...
+    def __init__(self, class_name: _Optional[str] = ..., limit: _Optional[int] = ..., additional_properties: _Optional[_Union[AdditionalProperties, _Mapping]] = ..., near_vector: _Optional[_Union[NearVectorParams, _Mapping]] = ..., near_object: _Optional[_Union[NearObjectParams, _Mapping]] = ..., properties: _Optional[_Union[Properties, _Mapping]] = ..., hybrid_search: _Optional[_Union[HybridSearchParams, _Mapping]] = ..., bm25_search: _Optional[_Union[BM25SearchParams, _Mapping]] = ..., offset: _Optional[int] = ..., autocut: _Optional[int] = ..., after: _Optional[str] = ...) -> None: ...
 
 class SearchResult(_message.Message):
     __slots__ = ["additional_properties", "properties"]

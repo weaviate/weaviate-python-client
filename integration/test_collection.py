@@ -98,10 +98,7 @@ def test_references(client):
     assert len(collection.get_by_id(uuid_from2).data["ref"]) == 0
 
 
-@pytest.mark.parametrize(
-    "fusion_type",
-    [HybridFusion.RANKED, HybridFusion.RELATIVE_SCORE],
-)
+@pytest.mark.parametrize("fusion_type", [HybridFusion.RANKED, HybridFusion.RELATIVE_SCORE])
 def test_search_hybrid(client, fusion_type):
     collection = client.collection.create(
         CollectionConfig(
@@ -117,3 +114,91 @@ def test_search_hybrid(client, fusion_type):
     )
     assert len(res) == 1
     client.collection.delete("Testing")
+
+
+@pytest.mark.parametrize("limit", [1, 5])
+def test_search_limit(client, limit):
+    client.collection.delete("TestLimit")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestLimit",
+            properties=[Property(name="Name", dataType=DataType.TEXT)],
+            vectorizer=Vectorizer.NONE,
+        )
+    )
+    for i in range(5):
+        collection.insert({"Name": str(i)})
+
+    assert len(collection.get_grpc.with_return_values().get(limit=limit)) == limit
+
+
+@pytest.mark.parametrize("offset", [0, 1, 5])
+def test_search_offset(client, offset):
+    client.collection.delete("TestOffset")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestOffset",
+            properties=[Property(name="Name", dataType=DataType.TEXT)],
+            vectorizer=Vectorizer.NONE,
+        )
+    )
+
+    nr_objects = 5
+    for i in range(nr_objects):
+        collection.insert({"Name": str(i)})
+
+    objects = collection.get_grpc.with_return_values().get(offset=offset)
+    assert len(objects) == nr_objects - offset
+
+
+def test_search_after(client):
+    client.collection.delete("TestOffset")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestOffset",
+            properties=[Property(name="Name", dataType=DataType.TEXT)],
+            vectorizer=Vectorizer.NONE,
+        )
+    )
+
+    nr_objects = 10
+    for i in range(nr_objects):
+        collection.insert({"Name": str(i)})
+
+    objects = collection.get_grpc.with_return_values(uuid=True).get()
+    for i, obj in enumerate(objects):
+        objects_after = collection.get_grpc.with_return_values().get(after=obj.metadata.uuid)
+        assert len(objects_after) == nr_objects - 1 - i
+
+
+def test_autocut(client):
+    client.collection.delete("TestAutocut")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestAutocut",
+            properties=[Property(name="Name", dataType=DataType.TEXT)],
+            vectorizer=Vectorizer.NONE,
+        )
+    )
+    for _ in range(4):
+        collection.insert({"Name": "rain rain"})
+    for _ in range(4):
+        collection.insert({"Name": "rain"})
+    for _ in range(4):
+        collection.insert({"Name": ""})
+
+    # match all objects with rain
+    objects = collection.get_grpc.with_return_values(uuid=True).bm25(query="rain", autocut=0)
+    assert len(objects) == 2 * 4
+    objects = collection.get_grpc.with_return_values(uuid=True).hybrid(
+        query="rain", autocut=0, alpha=0, fusion_type=HybridFusion.RELATIVE_SCORE
+    )
+    assert len(objects) == 2 * 4
+
+    # match only objects with two rains
+    objects = collection.get_grpc.with_return_values(uuid=True).bm25(query="rain", autocut=1)
+    assert len(objects) == 1 * 4
+    objects = collection.get_grpc.with_return_values(uuid=True).hybrid(
+        query="rain", autocut=1, alpha=0, fusion_type=HybridFusion.RELATIVE_SCORE
+    )
+    assert len(objects) == 1 * 4

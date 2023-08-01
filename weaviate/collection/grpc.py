@@ -149,6 +149,9 @@ class GrpcBuilderBase:
                 weaviate_pb2.SearchRequest(
                     class_name=self._name,
                     limit=self._limit,
+                    offset=self._offset,
+                    after=str(self._after) if self._after is not None else "",
+                    autocut=self._autocut,
                     near_vector=weaviate_pb2.NearVectorParams(
                         vector=self._near_vector_vec,
                         certainty=self._near_vector_certainty,
@@ -178,7 +181,7 @@ class GrpcBuilderBase:
                     bm25_search=weaviate_pb2.BM25SearchParams(
                         properties=self._bm25_properties, query=self._bm25_query
                     )
-                    if self._bm25_properties is not None
+                    if self._bm25_query is not None
                     else None,
                     hybrid_search=weaviate_pb2.HybridSearchParams(
                         properties=self._hybrid_properties,
