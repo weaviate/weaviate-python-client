@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, TypeAlias
+from typing import List
 
 
 @dataclass
@@ -8,4 +8,4 @@ class Error:
     message: str
 
 
-Errors: TypeAlias = List[Error]
+Errors = List[Error]
