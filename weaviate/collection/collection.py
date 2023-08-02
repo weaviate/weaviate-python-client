@@ -219,12 +219,11 @@ class CollectionObject(CollectionObjectBase):
 
 class Collection(CollectionBase):
     def create(self, config: CollectionConfig) -> CollectionObject:
-        name = super()._create(config)
+        super()._create(config)
+        return CollectionObject(self._connection, config.name)
 
+    def get(self, name: str) -> CollectionObject:
         return CollectionObject(self._connection, name)
-
-    def get(self, collection_name: str) -> CollectionObject:
-        return CollectionObject(self._connection, collection_name)
 
     def delete(self, name: str) -> None:
         self._delete(name)

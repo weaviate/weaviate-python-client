@@ -244,16 +244,9 @@ class CollectionBase:
 
     def _create(
         self,
-        model: CollectionConfigBase,
-        properties: Optional[List[Dict[str, Any]]] = None,
-        name: Optional[str] = None,
-    ) -> str:
-        weaviate_object = model.to_dict()
-        if properties is not None:
-            weaviate_object["properties"] = properties
-        if name is not None:
-            weaviate_object["class"] = name
-
+        config: CollectionConfigBase,
+    ) -> None:
+        weaviate_object = config.to_dict()
         try:
             response = self._connection.post(path="/schema", weaviate_object=weaviate_object)
         except RequestsConnectionError as conn_err:
@@ -261,12 +254,8 @@ class CollectionBase:
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Create class", response)
 
-        collection_name = response.json()["class"]
-        assert isinstance(collection_name, str)
-        return collection_name
-
     def _exists(self, name: str) -> bool:
-        path = f"/schema/{_capitalize_names(name)}"
+        path = f"/schema/{name}"
         try:
             response = self._connection.get(path=path)
         except RequestsConnectionError as conn_err:
@@ -279,7 +268,7 @@ class CollectionBase:
         UnexpectedStatusCodeException("collection exists", response)
 
     def _delete(self, name: str) -> None:
-        path = f"/schema/{_capitalize_names(name)}"
+        path = f"/schema/{name}"
         try:
             response = self._connection.delete(path=path)
         except RequestsConnectionError as conn_err:
@@ -288,10 +277,3 @@ class CollectionBase:
             return
 
         UnexpectedStatusCodeException("Delete collection", response)
-
-
-def _capitalize_names(name: str) -> str:
-    collection_name = name[0].upper()
-    if len(name) > 1:
-        collection_name += name[1:]
-    return collection_name
