@@ -1,7 +1,6 @@
+import uuid as uuid_package
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, List, Union, Tuple
-
-import uuid as uuid_package
 
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.collection.collection_classes import Errors
@@ -98,7 +97,7 @@ class GrpcBuilder(GrpcBuilderBase):
 class CollectionObject(CollectionObjectBase):
     @dataclass
     class __Data:
-        collection: "CollectionObject"
+        __collection: "CollectionObject"
 
         def insert(
             self,
@@ -107,7 +106,7 @@ class CollectionObject(CollectionObjectBase):
             vector: Optional[List[float]] = None,
         ) -> uuid_package.UUID:
             weaviate_obj: Dict[str, Any] = {
-                "class": self.collection._name,
+                "class": self.__collection._name,
                 "properties": {
                     key: val if not isinstance(val, RefToObject) else val.to_beacon()
                     for key, val in data.items()
@@ -118,7 +117,7 @@ class CollectionObject(CollectionObjectBase):
             if vector is not None:
                 weaviate_obj["vector"] = vector
 
-            return self.collection._insert(weaviate_obj)
+            return self.__collection._insert(weaviate_obj)
 
     def __init__(self, connection: Connection, name: str) -> None:
         super().__init__(connection, name)
