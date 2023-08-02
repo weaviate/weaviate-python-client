@@ -1,4 +1,5 @@
 import uuid as uuid_package
+from dataclasses import dataclass
 from typing import Type, Optional, Any, List, Dict, Generic, Tuple, Union
 
 from pydantic import create_model
