@@ -9,11 +9,13 @@ import pytest as pytest
 import uuid
 
 import weaviate
-from weaviate.collection.collection_model import (
-    CollectionModelConfig,
+from weaviate.weaviate_classes import (
     BaseProperty,
+    CollectionModelConfig,
+    PropertyConfig,
+    ReferenceTo,
+    Vectorizer,
 )
-from weaviate.weaviate_classes import PropertyConfig, ReferenceTo, Vectorizer
 from weaviate.weaviate_types import UUIDS
 
 REF_TO_UUID = uuid.uuid4()
