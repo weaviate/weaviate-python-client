@@ -266,7 +266,7 @@ class CollectionBase:
         return collection_name
 
     def _exists(self, name: str) -> bool:
-        path = f"/schema/{name.lower().capitalize()}"
+        path = f"/schema/{_capitalize_names(name)}"
         try:
             response = self._connection.get(path=path)
         except RequestsConnectionError as conn_err:
@@ -279,7 +279,7 @@ class CollectionBase:
         UnexpectedStatusCodeException("collection exists", response)
 
     def _delete(self, name: str) -> None:
-        path = f"/schema/{name.lower().capitalize()}"
+        path = f"/schema/{_capitalize_names(name)}"
         try:
             response = self._connection.delete(path=path)
         except RequestsConnectionError as conn_err:
@@ -289,18 +289,9 @@ class CollectionBase:
 
         UnexpectedStatusCodeException("Delete collection", response)
 
-    def exists(self, name: str) -> bool:
-        path = f"/schema/{name.lower().capitalize()}"
 
-        try:
-            response = self._connection.get(path=path)
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError(
-                "Checking class existence could not be done."
-            ) from conn_err
-        if response.status_code == 200:
-            return True
-        elif response.status_code == 404:
-            return False
-
-        raise UnexpectedStatusCodeException("Check if class exists", response)
+def _capitalize_names(name: str) -> str:
+    collection_name = name[0].upper()
+    if len(name) > 1:
+        collection_name += name[1:]
+    return collection_name

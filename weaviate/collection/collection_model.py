@@ -9,7 +9,11 @@ from pydantic import BaseModel, Field, create_model, field_validator
 from pydantic_core._pydantic_core import PydanticUndefined
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
+from weaviate.collection.collection_base import (
+    CollectionBase,
+    CollectionObjectBase,
+    _capitalize_names,
+)
 from weaviate.collection.collection_classes import Errors
 from weaviate.collection.grpc import GrpcBuilderBase, HybridFusion, ReturnValues
 from weaviate.connect import Connection
@@ -67,10 +71,10 @@ class ReferenceTo:
     @property
     def name(self) -> str:
         if isinstance(self.ref_type, type):
-            return self.ref_type.__name__.lower().capitalize()
+            return _capitalize_names(self.ref_type.__name__)
         else:
             assert isinstance(self.ref_type, str)
-            return self.ref_type.lower().capitalize()
+            return _capitalize_names(self.ref_type)
 
 
 @dataclass
@@ -173,7 +177,7 @@ class BaseProperty(BaseModel):
         properties = []
         for name in non_ref_fields:
             prop = {
-                "name": name.capitalize(),
+                "name": _capitalize_names(name),
                 "dataType": [PYTHON_TYPE_TO_DATATYPE[non_optional_types[name]]],
             }
             metadata_list = model.model_fields[name].metadata
@@ -187,7 +191,7 @@ class BaseProperty(BaseModel):
         reference_fields = model.get_ref_fields(model)
         properties.extend(
             {
-                "name": name.capitalize(),
+                "name": _capitalize_names(name),
                 "dataType": [model.model_fields[name].metadata[0].name],
             }
             for name in reference_fields
@@ -418,14 +422,11 @@ class CollectionModel(CollectionBase):
     def create(
         self, config: CollectionConfigModel, model: Type[Model]
     ) -> CollectionObjectModel[Model]:
-        name = super()._create(config, model.type_to_dict(model), model.__name__)
+        name = super()._create(config, model.type_to_dict(model), _capitalize_names(model.__name__))
         return CollectionObjectModel[Model](self._connection, name, model)
 
     def get(self, model: Type[Model]) -> CollectionObjectModel[Model]:
-        collection_name = model.__name__[0].upper()
-        if len(model.__name__) > 1:
-            collection_name += model.__name__[1:]
-
+        collection_name = _capitalize_names(model.__name__)
         path = f"/schema/{collection_name}"
 
         try:
@@ -458,7 +459,7 @@ class CollectionModel(CollectionBase):
     def get_dynamic(
         self, collection_name: str
     ) -> Tuple[CollectionObjectModel[Model], UserModelType]:
-        path = f"/schema/{collection_name.capitalize()}"
+        path = f"/schema/{_capitalize_names(collection_name)}"
 
         try:
             response = self._connection.get(path=path)
