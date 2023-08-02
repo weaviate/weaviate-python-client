@@ -1,6 +1,6 @@
+import uuid as uuid_package
 from typing import Type, Optional, Any, List, Dict, Generic, Tuple, Union
 
-import uuid as uuid_package
 from pydantic import create_model
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -61,20 +61,20 @@ class GrpcBuilderModel(Generic[Model], GrpcBuilderBase):
 class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
     @dataclass
     class __Data:
-        collection: "CollectionObjectModel"
+        __collection: "CollectionObjectModel[Model]"
 
         def insert(self, obj: Model) -> uuid_package.UUID:
-            self.collection._model.model_validate(obj)
+            self.__collection._model.model_validate(obj)
 
             weaviate_obj: Dict[str, Any] = {
-                "class": self.collection._name,
+                "class": self.__collection._name,
                 "properties": obj.props_to_dict(),
                 "id": str(obj.uuid),
             }
             if obj.vector is not None:
                 weaviate_obj["vector"] = obj.vector
 
-            self.collection._insert(weaviate_obj)
+            self.__collection._insert(weaviate_obj)
             return uuid_package.UUID(str(obj.uuid))
 
     def __init__(self, connection: Connection, name: str, model: Type[Model]) -> None:
