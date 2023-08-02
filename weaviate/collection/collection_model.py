@@ -2,7 +2,7 @@ import datetime
 import hashlib
 import typing
 from dataclasses import dataclass
-from typing import Type, Optional, Any, List, Set, Dict, Generic, TypeAlias, TypeVar, Tuple, Union
+from typing import Type, Optional, Any, List, Set, Dict, Generic, TypeVar, Tuple, Union
 
 import uuid as uuid_package
 from pydantic import BaseModel, Field, create_model, field_validator
@@ -232,7 +232,7 @@ class RefToObjectModel(BaseModel, Generic[Model]):
         return _to_beacons(self.uuids_to)
 
 
-UserModelType: TypeAlias = Type[BaseProperty]
+UserModelType = Type[BaseProperty]
 
 
 class CollectionConfigModel(CollectionConfigBase):
