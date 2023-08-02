@@ -13,6 +13,7 @@ from weaviate.collection.grpc import GrpcBuilderBase, HybridFusion, ReturnValues
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.util import _capitalize_first_letter
 from weaviate.weaviate_classes import (
     BaseProperty,
     BatchReference,
@@ -209,7 +210,7 @@ class CollectionModel(CollectionBase):
         return CollectionObjectModel[Model](self._connection, config.name, config.model)
 
     def get(self, model: Type[Model], name: str) -> CollectionObjectModel[Model]:
-        path = f"/schema/{name}"
+        path = f"/schema/{_capitalize_first_letter(name)}"
 
         try:
             response = self._connection.get(path=path)
@@ -239,7 +240,7 @@ class CollectionModel(CollectionBase):
         return CollectionObjectModel[Model](self._connection, name, model)
 
     def get_dynamic(self, name: str) -> Tuple[CollectionObjectModel[Model], UserModelType]:
-        path = f"/schema/{name}"
+        path = f"/schema/{_capitalize_first_letter(name)}"
 
         try:
             response = self._connection.get(path=path)

@@ -20,7 +20,7 @@ import uuid as uuid_package
 from pydantic import BaseModel, Field, field_validator
 from pydantic_core._pydantic_core import PydanticUndefined
 
-from weaviate.util import _to_beacons
+from weaviate.util import _to_beacons, _capitalize_first_letter
 from weaviate.weaviate_types import UUID, PYTHON_TYPE_TO_DATATYPE
 
 
@@ -142,7 +142,7 @@ class CollectionConfigBase(BaseModel):
             if cls_field in ["model", "properties"] or val is None:
                 continue
             if cls_field == "name":
-                ret_dict["class"] = _capitalize_names(val)
+                ret_dict["class"] = _capitalize_first_letter(val)
             if isinstance(val, Enum):
                 ret_dict[cls_field] = str(val.value)
             elif isinstance(val, (bool, float, str, int)):
@@ -276,10 +276,10 @@ class ReferenceTo:
     @property
     def name(self) -> str:
         if isinstance(self.ref_type, type):
-            return _capitalize_names(self.ref_type.__name__)
+            return _capitalize_first_letter(self.ref_type.__name__)
         else:
             assert isinstance(self.ref_type, str)
-            return _capitalize_names(self.ref_type)
+            return _capitalize_first_letter(self.ref_type)
 
 
 @dataclass
@@ -382,7 +382,7 @@ class BaseProperty(BaseModel):
         properties = []
         for name in non_ref_fields:
             prop = {
-                "name": _capitalize_names(name),
+                "name": _capitalize_first_letter(name),
                 "dataType": [PYTHON_TYPE_TO_DATATYPE[non_optional_types[name]]],
             }
             metadata_list = model.model_fields[name].metadata
@@ -396,7 +396,7 @@ class BaseProperty(BaseModel):
         reference_fields = model.get_ref_fields(model)
         properties.extend(
             {
-                "name": _capitalize_names(name),
+                "name": _capitalize_first_letter(name),
                 "dataType": [model.model_fields[name].metadata[0].name],
             }
             for name in reference_fields
@@ -444,13 +444,6 @@ UserModelType = Type[BaseProperty]
 class _Object(Generic[Model]):
     data: Model
     metadata: MetadataReturn
-
-
-def _capitalize_names(name: str) -> str:
-    collection_name = name[0].upper()
-    if len(name) > 1:
-        collection_name += name[1:]
-    return collection_name
 
 
 class CollectionModelConfig(CollectionConfigBase, Generic[Model]):
