@@ -63,12 +63,12 @@ def test_types(client: weaviate.Client, member_type, value, optional: bool):
         CollectionModelConfig(name=name, model=ModelTypes, vectorizer=Vectorizer.NONE)
     )
     uuid_object = collection.data.insert(ModelTypes(name=value))
-    object_get = collection.get_by_id(uuid_object)
+    object_get = collection.data.get_by_id(uuid_object)
     assert object_get.data == ModelTypes(name=value, uuid=uuid_object)
 
     if optional:
         uuid_object_optional = collection.data.insert(ModelTypes(name=None))
-        object_get_optional = collection.get_by_id(uuid_object_optional)
+        object_get_optional = collection.data.get_by_id(uuid_object_optional)
         assert object_get_optional.data == ModelTypes(name=None, uuid=uuid_object_optional)
 
 
@@ -90,7 +90,7 @@ def test_types_annotates(client: weaviate.Client, member_type, annotation, value
         CollectionModelConfig(name=name, model=ModelTypes, vectorizer=Vectorizer.NONE)
     )
     uuid_object = collection.data.insert(ModelTypes(name=value))
-    object_get = collection.get_by_id(uuid_object)
+    object_get = collection.data.get_by_id(uuid_object)
     assert object_get.data.name == value
 
 
