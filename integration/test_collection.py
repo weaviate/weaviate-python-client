@@ -1,5 +1,6 @@
-import pytest as pytest
 import uuid
+
+import pytest as pytest
 
 import weaviate
 from weaviate import Config
@@ -62,7 +63,7 @@ def test_types(client: weaviate.Client, dataType, value):
     collection = client.collection.create(collection_config)
     uuid_object = collection.data.insert(data={name: value})
 
-    object_get = collection.get_by_id(uuid_object)
+    object_get = collection.data.get_by_id(uuid_object)
     assert object_get.data[name] == value
 
     client.collection.delete("Something")
@@ -82,21 +83,21 @@ def test_references(client: weaviate.Client):
 
     uuid_from1 = collection.data.insert({}, uuid.uuid4())
     uuid_from2 = collection.data.insert({"ref": RefToObject(uuid_to)}, uuid.uuid4())
-    collection.reference_add(from_uuid=uuid_from1, from_property="ref", to_uuids=uuid_to)
-    objects = collection.get()
+    collection.data.reference_add(from_uuid=uuid_from1, from_property="ref", to_uuids=uuid_to)
+    objects = collection.data.get()
     for obj in objects:
         assert str(uuid_to) in "".join([ref["beacon"] for ref in obj.data["ref"]])
 
-    collection.reference_delete(from_uuid=uuid_from1, from_property="ref", to_uuids=uuid_to)
-    assert len(collection.get_by_id(uuid_from1).data["ref"]) == 0
+    collection.data.reference_delete(from_uuid=uuid_from1, from_property="ref", to_uuids=uuid_to)
+    assert len(collection.data.get_by_id(uuid_from1).data["ref"]) == 0
 
-    collection.reference_add(from_uuid=uuid_from2, from_property="ref", to_uuids=uuid_to)
-    obj = collection.get_by_id(uuid_from2)
+    collection.data.reference_add(from_uuid=uuid_from2, from_property="ref", to_uuids=uuid_to)
+    obj = collection.data.get_by_id(uuid_from2)
     assert len(obj.data["ref"]) == 2
     assert str(uuid_to) in "".join([ref["beacon"] for ref in obj.data["ref"]])
 
-    collection.reference_replace(from_uuid=uuid_from2, from_property="ref", to_uuids=[])
-    assert len(collection.get_by_id(uuid_from2).data["ref"]) == 0
+    collection.data.reference_replace(from_uuid=uuid_from2, from_property="ref", to_uuids=[])
+    assert len(collection.data.get_by_id(uuid_from2).data["ref"]) == 0
 
 
 @pytest.mark.parametrize("fusion_type", [HybridFusion.RANKED, HybridFusion.RELATIVE_SCORE])
@@ -219,7 +220,7 @@ def test_near_vector(client: weaviate.Client):
     collection.data.insert({"Name": "car"})
     collection.data.insert({"Name": "Mountain"})
 
-    banana = collection.get_by_id(uuid_banana, metadata=Metadata(vector=True))
+    banana = collection.data.get_by_id(uuid_banana, metadata=Metadata(vector=True))
 
     full_objects = collection.get_grpc.with_return_values(
         distance=True, certainty=True
@@ -294,7 +295,7 @@ def test_references_grcp(client: weaviate.Client):
         )
     )
     uuid_B = B.data.insert({"Name": "B", "ref": RefToObject(uuid_A1)})
-    B.reference_add(from_uuid=uuid_B, from_property="ref", to_uuids=uuid_A2)
+    B.data.reference_add(from_uuid=uuid_B, from_property="ref", to_uuids=uuid_A2)
 
     C = client.collection.create(
         CollectionConfig(

@@ -119,6 +119,89 @@ class CollectionObject(CollectionObjectBase):
 
             return self.__collection._insert(weaviate_obj)
 
+        def insert_many(self, objects: List[DataObject]) -> List[Union[uuid_package.UUID, Errors]]:
+            weaviate_objs: List[Dict[str, Any]] = [
+                {
+                    "class": self.__collection._name,
+                    "properties": {
+                        key: val if not isinstance(val, RefToObject) else val.to_beacon()
+                        for key, val in obj.data.items()
+                    },
+                    "id": str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
+                }
+                for obj in objects
+            ]
+
+            return self.__collection._insert_many(weaviate_objs)
+
+        def replace(
+            self, data: Dict[str, Any], uuid: UUID, vector: Optional[List[float]] = None
+        ) -> None:
+            weaviate_obj: Dict[str, Any] = {
+                "class": self.__collection._name,
+                "properties": {
+                    key: val if not isinstance(val, RefToObject) else val.to_beacon()
+                    for key, val in data.items()
+                },
+            }
+            if vector is not None:
+                weaviate_obj["vector"] = vector
+
+            self.__collection._replace(weaviate_obj, uuid=uuid)
+
+        def update(
+            self, data: Dict[str, Any], uuid: UUID, vector: Optional[List[float]] = None
+        ) -> None:
+            weaviate_obj: Dict[str, Any] = {
+                "class": self.__collection._name,
+                "properties": {
+                    key: val if not isinstance(val, RefToObject) else val.to_beacon()
+                    for key, val in data.items()
+                },
+            }
+            if vector is not None:
+                weaviate_obj["vector"] = vector
+
+            self.__collection._update(weaviate_obj, uuid=uuid)
+
+        def get_by_id(self, uuid: UUID, metadata: Optional[Metadata] = None) -> Optional[_Object]:
+            ret = self.__collection._get_by_id(uuid=uuid, metadata=metadata)
+            if ret is None:
+                return ret
+            return self.__collection._json_to_object(ret)
+
+        def get(self, metadata: Optional[Metadata] = None) -> List[_Object]:
+            ret = self.__collection._get(metadata=metadata)
+            if ret is None:
+                return []
+
+            return [self.__collection._json_to_object(obj) for obj in ret["objects"]]
+
+        def reference_add(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
+            self.__collection._reference_add(
+                from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
+            )
+
+        def reference_batch_add(self, from_property: str, refs: List[BatchReference]) -> None:
+            refs_dict = [
+                {
+                    "from": BEACON + f"{self._name}/{ref.from_uuid}/{from_property}",
+                    "to": BEACON + str(ref.to_uuid),
+                }
+                for ref in refs
+            ]
+            self.__collection._reference_batch_add(refs_dict)
+
+        def reference_delete(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
+            self.__collection._reference_delete(
+                from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
+            )
+
+        def reference_replace(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
+            self.__collection._reference_replace(
+                from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
+            )
+
     def __init__(self, connection: Connection, name: str) -> None:
         super().__init__(connection, name)
         self.data = self.__Data(self)
@@ -131,92 +214,9 @@ class CollectionObject(CollectionObjectBase):
     ) -> "CollectionObject":
         return self._with_consistency_level(consistency_level)
 
-    def insert_many(self, objects: List[DataObject]) -> List[Union[uuid_package.UUID, Errors]]:
-        weaviate_objs: List[Dict[str, Any]] = [
-            {
-                "class": self._name,
-                "properties": {
-                    key: val if not isinstance(val, RefToObject) else val.to_beacon()
-                    for key, val in obj.data.items()
-                },
-                "id": str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
-            }
-            for obj in objects
-        ]
-
-        return self._insert_many(weaviate_objs)
-
-    def replace(
-        self, data: Dict[str, Any], uuid: UUID, vector: Optional[List[float]] = None
-    ) -> None:
-        weaviate_obj: Dict[str, Any] = {
-            "class": self._name,
-            "properties": {
-                key: val if not isinstance(val, RefToObject) else val.to_beacon()
-                for key, val in data.items()
-            },
-        }
-        if vector is not None:
-            weaviate_obj["vector"] = vector
-
-        self._replace(weaviate_obj, uuid=uuid)
-
-    def update(
-        self, data: Dict[str, Any], uuid: UUID, vector: Optional[List[float]] = None
-    ) -> None:
-        weaviate_obj: Dict[str, Any] = {
-            "class": self._name,
-            "properties": {
-                key: val if not isinstance(val, RefToObject) else val.to_beacon()
-                for key, val in data.items()
-            },
-        }
-        if vector is not None:
-            weaviate_obj["vector"] = vector
-
-        self._update(weaviate_obj, uuid=uuid)
-
-    def get_by_id(self, uuid: UUID, metadata: Optional[Metadata] = None) -> Optional[_Object]:
-        ret = self._get_by_id(uuid=uuid, metadata=metadata)
-        if ret is None:
-            return ret
-        return self._json_to_object(ret)
-
-    def get(self, metadata: Optional[Metadata] = None) -> List[_Object]:
-        ret = self._get(metadata=metadata)
-        if ret is None:
-            return []
-
-        return [self._json_to_object(obj) for obj in ret["objects"]]
-
     @property
     def get_grpc(self) -> ReturnValues[GrpcBuilder]:
         return ReturnValues[GrpcBuilder](GrpcBuilder(self._connection, self._name))
-
-    def reference_add(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
-        self._reference_add(
-            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
-        )
-
-    def reference_batch_add(self, from_property: str, refs: List[BatchReference]) -> None:
-        refs_dict = [
-            {
-                "from": BEACON + f"{self._name}/{ref.from_uuid}/{from_property}",
-                "to": BEACON + str(ref.to_uuid),
-            }
-            for ref in refs
-        ]
-        self._reference_batch_add(refs_dict)
-
-    def reference_delete(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
-        self._reference_delete(
-            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
-        )
-
-    def reference_replace(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
-        self._reference_replace(
-            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
-        )
 
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object:
         return _Object(
