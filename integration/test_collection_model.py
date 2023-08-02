@@ -1,5 +1,10 @@
-from typing import List, Optional, Annotated
+import sys
+from typing import List, Optional
 
+if sys.version_info < (3, 9):
+    from typing_extensions import Annotated
+else:
+    from typing import Annotated
 import pytest as pytest
 import uuid
 
