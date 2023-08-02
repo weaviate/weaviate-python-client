@@ -25,7 +25,7 @@ def client():
     client.schema.delete_all()
 
 
-def test_create_and_delete(client):
+def test_create_and_delete(client: weaviate.Client):
     name = "Something"
     collection_config = CollectionConfig(
         name=name,
@@ -50,7 +50,7 @@ def test_create_and_delete(client):
         (DataType.NUMBER_ARRAY, [1.0, 2.1]),
     ],
 )
-def test_types(client, dataType, value):
+def test_types(client: weaviate.Client, dataType, value):
     name = "name"
     client.collection.delete("Something")
 
@@ -68,7 +68,7 @@ def test_types(client, dataType, value):
     client.collection.delete("Something")
 
 
-def test_references(client):
+def test_references(client: weaviate.Client):
     ref_collection = client.collection.create(
         CollectionConfig(name="RefClass2", vectorizer=Vectorizer.NONE)
     )
@@ -100,7 +100,7 @@ def test_references(client):
 
 
 @pytest.mark.parametrize("fusion_type", [HybridFusion.RANKED, HybridFusion.RELATIVE_SCORE])
-def test_search_hybrid(client, fusion_type):
+def test_search_hybrid(client: weaviate.Client, fusion_type):
     collection = client.collection.create(
         CollectionConfig(
             name="Testing",
@@ -118,7 +118,7 @@ def test_search_hybrid(client, fusion_type):
 
 
 @pytest.mark.parametrize("limit", [1, 5])
-def test_search_limit(client, limit):
+def test_search_limit(client: weaviate.Client, limit):
     client.collection.delete("TestLimit")
     collection = client.collection.create(
         CollectionConfig(
@@ -134,7 +134,7 @@ def test_search_limit(client, limit):
 
 
 @pytest.mark.parametrize("offset", [0, 1, 5])
-def test_search_offset(client, offset):
+def test_search_offset(client: weaviate.Client, offset):
     client.collection.delete("TestOffset")
     collection = client.collection.create(
         CollectionConfig(
@@ -152,7 +152,7 @@ def test_search_offset(client, offset):
     assert len(objects) == nr_objects - offset
 
 
-def test_search_after(client):
+def test_search_after(client: weaviate.Client):
     client.collection.delete("TestOffset")
     collection = client.collection.create(
         CollectionConfig(
@@ -172,7 +172,7 @@ def test_search_after(client):
         assert len(objects_after) == nr_objects - 1 - i
 
 
-def test_autocut(client):
+def test_autocut(client: weaviate.Client):
     client.collection.delete("TestAutocut")
     collection = client.collection.create(
         CollectionConfig(
@@ -205,7 +205,7 @@ def test_autocut(client):
     assert len(objects) == 1 * 4
 
 
-def test_near_vector(client):
+def test_near_vector(client: weaviate.Client):
     client.collection.delete("TestNearVector")
     collection = client.collection.create(
         CollectionConfig(
@@ -237,7 +237,7 @@ def test_near_vector(client):
     assert len(objects_distance) == 3
 
 
-def test_near_object(client):
+def test_near_object(client: weaviate.Client):
     client.collection.delete("TestNearVector")
     collection = client.collection.create(
         CollectionConfig(
@@ -267,7 +267,7 @@ def test_near_object(client):
     assert len(objects_distance) == 3
 
 
-def test_references_grcp(client):
+def test_references_grcp(client: weaviate.Client):
     client.collection.delete("A")
     client.collection.delete("B")
     client.collection.delete("C")
