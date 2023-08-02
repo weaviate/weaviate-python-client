@@ -329,5 +329,5 @@ def test_references_grcp(client):
     ).bm25(query="find")
     assert objects[0].data["name"] == "find me"
     assert objects[0].data["ref"][0].data["name"] == "B"
-    assert objects[0].data["ref"][0].data["ref"][0].data["name"] == "A"
-    assert objects[0].data["ref"][0].data["ref"][1].data["name"] == "A"
+    assert objects[0].data["ref"][0].data["ref"][0].data["name"] == "A1"
+    assert objects[0].data["ref"][0].data["ref"][1].data["name"] == "A2"
