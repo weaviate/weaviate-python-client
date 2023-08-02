@@ -84,9 +84,14 @@ class GrpcBuilder(GrpcBuilderBase):
             self.__dict_to_obj(obj) for obj in self._near_object(obj, certainty, distance, autocut)
         ]
 
-    @staticmethod
-    def __dict_to_obj(obj: Tuple[Dict[str, Any], MetadataReturn]) -> _Object:
-        return _Object(data=obj[0], metadata=obj[1])
+    def __dict_to_obj(self, obj: Tuple[Dict[str, Any], MetadataReturn]) -> _Object:
+        data: Dict[str, Any] = obj[0]
+        for key in data.keys():
+            if isinstance(data[key], List):
+                for i, _ in enumerate(data[key]):
+                    data[key][i] = self.__dict_to_obj(data[key][i])
+
+        return _Object(data=data, metadata=obj[1])
 
 
 class CollectionObject(CollectionObjectBase):

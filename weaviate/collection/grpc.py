@@ -10,26 +10,13 @@ from weaviate.weaviate_types import UUID
 from weaviate_grpc import weaviate_pb2
 
 
-@dataclass
-class LinkTo:
-    link_on: str
-    linked_class: str
-    properties: List[Union[str, "LinkTo"]]
-
-    def __hash__(self):  # for set
-        return hash(str(self))
-
-
-PROPERTIES = Union[Set[Union[str, LinkTo]], str]
-
-
 class HybridFusion(str, BaseEnum):
     RANKED = "rankedFusion"
     RELATIVE_SCORE = "relativeScoreFusion"
 
 
 @dataclass
-class _Metadata:
+class Metadata:
     uuid: bool = False
     vector: bool = False
     creationTimeUnix: bool = False
@@ -38,6 +25,26 @@ class _Metadata:
     certainty: bool = False
     score: bool = False
     explainScore: bool = False
+
+
+@dataclass
+class LinkTo:
+    link_on: str
+    linked_class: str
+    properties: "PROPERTIES"
+    metadata: Metadata
+
+    def __hash__(self):  # for set
+        return hash(str(self))
+
+
+PROPERTIES = Union[Set[Union[str, LinkTo]], str]
+
+
+@dataclass
+class RefProps:
+    meta: Metadata
+    refs: Dict[str, "RefProps"]
 
 
 class GrpcBuilderBase:
@@ -51,7 +58,7 @@ class GrpcBuilderBase:
             self._default_props: Set[str] = default_properties
         else:
             self._default_props = set()
-        self._metadata: Optional[_Metadata] = None
+        self._metadata: Optional[Metadata] = None
 
         self._limit: Optional[int] = None
         self._offset: Optional[int] = None
@@ -72,7 +79,7 @@ class GrpcBuilderBase:
         self._near_certainty: Optional[float] = None
         self._near_distance: Optional[float] = None
 
-    def add_return_values(self, props: Optional[PROPERTIES], metadata: Optional[_Metadata]):
+    def add_return_values(self, props: Optional[PROPERTIES], metadata: Optional[Metadata]):
         if props is not None:
             if isinstance(props, set):
                 self._default_props = self._default_props.union(props)
@@ -185,16 +192,7 @@ class GrpcBuilderBase:
                     if self._near_object_obj is not None
                     else None,
                     properties=self._convert_references_to_grpc(self._default_props),
-                    additional_properties=weaviate_pb2.AdditionalProperties(
-                        uuid=self._metadata.uuid,
-                        vector=self._metadata.vector,
-                        creationTimeUnix=self._metadata.creationTimeUnix,
-                        lastUpdateTimeUnix=self._metadata.lastUpdateTimeUnix,
-                        distance=self._metadata.distance,
-                        certainty=self._metadata.certainty,
-                        explainScore=self._metadata.explainScore,
-                        score=self._metadata.score,
-                    )
+                    additional_properties=self._metadata_to_grpc(self._metadata)
                     if self._metadata is not None
                     else None,
                     bm25_search=weaviate_pb2.BM25SearchParams(
@@ -214,10 +212,13 @@ class GrpcBuilderBase:
                 ),
                 metadata=metadata,
             )
+
+            ref_props_meta = self._ref_props_return_meta(self._default_props)
+
             objects = []
             for result in res.results:
-                obj = self._convert_references_to_grpc_result(result.properties)
-                metadata = self._extract_metadata(result.additional_properties)
+                obj = self._convert_references_to_grpc_result(result.properties, ref_props_meta)
+                metadata = self._extract_metadata(result.additional_properties, self._metadata)
                 objects.append((obj, metadata))
 
             return objects
@@ -226,8 +227,29 @@ class GrpcBuilderBase:
             results = {"errors": [e.details()]}
             return results
 
+    def _ref_props_return_meta(self, props: PROPERTIES) -> Dict[str, RefProps]:
+        ref_props = {}
+        for prop in props:
+            if isinstance(prop, LinkTo):
+                ref_props[prop.link_on] = RefProps(
+                    meta=prop.metadata, refs=self._ref_props_return_meta(prop.properties)
+                )
+        return ref_props
+
+    def _metadata_to_grpc(self, metadata: Metadata) -> weaviate_pb2.AdditionalProperties:
+        return weaviate_pb2.AdditionalProperties(
+            uuid=metadata.uuid,
+            vector=metadata.vector,
+            creationTimeUnix=metadata.creationTimeUnix,
+            lastUpdateTimeUnix=metadata.lastUpdateTimeUnix,
+            distance=metadata.distance,
+            certainty=metadata.certainty,
+            explainScore=metadata.explainScore,
+            score=metadata.score,
+        )
+
     def _convert_references_to_grpc_result(
-        self, properties: "weaviate_pb2.ResultProperties"
+        self, properties: "weaviate_pb2.ResultProperties", props: Dict[str, RefProps]
     ) -> Dict[str, Any]:
         result = {}
         for name, non_ref_prop in properties.non_ref_properties.items():
@@ -235,7 +257,11 @@ class GrpcBuilderBase:
 
         for ref_prop in properties.ref_props:
             result[ref_prop.prop_name] = [
-                self._convert_references_to_grpc_result(prop) for prop in ref_prop.properties
+                (
+                    self._convert_references_to_grpc_result(prop, props[ref_prop.prop_name].refs),
+                    self._extract_metadata(prop.metadata, props[ref_prop.prop_name].meta),
+                )
+                for prop in ref_prop.properties
             ]
 
         return result
@@ -250,38 +276,41 @@ class GrpcBuilderBase:
                     linked_class=prop.linked_class,
                     reference_property=prop.link_on,
                     linked_properties=self._convert_references_to_grpc(set(prop.properties)),
+                    metadata=self._metadata_to_grpc(prop.metadata),
                 )
                 for prop in properties
                 if isinstance(prop, LinkTo)
             ],
         )
 
-    def _extract_metadata(self, props: "weaviate_pb2.ResultAdditionalProps") -> MetadataReturn:
-        if self._metadata is None:
+    def _extract_metadata(
+        self, props: "weaviate_pb2.ResultAdditionalProps", meta: Metadata
+    ) -> MetadataReturn:
+        if meta is None:
             return MetadataReturn()
 
         additional_props: Dict[str, Any] = {}
-        if self._metadata.uuid:
+        if meta.uuid:
             additional_props["id"] = props.id
-        if self._metadata.vector:
+        if meta.vector:
             additional_props["vector"] = (
                 [float(num) for num in props.vector] if len(props.vector) > 0 else None
             )
-        if self._metadata.distance:
+        if meta.distance:
             additional_props["distance"] = props.distance if props.distance_present else None
-        if self._metadata.certainty:
+        if meta.certainty:
             additional_props["certainty"] = props.certainty if props.certainty_present else None
-        if self._metadata.creationTimeUnix:
+        if meta.creationTimeUnix:
             additional_props["creationTimeUnix"] = (
                 str(props.creation_time_unix) if props.creation_time_unix_present else None
             )
-        if self._metadata.lastUpdateTimeUnix:
+        if meta.lastUpdateTimeUnix:
             additional_props["lastUpdateTimeUnix"] = (
                 str(props.last_update_time_unix) if props.last_update_time_unix_present else None
             )
-        if self._metadata.score:
+        if meta.score:
             additional_props["score"] = props.score if props.score_present else None
-        if self._metadata.explainScore:
+        if meta.explainScore:
             additional_props["explainScore"] = (
                 props.explain_score if props.explain_score_present else None
             )
@@ -307,7 +336,7 @@ class ReturnValues(Generic[GrpcBuilder]):
         score: bool = False,
         explain_score: bool = False,
     ) -> GrpcBuilder:
-        additional_props = _Metadata(
+        additional_props = Metadata(
             uuid=uuid,
             vector=vector,
             creationTimeUnix=creation_time_unix,

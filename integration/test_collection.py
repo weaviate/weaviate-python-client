@@ -3,7 +3,7 @@ import uuid
 
 import weaviate
 from weaviate import Config
-from weaviate.collection.grpc import HybridFusion
+from weaviate.collection.grpc import HybridFusion, LinkTo, Metadata
 from weaviate.weaviate_classes import (
     CollectionConfig,
     Property,
@@ -11,7 +11,6 @@ from weaviate.weaviate_classes import (
     Vectorizer,
     ReferenceProperty,
     RefToObject,
-    Metadata,
 )
 
 
@@ -265,3 +264,69 @@ def test_near_object(client):
         distance=True, certainty=True
     ).near_object(uuid_banana, certainty=full_objects[2].metadata.certainty)
     assert len(objects_distance) == 3
+
+
+def test_references_grcp(client):
+    client.collection.delete("A")
+    client.collection.delete("B")
+    client.collection.delete("C")
+    A = client.collection.create(
+        CollectionConfig(
+            name="A",
+            vectorizer=Vectorizer.NONE,
+            properties=[
+                Property(name="Name", dataType=DataType.TEXT),
+            ],
+        )
+    )
+    uuid_A1 = A.insert(data={"Name": "A1"})
+    uuid_A2 = A.insert(data={"Name": "A2"})
+
+    B = client.collection.create(
+        CollectionConfig(
+            name="B",
+            properties=[
+                Property(name="Name", dataType=DataType.TEXT),
+                ReferenceProperty(name="ref", reference_class_name="A"),
+            ],
+            vectorizer=Vectorizer.NONE,
+        )
+    )
+    uuid_B = B.insert({"Name": "B", "ref": RefToObject(uuid_A1)})
+    B.reference_add(from_uuid=uuid_B, from_property="ref", to_uuids=uuid_A2)
+
+    C = client.collection.create(
+        CollectionConfig(
+            name="C",
+            properties=[
+                Property(name="Name", dataType=DataType.TEXT),
+                ReferenceProperty(name="ref", reference_class_name="B"),
+            ],
+            vectorizer=Vectorizer.NONE,
+        )
+    )
+    C.insert({"Name": "find me", "ref": RefToObject(uuid_B)})
+
+    objects = C.get_grpc.with_return_values(
+        properties={
+            "name",
+            LinkTo(
+                link_on="ref",
+                linked_class="B",
+                properties={
+                    "name",
+                    LinkTo(
+                        link_on="ref",
+                        linked_class="A",
+                        properties={"name"},
+                        metadata=Metadata(uuid=True),
+                    ),
+                },
+                metadata=Metadata(uuid=True, lastUpdateTimeUnix=True),
+            ),
+        }
+    ).bm25(query="find")
+    assert objects[0].data["name"] == "find me"
+    assert objects[0].data["ref"][0].data["name"] == "B"
+    assert objects[0].data["ref"][0].data["ref"][0].data["name"] == "A"
+    assert objects[0].data["ref"][0].data["ref"][1].data["name"] == "A"
