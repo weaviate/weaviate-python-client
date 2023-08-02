@@ -1,6 +1,7 @@
+import uuid as uuid_package
+from dataclasses import dataclass
 from typing import Type, Optional, Any, List, Dict, Generic, Tuple, Union
 
-import uuid as uuid_package
 from pydantic import create_model
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -59,10 +60,107 @@ class GrpcBuilderModel(Generic[Model], GrpcBuilderBase):
 
 
 class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
+    @dataclass
+    class __Data:
+        __collection: "CollectionObjectModel[Model]"
+
+        def insert(self, obj: Model) -> uuid_package.UUID:
+            self.__collection._model.model_validate(obj)
+
+            weaviate_obj: Dict[str, Any] = {
+                "class": self.__collection._name,
+                "properties": obj.props_to_dict(),
+                "id": str(obj.uuid),
+            }
+            if obj.vector is not None:
+                weaviate_obj["vector"] = obj.vector
+
+            self.__collection._insert(weaviate_obj)
+            return uuid_package.UUID(str(obj.uuid))
+
+        def insert_many(self, objects: List[Model]) -> List[Union[uuid_package.UUID, Errors]]:
+            for obj in objects:
+                self.__collection._model.model_validate(obj)
+
+            weaviate_objs: List[Dict[str, Any]] = [
+                {
+                    "class": self.__collection._name,
+                    "properties": obj.props_to_dict(),
+                    "id": str(obj.uuid),
+                }
+                for obj in objects
+            ]
+            return self.__collection._insert_many(weaviate_objs)
+
+        def replace(self, obj: Model, uuid: UUID) -> None:
+            self.__collection._model.model_validate(obj)
+
+            weaviate_obj: Dict[str, Any] = {
+                "class": self.__collection._name,
+                "properties": obj.props_to_dict(),
+            }
+            if obj.vector is not None:
+                weaviate_obj["vector"] = obj.vector
+
+            self.__collection._replace(weaviate_obj, uuid)
+
+        def update(self, obj: Model, uuid: UUID) -> None:
+            self.__collection._model.model_validate(obj)
+
+            weaviate_obj: Dict[str, Any] = {
+                "class": self.__collection._name,
+                "properties": obj.props_to_dict(update=True),
+            }
+            if obj.vector is not None:
+                weaviate_obj["vector"] = obj.vector
+
+            self.__collection._update(weaviate_obj, uuid)
+
+        def get_by_id(
+            self, uuid: UUID, metadata: Optional[Metadata] = None
+        ) -> Optional[_Object[Model]]:
+            ret = self.__collection._get_by_id(uuid=uuid, metadata=metadata)
+            if ret is None:
+                return None
+            return self.__collection._json_to_object(ret)
+
+        def get(self, metadata: Optional[Metadata] = None) -> Optional[List[_Object[Model]]]:
+            ret = self.__collection._get(metadata=metadata)
+            if ret is None:
+                return None
+
+            return [self.__collection._json_to_object(obj) for obj in ret["objects"]]
+
+        def reference_add(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
+            self.__collection._reference_add(
+                from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
+            )
+
+        def reference_delete(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
+            self.__collection._reference_delete(
+                from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
+            )
+
+        def reference_replace(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
+            self.__collection._reference_replace(
+                from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
+            )
+
+        def reference_batch_add(self, from_property: str, refs: List[BatchReference]) -> None:
+            refs_dict = [
+                {
+                    "from": BEACON + f"{self.__collection._name}/{ref.from_uuid}/{from_property}",
+                    "to": BEACON + str(ref.to_uuid),
+                }
+                for ref in refs
+            ]
+            self.__collection._reference_batch_add(refs_dict)
+
     def __init__(self, connection: Connection, name: str, model: Type[Model]) -> None:
         super().__init__(connection, name)
         self._model: Type[Model] = model
         self._default_props = model.get_non_optional_fields(model)
+        self.data = self.__Data(self)
 
     def with_tenant(self, tenant: Optional[str] = None) -> "CollectionObjectModel":
         return self._with_tenant(tenant)
@@ -72,103 +170,11 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
     ) -> "CollectionObjectModel":
         return self._with_consistency_level(consistency_level)
 
-    def insert(self, obj: Model) -> uuid_package.UUID:
-        self._model.model_validate(obj)
-
-        weaviate_obj: Dict[str, Any] = {
-            "class": self._name,
-            "properties": obj.props_to_dict(),
-            "id": str(obj.uuid),
-        }
-        if obj.vector is not None:
-            weaviate_obj["vector"] = obj.vector
-
-        self._insert(weaviate_obj)
-        return uuid_package.UUID(str(obj.uuid))
-
-    def insert_many(self, objects: List[Model]) -> List[Union[uuid_package.UUID, Errors]]:
-        for obj in objects:
-            self._model.model_validate(obj)
-
-        weaviate_objs: List[Dict[str, Any]] = [
-            {
-                "class": self._name,
-                "properties": obj.props_to_dict(),
-                "id": str(obj.uuid),
-            }
-            for obj in objects
-        ]
-        return self._insert_many(weaviate_objs)
-
-    def replace(self, obj: Model, uuid: UUID) -> None:
-        self._model.model_validate(obj)
-
-        weaviate_obj: Dict[str, Any] = {
-            "class": self._name,
-            "properties": obj.props_to_dict(),
-        }
-        if obj.vector is not None:
-            weaviate_obj["vector"] = obj.vector
-
-        self._replace(weaviate_obj, uuid)
-
-    def update(self, obj: Model, uuid: UUID) -> None:
-        self._model.model_validate(obj)
-
-        weaviate_obj: Dict[str, Any] = {
-            "class": self._name,
-            "properties": obj.props_to_dict(update=True),
-        }
-        if obj.vector is not None:
-            weaviate_obj["vector"] = obj.vector
-
-        self._update(weaviate_obj, uuid)
-
-    def get_by_id(
-        self, uuid: UUID, metadata: Optional[Metadata] = None
-    ) -> Optional[_Object[Model]]:
-        ret = self._get_by_id(uuid=uuid, metadata=metadata)
-        if ret is None:
-            return None
-        return self._json_to_object(ret)
-
-    def get(self, metadata: Optional[Metadata] = None) -> Optional[List[_Object[Model]]]:
-        ret = self._get(metadata=metadata)
-        if ret is None:
-            return None
-
-        return [self._json_to_object(obj) for obj in ret["objects"]]
-
     @property
     def get_grpc(self) -> ReturnValues[GrpcBuilderModel[Model]]:
         return ReturnValues[GrpcBuilderModel[Model]](
             GrpcBuilderModel[Model](self._connection, self._name, self._model)
         )
-
-    def reference_add(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
-        self._reference_add(
-            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
-        )
-
-    def reference_delete(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
-        self._reference_delete(
-            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
-        )
-
-    def reference_replace(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
-        self._reference_replace(
-            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
-        )
-
-    def reference_batch_add(self, from_property: str, refs: List[BatchReference]) -> None:
-        refs_dict = [
-            {
-                "from": BEACON + f"{self._name}/{ref.from_uuid}/{from_property}",
-                "to": BEACON + str(ref.to_uuid),
-            }
-            for ref in refs
-        ]
-        self._reference_batch_add(refs_dict)
 
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Model]:
         for ref in self._model.get_ref_fields(self._model):

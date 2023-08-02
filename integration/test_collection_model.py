@@ -32,7 +32,7 @@ def client():
     collection = client.collection_model.create(
         CollectionModelConfig(name="Group", model=Group, vectorizer=Vectorizer.NONE)
     )
-    collection.insert(obj=Group(name="Name", uuid=REF_TO_UUID))
+    collection.data.insert(obj=Group(name="Name", uuid=REF_TO_UUID))
 
     yield client
     client.schema.delete_all()
@@ -62,13 +62,13 @@ def test_types(client: weaviate.Client, member_type, value, optional: bool):
     collection = client.collection_model.create(
         CollectionModelConfig(name=name, model=ModelTypes, vectorizer=Vectorizer.NONE)
     )
-    uuid_object = collection.insert(ModelTypes(name=value))
-    object_get = collection.get_by_id(uuid_object)
+    uuid_object = collection.data.insert(ModelTypes(name=value))
+    object_get = collection.data.get_by_id(uuid_object)
     assert object_get.data == ModelTypes(name=value, uuid=uuid_object)
 
     if optional:
-        uuid_object_optional = collection.insert(ModelTypes(name=None))
-        object_get_optional = collection.get_by_id(uuid_object_optional)
+        uuid_object_optional = collection.data.insert(ModelTypes(name=None))
+        object_get_optional = collection.data.get_by_id(uuid_object_optional)
         assert object_get_optional.data == ModelTypes(name=None, uuid=uuid_object_optional)
 
 
@@ -89,8 +89,8 @@ def test_types_annotates(client: weaviate.Client, member_type, annotation, value
     collection = client.collection_model.create(
         CollectionModelConfig(name=name, model=ModelTypes, vectorizer=Vectorizer.NONE)
     )
-    uuid_object = collection.insert(ModelTypes(name=value))
-    object_get = collection.get_by_id(uuid_object)
+    uuid_object = collection.data.insert(ModelTypes(name=value))
+    object_get = collection.data.get_by_id(uuid_object)
     assert object_get.data.name == value
 
 
