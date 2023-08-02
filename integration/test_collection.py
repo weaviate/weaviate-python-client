@@ -3,7 +3,7 @@ import uuid
 
 import weaviate
 from weaviate import Config
-from weaviate.collection.grpc import HybridFusion, LinkTo, Metadata
+from weaviate.collection.grpc import HybridFusion, LinkTo, MetadataQuery
 from weaviate.weaviate_classes import (
     CollectionConfig,
     Property,
@@ -11,6 +11,7 @@ from weaviate.weaviate_classes import (
     Vectorizer,
     ReferenceProperty,
     RefToObject,
+    Metadata,
 )
 
 
@@ -319,10 +320,10 @@ def test_references_grcp(client):
                         link_on="ref",
                         linked_class="A",
                         properties={"name"},
-                        metadata=Metadata(uuid=True),
+                        metadata=MetadataQuery(uuid=True),
                     ),
                 },
-                metadata=Metadata(uuid=True, lastUpdateTimeUnix=True),
+                metadata=MetadataQuery(uuid=True, lastUpdateTimeUnix=True),
             ),
         }
     ).bm25(query="find")

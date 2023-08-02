@@ -16,7 +16,7 @@ class HybridFusion(str, BaseEnum):
 
 
 @dataclass
-class Metadata:
+class MetadataQuery:
     uuid: bool = False
     vector: bool = False
     creationTimeUnix: bool = False
@@ -32,7 +32,7 @@ class LinkTo:
     link_on: str
     linked_class: str
     properties: "PROPERTIES"
-    metadata: Metadata
+    metadata: MetadataQuery
 
     def __hash__(self):  # for set
         return hash(str(self))
@@ -43,7 +43,7 @@ PROPERTIES = Union[Set[Union[str, LinkTo]], str]
 
 @dataclass
 class RefProps:
-    meta: Metadata
+    meta: MetadataQuery
     refs: Dict[str, "RefProps"]
 
 
@@ -58,7 +58,7 @@ class GrpcBuilderBase:
             self._default_props: Set[str] = default_properties
         else:
             self._default_props = set()
-        self._metadata: Optional[Metadata] = None
+        self._metadata: Optional[MetadataQuery] = None
 
         self._limit: Optional[int] = None
         self._offset: Optional[int] = None
@@ -79,7 +79,7 @@ class GrpcBuilderBase:
         self._near_certainty: Optional[float] = None
         self._near_distance: Optional[float] = None
 
-    def add_return_values(self, props: Optional[PROPERTIES], metadata: Optional[Metadata]):
+    def add_return_values(self, props: Optional[PROPERTIES], metadata: Optional[MetadataQuery]):
         if props is not None:
             if isinstance(props, set):
                 self._default_props = self._default_props.union(props)
@@ -236,7 +236,7 @@ class GrpcBuilderBase:
                 )
         return ref_props
 
-    def _metadata_to_grpc(self, metadata: Metadata) -> weaviate_pb2.AdditionalProperties:
+    def _metadata_to_grpc(self, metadata: MetadataQuery) -> weaviate_pb2.AdditionalProperties:
         return weaviate_pb2.AdditionalProperties(
             uuid=metadata.uuid,
             vector=metadata.vector,
@@ -284,7 +284,7 @@ class GrpcBuilderBase:
         )
 
     def _extract_metadata(
-        self, props: "weaviate_pb2.ResultAdditionalProps", meta: Metadata
+        self, props: "weaviate_pb2.ResultAdditionalProps", meta: MetadataQuery
     ) -> MetadataReturn:
         if meta is None:
             return MetadataReturn()
@@ -336,7 +336,7 @@ class ReturnValues(Generic[GrpcBuilder]):
         score: bool = False,
         explain_score: bool = False,
     ) -> GrpcBuilder:
-        additional_props = Metadata(
+        additional_props = MetadataQuery(
             uuid=uuid,
             vector=vector,
             creationTimeUnix=creation_time_unix,
