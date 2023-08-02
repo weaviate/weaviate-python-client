@@ -59,10 +59,29 @@ class GrpcBuilderModel(Generic[Model], GrpcBuilderBase):
 
 
 class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
+    @dataclass
+    class __Data:
+        collection: "CollectionObjectModel"
+
+        def insert(self, obj: Model) -> uuid_package.UUID:
+            self.collection._model.model_validate(obj)
+
+            weaviate_obj: Dict[str, Any] = {
+                "class": self.collection._name,
+                "properties": obj.props_to_dict(),
+                "id": str(obj.uuid),
+            }
+            if obj.vector is not None:
+                weaviate_obj["vector"] = obj.vector
+
+            self.collection._insert(weaviate_obj)
+            return uuid_package.UUID(str(obj.uuid))
+
     def __init__(self, connection: Connection, name: str, model: Type[Model]) -> None:
         super().__init__(connection, name)
         self._model: Type[Model] = model
         self._default_props = model.get_non_optional_fields(model)
+        self.data = self.__Data(self)
 
     def with_tenant(self, tenant: Optional[str] = None) -> "CollectionObjectModel":
         return self._with_tenant(tenant)
@@ -71,20 +90,6 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
         self, consistency_level: Optional[ConsistencyLevel] = None
     ) -> "CollectionObjectModel":
         return self._with_consistency_level(consistency_level)
-
-    def insert(self, obj: Model) -> uuid_package.UUID:
-        self._model.model_validate(obj)
-
-        weaviate_obj: Dict[str, Any] = {
-            "class": self._name,
-            "properties": obj.props_to_dict(),
-            "id": str(obj.uuid),
-        }
-        if obj.vector is not None:
-            weaviate_obj["vector"] = obj.vector
-
-        self._insert(weaviate_obj)
-        return uuid_package.UUID(str(obj.uuid))
 
     def insert_many(self, objects: List[Model]) -> List[Union[uuid_package.UUID, Errors]]:
         for obj in objects:

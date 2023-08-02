@@ -60,7 +60,7 @@ def test_types(client: weaviate.Client, dataType, value):
         vectorizer=Vectorizer.NONE,
     )
     collection = client.collection.create(collection_config)
-    uuid_object = collection.insert(data={name: value})
+    uuid_object = collection.data.insert(data={name: value})
 
     object_get = collection.get_by_id(uuid_object)
     assert object_get.data[name] == value
@@ -72,7 +72,7 @@ def test_references(client: weaviate.Client):
     ref_collection = client.collection.create(
         CollectionConfig(name="RefClass2", vectorizer=Vectorizer.NONE)
     )
-    uuid_to = ref_collection.insert(data={})
+    uuid_to = ref_collection.data.insert(data={})
     collection_config = CollectionConfig(
         name="SomethingElse",
         properties=[ReferenceProperty(name="ref", reference_class_name="RefClass2")],
@@ -80,8 +80,8 @@ def test_references(client: weaviate.Client):
     )
     collection = client.collection.create(collection_config)
 
-    uuid_from1 = collection.insert({}, uuid.uuid4())
-    uuid_from2 = collection.insert({"ref": RefToObject(uuid_to)}, uuid.uuid4())
+    uuid_from1 = collection.data.insert({}, uuid.uuid4())
+    uuid_from2 = collection.data.insert({"ref": RefToObject(uuid_to)}, uuid.uuid4())
     collection.reference_add(from_uuid=uuid_from1, from_property="ref", to_uuids=uuid_to)
     objects = collection.get()
     for obj in objects:
@@ -108,8 +108,8 @@ def test_search_hybrid(client: weaviate.Client, fusion_type):
             vectorizer=Vectorizer.TEXT2VEC_CONTEXTIONARY,
         )
     )
-    collection.insert({"Name": "some name"}, uuid.uuid4())
-    collection.insert({"Name": "other word"}, uuid.uuid4())
+    collection.data.insert({"Name": "some name"}, uuid.uuid4())
+    collection.data.insert({"Name": "other word"}, uuid.uuid4())
     res = collection.get_grpc.with_return_values(uuid=True).hybrid(
         alpha=0, query="name", fusion_type=fusion_type
     )
@@ -128,7 +128,7 @@ def test_search_limit(client: weaviate.Client, limit):
         )
     )
     for i in range(5):
-        collection.insert({"Name": str(i)})
+        collection.data.insert({"Name": str(i)})
 
     assert len(collection.get_grpc.with_return_values().get(limit=limit)) == limit
 
@@ -146,7 +146,7 @@ def test_search_offset(client: weaviate.Client, offset):
 
     nr_objects = 5
     for i in range(nr_objects):
-        collection.insert({"Name": str(i)})
+        collection.data.insert({"Name": str(i)})
 
     objects = collection.get_grpc.with_return_values().get(offset=offset)
     assert len(objects) == nr_objects - offset
@@ -164,7 +164,7 @@ def test_search_after(client: weaviate.Client):
 
     nr_objects = 10
     for i in range(nr_objects):
-        collection.insert({"Name": str(i)})
+        collection.data.insert({"Name": str(i)})
 
     objects = collection.get_grpc.with_return_values(uuid=True).get()
     for i, obj in enumerate(objects):
@@ -182,11 +182,11 @@ def test_autocut(client: weaviate.Client):
         )
     )
     for _ in range(4):
-        collection.insert({"Name": "rain rain"})
+        collection.data.insert({"Name": "rain rain"})
     for _ in range(4):
-        collection.insert({"Name": "rain"})
+        collection.data.insert({"Name": "rain"})
     for _ in range(4):
-        collection.insert({"Name": ""})
+        collection.data.insert({"Name": ""})
 
     # match all objects with rain
     objects = collection.get_grpc.with_return_values(uuid=True).bm25(query="rain", autocut=0)
@@ -214,10 +214,10 @@ def test_near_vector(client: weaviate.Client):
             vectorizer=Vectorizer.TEXT2VEC_CONTEXTIONARY,
         )
     )
-    uuid_banana = collection.insert({"Name": "Banana"})
-    collection.insert({"Name": "Fruit"})
-    collection.insert({"Name": "car"})
-    collection.insert({"Name": "Mountain"})
+    uuid_banana = collection.data.insert({"Name": "Banana"})
+    collection.data.insert({"Name": "Fruit"})
+    collection.data.insert({"Name": "car"})
+    collection.data.insert({"Name": "Mountain"})
 
     banana = collection.get_by_id(uuid_banana, metadata=Metadata(vector=True))
 
@@ -246,10 +246,10 @@ def test_near_object(client: weaviate.Client):
             vectorizer=Vectorizer.TEXT2VEC_CONTEXTIONARY,
         )
     )
-    uuid_banana = collection.insert({"Name": "Banana"})
-    collection.insert({"Name": "Fruit"})
-    collection.insert({"Name": "car"})
-    collection.insert({"Name": "Mountain"})
+    uuid_banana = collection.data.insert({"Name": "Banana"})
+    collection.data.insert({"Name": "Fruit"})
+    collection.data.insert({"Name": "car"})
+    collection.data.insert({"Name": "Mountain"})
 
     full_objects = collection.get_grpc.with_return_values(
         distance=True, certainty=True
@@ -280,8 +280,8 @@ def test_references_grcp(client: weaviate.Client):
             ],
         )
     )
-    uuid_A1 = A.insert(data={"Name": "A1"})
-    uuid_A2 = A.insert(data={"Name": "A2"})
+    uuid_A1 = A.data.insert(data={"Name": "A1"})
+    uuid_A2 = A.data.insert(data={"Name": "A2"})
 
     B = client.collection.create(
         CollectionConfig(
@@ -293,7 +293,7 @@ def test_references_grcp(client: weaviate.Client):
             vectorizer=Vectorizer.NONE,
         )
     )
-    uuid_B = B.insert({"Name": "B", "ref": RefToObject(uuid_A1)})
+    uuid_B = B.data.insert({"Name": "B", "ref": RefToObject(uuid_A1)})
     B.reference_add(from_uuid=uuid_B, from_property="ref", to_uuids=uuid_A2)
 
     C = client.collection.create(
@@ -306,7 +306,7 @@ def test_references_grcp(client: weaviate.Client):
             vectorizer=Vectorizer.NONE,
         )
     )
-    C.insert({"Name": "find me", "ref": RefToObject(uuid_B)})
+    C.data.insert({"Name": "find me", "ref": RefToObject(uuid_B)})
 
     objects = C.get_grpc.with_return_values(
         properties={

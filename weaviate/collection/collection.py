@@ -6,6 +6,7 @@ import uuid as uuid_package
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.collection.collection_classes import Errors
 from weaviate.collection.grpc import GrpcBuilderBase, HybridFusion, ReturnValues
+from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.weaviate_classes import CollectionConfig, MetadataReturn, Metadata, RefToObject
 from weaviate.weaviate_types import UUIDS, UUID, BEACON
@@ -95,6 +96,34 @@ class GrpcBuilder(GrpcBuilderBase):
 
 
 class CollectionObject(CollectionObjectBase):
+    @dataclass
+    class __Data:
+        collection: "CollectionObject"
+
+        def insert(
+            self,
+            data: Dict[str, Any],
+            uuid: Optional[UUID] = None,
+            vector: Optional[List[float]] = None,
+        ) -> uuid_package.UUID:
+            weaviate_obj: Dict[str, Any] = {
+                "class": self.collection._name,
+                "properties": {
+                    key: val if not isinstance(val, RefToObject) else val.to_beacon()
+                    for key, val in data.items()
+                },
+                "id": str(uuid if uuid is not None else uuid_package.uuid4()),
+            }
+
+            if vector is not None:
+                weaviate_obj["vector"] = vector
+
+            return self.collection._insert(weaviate_obj)
+
+    def __init__(self, connection: Connection, name: str) -> None:
+        super().__init__(connection, name)
+        self.data = self.__Data(self)
+
     def with_tenant(self, tenant: Optional[str] = None) -> "CollectionObject":
         return self._with_tenant(tenant)
 
@@ -102,26 +131,6 @@ class CollectionObject(CollectionObjectBase):
         self, consistency_level: Optional[ConsistencyLevel] = None
     ) -> "CollectionObject":
         return self._with_consistency_level(consistency_level)
-
-    def insert(
-        self,
-        data: Dict[str, Any],
-        uuid: Optional[UUID] = None,
-        vector: Optional[List[float]] = None,
-    ) -> uuid_package.UUID:
-        weaviate_obj: Dict[str, Any] = {
-            "class": self._name,
-            "properties": {
-                key: val if not isinstance(val, RefToObject) else val.to_beacon()
-                for key, val in data.items()
-            },
-            "id": str(uuid if uuid is not None else uuid_package.uuid4()),
-        }
-
-        if vector is not None:
-            weaviate_obj["vector"] = vector
-
-        return self._insert(weaviate_obj)
 
     def insert_many(self, objects: List[DataObject]) -> List[Union[uuid_package.UUID, Errors]]:
         weaviate_objs: List[Dict[str, Any]] = [
