@@ -9,13 +9,13 @@ import pytest as pytest
 import uuid
 
 import weaviate
-from weaviate.collection.collection_model import (
-    CollectionConfigModel,
+from weaviate.weaviate_classes import (
     BaseProperty,
+    CollectionModelConfig,
     PropertyConfig,
     ReferenceTo,
+    Vectorizer,
 )
-from weaviate.weaviate_classes import Vectorizer
 from weaviate.weaviate_types import UUIDS
 
 REF_TO_UUID = uuid.uuid4()
@@ -30,7 +30,7 @@ def client():
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     collection = client.collection_model.create(
-        CollectionConfigModel(vectorizer=Vectorizer.NONE), Group
+        CollectionModelConfig(name="Group", model=Group, vectorizer=Vectorizer.NONE)
     )
     collection.insert(obj=Group(name="Name", uuid=REF_TO_UUID))
 
@@ -50,16 +50,17 @@ def client():
     ],
 )
 @pytest.mark.parametrize("optional", [True, False])
-def test_types(client, member_type, value, optional: bool):
+def test_types(client: weaviate.Client, member_type, value, optional: bool):
     if optional:
         member_type = Optional[member_type]
 
     class ModelTypes(BaseProperty):
         name: member_type
 
-    client.collection_model.delete(ModelTypes)
+    name = "ModelTypes"
+    client.collection_model.delete(name)
     collection = client.collection_model.create(
-        CollectionConfigModel(vectorizer=Vectorizer.NONE), ModelTypes
+        CollectionModelConfig(name=name, model=ModelTypes, vectorizer=Vectorizer.NONE)
     )
     uuid_object = collection.insert(ModelTypes(name=value))
     object_get = collection.get_by_id(uuid_object)
@@ -79,27 +80,29 @@ def test_types(client, member_type, value, optional: bool):
         (Optional[UUIDS], ReferenceTo(Group), [str(REF_TO_UUID)], "Group"),
     ],
 )
-def test_types_annotates(client, member_type, annotation, value, expected: str):
+def test_types_annotates(client: weaviate.Client, member_type, annotation, value, expected: str):
     class ModelTypes(BaseProperty):
         name: Annotated[member_type, annotation]
 
-    client.collection_model.delete(ModelTypes)
+    name = "ModelTypes"
+    client.collection_model.delete(name)
     collection = client.collection_model.create(
-        CollectionConfigModel(vectorizer=Vectorizer.NONE), ModelTypes
+        CollectionModelConfig(name=name, model=ModelTypes, vectorizer=Vectorizer.NONE)
     )
     uuid_object = collection.insert(ModelTypes(name=value))
     object_get = collection.get_by_id(uuid_object)
     assert object_get.data.name == value
 
 
-@pytest.mark.parametrize("use_name", [True, False])
-def test_create_and_delete(client, use_name: bool):
+def test_create_and_delete(client: weaviate.Client):
     class DeleteModel(BaseProperty):
         name: int
 
-    client.collection_model.create(CollectionConfigModel(vectorizer=Vectorizer.NONE), DeleteModel)
-    model = DeleteModel.__name__ if use_name else DeleteModel
+    name = "DeleteModel"
+    client.collection_model.create(
+        CollectionModelConfig(name=name, model=DeleteModel, vectorizer=Vectorizer.NONE)
+    )
 
-    assert client.collection_model.exists(model)
-    client.collection_model.delete(model)
-    assert not client.collection_model.exists(model)
+    assert client.collection_model.exists(name)
+    client.collection_model.delete(name)
+    assert not client.collection_model.exists(name)

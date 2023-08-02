@@ -1,12 +1,27 @@
+import hashlib
 from dataclasses import dataclass
 from enum import Enum
-from typing import Union, Dict, Any, Optional, List, Set
+from typing import (
+    Union,
+    Dict,
+    Any,
+    Optional,
+    List,
+    Set,
+    TypeVar,
+    Type,
+    Generic,
+    get_args,
+    get_origin,
+    get_type_hints,
+)
 
 import uuid as uuid_package
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+from pydantic_core._pydantic_core import PydanticUndefined
 
-from weaviate.util import _to_beacons
-from weaviate.weaviate_types import UUID
+from weaviate.util import _to_beacons, _capitalize_first_letter
+from weaviate.weaviate_types import UUID, PYTHON_TYPE_TO_DATATYPE
 
 
 class DataType(str, Enum):
@@ -110,6 +125,7 @@ class InvertedIndexConfig(BaseModel):
 
 
 class CollectionConfigBase(BaseModel):
+    name: str
     vectorIndexType: Optional[VectorIndexType] = None
     vectorizer: Optional[Vectorizer] = None
     vectorIndexConfig: Optional[VectorIndexConfig] = None
@@ -123,8 +139,10 @@ class CollectionConfigBase(BaseModel):
 
         for cls_field in self.model_fields:
             val = getattr(self, cls_field)
-            if cls_field in ["name", "properties"] or val is None:
+            if cls_field in ["model", "properties"] or val is None:
                 continue
+            if cls_field == "name":
+                ret_dict["class"] = _capitalize_first_letter(val)
             if isinstance(val, Enum):
                 ret_dict[cls_field] = str(val.value)
             elif isinstance(val, (bool, float, str, int)):
@@ -167,7 +185,6 @@ class ReferenceProperty(BaseModel):
 
 
 class CollectionConfig(CollectionConfigBase):
-    name: str
     properties: Optional[List[Union[Property, ReferenceProperty]]] = None
 
     def model_post_init(self, __context: Any) -> None:
@@ -178,8 +195,6 @@ class CollectionConfig(CollectionConfigBase):
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
-
-        ret_dict["class"] = self.name
 
         if self.properties is not None:
             ret_dict["properties"] = [prop.to_dict() for prop in self.properties]
@@ -233,3 +248,217 @@ class RefToObject:
 
     def to_beacon(self) -> List[Dict[str, str]]:
         return _to_beacons(self.uuids_to)
+
+
+@dataclass
+class PropertyConfig:
+    indexFilterable: Optional[bool] = None
+    indexSearchable: Optional[bool] = None
+    tokenization: Optional[Tokenization] = None
+    description: Optional[str] = None
+    moduleConfig: Optional[ModuleConfig] = None
+
+    # tmp solution. replace with a pydantic BaseModel, see bugreport: https://github.com/pydantic/pydantic/issues/6948
+    def model_dump(self, exclude_unset: bool = True, exclude_none: bool = True) -> Dict[str, Any]:
+        return {
+            "indexFilterable": self.indexFilterable,
+            "indexSearchable": self.indexSearchable,
+            "tokenization": self.tokenization,
+            "description": self.description,
+            "moduleConfig": self.moduleConfig,
+        }
+
+
+@dataclass
+class ReferenceTo:
+    ref_type: Union[Type, str]
+
+    @property
+    def name(self) -> str:
+        if isinstance(self.ref_type, type):
+            return _capitalize_first_letter(self.ref_type.__name__)
+        else:
+            assert isinstance(self.ref_type, str)
+            return _capitalize_first_letter(self.ref_type)
+
+
+@dataclass
+class BatchReference:
+    from_uuid: UUID
+    to_uuid: UUID
+
+
+class BaseProperty(BaseModel):
+    uuid: UUID = Field(default_factory=uuid_package.uuid4)
+    vector: Optional[List[float]] = None
+
+    # def __new__(cls, *args, **kwargs):
+    #     #
+    #     build = super().__new__(cls)
+    #     # fields, class_vars = collect_model_fields(cls)
+    #     for name, field in build.model_fields.items():
+    #         if name not in BaseProperty.model_fields:
+    #             field_type = build._remove_optional_type(field.annotation)
+    #             if inspect.isclass(field_type):
+    #                 if field.annotation not in PYTHON_TYPE_TO_DATATYPE:
+    #                     build.model_fields[name] = fields.FieldInfo(annotation=typing.Optional[UUID], default=None)
+    #
+    #     build.__class_vars__.update(build.__class_vars__)
+    #     return build
+    #
+    #
+    # make references optional by default - does not work
+    def __init__(self, **data) -> None:
+        super().__init__(**data)
+        self._reference_fields: Set[str] = self.get_ref_fields(type(self))
+
+        self._reference_to_class: Dict[str, str] = {}
+        for ref in self._reference_fields:
+            self._reference_to_class[ref] = self.model_fields[ref].metadata[0].name
+
+    @staticmethod
+    def get_ref_fields(model: Type["BaseProperty"]) -> Set[str]:
+        return {
+            name
+            for name, field in model.model_fields.items()
+            if (
+                field.metadata is not None
+                and len(field.metadata) > 0
+                and isinstance(field.metadata[0], ReferenceTo)
+            )
+            and name not in BaseProperty.model_fields
+        }
+
+    @staticmethod
+    def get_non_ref_fields(model: Type["BaseProperty"]) -> Set[str]:
+        return {
+            name
+            for name, field in model.model_fields.items()
+            if (
+                field.metadata is None
+                or len(field.metadata) == 0
+                or isinstance(field.metadata[0], PropertyConfig)
+            )
+            and name not in BaseProperty.model_fields
+        }
+
+    def props_to_dict(self, update: bool = False) -> Dict[str, Any]:
+        fields_to_exclude: Set[str] = self._reference_fields.union({"uuid", "vector"})
+        if update:
+            fields_to_exclude.union(
+                {field for field in self.model_fields.keys() if field not in self.model_fields_set}
+            )
+
+        c = self.model_dump(exclude=fields_to_exclude)
+        for ref in self._reference_fields:
+            val = getattr(self, ref, None)
+            if val is not None:
+                c[ref] = _to_beacons(val, self._reference_to_class[ref])
+        return c
+
+    @field_validator("uuid")
+    def create_valid_uuid(cls, input_uuid: UUID) -> uuid_package.UUID:
+        if isinstance(input_uuid, uuid_package.UUID):
+            return input_uuid
+
+        # see if str is already a valid uuid
+        try:
+            return uuid_package.UUID(input_uuid)
+        except ValueError:
+            hex_string = hashlib.md5(input_uuid.encode("UTF-8")).hexdigest()
+            return uuid_package.UUID(hex=hex_string)
+
+    @staticmethod
+    def type_to_dict(model: Type["BaseProperty"]) -> List[Dict[str, Any]]:
+        types = get_type_hints(model)
+
+        non_optional_types = {
+            name: BaseProperty._remove_optional_type(tt)
+            for name, tt in types.items()
+            if name not in BaseProperty.model_fields
+        }
+
+        non_ref_fields = model.get_non_ref_fields(model)
+        properties = []
+        for name in non_ref_fields:
+            prop = {
+                "name": _capitalize_first_letter(name),
+                "dataType": [PYTHON_TYPE_TO_DATATYPE[non_optional_types[name]]],
+            }
+            metadata_list = model.model_fields[name].metadata
+            if metadata_list is not None and len(metadata_list) > 0:
+                metadata = metadata_list[0]
+                if isinstance(metadata, PropertyConfig):
+                    prop.update(metadata.model_dump(exclude_unset=True, exclude_none=True))
+
+            properties.append(prop)
+
+        reference_fields = model.get_ref_fields(model)
+        properties.extend(
+            {
+                "name": _capitalize_first_letter(name),
+                "dataType": [model.model_fields[name].metadata[0].name],
+            }
+            for name in reference_fields
+        )
+
+        return properties
+
+    @staticmethod
+    def get_non_optional_fields(model: Type["BaseProperty"]) -> Set[str]:
+        return {
+            field
+            for field, val in model.model_fields.items()
+            if val.default == PydanticUndefined and field not in BaseProperty.model_fields.keys()
+        }
+
+    @staticmethod
+    def _remove_optional_type(python_type: type) -> type:
+        is_list = get_origin(python_type) == list
+        args = get_args(python_type)
+        if len(args) == 0:
+            return python_type
+
+        return_type = [t for t in args if t is not None][0]
+
+        if is_list:
+            return List[return_type]
+        else:
+            return return_type
+
+
+Model = TypeVar("Model", bound=BaseProperty)
+
+
+class RefToObjectModel(BaseModel, Generic[Model]):
+    uuids_to: Union[List[UUID], UUID] = Field()
+
+    def to_beacon(self) -> List[Dict[str, str]]:
+        return _to_beacons(self.uuids_to)
+
+
+UserModelType = Type[BaseProperty]
+
+
+@dataclass
+class _Object(Generic[Model]):
+    data: Model
+    metadata: MetadataReturn
+
+
+class CollectionModelConfig(CollectionConfigBase, Generic[Model]):
+    model: Type[Model]
+
+    def model_post_init(self, __context: Any) -> None:
+        collection_name = self.name[0].upper()
+        if len(self.name) > 1:
+            collection_name += self.name[1:]
+        self.name = collection_name
+
+    def to_dict(self) -> Dict[str, Any]:
+        ret_dict = super().to_dict()
+
+        if self.model is not None:
+            ret_dict["properties"] = self.model.type_to_dict(self.model)
+
+        return ret_dict

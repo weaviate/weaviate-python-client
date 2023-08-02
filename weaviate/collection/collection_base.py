@@ -8,7 +8,7 @@ from weaviate.collection.collection_classes import Errors, Error
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException, ObjectAlreadyExistsException
-from weaviate.util import _to_beacons
+from weaviate.util import _to_beacons, _capitalize_first_letter
 from weaviate.weaviate_classes import CollectionConfigBase, UUID, Metadata
 from weaviate.weaviate_types import UUIDS
 
@@ -244,15 +244,9 @@ class CollectionBase:
 
     def _create(
         self,
-        model: CollectionConfigBase,
-        properties: Optional[List[Dict[str, Any]]] = None,
-        name: Optional[str] = None,
+        config: CollectionConfigBase,
     ) -> str:
-        weaviate_object = model.to_dict()
-        if properties is not None:
-            weaviate_object["properties"] = properties
-        if name is not None:
-            weaviate_object["class"] = name
+        weaviate_object = config.to_dict()
 
         try:
             response = self._connection.post(path="/schema", weaviate_object=weaviate_object)
@@ -266,7 +260,7 @@ class CollectionBase:
         return collection_name
 
     def _exists(self, name: str) -> bool:
-        path = f"/schema/{_capitalize_names(name)}"
+        path = f"/schema/{_capitalize_first_letter(name)}"
         try:
             response = self._connection.get(path=path)
         except RequestsConnectionError as conn_err:
@@ -279,7 +273,7 @@ class CollectionBase:
         UnexpectedStatusCodeException("collection exists", response)
 
     def _delete(self, name: str) -> None:
-        path = f"/schema/{_capitalize_names(name)}"
+        path = f"/schema/{_capitalize_first_letter(name)}"
         try:
             response = self._connection.delete(path=path)
         except RequestsConnectionError as conn_err:
@@ -288,10 +282,3 @@ class CollectionBase:
             return
 
         UnexpectedStatusCodeException("Delete collection", response)
-
-
-def _capitalize_names(name: str) -> str:
-    collection_name = name[0].upper()
-    if len(name) > 1:
-        collection_name += name[1:]
-    return collection_name
