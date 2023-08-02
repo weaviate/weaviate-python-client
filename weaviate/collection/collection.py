@@ -219,7 +219,11 @@ class CollectionObject(CollectionObjectBase):
 
 class Collection(CollectionBase):
     def create(self, config: CollectionConfig) -> CollectionObject:
-        super()._create(config)
+        name = super()._create(config)
+        if config.name != name:
+            raise ValueError(
+                f"Name of created collection ({name}) does not match given name ({config.name})"
+            )
         return CollectionObject(self._connection, config.name)
 
     def get(self, name: str) -> CollectionObject:

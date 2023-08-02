@@ -245,14 +245,19 @@ class CollectionBase:
     def _create(
         self,
         config: CollectionConfigBase,
-    ) -> None:
+    ) -> str:
         weaviate_object = config.to_dict()
+
         try:
             response = self._connection.post(path="/schema", weaviate_object=weaviate_object)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Class may not have been created properly.") from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Create class", response)
+
+        collection_name = response.json()["class"]
+        assert isinstance(collection_name, str)
+        return collection_name
 
     def _exists(self, name: str) -> bool:
         path = f"/schema/{name}"

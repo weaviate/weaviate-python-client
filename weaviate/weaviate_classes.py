@@ -142,7 +142,7 @@ class CollectionConfigBase(BaseModel):
             if cls_field in ["model", "properties"] or val is None:
                 continue
             if cls_field == "name":
-                ret_dict["class"] = val
+                ret_dict["class"] = _capitalize_names(val)
             if isinstance(val, Enum):
                 ret_dict[cls_field] = str(val.value)
             elif isinstance(val, (bool, float, str, int)):
