@@ -1,17 +1,18 @@
 ---
 version: '3.4'
 services:
-  weaviate_openai:
+  weaviate:
     command:
       - --host
       - 0.0.0.0
       - --port
-      - '8086'
+      - '8080'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-add-missing-features-to-grpc-112529d
+    image:
+      semitechnologies/weaviate:1.17.4
     ports:
-      - 8086:8086
+      - 8080:8080
     restart: on-failure:0
     environment:
       QUERY_DEFAULTS_LIMIT: 25

@@ -1,0 +1,26 @@
+version: '3.4'
+services:
+  weaviate:
+    volumes:
+     - /var/weaviate:/var/lib/weaviate
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8089'
+    - --scheme
+    - http
+    image: semitechnologies/weaviate:1.17.4
+    ports:
+    - 8089:8089
+    restart: on-failure:0
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_OIDC_ENABLED: 'true'
+      AUTHENTICATION_OIDC_ISSUER: 'https://auth.wcs.api.weaviate.io/auth/realms/SeMI'
+      AUTHENTICATION_OIDC_CLIENT_ID: 'wcs'
+      AUTHORIZATION_ADMINLIST_ENABLED: 'true'
+      AUTHORIZATION_ADMINLIST_USERS: 'test@test.de'
+      AUTHENTICATION_OIDC_USERNAME_CLAIM: 'email'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      CLUSTER_HOSTNAME: 'node1'
