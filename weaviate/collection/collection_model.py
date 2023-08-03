@@ -1,7 +1,6 @@
 import uuid as uuid_package
 from dataclasses import dataclass
 from typing import Type, Optional, Any, List, Dict, Generic, Tuple, Union
-
 from pydantic import create_model
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -132,7 +131,7 @@ class _Data(Generic[Model]):
             from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
         )
 
-    def reference_batch_add(self, from_property: str, refs: List[BatchReference]) -> None:
+    def reference_add_many(self, from_property: str, refs: List[BatchReference]) -> None:
         refs_dict = [
             {
                 "from": BEACON + f"{self.__collection._name}/{ref.from_uuid}/{from_property}",
@@ -140,7 +139,7 @@ class _Data(Generic[Model]):
             }
             for ref in refs
         ]
-        self.__collection._reference_batch_add(refs_dict)
+        self.__collection._reference_add_many(refs_dict)
 
 
 class _GRPC(Generic[Model], GrpcBase):
