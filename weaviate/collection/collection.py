@@ -1,6 +1,7 @@
-import uuid as uuid_package
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, List, Union, Tuple
+
+import uuid as uuid_package
 
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.collection.collection_classes import Errors
@@ -322,15 +323,15 @@ class _Data:
             from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
         )
 
-    def reference_batch_add(self, from_property: str, refs: List[BatchReference]) -> None:
+    def reference_add_many(self, from_property: str, refs: List[BatchReference]) -> None:
         refs_dict = [
             {
-                "from": BEACON + f"{self._name}/{ref.from_uuid}/{from_property}",
+                "from": BEACON + f"{self.__collection._name}/{ref.from_uuid}/{from_property}",
                 "to": BEACON + str(ref.to_uuid),
             }
             for ref in refs
         ]
-        self.__collection._reference_batch_add(refs_dict)
+        self.__collection._reference_add_many(refs_dict)
 
     def reference_delete(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
         self.__collection._reference_delete(
