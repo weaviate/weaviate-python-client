@@ -9,7 +9,18 @@ from weaviate.collection.collection_base import (
     CollectionObjectBase,
 )
 from weaviate.collection.collection_classes import Errors
-from weaviate.collection.grpc import GrpcBase, HybridFusion
+from weaviate.collection.grpc import (
+    GrpcBase,
+    HybridFusion,
+    PROPERTIES,
+    MetadataQuery,
+    BM25Options,
+    ReturnValues,
+    HybridOptions,
+    GetOptions,
+    NearObjectOptions,
+    NearVectorOptions,
+)
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException
@@ -131,27 +142,186 @@ class _GRPC(Generic[Model], GrpcBase):
         super().__init__(connection, name, model.get_non_optional_fields(model))
         self._model: Type[Model] = model
 
-    def get(
+    def get_flat(
         self,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
-    ) -> List[_Object[Model]]:
-        return [self.__dict_to_obj(obj) for obj in self._get(limit, offset, after)]
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> List[_Object]:
+        return [
+            self.__dict_to_obj(obj)
+            for obj in self._get(limit, offset, after, return_metadata, return_properties)
+        ]
 
-    def hybrid(
+    def get_options(self, returns: ReturnValues, options: Optional[GetOptions]) -> List[_Object]:
+        if options is None:
+            options = GetOptions()
+
+        return [
+            self.__dict_to_obj(obj)
+            for obj in self._get(
+                options.limit, options.offset, options.after, returns.metadata, returns.properties
+            )
+        ]
+
+    def hybrid_flat(
         self,
         query: str,
         alpha: Optional[float] = None,
         vector: Optional[List[float]] = None,
         properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
-    ) -> List[_Object[Model]]:
-        objects = self._hybrid(query, alpha, vector, properties, fusion_type)
+        limit: Optional[int] = None,
+        autocut: Optional[int] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> List[_Object]:
+        objects = self._hybrid(
+            query,
+            alpha,
+            vector,
+            properties,
+            fusion_type,
+            limit,
+            autocut,
+            return_metadata,
+            return_properties,
+        )
         return [self.__dict_to_obj(obj) for obj in objects]
 
-    def bm25(self, query: str, properties: Optional[List[str]] = None) -> List[_Object[Model]]:
-        return [self.__dict_to_obj(obj) for obj in self._bm25(query, properties)]
+    def hybrid_options(
+        self,
+        query: str,
+        returns: ReturnValues,
+        options: Optional[HybridOptions] = None,
+    ) -> List[_Object]:
+        if options is None:
+            options = HybridOptions()
+
+        objects = self._hybrid(
+            query,
+            options.alpha,
+            options.vector,
+            options.properties,
+            options.fusion_type,
+            options.limit,
+            options.autocut,
+            returns.metadata,
+            returns.properties,
+        )
+        return [self.__dict_to_obj(obj) for obj in objects]
+
+    def bm25_flat(
+        self,
+        query: str,
+        properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        autocut: Optional[int] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> List[_Object]:
+        return [
+            self.__dict_to_obj(obj)
+            for obj in self._bm25(
+                query, properties, limit, autocut, return_metadata, return_properties
+            )
+        ]
+
+    def bm25_options(
+        self,
+        query: str,
+        returns: ReturnValues,
+        options: Optional[BM25Options] = None,
+    ) -> List[_Object]:
+        if options is None:
+            options = BM25Options()
+
+        return [
+            self.__dict_to_obj(obj)
+            for obj in self._bm25(
+                query,
+                options.properties,
+                options.limit,
+                options.autocut,
+                returns.metadata,
+                returns.properties,
+            )
+        ]
+
+    def near_vector_flat(
+        self,
+        vector: List[float],
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        autocut: Optional[int] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> List[_Object]:
+        return [
+            self.__dict_to_obj(obj)
+            for obj in self._near_vector(
+                vector, certainty, distance, autocut, return_metadata, return_properties
+            )
+        ]
+
+    def near_vector_options(
+        self,
+        vector: List[float],
+        returns: ReturnValues,
+        options: Optional[NearVectorOptions] = None,
+    ) -> List[_Object]:
+        if options is None:
+            options = NearVectorOptions()
+
+        return [
+            self.__dict_to_obj(obj)
+            for obj in self._near_vector(
+                vector,
+                options.certainty,
+                options.distance,
+                options.autocut,
+                returns.metadata,
+                returns.properties,
+            )
+        ]
+
+    def near_object_flat(
+        self,
+        obj: UUID,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        autocut: Optional[int] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> List[_Object]:
+        return [
+            self.__dict_to_obj(obj)
+            for obj in self._near_object(
+                obj, certainty, distance, autocut, return_metadata, return_properties
+            )
+        ]
+
+    def near_object_options(
+        self,
+        obj: UUID,
+        returns: ReturnValues,
+        options: Optional[NearObjectOptions] = None,
+    ) -> List[_Object]:
+        if options is None:
+            options = NearObjectOptions()
+        return [
+            self.__dict_to_obj(obj)
+            for obj in self._near_object(
+                obj,
+                options.certainty,
+                options.distance,
+                options.autocut,
+                returns.metadata,
+                returns.properties,
+            )
+        ]
 
     def __dict_to_obj(self, obj: Tuple[Dict[str, Any], MetadataReturn]) -> _Object[Model]:
         return _Object[Model](data=self._model(**obj[0]), metadata=obj[1])
