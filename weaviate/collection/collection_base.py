@@ -16,7 +16,7 @@ from weaviate.weaviate_types import UUIDS
 
 class _Tenants:
     """
-    Represents all the configuration methods available on a collection within Weaviate.
+    Represents all the CRUD methods available on a collection's multi-tenancy spec within Weaviate.
     """
 
     def __init__(self, connection: Connection, name: str) -> None:
