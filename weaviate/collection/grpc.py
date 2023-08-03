@@ -16,6 +16,44 @@ class HybridFusion(str, BaseEnum):
 
 
 @dataclass
+class HybridOptions:
+    alpha: Optional[float] = (None,)
+    vector: Optional[List[float]] = (None,)
+    properties: Optional[List[str]] = (None,)
+    fusion_type: Optional[HybridFusion] = (None,)
+    limit: Optional[int] = (None,)
+    autocut: Optional[int] = (None,)
+
+
+@dataclass
+class GetOptions:
+    limit: Optional[int] = (None,)
+    offset: Optional[int] = (None,)
+    after: Optional[UUID] = (None,)
+
+
+@dataclass
+class BM25Options:
+    properties: Optional[List[str]] = (None,)
+    limit: Optional[int] = (None,)
+    autocut: Optional[int] = (None,)
+
+
+@dataclass
+class NearVectorOptions:
+    certainty: Optional[float] = (None,)
+    distance: Optional[float] = (None,)
+    autocut: Optional[int] = (None,)
+
+
+@dataclass
+class NearObjectOptions:
+    certainty: Optional[float] = (None,)
+    distance: Optional[float] = (None,)
+    autocut: Optional[int] = (None,)
+
+
+@dataclass
 class MetadataQuery:
     uuid: bool = False
     vector: bool = False
@@ -39,6 +77,12 @@ class LinkTo:
 
 
 PROPERTIES = Union[Set[Union[str, LinkTo]], str]
+
+
+@dataclass
+class ReturnValues:
+    metadata: Optional[MetadataQuery] = (None,)
+    properties: Optional[PROPERTIES] = (None,)
 
 
 @dataclass

@@ -135,6 +135,6 @@ def test_search(client: weaviate.Client):
     collection.data.insert(SearchTest(name="test name"))
     collection.data.insert(SearchTest(name="other words"))
 
-    objects = collection.query.bm25(query="test")
+    objects = collection.query.bm25_flat(query="test")
     assert type(objects[0].data) is SearchTest
     assert objects[0].data.name == "test name"
