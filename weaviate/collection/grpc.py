@@ -76,7 +76,7 @@ class LinkTo:
         return hash(str(self))
 
 
-PROPERTIES = Union[Set[Union[str, LinkTo]], str]
+PROPERTIES = Union[List[Union[str, LinkTo]], str]
 
 
 @dataclass
@@ -91,7 +91,7 @@ class RefProps:
     refs: Dict[str, "RefProps"]
 
 
-class GrpcBase:
+class _GRPC:
     def __init__(
         self, connection: Connection, name: str, default_properties: Optional[Set[str]] = None
     ):
@@ -123,7 +123,7 @@ class GrpcBase:
         self._near_certainty: Optional[float] = None
         self._near_distance: Optional[float] = None
 
-    def _get(
+    def get(
         self,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
@@ -139,7 +139,7 @@ class GrpcBase:
             self._default_props = self._default_props.union(return_properties)
         return self.__call()
 
-    def _hybrid(
+    def hybrid(
         self,
         query: str,
         alpha: Optional[float] = None,
@@ -168,7 +168,7 @@ class GrpcBase:
 
         return self.__call()
 
-    def _bm25(
+    def bm25(
         self,
         query: str,
         properties: Optional[List[str]] = None,
@@ -187,7 +187,7 @@ class GrpcBase:
 
         return self.__call()
 
-    def _near_vector(
+    def near_vector(
         self,
         vector: List[float],
         certainty: Optional[float] = None,
@@ -206,7 +206,7 @@ class GrpcBase:
 
         return self.__call()
 
-    def _near_object(
+    def near_object(
         self,
         near_object: UUID,
         certainty: Optional[float] = None,

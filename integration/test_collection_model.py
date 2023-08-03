@@ -2,6 +2,7 @@ import sys
 from typing import List, Optional
 
 from weaviate import Config
+from weaviate.collection.grpc import MetadataQuery
 
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated
@@ -148,9 +149,7 @@ def test_tenants(client: weaviate.Client):
         CollectionModelConfig(
             name="Tenants",
             vectorizer=Vectorizer.NONE,
-            multiTenancyConfig=MultiTenancyConfig(
-                enabled=True,
-            ),
+            multiTenancyConfig=MultiTenancyConfig(enabled=True),
             model=BaseProperty,
         )
     )
@@ -166,3 +165,32 @@ def test_tenants(client: weaviate.Client):
 
     tenants = collection.tenants.get()
     assert len(tenants) == 0
+
+
+def test_multi_searches(client: weaviate.Client):
+    client.collection.delete("TestMultiSearches")
+
+    class SearchTest(BaseProperty):
+        name: Optional[str] = None
+
+    name = "TestMultiSearches"
+    client.collection_model.delete(name)
+    collection = client.collection_model.create(
+        CollectionModelConfig(name=name, model=SearchTest, vectorizer=Vectorizer.NONE)
+    )
+
+    collection.data.insert(SearchTest(name="some word"))
+    collection.data.insert(SearchTest(name="other"))
+
+    objects = collection.query.bm25_flat(
+        query="word",
+        return_properties=["name"],
+        return_metadata=MetadataQuery(last_update_time_unix=True),
+    )
+    assert objects[0].data.name == "some word"
+    assert objects[0].metadata.last_update_time_unix is not None
+
+    objects = collection.query.bm25_flat(query="other", return_metadata=MetadataQuery(uuid=True))
+    assert objects[0].data.name is None
+    assert objects[0].metadata.uuid is not None
+    assert objects[0].metadata.last_update_time_unix is None
