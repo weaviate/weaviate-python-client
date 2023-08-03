@@ -70,7 +70,6 @@ class MetadataQuery:
 @dataclass
 class LinkTo:
     link_on: str
-    linked_class: str
     properties: "PROPERTIES"
     metadata: MetadataQuery
 
@@ -340,7 +339,6 @@ class _GRPC:
             non_ref_properties=[prop for prop in properties if isinstance(prop, str)],
             ref_properties=[
                 weaviate_pb2.RefProperties(
-                    linked_class=prop.linked_class,
                     reference_property=prop.link_on,
                     linked_properties=self._convert_references_to_grpc(set(prop.properties)),
                     metadata=self._metadata_to_grpc(prop.metadata),
