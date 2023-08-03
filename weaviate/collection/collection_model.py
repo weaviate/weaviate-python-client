@@ -8,6 +8,7 @@ from weaviate.collection.classes import (
     BaseProperty,
     BatchReference,
     CollectionModelConfig,
+    Errors,
     MetadataGet,
     MetadataReturn,
     Model,
@@ -17,7 +18,6 @@ from weaviate.collection.collection_base import (
     CollectionBase,
     CollectionObjectBase,
 )
-from weaviate.collection.collection_classes import Errors
 from weaviate.collection.grpc import (
     GrpcBase,
     HybridFusion,

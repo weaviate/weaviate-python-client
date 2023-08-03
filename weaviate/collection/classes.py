@@ -24,6 +24,15 @@ from weaviate.util import _to_beacons, _capitalize_first_letter
 from weaviate.weaviate_types import UUID, PYTHON_TYPE_TO_DATATYPE
 
 
+@dataclass
+class Error:
+    code: int
+    message: str
+
+
+Errors = List[Error]
+
+
 class DataType(str, Enum):
     TEXT = "text"
     TEXT_ARRAY = "text[]"

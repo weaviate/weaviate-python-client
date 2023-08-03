@@ -4,6 +4,7 @@ from typing import Dict, Any, Optional, List, Union, Tuple
 
 from weaviate.collection.classes import (
     CollectionConfig,
+    Errors,
     MetadataReturn,
     MetadataGet,
     RefToObject,
@@ -11,7 +12,6 @@ from weaviate.collection.classes import (
     DataObject,
 )
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
-from weaviate.collection.collection_classes import Errors
 from weaviate.collection.grpc import (
     GrpcBase,
     HybridFusion,

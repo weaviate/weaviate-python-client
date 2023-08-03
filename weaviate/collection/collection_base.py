@@ -4,8 +4,14 @@ from typing import Dict, Any, Optional, List, Tuple, Union
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.collection.classes import CollectionConfigBase, UUID, MetadataGet, Tenant
-from weaviate.collection.collection_classes import Errors, Error
+from weaviate.collection.classes import (
+    CollectionConfigBase,
+    Error,
+    Errors,
+    MetadataGet,
+    Tenant,
+    UUID,
+)
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException, ObjectAlreadyExistsException
