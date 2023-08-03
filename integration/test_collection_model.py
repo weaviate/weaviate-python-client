@@ -70,7 +70,7 @@ def test_types(client: weaviate.Client, member_type, value, optional: bool):
     assert collection._model == ModelTypes
 
     uuid_object = collection.data.insert(ModelTypes(name=value))
-    assert type(uuid_object) == uuid.UUID
+    assert type(uuid_object) is uuid.UUID
 
     object_get = collection.data.get_by_id(uuid_object)
     assert object_get.data == ModelTypes(name=value, uuid=uuid_object)
@@ -103,7 +103,7 @@ def test_types_annotates(client: weaviate.Client, member_type, annotation, value
     uuid_object = collection.data.insert(ModelTypes(name=value))
 
     object_get = collection.data.get_by_id(uuid_object)
-    assert type(object_get.data) == ModelTypes
+    assert type(object_get.data) is ModelTypes
 
     assert object_get.data.name == value
 
@@ -136,5 +136,5 @@ def test_search(client: weaviate.Client):
     collection.data.insert(SearchTest(name="other words"))
 
     objects = collection.query.bm25(query="test")
-    assert type(objects[0].data) == SearchTest
+    assert type(objects[0].data) is SearchTest
     assert objects[0].data.name == "test name"
