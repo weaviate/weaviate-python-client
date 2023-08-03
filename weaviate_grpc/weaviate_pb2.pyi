@@ -82,16 +82,14 @@ class Properties(_message.Message):
     def __init__(self, non_ref_properties: _Optional[_Iterable[str]] = ..., ref_properties: _Optional[_Iterable[_Union[RefProperties, _Mapping]]] = ...) -> None: ...
 
 class RefProperties(_message.Message):
-    __slots__ = ["linked_class", "linked_properties", "metadata", "reference_property"]
-    LINKED_CLASS_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ["linked_properties", "metadata", "reference_property"]
     LINKED_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     METADATA_FIELD_NUMBER: _ClassVar[int]
     REFERENCE_PROPERTY_FIELD_NUMBER: _ClassVar[int]
-    linked_class: str
     linked_properties: Properties
     metadata: AdditionalProperties
     reference_property: str
-    def __init__(self, linked_class: _Optional[str] = ..., reference_property: _Optional[str] = ..., linked_properties: _Optional[_Union[Properties, _Mapping]] = ..., metadata: _Optional[_Union[AdditionalProperties, _Mapping]] = ...) -> None: ...
+    def __init__(self, reference_property: _Optional[str] = ..., linked_properties: _Optional[_Union[Properties, _Mapping]] = ..., metadata: _Optional[_Union[AdditionalProperties, _Mapping]] = ...) -> None: ...
 
 class ResultAdditionalProps(_message.Message):
     __slots__ = ["certainty", "certainty_present", "creation_time_unix", "creation_time_unix_present", "distance", "distance_present", "explain_score", "explain_score_present", "id", "last_update_time_unix", "last_update_time_unix_present", "score", "score_present", "vector"]
