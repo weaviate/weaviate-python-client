@@ -323,7 +323,7 @@ def test_references_grcp(client: weaviate.Client):
                         metadata=MetadataQuery(uuid=True),
                     ),
                 },
-                metadata=MetadataQuery(uuid=True, lastUpdateTimeUnix=True),
+                metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
             ),
         },
     )

@@ -19,12 +19,12 @@ class HybridFusion(str, BaseEnum):
 class MetadataQuery:
     uuid: bool = False
     vector: bool = False
-    creationTimeUnix: bool = False
-    lastUpdateTimeUnix: bool = False
+    creation_time_unix: bool = False
+    last_update_time_unix: bool = False
     distance: bool = False
     certainty: bool = False
     score: bool = False
-    explainScore: bool = False
+    explain_score: bool = False
 
 
 @dataclass
@@ -258,11 +258,11 @@ class GrpcBase:
         return weaviate_pb2.AdditionalProperties(
             uuid=metadata.uuid,
             vector=metadata.vector,
-            creationTimeUnix=metadata.creationTimeUnix,
-            lastUpdateTimeUnix=metadata.lastUpdateTimeUnix,
+            creationTimeUnix=metadata.creation_time_unix,
+            lastUpdateTimeUnix=metadata.last_update_time_unix,
             distance=metadata.distance,
             certainty=metadata.certainty,
-            explainScore=metadata.explainScore,
+            explainScore=metadata.explain_score,
             score=metadata.score,
         )
 
@@ -318,17 +318,17 @@ class GrpcBase:
             additional_props["distance"] = props.distance if props.distance_present else None
         if meta.certainty:
             additional_props["certainty"] = props.certainty if props.certainty_present else None
-        if meta.creationTimeUnix:
+        if meta.creation_time_unix:
             additional_props["creationTimeUnix"] = (
                 str(props.creation_time_unix) if props.creation_time_unix_present else None
             )
-        if meta.lastUpdateTimeUnix:
+        if meta.last_update_time_unix:
             additional_props["lastUpdateTimeUnix"] = (
                 str(props.last_update_time_unix) if props.last_update_time_unix_present else None
             )
         if meta.score:
             additional_props["score"] = props.score if props.score_present else None
-        if meta.explainScore:
+        if meta.explain_score:
             additional_props["explainScore"] = (
                 props.explain_score if props.explain_score_present else None
             )
