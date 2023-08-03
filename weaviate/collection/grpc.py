@@ -1,9 +1,10 @@
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Any, Union, Set
+from typing import Optional, List, Dict, Any, Union, Tuple, Set, TypeAlias
 
 import grpc
 
 from weaviate.connect import Connection
+from weaviate.exceptions import WeaviateGRPCException
 from weaviate.util import BaseEnum
 from weaviate.weaviate_classes import MetadataReturn
 from weaviate.weaviate_types import UUID
@@ -77,6 +78,8 @@ class LinkTo:
 
 
 PROPERTIES = Union[List[Union[str, LinkTo]], str]
+
+GrpcReturnType: TypeAlias = Tuple[Dict[str, "GrpcReturnType"], MetadataReturn]
 
 
 @dataclass
@@ -277,17 +280,18 @@ class _GRPC:
 
             ref_props_meta = self._ref_props_return_meta(self._default_props)
 
-            objects = []
+            objects: List[GrpcReturnType] = []
             for result in res.results:
                 obj = self._convert_references_to_grpc_result(result.properties, ref_props_meta)
-                metadata = self._extract_metadata(result.additional_properties, self._metadata)
-                objects.append((obj, metadata))
+                metadata_return = self._extract_metadata(
+                    result.additional_properties, self._metadata
+                )
+                objects.append((obj, metadata_return))
 
             return objects
 
         except grpc.RpcError as e:
-            results = {"errors": [e.details()]}
-            return results
+            raise WeaviateGRPCException(e.details())
 
     def _ref_props_return_meta(self, props: PROPERTIES) -> Dict[str, RefProps]:
         ref_props = {}

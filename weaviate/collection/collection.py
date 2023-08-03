@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, Any, Optional, List, Union, Tuple
+from typing import Dict, Any, Optional, List, Union
 
 import uuid as uuid_package
 
@@ -7,6 +7,7 @@ from weaviate.collection.collection_base import CollectionBase, CollectionObject
 from weaviate.collection.collection_classes import Errors
 from weaviate.collection.grpc import (
     _GRPC,
+    GrpcReturnType,
     HybridFusion,
     MetadataQuery,
     PROPERTIES,
@@ -245,8 +246,8 @@ class _Grpc:
             )
         ]
 
-    def __dict_to_obj(self, obj: Tuple[Dict[str, Any], MetadataReturn]) -> _Object:
-        data: Dict[str, Any] = obj[0]
+    def __dict_to_obj(self, obj: GrpcReturnType) -> _Object:
+        data = obj[0]
         for key in data.keys():
             if isinstance(data[key], List):
                 for i, _ in enumerate(data[key]):

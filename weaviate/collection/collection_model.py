@@ -11,6 +11,7 @@ from weaviate.collection.collection_base import (
 from weaviate.collection.collection_classes import Errors
 from weaviate.collection.grpc import (
     _GRPC,
+    GrpcReturnType,
     HybridFusion,
     PROPERTIES,
     MetadataQuery,
@@ -344,7 +345,7 @@ class _GRPCWrapper(Generic[Model]):
             )
         ]
 
-    def __dict_to_obj(self, obj: Tuple[Dict[str, Any], MetadataReturn]) -> _Object[Model]:
+    def __dict_to_obj(self, obj: GrpcReturnType) -> _Object[Model]:
         return _Object[Model](data=self._model(**obj[0]), metadata=obj[1])
 
 
