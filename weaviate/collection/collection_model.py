@@ -1,6 +1,6 @@
-import uuid as uuid_package
 from typing import Type, Optional, Any, List, Dict, Generic, Tuple, Union
 
+import uuid as uuid_package
 from pydantic import create_model
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -149,13 +149,15 @@ class _GRPC(Generic[Model], GrpcBase):
         after: Optional[UUID] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[_Object]:
+    ) -> List[_Object[Model]]:
         return [
             self.__dict_to_obj(obj)
             for obj in self._get(limit, offset, after, return_metadata, return_properties)
         ]
 
-    def get_options(self, returns: ReturnValues, options: Optional[GetOptions]) -> List[_Object]:
+    def get_options(
+        self, returns: ReturnValues, options: Optional[GetOptions]
+    ) -> List[_Object[Model]]:
         if options is None:
             options = GetOptions()
 
@@ -177,7 +179,7 @@ class _GRPC(Generic[Model], GrpcBase):
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[_Object]:
+    ) -> List[_Object[Model]]:
         objects = self._hybrid(
             query,
             alpha,
@@ -196,7 +198,7 @@ class _GRPC(Generic[Model], GrpcBase):
         query: str,
         returns: ReturnValues,
         options: Optional[HybridOptions] = None,
-    ) -> List[_Object]:
+    ) -> List[_Object[Model]]:
         if options is None:
             options = HybridOptions()
 
@@ -221,7 +223,7 @@ class _GRPC(Generic[Model], GrpcBase):
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[_Object]:
+    ) -> List[_Object[Model]]:
         return [
             self.__dict_to_obj(obj)
             for obj in self._bm25(
@@ -234,7 +236,7 @@ class _GRPC(Generic[Model], GrpcBase):
         query: str,
         returns: ReturnValues,
         options: Optional[BM25Options] = None,
-    ) -> List[_Object]:
+    ) -> List[_Object[Model]]:
         if options is None:
             options = BM25Options()
 
@@ -258,7 +260,7 @@ class _GRPC(Generic[Model], GrpcBase):
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[_Object]:
+    ) -> List[_Object[Model]]:
         return [
             self.__dict_to_obj(obj)
             for obj in self._near_vector(
@@ -271,7 +273,7 @@ class _GRPC(Generic[Model], GrpcBase):
         vector: List[float],
         returns: ReturnValues,
         options: Optional[NearVectorOptions] = None,
-    ) -> List[_Object]:
+    ) -> List[_Object[Model]]:
         if options is None:
             options = NearVectorOptions()
 
@@ -295,7 +297,7 @@ class _GRPC(Generic[Model], GrpcBase):
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[_Object]:
+    ) -> List[_Object[Model]]:
         return [
             self.__dict_to_obj(obj)
             for obj in self._near_object(
@@ -308,7 +310,7 @@ class _GRPC(Generic[Model], GrpcBase):
         obj: UUID,
         returns: ReturnValues,
         options: Optional[NearObjectOptions] = None,
-    ) -> List[_Object]:
+    ) -> List[_Object[Model]]:
         if options is None:
             options = NearObjectOptions()
         return [
