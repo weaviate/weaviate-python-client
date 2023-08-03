@@ -11,9 +11,11 @@ import pytest as pytest
 import uuid
 
 import weaviate
+from weaviate.schema.crud_schema import Tenant
 from weaviate.weaviate_classes import (
     BaseProperty,
     CollectionModelConfig,
+    MultiTenancyConfig,
     PropertyConfig,
     ReferenceTo,
     Vectorizer,
@@ -138,3 +140,29 @@ def test_search(client: weaviate.Client):
     objects = collection.query.bm25(query="test")
     assert type(objects[0].data) is SearchTest
     assert objects[0].data.name == "test name"
+
+
+def test_tenants(client: weaviate.Client):
+    client.collection.delete("Tenants")
+    collection = client.collection.create(
+        CollectionModelConfig(
+            name="Tenants",
+            vectorizer=Vectorizer.NONE,
+            multiTenancyConfig=MultiTenancyConfig(
+                enabled=True,
+            ),
+            model=BaseProperty,
+        )
+    )
+
+    collection.tenants.add([Tenant(name="tenant1")])
+
+    tenants = collection.tenants.get()
+    assert len(tenants) == 1
+    assert type(tenants[0]) is Tenant
+    assert tenants[0].name == "tenant1"
+
+    collection.tenants.remove(["tenant1"])
+
+    tenants = collection.tenants.get()
+    assert len(tenants) == 0
