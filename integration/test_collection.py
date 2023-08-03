@@ -13,6 +13,8 @@ from weaviate.weaviate_classes import (
     ReferenceProperty,
     RefToObject,
     Metadata,
+    MultiTenancyConfig,
+    Tenant,
 )
 
 
@@ -331,3 +333,28 @@ def test_references_grcp(client: weaviate.Client):
     assert objects[0].data["ref"][0].data["name"] == "B"
     assert objects[0].data["ref"][0].data["ref"][0].data["name"] == "A1"
     assert objects[0].data["ref"][0].data["ref"][1].data["name"] == "A2"
+
+
+def test_tenants(client: weaviate.Client):
+    client.collection.delete("Tenants")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="Tenants",
+            vectorizer=Vectorizer.NONE,
+            multiTenancyConfig=MultiTenancyConfig(
+                enabled=True,
+            ),
+        )
+    )
+
+    collection.tenants.add([Tenant(name="tenant1")])
+
+    tenants = collection.tenants.get()
+    assert len(tenants) == 1
+    assert type(tenants[0]) is Tenant
+    assert tenants[0].name == "tenant1"
+
+    collection.tenants.remove(["tenant1"])
+
+    tenants = collection.tenants.get()
+    assert len(tenants) == 0
