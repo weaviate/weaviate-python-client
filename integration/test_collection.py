@@ -314,12 +314,10 @@ def test_references_grcp(client: weaviate.Client):
             "name",
             LinkTo(
                 link_on="ref",
-                linked_class="B",
                 properties=[
                     "name",
                     LinkTo(
                         link_on="ref",
-                        linked_class="A",
                         properties=["name"],
                         metadata=MetadataQuery(uuid=True),
                     ),
