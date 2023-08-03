@@ -157,10 +157,9 @@ class CollectionConfigBase(ConfigModel):
                 ret_dict[cls_field] = str(val.value)
             elif isinstance(val, (bool, float, str, int)):
                 ret_dict[cls_field] = str(val)
-            elif isinstance(val, ConfigModel):
-                ret_dict[cls_field] = val.to_dict()
             else:
-                raise TypeError(f"Unexpected type {type(val)} of {val}")
+                assert isinstance(val, ConfigModel)
+                ret_dict[cls_field] = val.to_dict()
 
         return ret_dict
 
