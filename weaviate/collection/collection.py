@@ -1,11 +1,12 @@
-import uuid as uuid_package
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, List, Union, Tuple
+
+import uuid as uuid_package
 
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.collection.collection_classes import Errors
 from weaviate.collection.grpc import (
-    GrpcBase,
+    _GRPC,
     HybridFusion,
     MetadataQuery,
     PROPERTIES,
@@ -41,7 +42,11 @@ class BatchReference:
     to_uuid: UUID
 
 
-class _Grpc(GrpcBase):
+class _Grpc:
+    def __init__(self, connection: Connection, name: str):
+        self._connection = connection
+        self._name = name
+
     def get_flat(
         self,
         limit: Optional[int] = None,
@@ -50,18 +55,21 @@ class _Grpc(GrpcBase):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object]:
+        grpc_query = _GRPC(self._connection, self._name)
+
         return [
             self.__dict_to_obj(obj)
-            for obj in self._get(limit, offset, after, return_metadata, return_properties)
+            for obj in grpc_query.get(limit, offset, after, return_metadata, return_properties)
         ]
 
     def get_options(self, returns: ReturnValues, options: Optional[GetOptions]) -> List[_Object]:
         if options is None:
             options = GetOptions()
+        grpc_query = _GRPC(self._connection, self._name)
 
         return [
             self.__dict_to_obj(obj)
-            for obj in self._get(
+            for obj in grpc_query.get(
                 options.limit, options.offset, options.after, returns.metadata, returns.properties
             )
         ]
@@ -78,7 +86,9 @@ class _Grpc(GrpcBase):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object]:
-        objects = self._hybrid(
+        grpc_query = _GRPC(self._connection, self._name)
+
+        objects = grpc_query.hybrid(
             query,
             alpha,
             vector,
@@ -99,8 +109,9 @@ class _Grpc(GrpcBase):
     ) -> List[_Object]:
         if options is None:
             options = HybridOptions()
+        grpc_query = _GRPC(self._connection, self._name)
 
-        objects = self._hybrid(
+        objects = grpc_query.hybrid(
             query,
             options.alpha,
             options.vector,
@@ -122,9 +133,11 @@ class _Grpc(GrpcBase):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object]:
+        grpc_query = _GRPC(self._connection, self._name)
+
         return [
             self.__dict_to_obj(obj)
-            for obj in self._bm25(
+            for obj in grpc_query.bm25(
                 query, properties, limit, autocut, return_metadata, return_properties
             )
         ]
@@ -137,10 +150,11 @@ class _Grpc(GrpcBase):
     ) -> List[_Object]:
         if options is None:
             options = BM25Options()
+        grpc_query = _GRPC(self._connection, self._name)
 
         return [
             self.__dict_to_obj(obj)
-            for obj in self._bm25(
+            for obj in grpc_query.bm25(
                 query,
                 options.properties,
                 options.limit,
@@ -159,9 +173,11 @@ class _Grpc(GrpcBase):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object]:
+        grpc_query = _GRPC(self._connection, self._name)
+
         return [
             self.__dict_to_obj(obj)
-            for obj in self._near_vector(
+            for obj in grpc_query.near_vector(
                 vector, certainty, distance, autocut, return_metadata, return_properties
             )
         ]
@@ -174,10 +190,11 @@ class _Grpc(GrpcBase):
     ) -> List[_Object]:
         if options is None:
             options = NearVectorOptions()
+        grpc_query = _GRPC(self._connection, self._name)
 
         return [
             self.__dict_to_obj(obj)
-            for obj in self._near_vector(
+            for obj in grpc_query.near_vector(
                 vector,
                 options.certainty,
                 options.distance,
@@ -196,9 +213,12 @@ class _Grpc(GrpcBase):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object]:
+
+        grpc_query = _GRPC(self._connection, self._name)
+
         return [
             self.__dict_to_obj(obj)
-            for obj in self._near_object(
+            for obj in grpc_query.near_object(
                 obj, certainty, distance, autocut, return_metadata, return_properties
             )
         ]
@@ -211,9 +231,11 @@ class _Grpc(GrpcBase):
     ) -> List[_Object]:
         if options is None:
             options = NearObjectOptions()
+        grpc_query = _GRPC(self._connection, self._name)
+
         return [
             self.__dict_to_obj(obj)
-            for obj in self._near_object(
+            for obj in grpc_query.near_object(
                 obj,
                 options.certainty,
                 options.distance,
