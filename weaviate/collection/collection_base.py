@@ -15,7 +15,15 @@ from weaviate.weaviate_types import UUIDS
 
 class _Tenants:
     """
-    Represents all the CRUD methods available on a collection's multi-tenancy spec within Weaviate.
+    Represents all the CRUD methods available on a collection's multi-tenancy specification within Weaviate. The
+    collection must have been created with multi-tenancy enabled in order to use any of these methods. This class
+    should not be instantiated directly, but is available as a property of the Collection class under
+    the `collection.tenants` class attribute.
+
+    Methods:
+        - `add(tenants: List[Tenant]) -> None`: Add the specified tenants to a collection in Weaviate.
+        - `remove(tenants: List[str]) -> None`: Remove the specified tenants from a collection in Weaviate.
+        - `get() -> List[Tenant]`: Return all tenants currently associated with a collection in Weaviate.
     """
 
     def __init__(self, connection: Connection, name: str) -> None:
@@ -23,27 +31,14 @@ class _Tenants:
         self._name = name
 
     def add(self, tenants: List[Tenant]) -> None:
-        """
-        Add class's tenants in Weaviate.
+        """Add the specified tenants to a collection in Weaviate. The collection must have been created with multi-tenancy enabled.
 
-        Parameters
-        ----------
-        tenants : List[Tenant]
-            List of Tenants.
+        Parameters:
+        - `tenants`: List of Tenants.
 
-        Examples
-        --------
-        >>> tenants = [ Tenant(name="Tenant1"), Tenant(name="Tenant2") ]
-        >>> client.collection.get("Class").tenants.add(tenants)
-
-        Raises
-        ------
-        TypeError
-            If 'tenants' has not the correct type.
-        requests.ConnectionError
-            If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
-            If Weaviate reports a non-OK status.
+        Raises:
+        - `requests.ConnectionError`: If the network connection to Weaviate fails.
+        - `weaviate.UnexpectedStatusCodeException`: If Weaviate reports a non-OK status.
         """
 
         loaded_tenants = [{"name": tenant.name} for tenant in tenants]
@@ -59,26 +54,15 @@ class _Tenants:
             raise UnexpectedStatusCodeException("Add classes tenants", response)
 
     def remove(self, tenants: List[str]) -> None:
-        """
-        Remove class's tenants in Weaviate.
+        """Remove the specified tenants from a collection in Weaviate. The collection must have been created with multi-tenancy enabled.
 
-        Parameters
-        ----------
-        tenants : List[str]
-            List of tenant names to remove from the given class.
+        Parameters:
+        - `tenants`: List of tenant names to remove from the given class.
 
-        Examples
-        --------
-        >>> client.collection.get("Class").tenants.remove(["Tenant1", "Tenant2"])
-
-        Raises
-        ------
-        TypeError
-            If 'tenants' has not the correct type.
-        requests.ConnectionError
-            If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
-            If Weaviate reports a non-OK status.
+        Raises:
+        - `TypeError`: If 'tenants' has not the correct type.
+        - `requests.ConnectionError`: If the network connection to Weaviate fails.
+        - `weaviate.UnexpectedStatusCodeException`: If Weaviate reports a non-OK status.
         """
         path = "/schema/" + self._name + "/tenants"
         try:
@@ -91,18 +75,11 @@ class _Tenants:
             raise UnexpectedStatusCodeException("Delete classes tenants", response)
 
     def get(self) -> List[Tenant]:
-        """Get class's tenants in Weaviate.
+        """Return all tenants currently associated with a collection in Weaviate. The collection must have been created with multi-tenancy enabled.
 
-        Examples
-        --------
-        >>> client.collection.get("Class").tenants.get()
-
-        Raises
-        ------
-        requests.ConnectionError
-            If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
-            If Weaviate reports a non-OK status.
+        Raises:
+        - `requests.ConnectionError`: If the network connection to Weaviate fails.
+        - `weaviate.UnexpectedStatusCodeException`: If Weaviate reports a non-OK status.
         """
         path = "/schema/" + self._name + "/tenants"
         try:
