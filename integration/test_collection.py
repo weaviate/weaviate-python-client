@@ -1,6 +1,5 @@
-import uuid
-
 import pytest as pytest
+import uuid
 
 import weaviate
 from weaviate import Config
@@ -311,23 +310,23 @@ def test_references_grcp(client: weaviate.Client):
 
     objects = C.query.bm25_flat(
         query="find",
-        return_properties={
+        return_properties=[
             "name",
             LinkTo(
                 link_on="ref",
                 linked_class="B",
-                properties={
+                properties=[
                     "name",
                     LinkTo(
                         link_on="ref",
                         linked_class="A",
-                        properties={"name"},
+                        properties=["name"],
                         metadata=MetadataQuery(uuid=True),
                     ),
-                },
+                ],
                 metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
             ),
-        },
+        ],
     )
     assert objects[0].data["name"] == "find me"
     assert objects[0].data["ref"][0].data["name"] == "B"
