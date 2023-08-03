@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional, List, Union, Tuple
 from weaviate.collection.classes import (
     CollectionConfig,
     MetadataReturn,
-    Metadata,
+    MetadataGet,
     RefToObject,
     BatchReference,
     DataObject,
@@ -298,13 +298,13 @@ class _Data:
 
         self.__collection._update(weaviate_obj, uuid=uuid)
 
-    def get_by_id(self, uuid: UUID, metadata: Optional[Metadata] = None) -> Optional[_Object]:
+    def get_by_id(self, uuid: UUID, metadata: Optional[MetadataGet] = None) -> Optional[_Object]:
         ret = self.__collection._get_by_id(uuid=uuid, metadata=metadata)
         if ret is None:
             return ret
         return self.__collection._json_to_object(ret)
 
-    def get(self, metadata: Optional[Metadata] = None) -> List[_Object]:
+    def get(self, metadata: Optional[MetadataGet] = None) -> List[_Object]:
         ret = self.__collection._get(metadata=metadata)
         if ret is None:
             return []

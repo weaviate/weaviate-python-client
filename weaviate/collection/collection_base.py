@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional, List, Tuple, Union
 import uuid as uuid_package
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.collection.classes import CollectionConfigBase, UUID, Metadata
+from weaviate.collection.classes import CollectionConfigBase, UUID, MetadataGet, Tenant
 from weaviate.collection.collection_classes import Errors, Error
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
@@ -13,8 +13,105 @@ from weaviate.util import _to_beacons, _capitalize_first_letter
 from weaviate.weaviate_types import UUIDS
 
 
+class _Tenants:
+    """
+    Represents all the CRUD methods available on a collection's multi-tenancy specification within Weaviate. The
+    collection must have been created with multi-tenancy enabled in order to use any of these methods. This class
+    should not be instantiated directly, but is available as a property of the `Collection` class under
+    the `collection.tenants` class attribute.
+    """
+
+    def __init__(self, connection: Connection, name: str) -> None:
+        self._connection = connection
+        self._name = name
+
+    def add(self, tenants: List[Tenant]) -> None:
+        """Add the specified tenants to a collection in Weaviate.
+
+        The collection must have been created with multi-tenancy enabled.
+
+        Parameters:
+        - `tenants`: List of Tenants.
+
+        Raises:
+        - `requests.ConnectionError`
+            - If the network connection to Weaviate fails.
+        - `weaviate.UnexpectedStatusCodeException`
+            - If Weaviate reports a non-OK status.
+        """
+
+        loaded_tenants = [{"name": tenant.name} for tenant in tenants]
+
+        path = "/schema/" + self._name + "/tenants"
+        try:
+            response = self._connection.post(path=path, weaviate_object=loaded_tenants)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                f"Collection tenants may not have been added properly for {self._name}"
+            ) from conn_err
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException(
+                f"Add collection tenants for {self._name}", response
+            )
+
+    def remove(self, tenants: List[str]) -> None:
+        """Remove the specified tenants from a collection in Weaviate.
+
+        The collection must have been created with multi-tenancy enabled.
+
+        Parameters:
+        - `tenants`: List of tenant names to remove from the given class.
+
+        Raises:
+        - `TypeError`
+            - If 'tenants' has not the correct type.
+        - `requests.ConnectionError`
+            - If the network connection to Weaviate fails.
+        - `weaviate.UnexpectedStatusCodeException`
+            - If Weaviate reports a non-OK status.
+        """
+        path = "/schema/" + self._name + "/tenants"
+        try:
+            response = self._connection.delete(path=path, weaviate_object=tenants)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                f"Collection tenants may not have been deleted for {self._name}"
+            ) from conn_err
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException(
+                f"Delete collection tenants for {self._name}", response
+            )
+
+    def get(self) -> List[Tenant]:
+        """Return all tenants currently associated with a collection in Weaviate.
+
+        The collection must have been created with multi-tenancy enabled.
+
+        Raises:
+        - `requests.ConnectionError`
+            - If the network connection to Weaviate fails.
+        - `weaviate.UnexpectedStatusCodeException`
+            - If Weaviate reports a non-OK status.
+        """
+        path = "/schema/" + self._name + "/tenants"
+        try:
+            response = self._connection.get(path=path)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                f"Could not get collection tenants for {self._name}"
+            ) from conn_err
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException(
+                f"Get collection tenants for {self._name}", response
+            )
+
+        tenant_resp: List[Dict[str, Any]] = response.json()
+        return [Tenant(**tenant) for tenant in tenant_resp]
+
+
 class CollectionObjectBase:
     def __init__(self, connection: Connection, name: str) -> None:
+        self.tenants = _Tenants(connection, name)
         self._connection = connection
         self._name = name
         self._tenant: Optional[str] = None
@@ -119,7 +216,7 @@ class CollectionObjectBase:
         raise UnexpectedStatusCodeException("Update object", response)
 
     def _get_by_id(
-        self, uuid: UUID, metadata: Optional[Metadata] = None
+        self, uuid: UUID, metadata: Optional[MetadataGet] = None
     ) -> Optional[Dict[str, Any]]:
         path = f"/objects/{self._name}/{uuid}"
 
@@ -127,7 +224,7 @@ class CollectionObjectBase:
             params=self.__apply_context({}), path=path, metadata=metadata
         )
 
-    def _get(self, metadata: Optional[Metadata] = None) -> Optional[Dict[str, Any]]:
+    def _get(self, metadata: Optional[MetadataGet] = None) -> Optional[Dict[str, Any]]:
         path = "/objects"
         params: Dict[str, Any] = {"class": self._name}
 
@@ -136,7 +233,7 @@ class CollectionObjectBase:
         )
 
     def _get_from_weaviate(
-        self, params: Dict[str, Any], path: str, metadata: Optional[Metadata] = None
+        self, params: Dict[str, Any], path: str, metadata: Optional[MetadataGet] = None
     ) -> Optional[Dict[str, Any]]:
         include = ""
         if metadata is not None:

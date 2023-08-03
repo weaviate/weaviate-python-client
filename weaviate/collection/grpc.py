@@ -5,7 +5,7 @@ import grpc
 
 from weaviate.connect import Connection
 from weaviate.util import BaseEnum
-from weaviate.weaviate_classes import MetadataReturn
+from weaviate.collection.classes import MetadataReturn
 from weaviate.weaviate_types import UUID
 from weaviate_grpc import weaviate_pb2
 

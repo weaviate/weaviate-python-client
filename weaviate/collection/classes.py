@@ -82,13 +82,20 @@ class StopwordsPreset(str, Enum):
 ModuleConfig = Dict[Vectorizer, Dict[str, Any]]
 
 
-class VectorIndexConfig(BaseModel):
+class ConfigModel(BaseModel):
+    def to_dict(self):
+        return self.model_dump(exclude_none=True)
+
+
+@dataclass
+class VectorIndexConfig(ConfigModel):
     distance: VectorDistance = VectorDistance.COSINE
     efConstruction: int = 128
     maxConnections: int = 64
 
 
-class ShardingConfig(BaseModel):
+@dataclass
+class ShardingConfig(ConfigModel):
     virtualPerPhysical: Optional[int] = None
     desiredCount: Optional[int] = None
     actualCount: Optional[int] = None
@@ -99,22 +106,22 @@ class ShardingConfig(BaseModel):
     function: Optional[str] = None
 
 
-class ReplicationConfig(BaseModel):
+class ReplicationConfig(ConfigModel):
     factor: Optional[int] = None
 
 
-class BM25config(BaseModel):
+class BM25config(ConfigModel):
     b: float = 0.75
     k1: float = 1.2
 
 
-class Stopwords(BaseModel):
+class Stopwords(ConfigModel):
     preset: StopwordsPreset = StopwordsPreset.EN
     additions: Optional[List[str]] = None
     removals: Optional[List[str]] = None
 
 
-class InvertedIndexConfig(BaseModel):
+class InvertedIndexConfig(ConfigModel):
     bm25: Optional[BM25config] = None
     stopwords: Optional[Stopwords] = None
     indexTimestamps: bool = False
@@ -122,7 +129,11 @@ class InvertedIndexConfig(BaseModel):
     indexNullState: bool = False
 
 
-class CollectionConfigBase(BaseModel):
+class MultiTenancyConfig(ConfigModel):
+    enabled: bool = False
+
+
+class CollectionConfigBase(ConfigModel):
     name: str
     vectorIndexType: Optional[VectorIndexType] = None
     vectorizer: Optional[Vectorizer] = None
@@ -131,6 +142,7 @@ class CollectionConfigBase(BaseModel):
     shardingConfig: Optional[ShardingConfig] = None
     replicationConfig: Optional[ReplicationConfig] = None
     invertedIndexConfig: Optional[InvertedIndexConfig] = None
+    multiTenancyConfig: Optional[MultiTenancyConfig] = None
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = {}
@@ -146,12 +158,13 @@ class CollectionConfigBase(BaseModel):
             elif isinstance(val, (bool, float, str, int)):
                 ret_dict[cls_field] = str(val)
             else:
+                assert isinstance(val, ConfigModel)
                 ret_dict[cls_field] = val.to_dict()
 
         return ret_dict
 
 
-class PropertyConfig(BaseModel):
+class PropertyConfig(ConfigModel):
     indexFilterable: Optional[bool] = None
     indexSearchable: Optional[bool] = None
     tokenization: Optional[Tokenization] = None
@@ -159,22 +172,22 @@ class PropertyConfig(BaseModel):
     moduleConfig: Optional[ModuleConfig] = None
 
 
-class Property(PropertyConfig, BaseModel):
+class Property(PropertyConfig, ConfigModel):
     name: str
     dataType: DataType
 
     def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().model_dump(exclude_none=True)
+        ret_dict = super().to_dict()
         ret_dict["dataType"] = [ret_dict["dataType"]]
         return ret_dict
 
 
-class ReferenceProperty(BaseModel):
+class ReferenceProperty(ConfigModel):
     name: str
     reference_class_name: str
 
     def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().model_dump(exclude_none=True)
+        ret_dict = super().to_dict()
         ref_collection_name = self.reference_class_name[0].upper()
         if len(self.reference_class_name) > 1:
             ref_collection_name += self.reference_class_name[1:]
@@ -200,7 +213,7 @@ class CollectionConfig(CollectionConfigBase):
         return ret_dict
 
 
-class Metadata(BaseModel):
+class MetadataGet(BaseModel):
     vector: bool = False
     distance: bool = False
     certainty: bool = False
@@ -228,16 +241,46 @@ class Metadata(BaseModel):
         return ",".join(self._get_fields())
 
 
-class MetadataReturn(BaseModel):
-    uuid: Optional[uuid_package.UUID] = Field(None, alias="id")
+@dataclass
+class MetadataReturn:
+    # uuid: Optional[uuid_package.UUID] = Field(None, alias="id")
+    # vector: Optional[List[float]] = None
+    # creation_time_unix: Optional[int] = Field(None, alias="creationTimeUnix")
+    # last_update_time_unix: Optional[int] = Field(None, alias="lastUpdateTimeUnix")
+    # distance: Optional[float] = None
+    # certainty: Optional[float] = None
+    # score: Optional[float] = None
+    # explain_score: Optional[str] = Field(None, alias="explainScore")
+    # is_consistent: Optional[bool] = Field(None, alias="isConsistent")
+    uuid: Optional[uuid_package.UUID] = None
     vector: Optional[List[float]] = None
-    creation_time_unix: Optional[int] = Field(None, alias="creationTimeUnix")
-    last_update_time_unix: Optional[int] = Field(None, alias="lastUpdateTimeUnix")
+    creation_time_unix: Optional[int] = None
+    last_update_time_unix: Optional[int] = None
     distance: Optional[float] = None
     certainty: Optional[float] = None
     score: Optional[float] = None
-    explain_score: Optional[str] = Field(None, alias="explainScore")
-    is_consistent: Optional[bool] = Field(None, alias="isConsistent")
+    explain_score: Optional[str] = None
+    is_consistent: Optional[bool] = None
+
+    def __init__(self, **data: Dict[str, Any]) -> None:
+        def _to_uuid(uuid_str: str) -> uuid_package.UUID:
+            return uuid_package.UUID(hex=uuid_str)
+
+        def _parse(key: str) -> Any:
+            value = data.get(key)
+            if value is None:
+                return None
+            return _to_uuid(value) if key == "id" else value
+
+        self.uuid = _parse("id")
+        self.vector = _parse("vector")
+        self.creation_time_unix = _parse("creationTimeUnix")
+        self.last_update_time_unix = _parse("lastUpdateTimeUnix")
+        self.distance = _parse("distance")
+        self.certainty = _parse("certainty")
+        self.score = _parse("score")
+        self.explain_score = _parse("explainScore")
+        self.is_consistent = _parse("isConsistent")
 
 
 @dataclass
@@ -278,6 +321,19 @@ class ReferenceTo:
         else:
             assert isinstance(self.ref_type, str)
             return _capitalize_first_letter(self.ref_type)
+
+
+@dataclass
+class BatchReference:
+    from_uuid: UUID
+    to_uuid: UUID
+
+
+@dataclass
+class DataObject:
+    data: Dict[str, Any]
+    uuid: Optional[UUID] = None
+    vector: Optional[List[float]] = None
 
 
 class BaseProperty(BaseModel):
@@ -450,14 +506,5 @@ class CollectionModelConfig(CollectionConfigBase, Generic[Model]):
         return ret_dict
 
 
-@dataclass
-class DataObject:
-    data: Dict[str, Any]
-    uuid: Optional[UUID] = None
-    vector: Optional[List[float]] = None
-
-
-@dataclass
-class BatchReference:
-    from_uuid: UUID
-    to_uuid: UUID
+class Tenant(BaseModel):
+    name: str
