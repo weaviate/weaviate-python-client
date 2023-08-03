@@ -7,7 +7,7 @@ from weaviate.collection.collection_base import CollectionBase, CollectionObject
 from weaviate.collection.collection_classes import Errors
 from weaviate.collection.grpc import (
     _GRPC,
-    GrpcReturnType,
+    GrpcResult,
     HybridFusion,
     MetadataQuery,
     PROPERTIES,
@@ -246,7 +246,7 @@ class _Grpc:
             )
         ]
 
-    def __dict_to_obj(self, obj: GrpcReturnType) -> _Object:
+    def __dict_to_obj(self, obj: GrpcResult) -> _Object:
         data = obj[0]
         for key in data.keys():
             if isinstance(data[key], List):

@@ -80,7 +80,7 @@ class LinkTo:
 
 PROPERTIES = Union[List[Union[str, LinkTo]], str]
 
-GrpcReturnType: TypeAlias = Tuple[Dict[str, "GrpcReturnType"], MetadataReturn]
+GrpcResult: TypeAlias = Tuple[Dict[str, "GrpcResult"], MetadataReturn]
 
 
 @dataclass
@@ -281,7 +281,7 @@ class _GRPC:
 
             ref_props_meta = self._ref_props_return_meta(self._default_props)
 
-            objects: List[GrpcReturnType] = []
+            objects: List[GrpcResult] = []
             for result in res.results:
                 obj = self._convert_references_to_grpc_result(result.properties, ref_props_meta)
                 metadata_return = self._extract_metadata(
@@ -317,7 +317,7 @@ class _GRPC:
 
     def _convert_references_to_grpc_result(
         self, properties: "weaviate_pb2.ResultProperties", props: Dict[str, RefProps]
-    ) -> Dict[str, Any]:
+    ) -> GrpcResult:
         result = {}
         for name, non_ref_prop in properties.non_ref_properties.items():
             result[name] = non_ref_prop
