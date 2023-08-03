@@ -11,13 +11,13 @@ import pytest as pytest
 import uuid
 
 import weaviate
-from weaviate.schema.crud_schema import Tenant
 from weaviate.weaviate_classes import (
     BaseProperty,
     CollectionModelConfig,
     MultiTenancyConfig,
     PropertyConfig,
     ReferenceTo,
+    Tenant,
     Vectorizer,
 )
 from weaviate.weaviate_types import UUIDS

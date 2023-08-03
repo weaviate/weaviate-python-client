@@ -8,9 +8,8 @@ from weaviate.collection.collection_classes import Errors, Error
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException, ObjectAlreadyExistsException
-from weaviate.schema.crud_schema import Tenant
 from weaviate.util import _to_beacons, _capitalize_first_letter
-from weaviate.weaviate_classes import CollectionConfigBase, UUID, Metadata
+from weaviate.weaviate_classes import CollectionConfigBase, UUID, Metadata, Tenant
 from weaviate.weaviate_types import UUIDS
 
 
@@ -113,8 +112,8 @@ class _Tenants:
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Get classes tenants", response)
 
-        tenant_resp = response.json()
-        return [Tenant(tenant["name"]) for tenant in tenant_resp]
+        tenant_resp: List[Dict[str, Any]] = response.json()
+        return [Tenant(name=tenant["name"]) for tenant in tenant_resp]
 
 
 class CollectionObjectBase:

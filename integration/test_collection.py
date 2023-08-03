@@ -5,7 +5,6 @@ import pytest as pytest
 import weaviate
 from weaviate import Config
 from weaviate.collection.grpc import HybridFusion, LinkTo, MetadataQuery
-from weaviate.schema.crud_schema import Tenant
 from weaviate.weaviate_classes import (
     CollectionConfig,
     Property,
@@ -15,6 +14,7 @@ from weaviate.weaviate_classes import (
     RefToObject,
     Metadata,
     MultiTenancyConfig,
+    Tenant,
 )
 
 

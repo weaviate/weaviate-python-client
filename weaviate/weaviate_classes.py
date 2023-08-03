@@ -474,3 +474,7 @@ class CollectionModelConfig(CollectionConfigBase, Generic[Model]):
             ret_dict["properties"] = self.model.type_to_dict(self.model)
 
         return ret_dict
+
+
+class Tenant(BaseModel):
+    name: str
