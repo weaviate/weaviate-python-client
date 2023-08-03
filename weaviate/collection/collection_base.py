@@ -173,7 +173,7 @@ class CollectionObjectBase:
             if response.status_code != 200:
                 raise UnexpectedStatusCodeException("Add property reference to object", response)
 
-    def _reference_batch_add(self, refs: List[Dict[str, str]]):
+    def _reference_add_many(self, refs: List[Dict[str, str]]):
         params: Dict[str, str] = {}
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level
