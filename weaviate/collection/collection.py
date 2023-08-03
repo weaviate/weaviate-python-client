@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional, List, Union, Tuple
 
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.collection.collection_classes import Errors
-from weaviate.collection.grpc import GrpcBuilderBase, HybridFusion, ReturnValues
+from weaviate.collection.grpc import GrpcBase, HybridFusion, MetadataQuery, PROPERTIES
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.weaviate_classes import CollectionConfig, MetadataReturn, Metadata, RefToObject
@@ -28,70 +28,6 @@ class DataObject:
 class BatchReference:
     from_uuid: UUID
     to_uuid: UUID
-
-
-class GrpcBuilder(GrpcBuilderBase):
-    def get(
-        self,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-        after: Optional[UUID] = None,
-    ) -> List[_Object]:
-        return [self.__dict_to_obj(obj) for obj in self._get(limit, offset, after)]
-
-    def hybrid(
-        self,
-        query: str,
-        alpha: Optional[float] = None,
-        vector: Optional[List[float]] = None,
-        properties: Optional[List[str]] = None,
-        fusion_type: Optional[HybridFusion] = None,
-        limit: Optional[int] = None,
-        autocut: Optional[int] = None,
-    ) -> List[_Object]:
-        objects = self._hybrid(query, alpha, vector, properties, fusion_type, limit, autocut)
-        return [self.__dict_to_obj(obj) for obj in objects]
-
-    def bm25(
-        self,
-        query: str,
-        properties: Optional[List[str]] = None,
-        limit: Optional[int] = None,
-        autocut: Optional[int] = None,
-    ) -> List[_Object]:
-        return [self.__dict_to_obj(obj) for obj in self._bm25(query, properties, limit, autocut)]
-
-    def near_vector(
-        self,
-        vector: List[float],
-        certainty: Optional[float] = None,
-        distance: Optional[float] = None,
-        autocut: Optional[int] = None,
-    ) -> List[_Object]:
-        return [
-            self.__dict_to_obj(obj)
-            for obj in self._near_vector(vector, certainty, distance, autocut)
-        ]
-
-    def near_object(
-        self,
-        obj: UUID,
-        certainty: Optional[float] = None,
-        distance: Optional[float] = None,
-        autocut: Optional[int] = None,
-    ) -> List[_Object]:
-        return [
-            self.__dict_to_obj(obj) for obj in self._near_object(obj, certainty, distance, autocut)
-        ]
-
-    def __dict_to_obj(self, obj: Tuple[Dict[str, Any], MetadataReturn]) -> _Object:
-        data: Dict[str, Any] = obj[0]
-        for key in data.keys():
-            if isinstance(data[key], List):
-                for i, _ in enumerate(data[key]):
-                    data[key][i] = self.__dict_to_obj(data[key][i])
-
-        return _Object(data=data, metadata=obj[1])
 
 
 class CollectionObject(CollectionObjectBase):
@@ -202,9 +138,106 @@ class CollectionObject(CollectionObjectBase):
                 from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
             )
 
+    class __Grpc(GrpcBase):
+        def get(
+            self,
+            limit: Optional[int] = None,
+            offset: Optional[int] = None,
+            after: Optional[UUID] = None,
+            return_metadata: Optional[MetadataQuery] = None,
+            return_properties: Optional[PROPERTIES] = None,
+        ) -> List[_Object]:
+            return [
+                self.__dict_to_obj(obj)
+                for obj in self._get(limit, offset, after, return_metadata, return_properties)
+            ]
+
+        def hybrid(
+            self,
+            query: str,
+            alpha: Optional[float] = None,
+            vector: Optional[List[float]] = None,
+            properties: Optional[List[str]] = None,
+            fusion_type: Optional[HybridFusion] = None,
+            limit: Optional[int] = None,
+            autocut: Optional[int] = None,
+            return_metadata: Optional[MetadataQuery] = None,
+            return_properties: Optional[PROPERTIES] = None,
+        ) -> List[_Object]:
+            objects = self._hybrid(
+                query,
+                alpha,
+                vector,
+                properties,
+                fusion_type,
+                limit,
+                autocut,
+                return_metadata,
+                return_properties,
+            )
+            return [self.__dict_to_obj(obj) for obj in objects]
+
+        def bm25(
+            self,
+            query: str,
+            properties: Optional[List[str]] = None,
+            limit: Optional[int] = None,
+            autocut: Optional[int] = None,
+            return_metadata: Optional[MetadataQuery] = None,
+            return_properties: Optional[PROPERTIES] = None,
+        ) -> List[_Object]:
+            return [
+                self.__dict_to_obj(obj)
+                for obj in self._bm25(
+                    query, properties, limit, autocut, return_metadata, return_properties
+                )
+            ]
+
+        def near_vector(
+            self,
+            vector: List[float],
+            certainty: Optional[float] = None,
+            distance: Optional[float] = None,
+            autocut: Optional[int] = None,
+            return_metadata: Optional[MetadataQuery] = None,
+            return_properties: Optional[PROPERTIES] = None,
+        ) -> List[_Object]:
+            return [
+                self.__dict_to_obj(obj)
+                for obj in self._near_vector(
+                    vector, certainty, distance, autocut, return_metadata, return_properties
+                )
+            ]
+
+        def near_object(
+            self,
+            obj: UUID,
+            certainty: Optional[float] = None,
+            distance: Optional[float] = None,
+            autocut: Optional[int] = None,
+            return_metadata: Optional[MetadataQuery] = None,
+            return_properties: Optional[PROPERTIES] = None,
+        ) -> List[_Object]:
+            return [
+                self.__dict_to_obj(obj)
+                for obj in self._near_object(
+                    obj, certainty, distance, autocut, return_metadata, return_properties
+                )
+            ]
+
+        def __dict_to_obj(self, obj: Tuple[Dict[str, Any], MetadataReturn]) -> _Object:
+            data: Dict[str, Any] = obj[0]
+            for key in data.keys():
+                if isinstance(data[key], List):
+                    for i, _ in enumerate(data[key]):
+                        data[key][i] = self.__dict_to_obj(data[key][i])
+
+            return _Object(data=data, metadata=obj[1])
+
     def __init__(self, connection: Connection, name: str) -> None:
         super().__init__(connection, name)
         self.data = self.__Data(self)
+        self.query = self.__Grpc(connection, name)
 
     def with_tenant(self, tenant: Optional[str] = None) -> "CollectionObject":
         return self._with_tenant(tenant)
@@ -213,10 +246,6 @@ class CollectionObject(CollectionObjectBase):
         self, consistency_level: Optional[ConsistencyLevel] = None
     ) -> "CollectionObject":
         return self._with_consistency_level(consistency_level)
-
-    @property
-    def get_grpc(self) -> ReturnValues[GrpcBuilder]:
-        return ReturnValues[GrpcBuilder](GrpcBuilder(self._connection, self._name))
 
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object:
         return _Object(

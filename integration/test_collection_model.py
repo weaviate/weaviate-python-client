@@ -1,6 +1,8 @@
 import sys
 from typing import List, Optional
 
+from weaviate import Config
+
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated
 else:
@@ -27,7 +29,9 @@ class Group(BaseProperty):
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.Client("http://localhost:8080")
+    client = weaviate.Client(
+        "http://localhost:8080", additional_config=Config(grpc_port_experimental=50051)
+    )
     client.schema.delete_all()
     collection = client.collection_model.create(
         CollectionModelConfig(name="Group", model=Group, vectorizer=Vectorizer.NONE)
@@ -106,3 +110,20 @@ def test_create_and_delete(client: weaviate.Client):
     assert client.collection_model.exists(name)
     client.collection_model.delete(name)
     assert not client.collection_model.exists(name)
+
+
+def test_search(client: weaviate.Client):
+    class SearchTest(BaseProperty):
+        name: str
+
+    name = "SearchTest"
+    client.collection_model.delete(name)
+    collection = client.collection_model.create(
+        CollectionModelConfig(name=name, model=SearchTest, vectorizer=Vectorizer.NONE)
+    )
+
+    collection.data.insert(SearchTest(name="test name"))
+    collection.data.insert(SearchTest(name="other words"))
+
+    objects = collection.query.bm25(query="test")
+    assert objects[0].data.name == "test name"

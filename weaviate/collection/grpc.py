@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Any, Union, Set, TypeVar, Generic
+from typing import Optional, List, Dict, Any, Union, Set
 
 import grpc
 
@@ -47,7 +47,7 @@ class RefProps:
     refs: Dict[str, "RefProps"]
 
 
-class GrpcBuilderBase:
+class GrpcBase:
     def __init__(
         self, connection: Connection, name: str, default_properties: Optional[Set[str]] = None
     ):
@@ -79,24 +79,20 @@ class GrpcBuilderBase:
         self._near_certainty: Optional[float] = None
         self._near_distance: Optional[float] = None
 
-    def add_return_values(self, props: Optional[PROPERTIES], metadata: Optional[MetadataQuery]):
-        if props is not None:
-            if isinstance(props, set):
-                self._default_props = self._default_props.union(props)
-
-            else:
-                self._default_props.add(props)
-        self._metadata = metadata
-
     def _get(
         self,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
     ):
         self._limit = limit
         self._offset = offset
         self._after = after
+        self._metadata = return_metadata
+        if return_properties is not None:
+            self._default_props = self._default_props.union(return_properties)
         return self.__call()
 
     def _hybrid(
@@ -108,6 +104,8 @@ class GrpcBuilderBase:
         fusion_type: Optional[HybridFusion] = None,
         limit: Optional[int] = None,
         autocut: Optional[int] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
     ):
         self._hybrid_query = query
         self._hybrid_alpha = alpha
@@ -120,6 +118,9 @@ class GrpcBuilderBase:
         )
         self._limit = limit
         self._autocut = autocut
+        self._metadata = return_metadata
+        if return_properties is not None:
+            self._default_props = self._default_props.union(return_properties)
 
         return self.__call()
 
@@ -129,11 +130,16 @@ class GrpcBuilderBase:
         properties: Optional[List[str]] = None,
         limit: Optional[int] = None,
         autocut: Optional[int] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
     ):
         self._bm25_query = query
         self._bm25_properties = properties
         self._limit = limit
         self._autocut = autocut
+        self._metadata = return_metadata
+        if return_properties is not None:
+            self._default_props = self._default_props.union(return_properties)
 
         return self.__call()
 
@@ -143,11 +149,16 @@ class GrpcBuilderBase:
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         autocut: Optional[int] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
     ):
         self._near_vector_vec = vector
         self._near_certainty = certainty
         self._near_distance = distance
         self._autocut = autocut
+        self._metadata = return_metadata
+        if return_properties is not None:
+            self._default_props = self._default_props.union(return_properties)
 
         return self.__call()
 
@@ -157,11 +168,18 @@ class GrpcBuilderBase:
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         autocut: Optional[int] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
     ):
         self._near_object_obj = near_object
         self._near_certainty = certainty
         self._near_distance = distance
         self._autocut = autocut
+
+        self._metadata = return_metadata
+        if return_properties is not None:
+            self._default_props = self._default_props.union(return_properties)
+
         return self.__call()
 
     def __call(self):
@@ -315,36 +333,3 @@ class GrpcBuilderBase:
                 props.explain_score if props.explain_score_present else None
             )
         return MetadataReturn(**additional_props)
-
-
-GrpcBuilder = TypeVar("GrpcBuilder", bound=GrpcBuilderBase)
-
-
-@dataclass
-class ReturnValues(Generic[GrpcBuilder]):
-    next_stage: GrpcBuilder
-
-    def with_return_values(
-        self,
-        properties: Optional[PROPERTIES] = None,
-        uuid: bool = False,
-        vector: bool = False,
-        creation_time_unix: bool = False,
-        last_update_time_unix: bool = False,
-        distance: bool = False,
-        certainty: bool = False,
-        score: bool = False,
-        explain_score: bool = False,
-    ) -> GrpcBuilder:
-        additional_props = MetadataQuery(
-            uuid=uuid,
-            vector=vector,
-            creationTimeUnix=creation_time_unix,
-            lastUpdateTimeUnix=last_update_time_unix,
-            distance=distance,
-            certainty=certainty,
-            score=score,
-            explainScore=explain_score,
-        )
-        self.next_stage.add_return_values(properties, additional_props)
-        return self.next_stage
