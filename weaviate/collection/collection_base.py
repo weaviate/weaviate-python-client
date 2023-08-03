@@ -1,7 +1,7 @@
+import uuid as uuid_package
 from copy import copy
 from typing import Dict, Any, Optional, List, Tuple, Union
 
-import uuid as uuid_package
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.collection_classes import Errors, Error
@@ -156,7 +156,7 @@ class CollectionObjectBase:
             return None
         raise UnexpectedStatusCodeException("Get object/s", response)
 
-    def _reference_add(self, from_uuid: str, from_property_name: str, to_uuids: UUIDS) -> None:
+    def _reference_add(self, from_uuid: UUID, from_property_name: str, to_uuids: UUIDS) -> None:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self._name}/{from_uuid}/references/{from_property_name}"
@@ -189,7 +189,7 @@ class CollectionObjectBase:
             return response
         raise UnexpectedStatusCodeException("Send ref batch", response)
 
-    def _reference_delete(self, from_uuid: str, from_property_name: str, to_uuids: UUIDS) -> None:
+    def _reference_delete(self, from_uuid: UUID, from_property_name: str, to_uuids: UUIDS) -> None:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self._name}/{from_uuid}/references/{from_property_name}"
