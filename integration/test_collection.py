@@ -357,3 +357,30 @@ def test_tenants(client: weaviate.Client):
 
     tenants = collection.tenants.get()
     assert len(tenants) == 0
+
+
+def test_multi_searches(client: weaviate.Client):
+    client.collection.delete("TestMultiSearches")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestMultiSearches",
+            properties=[Property(name="name", dataType=DataType.TEXT)],
+            vectorizer=Vectorizer.NONE,
+        )
+    )
+
+    collection.data.insert(data={"name": "word"})
+    collection.data.insert(data={"name": "other"})
+
+    objects = collection.query.bm25_flat(
+        query="word",
+        return_properties=["name"],
+        return_metadata=MetadataQuery(last_update_time_unix=True),
+    )
+    assert "name" in objects[0].data
+    assert objects[0].metadata.last_update_time_unix is not None
+
+    objects = collection.query.bm25_flat(query="other", return_metadata=MetadataQuery(uuid=True))
+    assert "name" not in objects[0].data
+    assert objects[0].metadata.uuid is not None
+    assert objects[0].metadata.last_update_time_unix is None

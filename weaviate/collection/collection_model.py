@@ -10,7 +10,7 @@ from weaviate.collection.collection_base import (
 )
 from weaviate.collection.collection_classes import Errors
 from weaviate.collection.grpc import (
-    GrpcBase,
+    _GRPC,
     HybridFusion,
     PROPERTIES,
     MetadataQuery,
@@ -137,10 +137,13 @@ class _Data(Generic[Model]):
         self.__collection._reference_add_many(refs_dict)
 
 
-class _GRPC(Generic[Model], GrpcBase):
+class _GRPCWrapper(Generic[Model]):
     def __init__(self, connection: Connection, name: str, model: Type[Model]):
-        super().__init__(connection, name, model.get_non_optional_fields(model))
+        super().__init__()
         self._model: Type[Model] = model
+        self._connection = connection
+        self._name = name
+        self._non_optional_props = model.get_non_optional_fields(model)
 
     def get_flat(
         self,
@@ -149,19 +152,23 @@ class _GRPC(Generic[Model], GrpcBase):
         after: Optional[UUID] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[_Object]:
+    ) -> List[_Object[Model]]:
+        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
         return [
             self.__dict_to_obj(obj)
-            for obj in self._get(limit, offset, after, return_metadata, return_properties)
+            for obj in grpc_query.get(limit, offset, after, return_metadata, return_properties)
         ]
 
-    def get_options(self, returns: ReturnValues, options: Optional[GetOptions]) -> List[_Object]:
+    def get_options(
+        self, returns: ReturnValues, options: Optional[GetOptions]
+    ) -> List[_Object[Model]]:
         if options is None:
             options = GetOptions()
+        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
 
         return [
             self.__dict_to_obj(obj)
-            for obj in self._get(
+            for obj in grpc_query.get(
                 options.limit, options.offset, options.after, returns.metadata, returns.properties
             )
         ]
@@ -177,8 +184,10 @@ class _GRPC(Generic[Model], GrpcBase):
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[_Object]:
-        objects = self._hybrid(
+    ) -> List[_Object[Model]]:
+        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
+
+        objects = grpc_query.hybrid(
             query,
             alpha,
             vector,
@@ -196,11 +205,12 @@ class _GRPC(Generic[Model], GrpcBase):
         query: str,
         returns: ReturnValues,
         options: Optional[HybridOptions] = None,
-    ) -> List[_Object]:
+    ) -> List[_Object[Model]]:
         if options is None:
             options = HybridOptions()
+        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
 
-        objects = self._hybrid(
+        objects = grpc_query.hybrid(
             query,
             options.alpha,
             options.vector,
@@ -221,10 +231,12 @@ class _GRPC(Generic[Model], GrpcBase):
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[_Object]:
+    ) -> List[_Object[Model]]:
+        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
+
         return [
             self.__dict_to_obj(obj)
-            for obj in self._bm25(
+            for obj in grpc_query.bm25(
                 query, properties, limit, autocut, return_metadata, return_properties
             )
         ]
@@ -234,13 +246,14 @@ class _GRPC(Generic[Model], GrpcBase):
         query: str,
         returns: ReturnValues,
         options: Optional[BM25Options] = None,
-    ) -> List[_Object]:
+    ) -> List[_Object[Model]]:
         if options is None:
             options = BM25Options()
+        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
 
         return [
             self.__dict_to_obj(obj)
-            for obj in self._bm25(
+            for obj in grpc_query.bm25(
                 query,
                 options.properties,
                 options.limit,
@@ -258,10 +271,12 @@ class _GRPC(Generic[Model], GrpcBase):
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[_Object]:
+    ) -> List[_Object[Model]]:
+        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
+
         return [
             self.__dict_to_obj(obj)
-            for obj in self._near_vector(
+            for obj in grpc_query.near_vector(
                 vector, certainty, distance, autocut, return_metadata, return_properties
             )
         ]
@@ -271,13 +286,14 @@ class _GRPC(Generic[Model], GrpcBase):
         vector: List[float],
         returns: ReturnValues,
         options: Optional[NearVectorOptions] = None,
-    ) -> List[_Object]:
+    ) -> List[_Object[Model]]:
         if options is None:
             options = NearVectorOptions()
+        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
 
         return [
             self.__dict_to_obj(obj)
-            for obj in self._near_vector(
+            for obj in grpc_query.near_vector(
                 vector,
                 options.certainty,
                 options.distance,
@@ -295,10 +311,12 @@ class _GRPC(Generic[Model], GrpcBase):
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[_Object]:
+    ) -> List[_Object[Model]]:
+        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
+
         return [
             self.__dict_to_obj(obj)
-            for obj in self._near_object(
+            for obj in grpc_query.near_object(
                 obj, certainty, distance, autocut, return_metadata, return_properties
             )
         ]
@@ -308,12 +326,15 @@ class _GRPC(Generic[Model], GrpcBase):
         obj: UUID,
         returns: ReturnValues,
         options: Optional[NearObjectOptions] = None,
-    ) -> List[_Object]:
+    ) -> List[_Object[Model]]:
         if options is None:
             options = NearObjectOptions()
+
+        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
+
         return [
             self.__dict_to_obj(obj)
-            for obj in self._near_object(
+            for obj in grpc_query.near_object(
                 obj,
                 options.certainty,
                 options.distance,
@@ -333,7 +354,7 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
         self._model: Type[Model] = model
         self._default_props = model.get_non_optional_fields(model)
         self.data = _Data[Model](self)
-        self.query = _GRPC[Model](connection, name, model)
+        self.query = _GRPCWrapper[Model](connection, name, model)
 
     def with_tenant(self, tenant: Optional[str] = None) -> "CollectionObjectModel":
         return self._with_tenant(tenant)
