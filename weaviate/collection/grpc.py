@@ -76,7 +76,7 @@ class LinkTo:
         return hash(str(self))
 
 
-PROPERTIES = Union[Set[Union[str, LinkTo]], str]
+PROPERTIES = Union[List[Union[str, LinkTo]], str]
 
 
 @dataclass
