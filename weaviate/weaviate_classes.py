@@ -82,15 +82,20 @@ class StopwordsPreset(str, Enum):
 ModuleConfig = Dict[Vectorizer, Dict[str, Any]]
 
 
+class ConfigModel(BaseModel):
+    def to_dict(self):
+        return self.model_dump(exclude_none=True)
+
+
 @dataclass
-class VectorIndexConfig(BaseModel):
+class VectorIndexConfig(ConfigModel):
     distance: VectorDistance = VectorDistance.COSINE
     efConstruction: int = 128
     maxConnections: int = 64
 
 
 @dataclass
-class ShardingConfig(BaseModel):
+class ShardingConfig(ConfigModel):
     virtualPerPhysical: Optional[int] = None
     desiredCount: Optional[int] = None
     actualCount: Optional[int] = None
@@ -101,22 +106,22 @@ class ShardingConfig(BaseModel):
     function: Optional[str] = None
 
 
-class ReplicationConfig(BaseModel):
+class ReplicationConfig(ConfigModel):
     factor: Optional[int] = None
 
 
-class BM25config(BaseModel):
+class BM25config(ConfigModel):
     b: float = 0.75
     k1: float = 1.2
 
 
-class Stopwords(BaseModel):
+class Stopwords(ConfigModel):
     preset: StopwordsPreset = StopwordsPreset.EN
     additions: Optional[List[str]] = None
     removals: Optional[List[str]] = None
 
 
-class InvertedIndexConfig(BaseModel):
+class InvertedIndexConfig(ConfigModel):
     bm25: Optional[BM25config] = None
     stopwords: Optional[Stopwords] = None
     indexTimestamps: bool = False
@@ -124,7 +129,11 @@ class InvertedIndexConfig(BaseModel):
     indexNullState: bool = False
 
 
-class CollectionConfigBase(BaseModel):
+class MultiTenancyConfig(ConfigModel):
+    enabled: bool = False
+
+
+class CollectionConfigBase(ConfigModel):
     name: str
     vectorIndexType: Optional[VectorIndexType] = None
     vectorizer: Optional[Vectorizer] = None
@@ -133,6 +142,7 @@ class CollectionConfigBase(BaseModel):
     shardingConfig: Optional[ShardingConfig] = None
     replicationConfig: Optional[ReplicationConfig] = None
     invertedIndexConfig: Optional[InvertedIndexConfig] = None
+    multiTenancyConfig: Optional[MultiTenancyConfig] = None
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = {}
@@ -147,13 +157,15 @@ class CollectionConfigBase(BaseModel):
                 ret_dict[cls_field] = str(val.value)
             elif isinstance(val, (bool, float, str, int)):
                 ret_dict[cls_field] = str(val)
-            else:
+            elif isinstance(val, ConfigModel):
                 ret_dict[cls_field] = val.to_dict()
+            else:
+                raise TypeError(f"Unexpected type {type(val)} of {val}")
 
         return ret_dict
 
 
-class PropertyConfig(BaseModel):
+class PropertyConfig(ConfigModel):
     indexFilterable: Optional[bool] = None
     indexSearchable: Optional[bool] = None
     tokenization: Optional[Tokenization] = None
@@ -161,22 +173,22 @@ class PropertyConfig(BaseModel):
     moduleConfig: Optional[ModuleConfig] = None
 
 
-class Property(PropertyConfig, BaseModel):
+class Property(PropertyConfig, ConfigModel):
     name: str
     dataType: DataType
 
     def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().model_dump(exclude_none=True)
+        ret_dict = super().to_dict()
         ret_dict["dataType"] = [ret_dict["dataType"]]
         return ret_dict
 
 
-class ReferenceProperty(BaseModel):
+class ReferenceProperty(ConfigModel):
     name: str
     reference_class_name: str
 
     def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().model_dump(exclude_none=True)
+        ret_dict = super().to_dict()
         ref_collection_name = self.reference_class_name[0].upper()
         if len(self.reference_class_name) > 1:
             ref_collection_name += self.reference_class_name[1:]
