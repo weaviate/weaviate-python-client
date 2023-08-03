@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Any, Union, Tuple, Set, TypeAlias
+from typing import Optional, List, Dict, Any, Union, Tuple, Set
+from typing_extensions import TypeAlias
 
 import grpc
 
