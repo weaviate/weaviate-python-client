@@ -156,6 +156,9 @@ class _GRPC(Generic[Model], GrpcBase):
         ]
 
     def get_options(self, returns: ReturnValues, options: Optional[GetOptions]) -> List[_Object]:
+        if options is None:
+            options = GetOptions()
+
         return [
             self.__dict_to_obj(obj)
             for obj in self._get(
@@ -194,6 +197,9 @@ class _GRPC(Generic[Model], GrpcBase):
         returns: ReturnValues,
         options: Optional[HybridOptions] = None,
     ) -> List[_Object]:
+        if options is None:
+            options = HybridOptions()
+
         objects = self._hybrid(
             query,
             options.alpha,
@@ -229,6 +235,9 @@ class _GRPC(Generic[Model], GrpcBase):
         returns: ReturnValues,
         options: Optional[BM25Options] = None,
     ) -> List[_Object]:
+        if options is None:
+            options = BM25Options()
+
         return [
             self.__dict_to_obj(obj)
             for obj in self._bm25(
@@ -263,6 +272,9 @@ class _GRPC(Generic[Model], GrpcBase):
         returns: ReturnValues,
         options: Optional[NearVectorOptions] = None,
     ) -> List[_Object]:
+        if options is None:
+            options = NearVectorOptions()
+
         return [
             self.__dict_to_obj(obj)
             for obj in self._near_vector(
@@ -297,6 +309,8 @@ class _GRPC(Generic[Model], GrpcBase):
         returns: ReturnValues,
         options: Optional[NearObjectOptions] = None,
     ) -> List[_Object]:
+        if options is None:
+            options = NearObjectOptions()
         return [
             self.__dict_to_obj(obj)
             for obj in self._near_object(
