@@ -1,5 +1,4 @@
 import uuid as uuid_package
-from dataclasses import dataclass
 from typing import Type, Optional, Any, List, Dict, Generic, Tuple, Union
 
 from pydantic import create_model
@@ -28,139 +27,143 @@ from weaviate.weaviate_classes import (
 from weaviate.weaviate_types import UUID, UUIDS, BEACON, PYTHON_TYPE_TO_DATATYPE
 
 
-class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
-    @dataclass
-    class __Data:
-        __collection: "CollectionObjectModel[Model]"
+class _Data(Generic[Model]):
+    __collection: "CollectionObjectModel[Model]"
 
-        def insert(self, obj: Model) -> uuid_package.UUID:
+    def __init__(self, collection: "CollectionObjectModel[Model]"):
+        self.__collection = collection
+
+    def insert(self, obj: Model) -> uuid_package.UUID:
+        self.__collection._model.model_validate(obj)
+
+        weaviate_obj: Dict[str, Any] = {
+            "class": self.__collection._name,
+            "properties": obj.props_to_dict(),
+            "id": str(obj.uuid),
+        }
+        if obj.vector is not None:
+            weaviate_obj["vector"] = obj.vector
+
+        self.__collection._insert(weaviate_obj)
+        return uuid_package.UUID(str(obj.uuid))
+
+    def insert_many(self, objects: List[Model]) -> List[Union[uuid_package.UUID, Errors]]:
+        for obj in objects:
             self.__collection._model.model_validate(obj)
 
-            weaviate_obj: Dict[str, Any] = {
+        weaviate_objs: List[Dict[str, Any]] = [
+            {
                 "class": self.__collection._name,
                 "properties": obj.props_to_dict(),
                 "id": str(obj.uuid),
             }
-            if obj.vector is not None:
-                weaviate_obj["vector"] = obj.vector
+            for obj in objects
+        ]
+        return self.__collection._insert_many(weaviate_objs)
 
-            self.__collection._insert(weaviate_obj)
-            return uuid_package.UUID(str(obj.uuid))
+    def replace(self, obj: Model, uuid: UUID) -> None:
+        self.__collection._model.model_validate(obj)
 
-        def insert_many(self, objects: List[Model]) -> List[Union[uuid_package.UUID, Errors]]:
-            for obj in objects:
-                self.__collection._model.model_validate(obj)
+        weaviate_obj: Dict[str, Any] = {
+            "class": self.__collection._name,
+            "properties": obj.props_to_dict(),
+        }
+        if obj.vector is not None:
+            weaviate_obj["vector"] = obj.vector
 
-            weaviate_objs: List[Dict[str, Any]] = [
-                {
-                    "class": self.__collection._name,
-                    "properties": obj.props_to_dict(),
-                    "id": str(obj.uuid),
-                }
-                for obj in objects
-            ]
-            return self.__collection._insert_many(weaviate_objs)
+        self.__collection._replace(weaviate_obj, uuid)
 
-        def replace(self, obj: Model, uuid: UUID) -> None:
-            self.__collection._model.model_validate(obj)
+    def update(self, obj: Model, uuid: UUID) -> None:
+        self.__collection._model.model_validate(obj)
 
-            weaviate_obj: Dict[str, Any] = {
-                "class": self.__collection._name,
-                "properties": obj.props_to_dict(),
+        weaviate_obj: Dict[str, Any] = {
+            "class": self.__collection._name,
+            "properties": obj.props_to_dict(update=True),
+        }
+        if obj.vector is not None:
+            weaviate_obj["vector"] = obj.vector
+
+        self.__collection._update(weaviate_obj, uuid)
+
+    def get_by_id(
+        self, uuid: UUID, metadata: Optional[Metadata] = None
+    ) -> Optional[_Object[Model]]:
+        ret = self.__collection._get_by_id(uuid=uuid, metadata=metadata)
+        if ret is None:
+            return None
+        return self.__collection._json_to_object(ret)
+
+    def get(self, metadata: Optional[Metadata] = None) -> Optional[List[_Object[Model]]]:
+        ret = self.__collection._get(metadata=metadata)
+        if ret is None:
+            return None
+
+        return [self.__collection._json_to_object(obj) for obj in ret["objects"]]
+
+    def reference_add(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
+        self.__collection._reference_add(
+            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
+        )
+
+    def reference_delete(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
+        self.__collection._reference_delete(
+            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
+        )
+
+    def reference_replace(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
+        self.__collection._reference_replace(
+            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
+        )
+
+    def reference_batch_add(self, from_property: str, refs: List[BatchReference]) -> None:
+        refs_dict = [
+            {
+                "from": BEACON + f"{self.__collection._name}/{ref.from_uuid}/{from_property}",
+                "to": BEACON + str(ref.to_uuid),
             }
-            if obj.vector is not None:
-                weaviate_obj["vector"] = obj.vector
+            for ref in refs
+        ]
+        self.__collection._reference_batch_add(refs_dict)
 
-            self.__collection._replace(weaviate_obj, uuid)
 
-        def update(self, obj: Model, uuid: UUID) -> None:
-            self.__collection._model.model_validate(obj)
+class _GRPC(Generic[Model], GrpcBase):
+    def __init__(self, connection: Connection, name: str, model: Type[Model]):
+        super().__init__(connection, name, model.get_non_optional_fields(model))
+        self._model: Type[Model] = model
 
-            weaviate_obj: Dict[str, Any] = {
-                "class": self.__collection._name,
-                "properties": obj.props_to_dict(update=True),
-            }
-            if obj.vector is not None:
-                weaviate_obj["vector"] = obj.vector
+    def get(
+        self,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+    ) -> List[_Object[Model]]:
+        return [self.__dict_to_obj(obj) for obj in self._get(limit, offset, after)]
 
-            self.__collection._update(weaviate_obj, uuid)
+    def hybrid(
+        self,
+        query: str,
+        alpha: Optional[float] = None,
+        vector: Optional[List[float]] = None,
+        properties: Optional[List[str]] = None,
+        fusion_type: Optional[HybridFusion] = None,
+    ) -> List[_Object[Model]]:
+        objects = self._hybrid(query, alpha, vector, properties, fusion_type)
+        return [self.__dict_to_obj(obj) for obj in objects]
 
-        def get_by_id(
-            self, uuid: UUID, metadata: Optional[Metadata] = None
-        ) -> Optional[_Object[Model]]:
-            ret = self.__collection._get_by_id(uuid=uuid, metadata=metadata)
-            if ret is None:
-                return None
-            return self.__collection._json_to_object(ret)
+    def bm25(self, query: str, properties: Optional[List[str]] = None) -> List[_Object[Model]]:
+        return [self.__dict_to_obj(obj) for obj in self._bm25(query, properties)]
 
-        def get(self, metadata: Optional[Metadata] = None) -> Optional[List[_Object[Model]]]:
-            ret = self.__collection._get(metadata=metadata)
-            if ret is None:
-                return None
+    def __dict_to_obj(self, obj: Tuple[Dict[str, Any], MetadataReturn]) -> _Object[Model]:
+        return _Object[Model](data=self._model(**obj[0]), metadata=obj[1])
 
-            return [self.__collection._json_to_object(obj) for obj in ret["objects"]]
 
-        def reference_add(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
-            self.__collection._reference_add(
-                from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
-            )
-
-        def reference_delete(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
-            self.__collection._reference_delete(
-                from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
-            )
-
-        def reference_replace(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
-            self.__collection._reference_replace(
-                from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
-            )
-
-        def reference_batch_add(self, from_property: str, refs: List[BatchReference]) -> None:
-            refs_dict = [
-                {
-                    "from": BEACON + f"{self.__collection._name}/{ref.from_uuid}/{from_property}",
-                    "to": BEACON + str(ref.to_uuid),
-                }
-                for ref in refs
-            ]
-            self.__collection._reference_batch_add(refs_dict)
-
-    class __GRPC(Generic[Model], GrpcBase):
-        def __init__(self, connection: Connection, name: str, model: Type[Model]):
-            super().__init__(connection, name, model.get_non_optional_fields(model))
-            self._model: Type[Model] = model
-
-        def get(
-            self,
-            limit: Optional[int] = None,
-            offset: Optional[int] = None,
-            after: Optional[UUID] = None,
-        ) -> List[_Object[Model]]:
-            return [self.__dict_to_obj(obj) for obj in self._get(limit, offset, after)]
-
-        def hybrid(
-            self,
-            query: str,
-            alpha: Optional[float] = None,
-            vector: Optional[List[float]] = None,
-            properties: Optional[List[str]] = None,
-            fusion_type: Optional[HybridFusion] = None,
-        ) -> List[_Object[Model]]:
-            objects = self._hybrid(query, alpha, vector, properties, fusion_type)
-            return [self.__dict_to_obj(obj) for obj in objects]
-
-        def bm25(self, query: str, properties: Optional[List[str]] = None) -> List[_Object[Model]]:
-            return [self.__dict_to_obj(obj) for obj in self._bm25(query, properties)]
-
-        def __dict_to_obj(self, obj: Tuple[Dict[str, Any], MetadataReturn]) -> _Object[Model]:
-            return _Object[Model](data=self._model(**obj[0]), metadata=obj[1])
-
+class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
     def __init__(self, connection: Connection, name: str, model: Type[Model]) -> None:
         super().__init__(connection, name)
         self._model: Type[Model] = model
         self._default_props = model.get_non_optional_fields(model)
-        self.data = self.__Data(self)
-        self.query = self.__GRPC[Model](connection, name, model)
+        self.data = _Data[Model](self)
+        self.query = _GRPC[Model](connection, name, model)
 
     def with_tenant(self, tenant: Optional[str] = None) -> "CollectionObjectModel":
         return self._with_tenant(tenant)
