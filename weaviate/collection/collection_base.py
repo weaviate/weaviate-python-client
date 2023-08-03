@@ -4,12 +4,12 @@ from typing import Dict, Any, Optional, List, Tuple, Union
 import uuid as uuid_package
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
+from weaviate.collection.classes import CollectionConfigBase, UUID, Metadata
 from weaviate.collection.collection_classes import Errors, Error
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException, ObjectAlreadyExistsException
 from weaviate.util import _to_beacons, _capitalize_first_letter
-from weaviate.weaviate_classes import CollectionConfigBase, UUID, Metadata
 from weaviate.weaviate_types import UUIDS
 
 

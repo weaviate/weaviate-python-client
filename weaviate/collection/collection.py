@@ -2,6 +2,14 @@ import uuid as uuid_package
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, List, Union, Tuple
 
+from weaviate.collection.classes import (
+    CollectionConfig,
+    MetadataReturn,
+    Metadata,
+    RefToObject,
+    BatchReference,
+    DataObject,
+)
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.collection.collection_classes import Errors
 from weaviate.collection.grpc import (
@@ -18,27 +26,13 @@ from weaviate.collection.grpc import (
 )
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.weaviate_classes import CollectionConfig, MetadataReturn, Metadata, RefToObject
 from weaviate.weaviate_types import UUIDS, UUID, BEACON
 
 
 @dataclass
 class _Object:
+    data: Dict[str, Any]
     metadata: MetadataReturn
-    data: Dict[str, Any]
-
-
-@dataclass
-class DataObject:
-    data: Dict[str, Any]
-    uuid: Optional[UUID] = None
-    vector: Optional[List[float]] = None
-
-
-@dataclass
-class BatchReference:
-    from_uuid: UUID
-    to_uuid: UUID
 
 
 class _Grpc(GrpcBase):

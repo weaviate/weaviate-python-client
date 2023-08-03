@@ -1,9 +1,19 @@
 import uuid as uuid_package
+from dataclasses import dataclass
 from typing import Type, Optional, Any, List, Dict, Generic, Tuple, Union
 
 from pydantic import create_model
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
+from weaviate.collection.classes import (
+    BaseProperty,
+    BatchReference,
+    CollectionModelConfig,
+    Metadata,
+    MetadataReturn,
+    Model,
+    UserModelType,
+)
 from weaviate.collection.collection_base import (
     CollectionBase,
     CollectionObjectBase,
@@ -25,17 +35,13 @@ from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _capitalize_first_letter
-from weaviate.weaviate_classes import (
-    BaseProperty,
-    BatchReference,
-    CollectionModelConfig,
-    Metadata,
-    MetadataReturn,
-    Model,
-    UserModelType,
-    _Object,
-)
 from weaviate.weaviate_types import UUID, UUIDS, BEACON, PYTHON_TYPE_TO_DATATYPE
+
+
+@dataclass
+class _Object(Generic[Model]):
+    data: Model
+    metadata: MetadataReturn
 
 
 class _Data(Generic[Model]):

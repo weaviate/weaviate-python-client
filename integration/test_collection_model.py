@@ -11,7 +11,7 @@ import pytest as pytest
 import uuid
 
 import weaviate
-from weaviate.weaviate_classes import (
+from weaviate.collection.classes import (
     BaseProperty,
     CollectionModelConfig,
     PropertyConfig,
