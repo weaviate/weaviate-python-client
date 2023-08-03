@@ -137,3 +137,12 @@ class WeaviateEmbeddedInvalidVersion(WeaviateBaseError):
         Url provided was: {url}.
         """
         super().__init__(msg)
+
+
+class WeaviateGRPCException(WeaviateBaseError):
+    """Is raised if a gRPC call fails in any way."""
+
+    def __init__(self, message: str):
+        msg = f"""gRPC call failed with message {message}."""
+        super().__init__(msg)
+        self.message = message
