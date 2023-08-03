@@ -10,7 +10,7 @@ from weaviate.collection.collection_base import (
     CollectionObjectBase,
 )
 from weaviate.collection.collection_classes import Errors
-from weaviate.collection.grpc import GrpcBuilderBase, HybridFusion, ReturnValues
+from weaviate.collection.grpc import GrpcBase, HybridFusion
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException
@@ -26,37 +26,6 @@ from weaviate.weaviate_classes import (
     _Object,
 )
 from weaviate.weaviate_types import UUID, UUIDS, BEACON, PYTHON_TYPE_TO_DATATYPE
-
-
-class GrpcBuilderModel(Generic[Model], GrpcBuilderBase):
-    def __init__(self, connection: Connection, name: str, model: Type[Model]):
-        super().__init__(connection, name, model.get_non_optional_fields(model))
-        self._model: Type[Model] = model
-
-    def get(
-        self,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-        after: Optional[UUID] = None,
-    ) -> List[_Object[Model]]:
-        return [self.__dict_to_obj(obj) for obj in self._get(limit, offset, after)]
-
-    def hybrid(
-        self,
-        query: str,
-        alpha: Optional[float] = None,
-        vector: Optional[List[float]] = None,
-        properties: Optional[List[str]] = None,
-        fusion_type: Optional[HybridFusion] = None,
-    ) -> List[_Object[Model]]:
-        objects = self._hybrid(query, alpha, vector, properties, fusion_type)
-        return [self.__dict_to_obj(obj) for obj in objects]
-
-    def bm25(self, query: str, properties: Optional[List[str]] = None) -> List[_Object[Model]]:
-        return [self.__dict_to_obj(obj) for obj in self._bm25(query, properties)]
-
-    def __dict_to_obj(self, obj: Tuple[Dict[str, Any], MetadataReturn]) -> _Object[Model]:
-        return _Object[Model](data=self._model(**obj[0]), metadata=obj[1])
 
 
 class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
@@ -156,11 +125,42 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
             ]
             self.__collection._reference_batch_add(refs_dict)
 
+    class __GRPC(Generic[Model], GrpcBase):
+        def __init__(self, connection: Connection, name: str, model: Type[Model]):
+            super().__init__(connection, name, model.get_non_optional_fields(model))
+            self._model: Type[Model] = model
+
+        def get(
+            self,
+            limit: Optional[int] = None,
+            offset: Optional[int] = None,
+            after: Optional[UUID] = None,
+        ) -> List[_Object[Model]]:
+            return [self.__dict_to_obj(obj) for obj in self._get(limit, offset, after)]
+
+        def hybrid(
+            self,
+            query: str,
+            alpha: Optional[float] = None,
+            vector: Optional[List[float]] = None,
+            properties: Optional[List[str]] = None,
+            fusion_type: Optional[HybridFusion] = None,
+        ) -> List[_Object[Model]]:
+            objects = self._hybrid(query, alpha, vector, properties, fusion_type)
+            return [self.__dict_to_obj(obj) for obj in objects]
+
+        def bm25(self, query: str, properties: Optional[List[str]] = None) -> List[_Object[Model]]:
+            return [self.__dict_to_obj(obj) for obj in self._bm25(query, properties)]
+
+        def __dict_to_obj(self, obj: Tuple[Dict[str, Any], MetadataReturn]) -> _Object[Model]:
+            return _Object[Model](data=self._model(**obj[0]), metadata=obj[1])
+
     def __init__(self, connection: Connection, name: str, model: Type[Model]) -> None:
         super().__init__(connection, name)
         self._model: Type[Model] = model
         self._default_props = model.get_non_optional_fields(model)
         self.data = self.__Data(self)
+        self.query = self.__GRPC[Model](connection, name, model)
 
     def with_tenant(self, tenant: Optional[str] = None) -> "CollectionObjectModel":
         return self._with_tenant(tenant)
@@ -169,12 +169,6 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
         self, consistency_level: Optional[ConsistencyLevel] = None
     ) -> "CollectionObjectModel":
         return self._with_consistency_level(consistency_level)
-
-    @property
-    def get_grpc(self) -> ReturnValues[GrpcBuilderModel[Model]]:
-        return ReturnValues[GrpcBuilderModel[Model]](
-            GrpcBuilderModel[Model](self._connection, self._name, self._model)
-        )
 
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Model]:
         for ref in self._model.get_ref_fields(self._model):

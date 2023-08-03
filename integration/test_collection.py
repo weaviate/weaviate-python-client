@@ -111,9 +111,7 @@ def test_search_hybrid(client: weaviate.Client, fusion_type):
     )
     collection.data.insert({"Name": "some name"}, uuid.uuid4())
     collection.data.insert({"Name": "other word"}, uuid.uuid4())
-    res = collection.get_grpc.with_return_values(uuid=True).hybrid(
-        alpha=0, query="name", fusion_type=fusion_type
-    )
+    res = collection.query.hybrid(alpha=0, query="name", fusion_type=fusion_type)
     assert len(res) == 1
     client.collection.delete("Testing")
 
@@ -131,7 +129,7 @@ def test_search_limit(client: weaviate.Client, limit):
     for i in range(5):
         collection.data.insert({"Name": str(i)})
 
-    assert len(collection.get_grpc.with_return_values().get(limit=limit)) == limit
+    assert len(collection.query.get(limit=limit)) == limit
 
 
 @pytest.mark.parametrize("offset", [0, 1, 5])
@@ -149,7 +147,7 @@ def test_search_offset(client: weaviate.Client, offset):
     for i in range(nr_objects):
         collection.data.insert({"Name": str(i)})
 
-    objects = collection.get_grpc.with_return_values().get(offset=offset)
+    objects = collection.query.get(offset=offset)
     assert len(objects) == nr_objects - offset
 
 
@@ -167,9 +165,9 @@ def test_search_after(client: weaviate.Client):
     for i in range(nr_objects):
         collection.data.insert({"Name": str(i)})
 
-    objects = collection.get_grpc.with_return_values(uuid=True).get()
+    objects = collection.query.get(return_metadata=MetadataQuery(uuid=True))
     for i, obj in enumerate(objects):
-        objects_after = collection.get_grpc.with_return_values().get(after=obj.metadata.uuid)
+        objects_after = collection.query.get(after=obj.metadata.uuid)
         assert len(objects_after) == nr_objects - 1 - i
 
 
@@ -190,17 +188,17 @@ def test_autocut(client: weaviate.Client):
         collection.data.insert({"Name": ""})
 
     # match all objects with rain
-    objects = collection.get_grpc.with_return_values(uuid=True).bm25(query="rain", autocut=0)
+    objects = collection.query.bm25(query="rain", autocut=0)
     assert len(objects) == 2 * 4
-    objects = collection.get_grpc.with_return_values(uuid=True).hybrid(
+    objects = collection.query.hybrid(
         query="rain", autocut=0, alpha=0, fusion_type=HybridFusion.RELATIVE_SCORE
     )
     assert len(objects) == 2 * 4
 
     # match only objects with two rains
-    objects = collection.get_grpc.with_return_values(uuid=True).bm25(query="rain", autocut=1)
+    objects = collection.query.bm25(query="rain", autocut=1)
     assert len(objects) == 1 * 4
-    objects = collection.get_grpc.with_return_values(uuid=True).hybrid(
+    objects = collection.query.hybrid(
         query="rain", autocut=1, alpha=0, fusion_type=HybridFusion.RELATIVE_SCORE
     )
     assert len(objects) == 1 * 4
@@ -222,19 +220,19 @@ def test_near_vector(client: weaviate.Client):
 
     banana = collection.data.get_by_id(uuid_banana, metadata=Metadata(vector=True))
 
-    full_objects = collection.get_grpc.with_return_values(
-        distance=True, certainty=True
-    ).near_vector(banana.metadata.vector)
+    full_objects = collection.query.near_vector(
+        banana.metadata.vector, return_metadata=MetadataQuery(distance=True, certainty=True)
+    )
     assert len(full_objects) == 4
 
-    objects_distance = collection.get_grpc.with_return_values(
-        distance=True, certainty=True
-    ).near_vector(banana.metadata.vector, distance=full_objects[2].metadata.distance)
+    objects_distance = collection.query.near_vector(
+        banana.metadata.vector, distance=full_objects[2].metadata.distance
+    )
     assert len(objects_distance) == 3
 
-    objects_distance = collection.get_grpc.with_return_values(
-        distance=True, certainty=True
-    ).near_vector(banana.metadata.vector, certainty=full_objects[2].metadata.certainty)
+    objects_distance = collection.query.near_vector(
+        banana.metadata.vector, certainty=full_objects[2].metadata.certainty
+    )
     assert len(objects_distance) == 3
 
 
@@ -252,19 +250,19 @@ def test_near_object(client: weaviate.Client):
     collection.data.insert({"Name": "car"})
     collection.data.insert({"Name": "Mountain"})
 
-    full_objects = collection.get_grpc.with_return_values(
-        distance=True, certainty=True
-    ).near_object(uuid_banana)
+    full_objects = collection.query.near_object(
+        uuid_banana, return_metadata=MetadataQuery(distance=True, certainty=True)
+    )
     assert len(full_objects) == 4
 
-    objects_distance = collection.get_grpc.with_return_values(
-        distance=True, certainty=True
-    ).near_object(uuid_banana, distance=full_objects[2].metadata.distance)
+    objects_distance = collection.query.near_object(
+        uuid_banana, distance=full_objects[2].metadata.distance
+    )
     assert len(objects_distance) == 3
 
-    objects_distance = collection.get_grpc.with_return_values(
-        distance=True, certainty=True
-    ).near_object(uuid_banana, certainty=full_objects[2].metadata.certainty)
+    objects_distance = collection.query.near_object(
+        uuid_banana, certainty=full_objects[2].metadata.certainty
+    )
     assert len(objects_distance) == 3
 
 
@@ -309,8 +307,9 @@ def test_references_grcp(client: weaviate.Client):
     )
     C.data.insert({"Name": "find me", "ref": RefToObject(uuid_B)})
 
-    objects = C.get_grpc.with_return_values(
-        properties={
+    objects = C.query.bm25(
+        query="find",
+        return_properties={
             "name",
             LinkTo(
                 link_on="ref",
@@ -326,8 +325,8 @@ def test_references_grcp(client: weaviate.Client):
                 },
                 metadata=MetadataQuery(uuid=True, lastUpdateTimeUnix=True),
             ),
-        }
-    ).bm25(query="find")
+        },
+    )
     assert objects[0].data["name"] == "find me"
     assert objects[0].data["ref"][0].data["name"] == "B"
     assert objects[0].data["ref"][0].data["ref"][0].data["name"] == "A1"
