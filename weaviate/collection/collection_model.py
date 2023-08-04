@@ -11,6 +11,7 @@ from weaviate.collection.collection_base import (
 from weaviate.collection.collection_classes import Errors
 from weaviate.collection.grpc import (
     _GRPC,
+    GrpcResult,
     HybridFusion,
     PROPERTIES,
     MetadataQuery,
@@ -155,7 +156,7 @@ class _GRPCWrapper(Generic[Model]):
     ) -> List[_Object[Model]]:
         grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
         return [
-            self.__dict_to_obj(obj)
+            self.__result_to_object(obj)
             for obj in grpc_query.get(limit, offset, after, return_metadata, return_properties)
         ]
 
@@ -167,7 +168,7 @@ class _GRPCWrapper(Generic[Model]):
         grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
 
         return [
-            self.__dict_to_obj(obj)
+            self.__result_to_object(obj)
             for obj in grpc_query.get(
                 options.limit, options.offset, options.after, returns.metadata, returns.properties
             )
@@ -198,7 +199,7 @@ class _GRPCWrapper(Generic[Model]):
             return_metadata,
             return_properties,
         )
-        return [self.__dict_to_obj(obj) for obj in objects]
+        return [self.__result_to_object(obj) for obj in objects]
 
     def hybrid_options(
         self,
@@ -221,7 +222,7 @@ class _GRPCWrapper(Generic[Model]):
             returns.metadata,
             returns.properties,
         )
-        return [self.__dict_to_obj(obj) for obj in objects]
+        return [self.__result_to_object(obj) for obj in objects]
 
     def bm25_flat(
         self,
@@ -235,7 +236,7 @@ class _GRPCWrapper(Generic[Model]):
         grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
 
         return [
-            self.__dict_to_obj(obj)
+            self.__result_to_object(obj)
             for obj in grpc_query.bm25(
                 query, properties, limit, autocut, return_metadata, return_properties
             )
@@ -252,7 +253,7 @@ class _GRPCWrapper(Generic[Model]):
         grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
 
         return [
-            self.__dict_to_obj(obj)
+            self.__result_to_object(obj)
             for obj in grpc_query.bm25(
                 query,
                 options.properties,
@@ -275,7 +276,7 @@ class _GRPCWrapper(Generic[Model]):
         grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
 
         return [
-            self.__dict_to_obj(obj)
+            self.__result_to_object(obj)
             for obj in grpc_query.near_vector(
                 vector, certainty, distance, autocut, return_metadata, return_properties
             )
@@ -292,7 +293,7 @@ class _GRPCWrapper(Generic[Model]):
         grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
 
         return [
-            self.__dict_to_obj(obj)
+            self.__result_to_object(obj)
             for obj in grpc_query.near_vector(
                 vector,
                 options.certainty,
@@ -315,7 +316,7 @@ class _GRPCWrapper(Generic[Model]):
         grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
 
         return [
-            self.__dict_to_obj(obj)
+            self.__result_to_object(obj)
             for obj in grpc_query.near_object(
                 obj, certainty, distance, autocut, return_metadata, return_properties
             )
@@ -333,7 +334,7 @@ class _GRPCWrapper(Generic[Model]):
         grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
 
         return [
-            self.__dict_to_obj(obj)
+            self.__result_to_object(obj)
             for obj in grpc_query.near_object(
                 obj,
                 options.certainty,
@@ -344,8 +345,8 @@ class _GRPCWrapper(Generic[Model]):
             )
         ]
 
-    def __dict_to_obj(self, obj: Tuple[Dict[str, Any], MetadataReturn]) -> _Object[Model]:
-        return _Object[Model](data=self._model(**obj[0]), metadata=obj[1])
+    def __result_to_object(self, obj: GrpcResult) -> _Object[Model]:
+        return _Object[Model](data=self._model(**obj.result), metadata=obj.metadata)
 
 
 class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
