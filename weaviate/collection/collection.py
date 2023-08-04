@@ -135,7 +135,6 @@ class _Grpc:
     ) -> List[_Object]:
 
         return [
-
             self.__result_to_object(obj)
             for obj in self.__create_query().bm25(
                 query, properties, limit, autocut, return_metadata, return_properties
