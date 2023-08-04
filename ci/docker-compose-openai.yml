@@ -9,7 +9,7 @@ services:
       - '8086'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-add-missing-features-to-grpc-91c1e00
+    image: semitechnologies/weaviate:preview-add-missing-features-to-grpc-76e98af
     ports:
       - 8086:8086
     restart: on-failure:0

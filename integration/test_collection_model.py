@@ -70,7 +70,7 @@ def test_types(client: weaviate.Client, member_type, value, optional: bool):
     collection = client.collection_model.create(
         CollectionModelConfig(model=ModelTypes, vectorizer=Vectorizer.NONE)
     )
-    assert collection._model == ModelTypes
+    assert collection.model == ModelTypes
 
     uuid_object = collection.data.insert(ModelTypes(name=value))
     assert type(uuid_object) is uuid.UUID
@@ -101,7 +101,7 @@ def test_types_annotates(client: weaviate.Client, member_type, annotation, value
     collection = client.collection_model.create(
         CollectionModelConfig(model=ModelTypes, vectorizer=Vectorizer.NONE)
     )
-    assert collection._model == ModelTypes
+    assert collection.model == ModelTypes
 
     uuid_object = collection.data.insert(ModelTypes(name=value))
 
@@ -230,3 +230,31 @@ def test_multi_searches_with_references(client: weaviate.Client):
     assert objects[0].data.group is None
     assert objects[0].metadata.uuid is not None
     assert objects[0].metadata.last_update_time_unix is None
+
+
+def test_search_with_tenant(client: weaviate.Client):
+    name = "TestTenantSearch"
+    client.collection.delete(name)
+
+    class TestTenantSearch(BaseProperty):
+        name: str
+
+    collection = client.collection_model.create(
+        CollectionModelConfig(
+            name=name,
+            model=TestTenantSearch,
+            vectorizer=Vectorizer.NONE,
+            multiTenancyConfig=MultiTenancyConfig(enabled=True),
+        )
+    )
+
+    collection.tenants.add([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
+    tenant1 = collection.with_tenant("Tenant1")
+    tenant2 = collection.with_tenant("Tenant2")
+    uuid1 = tenant1.data.insert(TestTenantSearch(name="some"))
+    objects1 = tenant1.query.bm25_flat(query="some", return_metadata=MetadataQuery(uuid=True))
+    assert len(objects1) == 1
+    assert objects1[0].metadata.uuid == uuid1
+
+    objects2 = tenant2.query.bm25_flat(query="some", return_metadata=MetadataQuery(uuid=True))
+    assert len(objects2) == 0
