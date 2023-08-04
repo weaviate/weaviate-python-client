@@ -240,7 +240,7 @@ def test_search_with_tenant(client: weaviate.Client):
     client.collection.delete(name)
 
     class TestTenantSearch(BaseProperty):
-        name: Optional[str] = None
+        name: str
 
     collection = client.collection_model.create(
         CollectionModelConfig(
@@ -254,7 +254,7 @@ def test_search_with_tenant(client: weaviate.Client):
     collection.tenants.add([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
     tenant1 = collection.with_tenant("Tenant1")
     tenant2 = collection.with_tenant("Tenant2")
-    uuid1 = tenant1.data.insert({"name": "some name"})
+    uuid1 = tenant1.data.insert(TestTenantSearch(name="some"))
     objects1 = tenant1.query.bm25_flat(query="some", return_metadata=MetadataQuery(uuid=True))
     assert len(objects1) == 1
     assert objects1[0].metadata.uuid == uuid1

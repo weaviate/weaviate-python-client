@@ -388,7 +388,7 @@ def test_search_with_tenant(client: weaviate.Client):
     client.collection.delete("TestTenantSearch")
     collection = client.collection.create(
         CollectionConfig(
-            name="Tenants",
+            name="TestTenantSearch",
             vectorizer=Vectorizer.NONE,
             properties=[Property(name="name", dataType=DataType.TEXT)],
             multiTenancyConfig=MultiTenancyConfig(enabled=True),
