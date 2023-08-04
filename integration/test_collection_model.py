@@ -37,12 +37,17 @@ def client():
     )
     client.schema.delete_all()
     collection = client.collection_model.create(
-        CollectionModelConfig(name="Group", model=Group, vectorizer=Vectorizer.NONE)
+        CollectionModelConfig(model=Group, vectorizer=Vectorizer.NONE)
     )
     collection.data.insert(obj=Group(name="Name", uuid=REF_TO_UUID))
 
     yield client
     client.schema.delete_all()
+
+
+def test_with_existing_collection(client: weaviate.Client):
+    obj = client.collection_model.get(Group).data.get_by_id(REF_TO_UUID)
+    assert obj.data.name == "Name"
 
 
 @pytest.mark.parametrize(
@@ -64,11 +69,9 @@ def test_types(client: weaviate.Client, member_type, value, optional: bool):
     class ModelTypes(BaseProperty):
         name: member_type
 
-    name = "ModelTypes"
-
-    client.collection_model.delete(name)
+    client.collection_model.delete(ModelTypes)
     collection = client.collection_model.create(
-        CollectionModelConfig(name=name, model=ModelTypes, vectorizer=Vectorizer.NONE)
+        CollectionModelConfig(model=ModelTypes, vectorizer=Vectorizer.NONE)
     )
     assert collection.model == ModelTypes
 
@@ -96,10 +99,9 @@ def test_types_annotates(client: weaviate.Client, member_type, annotation, value
     class ModelTypes(BaseProperty):
         name: Annotated[member_type, annotation]
 
-    name = "ModelTypes"
-    client.collection_model.delete(name)
+    client.collection_model.delete(ModelTypes)
     collection = client.collection_model.create(
-        CollectionModelConfig(name=name, model=ModelTypes, vectorizer=Vectorizer.NONE)
+        CollectionModelConfig(model=ModelTypes, vectorizer=Vectorizer.NONE)
     )
     assert collection.model == ModelTypes
 
@@ -115,24 +117,23 @@ def test_create_and_delete(client: weaviate.Client):
     class DeleteModel(BaseProperty):
         name: int
 
-    name = "DeleteModel"
+    client.collection_model.delete(DeleteModel)
     client.collection_model.create(
-        CollectionModelConfig(name=name, model=DeleteModel, vectorizer=Vectorizer.NONE)
+        CollectionModelConfig(model=DeleteModel, vectorizer=Vectorizer.NONE)
     )
 
-    assert client.collection_model.exists(name)
-    client.collection_model.delete(name)
-    assert not client.collection_model.exists(name)
+    assert client.collection_model.exists(DeleteModel)
+    client.collection_model.delete(DeleteModel)
+    assert not client.collection_model.exists(DeleteModel)
 
 
 def test_search(client: weaviate.Client):
     class SearchTest(BaseProperty):
         name: str
 
-    name = "SearchTest"
-    client.collection_model.delete(name)
+    client.collection_model.delete(SearchTest)
     collection = client.collection_model.create(
-        CollectionModelConfig(name=name, model=SearchTest, vectorizer=Vectorizer.NONE)
+        CollectionModelConfig(model=SearchTest, vectorizer=Vectorizer.NONE)
     )
 
     collection.data.insert(SearchTest(name="test name"))
@@ -144,13 +145,15 @@ def test_search(client: weaviate.Client):
 
 
 def test_tenants(client: weaviate.Client):
-    client.collection.delete("Tenants")
-    collection = client.collection.create(
+    class TenantsTest(BaseProperty):
+        name: str
+
+    client.collection_model.delete(TenantsTest)
+    collection = client.collection_model.create(
         CollectionModelConfig(
-            name="Tenants",
             vectorizer=Vectorizer.NONE,
             multiTenancyConfig=MultiTenancyConfig(enabled=True),
-            model=BaseProperty,
+            model=TenantsTest,
         )
     )
 
@@ -168,19 +171,16 @@ def test_tenants(client: weaviate.Client):
 
 
 def test_multi_searches(client: weaviate.Client):
-    client.collection.delete("TestMultiSearches")
-
-    class SearchTest(BaseProperty):
+    class TestMultiSearches(BaseProperty):
         name: Optional[str] = None
 
-    name = "TestMultiSearches"
-    client.collection_model.delete(name)
+    client.collection_model.delete(TestMultiSearches)
     collection = client.collection_model.create(
-        CollectionModelConfig(name=name, model=SearchTest, vectorizer=Vectorizer.NONE)
+        CollectionModelConfig(model=TestMultiSearches, vectorizer=Vectorizer.NONE)
     )
 
-    collection.data.insert(SearchTest(name="some word"))
-    collection.data.insert(SearchTest(name="other"))
+    collection.data.insert(TestMultiSearches(name="some word"))
+    collection.data.insert(TestMultiSearches(name="other"))
 
     objects = collection.query.bm25_flat(
         query="word",
@@ -198,20 +198,17 @@ def test_multi_searches(client: weaviate.Client):
 
 @pytest.mark.skip()
 def test_multi_searches_with_references(client: weaviate.Client):
-    client.collection.delete("TestMultiSearchesWithReferences")
-
-    class SearchTest(BaseProperty):
+    class TestMultiSearchesWithReferences(BaseProperty):
         name: Optional[str] = None
         group: Annotated[Optional[UUIDS], ReferenceTo(Group)] = None
 
-    name = "TestMultiSearchesWithReferences"
-    client.collection_model.delete(name)
+    client.collection_model.delete(TestMultiSearchesWithReferences)
     collection = client.collection_model.create(
-        CollectionModelConfig(name=name, model=SearchTest, vectorizer=Vectorizer.NONE)
+        CollectionModelConfig(model=TestMultiSearchesWithReferences, vectorizer=Vectorizer.NONE)
     )
 
-    collection.data.insert(SearchTest(name="some word", group=REF_TO_UUID))
-    collection.data.insert(SearchTest(name="other", group=REF_TO_UUID))
+    collection.data.insert(TestMultiSearchesWithReferences(name="some word", group=REF_TO_UUID))
+    collection.data.insert(TestMultiSearchesWithReferences(name="other", group=REF_TO_UUID))
 
     objects = collection.query.bm25_flat(
         query="word",
@@ -233,15 +230,12 @@ def test_multi_searches_with_references(client: weaviate.Client):
 
 
 def test_search_with_tenant(client: weaviate.Client):
-    name = "TestTenantSearch"
-    client.collection.delete(name)
-
     class TestTenantSearch(BaseProperty):
         name: str
 
+    client.collection_model.delete(TestTenantSearch)
     collection = client.collection_model.create(
         CollectionModelConfig(
-            name=name,
             model=TestTenantSearch,
             vectorizer=Vectorizer.NONE,
             multiTenancyConfig=MultiTenancyConfig(enabled=True),
