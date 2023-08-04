@@ -3,7 +3,6 @@ import uuid
 
 import weaviate
 from weaviate import Config
-from weaviate.collection.grpc import HybridFusion, LinkTo, MetadataQuery
 from weaviate.collection.classes import (
     CollectionConfig,
     Property,
@@ -15,6 +14,7 @@ from weaviate.collection.classes import (
     MultiTenancyConfig,
     Tenant,
 )
+from weaviate.collection.grpc import HybridFusion, LinkTo, MetadataQuery
 
 
 @pytest.fixture(scope="module")
@@ -405,3 +405,22 @@ def test_search_with_tenant(client: weaviate.Client):
 
     objects2 = tenant2.query.bm25_flat(query="some", return_metadata=MetadataQuery(uuid=True))
     assert len(objects2) == 0
+
+
+def test_add_property(client: weaviate.Client):
+    client.collection.delete("TestAddProperty")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestAddProperty",
+            vectorizer=Vectorizer.NONE,
+            properties=[Property(name="name", dataType=DataType.TEXT)],
+        )
+    )
+    uuid1 = collection.data.insert({"name": "first"})
+    collection.add_property(Property(name="number", dataType=DataType.INT))
+    uuid2 = collection.data.insert({"name": "second", "number": 5})
+    obj1 = collection.data.get_by_id(uuid1)
+    obj2 = collection.data.get_by_id(uuid2)
+    assert "name" in obj1.data
+    assert "name" in obj2.data
+    assert "number" in obj2.data
