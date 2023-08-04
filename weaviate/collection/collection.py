@@ -44,13 +44,12 @@ class BatchReference:
 
 
 class _Grpc:
-    def __init__(self, collection: "CollectionObject", connection: Connection, name: str):
+    def __init__(self, collection: "CollectionObject", connection: Connection):
         self._connection = connection
-        self._name = name
         self.__collection = collection
 
     def __create_query(self) -> _GRPC:
-        return _GRPC(self._connection, self._name, self.__collection.tenant)
+        return _GRPC(self._connection, self.__collection.name, self.__collection.tenant)
 
     def get_flat(
         self,
@@ -263,7 +262,7 @@ class _Data:
         vector: Optional[List[float]] = None,
     ) -> uuid_package.UUID:
         weaviate_obj: Dict[str, Any] = {
-            "class": self.__collection._name,
+            "class": self.__collection.name,
             "properties": {
                 key: val if not isinstance(val, RefToObject) else val.to_beacon()
                 for key, val in data.items()
@@ -279,7 +278,7 @@ class _Data:
     def insert_many(self, objects: List[DataObject]) -> List[Union[uuid_package.UUID, Errors]]:
         weaviate_objs: List[Dict[str, Any]] = [
             {
-                "class": self.__collection._name,
+                "class": self.__collection.name,
                 "properties": {
                     key: val if not isinstance(val, RefToObject) else val.to_beacon()
                     for key, val in obj.data.items()
@@ -295,7 +294,7 @@ class _Data:
         self, data: Dict[str, Any], uuid: UUID, vector: Optional[List[float]] = None
     ) -> None:
         weaviate_obj: Dict[str, Any] = {
-            "class": self.__collection._name,
+            "class": self.__collection.name,
             "properties": {
                 key: val if not isinstance(val, RefToObject) else val.to_beacon()
                 for key, val in data.items()
@@ -310,7 +309,7 @@ class _Data:
         self, data: Dict[str, Any], uuid: UUID, vector: Optional[List[float]] = None
     ) -> None:
         weaviate_obj: Dict[str, Any] = {
-            "class": self.__collection._name,
+            "class": self.__collection.name,
             "properties": {
                 key: val if not isinstance(val, RefToObject) else val.to_beacon()
                 for key, val in data.items()
@@ -342,7 +341,7 @@ class _Data:
     def reference_add_many(self, from_property: str, refs: List[BatchReference]) -> None:
         refs_dict = [
             {
-                "from": BEACON + f"{self.__collection._name}/{ref.from_uuid}/{from_property}",
+                "from": BEACON + f"{self.__collection.name}/{ref.from_uuid}/{from_property}",
                 "to": BEACON + str(ref.to_uuid),
             }
             for ref in refs
@@ -364,14 +363,12 @@ class CollectionObject(CollectionObjectBase):
     def __init__(self, connection: Connection, name: str) -> None:
         super().__init__(connection, name)
         self.data = _Data(self)
-        self.query = _Grpc(self, connection, name)
+        self.query = _Grpc(self, connection)
 
     def with_tenant(self, tenant: Optional[str] = None) -> "CollectionObject":
         new_collection = self._with_tenant(tenant)
         new_collection.data = _Data(new_collection)
-        new_collection.query = _Grpc(
-            new_collection, new_collection._connection, new_collection._name
-        )
+        new_collection.query = _Grpc(new_collection, new_collection._connection)
         return new_collection
 
     def with_consistency_level(

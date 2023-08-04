@@ -73,7 +73,7 @@ def test_types(client: weaviate.Client, member_type, value, optional: bool):
     collection = client.collection_model.create(
         CollectionModelConfig(name=name, model=ModelTypes, vectorizer=Vectorizer.NONE)
     )
-    assert collection._model == ModelTypes
+    assert collection.model == ModelTypes
 
     uuid_object = collection.data.insert(ModelTypes(name=value))
     assert type(uuid_object) is uuid.UUID
@@ -104,7 +104,7 @@ def test_types_annotates(client: weaviate.Client, member_type, annotation, value
     collection = client.collection_model.create(
         CollectionModelConfig(name=name, model=ModelTypes, vectorizer=Vectorizer.NONE)
     )
-    assert collection._model == ModelTypes
+    assert collection.model == ModelTypes
 
     uuid_object = collection.data.insert(ModelTypes(name=value))
 
