@@ -458,7 +458,7 @@ class CollectionModelConfig(CollectionConfigBase, Generic[Model]):
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
 
-        ret_dict["class"] = self.model.__name__
+        ret_dict["class"] = _capitalize_first_letter(self.model.__name__)
 
         if self.model is not None:
             ret_dict["properties"] = self.model.type_to_dict(self.model)

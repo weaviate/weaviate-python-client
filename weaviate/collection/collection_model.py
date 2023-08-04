@@ -347,7 +347,7 @@ class _GRPCWrapper(Generic[Model]):
 
 class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
     def __init__(self, connection: Connection, name: str, model: Type[Model]) -> None:
-        super().__init__(connection, model.__name__)
+        super().__init__(connection, name)
         self.__model: Type[Model] = model
         self._default_props = model.get_non_optional_fields(model)
         self.data = _Data[Model](self)
@@ -403,14 +403,16 @@ class CollectionModel(CollectionBase):
 
     def create(self, config: CollectionModelConfig[Model]) -> CollectionObjectModel[Model]:
         name = super()._create(config)
-        if config.model.__name__ != name:
+        config_name = _capitalize_first_letter(config.model.__name__)
+        if config_name != name:
             raise ValueError(
-                f"Name of created collection ({name}) does not match given name ({config.model.__name__})"
+                f"Name of created collection ({name}) does not match given name ({config_name})"
             )
-        return CollectionObjectModel[config.model](self._connection, config.model)
+        return CollectionObjectModel[config.model](self._connection, name, config.model)
 
-    def get(self, model: Type[Model], name: str) -> CollectionObjectModel[Model]:
-        path = f"/schema/{_capitalize_first_letter(name)}"
+    def get(self, model: Type[Model]) -> CollectionObjectModel[Model]:
+        name = _capitalize_first_letter(model.__name__)
+        path = f"/schema/{name}"
 
         try:
             response = self._connection.get(path=path)
@@ -458,8 +460,10 @@ class CollectionModel(CollectionBase):
 
         return CollectionObjectModel(self._connection, name, model), model
 
-    def delete(self, name: str) -> None:
+    def delete(self, model: Type[Model]) -> None:
+        name = _capitalize_first_letter(model.__name__)
         return self._delete(name)
 
-    def exists(self, name: str) -> bool:
+    def exists(self, model: Type[Model]) -> bool:
+        name = _capitalize_first_letter(model.__name__)
         return self._exists(name)
