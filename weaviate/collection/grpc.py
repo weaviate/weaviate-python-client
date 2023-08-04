@@ -337,9 +337,7 @@ class _GRPC:
             score=metadata.score,
         )
 
-    def _convert_references_to_grpc_result(
-        self, properties: "weaviate_pb2.ResultProperties"
-    ):
+    def _convert_references_to_grpc_result(self, properties: "weaviate_pb2.ResultProperties"):
         result: Dict[str, Union[_StructValue, List["GrpcResult"]]] = {}
         for name, non_ref_prop in properties.non_ref_properties.items():
             result[name] = non_ref_prop
@@ -347,9 +345,7 @@ class _GRPC:
         for ref_prop in properties.ref_props:
             result[ref_prop.prop_name] = [
                 GrpcResult(
-                    result=self._convert_references_to_grpc_result(
-                        prop
-                    ),
+                    result=self._convert_references_to_grpc_result(prop),
                     metadata=self.__extract_metadata_for_object(prop.metadata),
                 )
                 for prop in ref_prop.properties
