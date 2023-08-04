@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Any, Union, Tuple, Set
+from typing import Optional, List, Dict, Any, Union, Set
 from typing_extensions import TypeAlias
 
 import grpc
+from google.protobuf import struct_pb2
 
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGRPCException
@@ -79,7 +80,14 @@ class LinkTo:
 
 PROPERTIES = Union[List[Union[str, LinkTo]], str]
 
-GrpcResult: TypeAlias = Tuple[Dict[str, "GrpcResult"], MetadataReturn]
+# Can be found in the google.protobuf.internal.well_known_types.pyi stub file but is defined explicitly here for clarity.
+_StructValue: TypeAlias = Union[struct_pb2.Struct, struct_pb2.ListValue, str, float, bool, None]
+
+
+@dataclass
+class GrpcResult:
+    metadata: MetadataReturn
+    result: Dict[str, Union[_StructValue, List["GrpcResult"]]]
 
 
 @dataclass
@@ -92,6 +100,17 @@ class ReturnValues:
 class RefProps:
     meta: MetadataQuery
     refs: Dict[str, "RefProps"]
+
+
+@dataclass
+class SearchResult:
+    properties: weaviate_pb2.AdditionalProperties
+    additional_properties: weaviate_pb2.AdditionalProperties
+
+
+@dataclass
+class SearchResponse:
+    results: List[SearchResult]
 
 
 class _GRPC:
@@ -235,6 +254,7 @@ class _GRPC:
         if len(access_token) > 0:
             metadata = (("authorization", access_token),)
         try:
+            res: SearchResponse  # According to PEP-0526
             res, _ = self._connection.grpc_stub.Search.with_call(
                 weaviate_pb2.SearchRequest(
                     class_name=self._name,
@@ -286,7 +306,7 @@ class _GRPC:
                 metadata_return = self._extract_metadata(
                     result.additional_properties, self._metadata
                 )
-                objects.append((obj, metadata_return))
+                objects.append(GrpcResult(result=obj, metadata=metadata_return))
 
             return objects
 
@@ -316,16 +336,18 @@ class _GRPC:
 
     def _convert_references_to_grpc_result(
         self, properties: "weaviate_pb2.ResultProperties", props: Dict[str, RefProps]
-    ) -> GrpcResult:
-        result = {}
+    ):
+        result: Dict[str, Union[_StructValue, List["GrpcResult"]]] = {}
         for name, non_ref_prop in properties.non_ref_properties.items():
             result[name] = non_ref_prop
 
         for ref_prop in properties.ref_props:
             result[ref_prop.prop_name] = [
-                (
-                    self._convert_references_to_grpc_result(prop, props[ref_prop.prop_name].refs),
-                    self._extract_metadata(prop.metadata, props[ref_prop.prop_name].meta),
+                GrpcResult(
+                    result=self._convert_references_to_grpc_result(
+                        prop, props[ref_prop.prop_name].refs
+                    ),
+                    metadata=self._extract_metadata(prop.metadata, props[ref_prop.prop_name].meta),
                 )
                 for prop in ref_prop.properties
             ]

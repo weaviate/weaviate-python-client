@@ -59,7 +59,7 @@ class _Grpc:
         grpc_query = _GRPC(self._connection, self._name)
 
         return [
-            self.__dict_to_obj(obj)
+            self.__result_to_object(obj)
             for obj in grpc_query.get(limit, offset, after, return_metadata, return_properties)
         ]
 
@@ -69,7 +69,7 @@ class _Grpc:
         grpc_query = _GRPC(self._connection, self._name)
 
         return [
-            self.__dict_to_obj(obj)
+            self.__result_to_object(obj)
             for obj in grpc_query.get(
                 options.limit, options.offset, options.after, returns.metadata, returns.properties
             )
@@ -100,7 +100,7 @@ class _Grpc:
             return_metadata,
             return_properties,
         )
-        return [self.__dict_to_obj(obj) for obj in objects]
+        return [self.__result_to_object(obj) for obj in objects]
 
     def hybrid_options(
         self,
@@ -123,7 +123,7 @@ class _Grpc:
             returns.metadata,
             returns.properties,
         )
-        return [self.__dict_to_obj(obj) for obj in objects]
+        return [self.__result_to_object(obj) for obj in objects]
 
     def bm25_flat(
         self,
@@ -137,7 +137,7 @@ class _Grpc:
         grpc_query = _GRPC(self._connection, self._name)
 
         return [
-            self.__dict_to_obj(obj)
+            self.__result_to_object(obj)
             for obj in grpc_query.bm25(
                 query, properties, limit, autocut, return_metadata, return_properties
             )
@@ -154,7 +154,7 @@ class _Grpc:
         grpc_query = _GRPC(self._connection, self._name)
 
         return [
-            self.__dict_to_obj(obj)
+            self.__result_to_object(obj)
             for obj in grpc_query.bm25(
                 query,
                 options.properties,
@@ -177,7 +177,7 @@ class _Grpc:
         grpc_query = _GRPC(self._connection, self._name)
 
         return [
-            self.__dict_to_obj(obj)
+            self.__result_to_object(obj)
             for obj in grpc_query.near_vector(
                 vector, certainty, distance, autocut, return_metadata, return_properties
             )
@@ -194,7 +194,7 @@ class _Grpc:
         grpc_query = _GRPC(self._connection, self._name)
 
         return [
-            self.__dict_to_obj(obj)
+            self.__result_to_object(obj)
             for obj in grpc_query.near_vector(
                 vector,
                 options.certainty,
@@ -218,7 +218,7 @@ class _Grpc:
         grpc_query = _GRPC(self._connection, self._name)
 
         return [
-            self.__dict_to_obj(obj)
+            self.__result_to_object(obj)
             for obj in grpc_query.near_object(
                 obj, certainty, distance, autocut, return_metadata, return_properties
             )
@@ -235,7 +235,7 @@ class _Grpc:
         grpc_query = _GRPC(self._connection, self._name)
 
         return [
-            self.__dict_to_obj(obj)
+            self.__result_to_object(obj)
             for obj in grpc_query.near_object(
                 obj,
                 options.certainty,
@@ -246,14 +246,14 @@ class _Grpc:
             )
         ]
 
-    def __dict_to_obj(self, obj: GrpcResult) -> _Object:
-        data = obj[0]
+    def __result_to_object(self, obj: GrpcResult) -> _Object:
+        data = obj.result
         for key in data.keys():
-            if isinstance(data[key], List):
-                for i, _ in enumerate(data[key]):
-                    data[key][i] = self.__dict_to_obj(data[key][i])
+            if isinstance(value := data[key], List):
+                for i, _ in enumerate(value):
+                    value[i] = self.__result_to_object(value[i])
 
-        return _Object(data=data, metadata=obj[1])
+        return _Object(data=data, metadata=obj.metadata)
 
 
 class _Data:
