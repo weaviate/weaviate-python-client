@@ -1,7 +1,7 @@
-import uuid as uuid_package
 from copy import copy
 from typing import Dict, Any, Optional, List, Tuple, Union
 
+import uuid as uuid_package
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.collection_classes import Errors, Error
@@ -114,12 +114,16 @@ class CollectionObjectBase:
         self.tenants = _Tenants(connection, name)
         self._connection = connection
         self._name = name
-        self._tenant: Optional[str] = None
+        self.__tenant: Optional[str] = None
         self._consistency_level: Optional[str] = None
+
+    @property
+    def tenant(self) -> str:
+        return self.__tenant
 
     def _with_tenant(self, tenant: Optional[str] = None) -> "CollectionObjectBase":
         new = copy(self)
-        new._tenant = tenant
+        new.__tenant = tenant
         return new
 
     def _with_consistency_level(
@@ -133,10 +137,9 @@ class CollectionObjectBase:
 
     def _insert(self, weaviate_obj: Dict[str, Any]) -> uuid_package.UUID:
         path = "/objects"
+        params, weaviate_obj = self.__apply_context_to_params_and_object({}, weaviate_obj)
         try:
-            response = self._connection.post(
-                path=path, weaviate_object=weaviate_obj, params=self.__apply_context({})
-            )
+            response = self._connection.post(path=path, weaviate_object=weaviate_obj, params=params)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Object was not added to Weaviate.") from conn_err
         if response.status_code == 200:
@@ -154,9 +157,9 @@ class CollectionObjectBase:
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level
 
-        if self._tenant is not None:
+        if self.__tenant is not None:
             for obj in objects:
-                obj["tenant"] = self._tenant
+                obj["tenant"] = self.__tenant
 
         response = self._connection.post(
             path="/batch/objects",
@@ -275,9 +278,9 @@ class CollectionObjectBase:
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level
 
-        if self._tenant is not None:
+        if self.__tenant is not None:
             for ref in refs:
-                ref["tenant"] = self._tenant
+                ref["tenant"] = self.__tenant
 
         response = self._connection.post(
             path="/batch/references", weaviate_object=refs, params=params
@@ -319,8 +322,8 @@ class CollectionObjectBase:
             raise UnexpectedStatusCodeException("Add property reference to object", response)
 
     def __apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        if self._tenant is not None:
-            params["tenant"] = self._tenant
+        if self.__tenant is not None:
+            params["tenant"] = self.__tenant
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level
         return params
@@ -328,8 +331,8 @@ class CollectionObjectBase:
     def __apply_context_to_params_and_object(
         self, params: Dict[str, Any], obj: Dict[str, Any]
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        if self._tenant is not None:
-            obj["tenant"] = self._tenant
+        if self.__tenant is not None:
+            obj["tenant"] = self.__tenant
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level
         return params, obj

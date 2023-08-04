@@ -382,3 +382,26 @@ def test_multi_searches(client: weaviate.Client):
     assert "name" not in objects[0].data
     assert objects[0].metadata.uuid is not None
     assert objects[0].metadata.last_update_time_unix is None
+
+
+def test_search_with_tenant(client: weaviate.Client):
+    client.collection.delete("TestTenantSearch")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="Tenants",
+            vectorizer=Vectorizer.NONE,
+            properties=[Property(name="name", dataType=DataType.TEXT)],
+            multiTenancyConfig=MultiTenancyConfig(enabled=True),
+        )
+    )
+
+    collection.tenants.add([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
+    tenant1 = collection.with_tenant("Tenant1")
+    tenant2 = collection.with_tenant("Tenant2")
+    uuid1 = tenant1.data.insert({"name": "some name"})
+    objects1 = tenant1.query.bm25_flat(query="some", return_metadata=MetadataQuery(uuid=True))
+    assert len(objects1) == 1
+    assert objects1[0].metadata.uuid == uuid1
+
+    objects2 = tenant2.query.bm25_flat(query="some", return_metadata=MetadataQuery(uuid=True))
+    assert len(objects2) == 0
