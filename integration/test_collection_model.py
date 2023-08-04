@@ -194,3 +194,39 @@ def test_multi_searches(client: weaviate.Client):
     assert objects[0].data.name is None
     assert objects[0].metadata.uuid is not None
     assert objects[0].metadata.last_update_time_unix is None
+
+
+@pytest.mark.skip()
+def test_multi_searches_with_references(client: weaviate.Client):
+    client.collection.delete("TestMultiSearchesWithReferences")
+
+    class SearchTest(BaseProperty):
+        name: Optional[str] = None
+        group: Annotated[Optional[UUIDS], ReferenceTo(Group)] = None
+
+    name = "TestMultiSearchesWithReferences"
+    client.collection_model.delete(name)
+    collection = client.collection_model.create(
+        CollectionModelConfig(name=name, model=SearchTest, vectorizer=Vectorizer.NONE)
+    )
+
+    collection.data.insert(SearchTest(name="some word", group=REF_TO_UUID))
+    collection.data.insert(SearchTest(name="other", group=REF_TO_UUID))
+
+    objects = collection.query.bm25_flat(
+        query="word",
+        return_properties=["name", "group"],
+        return_metadata=MetadataQuery(last_update_time_unix=True),
+    )
+    assert objects[0].data.name == "some word"
+    assert objects[0].data.group == REF_TO_UUID
+    assert objects[0].metadata.last_update_time_unix is not None
+
+    objects = collection.query.bm25_flat(
+        query="other",
+        return_metadata=MetadataQuery(uuid=True),
+    )
+    assert objects[0].data.name is None
+    assert objects[0].data.group is None
+    assert objects[0].metadata.uuid is not None
+    assert objects[0].metadata.last_update_time_unix is None
