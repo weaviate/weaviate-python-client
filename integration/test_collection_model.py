@@ -332,3 +332,28 @@ def test_update_properties(
         second = collection.data.get_by_id(uuid_second)
         assert second.data.name == "second"
         assert second.data.number == value_to_add
+
+
+def test_empty_search_returns_everything(client: weaviate.Client):
+    client.collection.delete("TestReturnEverythingORM")
+
+    class TestReturnEverythingORM(BaseProperty):
+        name: Optional[str] = None
+
+    client.collection_model.delete("TestReturnEverythingORM")
+    collection = client.collection_model.create(
+        CollectionModelConfig(
+            name="TestReturnEverythingORM",
+            model=TestReturnEverythingORM,
+            vectorizer=Vectorizer.NONE,
+        )
+    )
+    collection.data.insert(TestReturnEverythingORM(name="word"))
+
+    objects = collection.query.bm25_flat(query="word")
+    assert objects[0].data.name is not None
+    assert objects[0].data.name == "word"
+    assert objects[0].metadata.uuid is not None
+    assert objects[0].metadata.score is not None
+    assert objects[0].metadata.last_update_time_unix is not None
+    assert objects[0].metadata.creation_time_unix is not None

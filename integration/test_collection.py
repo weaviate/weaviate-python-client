@@ -424,3 +424,24 @@ def test_add_property(client: weaviate.Client):
     assert "name" in obj1.data
     assert "name" in obj2.data
     assert "number" in obj2.data
+
+
+def test_empty_search_returns_everything(client: weaviate.Client):
+    client.collection.delete("TestReturnEverything")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestReturnEverything",
+            vectorizer=Vectorizer.NONE,
+            properties=[Property(name="name", dataType=DataType.TEXT)],
+        )
+    )
+
+    collection.data.insert(data={"name": "word"})
+
+    objects = collection.query.bm25_flat(query="word")
+    assert "name" in objects[0].data
+    assert objects[0].data["name"] == "word"
+    assert objects[0].metadata.uuid is not None
+    assert objects[0].metadata.score is not None
+    assert objects[0].metadata.last_update_time_unix is not None
+    assert objects[0].metadata.creation_time_unix is not None

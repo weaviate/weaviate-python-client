@@ -266,27 +266,6 @@ class _MetadataReturn:
     explain_score: Optional[str] = None
     is_consistent: Optional[bool] = None
 
-    def __init__(self, data: Optional[Dict[str, Any]] = None) -> None:
-        if data is None:
-            return
-
-        def _to_uuid(uuid_str: Optional[str]) -> Optional[uuid_package.UUID]:
-            if uuid_str is None:
-                return None
-            return uuid_package.UUID(hex=uuid_str)
-
-        def _parse(key: str) -> Optional[Any]:
-            return data.get(key)
-
-        self.uuid = _to_uuid(_parse("id"))
-        self.vector = _parse("vector")
-        self.creation_time_unix = _parse("creationTimeUnix")
-        self.last_update_time_unix = _parse("lastUpdateTimeUnix")
-        self.distance = _parse("distance")
-        self.certainty = _parse("certainty")
-        self.score = _parse("score")
-        self.explain_score = _parse("explainScore")
-        self.is_consistent = _parse("isConsistent")
 
 
 @dataclass
