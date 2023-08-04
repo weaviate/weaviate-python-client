@@ -14,6 +14,7 @@ from weaviate.collection.classes import (
     _MetadataReturn,
     Model,
     UserModelType,
+    _MetadataFromDict,
 )
 from weaviate.collection.collection_base import (
     CollectionBase,
@@ -396,17 +397,7 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
                 obj["properties"][prop] = None
 
         model_object = _Object[Model](
-            data=self.__model(**obj["properties"]), metadata=_MetadataReturn(
-                uuid= uuid_package.UUID(obj["id"]) if "id" in obj else None,
-                vector=obj.get("vector"),
-                creation_time_unix=obj.get("creationTimeUnix"),
-                last_update_time_unix=obj.get("lastUpdateTimeUnix"),
-                distance=obj.get("distance"),
-                certainty=obj.get("certainty"),
-                explain_score=obj.get("explainScore"),
-                score=obj.get("score"),
-                is_consistent=obj.get("isConsistent"),
-            )
+            data=self.__model(**obj["properties"]), metadata=_MetadataFromDict(obj)
         )
         model_object.data.uuid = model_object.metadata.uuid
         model_object.data.vector = model_object.metadata.vector

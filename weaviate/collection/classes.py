@@ -267,6 +267,19 @@ class _MetadataReturn:
     is_consistent: Optional[bool] = None
 
 
+def _MetadataFromDict(metadata: Dict[str, Any]) -> _MetadataReturn:
+    return _MetadataReturn(
+        uuid=uuid_package.UUID(metadata["id"]) if "id" in metadata else None,
+        vector=metadata.get("vector"),
+        creation_time_unix=metadata.get("creationTimeUnix"),
+        last_update_time_unix=metadata.get("lastUpdateTimeUnix"),
+        distance=metadata.get("distance"),
+        certainty=metadata.get("certainty"),
+        explain_score=metadata.get("explainScore"),
+        score=metadata.get("score"),
+        is_consistent=metadata.get("isConsistent"),
+    )
+
 
 @dataclass
 class RefToObject:
