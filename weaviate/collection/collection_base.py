@@ -1,7 +1,7 @@
-import uuid as uuid_package
 from copy import copy
 from typing import Dict, Any, Optional, List, Tuple, Union
 
+import uuid as uuid_package
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.classes import (
@@ -29,7 +29,7 @@ class _Tenants:
 
     def __init__(self, connection: Connection, name: str) -> None:
         self._connection = connection
-        self._name = name
+        self.name = name
 
     def add(self, tenants: List[Tenant]) -> None:
         """Add the specified tenants to a collection in Weaviate.
@@ -48,17 +48,15 @@ class _Tenants:
 
         loaded_tenants = [{"name": tenant.name} for tenant in tenants]
 
-        path = "/schema/" + self._name + "/tenants"
+        path = "/schema/" + self.name + "/tenants"
         try:
             response = self._connection.post(path=path, weaviate_object=loaded_tenants)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                f"Collection tenants may not have been added properly for {self._name}"
+                f"Collection tenants may not have been added properly for {self.name}"
             ) from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException(
-                f"Add collection tenants for {self._name}", response
-            )
+            raise UnexpectedStatusCodeException(f"Add collection tenants for {self.name}", response)
 
     def remove(self, tenants: List[str]) -> None:
         """Remove the specified tenants from a collection in Weaviate.
@@ -76,16 +74,16 @@ class _Tenants:
         - `weaviate.UnexpectedStatusCodeException`
             - If Weaviate reports a non-OK status.
         """
-        path = "/schema/" + self._name + "/tenants"
+        path = "/schema/" + self.name + "/tenants"
         try:
             response = self._connection.delete(path=path, weaviate_object=tenants)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                f"Collection tenants may not have been deleted for {self._name}"
+                f"Collection tenants may not have been deleted for {self.name}"
             ) from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException(
-                f"Delete collection tenants for {self._name}", response
+                f"Delete collection tenants for {self.name}", response
             )
 
     def get(self) -> List[Tenant]:
@@ -99,17 +97,15 @@ class _Tenants:
         - `weaviate.UnexpectedStatusCodeException`
             - If Weaviate reports a non-OK status.
         """
-        path = "/schema/" + self._name + "/tenants"
+        path = "/schema/" + self.name + "/tenants"
         try:
             response = self._connection.get(path=path)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                f"Could not get collection tenants for {self._name}"
+                f"Could not get collection tenants for {self.name}"
             ) from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException(
-                f"Get collection tenants for {self._name}", response
-            )
+            raise UnexpectedStatusCodeException(f"Get collection tenants for {self.name}", response)
 
         tenant_resp: List[Dict[str, Any]] = response.json()
         return [Tenant(**tenant) for tenant in tenant_resp]
@@ -119,13 +115,21 @@ class CollectionObjectBase:
     def __init__(self, connection: Connection, name: str) -> None:
         self.tenants = _Tenants(connection, name)
         self._connection = connection
-        self._name = name
-        self._tenant: Optional[str] = None
+        self.__name = name
+        self.__tenant: Optional[str] = None
         self._consistency_level: Optional[str] = None
+
+    @property
+    def tenant(self) -> str:
+        return self.__tenant
+
+    @property
+    def name(self) -> str:
+        return self.__name
 
     def _with_tenant(self, tenant: Optional[str] = None) -> "CollectionObjectBase":
         new = copy(self)
-        new._tenant = tenant
+        new.__tenant = tenant
         return new
 
     def _with_consistency_level(
@@ -139,10 +143,9 @@ class CollectionObjectBase:
 
     def _insert(self, weaviate_obj: Dict[str, Any]) -> uuid_package.UUID:
         path = "/objects"
+        params, weaviate_obj = self.__apply_context_to_params_and_object({}, weaviate_obj)
         try:
-            response = self._connection.post(
-                path=path, weaviate_object=weaviate_obj, params=self.__apply_context({})
-            )
+            response = self._connection.post(path=path, weaviate_object=weaviate_obj, params=params)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Object was not added to Weaviate.") from conn_err
         if response.status_code == 200:
@@ -160,9 +163,9 @@ class CollectionObjectBase:
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level
 
-        if self._tenant is not None:
+        if self.__tenant is not None:
             for obj in objects:
-                obj["tenant"] = self._tenant
+                obj["tenant"] = self.__tenant
 
         response = self._connection.post(
             path="/batch/objects",
@@ -183,7 +186,7 @@ class CollectionObjectBase:
         raise UnexpectedStatusCodeException("Send object batch", response)
 
     def delete(self, uuid: UUID) -> bool:
-        path = f"/objects/{self._name}/{uuid}"
+        path = f"/objects/{self.name}/{uuid}"
 
         try:
             response = self._connection.delete(path=path, params=self.__apply_context({}))
@@ -196,7 +199,7 @@ class CollectionObjectBase:
         raise UnexpectedStatusCodeException("Delete object", response)
 
     def _replace(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
-        path = f"/objects/{self._name}/{uuid}"
+        path = f"/objects/{self.name}/{uuid}"
         params, weaviate_obj = self.__apply_context_to_params_and_object({}, weaviate_obj)
 
         try:
@@ -208,7 +211,7 @@ class CollectionObjectBase:
         raise UnexpectedStatusCodeException("Replacing object", response)
 
     def _update(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
-        path = f"/objects/{self._name}/{uuid}"
+        path = f"/objects/{self.name}/{uuid}"
         params, weaviate_obj = self.__apply_context_to_params_and_object({}, weaviate_obj)
 
         try:
@@ -224,7 +227,7 @@ class CollectionObjectBase:
     def _get_by_id(
         self, uuid: UUID, metadata: Optional[MetadataGet] = None
     ) -> Optional[Dict[str, Any]]:
-        path = f"/objects/{self._name}/{uuid}"
+        path = f"/objects/{self.name}/{uuid}"
 
         return self._get_from_weaviate(
             params=self.__apply_context({}), path=path, metadata=metadata
@@ -232,7 +235,7 @@ class CollectionObjectBase:
 
     def _get(self, metadata: Optional[MetadataGet] = None) -> Optional[Dict[str, Any]]:
         path = "/objects"
-        params: Dict[str, Any] = {"class": self._name}
+        params: Dict[str, Any] = {"class": self.name}
 
         return self._get_from_weaviate(
             params=self.__apply_context(params), path=path, metadata=metadata
@@ -262,7 +265,7 @@ class CollectionObjectBase:
     def _reference_add(self, from_uuid: UUID, from_property_name: str, to_uuids: UUIDS) -> None:
         params: Dict[str, str] = {}
 
-        path = f"/objects/{self._name}/{from_uuid}/references/{from_property_name}"
+        path = f"/objects/{self.name}/{from_uuid}/references/{from_property_name}"
         beacons = _to_beacons(to_uuids)
         for beacon in beacons:
             try:
@@ -281,9 +284,9 @@ class CollectionObjectBase:
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level
 
-        if self._tenant is not None:
+        if self.__tenant is not None:
             for ref in refs:
-                ref["tenant"] = self._tenant
+                ref["tenant"] = self.__tenant
 
         response = self._connection.post(
             path="/batch/references", weaviate_object=refs, params=params
@@ -295,7 +298,7 @@ class CollectionObjectBase:
     def _reference_delete(self, from_uuid: UUID, from_property_name: str, to_uuids: UUIDS) -> None:
         params: Dict[str, str] = {}
 
-        path = f"/objects/{self._name}/{from_uuid}/references/{from_property_name}"
+        path = f"/objects/{self.name}/{from_uuid}/references/{from_property_name}"
         beacons = _to_beacons(to_uuids)
         for beacon in beacons:
             try:
@@ -312,7 +315,7 @@ class CollectionObjectBase:
     def _reference_replace(self, from_uuid: UUID, from_property_name: str, to_uuids: UUIDS) -> None:
         params: Dict[str, str] = {}
 
-        path = f"/objects/{self._name}/{from_uuid}/references/{from_property_name}"
+        path = f"/objects/{self.name}/{from_uuid}/references/{from_property_name}"
         try:
             response = self._connection.put(
                 path=path,
@@ -325,8 +328,8 @@ class CollectionObjectBase:
             raise UnexpectedStatusCodeException("Add property reference to object", response)
 
     def __apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        if self._tenant is not None:
-            params["tenant"] = self._tenant
+        if self.__tenant is not None:
+            params["tenant"] = self.__tenant
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level
         return params
@@ -334,8 +337,8 @@ class CollectionObjectBase:
     def __apply_context_to_params_and_object(
         self, params: Dict[str, Any], obj: Dict[str, Any]
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        if self._tenant is not None:
-            obj["tenant"] = self._tenant
+        if self.__tenant is not None:
+            obj["tenant"] = self.__tenant
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level
         return params, obj

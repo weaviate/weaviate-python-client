@@ -115,10 +115,15 @@ class SearchResponse:
 
 class _GRPC:
     def __init__(
-        self, connection: Connection, name: str, default_properties: Optional[Set[str]] = None
+        self,
+        connection: Connection,
+        name: str,
+        tenant: Optional[str] = None,
+        default_properties: Optional[Set[str]] = None,
     ):
         self._connection: Connection = connection
         self._name: str = name
+        self._tenant = tenant
 
         if default_properties is not None:
             self._default_props: Set[str] = default_properties
@@ -294,6 +299,7 @@ class _GRPC:
                     )
                     if self._hybrid_query is not None
                     else None,
+                    tenant=self._tenant,
                 ),
                 metadata=metadata,
             )

@@ -51,10 +51,10 @@ class _Data(Generic[Model]):
         self.__collection = collection
 
     def insert(self, obj: Model) -> uuid_package.UUID:
-        self.__collection._model.model_validate(obj)
+        self.__collection.model.model_validate(obj)
 
         weaviate_obj: Dict[str, Any] = {
-            "class": self.__collection._name,
+            "class": self.__collection.name,
             "properties": obj.props_to_dict(),
             "id": str(obj.uuid),
         }
@@ -66,11 +66,11 @@ class _Data(Generic[Model]):
 
     def insert_many(self, objects: List[Model]) -> List[Union[uuid_package.UUID, Errors]]:
         for obj in objects:
-            self.__collection._model.model_validate(obj)
+            self.__collection.model.model_validate(obj)
 
         weaviate_objs: List[Dict[str, Any]] = [
             {
-                "class": self.__collection._name,
+                "class": self.__collection.name,
                 "properties": obj.props_to_dict(),
                 "id": str(obj.uuid),
             }
@@ -79,10 +79,10 @@ class _Data(Generic[Model]):
         return self.__collection._insert_many(weaviate_objs)
 
     def replace(self, obj: Model, uuid: UUID) -> None:
-        self.__collection._model.model_validate(obj)
+        self.__collection.model.model_validate(obj)
 
         weaviate_obj: Dict[str, Any] = {
-            "class": self.__collection._name,
+            "class": self.__collection.name,
             "properties": obj.props_to_dict(),
         }
         if obj.vector is not None:
@@ -91,10 +91,10 @@ class _Data(Generic[Model]):
         self.__collection._replace(weaviate_obj, uuid)
 
     def update(self, obj: Model, uuid: UUID) -> None:
-        self.__collection._model.model_validate(obj)
+        self.__collection.model.model_validate(obj)
 
         weaviate_obj: Dict[str, Any] = {
-            "class": self.__collection._name,
+            "class": self.__collection.name,
             "properties": obj.props_to_dict(update=True),
         }
         if obj.vector is not None:
@@ -135,7 +135,7 @@ class _Data(Generic[Model]):
     def reference_add_many(self, from_property: str, refs: List[BatchReference]) -> None:
         refs_dict = [
             {
-                "from": BEACON + f"{self.__collection._name}/{ref.from_uuid}/{from_property}",
+                "from": BEACON + f"{self.__collection.name}/{ref.from_uuid}/{from_property}",
                 "to": BEACON + str(ref.to_uuid),
             }
             for ref in refs
@@ -144,12 +144,25 @@ class _Data(Generic[Model]):
 
 
 class _GRPCWrapper(Generic[Model]):
-    def __init__(self, connection: Connection, name: str, model: Type[Model]):
+    def __init__(
+        self,
+        collection: "CollectionObjectModel[Model]",
+        connection: Connection,
+        model: Type[Model],
+    ):
         super().__init__()
         self._model: Type[Model] = model
         self._connection = connection
-        self._name = name
-        self._non_optional_props = model.get_non_optional_fields(model)
+        self.__non_optional_props = model.get_non_optional_fields(model)
+        self.__collection = collection
+
+    def __create_query(self) -> _GRPC:
+        return _GRPC(
+            self._connection,
+            self.__collection.name,
+            self.__collection.tenant,
+            self.__non_optional_props,
+        )
 
     def get_flat(
         self,
@@ -159,10 +172,11 @@ class _GRPCWrapper(Generic[Model]):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object[Model]]:
-        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
         return [
             self.__result_to_object(obj)
-            for obj in grpc_query.get(limit, offset, after, return_metadata, return_properties)
+            for obj in self.__create_query().get(
+                limit, offset, after, return_metadata, return_properties
+            )
         ]
 
     def get_options(
@@ -170,11 +184,9 @@ class _GRPCWrapper(Generic[Model]):
     ) -> List[_Object[Model]]:
         if options is None:
             options = GetOptions()
-        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
-
         return [
             self.__result_to_object(obj)
-            for obj in grpc_query.get(
+            for obj in self.__create_query().get(
                 options.limit, options.offset, options.after, returns.metadata, returns.properties
             )
         ]
@@ -191,9 +203,7 @@ class _GRPCWrapper(Generic[Model]):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object[Model]]:
-        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
-
-        objects = grpc_query.hybrid(
+        objects = self.__create_query().hybrid(
             query,
             alpha,
             vector,
@@ -214,9 +224,8 @@ class _GRPCWrapper(Generic[Model]):
     ) -> List[_Object[Model]]:
         if options is None:
             options = HybridOptions()
-        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
 
-        objects = grpc_query.hybrid(
+        objects = self.__create_query().hybrid(
             query,
             options.alpha,
             options.vector,
@@ -238,11 +247,9 @@ class _GRPCWrapper(Generic[Model]):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object[Model]]:
-        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
-
         return [
             self.__result_to_object(obj)
-            for obj in grpc_query.bm25(
+            for obj in self.__create_query().bm25(
                 query, properties, limit, autocut, return_metadata, return_properties
             )
         ]
@@ -255,11 +262,9 @@ class _GRPCWrapper(Generic[Model]):
     ) -> List[_Object[Model]]:
         if options is None:
             options = BM25Options()
-        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
-
         return [
             self.__result_to_object(obj)
-            for obj in grpc_query.bm25(
+            for obj in self.__create_query().bm25(
                 query,
                 options.properties,
                 options.limit,
@@ -278,11 +283,9 @@ class _GRPCWrapper(Generic[Model]):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object[Model]]:
-        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
-
         return [
             self.__result_to_object(obj)
-            for obj in grpc_query.near_vector(
+            for obj in self.__create_query().near_vector(
                 vector, certainty, distance, autocut, return_metadata, return_properties
             )
         ]
@@ -295,11 +298,9 @@ class _GRPCWrapper(Generic[Model]):
     ) -> List[_Object[Model]]:
         if options is None:
             options = NearVectorOptions()
-        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
-
         return [
             self.__result_to_object(obj)
-            for obj in grpc_query.near_vector(
+            for obj in self.__create_query().near_vector(
                 vector,
                 options.certainty,
                 options.distance,
@@ -318,11 +319,9 @@ class _GRPCWrapper(Generic[Model]):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object[Model]]:
-        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
-
         return [
             self.__result_to_object(obj)
-            for obj in grpc_query.near_object(
+            for obj in self.__create_query().near_object(
                 obj, certainty, distance, autocut, return_metadata, return_properties
             )
         ]
@@ -335,12 +334,9 @@ class _GRPCWrapper(Generic[Model]):
     ) -> List[_Object[Model]]:
         if options is None:
             options = NearObjectOptions()
-
-        grpc_query = _GRPC(self._connection, self._name, self._non_optional_props)
-
         return [
             self.__result_to_object(obj)
-            for obj in grpc_query.near_object(
+            for obj in self.__create_query().near_object(
                 obj,
                 options.certainty,
                 options.distance,
@@ -357,13 +353,22 @@ class _GRPCWrapper(Generic[Model]):
 class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
     def __init__(self, connection: Connection, name: str, model: Type[Model]) -> None:
         super().__init__(connection, name)
-        self._model: Type[Model] = model
+        self.__model: Type[Model] = model
         self._default_props = model.get_non_optional_fields(model)
         self.data = _Data[Model](self)
-        self.query = _GRPCWrapper[Model](connection, name, model)
+        self.query = _GRPCWrapper[Model](self, connection, model)
+
+    @property
+    def model(self) -> Type[Model]:
+        return self.__model
 
     def with_tenant(self, tenant: Optional[str] = None) -> "CollectionObjectModel":
-        return self._with_tenant(tenant)
+        new_collection = self._with_tenant(tenant)
+        new_collection.data = _Data(new_collection)
+        new_collection.query = _GRPCWrapper(
+            new_collection, new_collection._connection, new_collection.__model
+        )
+        return new_collection
 
     def with_consistency_level(
         self, consistency_level: Optional[ConsistencyLevel] = None
@@ -371,7 +376,7 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
         return self._with_consistency_level(consistency_level)
 
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Model]:
-        for ref in self._model.get_ref_fields(self._model):
+        for ref in self.__model.get_ref_fields(self.__model):
             if ref not in obj["properties"]:
                 continue
 
@@ -390,7 +395,7 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
                 obj["properties"][prop] = None
 
         model_object = _Object[Model](
-            data=self._model(**obj["properties"]), metadata=_MetadataReturn(obj)
+            data=self.__model(**obj["properties"]), metadata=_MetadataReturn(obj)
         )
         model_object.data.uuid = model_object.metadata.uuid
         model_object.data.vector = model_object.metadata.vector
