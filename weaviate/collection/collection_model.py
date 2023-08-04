@@ -10,7 +10,7 @@ from weaviate.collection.classes import (
     CollectionModelConfig,
     Errors,
     MetadataGet,
-    MetadataReturn,
+    _MetadataReturn,
     Model,
     UserModelType,
 )
@@ -40,7 +40,7 @@ from weaviate.weaviate_types import UUID, UUIDS, BEACON, PYTHON_TYPE_TO_DATATYPE
 @dataclass
 class _Object(Generic[Model]):
     data: Model
-    metadata: MetadataReturn
+    metadata: _MetadataReturn
 
 
 class _Data(Generic[Model]):
@@ -349,7 +349,7 @@ class _GRPCWrapper(Generic[Model]):
             )
         ]
 
-    def __dict_to_obj(self, obj: Tuple[Dict[str, Any], MetadataReturn]) -> _Object[Model]:
+    def __dict_to_obj(self, obj: Tuple[Dict[str, Any], _MetadataReturn]) -> _Object[Model]:
         return _Object[Model](data=self._model(**obj[0]), metadata=obj[1])
 
 
@@ -389,7 +389,7 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
                 obj["properties"][prop] = None
 
         model_object = _Object[Model](
-            data=self._model(**obj["properties"]), metadata=MetadataReturn(**obj)
+            data=self._model(**obj["properties"]), metadata=_MetadataReturn(obj)
         )
         model_object.data.uuid = model_object.metadata.uuid
         model_object.data.vector = model_object.metadata.vector

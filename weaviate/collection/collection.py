@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional, List, Union, Tuple
 from weaviate.collection.classes import (
     CollectionConfig,
     Errors,
-    MetadataReturn,
+    _MetadataReturn,
     MetadataGet,
     RefToObject,
     BatchReference,
@@ -32,7 +32,7 @@ from weaviate.weaviate_types import UUIDS, UUID, BEACON
 @dataclass
 class _Object:
     data: Dict[str, Any]
-    metadata: MetadataReturn
+    metadata: _MetadataReturn
 
 
 class _Grpc:
@@ -238,7 +238,7 @@ class _Grpc:
             )
         ]
 
-    def __dict_to_obj(self, obj: Tuple[Dict[str, Any], MetadataReturn]) -> _Object:
+    def __dict_to_obj(self, obj: Tuple[Dict[str, Any], _MetadataReturn]) -> _Object:
         data: Dict[str, Any] = obj[0]
         for key in data.keys():
             if isinstance(data[key], List):
@@ -375,7 +375,7 @@ class CollectionObject(CollectionObjectBase):
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object:
         return _Object(
             data={prop: val for prop, val in obj["properties"].items()},
-            metadata=MetadataReturn(**obj),
+            metadata=_MetadataReturn(obj),
         )
 
 
