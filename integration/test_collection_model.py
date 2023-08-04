@@ -30,9 +30,6 @@ class Group(BaseProperty):
     name: str
 
 
-grou = Group(name="a")
-
-
 @pytest.fixture(scope="module")
 def client():
     client = weaviate.Client(
