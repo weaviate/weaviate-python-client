@@ -4,14 +4,14 @@ import uuid
 import weaviate
 from weaviate import Config
 from weaviate.collection.grpc import HybridFusion, LinkTo, MetadataQuery
-from weaviate.weaviate_classes import (
+from weaviate.collection.classes import (
     CollectionConfig,
     Property,
     DataType,
     Vectorizer,
     ReferenceProperty,
     RefToObject,
-    Metadata,
+    MetadataGet,
     MultiTenancyConfig,
     Tenant,
 )
@@ -219,7 +219,7 @@ def test_near_vector(client: weaviate.Client):
     collection.data.insert({"Name": "car"})
     collection.data.insert({"Name": "Mountain"})
 
-    banana = collection.data.get_by_id(uuid_banana, metadata=Metadata(vector=True))
+    banana = collection.data.get_by_id(uuid_banana, metadata=MetadataGet(vector=True))
 
     full_objects = collection.query.near_vector_flat(
         banana.metadata.vector, return_metadata=MetadataQuery(distance=True, certainty=True)

@@ -1,10 +1,17 @@
+import uuid as uuid_package
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, List, Union
 
-import uuid as uuid_package
-
+from weaviate.collection.classes import (
+    CollectionConfig,
+    Errors,
+    _MetadataReturn,
+    MetadataGet,
+    RefToObject,
+    BatchReference,
+    DataObject,
+)
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
-from weaviate.collection.collection_classes import Errors
 from weaviate.collection.grpc import (
     _GRPC,
     GrpcResult,
@@ -20,27 +27,13 @@ from weaviate.collection.grpc import (
 )
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.weaviate_classes import CollectionConfig, MetadataReturn, Metadata, RefToObject
 from weaviate.weaviate_types import UUIDS, UUID, BEACON
 
 
 @dataclass
 class _Object:
-    metadata: MetadataReturn
     data: Dict[str, Any]
-
-
-@dataclass
-class DataObject:
-    data: Dict[str, Any]
-    uuid: Optional[UUID] = None
-    vector: Optional[List[float]] = None
-
-
-@dataclass
-class BatchReference:
-    from_uuid: UUID
-    to_uuid: UUID
+    metadata: _MetadataReturn
 
 
 class _Grpc:
@@ -319,13 +312,13 @@ class _Data:
 
         self.__collection._update(weaviate_obj, uuid=uuid)
 
-    def get_by_id(self, uuid: UUID, metadata: Optional[Metadata] = None) -> Optional[_Object]:
+    def get_by_id(self, uuid: UUID, metadata: Optional[MetadataGet] = None) -> Optional[_Object]:
         ret = self.__collection._get_by_id(uuid=uuid, metadata=metadata)
         if ret is None:
             return ret
         return self.__collection._json_to_object(ret)
 
-    def get(self, metadata: Optional[Metadata] = None) -> List[_Object]:
+    def get(self, metadata: Optional[MetadataGet] = None) -> List[_Object]:
         ret = self.__collection._get(metadata=metadata)
         if ret is None:
             return []
@@ -378,7 +371,7 @@ class CollectionObject(CollectionObjectBase):
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object:
         return _Object(
             data={prop: val for prop, val in obj["properties"].items()},
-            metadata=MetadataReturn(**obj),
+            metadata=_MetadataReturn(obj),
         )
 
 

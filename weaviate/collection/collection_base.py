@@ -4,12 +4,18 @@ from typing import Dict, Any, Optional, List, Tuple, Union
 import uuid as uuid_package
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.collection.collection_classes import Errors, Error
+from weaviate.collection.classes import (
+    CollectionConfigBase,
+    Error,
+    Errors,
+    MetadataGet,
+    Tenant,
+    UUID,
+)
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException, ObjectAlreadyExistsException
 from weaviate.util import _to_beacons, _capitalize_first_letter
-from weaviate.weaviate_classes import CollectionConfigBase, UUID, Metadata, Tenant
 from weaviate.weaviate_types import UUIDS
 
 
@@ -219,7 +225,7 @@ class CollectionObjectBase:
         raise UnexpectedStatusCodeException("Update object", response)
 
     def _get_by_id(
-        self, uuid: UUID, metadata: Optional[Metadata] = None
+        self, uuid: UUID, metadata: Optional[MetadataGet] = None
     ) -> Optional[Dict[str, Any]]:
         path = f"/objects/{self.name}/{uuid}"
 
@@ -227,7 +233,7 @@ class CollectionObjectBase:
             params=self.__apply_context({}), path=path, metadata=metadata
         )
 
-    def _get(self, metadata: Optional[Metadata] = None) -> Optional[Dict[str, Any]]:
+    def _get(self, metadata: Optional[MetadataGet] = None) -> Optional[Dict[str, Any]]:
         path = "/objects"
         params: Dict[str, Any] = {"class": self.name}
 
@@ -236,7 +242,7 @@ class CollectionObjectBase:
         )
 
     def _get_from_weaviate(
-        self, params: Dict[str, Any], path: str, metadata: Optional[Metadata] = None
+        self, params: Dict[str, Any], path: str, metadata: Optional[MetadataGet] = None
     ) -> Optional[Dict[str, Any]]:
         include = ""
         if metadata is not None:

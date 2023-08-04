@@ -8,7 +8,7 @@ from google.protobuf import struct_pb2
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGRPCException
 from weaviate.util import BaseEnum
-from weaviate.weaviate_classes import MetadataReturn
+from weaviate.collection.classes import _MetadataReturn
 from weaviate.weaviate_types import UUID
 from weaviate_grpc import weaviate_pb2
 
@@ -86,7 +86,7 @@ _StructValue: TypeAlias = Union[struct_pb2.Struct, struct_pb2.ListValue, str, fl
 
 @dataclass
 class GrpcResult:
-    metadata: MetadataReturn
+    metadata: _MetadataReturn
     result: Dict[str, Union[_StructValue, List["GrpcResult"]]]
 
 
@@ -378,9 +378,9 @@ class _GRPC:
 
     def _extract_metadata(
         self, props: "weaviate_pb2.ResultAdditionalProps", meta: MetadataQuery
-    ) -> MetadataReturn:
+    ) -> _MetadataReturn:
         if meta is None:
-            return MetadataReturn()
+            return _MetadataReturn()
 
         additional_props: Dict[str, Any] = {}
         if meta.uuid:
@@ -407,4 +407,4 @@ class _GRPC:
             additional_props["explainScore"] = (
                 props.explain_score if props.explain_score_present else None
             )
-        return MetadataReturn(**additional_props)
+        return _MetadataReturn(additional_props)
