@@ -134,7 +134,6 @@ class MultiTenancyConfig(ConfigModel):
 
 
 class CollectionConfigBase(ConfigModel):
-    name: str
     vectorIndexType: Optional[VectorIndexType] = None
     vectorizer: Optional[Vectorizer] = None
     vectorIndexConfig: Optional[VectorIndexConfig] = None
@@ -149,10 +148,8 @@ class CollectionConfigBase(ConfigModel):
 
         for cls_field in self.model_fields:
             val = getattr(self, cls_field)
-            if cls_field in ["model", "properties"] or val is None:
+            if cls_field in ["name", "model", "properties"] or val is None:
                 continue
-            if cls_field == "name":
-                ret_dict["class"] = _capitalize_first_letter(val)
             if isinstance(val, Enum):
                 ret_dict[cls_field] = str(val.value)
             elif isinstance(val, (bool, float, str, int)):
@@ -196,16 +193,14 @@ class ReferenceProperty(ConfigModel):
 
 
 class CollectionConfig(CollectionConfigBase):
+    name: str
     properties: Optional[List[Union[Property, ReferenceProperty]]] = None
-
-    def model_post_init(self, __context: Any) -> None:
-        collection_name = self.name[0].upper()
-        if len(self.name) > 1:
-            collection_name += self.name[1:]
-        self.name = collection_name
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
+
+        if self.name is not None:
+            ret_dict["class"] = _capitalize_first_letter(self.name)
 
         if self.properties is not None:
             ret_dict["properties"] = [prop.to_dict() for prop in self.properties]
@@ -460,14 +455,10 @@ class _Object(Generic[Model]):
 class CollectionModelConfig(CollectionConfigBase, Generic[Model]):
     model: Type[Model]
 
-    def model_post_init(self, __context: Any) -> None:
-        collection_name = self.name[0].upper()
-        if len(self.name) > 1:
-            collection_name += self.name[1:]
-        self.name = collection_name
-
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
+
+        ret_dict["class"] = self.model.__name__
 
         if self.model is not None:
             ret_dict["properties"] = self.model.type_to_dict(self.model)

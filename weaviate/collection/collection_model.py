@@ -350,12 +350,12 @@ class _GRPCWrapper(Generic[Model]):
 
 
 class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
-    def __init__(self, connection: Connection, name: str, model: Type[Model]) -> None:
-        super().__init__(connection, name)
+    def __init__(self, connection: Connection, model: Type[Model]) -> None:
+        super().__init__(connection, model.__name__)
         self._model: Type[Model] = model
         self._default_props = model.get_non_optional_fields(model)
         self.data = _Data[Model](self)
-        self.query = _GRPCWrapper[Model](connection, name, model)
+        self.query = _GRPCWrapper[Model](connection, model.__name__, model)
 
     def with_tenant(self, tenant: Optional[str] = None) -> "CollectionObjectModel":
         return self._with_tenant(tenant)
@@ -398,11 +398,11 @@ class CollectionModel(CollectionBase):
 
     def create(self, config: CollectionModelConfig[Model]) -> CollectionObjectModel[Model]:
         name = super()._create(config)
-        if config.name != name:
+        if config.model.__name__ != name:
             raise ValueError(
-                f"Name of created collection ({name}) does not match given name ({config.name})"
+                f"Name of created collection ({name}) does not match given name ({config.model.__name__})"
             )
-        return CollectionObjectModel[Model](self._connection, config.name, config.model)
+        return CollectionObjectModel[config.model](self._connection, config.model)
 
     def get(self, model: Type[Model], name: str) -> CollectionObjectModel[Model]:
         path = f"/schema/{_capitalize_first_letter(name)}"
