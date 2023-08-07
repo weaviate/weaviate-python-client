@@ -274,6 +274,18 @@ class _GRPCWrapper(Generic[Model]):
             )
         ]
 
+    def bm25_orm(
+        self,
+        query: str,
+        properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        autocut: Optional[int] = None,
+        return_properties: Optional[List] = None,
+    ) -> List[Model]:
+        print(return_properties)
+        for prop in return_properties:
+            print("#####PROP: ", prop)
+
     def near_vector_flat(
         self,
         vector: List[float],

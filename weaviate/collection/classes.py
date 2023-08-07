@@ -342,10 +342,22 @@ class DataObject:
     vector: Optional[List[float]] = None
 
 
+class _Metadata(BaseModel):
+    # uuid: Optional[uuid_package.UUID] = Field(None, alias="id")
+    # vector: Optional[List[float]] = None
+    creation_time_unix: Optional[int] = Field(None, alias="creationTimeUnix")
+    last_update_time_unix: Optional[int] = Field(None, alias="lastUpdateTimeUnix")
+    distance: Optional[float] = None
+    certainty: Optional[float] = None
+    score: Optional[float] = None
+    explain_score: Optional[str] = Field(None, alias="explainScore")
+    is_consistent: Optional[bool] = Field(None, alias="isConsistent")
+
+
 class BaseProperty(BaseModel):
     uuid: UUID = Field(default_factory=uuid_package.uuid4)
     vector: Optional[List[float]] = None
-
+    metadata: Optional[_Metadata] = None
     # def __new__(cls, *args, **kwargs):
     #     #
     #     build = super().__new__(cls)
@@ -362,6 +374,7 @@ class BaseProperty(BaseModel):
     #
     #
     # make references optional by default - does not work
+
     def __init__(self, **data) -> None:
         super().__init__(**data)
         self._reference_fields: Set[str] = self.get_ref_fields(type(self))

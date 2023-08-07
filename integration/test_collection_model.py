@@ -1,5 +1,5 @@
 import sys
-from typing import List, Optional
+from typing import ClassVar, List, Optional
 
 from weaviate import Config
 from weaviate.collection.grpc import MetadataQuery
@@ -10,6 +10,8 @@ else:
     from typing import Annotated
 import pytest as pytest
 import uuid
+
+from pydantic import Field
 
 import weaviate
 from weaviate.collection.classes import (
@@ -252,3 +254,20 @@ def test_search_with_tenant(client: weaviate.Client):
 
     objects2 = tenant2.query.bm25_flat(query="some", return_metadata=MetadataQuery(uuid=True))
     assert len(objects2) == 0
+
+
+def test_bm25_orm(client: weaviate.Client):
+    class SearchTest(BaseProperty):
+        name: ClassVar[str] = Field(...)
+
+    client.collection_model.delete(SearchTest)
+    collection = client.collection_model.create(
+        CollectionModelConfig(model=SearchTest, vectorizer=Vectorizer.NONE)
+    )
+
+    collection.data.insert(SearchTest(name="test name"))
+    collection.data.insert(SearchTest(name="other words"))
+
+    objects = collection.query.bm25_orm(query="test", return_properties=[SearchTest.name])
+    assert type(objects[0].data) is SearchTest
+    assert objects[0].data.name == "test name"
