@@ -5,7 +5,7 @@ from pydantic_core._pydantic_core import PydanticUndefined
 
 from weaviate import Config
 from weaviate.collection.grpc import MetadataQuery
-from weaviate.exceptions import WeaviateAddProperty
+from weaviate.exceptions import WeaviateAddInvalidPropertyError
 
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated
@@ -282,8 +282,12 @@ def test_update_properties(
     default_factory,
     exception: bool,
 ):
+    uuid_first: Optional[uuid.UUID] = None
+
     def create_original_collection():
+        nonlocal uuid_first
         # class definition will be gone when this is out of scope
+
         class TestPropUpdate(BaseProperty):
             name: str
 
@@ -291,7 +295,7 @@ def test_update_properties(
         collection_first = client.collection_model.create(
             CollectionModelConfig(model=TestPropUpdate, vectorizer=Vectorizer.NONE)
         )
-        collection_first.data.insert(TestPropUpdate(name="first"))
+        uuid_first = collection_first.data.insert(TestPropUpdate(name="first"))
 
     create_original_collection()
 
@@ -306,10 +310,25 @@ def test_update_properties(
         number: member_type = field
 
     if exception:
-        with pytest.raises(WeaviateAddProperty):
-            client.collection_model.update_property(TestPropUpdate)
+        with pytest.raises(WeaviateAddInvalidPropertyError):
+            client.collection_model.update_model(TestPropUpdate)
     else:
-        collection = client.collection_model.update_property(TestPropUpdate)
-        collection.data.insert(TestPropUpdate(name="second", number=value_to_add))
+        collection = client.collection_model.update_model(TestPropUpdate)
+        uuid_second = collection.data.insert(TestPropUpdate(name="second", number=value_to_add))
         objects = collection.data.get()
         assert len(objects) == 2
+        assert uuid_first is not None
+        first = collection.data.get_by_id(uuid_first)
+
+        assert first.data.name == "first"
+        assert (
+            first.data.number == default
+            if default is not None and default != PydanticUndefined
+            else default_factory()
+            if default_factory is not None
+            else first.data.number is None
+        )
+
+        second = collection.data.get_by_id(uuid_second)
+        assert second.data.name == "second"
+        assert second.data.number == value_to_add

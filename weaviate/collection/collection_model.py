@@ -34,7 +34,7 @@ from weaviate.collection.grpc import (
 )
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.exceptions import UnexpectedStatusCodeException, WeaviateAddProperty
+from weaviate.exceptions import UnexpectedStatusCodeException, WeaviateAddInvalidPropertyError
 from weaviate.util import _capitalize_first_letter
 from weaviate.weaviate_types import UUID, UUIDS, BEACON, PYTHON_TYPE_TO_DATATYPE
 
@@ -428,7 +428,7 @@ class CollectionModel(CollectionBase):
             self._connection, _capitalize_first_letter(model.__name__), model
         )
 
-    def update_property(self, model: Type[Model]) -> CollectionObjectModel[Model]:
+    def update_model(self, model: Type[Model]) -> CollectionObjectModel[Model]:
         schema_props = self.__get_existing_properties(model)
         name = _capitalize_first_letter(model.__name__)
         only_in_schema, only_in_model = self.__compare_properties_with_model(
@@ -442,7 +442,7 @@ class CollectionModel(CollectionBase):
             new_field = model.model_fields[prop["name"]]
             non_optional_type = model.remove_optional_type(new_field.annotation)
             if new_field.default is not None and non_optional_type == new_field.annotation:
-                raise WeaviateAddProperty(prop["name"])
+                raise WeaviateAddInvalidPropertyError(prop["name"])
 
         for prop in only_in_model:
             self.__add_property(name, prop)

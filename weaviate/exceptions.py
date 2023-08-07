@@ -148,7 +148,7 @@ class WeaviateGRPCException(WeaviateBaseError):
         self.message = message
 
 
-class WeaviateAddProperty(WeaviateBaseError):
+class WeaviateAddInvalidPropertyError(WeaviateBaseError):
     """Is raised when adding an invalid new property."""
 
     def __init__(self, message: str):

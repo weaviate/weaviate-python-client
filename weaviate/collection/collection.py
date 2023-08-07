@@ -386,7 +386,7 @@ class CollectionObject(CollectionObjectBase):
         try:
             response = self._connection.post(path=path, weaviate_object=obj)
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError("Property was created properly.") from conn_err
+            raise RequestsConnectionError("Property was not created properly.") from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Add property to class", response)
 
