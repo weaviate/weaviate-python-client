@@ -1,6 +1,7 @@
-import uuid as uuid_package
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, List, Union
+
+import uuid as uuid_package
 
 from weaviate.collection.classes import (
     CollectionConfig,
@@ -234,7 +235,9 @@ class _Grpc:
     def __result_to_object(self, obj: GrpcResult) -> _Object:
         data = obj.result
         for key in data.keys():
-            if isinstance(value := data[key], List):
+            entry = data[key]
+            if isinstance(entry, list):
+                value: List = entry
                 for i, _ in enumerate(value):
                     value[i] = self.__result_to_object(value[i])
 

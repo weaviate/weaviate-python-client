@@ -323,7 +323,7 @@ class BaseConnection:
     def delete(
         self,
         path: str,
-        weaviate_object: dict = None,
+        weaviate_object: Union[dict, list] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """
