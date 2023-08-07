@@ -1,8 +1,11 @@
 import sys
 from typing import List, Optional
 
+from pydantic_core._pydantic_core import PydanticUndefined
+
 from weaviate import Config
 from weaviate.collection.grpc import MetadataQuery
+from weaviate.exceptions import WeaviateAddProperty
 
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated
@@ -22,6 +25,7 @@ from weaviate.collection.classes import (
     Vectorizer,
 )
 from weaviate.weaviate_types import UUIDS
+from pydantic import Field
 
 REF_TO_UUID = uuid.uuid4()
 
@@ -35,14 +39,13 @@ def client():
     client = weaviate.Client(
         "http://localhost:8080", additional_config=Config(grpc_port_experimental=50051)
     )
-    client.schema.delete_all()
+    client.collection_model.delete(Group)
     collection = client.collection_model.create(
         CollectionModelConfig(model=Group, vectorizer=Vectorizer.NONE)
     )
     collection.data.insert(obj=Group(name="Name", uuid=REF_TO_UUID))
 
     yield client
-    client.schema.delete_all()
 
 
 def test_with_existing_collection(client: weaviate.Client):
@@ -252,3 +255,61 @@ def test_search_with_tenant(client: weaviate.Client):
 
     objects2 = tenant2.query.bm25_flat(query="some", return_metadata=MetadataQuery(uuid=True))
     assert len(objects2) == 0
+
+
+def make_list() -> List[int]:
+    return []
+
+
+@pytest.mark.parametrize(
+    "member_type, value_to_add,default,default_factory, exception",
+    [
+        (int, 10, 5, None, True),
+        (int, 10, PydanticUndefined, None, True),
+        (Optional[int], 10, PydanticUndefined, None, False),
+        (Optional[int], 10, None, None, False),
+        (Optional[int], 10, 10, None, False),
+        (List[int], [10], None, None, True),
+        (Optional[List[int]], [10], None, None, False),
+        (List[int], [10], None, make_list, True),
+    ],
+)
+def test_update_properties(
+    client: weaviate.Client,
+    member_type: type,
+    value_to_add,
+    default,
+    default_factory,
+    exception: bool,
+):
+    def create_original_collection():
+        # class definition will be gone when this is out of scope
+        class TestPropUpdate(BaseProperty):
+            name: str
+
+        client.collection_model.delete(TestPropUpdate)
+        collection_first = client.collection_model.create(
+            CollectionModelConfig(model=TestPropUpdate, vectorizer=Vectorizer.NONE)
+        )
+        collection_first.data.insert(TestPropUpdate(name="first"))
+
+    create_original_collection()
+
+    field = Field()
+    if default_factory is not None:
+        field = Field(default_factory=default_factory)
+    elif default is not None:
+        field = Field(default=default)
+
+    class TestPropUpdate(BaseProperty):
+        name: str
+        number: member_type = field
+
+    if exception:
+        with pytest.raises(WeaviateAddProperty):
+            client.collection_model.update_property(TestPropUpdate)
+    else:
+        collection = client.collection_model.update_property(TestPropUpdate)
+        collection.data.insert(TestPropUpdate(name="second", number=value_to_add))
+        objects = collection.data.get()
+        assert len(objects) == 2

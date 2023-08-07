@@ -1,6 +1,7 @@
-import uuid as uuid_package
 from dataclasses import dataclass
 from typing import Type, Optional, Any, List, Dict, Generic, Tuple, Union
+
+import uuid as uuid_package
 from pydantic import create_model
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -33,7 +34,7 @@ from weaviate.collection.grpc import (
 )
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.exceptions import UnexpectedStatusCodeException, WeaviateAddProperty
 from weaviate.util import _capitalize_first_letter
 from weaviate.weaviate_types import UUID, UUIDS, BEACON, PYTHON_TYPE_TO_DATATYPE
 
@@ -153,7 +154,7 @@ class _GRPCWrapper(Generic[Model]):
         super().__init__()
         self._model: Type[Model] = model
         self._connection = connection
-        self.__non_optional_props = model.get_non_optional_fields(model)
+        self.__non_optional_props = model.get_non_default_fields(model)
         self.__collection = collection
 
     def __create_query(self) -> _GRPC:
@@ -354,7 +355,7 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
     def __init__(self, connection: Connection, name: str, model: Type[Model]) -> None:
         super().__init__(connection, name)
         self.__model: Type[Model] = model
-        self._default_props = model.get_non_optional_fields(model)
+        self._default_props = model.get_non_default_fields(model)
         self.data = _Data[Model](self)
         self.query = _GRPCWrapper[Model](self, connection, model)
 
@@ -416,35 +417,46 @@ class CollectionModel(CollectionBase):
         return CollectionObjectModel[config.model](self._connection, name, config.model)
 
     def get(self, model: Type[Model]) -> CollectionObjectModel[Model]:
-        name = _capitalize_first_letter(model.__name__)
-        path = f"/schema/{name}"
+        schema_props = self.__get_existing_properties(model)
 
-        try:
-            response = self._connection.get(path=path)
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError("Schema could not be retrieved.") from conn_err
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Get schema", response)
-
-        response_json = response.json()
-        model_props = model.type_to_dict(model)
-        schema_props = [
-            {"name": prop["name"], "dataType": prop["dataType"]}
-            for prop in response_json["properties"]
-        ]
-
-        def compare(s: List[Any], t: List[Any]) -> bool:
-            t = list(t)  # make a mutable copy
-            try:
-                for elem in s:
-                    t.remove(elem)
-            except ValueError:
-                return False
-            return not t
-
-        if compare(model_props, schema_props):
+        only_in_schema, only_in_model = self.__compare_properties_with_model(
+            schema_props, model.type_to_dict(model)
+        )
+        if len(only_in_schema) > 0 or len(only_in_model) > 0:
             raise TypeError("Schemas not compatible")
+        return CollectionObjectModel[Model](
+            self._connection, _capitalize_first_letter(model.__name__), model
+        )
+
+    def update_property(self, model: Type[Model]) -> CollectionObjectModel[Model]:
+        schema_props = self.__get_existing_properties(model)
+        name = _capitalize_first_letter(model.__name__)
+        only_in_schema, only_in_model = self.__compare_properties_with_model(
+            schema_props, model.type_to_dict(model)
+        )
+        if len(only_in_schema) > 0:
+            raise TypeError("Schema has extra properties")
+
+        # we can only allow new optional types unless the default is None
+        for prop in only_in_model:
+            new_field = model.model_fields[prop["name"]]
+            non_optional_type = model.remove_optional_type(new_field.annotation)
+            if new_field.default is not None and non_optional_type == new_field.annotation:
+                raise WeaviateAddProperty(prop["name"])
+
+        for prop in only_in_model:
+            self.__add_property(name, prop)
+
         return CollectionObjectModel[Model](self._connection, name, model)
+
+    def __add_property(self, name: str, additional_property: Dict[str, Any]):
+        path = f"/schema/{name}/properties"
+        try:
+            response = self._connection.post(path=path, weaviate_object=additional_property)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Property was created properly.") from conn_err
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException("Add property to class", response)
 
     def get_dynamic(self, name: str) -> Tuple[CollectionObjectModel[Model], UserModelType]:
         path = f"/schema/{_capitalize_first_letter(name)}"
@@ -472,3 +484,30 @@ class CollectionModel(CollectionBase):
     def exists(self, model: Type[Model]) -> bool:
         name = _capitalize_first_letter(model.__name__)
         return self._exists(name)
+
+    def __get_existing_properties(self, model: Type[Model]):
+        path = f"/schema/{_capitalize_first_letter(model.__name__)}"
+
+        try:
+            response = self._connection.get(path=path)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Schema could not be retrieved.") from conn_err
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException("Get schema", response)
+
+        response_json = response.json()
+        return [
+            {"name": prop["name"], "dataType": prop["dataType"]}
+            for prop in response_json["properties"]
+        ]
+
+    @staticmethod
+    def __compare_properties_with_model(first: List[Any], second: List[Any]):
+        only_in_second = []
+        only_in_first = list(first)  # make a mutable copy
+        for elem in second:
+            try:
+                only_in_first.remove(elem)
+            except ValueError:
+                only_in_second.append(elem)
+        return only_in_first, only_in_second
