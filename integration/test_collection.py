@@ -4,15 +4,25 @@ import uuid
 import weaviate
 from weaviate import Config
 from weaviate.collection.classes import (
+    BM25ConfigUpdate,
     CollectionConfig,
+    CollectionConfigUpdate,
     Property,
     DataType,
-    Vectorizer,
+    InvertedIndexConfigUpdate,
+    PQConfigUpdate,
+    PQEncoderConfigUpdate,
+    PQEncoderType,
+    PQEncoderDistribution,
     ReferenceProperty,
     RefToObject,
+    StopwordsUpdate,
     MetadataGet,
     MultiTenancyConfig,
+    StopwordsPreset,
     Tenant,
+    VectorIndexConfigUpdate,
+    Vectorizer,
 )
 from weaviate.collection.grpc import HybridFusion, LinkTo, MetadataQuery
 
@@ -338,7 +348,7 @@ def test_tenants(client: weaviate.Client):
         CollectionConfig(
             name="Tenants",
             vectorizer=Vectorizer.NONE,
-            multiTenancyConfig=MultiTenancyConfig(
+            multi_tenancy_config=MultiTenancyConfig(
                 enabled=True,
             ),
         )
@@ -391,7 +401,7 @@ def test_search_with_tenant(client: weaviate.Client):
             name="TestTenantSearch",
             vectorizer=Vectorizer.NONE,
             properties=[Property(name="name", dataType=DataType.TEXT)],
-            multiTenancyConfig=MultiTenancyConfig(enabled=True),
+            multi_tenancy_config=MultiTenancyConfig(enabled=True),
         )
     )
 
@@ -426,11 +436,11 @@ def test_add_property(client: weaviate.Client):
     assert "number" in obj2.data
 
 
-def test_collection_schema(client: weaviate.Client):
-    client.collection.delete("TestCollectionSchema")
+def test_collection_schema_get(client: weaviate.Client):
+    client.collection.delete("TestCollectionSchemaGet")
     collection = client.collection.create(
         CollectionConfig(
-            name="TestCollectionSchema",
+            name="TestCollectionSchemaGet",
             vectorizer=Vectorizer.NONE,
             properties=[
                 Property(name="name", dataType=DataType.TEXT),
@@ -439,10 +449,85 @@ def test_collection_schema(client: weaviate.Client):
         )
     )
     schema = collection.schema.get()
-    assert schema.class_name == "TestCollectionSchema"
+    assert schema.class_name == "TestCollectionSchemaGet"
     assert len(schema.properties) == 2
     assert schema.properties[0].name == "name"
     assert schema.properties[0].data_type == DataType.TEXT
     assert schema.properties[1].name == "age"
     assert schema.properties[1].data_type == DataType.INT
     assert schema.vectorizer == Vectorizer.NONE
+
+
+def test_collection_schema_update(client: weaviate.Client):
+    client.collection.delete("TestCollectionSchemaUpdate")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestCollectionSchemaUpdate",
+            vectorizer=Vectorizer.NONE,
+            properties=[
+                Property(name="name", dataType=DataType.TEXT),
+                Property(name="age", dataType=DataType.INT),
+            ],
+        )
+    )
+
+    schema = collection.schema.get()
+
+    assert schema.description is None
+
+    assert schema.inverted_index_config.bm25.b == 0.75
+    assert schema.inverted_index_config.bm25.k1 == 1.2
+    assert schema.inverted_index_config.cleanup_interval_seconds == 60
+    assert schema.inverted_index_config.stopwords.additions is None
+    assert schema.inverted_index_config.stopwords.removals is None
+
+    assert schema.vector_index_config.skip is False
+    assert schema.vector_index_config.pq.bit_compression is False
+    assert schema.vector_index_config.pq.centroids == 256
+    assert schema.vector_index_config.pq.enabled is False
+    assert schema.vector_index_config.pq.encoder.type_ == PQEncoderType.KMEANS
+    assert schema.vector_index_config.pq.encoder.distribution == PQEncoderDistribution.LOG_NORMAL
+
+    collection.schema.update(
+        CollectionConfigUpdate(
+            description="Test",
+            inverted_index_config=InvertedIndexConfigUpdate(
+                cleanup_interval_seconds=10,
+                bm25=BM25ConfigUpdate(
+                    k1=1.25,
+                    b=0.8,
+                ),
+                stopwords=StopwordsUpdate(
+                    additions=["a"], preset=StopwordsPreset.EN, removals=["the"]
+                ),
+            ),
+            vector_index_config=VectorIndexConfigUpdate(
+                skip=True,
+                pq=PQConfigUpdate(
+                    bit_compression=True,
+                    centroids=128,
+                    enabled=True,
+                    encoder=PQEncoderConfigUpdate(
+                        type_=PQEncoderType.TILE, distribution=PQEncoderDistribution.NORMAL
+                    ),
+                ),
+            ),
+        )
+    )
+
+    schema = collection.schema.get()
+
+    assert schema.description == "Test"
+
+    assert schema.inverted_index_config.bm25.b == 0.8
+    assert schema.inverted_index_config.bm25.k1 == 1.25
+    assert schema.inverted_index_config.cleanup_interval_seconds == 10
+    assert schema.inverted_index_config.stopwords.additions is None
+    assert schema.inverted_index_config.stopwords.removals == ["the"]
+
+    assert schema.vector_index_config.skip is True
+    assert schema.vector_index_config.pq.bit_compression is True
+    assert schema.vector_index_config.pq.centroids == 128
+    assert schema.vector_index_config.pq.enabled is True
+    assert schema.vector_index_config.pq.encoder.type_ == PQEncoderType.TILE
+    assert schema.vector_index_config.pq.encoder.distribution == PQEncoderDistribution.NORMAL

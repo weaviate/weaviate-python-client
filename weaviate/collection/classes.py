@@ -88,6 +88,16 @@ class StopwordsPreset(str, Enum):
     EN = "en"
 
 
+class PQEncoderType(str, Enum):
+    KMEANS = "kmeans"
+    TILE = "tile"
+
+
+class PQEncoderDistribution(str, Enum):
+    LOG_NORMAL = "log-normal"
+    NORMAL = "normal"
+
+
 ModuleConfig = Dict[Vectorizer, Dict[str, Any]]
 
 
@@ -95,75 +105,134 @@ class ConfigModel(BaseModel):
     def to_dict(self):
         return self.model_dump(exclude_none=True)
 
-    @classmethod
-    def from_schema_json(cls, schema: Dict[str, Any]) -> "CollectionConfigBase":
-        kwargs_dict = {}
-        for key, val in schema.items():
+
+class ConfigUpdateModel(BaseModel):
+    def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+        for cls_field in self.model_fields:
+            val = getattr(self, cls_field)
+            if val is None:
+                continue
             if isinstance(val, Enum):
-                kwargs_dict[key] = str(val.value)
-            elif isinstance(val, (bool, float, str, int)):
-                kwargs_dict[key] = str(val)
+                schema[cls_field] = str(val.value)
+            elif isinstance(val, (int, float, bool, str, list)):
+                schema[cls_field] = val
             else:
-                assert isinstance(val, ConfigModel)
-                kwargs_dict[key] = val.from_schema_json(val)
-        return cls(**kwargs_dict)
+                assert isinstance(val, ConfigUpdateModel)
+                schema[cls_field] = val.merge_with_existing(schema[cls_field])
+        return schema
 
 
-@dataclass
-class VectorIndexConfig(ConfigModel):
+class PQEncoderConfigUpdate(ConfigUpdateModel):
+    type_: Optional[PQEncoderType] = None
+    distribution: Optional[PQEncoderDistribution] = None
+
+    def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+        """Must be done manually since Pydantic does not work well with type and type_.
+        Errors shadowing type occur if we want to use type as a field name.
+        """
+        if self.type_ is not None:
+            schema["type"] = str(self.type_.value)
+        if self.distribution is not None:
+            schema["distribution"] = str(self.distribution.value)
+        return schema
+
+
+class PQConfigUpdate(ConfigUpdateModel):
+    bitCompression: Optional[bool] = Field(None, alias="bit_compression")
+    centroids: Optional[int] = None
+    enabled: Optional[bool] = None
+    segments: Optional[int] = None
+    trainingLimit: Optional[int] = Field(None, alias="training_limit")
+    encoder: Optional[PQEncoderConfigUpdate] = None
+
+
+class VectorIndexConfigCreate(ConfigModel):
     distance: VectorDistance = VectorDistance.COSINE
-    efConstruction: int = 128
-    maxConnections: int = 64
+    efConstruction: int = Field(128, alias="ef_construction")
+    maxConnections: int = Field(64, alias="max_connections")
 
 
-@dataclass
-class ShardingConfig(ConfigModel):
-    virtualPerPhysical: Optional[int] = None
-    desiredCount: Optional[int] = None
-    actualCount: Optional[int] = None
-    desiredVirtualCount: Optional[int] = None
-    actualVirtualCount: Optional[int] = None
+class VectorIndexConfigUpdate(ConfigUpdateModel):
+    dynamicEfFactor: Optional[float] = Field(None, alias="dynamic_ef_factor")
+    dynamicEfMin: Optional[int] = Field(None, alias="dynamic_ef_min")
+    dynamicEfMax: Optional[int] = Field(None, alias="dynamic_ef_max")
+    ef: Optional[int] = None
+    flatSearchCutoff: Optional[int] = Field(None, alias="flat_search_cutoff")
+    skip: Optional[bool] = None
+    vectorCacheMaxObjects: Optional[int] = Field(None, alias="vector_cache_max_objects")
+    pq: Optional[PQConfigUpdate] = None
+
+
+class ShardingConfigCreate(ConfigModel):
+    virtualPerPhysical: Optional[int] = Field(None, alias="virtual_per_physical")
+    desiredCount: Optional[int] = Field(None, alias="desired_count")
+    actualCount: Optional[int] = Field(None, alias="actual_count")
+    desiredVirtualCount: Optional[int] = Field(None, alias="desired_virtual_count")
+    actualVirtualCount: Optional[int] = Field(None, alias="actual_virtual_count")
     key: Optional[str] = None
     strategy: Optional[str] = None
     function: Optional[str] = None
 
 
-class ReplicationConfig(ConfigModel):
+class ReplicationConfigCreate(ConfigModel):
     factor: Optional[int] = None
 
 
-class BM25config(ConfigModel):
+class ReplicationConfigUpdate(ConfigUpdateModel):
+    factor: Optional[int] = None
+
+
+class BM25ConfigCreate(ConfigModel):
     b: float = 0.75
     k1: float = 1.2
 
 
-class Stopwords(ConfigModel):
+class BM25ConfigUpdate(ConfigUpdateModel):
+    b: Optional[float] = None
+    k1: Optional[float] = None
+
+
+class StopwordsCreate(ConfigModel):
     preset: StopwordsPreset = StopwordsPreset.EN
     additions: Optional[List[str]] = None
     removals: Optional[List[str]] = None
 
 
-class InvertedIndexConfig(ConfigModel):
-    bm25: Optional[BM25config] = None
-    stopwords: Optional[Stopwords] = None
-    indexTimestamps: bool = False
-    indexPropertyLength: bool = False
-    indexNullState: bool = False
+class StopwordsUpdate(ConfigUpdateModel):
+    preset: Optional[StopwordsPreset] = None
+    additions: Optional[List[str]] = None
+    removals: Optional[List[str]] = None
+
+
+class InvertedIndexConfigCreate(ConfigModel):
+    bm25: Optional[BM25ConfigCreate] = None
+    stopwords: Optional[StopwordsCreate] = None
+    indexTimestamps: bool = Field(False, alias="index_timestamps")
+    indexPropertyLength: bool = Field(False, alias="index_property_length")
+    indexNullState: bool = Field(False, alias="index_null_state")
+
+
+class InvertedIndexConfigUpdate(ConfigUpdateModel):
+    bm25: Optional[BM25ConfigUpdate] = None
+    cleanupIntervalSeconds: Optional[int] = Field(None, alias="cleanup_interval_seconds")
+    stopwords: Optional[StopwordsUpdate] = None
 
 
 class MultiTenancyConfig(ConfigModel):
     enabled: bool = False
 
 
-class CollectionConfigBase(ConfigModel):
-    vectorIndexType: Optional[VectorIndexType] = None
-    vectorizer: Optional[Vectorizer] = None
-    vectorIndexConfig: Optional[VectorIndexConfig] = None
+class CollectionConfigCreateBase(ConfigModel):
     description: Optional[str] = None
-    shardingConfig: Optional[ShardingConfig] = None
-    replicationConfig: Optional[ReplicationConfig] = None
-    invertedIndexConfig: Optional[InvertedIndexConfig] = None
-    multiTenancyConfig: Optional[MultiTenancyConfig] = None
+    invertedIndexConfig: Optional[InvertedIndexConfigCreate] = Field(
+        None, alias="inverted_index_config"
+    )
+    multiTenancyConfig: Optional[MultiTenancyConfig] = Field(None, alias="multi_tenancy_config")
+    replicationConfig: Optional[ReplicationConfigCreate] = Field(None, alias="replication_config")
+    shardingConfig: Optional[ShardingConfigCreate] = Field(None, alias="sharding_config")
+    vectorIndexConfig: Optional[VectorIndexConfigCreate] = Field(None, alias="vector_index_config")
+    vectorIndexType: Optional[VectorIndexType] = Field(None, alias="vector_index_type")
+    vectorizer: Optional[Vectorizer] = None
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = {}
@@ -181,6 +250,15 @@ class CollectionConfigBase(ConfigModel):
                 ret_dict[cls_field] = val.to_dict()
 
         return ret_dict
+
+
+class CollectionConfigUpdate(ConfigUpdateModel):
+    description: Optional[str] = None
+    invertedIndexConfig: Optional[InvertedIndexConfigUpdate] = Field(
+        None, alias="inverted_index_config"
+    )
+    replicationConfig: Optional[ReplicationConfigUpdate] = Field(None, alias="replication_config")
+    vectorIndexConfig: Optional[VectorIndexConfigUpdate] = Field(None, alias="vector_index_config")
 
 
 @dataclass
@@ -210,7 +288,7 @@ class _MultiTenancyConfig:
 
 @dataclass
 class _Property:
-    data_type: DataType
+    data_type: str
     description: Optional[str]
     index_filterable: bool
     index_searchable: bool
@@ -236,19 +314,19 @@ class _ShardingConfig:
 
 
 @dataclass
-class _PQEncoder:
-    type_: str
-    distribution: str
+class _PQEncoderConfig:
+    type_: PQEncoderType
+    distribution: PQEncoderDistribution
 
 
 @dataclass
-class _PQ:
+class _PQConfig:
     enabled: bool
     bit_compression: bool
     segments: int
     centroids: int
     training_limit: int
-    encoder: _PQEncoder
+    encoder: _PQEncoderConfig
 
 
 @dataclass
@@ -262,7 +340,7 @@ class _VectorIndexConfig:
     ef_construction: int
     flat_search_cutoff: int
     max_connections: int
-    pq: _PQ
+    pq: _PQConfig
     skip: bool
     vector_cache_max_objects: int
 
@@ -300,7 +378,7 @@ def schema_config_from_json(schema: Dict[str, Any]) -> _SchemaConfig:
         multi_tenancy_config=_MultiTenancyConfig(enabled=schema["multiTenancyConfig"]["enabled"]),
         properties=[
             _Property(
-                data_type=DataType(prop["dataType"][0]),
+                data_type=prop["dataType"][0],
                 description=prop.get("description"),
                 index_filterable=prop["indexFilterable"],
                 index_searchable=prop["indexSearchable"],
@@ -310,7 +388,9 @@ def schema_config_from_json(schema: Dict[str, Any]) -> _SchemaConfig:
                 else None,
             )
             for prop in schema["properties"]
-        ],
+        ]
+        if schema.get("properties") is not None
+        else [],
         replication_factor=_ReplicationFactor(factor=schema["replicationConfig"]["factor"]),
         sharding_config=_ShardingConfig(
             virtual_per_physical=schema["shardingConfig"]["virtualPerPhysical"],
@@ -332,15 +412,17 @@ def schema_config_from_json(schema: Dict[str, Any]) -> _SchemaConfig:
             ef_construction=schema["vectorIndexConfig"]["efConstruction"],
             flat_search_cutoff=schema["vectorIndexConfig"]["flatSearchCutoff"],
             max_connections=schema["vectorIndexConfig"]["maxConnections"],
-            pq=_PQ(
+            pq=_PQConfig(
                 enabled=schema["vectorIndexConfig"]["pq"]["enabled"],
                 bit_compression=schema["vectorIndexConfig"]["pq"]["bitCompression"],
                 segments=schema["vectorIndexConfig"]["pq"]["segments"],
                 centroids=schema["vectorIndexConfig"]["pq"]["centroids"],
                 training_limit=schema["vectorIndexConfig"]["pq"]["trainingLimit"],
-                encoder=_PQEncoder(
-                    type_=schema["vectorIndexConfig"]["pq"]["encoder"]["type"],
-                    distribution=schema["vectorIndexConfig"]["pq"]["encoder"]["distribution"],
+                encoder=_PQEncoderConfig(
+                    type_=PQEncoderType(schema["vectorIndexConfig"]["pq"]["encoder"]["type"]),
+                    distribution=PQEncoderDistribution(
+                        schema["vectorIndexConfig"]["pq"]["encoder"]["distribution"]
+                    ),
                 ),
             ),
             skip=schema["vectorIndexConfig"]["skip"],
@@ -382,7 +464,7 @@ class ReferenceProperty(ConfigModel):
         return ret_dict
 
 
-class CollectionConfig(CollectionConfigBase):
+class CollectionConfig(CollectionConfigCreateBase):
     name: str
     properties: Optional[List[Union[Property, ReferenceProperty]]] = None
 
@@ -675,7 +757,7 @@ class RefToObjectModel(BaseModel, Generic[Model]):
 UserModelType = Type[BaseProperty]
 
 
-class CollectionModelConfig(CollectionConfigBase, Generic[Model]):
+class CollectionModelConfig(CollectionConfigCreateBase, Generic[Model]):
     model: Type[Model]
 
     def to_dict(self) -> Dict[str, Any]:
