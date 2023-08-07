@@ -13,6 +13,7 @@ from weaviate.collection.classes import (
     BatchReference,
     DataObject,
     Property,
+    _metadata_from_dict,
 )
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.collection.grpc import (
@@ -377,7 +378,7 @@ class CollectionObject(CollectionObjectBase):
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object:
         return _Object(
             data={prop: val for prop, val in obj["properties"].items()},
-            metadata=_MetadataReturn(obj),
+            metadata=_metadata_from_dict(obj),
         )
 
     def add_property(self, additional_property: Property):

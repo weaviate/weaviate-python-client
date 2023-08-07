@@ -531,3 +531,24 @@ def test_collection_schema_update(client: weaviate.Client):
     assert schema.vector_index_config.pq.enabled is True
     assert schema.vector_index_config.pq.encoder.type_ == PQEncoderType.TILE
     assert schema.vector_index_config.pq.encoder.distribution == PQEncoderDistribution.NORMAL
+
+
+def test_empty_search_returns_everything(client: weaviate.Client):
+    client.collection.delete("TestReturnEverything")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestReturnEverything",
+            vectorizer=Vectorizer.NONE,
+            properties=[Property(name="name", dataType=DataType.TEXT)],
+        )
+    )
+
+    collection.data.insert(data={"name": "word"})
+
+    objects = collection.query.bm25_flat(query="word")
+    assert "name" in objects[0].data
+    assert objects[0].data["name"] == "word"
+    assert objects[0].metadata.uuid is not None
+    assert objects[0].metadata.score is not None
+    assert objects[0].metadata.last_update_time_unix is not None
+    assert objects[0].metadata.creation_time_unix is not None

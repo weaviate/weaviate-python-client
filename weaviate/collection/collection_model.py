@@ -14,6 +14,7 @@ from weaviate.collection.classes import (
     _MetadataReturn,
     Model,
     UserModelType,
+    _metadata_from_dict,
 )
 from weaviate.collection.collection_base import (
     CollectionBase,
@@ -396,7 +397,7 @@ class CollectionObjectModel(CollectionObjectBase, Generic[Model]):
                 obj["properties"][prop] = None
 
         model_object = _Object[Model](
-            data=self.__model(**obj["properties"]), metadata=_MetadataReturn(obj)
+            data=self.__model(**obj["properties"]), metadata=_metadata_from_dict(obj)
         )
         model_object.data.uuid = model_object.metadata.uuid
         model_object.data.vector = model_object.metadata.vector
