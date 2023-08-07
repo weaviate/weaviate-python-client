@@ -1,5 +1,5 @@
 from copy import copy
-from typing import Dict, Any, Optional, List, Tuple, Union
+from typing import Dict, Any, Optional, List, Tuple, Union, TypeVar
 
 import uuid as uuid_package
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -111,6 +111,9 @@ class _Tenants:
         return [Tenant(**tenant) for tenant in tenant_resp]
 
 
+T = TypeVar("T", bound="CollectionObjectBase")
+
+
 class CollectionObjectBase:
     def __init__(self, connection: Connection, name: str) -> None:
         self.tenants = _Tenants(connection, name)
@@ -120,21 +123,19 @@ class CollectionObjectBase:
         self._consistency_level: Optional[str] = None
 
     @property
-    def tenant(self) -> str:
+    def tenant(self) -> Optional[str]:
         return self.__tenant
 
     @property
     def name(self) -> str:
         return self.__name
 
-    def _with_tenant(self, tenant: Optional[str] = None) -> "CollectionObjectBase":
+    def _with_tenant(self: T, tenant: Optional[str] = None) -> T:
         new = copy(self)
         new.__tenant = tenant
         return new
 
-    def _with_consistency_level(
-        self, consistency_level: Optional[ConsistencyLevel] = None
-    ) -> "CollectionObjectBase":
+    def _with_consistency_level(self: T, consistency_level: Optional[ConsistencyLevel] = None) -> T:
         new = copy(self)
         new._consistency_level = (
             ConsistencyLevel(consistency_level).value if consistency_level is not None else None
@@ -279,7 +280,7 @@ class CollectionObjectBase:
             if response.status_code != 200:
                 raise UnexpectedStatusCodeException("Add property reference to object", response)
 
-    def _reference_add_many(self, refs: List[Dict[str, str]]):
+    def _reference_add_many(self, refs: List[Dict[str, str]]) -> None:
         params: Dict[str, str] = {}
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level
@@ -292,7 +293,7 @@ class CollectionObjectBase:
             path="/batch/references", weaviate_object=refs, params=params
         )
         if response.status_code == 200:
-            return response
+            return None
         raise UnexpectedStatusCodeException("Send ref batch", response)
 
     def _reference_delete(self, from_uuid: UUID, from_property_name: str, to_uuids: UUIDS) -> None:
@@ -371,12 +372,12 @@ class CollectionBase:
             response = self._connection.get(path=path)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Existenz of class.") from conn_err
+
         if response.status_code == 200:
             return True
         elif response.status_code == 404:
             return False
-
-        UnexpectedStatusCodeException("collection exists", response)
+        raise UnexpectedStatusCodeException("collection exists", response)
 
     def _delete(self, name: str) -> None:
         path = f"/schema/{_capitalize_first_letter(name)}"
