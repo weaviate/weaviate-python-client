@@ -1,14 +1,15 @@
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Any, Union, Set
-from typing_extensions import TypeAlias
+from typing import Optional, List, Dict, Union, Set
 
 import grpc
+import uuid as uuid_lib
 from google.protobuf import struct_pb2
+from typing_extensions import TypeAlias
 
+from weaviate.collection.classes import _MetadataReturn
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGRPCException
 from weaviate.util import BaseEnum
-from weaviate.collection.classes import _MetadataReturn
 from weaviate.weaviate_types import UUID
 from weaviate_grpc import weaviate_pb2
 
@@ -104,8 +105,8 @@ class RefProps:
 
 @dataclass
 class SearchResult:
-    properties: weaviate_pb2.AdditionalProperties
-    additional_properties: weaviate_pb2.AdditionalProperties
+    properties: weaviate_pb2.ResultProperties
+    additional_properties: weaviate_pb2.ResultAdditionalProps
 
 
 @dataclass
@@ -304,14 +305,10 @@ class _GRPC:
                 metadata=metadata,
             )
 
-            ref_props_meta = self._ref_props_return_meta(self._default_props)
-
             objects: List[GrpcResult] = []
             for result in res.results:
-                obj = self._convert_references_to_grpc_result(result.properties, ref_props_meta)
-                metadata_return = self._extract_metadata(
-                    result.additional_properties, self._metadata
-                )
+                obj = self._convert_references_to_grpc_result(result.properties)
+                metadata_return = self.__extract_metadata_for_object(result.additional_properties)
                 objects.append(GrpcResult(result=obj, metadata=metadata_return))
 
             return objects
@@ -340,9 +337,7 @@ class _GRPC:
             score=metadata.score,
         )
 
-    def _convert_references_to_grpc_result(
-        self, properties: "weaviate_pb2.ResultProperties", props: Dict[str, RefProps]
-    ):
+    def _convert_references_to_grpc_result(self, properties: "weaviate_pb2.ResultProperties"):
         result: Dict[str, Union[_StructValue, List["GrpcResult"]]] = {}
         for name, non_ref_prop in properties.non_ref_properties.items():
             result[name] = non_ref_prop
@@ -350,10 +345,8 @@ class _GRPC:
         for ref_prop in properties.ref_props:
             result[ref_prop.prop_name] = [
                 GrpcResult(
-                    result=self._convert_references_to_grpc_result(
-                        prop, props[ref_prop.prop_name].refs
-                    ),
-                    metadata=self._extract_metadata(prop.metadata, props[ref_prop.prop_name].meta),
+                    result=self._convert_references_to_grpc_result(prop),
+                    metadata=self.__extract_metadata_for_object(prop.metadata),
                 )
                 for prop in ref_prop.properties
             ]
@@ -376,35 +369,21 @@ class _GRPC:
             ],
         )
 
-    def _extract_metadata(
-        self, props: "weaviate_pb2.ResultAdditionalProps", meta: MetadataQuery
+    @staticmethod
+    def __extract_metadata_for_object(
+        add_props: "weaviate_pb2.ResultAdditionalProps",
     ) -> _MetadataReturn:
-        if meta is None:
-            return _MetadataReturn()
-
-        additional_props: Dict[str, Any] = {}
-        if meta.uuid:
-            additional_props["id"] = props.id
-        if meta.vector:
-            additional_props["vector"] = (
-                [float(num) for num in props.vector] if len(props.vector) > 0 else None
-            )
-        if meta.distance:
-            additional_props["distance"] = props.distance if props.distance_present else None
-        if meta.certainty:
-            additional_props["certainty"] = props.certainty if props.certainty_present else None
-        if meta.creation_time_unix:
-            additional_props["creationTimeUnix"] = (
-                str(props.creation_time_unix) if props.creation_time_unix_present else None
-            )
-        if meta.last_update_time_unix:
-            additional_props["lastUpdateTimeUnix"] = (
-                str(props.last_update_time_unix) if props.last_update_time_unix_present else None
-            )
-        if meta.score:
-            additional_props["score"] = props.score if props.score_present else None
-        if meta.explain_score:
-            additional_props["explainScore"] = (
-                props.explain_score if props.explain_score_present else None
-            )
-        return _MetadataReturn(additional_props)
+        return _MetadataReturn(
+            uuid=uuid_lib.UUID(add_props.id) if len(add_props.id) > 0 else None,
+            vector=[float(num) for num in add_props.vector] if len(add_props.vector) > 0 else None,
+            distance=add_props.distance if add_props.distance_present else None,
+            certainty=add_props.certainty if add_props.certainty_present else None,
+            creation_time_unix=add_props.creation_time_unix
+            if add_props.creation_time_unix_present
+            else None,
+            last_update_time_unix=add_props.last_update_time_unix
+            if add_props.last_update_time_unix_present
+            else None,
+            score=add_props.score if add_props.score_present else None,
+            explain_score=add_props.explain_score if add_props.explain_score_present else None,
+        )
