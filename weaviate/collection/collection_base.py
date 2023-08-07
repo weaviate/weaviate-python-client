@@ -118,7 +118,11 @@ T = TypeVar("T", bound="CollectionObjectBase")
 
 
 class _Schema:
-    """ """
+    """
+    Represents all the CRUD methods available on a collection's schema specification within Weaviate. This class
+    should not be instantiated directly, but is available as a property of the `Collection` class under
+    the `collection.schema` class attribute.
+    """
 
     def __init__(self, connection: Connection, name: str) -> None:
         self._connection = connection
