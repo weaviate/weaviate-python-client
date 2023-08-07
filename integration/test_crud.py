@@ -1,12 +1,12 @@
 import json
 import os
 import time
-import uuid
 from datetime import datetime
 from datetime import timezone
 from typing import List, Optional, Dict, Union
 
 import pytest
+import uuid
 
 import weaviate
 from weaviate import Tenant
@@ -83,6 +83,7 @@ def people_schema() -> str:
 
 def test_load_scheme(people_schema):
     client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
     client.schema.create(people_schema)
 
     assert client.schema.contains()
@@ -111,6 +112,7 @@ def test_timeout_error(timeout, error):
 @pytest.mark.parametrize("timeout", [(5, 5), 5, 5.0, (5.0, 5.0), (5, 5.0)])
 def test_timeout(people_schema, timeout):
     client = weaviate.Client("http://localhost:8080", timeout_config=timeout)
+    client.schema.delete_all()
     client.schema.create(people_schema)
     expected_name = "Sophie Scholl"
     client.data_object.create(

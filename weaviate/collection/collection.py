@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Dict, Any, Optional, List, Union
 
 import uuid as uuid_package
+from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.classes import (
     CollectionConfig,
@@ -11,6 +12,7 @@ from weaviate.collection.classes import (
     RefToObject,
     BatchReference,
     DataObject,
+    Property,
 )
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.collection.grpc import (
@@ -28,6 +30,7 @@ from weaviate.collection.grpc import (
 )
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
+from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.weaviate_types import UUIDS, UUID, BEACON
 
 
@@ -376,6 +379,16 @@ class CollectionObject(CollectionObjectBase):
             data={prop: val for prop, val in obj["properties"].items()},
             metadata=_MetadataReturn(obj),
         )
+
+    def add_property(self, additional_property: Property):
+        path = f"/schema/{self.name}/properties"
+        obj = additional_property.to_dict()
+        try:
+            response = self._connection.post(path=path, weaviate_object=obj)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Property was not created properly.") from conn_err
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException("Add property to class", response)
 
 
 class Collection(CollectionBase):

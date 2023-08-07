@@ -362,8 +362,8 @@ class BaseProperty(BaseModel):
     #
     #
     # make references optional by default - does not work
-    def __init__(self, **data) -> None:
-        super().__init__(**data)
+
+    def model_post_init(self, __context: Any) -> None:
         self._reference_fields: Set[str] = self.get_ref_fields(type(self))
 
         self._reference_to_class: Dict[str, str] = {}
@@ -427,7 +427,7 @@ class BaseProperty(BaseModel):
         types = get_type_hints(model)
 
         non_optional_types = {
-            name: BaseProperty._remove_optional_type(tt)
+            name: BaseProperty.remove_optional_type(tt)
             for name, tt in types.items()
             if name not in BaseProperty.model_fields
         }
@@ -436,7 +436,7 @@ class BaseProperty(BaseModel):
         properties = []
         for name in non_ref_fields:
             prop = {
-                "name": _capitalize_first_letter(name),
+                "name": name,
                 "dataType": [PYTHON_TYPE_TO_DATATYPE[non_optional_types[name]]],
             }
             metadata_list = model.model_fields[name].metadata
@@ -450,7 +450,7 @@ class BaseProperty(BaseModel):
         reference_fields = model.get_ref_fields(model)
         properties.extend(
             {
-                "name": _capitalize_first_letter(name),
+                "name": name,
                 "dataType": [model.model_fields[name].metadata[0].name],
             }
             for name in reference_fields
@@ -459,7 +459,7 @@ class BaseProperty(BaseModel):
         return properties
 
     @staticmethod
-    def get_non_optional_fields(model: Type["BaseProperty"]) -> Set[str]:
+    def get_non_default_fields(model: Type["BaseProperty"]) -> Set[str]:
         return {
             field
             for field, val in model.model_fields.items()
@@ -467,7 +467,7 @@ class BaseProperty(BaseModel):
         }
 
     @staticmethod
-    def _remove_optional_type(python_type: type) -> type:
+    def remove_optional_type(python_type: type) -> type:
         is_list = get_origin(python_type) == list
         args = get_args(python_type)
         if len(args) == 0:

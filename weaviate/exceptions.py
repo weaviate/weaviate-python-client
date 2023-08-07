@@ -146,3 +146,13 @@ class WeaviateGRPCException(WeaviateBaseError):
         msg = f"""gRPC call failed with message {message}."""
         super().__init__(msg)
         self.message = message
+
+
+class WeaviateAddInvalidPropertyError(WeaviateBaseError):
+    """Is raised when adding an invalid new property."""
+
+    def __init__(self, message: str):
+        msg = f"""Could not add the property {message}. Only optional properties or properties with default
+        value are valid"""
+        super().__init__(msg)
+        self.message = message
