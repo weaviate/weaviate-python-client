@@ -101,7 +101,7 @@ class PQEncoderDistribution(str, Enum):
 ModuleConfig = Dict[Vectorizer, Dict[str, Any]]
 
 
-class ConfigModel(BaseModel):
+class ConfigCreateModel(BaseModel):
     def to_dict(self):
         return self.model_dump(exclude_none=True)
 
@@ -122,6 +122,21 @@ class ConfigUpdateModel(BaseModel):
         return schema
 
 
+class PQEncoderConfigCreate(ConfigCreateModel):
+    type_: PQEncoderType = PQEncoderType.KMEANS
+    distribution: PQEncoderDistribution = PQEncoderDistribution.LOG_NORMAL
+
+    def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+        """Must be done manually since Pydantic does not work well with type and type_.
+        Errors shadowing type occur if we want to use type as a field name.
+        """
+        if self.type_ is not None:
+            schema["type"] = str(self.type_.value)
+        if self.distribution is not None:
+            schema["distribution"] = str(self.distribution.value)
+        return schema
+
+
 class PQEncoderConfigUpdate(ConfigUpdateModel):
     type_: Optional[PQEncoderType] = None
     distribution: Optional[PQEncoderDistribution] = None
@@ -137,6 +152,15 @@ class PQEncoderConfigUpdate(ConfigUpdateModel):
         return schema
 
 
+class PQConfigCreate(ConfigCreateModel):
+    bitCompression: bool = Field(False, alias="bit_compression")
+    centroids: int = 256
+    enabled: bool = False
+    segments: int = 0
+    trainingLimit: int = Field(10000, alias="training_limit")
+    encoder: PQEncoderConfigUpdate = PQEncoderConfigCreate()
+
+
 class PQConfigUpdate(ConfigUpdateModel):
     bitCompression: Optional[bool] = Field(None, alias="bit_compression")
     centroids: Optional[int] = None
@@ -146,14 +170,24 @@ class PQConfigUpdate(ConfigUpdateModel):
     encoder: Optional[PQEncoderConfigUpdate] = None
 
 
-class VectorIndexConfigCreate(ConfigModel):
+class VectorIndexConfigCreate(ConfigCreateModel):
+    cleanupIntervalSeconds: int = Field(300, alias="cleanup_interval_seconds")
     distance: VectorDistance = VectorDistance.COSINE
+    dynamicEfMin: int = Field(100, alias="dynamic_ef_min")
+    dynamicEfMax: int = Field(500, alias="dynamic_ef_max")
+    dynamicEfFactor: int = Field(8, alias="dynamic_ef_factor")
+    efConstruction: int = 128
+    ef: int = -1
     efConstruction: int = Field(128, alias="ef_construction")
+    flatSearchCutoff: int = Field(40000, alias="flat_search_cutoff")
     maxConnections: int = Field(64, alias="max_connections")
+    pq: PQConfigCreate = PQConfigCreate()
+    skip: bool = False
+    vectorCacheMaxObjects: int = Field(1000000000000, alias="vector_cache_max_objects")
 
 
 class VectorIndexConfigUpdate(ConfigUpdateModel):
-    dynamicEfFactor: Optional[float] = Field(None, alias="dynamic_ef_factor")
+    dynamicEfFactor: Optional[int] = Field(None, alias="dynamic_ef_factor")
     dynamicEfMin: Optional[int] = Field(None, alias="dynamic_ef_min")
     dynamicEfMax: Optional[int] = Field(None, alias="dynamic_ef_max")
     ef: Optional[int] = None
@@ -163,26 +197,26 @@ class VectorIndexConfigUpdate(ConfigUpdateModel):
     pq: Optional[PQConfigUpdate] = None
 
 
-class ShardingConfigCreate(ConfigModel):
-    virtualPerPhysical: Optional[int] = Field(None, alias="virtual_per_physical")
-    desiredCount: Optional[int] = Field(None, alias="desired_count")
-    actualCount: Optional[int] = Field(None, alias="actual_count")
-    desiredVirtualCount: Optional[int] = Field(None, alias="desired_virtual_count")
-    actualVirtualCount: Optional[int] = Field(None, alias="actual_virtual_count")
-    key: Optional[str] = None
-    strategy: Optional[str] = None
-    function: Optional[str] = None
+class ShardingConfigCreate(ConfigCreateModel):
+    virtualPerPhysical: int = Field(128, alias="virtual_per_physical")
+    desiredCount: int = Field(1, alias="desired_count")
+    actualCount: int = Field(1, alias="actual_count")
+    desiredVirtualCount: int = Field(128, alias="desired_virtual_count")
+    actualVirtualCount: int = Field(128, alias="actual_virtual_count")
+    key: str = "_id"
+    strategy: str = "hash"
+    function: str = "murmur3"
 
 
-class ReplicationConfigCreate(ConfigModel):
-    factor: Optional[int] = None
+class ReplicationConfigCreate(ConfigCreateModel):
+    factor: int = 1
 
 
 class ReplicationConfigUpdate(ConfigUpdateModel):
     factor: Optional[int] = None
 
 
-class BM25ConfigCreate(ConfigModel):
+class BM25ConfigCreate(ConfigCreateModel):
     b: float = 0.75
     k1: float = 1.2
 
@@ -192,7 +226,7 @@ class BM25ConfigUpdate(ConfigUpdateModel):
     k1: Optional[float] = None
 
 
-class StopwordsCreate(ConfigModel):
+class StopwordsCreate(ConfigCreateModel):
     preset: StopwordsPreset = StopwordsPreset.EN
     additions: Optional[List[str]] = None
     removals: Optional[List[str]] = None
@@ -204,9 +238,9 @@ class StopwordsUpdate(ConfigUpdateModel):
     removals: Optional[List[str]] = None
 
 
-class InvertedIndexConfigCreate(ConfigModel):
-    bm25: Optional[BM25ConfigCreate] = None
-    stopwords: Optional[StopwordsCreate] = None
+class InvertedIndexConfigCreate(ConfigCreateModel):
+    bm25: BM25ConfigCreate = BM25ConfigCreate()
+    stopwords: StopwordsCreate = StopwordsCreate()
     indexTimestamps: bool = Field(False, alias="index_timestamps")
     indexPropertyLength: bool = Field(False, alias="index_property_length")
     indexNullState: bool = Field(False, alias="index_null_state")
@@ -218,11 +252,11 @@ class InvertedIndexConfigUpdate(ConfigUpdateModel):
     stopwords: Optional[StopwordsUpdate] = None
 
 
-class MultiTenancyConfig(ConfigModel):
+class MultiTenancyConfig(ConfigCreateModel):
     enabled: bool = False
 
 
-class CollectionConfigCreateBase(ConfigModel):
+class CollectionConfigCreateBase(ConfigCreateModel):
     description: Optional[str] = None
     invertedIndexConfig: Optional[InvertedIndexConfigCreate] = Field(
         None, alias="inverted_index_config"
@@ -231,8 +265,8 @@ class CollectionConfigCreateBase(ConfigModel):
     replicationConfig: Optional[ReplicationConfigCreate] = Field(None, alias="replication_config")
     shardingConfig: Optional[ShardingConfigCreate] = Field(None, alias="sharding_config")
     vectorIndexConfig: Optional[VectorIndexConfigCreate] = Field(None, alias="vector_index_config")
-    vectorIndexType: Optional[VectorIndexType] = Field(None, alias="vector_index_type")
-    vectorizer: Optional[Vectorizer] = None
+    vectorIndexType: VectorIndexType = Field(VectorIndexType.HNSW, alias="vector_index_type")
+    vectorizer: Vectorizer = Vectorizer.NONE
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = {}
@@ -246,7 +280,7 @@ class CollectionConfigCreateBase(ConfigModel):
             elif isinstance(val, (bool, float, str, int)):
                 ret_dict[cls_field] = str(val)
             else:
-                assert isinstance(val, ConfigModel)
+                assert isinstance(val, ConfigCreateModel)
                 ret_dict[cls_field] = val.to_dict()
 
         return ret_dict
@@ -433,17 +467,17 @@ def schema_config_from_json(schema: Dict[str, Any]) -> _SchemaConfig:
     )
 
 
-class PropertyConfig(ConfigModel):
-    indexFilterable: Optional[bool] = None
-    indexSearchable: Optional[bool] = None
+class PropertyConfig(ConfigCreateModel):
+    indexFilterable: Optional[bool] = Field(None, alias="index_filterable")
+    indexSearchable: Optional[bool] = Field(None, alias="index_searchable")
     tokenization: Optional[Tokenization] = None
     description: Optional[str] = None
-    moduleConfig: Optional[ModuleConfig] = None
+    moduleConfig: Optional[ModuleConfig] = Field(None, alias="module_config")
 
 
-class Property(PropertyConfig, ConfigModel):
+class Property(PropertyConfig, ConfigCreateModel):
     name: str
-    dataType: DataType
+    dataType: DataType = Field(..., alias="data_type")
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
@@ -451,7 +485,7 @@ class Property(PropertyConfig, ConfigModel):
         return ret_dict
 
 
-class ReferenceProperty(ConfigModel):
+class ReferenceProperty(ConfigCreateModel):
     name: str
     reference_class_name: str
 
@@ -465,6 +499,31 @@ class ReferenceProperty(ConfigModel):
 
 
 class CollectionConfig(CollectionConfigCreateBase):
+    """Use this class when specifying all the configuration options relevant to your collection when using
+    the non-ORM collections API. This class is a superset of the `CollectionConfigCreateBase` class, and
+    includes all the options available to the `CollectionConfigCreateBase` class.
+
+    When using this non-ORM API, you must specify the name and properties of the collection explicitly here.
+
+    Example:
+        ```python
+        from weaviate.weaviate_classes as wvc
+
+        config = wvc.CollectionConfig(
+            name = "MyCollection",
+            properties = [
+                wvc.Property(
+                    name="myProperty",
+                    data_type=wvc.DataType.STRING,
+                    index_searchable=True,
+                    index_filterable=True,
+                    description="A string property"
+                )
+            ]
+        )
+        ```
+    """
+
     name: str
     properties: Optional[List[Union[Property, ReferenceProperty]]] = None
 
