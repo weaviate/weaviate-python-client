@@ -240,15 +240,19 @@ class StopwordsUpdate(ConfigUpdateModel):
 
 class InvertedIndexConfigCreate(ConfigCreateModel):
     bm25: BM25ConfigCreate = BM25ConfigCreate()
-    stopwords: StopwordsCreate = StopwordsCreate()
+    cleanupIntervalSeconds: int = Field(60, alias="cleanup_interval_seconds")
     indexTimestamps: bool = Field(False, alias="index_timestamps")
     indexPropertyLength: bool = Field(False, alias="index_property_length")
     indexNullState: bool = Field(False, alias="index_null_state")
+    stopwords: StopwordsCreate = StopwordsCreate()
 
 
 class InvertedIndexConfigUpdate(ConfigUpdateModel):
     bm25: Optional[BM25ConfigUpdate] = None
     cleanupIntervalSeconds: Optional[int] = Field(None, alias="cleanup_interval_seconds")
+    indexTimestamps: Optional[bool] = Field(None, alias="index_timestamps")
+    indexPropertyLength: Optional[bool] = Field(None, alias="index_property_length")
+    indexNullState: Optional[bool] = Field(None, alias="index_null_state")
     stopwords: Optional[StopwordsUpdate] = None
 
 
