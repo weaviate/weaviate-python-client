@@ -267,7 +267,7 @@ class _MetadataReturn:
     is_consistent: Optional[bool] = None
 
 
-def _MetadataFromDict(metadata: Dict[str, Any]) -> _MetadataReturn:
+def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
     return _MetadataReturn(
         uuid=uuid_package.UUID(metadata["id"]) if "id" in metadata else None,
         vector=metadata.get("vector"),
