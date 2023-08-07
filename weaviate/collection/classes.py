@@ -95,6 +95,19 @@ class ConfigModel(BaseModel):
     def to_dict(self):
         return self.model_dump(exclude_none=True)
 
+    @classmethod
+    def from_schema_json(cls, schema: Dict[str, Any]) -> "CollectionConfigBase":
+        kwargs_dict = {}
+        for key, val in schema.items():
+            if isinstance(val, Enum):
+                kwargs_dict[key] = str(val.value)
+            elif isinstance(val, (bool, float, str, int)):
+                kwargs_dict[key] = str(val)
+            else:
+                assert isinstance(val, ConfigModel)
+                kwargs_dict[key] = val.from_schema_json(val)
+        return cls(**kwargs_dict)
+
 
 @dataclass
 class VectorIndexConfig(ConfigModel):
@@ -168,6 +181,174 @@ class CollectionConfigBase(ConfigModel):
                 ret_dict[cls_field] = val.to_dict()
 
         return ret_dict
+
+
+@dataclass
+class _BM25Config:
+    b: float
+    k1: float
+
+
+@dataclass
+class _StopwordsConfig:
+    preset: StopwordsPreset
+    additions: Optional[List[str]]
+    removals: Optional[List[str]]
+
+
+@dataclass
+class _InvertedIndexConfig:
+    bm25: _BM25Config
+    cleanup_interval_seconds: int
+    stopwords: _StopwordsConfig
+
+
+@dataclass
+class _MultiTenancyConfig:
+    enabled: bool
+
+
+@dataclass
+class _Property:
+    data_type: DataType
+    description: Optional[str]
+    index_filterable: bool
+    index_searchable: bool
+    name: str
+    tokenization: Optional[Tokenization]
+
+
+@dataclass
+class _ReplicationFactor:
+    factor: int
+
+
+@dataclass
+class _ShardingConfig:
+    virtual_per_physical: int
+    desired_count: int
+    actual_count: int
+    desired_virtual_count: int
+    actual_virtual_count: int
+    key: str
+    strategy: str
+    function: str
+
+
+@dataclass
+class _PQEncoder:
+    type_: str
+    distribution: str
+
+
+@dataclass
+class _PQ:
+    enabled: bool
+    bit_compression: bool
+    segments: int
+    centroids: int
+    training_limit: int
+    encoder: _PQEncoder
+
+
+@dataclass
+class _VectorIndexConfig:
+    cleanup_interval_seconds: int
+    distance: VectorDistance
+    dynamic_ef_min: int
+    dynamic_ef_max: int
+    dynamic_ef_factor: int
+    ef: int
+    ef_construction: int
+    flat_search_cutoff: int
+    max_connections: int
+    pq: _PQ
+    skip: bool
+    vector_cache_max_objects: int
+
+
+@dataclass
+class _SchemaConfig:
+    className: str
+    description: Optional[str]
+    inverted_index_config: _InvertedIndexConfig
+    multi_tenancy_config: _MultiTenancyConfig
+    properties: List[_Property]
+    replication_factor: _ReplicationFactor
+    sharding_config: _ShardingConfig
+    vector_index_config: _VectorIndexConfig
+    vector_index_type: VectorIndexType
+    vectorizer: Vectorizer
+
+
+def schema_config_from_json(schema: Dict[str, Any]) -> _SchemaConfig:
+    return _SchemaConfig(
+        className=schema["class"],
+        description=schema.get("description"),
+        inverted_index_config=_InvertedIndexConfig(
+            bm25=_BM25Config(
+                b=schema["invertedIndexConfig"]["bm25"]["b"],
+                k1=schema["invertedIndexConfig"]["bm25"]["k1"],
+            ),
+            cleanup_interval_seconds=schema["invertedIndexConfig"]["cleanupIntervalSeconds"],
+            stopwords=_StopwordsConfig(
+                preset=StopwordsPreset(schema["invertedIndexConfig"]["stopwords"]["preset"]),
+                additions=schema["invertedIndexConfig"]["stopwords"]["additions"],
+                removals=schema["invertedIndexConfig"]["stopwords"]["removals"],
+            ),
+        ),
+        multi_tenancy_config=_MultiTenancyConfig(enabled=schema["multiTenancyConfig"]["enabled"]),
+        properties=[
+            _Property(
+                data_type=DataType(prop["dataType"][0]),
+                description=prop.get("description"),
+                index_filterable=prop["indexFilterable"],
+                index_searchable=prop["indexSearchable"],
+                name=prop["name"],
+                tokenization=Tokenization(prop["tokenization"])
+                if prop.get("tokenization") is not None
+                else None,
+            )
+            for prop in schema["properties"]
+        ],
+        replication_factor=_ReplicationFactor(factor=schema["replicationConfig"]["factor"]),
+        sharding_config=_ShardingConfig(
+            virtual_per_physical=schema["shardingConfig"]["virtualPerPhysical"],
+            desired_count=schema["shardingConfig"]["desiredCount"],
+            actual_count=schema["shardingConfig"]["actualCount"],
+            desired_virtual_count=schema["shardingConfig"]["desiredVirtualCount"],
+            actual_virtual_count=schema["shardingConfig"]["actualVirtualCount"],
+            key=schema["shardingConfig"]["key"],
+            strategy=schema["shardingConfig"]["strategy"],
+            function=schema["shardingConfig"]["function"],
+        ),
+        vector_index_config=_VectorIndexConfig(
+            cleanup_interval_seconds=schema["vectorIndexConfig"]["cleanupIntervalSeconds"],
+            distance=VectorDistance(schema["vectorIndexConfig"]["distance"]),
+            dynamic_ef_min=schema["vectorIndexConfig"]["dynamicEfMin"],
+            dynamic_ef_max=schema["vectorIndexConfig"]["dynamicEfMax"],
+            dynamic_ef_factor=schema["vectorIndexConfig"]["dynamicEfFactor"],
+            ef=schema["vectorIndexConfig"]["ef"],
+            ef_construction=schema["vectorIndexConfig"]["efConstruction"],
+            flat_search_cutoff=schema["vectorIndexConfig"]["flatSearchCutoff"],
+            max_connections=schema["vectorIndexConfig"]["maxConnections"],
+            pq=_PQ(
+                enabled=schema["vectorIndexConfig"]["pq"]["enabled"],
+                bit_compression=schema["vectorIndexConfig"]["pq"]["bitCompression"],
+                segments=schema["vectorIndexConfig"]["pq"]["segments"],
+                centroids=schema["vectorIndexConfig"]["pq"]["centroids"],
+                training_limit=schema["vectorIndexConfig"]["pq"]["trainingLimit"],
+                encoder=_PQEncoder(
+                    type_=schema["vectorIndexConfig"]["pq"]["encoder"]["type"],
+                    distribution=schema["vectorIndexConfig"]["pq"]["encoder"]["distribution"],
+                ),
+            ),
+            skip=schema["vectorIndexConfig"]["skip"],
+            vector_cache_max_objects=schema["vectorIndexConfig"]["vectorCacheMaxObjects"],
+        ),
+        vector_index_type=VectorIndexType(schema["vectorIndexType"]),
+        vectorizer=Vectorizer(schema["vectorizer"]),
+    )
 
 
 class PropertyConfig(ConfigModel):

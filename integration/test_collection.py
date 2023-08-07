@@ -424,3 +424,25 @@ def test_add_property(client: weaviate.Client):
     assert "name" in obj1.data
     assert "name" in obj2.data
     assert "number" in obj2.data
+
+
+def test_collection_schema(client: weaviate.Client):
+    client.collection.delete("TestCollectionSchema")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestCollectionSchema",
+            vectorizer=Vectorizer.NONE,
+            properties=[
+                Property(name="name", dataType=DataType.TEXT),
+                Property(name="age", dataType=DataType.INT),
+            ],
+        )
+    )
+    schema = collection.schema.get()
+    assert schema.className == "TestCollectionSchema"
+    assert len(schema.properties) == 2
+    assert schema.properties[0].name == "name"
+    assert schema.properties[0].data_type == DataType.TEXT
+    assert schema.properties[1].name == "age"
+    assert schema.properties[1].data_type == DataType.INT
+    assert schema.vectorizer == Vectorizer.NONE

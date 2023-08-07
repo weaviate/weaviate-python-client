@@ -9,6 +9,8 @@ from weaviate.collection.classes import (
     Error,
     Errors,
     MetadataGet,
+    schema_config_from_json,
+    _SchemaConfig,
     Tenant,
     UUID,
 )
@@ -114,8 +116,45 @@ class _Tenants:
 T = TypeVar("T", bound="CollectionObjectBase")
 
 
+class _Schema:
+    """ """
+
+    def __init__(self, connection: Connection, name: str) -> None:
+        self._connection = connection
+        self.name = name
+
+    def get(self) -> _SchemaConfig:
+        """
+        Get the schema for this collection from Weaviate.
+
+        Raises:
+        - `requests.ConnectionError`
+            - If the network connection to Weaviate fails.
+        - `weaviate.UnexpectedStatusCodeException`
+            - If Weaviate reports a non-OK status.
+        """
+
+        path = "/schema"
+        if self.name is not None:
+            if not isinstance(self.name, str):
+                raise TypeError(
+                    "'class_name' argument must be of type `str`! " f"Given type: {type(self.name)}"
+                )
+            path = f"/schema/{_capitalize_first_letter(self.name)}"
+
+        try:
+            response = self._connection.get(path=path)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Schema could not be retrieved.") from conn_err
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException("Get schema", response)
+        schema = response.json()
+        return schema_config_from_json(schema)
+
+
 class CollectionObjectBase:
     def __init__(self, connection: Connection, name: str) -> None:
+        self.schema = _Schema(connection, name)
         self.tenants = _Tenants(connection, name)
         self._connection = connection
         self.__name = name
