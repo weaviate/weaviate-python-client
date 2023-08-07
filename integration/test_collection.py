@@ -439,7 +439,7 @@ def test_collection_schema(client: weaviate.Client):
         )
     )
     schema = collection.schema.get()
-    assert schema.className == "TestCollectionSchema"
+    assert schema.class_name == "TestCollectionSchema"
     assert len(schema.properties) == 2
     assert schema.properties[0].name == "name"
     assert schema.properties[0].data_type == DataType.TEXT

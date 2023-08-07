@@ -269,7 +269,7 @@ class _VectorIndexConfig:
 
 @dataclass
 class _SchemaConfig:
-    className: str
+    class_name: str
     description: Optional[str]
     inverted_index_config: _InvertedIndexConfig
     multi_tenancy_config: _MultiTenancyConfig
@@ -283,7 +283,7 @@ class _SchemaConfig:
 
 def schema_config_from_json(schema: Dict[str, Any]) -> _SchemaConfig:
     return _SchemaConfig(
-        className=schema["class"],
+        class_name=schema["class"],
         description=schema.get("description"),
         inverted_index_config=_InvertedIndexConfig(
             bm25=_BM25Config(
