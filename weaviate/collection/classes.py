@@ -547,6 +547,26 @@ class CollectionConfig(CollectionConfigCreateBase):
         return ret_dict
 
 
+class IncludesModel(BaseModel):
+    def to_include(self) -> str:
+        include: List[str] = []
+        for field, value in self:
+            if value:
+                include.append(field)
+        return ",".join(include)
+
+
+class GetObjectByIdIncludes(IncludesModel):
+    classification: bool = False
+    vector: bool = False
+
+
+class GetObjectsIncludes(IncludesModel):
+    classification: bool = False
+    featureProjection: bool = Field(False, alias="feature_projection")
+    vector: bool = False
+
+
 class MetadataGet(BaseModel):
     vector: bool = False
     distance: bool = False
