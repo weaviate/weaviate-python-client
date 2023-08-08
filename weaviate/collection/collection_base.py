@@ -203,6 +203,8 @@ class CollectionObjectBase:
         path = f"/objects/{self.name}/{uuid}"
         params, weaviate_obj = self.__apply_context_to_params_and_object({}, weaviate_obj)
 
+        weaviate_obj["id"] = str(uuid)  # must add ID to payload for PUT request
+
         try:
             response = self._connection.put(path=path, weaviate_object=weaviate_obj, params=params)
         except RequestsConnectionError as conn_err:
