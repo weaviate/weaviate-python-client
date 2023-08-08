@@ -155,7 +155,7 @@ def test_tenants(client: weaviate.Client):
     collection = client.collection_model.create(
         CollectionModelConfig(
             vectorizer=Vectorizer.NONE,
-            multiTenancyConfig=MultiTenancyConfig(enabled=True),
+            multi_tenancy_config=MultiTenancyConfig(enabled=True),
             model=TenantsTest,
         )
     )
@@ -241,7 +241,7 @@ def test_search_with_tenant(client: weaviate.Client):
         CollectionModelConfig(
             model=TestTenantSearch,
             vectorizer=Vectorizer.NONE,
-            multiTenancyConfig=MultiTenancyConfig(enabled=True),
+            multi_tenancy_config=MultiTenancyConfig(enabled=True),
         )
     )
 
