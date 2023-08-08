@@ -448,14 +448,14 @@ def test_collection_schema_get(client: weaviate.Client):
             ],
         )
     )
-    schema = collection.schema.get()
-    assert schema.class_name == "TestCollectionSchemaGet"
-    assert len(schema.properties) == 2
-    assert schema.properties[0].name == "name"
-    assert schema.properties[0].data_type == DataType.TEXT
-    assert schema.properties[1].name == "age"
-    assert schema.properties[1].data_type == DataType.INT
-    assert schema.vectorizer == Vectorizer.NONE
+    config = collection.config.get()
+    assert config.class_name == "TestCollectionSchemaGet"
+    assert len(config.properties) == 2
+    assert config.properties[0].name == "name"
+    assert config.properties[0].data_type == DataType.TEXT
+    assert config.properties[1].name == "age"
+    assert config.properties[1].data_type == DataType.INT
+    assert config.vectorizer == Vectorizer.NONE
 
 
 def test_collection_schema_update(client: weaviate.Client):
@@ -471,24 +471,24 @@ def test_collection_schema_update(client: weaviate.Client):
         )
     )
 
-    schema = collection.schema.get()
+    config = collection.config.get()
 
-    assert schema.description is None
+    assert config.description is None
 
-    assert schema.inverted_index_config.bm25.b == 0.75
-    assert schema.inverted_index_config.bm25.k1 == 1.2
-    assert schema.inverted_index_config.cleanup_interval_seconds == 60
-    assert schema.inverted_index_config.stopwords.additions is None
-    assert schema.inverted_index_config.stopwords.removals is None
+    assert config.inverted_index_config.bm25.b == 0.75
+    assert config.inverted_index_config.bm25.k1 == 1.2
+    assert config.inverted_index_config.cleanup_interval_seconds == 60
+    assert config.inverted_index_config.stopwords.additions is None
+    assert config.inverted_index_config.stopwords.removals is None
 
-    assert schema.vector_index_config.skip is False
-    assert schema.vector_index_config.pq.bit_compression is False
-    assert schema.vector_index_config.pq.centroids == 256
-    assert schema.vector_index_config.pq.enabled is False
-    assert schema.vector_index_config.pq.encoder.type_ == PQEncoderType.KMEANS
-    assert schema.vector_index_config.pq.encoder.distribution == PQEncoderDistribution.LOG_NORMAL
+    assert config.vector_index_config.skip is False
+    assert config.vector_index_config.pq.bit_compression is False
+    assert config.vector_index_config.pq.centroids == 256
+    assert config.vector_index_config.pq.enabled is False
+    assert config.vector_index_config.pq.encoder.type_ == PQEncoderType.KMEANS
+    assert config.vector_index_config.pq.encoder.distribution == PQEncoderDistribution.LOG_NORMAL
 
-    collection.schema.update(
+    collection.config.update(
         CollectionConfigUpdate(
             description="Test",
             inverted_index_config=InvertedIndexConfigUpdate(
@@ -515,22 +515,22 @@ def test_collection_schema_update(client: weaviate.Client):
         )
     )
 
-    schema = collection.schema.get()
+    config = collection.config.get()
 
-    assert schema.description == "Test"
+    assert config.description == "Test"
 
-    assert schema.inverted_index_config.bm25.b == 0.8
-    assert schema.inverted_index_config.bm25.k1 == 1.25
-    assert schema.inverted_index_config.cleanup_interval_seconds == 10
-    assert schema.inverted_index_config.stopwords.additions is None
-    assert schema.inverted_index_config.stopwords.removals == ["the"]
+    assert config.inverted_index_config.bm25.b == 0.8
+    assert config.inverted_index_config.bm25.k1 == 1.25
+    assert config.inverted_index_config.cleanup_interval_seconds == 10
+    assert config.inverted_index_config.stopwords.additions is None
+    assert config.inverted_index_config.stopwords.removals == ["the"]
 
-    assert schema.vector_index_config.skip is True
-    assert schema.vector_index_config.pq.bit_compression is True
-    assert schema.vector_index_config.pq.centroids == 128
-    assert schema.vector_index_config.pq.enabled is True
-    assert schema.vector_index_config.pq.encoder.type_ == PQEncoderType.TILE
-    assert schema.vector_index_config.pq.encoder.distribution == PQEncoderDistribution.NORMAL
+    assert config.vector_index_config.skip is True
+    assert config.vector_index_config.pq.bit_compression is True
+    assert config.vector_index_config.pq.centroids == 128
+    assert config.vector_index_config.pq.enabled is True
+    assert config.vector_index_config.pq.encoder.type_ == PQEncoderType.TILE
+    assert config.vector_index_config.pq.encoder.distribution == PQEncoderDistribution.NORMAL
 
 
 def test_empty_search_returns_everything(client: weaviate.Client):

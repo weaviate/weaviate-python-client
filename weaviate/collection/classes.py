@@ -384,7 +384,7 @@ class _VectorIndexConfig:
 
 
 @dataclass
-class _SchemaConfig:
+class _CollectionConfig:
     class_name: str
     description: Optional[str]
     inverted_index_config: _InvertedIndexConfig
@@ -397,8 +397,8 @@ class _SchemaConfig:
     vectorizer: Vectorizer
 
 
-def schema_config_from_json(schema: Dict[str, Any]) -> _SchemaConfig:
-    return _SchemaConfig(
+def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
+    return _CollectionConfig(
         class_name=schema["class"],
         description=schema.get("description"),
         inverted_index_config=_InvertedIndexConfig(
@@ -469,6 +469,10 @@ def schema_config_from_json(schema: Dict[str, Any]) -> _SchemaConfig:
         vector_index_type=VectorIndexType(schema["vectorIndexType"]),
         vectorizer=Vectorizer(schema["vectorizer"]),
     )
+
+
+def _collection_configs_from_json(schema: Dict[str, Any]) -> Dict[str, _CollectionConfig]:
+    return {schema["class"]: _collection_config_from_json(schema) for schema in schema["classes"]}
 
 
 class PropertyConfig(ConfigCreateModel):
