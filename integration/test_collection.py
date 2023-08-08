@@ -1,3 +1,6 @@
+import datetime
+from typing import List, Union
+
 import pytest as pytest
 import uuid
 
@@ -24,6 +27,11 @@ from weaviate.collection.classes import (
     Tenant,
     VectorIndexConfigUpdate,
     Vectorizer,
+    FilterValue,
+    FilterOperator,
+    InvertedIndexConfigCreate,
+    FilterAnd,
+    FilterOr,
 )
 from weaviate.collection.grpc import HybridFusion, LinkTo, MetadataQuery
 
@@ -790,3 +798,208 @@ def test_empty_search_returns_everything(client: weaviate.Client):
     assert objects[0].metadata.creation_time_unix is not None
 
     client.collection.delete("TestReturnEverything")
+
+
+@pytest.mark.parametrize(
+    "weaviate_filter,value,results",
+    [
+        (FilterOperator.EQUAL, "Banana", [0]),
+        (FilterOperator.NOT_EQUAL, "Banana", [1, 2]),
+        (FilterOperator.LIKE, "*nana", [0]),
+    ],
+)
+def test_filters_text(
+    client: weaviate.Client, weaviate_filter: FilterOperator, value: str, results: List[int]
+):
+    client.collection.delete("TestFilterText")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestFilterText",
+            vectorizer=Vectorizer.NONE,
+            properties=[Property(name="name", data_type=DataType.TEXT)],
+        )
+    )
+
+    uuids = [
+        collection.data.insert({"name": "Banana"}),
+        collection.data.insert({"name": "Apple"}),
+        collection.data.insert({"name": "Mountain"}),
+    ]
+
+    objects = collection.query.get_flat(
+        filters=FilterValue(path="name", value=value, operator=weaviate_filter)
+    )
+    assert len(objects) == len(results)
+
+    uuids = [uuids[result] for result in results]
+    for obj in objects:
+        uuids.remove(obj.metadata.uuid)
+    assert len(uuids) == 0
+
+
+@pytest.mark.parametrize(
+    "weaviate_filter,value,results",
+    [
+        (FilterOperator.LESS_THAN, 2, [0]),
+        (FilterOperator.LESS_THAN_EQUAL, 2, [0, 1]),
+        (FilterOperator.GREATER_THAN, 2, [2]),
+        (FilterOperator.GREATER_THAN_EQUAL, 2, [1, 2]),
+        (FilterOperator.IS_NULL, True, [3]),
+        (FilterOperator.IS_NULL, False, [0, 1, 2]),
+    ],
+)
+def test_filters_comparison(
+    client: weaviate.Client,
+    weaviate_filter: FilterOperator,
+    value: Union[int, bool],
+    results: List[int],
+):
+    client.collection.delete("TestFilterNumber")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestFilterNumber",
+            vectorizer=Vectorizer.NONE,
+            properties=[Property(name="number", data_type=DataType.INT)],
+            inverted_index_config=InvertedIndexConfigCreate(index_null_state=True),
+        )
+    )
+
+    uuids = [
+        collection.data.insert({"number": 1}),
+        collection.data.insert({"number": 2}),
+        collection.data.insert({"number": 3}),
+        collection.data.insert({"number": None}),
+    ]
+
+    objects = collection.query.get_flat(
+        filters=FilterValue(path="number", value=value, operator=weaviate_filter)
+    )
+    assert len(objects) == len(results)
+
+    uuids = [uuids[result] for result in results]
+    for obj in objects:
+        uuids.remove(obj.metadata.uuid)
+    assert len(uuids) == 0
+
+
+@pytest.mark.parametrize(
+    "weaviate_filter,results",
+    [
+        (
+            FilterAnd(
+                FilterValue(path="num", value=1, operator=FilterOperator.GREATER_THAN),
+                FilterValue(path="num", value=3, operator=FilterOperator.LESS_THAN),
+            ),
+            [1],
+        ),
+        (
+            FilterOr(
+                FilterValue(path="num", value=1, operator=FilterOperator.LESS_THAN_EQUAL),
+                FilterValue(path="num", value=3, operator=FilterOperator.GREATER_THAN_EQUAL),
+            ),
+            [0, 2],
+        ),
+        (
+            FilterOr(
+                FilterAnd(
+                    FilterValue(path="num", value=1, operator=FilterOperator.LESS_THAN_EQUAL),
+                    FilterValue(path="num", value=1, operator=FilterOperator.GREATER_THAN_EQUAL),
+                ),
+                FilterValue(path="num", value=3, operator=FilterOperator.GREATER_THAN_EQUAL),
+                FilterValue(path="num", value=True, operator=FilterOperator.IS_NULL),
+            ),
+            [0, 2, 3],
+        ),
+    ],
+)
+def test_filters_nested(
+    client: weaviate.Client,
+    weaviate_filter: FilterOperator,
+    results: List[int],
+):
+    client.collection.delete("TestFilterNested")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestFilterNested",
+            vectorizer=Vectorizer.NONE,
+            properties=[Property(name="num", data_type=DataType.NUMBER)],
+            inverted_index_config=InvertedIndexConfigCreate(index_null_state=True),
+        )
+    )
+
+    uuids = [
+        collection.data.insert({"num": 1.0}),
+        collection.data.insert({"num": 2.0}),
+        collection.data.insert({"num": 3.0}),
+        collection.data.insert({"num": None}),
+    ]
+
+    objects = collection.query.get_flat(filters=weaviate_filter)
+    assert len(objects) == len(results)
+
+    uuids = [uuids[result] for result in results]
+    for obj in objects:
+        uuids.remove(obj.metadata.uuid)
+    assert len(uuids) == 0
+
+
+def test_filters_date(client: weaviate.Client):
+    client.collection.delete("TestFilterNested")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestFilterDate",
+            vectorizer=Vectorizer.NONE,
+            properties=[Property(name="date", data_type=DataType.DATE)],
+        )
+    )
+
+    now = datetime.datetime.now()
+    collection.data.insert({"date": now}),
+    collection.data.insert({"date": now + datetime.timedelta(hours=1)}),
+
+    objects = collection.query.get_flat(
+        filters=FilterValue(
+            path="date",
+            value=now + datetime.timedelta(minutes=1),
+            operator=FilterOperator.GREATER_THAN,
+        )
+    )
+    assert len(objects) == 1
+    assert objects[0].data["date"] == (now + datetime.timedelta(hours=1)).isoformat("T") + "Z"
+
+
+def test_ref_filters(client: weaviate.Client):
+    client.collection.delete("TestFilterRef")
+    client.collection.delete("TestFilterRef2")
+    to_collection = client.collection.create(
+        CollectionConfig(
+            name="TestFilterRef2",
+            vectorizer=Vectorizer.NONE,
+            properties=[Property(name="int", data_type=DataType.INT)],
+        )
+    )
+    uuid_to = to_collection.data.insert(data={"int": 0})
+    uuid_to2 = to_collection.data.insert(data={"int": 5})
+    from_collection = client.collection.create(
+        CollectionConfig(
+            name="TestFilterRef",
+            properties=[
+                ReferenceProperty(name="ref", reference_class_name="TestFilterRef2"),
+                Property(name="name", data_type=DataType.TEXT),
+            ],
+            vectorizer=Vectorizer.NONE,
+        )
+    )
+
+    from_collection.data.insert({"ref": RefToObject(uuid_to), "name": "first"})
+    from_collection.data.insert({"ref": RefToObject(uuid_to2), "name": "second"})
+
+    objects = from_collection.query.get_flat(
+        filters=FilterValue(
+            path=["ref", "int"],
+            value=3,
+            operator=FilterOperator.GREATER_THAN,
+        )
+    )
+    assert len(objects) == 1
+    assert objects[0].data["name"] == "second"

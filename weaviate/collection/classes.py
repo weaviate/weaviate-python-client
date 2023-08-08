@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 from dataclasses import dataclass
 from enum import Enum
@@ -14,6 +15,7 @@ from typing import (
     get_args,
     get_origin,
     get_type_hints,
+    ClassVar,
 )
 
 import uuid as uuid_package
@@ -22,6 +24,7 @@ from pydantic_core._pydantic_core import PydanticUndefined
 
 from weaviate.util import _to_beacons, _capitalize_first_letter
 from weaviate.weaviate_types import UUID, PYTHON_TYPE_TO_DATATYPE
+from weaviate_grpc import weaviate_pb2
 
 
 @dataclass
@@ -824,3 +827,42 @@ class CollectionModelConfig(CollectionConfigCreateBase, Generic[Model]):
 
 class Tenant(BaseModel):
     name: str
+
+
+class Filters:
+    pass
+
+
+class FilterAnd(Filters):
+    Operator: ClassVar[weaviate_pb2.Filters.OperatorType] = weaviate_pb2.Filters.OperatorAnd
+
+    def __init__(self, *args: Filters):
+        self.filters: List[Filters] = list(args)
+
+
+class FilterOr(Filters):
+    Operator: ClassVar[weaviate_pb2.Filters.OperatorType] = weaviate_pb2.Filters.OperatorOr
+
+    def __init__(self, *args: Filters):
+        self.filters: List[Filters] = list(args)
+
+
+class FilterOperator(Enum):
+    EQUAL = weaviate_pb2.Filters.OperatorEqual
+    NOT_EQUAL = weaviate_pb2.Filters.OperatorNotEqual
+    GREATER_THAN = weaviate_pb2.Filters.OperatorGreaterThan
+    GREATER_THAN_EQUAL = weaviate_pb2.Filters.OperatorGreaterThanEqual
+    LESS_THAN = weaviate_pb2.Filters.OperatorLessThan
+    LESS_THAN_EQUAL = weaviate_pb2.Filters.OperatorLessThanEqual
+    LIKE = weaviate_pb2.Filters.OperatorLike
+    IS_NULL = weaviate_pb2.Filters.OperatorIsNull
+
+
+FilterValues = Union[int, float, str, bool, datetime.date]
+
+
+@dataclass
+class FilterValue(Filters):
+    path: Union[str, List[str]]
+    value: FilterValues
+    operator: FilterOperator

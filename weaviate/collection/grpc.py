@@ -1,3 +1,4 @@
+import datetime
 from dataclasses import dataclass
 from typing import Optional, List, Dict, Union, Set
 
@@ -6,7 +7,7 @@ import uuid as uuid_lib
 from google.protobuf import struct_pb2
 from typing_extensions import TypeAlias
 
-from weaviate.collection.classes import _MetadataReturn
+from weaviate.collection.classes import _MetadataReturn, FilterValue, FilterOr, FilterAnd, Filters
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGRPCException
 from weaviate.util import BaseEnum
@@ -151,17 +152,21 @@ class _GRPC:
         self._near_certainty: Optional[float] = None
         self._near_distance: Optional[float] = None
 
+        self._filters: Optional[Filters] = None
+
     def get(
         self,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
+        filters: Optional[Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ):
         self._limit = limit
         self._offset = offset
         self._after = after
+        self._filters = filters
         self._metadata = return_metadata
         if return_properties is not None:
             self._default_props = self._default_props.union(return_properties)
@@ -301,6 +306,7 @@ class _GRPC:
                     if self._hybrid_query is not None
                     else None,
                     tenant=self._tenant,
+                    filters=self.__extract_filters(self._filters),
                 ),
                 metadata=metadata,
             )
@@ -315,6 +321,35 @@ class _GRPC:
 
         except grpc.RpcError as e:
             raise WeaviateGRPCException(e.details())
+
+    def __extract_filters(self, weav_filter: Filters) -> Optional[weaviate_pb2.Filters]:
+        if weav_filter is None:
+            return None
+        from google.protobuf.timestamp_pb2 import Timestamp
+
+        if isinstance(weav_filter, FilterValue):
+            timestamp = Timestamp()
+
+            if isinstance(weav_filter.value, datetime.date):
+                timestamp.FromDatetime(weav_filter.value)
+            return weaviate_pb2.Filters(
+                operator=weav_filter.operator.value,
+                value_str=weav_filter.value if isinstance(weav_filter.value, str) else None,
+                value_int=weav_filter.value if isinstance(weav_filter.value, int) else None,
+                value_bool=weav_filter.value if isinstance(weav_filter.value, bool) else None,
+                value_date=timestamp if isinstance(weav_filter.value, datetime.date) else None,
+                value_float=weav_filter.value if isinstance(weav_filter.value, float) else None,
+                on=weav_filter.path if isinstance(weav_filter.path, list) else [weav_filter.path],
+            )
+
+        else:
+            assert isinstance(weav_filter, FilterAnd) or isinstance(weav_filter, FilterOr)
+            return weaviate_pb2.Filters(
+                operator=weav_filter.Operator,
+                filters=[
+                    self.__extract_filters(single_filter) for single_filter in weav_filter.filters
+                ],
+            )
 
     def _ref_props_return_meta(self, props: PROPERTIES) -> Dict[str, RefProps]:
         ref_props = {}

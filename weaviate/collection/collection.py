@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Dict, Any, Optional, List, Union
 
 import uuid as uuid_package
@@ -15,6 +16,7 @@ from weaviate.collection.classes import (
     DataObject,
     Property,
     _metadata_from_dict,
+    Filters,
 )
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.collection.grpc import (
@@ -55,13 +57,14 @@ class _Grpc:
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
+        filters: Optional[Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object]:
         return [
             self.__result_to_object(obj)
             for obj in self.__create_query().get(
-                limit, offset, after, return_metadata, return_properties
+                limit, offset, after, filters, return_metadata, return_properties
             )
         ]
 
@@ -261,12 +264,18 @@ class _Data:
         uuid: Optional[UUID] = None,
         vector: Optional[List[float]] = None,
     ) -> uuid_package.UUID:
+        props = {}
+        for key, val in data.items():
+            if isinstance(val, RefToObject):
+                props[key] = val.to_beacon()
+            elif isinstance(val, datetime):
+                props[key] = val.isoformat("T") + "Z"
+            else:
+                props[key] = val
+
         weaviate_obj: Dict[str, Any] = {
             "class": self.__collection.name,
-            "properties": {
-                key: val if not isinstance(val, RefToObject) else val.to_beacon()
-                for key, val in data.items()
-            },
+            "properties": props,
             "id": str(uuid if uuid is not None else uuid_package.uuid4()),
         }
 
