@@ -41,6 +41,55 @@ def test_create_and_delete(client: weaviate.Client):
     assert not client.collection.exists(name)
 
 
+def test_replace(client: weaviate.Client):
+    name = "TestReplace"
+    client.collection.delete(name)
+    collection_config = CollectionConfig(
+        name=name,
+        properties=[Property(name="Name", dataType=DataType.TEXT)],
+        vectorizer=Vectorizer.NONE,
+    )
+    collection = client.collection.create(collection_config)
+    uuid = collection.data.insert(data={"name": "some name"})
+    collection.data.replace(data={"name": "other name"}, uuid=uuid)
+    assert collection.data.get_by_id(uuid).data["name"] == "other name"
+
+
+def test_replace_with_tenant(client: weaviate.Client):
+    name = "TestReplaceWithTenant"
+    client.collection.delete(name)
+    collection_config = CollectionConfig(
+        name=name,
+        properties=[Property(name="Name", dataType=DataType.TEXT)],
+        vectorizer=Vectorizer.NONE,
+        multiTenancyConfig=MultiTenancyConfig(enabled=True),
+    )
+    collection = client.collection.create(collection_config)
+
+    collection.tenants.add([Tenant(name="tenant1"), Tenant(name="tenant2")])
+    tenant1 = collection.with_tenant("tenant1")
+    tenant2 = collection.with_tenant("tenant2")
+
+    uuid = tenant1.data.insert(data={"name": "some name"})
+    tenant1.data.replace(data={"name": "other name"}, uuid=uuid)
+    assert tenant1.data.get_by_id(uuid).data["name"] == "other name"
+    assert tenant2.data.get_by_id(uuid) is None
+
+
+def test_update(client: weaviate.Client):
+    name = "TestUpdate"
+    client.collection.delete(name)
+    collection_config = CollectionConfig(
+        name=name,
+        properties=[Property(name="Name", dataType=DataType.TEXT)],
+        vectorizer=Vectorizer.NONE,
+    )
+    collection = client.collection.create(collection_config)
+    uuid = collection.data.insert(data={"name": "some name"})
+    collection.data.update(data={"name": "other name"}, uuid=uuid)
+    assert collection.data.get_by_id(uuid).data["name"] == "other name"
+
+
 @pytest.mark.parametrize(
     "dataType,value",
     [
@@ -238,10 +287,10 @@ def test_near_vector(client: weaviate.Client):
 
 
 def test_near_object(client: weaviate.Client):
-    client.collection.delete("TestNearVector")
+    client.collection.delete("TestNearObject")
     collection = client.collection.create(
         CollectionConfig(
-            name="TestNearVector",
+            name="TestNearObject",
             properties=[Property(name="Name", dataType=DataType.TEXT)],
             vectorizer=Vectorizer.TEXT2VEC_CONTEXTIONARY,
         )
@@ -405,6 +454,65 @@ def test_search_with_tenant(client: weaviate.Client):
 
     objects2 = tenant2.query.bm25_flat(query="some", return_metadata=MetadataQuery(uuid=True))
     assert len(objects2) == 0
+
+
+def test_get_by_id_with_tenant(client: weaviate.Client):
+    client.collection.delete("TestTenantGet")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestTenantGet",
+            vectorizer=Vectorizer.NONE,
+            properties=[Property(name="name", dataType=DataType.TEXT)],
+            multiTenancyConfig=MultiTenancyConfig(enabled=True),
+        )
+    )
+
+    collection.tenants.add([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
+    tenant1 = collection.with_tenant("Tenant1")
+    tenant2 = collection.with_tenant("Tenant2")
+
+    uuid1 = tenant1.data.insert({"name": "some name"})
+    obj1 = tenant1.data.get_by_id(uuid1)
+    assert obj1.data["name"] == "some name"
+
+    obj2 = tenant2.data.get_by_id(uuid1)
+    assert obj2 is None
+
+    uuid2 = tenant2.data.insert({"name": "some other name"})
+    obj3 = tenant2.data.get_by_id(uuid2)
+    assert obj3.data["name"] == "some other name"
+
+    obj4 = tenant1.data.get_by_id(uuid2)
+    assert obj4 is None
+
+
+def test_get_with_tenant(client: weaviate.Client):
+    client.collection.delete("TestTenantGet")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestTenantGet",
+            vectorizer=Vectorizer.NONE,
+            properties=[Property(name="name", dataType=DataType.TEXT)],
+            multiTenancyConfig=MultiTenancyConfig(enabled=True),
+        )
+    )
+
+    collection.tenants.add([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
+    tenant1 = collection.with_tenant("Tenant1")
+    tenant2 = collection.with_tenant("Tenant2")
+
+    tenant1.data.insert({"name": "some name"})
+    objs = tenant1.data.get()
+    assert len(objs) == 1
+    assert objs[0].data["name"] == "some name"
+
+    objs = tenant2.data.get()
+    assert len(objs) == 0
+
+    tenant2.data.insert({"name": "some other name"})
+    objs = tenant2.data.get()
+    assert len(objs) == 1
+    assert objs[0].data["name"] == "some other name"
 
 
 def test_add_property(client: weaviate.Client):
