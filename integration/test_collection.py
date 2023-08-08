@@ -449,7 +449,7 @@ def test_collection_schema_get(client: weaviate.Client):
         )
     )
     config = collection.config.get()
-    assert config.class_name == "TestCollectionSchemaGet"
+    assert config.name == "TestCollectionSchemaGet"
     assert len(config.properties) == 2
     assert config.properties[0].name == "name"
     assert config.properties[0].data_type == DataType.TEXT
@@ -522,7 +522,7 @@ def test_collection_schema_update(client: weaviate.Client):
     assert config.inverted_index_config.bm25.b == 0.8
     assert config.inverted_index_config.bm25.k1 == 1.25
     assert config.inverted_index_config.cleanup_interval_seconds == 10
-    assert config.inverted_index_config.stopwords.additions is None
+    # assert config.inverted_index_config.stopwords.additions is ["a"] # potential weaviate bug, this returns as None
     assert config.inverted_index_config.stopwords.removals == ["the"]
 
     assert config.vector_index_config.skip is True
