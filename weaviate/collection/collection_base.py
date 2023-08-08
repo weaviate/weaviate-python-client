@@ -5,10 +5,14 @@ import uuid as uuid_package
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.classes import (
-    CollectionConfigBase,
+    CollectionConfigUpdate,
+    CollectionConfigCreateBase,
     Error,
     Errors,
     MetadataGet,
+    _collection_config_from_json,
+    _collection_configs_from_json,
+    _CollectionConfig,
     Tenant,
     UUID,
 )
@@ -114,8 +118,74 @@ class _Tenants:
 T = TypeVar("T", bound="CollectionObjectBase")
 
 
+class _Config:
+    """
+    Represents all the CRUD methods available on a collection's configuration specification within Weaviate. This class
+    should not be instantiated directly, but is available as a property of the `Collection` class under
+    the `collection.schema` class attribute.
+    """
+
+    def __init__(self, connection: Connection, name: str) -> None:
+        self._connection = connection
+        self.name = name
+
+    def _get(self) -> Dict[str, Any]:
+        try:
+            response = self._connection.get(path=f"/schema/{self.name}")
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                "Collection configuration could not be retrieved."
+            ) from conn_err
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException("Get collection configuration", response)
+        return response.json()
+
+    def get(self) -> _CollectionConfig:
+        """Get the configuration for this collection from Weaviate.
+
+        Raises:
+        - `requests.ConnectionError`
+            - If the network connection to Weaviate fails.
+        - `weaviate.UnexpectedStatusCodeException`
+            - If Weaviate reports a non-OK status.
+        """
+        schema = self._get()
+        return _collection_config_from_json(schema)
+
+    def update(self, config: CollectionConfigUpdate) -> None:
+        """Update the configuration for this collection in Weaviate.
+
+        Parameters:
+        - config : The available options for updating a schema configuration. If a property is not specified, it will
+            not be updated.
+
+        Raises:
+        - `requests.ConnectionError`:
+            - If the network connection to Weaviate fails.
+        - `weaviate.UnexpectedStatusCodeException`:
+            - If Weaviate reports a non-OK status.
+
+        NOTE:
+        - If you wish to update a specific option within the schema and cannot find it in `CollectionConfigUpdate` then
+        it is an immutable option.
+        - To change it, you will have to delete the collection and recreate it with the
+        desired options.
+        """
+        schema = self._get()
+        schema = config.merge_with_existing(schema)
+        try:
+            response = self._connection.put(path=f"/schema/{self.name}", weaviate_object=schema)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                "Collection configuration could not be updated."
+            ) from conn_err
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException("Update collection configuration", response)
+
+
 class CollectionObjectBase:
     def __init__(self, connection: Connection, name: str) -> None:
+        self.config = _Config(connection, name)
         self.tenants = _Tenants(connection, name)
         self._connection = connection
         self.__name = name
@@ -351,7 +421,7 @@ class CollectionBase:
 
     def _create(
         self,
-        config: CollectionConfigBase,
+        config: CollectionConfigCreateBase,
     ) -> str:
         weaviate_object = config.to_dict()
 
@@ -389,3 +459,13 @@ class CollectionBase:
             return
 
         UnexpectedStatusCodeException("Delete collection", response)
+
+    def get_all_collection_configs(self) -> Dict[str, _CollectionConfig]:
+        try:
+            response = self._connection.get(path="/schema")
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Get schema.") from conn_err
+        if response.status_code == 200:
+            res = response.json()
+            return _collection_configs_from_json(res)
+        raise UnexpectedStatusCodeException("Get schema", response)
