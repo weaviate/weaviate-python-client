@@ -4,6 +4,7 @@ from typing import Optional, List, Dict, Union, Set
 import grpc
 import uuid as uuid_lib
 from google.protobuf import struct_pb2
+from pydantic import BaseModel
 from typing_extensions import TypeAlias
 
 from weaviate.collection.classes import _MetadataReturn
@@ -69,11 +70,11 @@ class MetadataQuery:
     explain_score: bool = False
 
 
-@dataclass
-class LinkTo:
+class LinkTo(BaseModel):
     link_on: str
     properties: "PROPERTIES"
     metadata: MetadataQuery
+    which_collection: Optional[str] = None
 
     def __hash__(self):  # for set
         return hash(str(self))

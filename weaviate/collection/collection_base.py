@@ -10,6 +10,7 @@ from weaviate.collection.classes import (
     Error,
     Errors,
     MetadataGet,
+    Property,
     _collection_config_from_json,
     _collection_configs_from_json,
     _CollectionConfig,
@@ -120,16 +121,28 @@ T = TypeVar("T", bound="CollectionObjectBase")
 
 class _Config:
     """
-    Represents all the CRUD methods available on a collection's configuration specification within Weaviate. This class
-    should not be instantiated directly, but is available as a property of the `Collection` class under
+    Represents all the CRUD methods available on a collection's configuration specification within Weaviate.
+
+    This clasa should not be instantiated directly, but is available as a property of the `Collection` class under
     the `collection.schema` class attribute.
     """
 
+    __cached: Optional[Dict[str, Any]]
+
     def __init__(self, connection: Connection, name: str) -> None:
+        self.__cached = None
         self._connection = connection
         self.name = name
 
-    def _get(self) -> Dict[str, Any]:
+    @property
+    def value(self) -> _CollectionConfig:
+        if self.__cached is None:
+            raise ValueError(
+                "Cannot access config.value as no collection configuration has been fetched yet. Make sure to only use the _Config class as a property of the Collection class."
+            )
+        return _collection_config_from_json(self.__cached)
+
+    def _fetch(self) -> None:
         try:
             response = self._connection.get(path=f"/schema/{self.name}")
         except RequestsConnectionError as conn_err:
@@ -138,7 +151,14 @@ class _Config:
             ) from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Get collection configuration", response)
-        return response.json()
+        schema: Dict[str, Any] = response.json()
+        self.__cached = schema
+
+    def _get(self) -> Dict[str, Any]:
+        if self.__cached is not None:
+            return self.__cached
+        self._fetch()
+        return self.__cached
 
     def get(self) -> _CollectionConfig:
         """Get the configuration for this collection from Weaviate.
@@ -167,9 +187,9 @@ class _Config:
 
         NOTE:
         - If you wish to update a specific option within the schema and cannot find it in `CollectionConfigUpdate` then
-        it is an immutable option.
-        - To change it, you will have to delete the collection and recreate it with the
+        it is an immutable option. To change it, you will have to delete the collection and recreate it with the
         desired options.
+        - This is not the case of adding properties, which can be done with `collection.config.add_property()`.
         """
         schema = self._get()
         schema = config.merge_with_existing(schema)
@@ -181,6 +201,29 @@ class _Config:
             ) from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Update collection configuration", response)
+
+    def add_property(self, additional_property: Property) -> None:
+        """Add a new property to the collection in Weaviate.
+
+        Parameters:
+        - `additional_property`: The property to add to the collection.
+
+        Raises:
+        - `requests.ConnectionError`:
+            - If the network connection to Weaviate fails.
+        - `weaviate.UnexpectedStatusCodeException`:
+            - If Weaviate reports a non-OK status.
+        """
+        path = f"/schema/{self.name}/properties"
+        obj = additional_property.to_dict()
+        try:
+            response = self._connection.post(path=path, weaviate_object=obj)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Property was not created properly.") from conn_err
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException("Add property to collection", response)
+
+        self._fetch()  # Update the cached schema, TODO: optimise this to only update the relevant part of the schema
 
 
 class CollectionObjectBase:

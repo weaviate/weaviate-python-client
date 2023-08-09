@@ -20,7 +20,7 @@ from weaviate.collection.classes import (
     CollectionModelConfig,
     MultiTenancyConfig,
     PropertyConfig,
-    ReferenceTo,
+    CrossReference,
     Tenant,
     Vectorizer,
 )
@@ -94,8 +94,8 @@ def test_types(client: weaviate.Client, member_type, value, optional: bool):
     "member_type, annotation ,value,expected",
     [
         (str, PropertyConfig(indexFilterable=False), "value", "text"),
-        (UUIDS, ReferenceTo(Group), [str(REF_TO_UUID)], "Group"),
-        (Optional[UUIDS], ReferenceTo(Group), [str(REF_TO_UUID)], "Group"),
+        (UUIDS, CrossReference(Group), [str(REF_TO_UUID)], "Group"),
+        (Optional[UUIDS], CrossReference(Group), [str(REF_TO_UUID)], "Group"),
     ],
 )
 def test_types_annotates(client: weaviate.Client, member_type, annotation, value, expected: str):
@@ -203,7 +203,7 @@ def test_multi_searches(client: weaviate.Client):
 def test_multi_searches_with_references(client: weaviate.Client):
     class TestMultiSearchesWithReferences(BaseProperty):
         name: Optional[str] = None
-        group: Annotated[Optional[UUIDS], ReferenceTo(Group)] = None
+        group: Annotated[Optional[UUIDS], CrossReference(Group)] = None
 
     client.collection_model.delete(TestMultiSearchesWithReferences)
     collection = client.collection_model.create(

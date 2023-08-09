@@ -2,17 +2,17 @@ from dataclasses import dataclass
 from typing import Dict, Any, Optional, List, Union
 
 import uuid as uuid_package
-from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.classes import (
     CollectionConfig,
     Errors,
+    DataType,
     _MetadataReturn,
     MetadataGet,
-    RefToObject,
+    ReferenceTo,
     BatchReference,
     DataObject,
-    Property,
+    _ReferenceDataType,
     _metadata_from_dict,
 )
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
@@ -31,7 +31,6 @@ from weaviate.collection.grpc import (
 )
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.weaviate_types import UUIDS, UUID, BEACON
 
 
@@ -254,6 +253,25 @@ class _Data:
     def __init__(self, collection: "CollectionObject") -> None:
         self.__collection = collection
 
+    def __parse_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        props: Dict[str, Any] = {}
+        clean = {key.lower(): value for key, value in data.items()}
+        # weaviate converts all property names to lowercase so we must do this here
+        # to compare user input to the defined collection schema/config
+        for prop in self.__collection.config.value.properties:
+            if prop.name not in clean:
+                continue
+            if isinstance(prop.data_type, DataType):
+                props[prop.name] = clean[prop.name]
+            if isinstance(prop.data_type, _ReferenceDataType):
+                ref_prop = clean[prop.name]
+                if not isinstance(ref_prop, ReferenceTo):
+                    raise TypeError(
+                        f"Expected a ReferenceTo object for property {prop.name} but got {ref_prop}. ReferenceTo must be used when inserting a reference property."
+                    )
+                props[prop.name] = ref_prop.to_beacon(prop.data_type)
+        return props
+
     def insert(
         self,
         data: Dict[str, Any],
@@ -262,10 +280,7 @@ class _Data:
     ) -> uuid_package.UUID:
         weaviate_obj: Dict[str, Any] = {
             "class": self.__collection.name,
-            "properties": {
-                key: val if not isinstance(val, RefToObject) else val.to_beacon()
-                for key, val in data.items()
-            },
+            "properties": self.__parse_properties(data),
             "id": str(uuid if uuid is not None else uuid_package.uuid4()),
         }
 
@@ -278,10 +293,7 @@ class _Data:
         weaviate_objs: List[Dict[str, Any]] = [
             {
                 "class": self.__collection.name,
-                "properties": {
-                    key: val if not isinstance(val, RefToObject) else val.to_beacon()
-                    for key, val in obj.data.items()
-                },
+                "properties": self.__parse_properties(obj.data),
                 "id": str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
             }
             for obj in objects
@@ -294,10 +306,7 @@ class _Data:
     ) -> None:
         weaviate_obj: Dict[str, Any] = {
             "class": self.__collection.name,
-            "properties": {
-                key: val if not isinstance(val, RefToObject) else val.to_beacon()
-                for key, val in data.items()
-            },
+            "properties": self.__parse_properties(data),
         }
         if vector is not None:
             weaviate_obj["vector"] = vector
@@ -309,10 +318,7 @@ class _Data:
     ) -> None:
         weaviate_obj: Dict[str, Any] = {
             "class": self.__collection.name,
-            "properties": {
-                key: val if not isinstance(val, RefToObject) else val.to_beacon()
-                for key, val in data.items()
-            },
+            "properties": self.__parse_properties(data),
         }
         if vector is not None:
             weaviate_obj["vector"] = vector
@@ -381,16 +387,6 @@ class CollectionObject(CollectionObjectBase):
             metadata=_metadata_from_dict(obj),
         )
 
-    def add_property(self, additional_property: Property):
-        path = f"/schema/{self.name}/properties"
-        obj = additional_property.to_dict()
-        try:
-            response = self._connection.post(path=path, weaviate_object=obj)
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError("Property was not created properly.") from conn_err
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Add property to class", response)
-
 
 class Collection(CollectionBase):
     def create(self, config: CollectionConfig) -> CollectionObject:
@@ -399,10 +395,14 @@ class Collection(CollectionBase):
             raise ValueError(
                 f"Name of created collection ({name}) does not match given name ({config.name})"
             )
-        return CollectionObject(self._connection, config.name)
+        return self.get(
+            name
+        )  # TODO: optimise this by using response of _create to populate collection.config.__cache rather than making a new request
 
     def get(self, name: str) -> CollectionObject:
-        return CollectionObject(self._connection, name)
+        collection = CollectionObject(self._connection, name)
+        collection.config._fetch()  # preloads CollectionConfig to be used when operating CRUD methods
+        return collection
 
     def delete(self, name: str) -> None:
         self._delete(name)

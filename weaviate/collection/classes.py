@@ -325,8 +325,13 @@ class _MultiTenancyConfig:
 
 
 @dataclass
+class _ReferenceDataType:
+    reference_collections: List[str]
+
+
+@dataclass
 class _Property:
-    data_type: str
+    data_type: Union[DataType, _ReferenceDataType]
     description: Optional[str]
     index_filterable: bool
     index_searchable: bool
@@ -398,6 +403,16 @@ class _CollectionConfig:
 
 
 def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
+    def _check_if_cref(d_type: str) -> bool:
+        return d_type[0][0].lower() == d_type[0][0]
+
+    def _property_data_type_from_weaviate_data_type(
+        data_type: List[str],
+    ) -> Union[DataType, _ReferenceDataType]:
+        if len(data_type) == 1 and _check_if_cref(data_type[0]):
+            return DataType(data_type[0])
+        return _ReferenceDataType(data_type)
+
     return _CollectionConfig(
         name=schema["class"],
         description=schema.get("description"),
@@ -416,7 +431,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
         multi_tenancy_config=_MultiTenancyConfig(enabled=schema["multiTenancyConfig"]["enabled"]),
         properties=[
             _Property(
-                data_type=prop["dataType"][0],
+                data_type=_property_data_type_from_weaviate_data_type(prop["dataType"]),
                 description=prop.get("description"),
                 index_filterable=prop["indexFilterable"],
                 index_searchable=prop["indexSearchable"],
@@ -495,14 +510,15 @@ class Property(PropertyConfig, ConfigCreateModel):
 
 class ReferenceProperty(ConfigCreateModel):
     name: str
-    reference_class_name: str
+    reference_collections: List[str]
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
-        ref_collection_name = self.reference_class_name[0].upper()
-        if len(self.reference_class_name) > 1:
-            ref_collection_name += self.reference_class_name[1:]
-        ret_dict["dataType"] = [ref_collection_name]
+        dataType: List[str] = []
+        for class_name in self.reference_collections:
+            dataType.append(_capitalize_first_letter(class_name))
+        ret_dict["dataType"] = dataType
+        del ret_dict["reference_collections"]
         return ret_dict
 
 
@@ -611,12 +627,23 @@ def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
     )
 
 
-@dataclass
-class RefToObject:
-    uuids_to: Union[List[UUID], UUID]
+class ReferenceTo(BaseModel):
+    uuids: Union[List[UUID], UUID]
+    which_collection: Optional[str] = None
 
-    def to_beacon(self) -> List[Dict[str, str]]:
-        return _to_beacons(self.uuids_to)
+    def to_beacon(self, ref_dtype: _ReferenceDataType) -> List[Dict[str, str]]:
+        if len(ref_dtype.reference_collections) > 1:
+            if self.which_collection is None:
+                raise ValueError(
+                    "which_collection must be specified when using a reference property with multiple target collections"
+                )
+            if self.which_collection not in ref_dtype.reference_collections:
+                raise ValueError(
+                    f"which_collection must be one of {ref_dtype.reference_collections} since these are the target collections specified in the reference property of this collection"
+                )
+            return _to_beacons(self.uuids, self.which_collection)
+
+        return _to_beacons(self.uuids)
 
 
 @dataclass
@@ -639,7 +666,7 @@ class PropertyConfig:
 
 
 @dataclass
-class ReferenceTo:
+class CrossReference:
     ref_type: Union[Type, str]
 
     @property
@@ -700,7 +727,7 @@ class BaseProperty(BaseModel):
             if (
                 field.metadata is not None
                 and len(field.metadata) > 0
-                and isinstance(field.metadata[0], ReferenceTo)
+                and isinstance(field.metadata[0], CrossReference)
             )
             and name not in BaseProperty.model_fields
         }
