@@ -441,8 +441,8 @@ class Batch:
             self._batching_type = "fixed"
         else:  # else set to 'dynamic'
             self._batching_type = "dynamic"
-            self._recommended_num_objects = 50
-            self._recommended_num_references = 50
+            self._recommended_num_objects = 50 if batch_size is None else batch_size
+            self._recommended_num_references = 50 if batch_size is None else batch_size
             if self._shutdown_background_event is None:
                 self._update_recommended_batch_size()
 
