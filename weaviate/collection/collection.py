@@ -255,21 +255,21 @@ class _Data:
 
     def __parse_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
         props: Dict[str, Any] = {}
-        clean = {key.lower(): value for key, value in data.items()}
+        user_props = {key.lower(): value for key, value in data.items()}
         # weaviate converts all property names to lowercase so we must do this here
         # to compare user input to the defined collection schema/config
-        for prop in self.__collection.config.value.properties:
-            if prop.name not in clean:
+        for schema_prop in self.__collection.config.value.properties:
+            if schema_prop.name not in user_props:
                 continue
-            if isinstance(prop.data_type, DataType):
-                props[prop.name] = clean[prop.name]
-            if isinstance(prop.data_type, _ReferenceDataType):
-                ref_prop = clean[prop.name]
-                if not isinstance(ref_prop, ReferenceTo):
+            if isinstance(schema_prop.data_type, DataType):
+                props[schema_prop.name] = user_props[schema_prop.name]
+            if isinstance(schema_prop.data_type, _ReferenceDataType):
+                user_ref_prop = user_props[schema_prop.name]
+                if not isinstance(user_ref_prop, ReferenceTo):
                     raise TypeError(
-                        f"Expected a ReferenceTo object for property {prop.name} but got {ref_prop}. ReferenceTo must be used when inserting a reference property."
+                        f"Expected a ReferenceTo object for property {schema_prop.name} but got {user_ref_prop}. ReferenceTo must be used when inserting a reference property."
                     )
-                props[prop.name] = ref_prop.to_beacon(prop.data_type)
+                props[schema_prop.name] = user_ref_prop.to_beacon(schema_prop.data_type)
         return props
 
     def insert(
