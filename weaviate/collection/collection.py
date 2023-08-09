@@ -395,9 +395,8 @@ class Collection(CollectionBase):
             raise ValueError(
                 f"Name of created collection ({name}) does not match given name ({config.name})"
             )
-        return self.get(
-            name
-        )  # TODO: optimise this by using response of _create to populate collection.config.__cache rather than making a new request
+        return self.get(name)
+        # TODO: optimise this by using response of _create to populate collection.config.__cache rather than making a new request
 
     def get(self, name: str) -> CollectionObject:
         collection = CollectionObject(self._connection, name)
