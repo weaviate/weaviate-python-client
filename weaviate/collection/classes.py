@@ -510,13 +510,16 @@ class Property(PropertyConfig, ConfigCreateModel):
 
 class ReferenceProperty(ConfigCreateModel):
     name: str
-    reference_collections: List[str]
+    reference_collections: Union[str, List[str]]
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
         dataType: List[str] = []
-        for class_name in self.reference_collections:
-            dataType.append(_capitalize_first_letter(class_name))
+        if isinstance(self.reference_collections, str):
+            dataType.append(_capitalize_first_letter(self.reference_collections))
+        else:
+            for class_name in self.reference_collections:
+                dataType.append(_capitalize_first_letter(class_name))
         ret_dict["dataType"] = dataType
         del ret_dict["reference_collections"]
         return ret_dict
@@ -628,10 +631,10 @@ def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
 
 
 class ReferenceTo(BaseModel):
-    uuids: Union[List[UUID], UUID]
+    reference_uuids: Union[List[UUID], UUID]
     which_collection: Optional[str] = None
 
-    def to_beacon(self, ref_dtype: _ReferenceDataType) -> List[Dict[str, str]]:
+    def to_beacons(self, ref_dtype: _ReferenceDataType) -> List[Dict[str, str]]:
         if len(ref_dtype.reference_collections) > 1:
             if self.which_collection is None:
                 raise ValueError(
@@ -641,9 +644,9 @@ class ReferenceTo(BaseModel):
                 raise ValueError(
                     f"which_collection must be one of {ref_dtype.reference_collections} since these are the target collections specified in the reference property of this collection"
                 )
-            return _to_beacons(self.uuids, self.which_collection)
+            return _to_beacons(self.reference_uuids, self.which_collection)
 
-        return _to_beacons(self.uuids)
+        return _to_beacons(self.reference_uuids)
 
 
 @dataclass

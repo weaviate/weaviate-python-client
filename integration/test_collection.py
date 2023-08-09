@@ -93,7 +93,7 @@ def test_references(client: weaviate.Client):
     collection = client.collection.create(collection_config)
 
     uuid_from1 = collection.data.insert({}, uuid.uuid4())
-    uuid_from2 = collection.data.insert({"ref": ReferenceTo(uuids=uuid_to)}, uuid.uuid4())
+    uuid_from2 = collection.data.insert({"ref": ReferenceTo(reference_uuids=uuid_to)}, uuid.uuid4())
     collection.data.reference_add(from_uuid=uuid_from1, from_property="ref", to_uuids=uuid_to)
     objects = collection.data.get()
     for obj in objects:
@@ -303,7 +303,7 @@ def test_mono_references_grcp(client: weaviate.Client):
             vectorizer=Vectorizer.NONE,
         )
     )
-    uuid_B = B.data.insert({"Name": "B", "ref": ReferenceTo(uuids=uuid_A1)})
+    uuid_B = B.data.insert({"Name": "B", "ref": ReferenceTo(reference_uuids=uuid_A1)})
     B.data.reference_add(from_uuid=uuid_B, from_property="ref", to_uuids=uuid_A2)
 
     C = client.collection.create(
@@ -316,7 +316,7 @@ def test_mono_references_grcp(client: weaviate.Client):
             vectorizer=Vectorizer.NONE,
         )
     )
-    C.data.insert({"Name": "find me", "ref": ReferenceTo(uuids=uuid_B)})
+    C.data.insert({"Name": "find me", "ref": ReferenceTo(reference_uuids=uuid_B)})
 
     objects = C.query.bm25_flat(
         query="find",
@@ -379,8 +379,12 @@ def test_multi_references_grcp(client: weaviate.Client):
             vectorizer=Vectorizer.NONE,
         )
     )
-    C.data.insert({"Name": "find me", "ref": ReferenceTo(uuids=uuid_A, which_collection="A")})
-    C.data.insert({"Name": "no! find me", "ref": ReferenceTo(uuids=uuid_B, which_collection="B")})
+    C.data.insert(
+        {"Name": "find me", "ref": ReferenceTo(reference_uuids=uuid_A, which_collection="A")}
+    )
+    C.data.insert(
+        {"Name": "no! find me", "ref": ReferenceTo(reference_uuids=uuid_B, which_collection="B")}
+    )
 
     objects = C.query.bm25_flat(
         query="find",

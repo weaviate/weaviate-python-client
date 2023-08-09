@@ -269,7 +269,7 @@ class _Data:
                     raise TypeError(
                         f"Expected a ReferenceTo object for property {schema_prop.name} but got {user_ref_prop}. ReferenceTo must be used when inserting a reference property."
                     )
-                props[schema_prop.name] = user_ref_prop.to_beacon(schema_prop.data_type)
+                props[schema_prop.name] = user_ref_prop.to_beacons(schema_prop.data_type)
         return props
 
     def insert(
