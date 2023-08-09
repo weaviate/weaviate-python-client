@@ -94,20 +94,28 @@ def test_references(client: weaviate.Client):
 
     uuid_from1 = collection.data.insert({}, uuid.uuid4())
     uuid_from2 = collection.data.insert({"ref": ReferenceTo(reference_uuids=uuid_to)}, uuid.uuid4())
-    collection.data.reference_add(from_uuid=uuid_from1, from_property="ref", to_uuids=uuid_to)
+    collection.data.reference_add(
+        from_uuid=uuid_from1, from_property="ref", ref=ReferenceTo(reference_uuids=uuid_to)
+    )
     objects = collection.data.get()
     for obj in objects:
         assert str(uuid_to) in "".join([ref["beacon"] for ref in obj.data["ref"]])
 
-    collection.data.reference_delete(from_uuid=uuid_from1, from_property="ref", to_uuids=uuid_to)
+    collection.data.reference_delete(
+        from_uuid=uuid_from1, from_property="ref", ref=ReferenceTo(reference_uuids=uuid_to)
+    )
     assert len(collection.data.get_by_id(uuid_from1).data["ref"]) == 0
 
-    collection.data.reference_add(from_uuid=uuid_from2, from_property="ref", to_uuids=uuid_to)
+    collection.data.reference_add(
+        from_uuid=uuid_from2, from_property="ref", ref=ReferenceTo(reference_uuids=uuid_to)
+    )
     obj = collection.data.get_by_id(uuid_from2)
     assert len(obj.data["ref"]) == 2
     assert str(uuid_to) in "".join([ref["beacon"] for ref in obj.data["ref"]])
 
-    collection.data.reference_replace(from_uuid=uuid_from2, from_property="ref", to_uuids=[])
+    collection.data.reference_replace(
+        from_uuid=uuid_from2, from_property="ref", ref=ReferenceTo(reference_uuids=[])
+    )
     assert len(collection.data.get_by_id(uuid_from2).data["ref"]) == 0
 
 
@@ -304,7 +312,9 @@ def test_mono_references_grcp(client: weaviate.Client):
         )
     )
     uuid_B = B.data.insert({"Name": "B", "ref": ReferenceTo(reference_uuids=uuid_A1)})
-    B.data.reference_add(from_uuid=uuid_B, from_property="ref", to_uuids=uuid_A2)
+    B.data.reference_add(
+        from_uuid=uuid_B, from_property="ref", ref=ReferenceTo(reference_uuids=uuid_A2)
+    )
 
     C = client.collection.create(
         CollectionConfig(

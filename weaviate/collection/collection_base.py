@@ -11,17 +11,18 @@ from weaviate.collection.classes import (
     Errors,
     MetadataGet,
     Property,
+    ReferenceTo,
     _collection_config_from_json,
     _collection_configs_from_json,
     _CollectionConfig,
+    _Property,
     Tenant,
     UUID,
 )
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException, ObjectAlreadyExistsException
-from weaviate.util import _to_beacons, _capitalize_first_letter
-from weaviate.weaviate_types import UUIDS
+from weaviate.util import _capitalize_first_letter
 
 
 class _Tenants:
@@ -225,6 +226,12 @@ class _Config:
 
         self._fetch()  # Update the cached schema, TODO: optimise this to only update the relevant part of the schema
 
+    def _get_property_by_name(self, property_name: str) -> Optional[_Property]:
+        try:
+            return [prop for prop in self.value.properties if prop.name == property_name].pop()
+        except IndexError:
+            return None
+
 
 class CollectionObjectBase:
     def __init__(self, connection: Connection, name: str) -> None:
@@ -376,11 +383,11 @@ class CollectionObjectBase:
             return None
         raise UnexpectedStatusCodeException("Get object/s", response)
 
-    def _reference_add(self, from_uuid: UUID, from_property_name: str, to_uuids: UUIDS) -> None:
+    def _reference_add(self, from_uuid: UUID, from_property: str, ref: ReferenceTo) -> None:
         params: Dict[str, str] = {}
 
-        path = f"/objects/{self.name}/{from_uuid}/references/{from_property_name}"
-        beacons = _to_beacons(to_uuids)
+        path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
+        beacons = ref.to_beacons(self.config._get_property_by_name(from_property).data_type)
         for beacon in beacons:
             try:
                 response = self._connection.post(
@@ -409,11 +416,11 @@ class CollectionObjectBase:
             return None
         raise UnexpectedStatusCodeException("Send ref batch", response)
 
-    def _reference_delete(self, from_uuid: UUID, from_property_name: str, to_uuids: UUIDS) -> None:
+    def _reference_delete(self, from_uuid: UUID, from_property: str, ref: ReferenceTo) -> None:
         params: Dict[str, str] = {}
 
-        path = f"/objects/{self.name}/{from_uuid}/references/{from_property_name}"
-        beacons = _to_beacons(to_uuids)
+        path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
+        beacons = ref.to_beacons(self.config._get_property_by_name(from_property).data_type)
         for beacon in beacons:
             try:
                 response = self._connection.delete(
@@ -426,14 +433,15 @@ class CollectionObjectBase:
             if response.status_code != 204:
                 raise UnexpectedStatusCodeException("Add property reference to object", response)
 
-    def _reference_replace(self, from_uuid: UUID, from_property_name: str, to_uuids: UUIDS) -> None:
+    def _reference_replace(self, from_uuid: UUID, from_property: str, ref: ReferenceTo) -> None:
         params: Dict[str, str] = {}
 
-        path = f"/objects/{self.name}/{from_uuid}/references/{from_property_name}"
+        path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
+        beacons = ref.to_beacons(self.config._get_property_by_name(from_property).data_type)
         try:
             response = self._connection.put(
                 path=path,
-                weaviate_object=_to_beacons(to_uuids),
+                weaviate_object=beacons,
                 params=self.__apply_context(params),
             )
         except RequestsConnectionError as conn_err:

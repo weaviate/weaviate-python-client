@@ -31,7 +31,7 @@ from weaviate.collection.grpc import (
 )
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.weaviate_types import UUIDS, UUID, BEACON
+from weaviate.weaviate_types import UUID, BEACON
 
 
 @dataclass
@@ -338,9 +338,11 @@ class _Data:
 
         return [self.__collection._json_to_object(obj) for obj in ret["objects"]]
 
-    def reference_add(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
+    def reference_add(self, from_uuid: UUID, from_property: str, ref: ReferenceTo) -> None:
         self.__collection._reference_add(
-            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
+            from_uuid=from_uuid,
+            from_property=from_property,
+            ref=ref,
         )
 
     def reference_add_many(self, from_property: str, refs: List[BatchReference]) -> None:
@@ -353,14 +355,14 @@ class _Data:
         ]
         self.__collection._reference_add_many(refs_dict)
 
-    def reference_delete(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
+    def reference_delete(self, from_uuid: UUID, from_property: str, ref: ReferenceTo) -> None:
         self.__collection._reference_delete(
-            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
+            from_uuid=from_uuid, from_property=from_property, ref=ref
         )
 
-    def reference_replace(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
+    def reference_replace(self, from_uuid: UUID, from_property: str, ref: ReferenceTo) -> None:
         self.__collection._reference_replace(
-            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
+            from_uuid=from_uuid, from_property=from_property, ref=ref
         )
 
 
