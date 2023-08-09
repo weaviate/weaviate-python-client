@@ -642,7 +642,7 @@ class ReferenceTo(BaseModel):
                 )
             if self.which_collection not in ref_dtype.reference_collections:
                 raise ValueError(
-                    f"which_collection must be one of {ref_dtype.reference_collections} since these are the target collections specified in the reference property of this collection"
+                    f"which_collection must be one of {ref_dtype.reference_collections} since these are the target collections specified in the reference property of this collection but got {self.which_collection} instead"
                 )
             return _to_beacons(self.reference_uuids, self.which_collection)
 
