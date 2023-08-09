@@ -461,9 +461,9 @@ class Batch:
                     if "stats" not in status[0] or "ratePerSecond" not in status[0]["stats"]:
                         self._new_dynamic_batching = False
                         return
-                    rate = status[0]["stats"]["ratePerSecond"]
+                    rate = status[0]["batchStats"]["ratePerSecond"]
                     rate_per_worker = rate / self._num_workers
-                    batch_length = status[0]["stats"]["batchQueueLength"]
+                    batch_length = status[0]["batchStats"]["queueLength"]
 
                     if batch_length == 0:  # scale up if queue is empty
                         self._recommended_num_objects = self._recommended_num_objects + min(

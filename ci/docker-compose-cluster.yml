@@ -2,7 +2,7 @@
 version: '3.4'
 services:
   weaviate-node-1:
-    image: semitechnologies/weaviate:preview-add-batch-queue-congestion-info-to-node-status-8bfb858
+    image: semitechnologies/weaviate:preview-add-batch-queue-congestion-info-to-node-status-c14301b
     restart: on-failure:0
     ports:
       - "8087:8080"
