@@ -133,6 +133,27 @@ def test_replace(client: weaviate.Client):
     client.collection.delete(name)
 
 
+def test_replace_overwrites_vector(client: weaviate.Client):
+    name = "TestReplaceOverwritesVector"
+    collection_config = CollectionConfig(
+        name=name,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer=Vectorizer.NONE,
+    )
+    collection = client.collection.create(collection_config)
+    uuid = collection.data.insert(data={"name": "some name"}, vector=[1, 2, 3])
+    obj = collection.data.get_by_id(uuid, includes=GetObjectByIdIncludes(vector=True))
+    assert obj.data["name"] == "some name"
+    assert obj.metadata.vector == [1, 2, 3]
+
+    collection.data.replace(data={"name": "other name"}, uuid=uuid)
+    obj = collection.data.get_by_id(uuid, includes=GetObjectByIdIncludes(vector=True))
+    assert obj.data["name"] == "other name"
+    assert obj.metadata.vector is None
+
+    client.collection.delete(name)
+
+
 def test_replace_with_tenant(client: weaviate.Client):
     name = "TestReplaceWithTenant"
     collection_config = CollectionConfig(
