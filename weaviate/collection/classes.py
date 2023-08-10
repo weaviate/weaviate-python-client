@@ -567,34 +567,6 @@ class GetObjectsIncludes(IncludesModel):
     vector: bool = False
 
 
-class MetadataGet(BaseModel):
-    vector: bool = False
-    distance: bool = False
-    certainty: bool = False
-    score: bool = False
-    explain_score: bool = Field(alias="explainScore", default=False)
-    is_consistent: bool = Field(alias="isConsistent", default=False)
-
-    def _get_fields(self) -> Set[str]:
-        additional_props: Set[str] = set()
-        for field, value in self.model_fields.items():
-            enabled: bool = getattr(self, field)
-            if enabled:
-                name = value.alias if value.alias is not None else field
-                additional_props.add(name)
-        return additional_props
-
-    def to_graphql(self) -> str:
-        additional_props = self._get_fields()
-        if len(additional_props) > 0:
-            return "_additional{" + " ".join(additional_props) + "}"
-        else:
-            return ""
-
-    def to_rest(self) -> str:
-        return ",".join(self._get_fields())
-
-
 @dataclass
 class _MetadataReturn:
     # uuid: Optional[uuid_package.UUID] = Field(None, alias="id")
