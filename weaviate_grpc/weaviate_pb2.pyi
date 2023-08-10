@@ -51,7 +51,6 @@ class Filters(_message.Message):
     OperatorLessThan: Filters.OperatorType
     OperatorLessThanEqual: Filters.OperatorType
     OperatorLike: Filters.OperatorType
-    OperatorNot: Filters.OperatorType
     OperatorNotEqual: Filters.OperatorType
     OperatorOr: Filters.OperatorType
     OperatorWithinGeoRange: Filters.OperatorType
@@ -117,14 +116,16 @@ class Properties(_message.Message):
     def __init__(self, non_ref_properties: _Optional[_Iterable[str]] = ..., ref_properties: _Optional[_Iterable[_Union[RefProperties, _Mapping]]] = ...) -> None: ...
 
 class RefProperties(_message.Message):
-    __slots__ = ["linked_properties", "metadata", "reference_property"]
+    __slots__ = ["linked_properties", "metadata", "reference_property", "which_collection"]
     LINKED_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     METADATA_FIELD_NUMBER: _ClassVar[int]
     REFERENCE_PROPERTY_FIELD_NUMBER: _ClassVar[int]
+    WHICH_COLLECTION_FIELD_NUMBER: _ClassVar[int]
     linked_properties: Properties
     metadata: AdditionalProperties
     reference_property: str
-    def __init__(self, reference_property: _Optional[str] = ..., linked_properties: _Optional[_Union[Properties, _Mapping]] = ..., metadata: _Optional[_Union[AdditionalProperties, _Mapping]] = ...) -> None: ...
+    which_collection: str
+    def __init__(self, reference_property: _Optional[str] = ..., linked_properties: _Optional[_Union[Properties, _Mapping]] = ..., metadata: _Optional[_Union[AdditionalProperties, _Mapping]] = ..., which_collection: _Optional[str] = ...) -> None: ...
 
 class ResultAdditionalProps(_message.Message):
     __slots__ = ["certainty", "certainty_present", "creation_time_unix", "creation_time_unix_present", "distance", "distance_present", "explain_score", "explain_score_present", "id", "last_update_time_unix", "last_update_time_unix_present", "score", "score_present", "vector"]

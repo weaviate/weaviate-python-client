@@ -996,7 +996,7 @@ def test_ref_filters(client: weaviate.Client):
 
     objects = from_collection.query.get_flat(
         filters=FilterValue(
-            path=["ref", "int"],
+            path=["ref", "TestFilterRef2", "int"],
             value=3,
             operator=FilterOperator.GREATER_THAN,
         )
