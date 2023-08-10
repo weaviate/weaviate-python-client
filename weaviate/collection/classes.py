@@ -15,7 +15,6 @@ from typing import (
     get_args,
     get_origin,
     get_type_hints,
-    ClassVar,
 )
 
 import uuid as uuid_package
@@ -834,17 +833,25 @@ class Filters:
 
 
 class FilterAnd(Filters):
-    Operator: ClassVar[weaviate_pb2.Filters.OperatorType] = weaviate_pb2.Filters.OperatorAnd
-
     def __init__(self, *args: Filters):
         self.filters: List[Filters] = list(args)
+
+    # replace with the following once 3.11 is the minimum version
+    #     Operator: weaviate_pb2.Filters.OperatorType = weaviate_pb2.Filters.OperatorAnd
+    @property
+    def operator(self) -> weaviate_pb2.Filters.OperatorType:
+        return weaviate_pb2.Filters.OperatorAnd
 
 
 class FilterOr(Filters):
-    Operator: ClassVar[weaviate_pb2.Filters.OperatorType] = weaviate_pb2.Filters.OperatorOr
-
     def __init__(self, *args: Filters):
         self.filters: List[Filters] = list(args)
+
+    # replace with the following once 3.11 is the minimum version
+    #     Operator: weaviate_pb2.Filters.OperatorType = weaviate_pb2.Filters.OperatorOr
+    @property
+    def operator(self) -> weaviate_pb2.Filters.OperatorType:
+        return weaviate_pb2.Filters.OperatorOr
 
 
 class FilterOperator(Enum):

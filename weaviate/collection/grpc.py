@@ -345,7 +345,7 @@ class _GRPC:
         else:
             assert isinstance(weav_filter, FilterAnd) or isinstance(weav_filter, FilterOr)
             return weaviate_pb2.Filters(
-                operator=weav_filter.Operator,
+                operator=weav_filter.operator,
                 filters=[
                     self.__extract_filters(single_filter) for single_filter in weav_filter.filters
                 ],
