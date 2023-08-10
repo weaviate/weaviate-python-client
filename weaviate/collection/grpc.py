@@ -322,7 +322,8 @@ class _GRPC:
         for prop in props:
             if isinstance(prop, LinkTo):
                 ref_props[prop.link_on] = RefProps(
-                    meta=prop.metadata, refs=self._ref_props_return_meta(prop.properties)
+                    meta=prop.metadata,
+                    refs=self._ref_props_return_meta(prop.properties),
                 )
         return ref_props
 
@@ -364,6 +365,7 @@ class _GRPC:
                     reference_property=prop.link_on,
                     linked_properties=self._convert_references_to_grpc(set(prop.properties)),
                     metadata=self._metadata_to_grpc(prop.metadata),
+                    which_collection=prop.which_collection,
                 )
                 for prop in properties
                 if isinstance(prop, LinkTo)

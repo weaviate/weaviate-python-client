@@ -520,13 +520,12 @@ def test_mono_references_grcp(client: weaviate.Client):
     assert objects[0].data["ref"][0].data["ref"][0].data["name"] == "A1"
     assert objects[0].data["ref"][0].data["ref"][1].data["name"] == "A2"
 
+
+def test_multi_references_grcp(client: weaviate.Client):
     client.collection.delete("A")
     client.collection.delete("B")
     client.collection.delete("C")
 
-
-@pytest.mark.skip(reason="gRPC multi references is not yet implemented")
-def test_multi_references_grcp(client: weaviate.Client):
     A = client.collection.create(
         CollectionConfig(
             name="A",
@@ -554,38 +553,36 @@ def test_multi_references_grcp(client: weaviate.Client):
             name="C",
             properties=[
                 Property(name="Name", data_type=DataType.TEXT),
-                ReferenceProperty(name="ref", reference_collections=["A", "B"]),
+                ReferenceProperty(name="ref", reference=ReferenceDataType(collections=["A", "B"])),
             ],
             vectorizer=Vectorizer.NONE,
         )
     )
     C.data.insert(
-        {"Name": "find me", "ref": ReferenceTo(reference_uuids=uuid_A, which_collection="A")}
+        {"Name": "first", "ref": ReferenceTo(reference_uuids=uuid_A, which_collection="A")}
     )
     C.data.insert(
-        {"Name": "no! find me", "ref": ReferenceTo(reference_uuids=uuid_B, which_collection="B")}
+        {"Name": "second", "ref": ReferenceTo(reference_uuids=uuid_B, which_collection="B")}
     )
 
     objects = C.query.bm25_flat(
-        query="find",
+        query="first",
         return_properties=[
             "name",
             LinkTo(
                 link_on="ref",
                 which_collection="A",
-                properties=[
-                    "name",
-                ],
+                properties=["name"],
                 metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
             ),
         ],
     )
-    assert objects[0].data["name"] == "find me"
+    assert objects[0].data["name"] == "first"
     assert len(objects[0].data["ref"]) == 1
     assert objects[0].data["ref"][0].data["name"] == "A"
 
     objects = C.query.bm25_flat(
-        query="find",
+        query="second",
         return_properties=[
             "name",
             LinkTo(
@@ -598,7 +595,7 @@ def test_multi_references_grcp(client: weaviate.Client):
             ),
         ],
     )
-    assert objects[0].data["name"] == "no! find me"
+    assert objects[0].data["name"] == "second"
     assert len(objects[0].data["ref"]) == 1
     assert objects[0].data["ref"][0].data["name"] == "B"
 

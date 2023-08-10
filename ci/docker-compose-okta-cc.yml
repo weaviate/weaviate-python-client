@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-add-missing-features-to-grpc-de6a772
+    image: semitechnologies/weaviate:preview-add-missing-features-to-grpc-89148f7
     ports:
       - 8082:8082
     restart: on-failure:0
