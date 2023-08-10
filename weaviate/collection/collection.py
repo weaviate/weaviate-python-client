@@ -7,8 +7,9 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.collection.classes import (
     CollectionConfig,
     Errors,
+    GetObjectByIdIncludes,
+    GetObjectsIncludes,
     _MetadataReturn,
-    MetadataGet,
     RefToObject,
     BatchReference,
     DataObject,
@@ -319,14 +320,16 @@ class _Data:
 
         self.__collection._update(weaviate_obj, uuid=uuid)
 
-    def get_by_id(self, uuid: UUID, metadata: Optional[MetadataGet] = None) -> Optional[_Object]:
-        ret = self.__collection._get_by_id(uuid=uuid, metadata=metadata)
+    def get_by_id(
+        self, uuid: UUID, includes: Optional[GetObjectByIdIncludes] = None
+    ) -> Optional[_Object]:
+        ret = self.__collection._get_by_id(uuid=uuid, includes=includes)
         if ret is None:
             return ret
         return self.__collection._json_to_object(ret)
 
-    def get(self, metadata: Optional[MetadataGet] = None) -> List[_Object]:
-        ret = self.__collection._get(metadata=metadata)
+    def get(self, includes: Optional[GetObjectsIncludes] = None) -> List[_Object]:
+        ret = self.__collection._get(includes=includes)
         if ret is None:
             return []
 

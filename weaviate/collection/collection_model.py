@@ -10,7 +10,8 @@ from weaviate.collection.classes import (
     BatchReference,
     CollectionModelConfig,
     Errors,
-    MetadataGet,
+    GetObjectByIdIncludes,
+    GetObjectsIncludes,
     _MetadataReturn,
     Model,
     UserModelType,
@@ -105,15 +106,15 @@ class _Data(Generic[Model]):
         self.__collection._update(weaviate_obj, uuid)
 
     def get_by_id(
-        self, uuid: UUID, metadata: Optional[MetadataGet] = None
+        self, uuid: UUID, includes: Optional[GetObjectByIdIncludes] = None
     ) -> Optional[_Object[Model]]:
-        ret = self.__collection._get_by_id(uuid=uuid, metadata=metadata)
+        ret = self.__collection._get_by_id(uuid=uuid, includes=includes)
         if ret is None:
             return None
         return self.__collection._json_to_object(ret)
 
-    def get(self, metadata: Optional[MetadataGet] = None) -> Optional[List[_Object[Model]]]:
-        ret = self.__collection._get(metadata=metadata)
+    def get(self, includes: Optional[GetObjectsIncludes] = None) -> Optional[List[_Object[Model]]]:
+        ret = self.__collection._get(includes=includes)
         if ret is None:
             return None
 
