@@ -9,9 +9,11 @@ from weaviate.collection.classes import (
     CollectionConfigCreateBase,
     Error,
     Errors,
-    MetadataGet,
     Property,
     ReferenceTo,
+    GetObjectByIdIncludes,
+    GetObjectsIncludes,
+    IncludesModel,
     _collection_config_from_json,
     _collection_configs_from_json,
     _CollectionConfig,
@@ -323,6 +325,8 @@ class CollectionObjectBase:
         path = f"/objects/{self.name}/{uuid}"
         params, weaviate_obj = self.__apply_context_to_params_and_object({}, weaviate_obj)
 
+        weaviate_obj["id"] = str(uuid)  # must add ID to payload for PUT request
+
         try:
             response = self._connection.put(path=path, weaviate_object=weaviate_obj, params=params)
         except RequestsConnectionError as conn_err:
@@ -346,32 +350,27 @@ class CollectionObjectBase:
         raise UnexpectedStatusCodeException("Update object", response)
 
     def _get_by_id(
-        self, uuid: UUID, metadata: Optional[MetadataGet] = None
+        self, uuid: UUID, includes: Optional[GetObjectByIdIncludes] = None
     ) -> Optional[Dict[str, Any]]:
         path = f"/objects/{self.name}/{uuid}"
 
         return self._get_from_weaviate(
-            params=self.__apply_context({}), path=path, metadata=metadata
+            params=self.__apply_context({}), path=path, includes=includes
         )
 
-    def _get(self, metadata: Optional[MetadataGet] = None) -> Optional[Dict[str, Any]]:
+    def _get(self, includes: Optional[GetObjectsIncludes] = None) -> Optional[Dict[str, Any]]:
         path = "/objects"
         params: Dict[str, Any] = {"class": self.name}
 
         return self._get_from_weaviate(
-            params=self.__apply_context(params), path=path, metadata=metadata
+            params=self.__apply_context(params), path=path, includes=includes
         )
 
     def _get_from_weaviate(
-        self, params: Dict[str, Any], path: str, metadata: Optional[MetadataGet] = None
+        self, params: Dict[str, Any], path: str, includes: Optional[IncludesModel] = None
     ) -> Optional[Dict[str, Any]]:
-        include = ""
-        if metadata is not None:
-            include += metadata.to_rest()
-
-        if len(include) > 0:
-            params["include"] = include
-
+        if includes is not None:
+            params["include"] = includes.to_include()
         try:
             response = self._connection.get(path=path, params=params)
         except RequestsConnectionError as conn_err:
