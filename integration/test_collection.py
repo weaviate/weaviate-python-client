@@ -10,6 +10,7 @@ from weaviate.collection.classes import (
     DataObject,
     Property,
     DataType,
+    GetObjectByIdIncludes,
     InvertedIndexConfigUpdate,
     PQConfigUpdate,
     PQEncoderConfigUpdate,
@@ -18,7 +19,6 @@ from weaviate.collection.classes import (
     ReferenceProperty,
     RefToObject,
     StopwordsUpdate,
-    MetadataGet,
     MultiTenancyConfig,
     StopwordsPreset,
     Tenant,
@@ -374,7 +374,7 @@ def test_near_vector(client: weaviate.Client):
     collection.data.insert({"Name": "car"})
     collection.data.insert({"Name": "Mountain"})
 
-    banana = collection.data.get_by_id(uuid_banana, metadata=MetadataGet(vector=True))
+    banana = collection.data.get_by_id(uuid_banana, includes=GetObjectByIdIncludes(vector=True))
 
     full_objects = collection.query.near_vector_flat(
         banana.metadata.vector, return_metadata=MetadataQuery(distance=True, certainty=True)

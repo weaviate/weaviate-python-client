@@ -547,32 +547,24 @@ class CollectionConfig(CollectionConfigCreateBase):
         return ret_dict
 
 
-class MetadataGet(BaseModel):
+class IncludesModel(BaseModel):
+    def to_include(self) -> str:
+        include: List[str] = []
+        for field, value in self:
+            if value:
+                include.append(field)
+        return ",".join(include)
+
+
+class GetObjectByIdIncludes(IncludesModel):
+    classification: bool = False
     vector: bool = False
-    distance: bool = False
-    certainty: bool = False
-    score: bool = False
-    explain_score: bool = Field(alias="explainScore", default=False)
-    is_consistent: bool = Field(alias="isConsistent", default=False)
 
-    def _get_fields(self) -> Set[str]:
-        additional_props: Set[str] = set()
-        for field, value in self.model_fields.items():
-            enabled: bool = getattr(self, field)
-            if enabled:
-                name = value.alias if value.alias is not None else field
-                additional_props.add(name)
-        return additional_props
 
-    def to_graphql(self) -> str:
-        additional_props = self._get_fields()
-        if len(additional_props) > 0:
-            return "_additional{" + " ".join(additional_props) + "}"
-        else:
-            return ""
-
-    def to_rest(self) -> str:
-        return ",".join(self._get_fields())
+class GetObjectsIncludes(IncludesModel):
+    classification: bool = False
+    featureProjection: bool = Field(False, alias="feature_projection")
+    vector: bool = False
 
 
 @dataclass
