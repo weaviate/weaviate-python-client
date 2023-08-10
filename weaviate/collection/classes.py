@@ -648,9 +648,9 @@ class ReferenceTo(BaseModel):
                 raise ValueError(
                     "which_collection must be specified when using a reference property with multiple target collections"
                 )
-            if self.which_collection not in ref_dtype.reference_collections:
+            if self.which_collection not in ref_dtype.collections:
                 raise ValueError(
-                    f"which_collection must be one of {ref_dtype.reference_collections} since these are the target collections specified in the reference property of this collection but got {self.which_collection} instead"
+                    f"which_collection must be one of {ref_dtype.collections} since these are the target collections specified in the reference property of this collection but got {self.which_collection} instead"
                 )
             return _to_beacons(self.reference_uuids, self.which_collection)
 

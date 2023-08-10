@@ -5,7 +5,7 @@ from weaviate.collection.classes import ReferenceTo, _ReferenceDataType
 
 def test_raises_error_when_which_collection_required_and_absent():
     ref_dtype = _ReferenceDataType(
-        reference_collections=["Foo", "Bar"],
+        collections=["Foo", "Bar"],
     )
     ref_to = ReferenceTo(
         reference_uuids=uuid.uuid4(),
@@ -20,7 +20,7 @@ def test_raises_error_when_which_collection_required_and_absent():
 
 def test_raises_error_when_which_collection_required_and_wrong():
     ref_dtype = _ReferenceDataType(
-        reference_collections=["Foo", "Bar"],
+        collections=["Foo", "Bar"],
     )
     ref_to = ReferenceTo(
         reference_uuids=uuid.uuid4(),
