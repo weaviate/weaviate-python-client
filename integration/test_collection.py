@@ -16,6 +16,7 @@ from weaviate.collection.classes import (
     PQEncoderConfigUpdate,
     PQEncoderType,
     PQEncoderDistribution,
+    ReferenceDataType,
     ReferenceProperty,
     ReferenceTo,
     StopwordsUpdate,
@@ -247,7 +248,9 @@ def test_reference_add_delete_replace(client: weaviate.Client):
     uuid_to = ref_collection.data.insert(data={})
     collection_config = CollectionConfig(
         name="SomethingElse",
-        properties=[ReferenceProperty(name="ref", reference_collections=["RefClass2"])],
+        properties=[
+            ReferenceProperty(name="ref", reference=ReferenceDataType(collections="RefClass2"))
+        ],
         vectorizer=Vectorizer.NONE,
     )
     collection = client.collection.create(collection_config)
@@ -472,7 +475,7 @@ def test_mono_references_grcp(client: weaviate.Client):
             name="B",
             properties=[
                 Property(name="Name", data_type=DataType.TEXT),
-                ReferenceProperty(name="ref", reference_collections=["A"]),
+                ReferenceProperty(name="ref", reference=ReferenceDataType(collections="A")),
             ],
             vectorizer=Vectorizer.NONE,
         )
@@ -487,7 +490,7 @@ def test_mono_references_grcp(client: weaviate.Client):
             name="C",
             properties=[
                 Property(name="Name", data_type=DataType.TEXT),
-                ReferenceProperty(name="ref", reference_collections=["B"]),
+                ReferenceProperty(name="ref", reference=ReferenceDataType(collections="B")),
             ],
             vectorizer=Vectorizer.NONE,
         )

@@ -326,7 +326,23 @@ class _MultiTenancyConfig:
 
 @dataclass
 class _ReferenceDataType:
-    reference_collections: List[str]
+    collections: List[str]
+
+
+class ReferenceDataType(BaseModel):
+    """Use this class when defining the collections to which your collection should cross reference when specifying
+    a reference property.
+
+    A cross reference can refer to multiple collections at once, hence the ability to specify a list of collections.
+
+    However, be careful when doing so as all downstream inserts, queries, and searches for this collection must specify
+    the exact collection to which the reference refers.
+
+    If you are unsure, it is recommended to use a single collection
+    for each cross reference.
+    """
+
+    collections: Union[str, List[str]]
 
 
 @dataclass
@@ -510,18 +526,18 @@ class Property(PropertyConfig, ConfigCreateModel):
 
 class ReferenceProperty(ConfigCreateModel):
     name: str
-    reference_collections: Union[str, List[str]]
+    reference: ReferenceDataType
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
         dataType: List[str] = []
-        if isinstance(self.reference_collections, str):
-            dataType.append(_capitalize_first_letter(self.reference_collections))
+        if isinstance(self.reference.collections, str):
+            dataType.append(_capitalize_first_letter(self.reference.collections))
         else:
-            for class_name in self.reference_collections:
-                dataType.append(_capitalize_first_letter(class_name))
+            for collection in self.reference.collections:
+                dataType.append(_capitalize_first_letter(collection))
         ret_dict["dataType"] = dataType
-        del ret_dict["reference_collections"]
+        del ret_dict["reference"]
         return ret_dict
 
 
@@ -627,7 +643,7 @@ class ReferenceTo(BaseModel):
     which_collection: Optional[str] = None
 
     def to_beacons(self, ref_dtype: _ReferenceDataType) -> List[Dict[str, str]]:
-        if len(ref_dtype.reference_collections) > 1:
+        if len(ref_dtype.collections) > 1:
             if self.which_collection is None:
                 raise ValueError(
                     "which_collection must be specified when using a reference property with multiple target collections"
