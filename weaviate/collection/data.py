@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Dict, Any, Optional, List, Tuple, Union, Generic, Type
 
 import uuid as uuid_package
@@ -254,13 +255,15 @@ class _Data:
             params["consistency_level"] = self.__consistency_level
         return params, obj
 
-    def __compare_with_config(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def __parse_properties_with_config_validation(self, data: Dict[str, Any]) -> Dict[str, Any]:
         props: Dict[str, Any] = {}
         for schema_prop in self.__config.get().properties:
             if schema_prop.name not in data:
                 continue
             if isinstance(schema_prop.data_type, DataType):
-                props[schema_prop.name] = data[schema_prop.name]
+                props[schema_prop.name] = self.__convert_primative_with_vaidation(
+                    schema_prop.data_type, schema_prop.name, data[schema_prop.name]
+                )
                 continue
             assert isinstance(schema_prop.data_type, _ReferenceDataType)
             user_ref_prop = data[schema_prop.name]
@@ -271,17 +274,61 @@ class _Data:
             props[schema_prop.name] = user_ref_prop.to_beacons_strict(schema_prop.data_type)
         return props
 
+    def __parse_properties_without_config_validation(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            key: val.to_beacons()
+            if isinstance(val, ReferenceTo)
+            else self.__convert_primative_without_validation(val)
+            for key, val in data.items()
+        }
+
+    def __convert_primative_without_validation(self, value: Any) -> Any:
+        if isinstance(value, uuid_package.UUID):
+            return str(value)
+        if isinstance(value, List[uuid_package.UUID]):
+            return [str(val) for val in value]
+        if isinstance(value, datetime):
+            return value.isoformat(sep="T", timespec="milliseconds")
+        if isinstance(value, List[datetime]):
+            return [val.isoformat(sep="T", timespec="milliseconds") for val in value]
+        return value
+
+    def __convert_primative_with_vaidation(self, dtype: DataType, name: str, value: Any) -> Any:
+        if isinstance(value, uuid_package.UUID):
+            if dtype != DataType.UUID:
+                raise TypeError(
+                    f"Cannot insert a UUID for property {name} as it is not of type UUID: {dtype}."
+                )
+            return str(value)
+        if isinstance(value, List[uuid_package.UUID]):
+            if dtype != DataType.UUID_ARRAY:
+                raise TypeError(
+                    f"Cannot insert a UUID array for property {name} as it is not of type UUID_ARRAY: {dtype}."
+                )
+            return [str(val) for val in value]
+        if isinstance(value, datetime):
+            if dtype != DataType.DATE:
+                raise TypeError(
+                    f"Cannot insert a datetime for property {name} as it is not of type DATE: {dtype}."
+                )
+            return value.isoformat(sep="T", timespec="milliseconds")
+        if isinstance(value, List[datetime]):
+            if dtype != DataType.DATE_ARRAY:
+                raise TypeError(
+                    f"Cannot insert a datetime array for property {name} as it is not of type DATE_ARRAY: {dtype}."
+                )
+            return [val.isoformat(sep="T", timespec="milliseconds") for val in value]
+        return value
+
     def _parse_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
         user_props = {key.lower(): value for key, value in data.items()}
         # weaviate converts all property names to lowercase so we must do this here
         # to compare user input to the defined collection schema/config
-        if self.__config.is_strict():
-            return self.__compare_with_config(user_props)
-        else:
-            return {
-                key: val if not isinstance(val, ReferenceTo) else val.to_beacons()
-                for key, val in data.items()
-            }
+        return (
+            self.__parse_properties_with_config_validation(user_props)
+            if self.__config.is_strict()
+            else self.__parse_properties_without_config_validation(user_props)
+        )
 
 
 class _DataCollection(_Data):
@@ -300,7 +347,7 @@ class _DataCollection(_Data):
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
             "properties": self._parse_properties(data),
-            "id": str(uuid if uuid is not None else uuid_package.uuid4()),
+            "id": uuid if uuid is not None else uuid_package.uuid4(),
         }
 
         if vector is not None:
@@ -313,7 +360,7 @@ class _DataCollection(_Data):
             {
                 "class": self.name,
                 "properties": self._parse_properties(obj.data),
-                "id": str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
+                "id": obj.uuid if obj.uuid is not None else uuid_package.uuid4(),
             }
             for obj in objects
         ]
