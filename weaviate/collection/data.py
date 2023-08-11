@@ -19,7 +19,7 @@ from weaviate.collection.classes import (
     UUID,
     Model,
 )
-from weaviate.collection.config import _ConfigBase, _ConfigCollection, _ConfigCollectionModel
+from weaviate.collection.config import _ConfigBase, _ConfigCollectionModel
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException, ObjectAlreadyExistsException
@@ -254,19 +254,6 @@ class _Data:
             params["consistency_level"] = self.__consistency_level
         return params, obj
 
-
-class _DataCollection(_Data):
-    def __init__(
-        self,
-        connection: Connection,
-        name: str,
-        config: _ConfigCollection,
-        consistency_level: Optional[ConsistencyLevel],
-        tenant: Optional[str],
-    ):
-        super().__init__(connection, name, config, consistency_level, tenant)
-        self.__config = config
-
     def __compare_with_config(self, data: Dict[str, Any]) -> Dict[str, Any]:
         props: Dict[str, Any] = {}
         for schema_prop in self.__config.get().properties:
@@ -281,10 +268,10 @@ class _DataCollection(_Data):
                 raise TypeError(
                     f"Expected a ReferenceTo object for property {schema_prop.name} but got {user_ref_prop}. ReferenceTo must be used when inserting a reference property."
                 )
-            props[schema_prop.name] = user_ref_prop.to_beacons(schema_prop.data_type)
+            props[schema_prop.name] = user_ref_prop.to_beacons_strict(schema_prop.data_type)
         return props
 
-    def __parse_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _parse_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
         user_props = {key.lower(): value for key, value in data.items()}
         # weaviate converts all property names to lowercase so we must do this here
         # to compare user input to the defined collection schema/config
@@ -296,6 +283,8 @@ class _DataCollection(_Data):
                 for key, val in data.items()
             }
 
+
+class _DataCollection(_Data):
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object:
         return _Object(
             data={prop: val for prop, val in obj["properties"].items()},
@@ -310,7 +299,7 @@ class _DataCollection(_Data):
     ) -> uuid_package.UUID:
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": self.__parse_properties(data),
+            "properties": self._parse_properties(data),
             "id": str(uuid if uuid is not None else uuid_package.uuid4()),
         }
 
@@ -323,7 +312,7 @@ class _DataCollection(_Data):
         weaviate_objs: List[Dict[str, Any]] = [
             {
                 "class": self.name,
-                "properties": self.__parse_properties(obj.data),
+                "properties": self._parse_properties(obj.data),
                 "id": str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
             }
             for obj in objects
@@ -336,7 +325,7 @@ class _DataCollection(_Data):
     ) -> None:
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": self.__parse_properties(data),
+            "properties": self._parse_properties(data),
         }
         if vector is not None:
             weaviate_obj["vector"] = vector
@@ -348,7 +337,7 @@ class _DataCollection(_Data):
     ) -> None:
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": self.__parse_properties(data),
+            "properties": self._parse_properties(data),
         }
         if vector is not None:
             weaviate_obj["vector"] = vector
@@ -435,10 +424,9 @@ class _DataCollectionModel(Generic[Model], _Data):
 
     def insert(self, obj: Model) -> uuid_package.UUID:
         self.__model.model_validate(obj)
-
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": obj.props_to_dict(),
+            "properties": self._parse_properties(obj.props_to_dict()),
             "id": str(obj.uuid),
         }
         if obj.vector is not None:
@@ -454,7 +442,7 @@ class _DataCollectionModel(Generic[Model], _Data):
         weaviate_objs: List[Dict[str, Any]] = [
             {
                 "class": self.name,
-                "properties": obj.props_to_dict(),
+                "properties": self._parse_properties(obj.props_to_dict()),
                 "id": str(obj.uuid),
             }
             for obj in objects
@@ -466,7 +454,7 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": obj.props_to_dict(),
+            "properties": self._parse_properties(obj.props_to_dict()),
         }
         if obj.vector is not None:
             weaviate_obj["vector"] = obj.vector
@@ -478,7 +466,7 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": obj.props_to_dict(update=True),
+            "properties": self._parse_properties(obj.props_to_dict()),
         }
         if obj.vector is not None:
             weaviate_obj["vector"] = obj.vector
