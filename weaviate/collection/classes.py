@@ -354,6 +354,21 @@ class _Property:
     name: str
     tokenization: Optional[Tokenization]
 
+    def to_weaviate_dict(self) -> Dict[str, Any]:
+        data_type = (
+            [str(self.data_type.value)]
+            if isinstance(self.data_type, DataType)
+            else self.data_type.collections
+        )
+        return {
+            "dataType": data_type,
+            "description": self.description,
+            "indexFilterable": self.index_filterable,
+            "indexVector": self.index_searchable,
+            "name": self.name,
+            "tokenizer": self.tokenization.value if self.tokenization else None,
+        }
+
 
 @dataclass
 class _ReplicationFactor:
@@ -419,13 +434,13 @@ class _CollectionConfig:
 
 
 def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
-    def _check_if_cref(d_type: str) -> bool:
+    def _is_primitive(d_type: str) -> bool:
         return d_type[0][0].lower() == d_type[0][0]
 
     def _property_data_type_from_weaviate_data_type(
         data_type: List[str],
     ) -> Union[DataType, _ReferenceDataType]:
-        if len(data_type) == 1 and _check_if_cref(data_type[0]):
+        if len(data_type) == 1 and _is_primitive(data_type[0]):
             return DataType(data_type[0])
         return _ReferenceDataType(data_type)
 
@@ -506,17 +521,42 @@ def _collection_configs_from_json(schema: Dict[str, Any]) -> Dict[str, _Collecti
     return {schema["class"]: _collection_config_from_json(schema) for schema in schema["classes"]}
 
 
-class PropertyConfig(ConfigCreateModel):
-    indexFilterable: Optional[bool] = Field(None, alias="index_filterable")
-    indexSearchable: Optional[bool] = Field(None, alias="index_searchable")
+# class PropertyConfig(ConfigCreateModel):
+#     indexFilterable: Optional[bool] = Field(None, alias="index_filterable")
+#     indexSearchable: Optional[bool] = Field(None, alias="index_searchable")
+#     tokenization: Optional[Tokenization] = None
+#     description: Optional[str] = None
+#     moduleConfig: Optional[ModuleConfig] = Field(None, alias="module_config")
+
+
+@dataclass
+class PropertyConfig:
+    index_filterable: Optional[bool] = None
+    index_searchable: Optional[bool] = None
     tokenization: Optional[Tokenization] = None
     description: Optional[str] = None
-    moduleConfig: Optional[ModuleConfig] = Field(None, alias="module_config")
+    module_config: Optional[ModuleConfig] = None
+
+    # tmp solution. replace with a pydantic BaseModel, see bugreport: https://github.com/pydantic/pydantic/issues/6948
+    # bugreport was closed as not planned :( so dataclasses must stay
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "indexFilterable": self.index_filterable,
+            "indexSearchable": self.index_searchable,
+            "tokenization": self.tokenization,
+            "description": self.description,
+            "moduleConfig": self.module_config,
+        }
 
 
-class Property(PropertyConfig, ConfigCreateModel):
+class Property(ConfigCreateModel):
     name: str
     dataType: DataType = Field(..., alias="data_type")
+    indexFilterable: Optional[bool] = Field(None, alias="index_filterable")
+    indexSearchable: Optional[bool] = Field(None, alias="index_searchable")
+    description: Optional[str] = None
+    moduleConfig: Optional[ModuleConfig] = Field(None, alias="module_config")
+    tokenization: Optional[Tokenization] = None
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
@@ -526,18 +566,25 @@ class Property(PropertyConfig, ConfigCreateModel):
 
 class ReferenceProperty(ConfigCreateModel):
     name: str
-    reference: ReferenceDataType
+    target_collection: str
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
-        dataType: List[str] = []
-        if isinstance(self.reference.collections, str):
-            dataType.append(_capitalize_first_letter(self.reference.collections))
-        else:
-            for collection in self.reference.collections:
-                dataType.append(_capitalize_first_letter(collection))
-        ret_dict["dataType"] = dataType
-        del ret_dict["reference"]
+        ret_dict["dataType"] = [_capitalize_first_letter(self.target_collection)]
+        del ret_dict["target_collection"]
+        return ret_dict
+
+
+class ReferencePropertyMultiTarget(ConfigCreateModel):
+    name: str
+    target_collections: List[str]
+
+    def to_dict(self) -> Dict[str, Any]:
+        ret_dict = super().to_dict()
+        ret_dict["dataType"] = [
+            _capitalize_first_letter(target) for target in self.target_collections
+        ]
+        del ret_dict["target_collections"]
         return ret_dict
 
 
@@ -568,7 +615,9 @@ class CollectionConfig(CollectionConfigCreateBase):
     """
 
     name: str
-    properties: Optional[List[Union[Property, ReferenceProperty]]] = None
+    properties: Optional[
+        List[Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]]
+    ] = None
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
@@ -624,6 +673,15 @@ class _MetadataReturn:
     is_consistent: Optional[bool] = None
 
 
+Properties = TypeVar("Properties", bound=Dict[str, Any])
+
+
+@dataclass
+class _Object(Generic[Properties]):
+    data: Properties
+    metadata: _MetadataReturn
+
+
 def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
     return _MetadataReturn(
         uuid=uuid_package.UUID(metadata["id"]) if "id" in metadata else None,
@@ -639,41 +697,31 @@ def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
 
 
 class ReferenceTo(BaseModel):
-    reference_uuids: Union[List[UUID], UUID]
-    which_collection: Optional[str] = None
+    uuids: Union[List[UUID], UUID]
 
-    def to_beacons(self, ref_dtype: _ReferenceDataType) -> List[Dict[str, str]]:
+    def to_beacons_strict(self, ref_dtype: _ReferenceDataType) -> List[Dict[str, str]]:
         if len(ref_dtype.collections) > 1:
-            if self.which_collection is None:
-                raise ValueError(
-                    "which_collection must be specified when using a reference property with multiple target collections"
-                )
-            if self.which_collection not in ref_dtype.collections:
-                raise ValueError(
-                    f"which_collection must be one of {ref_dtype.collections} since these are the target collections specified in the reference property of this collection but got {self.which_collection} instead"
-                )
-            return _to_beacons(self.reference_uuids, self.which_collection)
+            raise ValueError(
+                "Can only use ReferenceTo on a reference property with a single target collection, use ReferenceToMultiTarget instead"
+            )
+        return _to_beacons(self.uuids)
 
-        return _to_beacons(self.reference_uuids)
+    def to_beacons(self) -> List[Dict[str, str]]:
+        return _to_beacons(self.uuids)
 
 
-@dataclass
-class PropertyConfig:
-    indexFilterable: Optional[bool] = None
-    indexSearchable: Optional[bool] = None
-    tokenization: Optional[Tokenization] = None
-    description: Optional[str] = None
-    moduleConfig: Optional[ModuleConfig] = None
+class ReferenceToMultiTarget(ReferenceTo):
+    target_collection: str
 
-    # tmp solution. replace with a pydantic BaseModel, see bugreport: https://github.com/pydantic/pydantic/issues/6948
-    def model_dump(self, exclude_unset: bool = True, exclude_none: bool = True) -> Dict[str, Any]:
-        return {
-            "indexFilterable": self.indexFilterable,
-            "indexSearchable": self.indexSearchable,
-            "tokenization": self.tokenization,
-            "description": self.description,
-            "moduleConfig": self.moduleConfig,
-        }
+    def to_beacons_strict(self, ref_dtype: _ReferenceDataType) -> List[Dict[str, str]]:
+        if self.target_collection not in ref_dtype.collections:
+            raise ValueError(
+                f"target_collection must be one of {ref_dtype.collections} since these are the collections specified in the reference property of this collection but got {self.target_collection} instead"
+            )
+        return _to_beacons(self.uuids, self.target_collection)
+
+    def to_beacons(self) -> List[Dict[str, str]]:
+        return _to_beacons(self.uuids, self.target_collection)
 
 
 @dataclass
@@ -803,7 +851,7 @@ class BaseProperty(BaseModel):
             if metadata_list is not None and len(metadata_list) > 0:
                 metadata = metadata_list[0]
                 if isinstance(metadata, PropertyConfig):
-                    prop.update(metadata.model_dump(exclude_unset=True, exclude_none=True))
+                    prop.update(metadata.to_dict())
 
             properties.append(prop)
 
@@ -813,6 +861,44 @@ class BaseProperty(BaseModel):
                 "name": name,
                 "dataType": [model.model_fields[name].metadata[0].name],
             }
+            for name in reference_fields
+        )
+
+        return properties
+
+    @staticmethod
+    def type_to_properties(
+        model: Type["BaseProperty"],
+    ) -> List[Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]]:
+        types = get_type_hints(model)
+
+        non_optional_types = {
+            name: BaseProperty.remove_optional_type(tt)
+            for name, tt in types.items()
+            if name not in BaseProperty.model_fields
+        }
+
+        non_ref_fields = model.get_non_ref_fields(model)
+        properties: List[Union[Property, ReferenceProperty]] = []
+        for name in non_ref_fields:
+            prop = {
+                "name": name,
+                "dataType": [PYTHON_TYPE_TO_DATATYPE[non_optional_types[name]]],
+            }
+            metadata_list = model.model_fields[name].metadata
+            if metadata_list is not None and len(metadata_list) > 0:
+                metadata = metadata_list[0]
+                if isinstance(metadata, PropertyConfig):
+                    prop.update(metadata.to_dict())
+
+            properties.append(Property(**prop, data_type=DataType(prop["dataType"][0])))
+
+        reference_fields = model.get_ref_fields(model)
+        properties.extend(
+            ReferenceProperty(
+                name=name,
+                target_collection=model.model_fields[name].metadata[0].name,
+            )
             for name in reference_fields
         )
 

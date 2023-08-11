@@ -42,7 +42,7 @@ def test_types(member_type, expected: str, optional: bool):
 @pytest.mark.parametrize(
     "member_type, annotation ,expected",
     [
-        (str, PropertyConfig(indexFilterable=False), "text"),
+        (str, PropertyConfig(index_filterable=False), "text"),
         (UUIDS, CrossReference(Group), "Group"),
         (Optional[UUIDS], CrossReference(Group), "Group"),
     ],
