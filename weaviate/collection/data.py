@@ -285,12 +285,10 @@ class _Data:
     def __convert_primative_without_validation(self, value: Any) -> Any:
         if isinstance(value, uuid_package.UUID):
             return str(value)
-        if isinstance(value, List[uuid_package.UUID]):
-            return [str(val) for val in value]
         if isinstance(value, datetime):
             return value.isoformat(sep="T", timespec="milliseconds")
-        if isinstance(value, List[datetime]):
-            return [val.isoformat(sep="T", timespec="milliseconds") for val in value]
+        if isinstance(value, list):
+            return [self.__convert_primative_without_validation(val) for val in value]
         return value
 
     def __convert_primative_with_vaidation(self, dtype: DataType, name: str, value: Any) -> Any:
@@ -300,24 +298,14 @@ class _Data:
                     f"Cannot insert a UUID for property {name} as it is not of type UUID: {dtype}."
                 )
             return str(value)
-        if isinstance(value, List[uuid_package.UUID]):
-            if dtype != DataType.UUID_ARRAY:
-                raise TypeError(
-                    f"Cannot insert a UUID array for property {name} as it is not of type UUID_ARRAY: {dtype}."
-                )
-            return [str(val) for val in value]
         if isinstance(value, datetime):
             if dtype != DataType.DATE:
                 raise TypeError(
                     f"Cannot insert a datetime for property {name} as it is not of type DATE: {dtype}."
                 )
             return value.isoformat(sep="T", timespec="milliseconds")
-        if isinstance(value, List[datetime]):
-            if dtype != DataType.DATE_ARRAY:
-                raise TypeError(
-                    f"Cannot insert a datetime array for property {name} as it is not of type DATE_ARRAY: {dtype}."
-                )
-            return [val.isoformat(sep="T", timespec="milliseconds") for val in value]
+        if isinstance(value, list):
+            return [self.__convert_primative_with_vaidation(dtype, name, val) for val in value]
         return value
 
     def _parse_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -347,7 +335,7 @@ class _DataCollection(_Data):
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
             "properties": self._parse_properties(data),
-            "id": uuid if uuid is not None else uuid_package.uuid4(),
+            "id": str(uuid if uuid is not None else uuid_package.uuid4()),
         }
 
         if vector is not None:
@@ -360,7 +348,7 @@ class _DataCollection(_Data):
             {
                 "class": self.name,
                 "properties": self._parse_properties(obj.data),
-                "id": obj.uuid if obj.uuid is not None else uuid_package.uuid4(),
+                "id": str(obj.uuid if obj.uuid is not None else uuid_package.uuid4()),
             }
             for obj in objects
         ]
@@ -528,10 +516,10 @@ class _DataCollectionModel(Generic[Model], _Data):
             return None
         return self._json_to_object(ret)
 
-    def get(self, includes: Optional[GetObjectsIncludes] = None) -> Optional[List[_Object[Model]]]:
+    def get(self, includes: Optional[GetObjectsIncludes] = None) -> List[_Object[Model]]:
         ret = self._get(includes=includes)
         if ret is None:
-            return None
+            return []
 
         return [self._json_to_object(obj) for obj in ret["objects"]]
 

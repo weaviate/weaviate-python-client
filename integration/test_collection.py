@@ -1,5 +1,6 @@
 import pytest as pytest
 import uuid
+from datetime import datetime, timezone
 
 import weaviate
 from weaviate import Config
@@ -879,3 +880,44 @@ def test_empty_search_returns_everything(client: weaviate.Client):
     assert objects[0].metadata.creation_time_unix is not None
 
     client.collection.delete("TestReturnEverything")
+
+
+def test_insert_date_property(client: weaviate.Client):
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestInsertDateProperty",
+            vectorizer=Vectorizer.NONE,
+            properties=[Property(name="date", data_type=DataType.DATE)],
+        )
+    )
+
+    now = datetime.now(timezone.utc)
+    uuid = collection.data.insert(data={"date": now})
+
+    obj = collection.data.get_by_id(uuid)
+    assert obj.data["date"] == now.isoformat(sep="T", timespec="milliseconds").replace(
+        "+00:00", "Z"
+    )
+
+    client.collection.delete("TestInsertDateProperty")
+
+
+@pytest.mark.skip(reason="Searching on date properties not supported in gRPC yet")
+def test_search_on_date_property(client: weaviate.Client):
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestSearchOnDateProperty",
+            vectorizer=Vectorizer.NONE,
+            properties=[Property(name="date", data_type=DataType.DATE)],
+        )
+    )
+
+    now = datetime.now(timezone.utc)
+    collection.data.insert(data={"date": now})
+
+    objects = collection.query.bm25_flat(query="2023")
+    assert objects[0].data["date"] == now.isoformat(sep="T", timespec="milliseconds").replace(
+        "+00:00", "Z"
+    )
+
+    client.collection.delete("TestSearchOnDateProperty")
