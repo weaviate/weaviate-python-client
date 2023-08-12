@@ -29,8 +29,8 @@ GITHUB_RELEASE_DOWNLOAD_URL = "https://github.com/weaviate/weaviate/releases/dow
 class EmbeddedOptions:
     persistence_data_path: str = os.environ.get("XDG_DATA_HOME", DEFAULT_PERSISTENCE_DATA_PATH)
     binary_path: str = os.environ.get("XDG_CACHE_HOME", DEFAULT_BINARY_PATH)
-    version: str = "1.19.12"
-    port: int = 6666
+    version: str = "latest"
+    port: int = 8080
     hostname: str = "127.0.0.1"
     additional_env_vars: Optional[Dict[str, str]] = None
 
