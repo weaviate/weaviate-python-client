@@ -564,8 +564,11 @@ class Property(ConfigCreateModel):
         return ret_dict
 
 
-class ReferenceProperty(ConfigCreateModel):
+class ReferencePropertyBase(ConfigCreateModel):
     name: str
+
+
+class ReferenceProperty(ReferencePropertyBase):
     target_collection: str
 
     def to_dict(self) -> Dict[str, Any]:
@@ -575,8 +578,7 @@ class ReferenceProperty(ConfigCreateModel):
         return ret_dict
 
 
-class ReferencePropertyMultiTarget(ConfigCreateModel):
-    name: str
+class ReferencePropertyMultiTarget(ReferencePropertyBase):
     target_collections: List[str]
 
     def to_dict(self) -> Dict[str, Any]:
@@ -615,9 +617,7 @@ class CollectionConfig(CollectionConfigCreateBase):
     """
 
     name: str
-    properties: Optional[
-        List[Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]]
-    ] = None
+    properties: Optional[List[Union[Property, ReferencePropertyBase]]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
@@ -699,26 +699,12 @@ def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
 class ReferenceTo(BaseModel):
     uuids: Union[List[UUID], UUID]
 
-    def to_beacons_strict(self, ref_dtype: _ReferenceDataType) -> List[Dict[str, str]]:
-        if len(ref_dtype.collections) > 1:
-            raise ValueError(
-                "Can only use ReferenceTo on a reference property with a single target collection, use ReferenceToMultiTarget instead"
-            )
-        return _to_beacons(self.uuids)
-
     def to_beacons(self) -> List[Dict[str, str]]:
         return _to_beacons(self.uuids)
 
 
 class ReferenceToMultiTarget(ReferenceTo):
     target_collection: str
-
-    def to_beacons_strict(self, ref_dtype: _ReferenceDataType) -> List[Dict[str, str]]:
-        if self.target_collection not in ref_dtype.collections:
-            raise ValueError(
-                f"target_collection must be one of {ref_dtype.collections} since these are the collections specified in the reference property of this collection but got {self.target_collection} instead"
-            )
-        return _to_beacons(self.uuids, self.target_collection)
 
     def to_beacons(self) -> List[Dict[str, str]]:
         return _to_beacons(self.uuids, self.target_collection)
@@ -869,7 +855,7 @@ class BaseProperty(BaseModel):
     @staticmethod
     def type_to_properties(
         model: Type["BaseProperty"],
-    ) -> List[Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]]:
+    ) -> List[Union[Property, ReferencePropertyBase]]:
         types = get_type_hints(model)
 
         non_optional_types = {
@@ -879,7 +865,7 @@ class BaseProperty(BaseModel):
         }
 
         non_ref_fields = model.get_non_ref_fields(model)
-        properties: List[Union[Property, ReferenceProperty]] = []
+        properties: List[Union[Property, ReferencePropertyBase]] = []
         for name in non_ref_fields:
             prop = {
                 "name": name,

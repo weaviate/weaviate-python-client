@@ -28,25 +28,14 @@ class _ConfigBase:
     the `collection.config` class attribute.
     """
 
-    def __init__(self, connection: Connection, name: str, strict: bool) -> None:
+    def __init__(self, connection: Connection, name: str) -> None:
         self.__cached: Optional[Dict[str, Any]] = None
-        self._connection = connection
-        self.name = name
-        self.__strict = strict
-
-    @classmethod
-    def make(cls, connection: Connection, name: str, strict: bool = False):
-        _cls = cls(connection, name, strict)
-        if strict:
-            _cls._fetch()
-        return _cls
-
-    def is_strict(self) -> bool:
-        return self.__strict
+        self.__connection = connection
+        self.__name = name
 
     def _fetch(self) -> None:
         try:
-            response = self._connection.get(path=f"/schema/{self.name}")
+            response = self.__connection.get(path=f"/schema/{self.__name}")
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
                 "Collection configuration could not be retrieved."
@@ -96,7 +85,7 @@ class _ConfigBase:
         schema = self.__get()
         schema = config.merge_with_existing(schema)
         try:
-            response = self._connection.put(path=f"/schema/{self.name}", weaviate_object=schema)
+            response = self.__connection.put(path=f"/schema/{self.__name}", weaviate_object=schema)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
                 "Collection configuration could not be updated."
@@ -105,10 +94,10 @@ class _ConfigBase:
             raise UnexpectedStatusCodeException("Update collection configuration", response)
 
     def _add_property(self, additional_property: Property) -> None:
-        path = f"/schema/{self.name}/properties"
+        path = f"/schema/{self.__name}/properties"
         obj = additional_property.to_dict()
         try:
-            response = self._connection.post(path=path, weaviate_object=obj)
+            response = self.__connection.post(path=path, weaviate_object=obj)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Property was not created properly.") from conn_err
         if response.status_code != 200:
