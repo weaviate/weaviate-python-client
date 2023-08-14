@@ -172,6 +172,7 @@ class _ConfigCollectionModel(_ConfigBase):
                         else [prop.target_collection],
                     }
                 )
+                schema_props_simple.pop(idx)
                 only_in_schema.pop(idx)
             except ValueError:
                 only_in_model.append(prop)
