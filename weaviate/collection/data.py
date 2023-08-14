@@ -225,7 +225,9 @@ class _Data:
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
         if self.__config.is_strict():
-            beacons = ref.to_beacons(self.__config._get_property_by_name(from_property).data_type)
+            beacons = ref.to_beacons_strict(
+                self.__config._get_property_by_name(from_property).data_type
+            )
         else:
             beacons = ref.to_beacons()
         try:

@@ -564,8 +564,11 @@ class Property(ConfigCreateModel):
         return ret_dict
 
 
-class ReferenceProperty(ConfigCreateModel):
+class ReferencePropertyBase(ConfigCreateModel):
     name: str
+
+
+class ReferenceProperty(ReferencePropertyBase):
     target_collection: str
 
     def to_dict(self) -> Dict[str, Any]:
@@ -575,8 +578,7 @@ class ReferenceProperty(ConfigCreateModel):
         return ret_dict
 
 
-class ReferencePropertyMultiTarget(ConfigCreateModel):
-    name: str
+class ReferencePropertyMultiTarget(ReferencePropertyBase):
     target_collections: List[str]
 
     def to_dict(self) -> Dict[str, Any]:
@@ -615,9 +617,7 @@ class CollectionConfig(CollectionConfigCreateBase):
     """
 
     name: str
-    properties: Optional[
-        List[Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]]
-    ] = None
+    properties: Optional[List[Union[Property, ReferencePropertyBase]]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
@@ -869,7 +869,7 @@ class BaseProperty(BaseModel):
     @staticmethod
     def type_to_properties(
         model: Type["BaseProperty"],
-    ) -> List[Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]]:
+    ) -> List[Union[Property, ReferencePropertyBase]]:
         types = get_type_hints(model)
 
         non_optional_types = {
@@ -879,7 +879,7 @@ class BaseProperty(BaseModel):
         }
 
         non_ref_fields = model.get_non_ref_fields(model)
-        properties: List[Union[Property, ReferenceProperty]] = []
+        properties: List[Union[Property, ReferencePropertyBase]] = []
         for name in non_ref_fields:
             prop = {
                 "name": name,

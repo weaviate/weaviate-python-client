@@ -67,7 +67,7 @@ class CollectionModel(CollectionBase):
         super().__init__(connection)
 
     def create(
-        self, config: CollectionModelConfig[Model], strict: bool = False
+        self, config: CollectionModelConfig[Model], debug_mode: bool = False
     ) -> CollectionObjectModel[Model]:
         name = super()._create(config)
         config_name = _capitalize_first_letter(config.model.__name__)
@@ -75,13 +75,12 @@ class CollectionModel(CollectionBase):
             raise ValueError(
                 f"Name of created collection ({name}) does not match given name ({config_name})"
             )
-        # return CollectionObjectModel[config.model](self._connection, name, config.model)
-        return self.get(config.model, strict)
+        return self.get(config.model, debug_mode)
 
-    def get(self, model: Type[Model], strict: bool = False) -> CollectionObjectModel[Model]:
+    def get(self, model: Type[Model], debug_mode: bool = False) -> CollectionObjectModel[Model]:
         name = _capitalize_first_letter(model.__name__)
-        config = _ConfigCollectionModel.make(self._connection, name, strict)
-        if strict and config.is_invalid(model):
+        config = _ConfigCollectionModel.make(self._connection, name, debug_mode)
+        if config.is_invalid(model):
             raise TypeError(
                 f"Model {model.__name__} definition does not match collection {name} config"
             )

@@ -44,16 +44,16 @@ class CollectionObject:
 
 
 class Collection(CollectionBase):
-    def create(self, config: CollectionConfig, strict: bool = False) -> CollectionObject:
+    def create(self, config: CollectionConfig, debug_mode: bool = False) -> CollectionObject:
         name = super()._create(config)
         if config.name != name:
             raise ValueError(
                 f"Name of created collection ({name}) does not match given name ({config.name})"
             )
-        return self.get(name, strict)
+        return self.get(name, debug_mode)
 
-    def get(self, name: str, strict: bool = False) -> CollectionObject:
-        config = _ConfigCollection.make(self._connection, name, strict)
+    def get(self, name: str, debug_mode: bool = False) -> CollectionObject:
+        config = _ConfigCollection.make(self._connection, name, debug_mode)
         return CollectionObject(self._connection, name, config)
 
     def delete(self, name: str) -> None:

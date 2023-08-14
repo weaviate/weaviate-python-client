@@ -16,8 +16,8 @@ class _Tenants:
     """
 
     def __init__(self, connection: Connection, name: str) -> None:
-        self._connection = connection
-        self.name = name
+        self.__connection = connection
+        self.__name = name
 
     def add(self, tenants: List[Tenant]) -> None:
         """Add the specified tenants to a collection in Weaviate.
@@ -25,7 +25,7 @@ class _Tenants:
         The collection must have been created with multi-tenancy enabled.
 
         Parameters:
-        - `tenants`: List of Tenants.
+        - `tenants`: List of `Tenant`.
 
         Raises:
         - `requests.ConnectionError`
@@ -36,15 +36,17 @@ class _Tenants:
 
         loaded_tenants = [{"name": tenant.name} for tenant in tenants]
 
-        path = "/schema/" + self.name + "/tenants"
+        path = "/schema/" + self.__name + "/tenants"
         try:
-            response = self._connection.post(path=path, weaviate_object=loaded_tenants)
+            response = self.__connection.post(path=path, weaviate_object=loaded_tenants)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                f"Collection tenants may not have been added properly for {self.name}"
+                f"Collection tenants may not have been added properly for {self.__name}"
             ) from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException(f"Add collection tenants for {self.name}", response)
+            raise UnexpectedStatusCodeException(
+                f"Add collection tenants for {self.__name}", response
+            )
 
     def remove(self, tenants: List[str]) -> None:
         """Remove the specified tenants from a collection in Weaviate.
@@ -62,16 +64,16 @@ class _Tenants:
         - `weaviate.UnexpectedStatusCodeException`
             - If Weaviate reports a non-OK status.
         """
-        path = "/schema/" + self.name + "/tenants"
+        path = "/schema/" + self.__name + "/tenants"
         try:
-            response = self._connection.delete(path=path, weaviate_object=tenants)
+            response = self.__connection.delete(path=path, weaviate_object=tenants)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                f"Collection tenants may not have been deleted for {self.name}"
+                f"Collection tenants may not have been deleted for {self.__name}"
             ) from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException(
-                f"Delete collection tenants for {self.name}", response
+                f"Delete collection tenants for {self.__name}", response
             )
 
     def get(self) -> List[Tenant]:
@@ -85,15 +87,17 @@ class _Tenants:
         - `weaviate.UnexpectedStatusCodeException`
             - If Weaviate reports a non-OK status.
         """
-        path = "/schema/" + self.name + "/tenants"
+        path = "/schema/" + self.__name + "/tenants"
         try:
-            response = self._connection.get(path=path)
+            response = self.__connection.get(path=path)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
-                f"Could not get collection tenants for {self.name}"
+                f"Could not get collection tenants for {self.__name}"
             ) from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException(f"Get collection tenants for {self.name}", response)
+            raise UnexpectedStatusCodeException(
+                f"Get collection tenants for {self.__name}", response
+            )
 
         tenant_resp: List[Dict[str, Any]] = response.json()
         return [Tenant(**tenant) for tenant in tenant_resp]
