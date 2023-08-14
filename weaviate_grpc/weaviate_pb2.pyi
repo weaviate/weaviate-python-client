@@ -1,4 +1,5 @@
 from google.protobuf import struct_pb2 as _struct_pb2
+from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -34,6 +35,39 @@ class BM25SearchParams(_message.Message):
     properties: _containers.RepeatedScalarFieldContainer[str]
     query: str
     def __init__(self, query: _Optional[str] = ..., properties: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class Filters(_message.Message):
+    __slots__ = ["filters", "on", "operator", "value_bool", "value_date", "value_float", "value_int", "value_str"]
+    class OperatorType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = []
+    FILTERS_FIELD_NUMBER: _ClassVar[int]
+    ON_FIELD_NUMBER: _ClassVar[int]
+    OPERATOR_FIELD_NUMBER: _ClassVar[int]
+    OperatorAnd: Filters.OperatorType
+    OperatorEqual: Filters.OperatorType
+    OperatorGreaterThan: Filters.OperatorType
+    OperatorGreaterThanEqual: Filters.OperatorType
+    OperatorIsNull: Filters.OperatorType
+    OperatorLessThan: Filters.OperatorType
+    OperatorLessThanEqual: Filters.OperatorType
+    OperatorLike: Filters.OperatorType
+    OperatorNotEqual: Filters.OperatorType
+    OperatorOr: Filters.OperatorType
+    OperatorWithinGeoRange: Filters.OperatorType
+    VALUE_BOOL_FIELD_NUMBER: _ClassVar[int]
+    VALUE_DATE_FIELD_NUMBER: _ClassVar[int]
+    VALUE_FLOAT_FIELD_NUMBER: _ClassVar[int]
+    VALUE_INT_FIELD_NUMBER: _ClassVar[int]
+    VALUE_STR_FIELD_NUMBER: _ClassVar[int]
+    filters: _containers.RepeatedCompositeFieldContainer[Filters]
+    on: _containers.RepeatedScalarFieldContainer[str]
+    operator: Filters.OperatorType
+    value_bool: bool
+    value_date: _timestamp_pb2.Timestamp
+    value_float: float
+    value_int: int
+    value_str: str
+    def __init__(self, operator: _Optional[_Union[Filters.OperatorType, str]] = ..., on: _Optional[_Iterable[str]] = ..., filters: _Optional[_Iterable[_Union[Filters, _Mapping]]] = ..., value_str: _Optional[str] = ..., value_int: _Optional[int] = ..., value_bool: bool = ..., value_float: _Optional[float] = ..., value_date: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class HybridSearchParams(_message.Message):
     __slots__ = ["alpha", "fusion_type", "properties", "query", "vector"]
@@ -82,14 +116,16 @@ class Properties(_message.Message):
     def __init__(self, non_ref_properties: _Optional[_Iterable[str]] = ..., ref_properties: _Optional[_Iterable[_Union[RefProperties, _Mapping]]] = ...) -> None: ...
 
 class RefProperties(_message.Message):
-    __slots__ = ["linked_properties", "metadata", "reference_property"]
+    __slots__ = ["linked_properties", "metadata", "reference_property", "which_collection"]
     LINKED_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     METADATA_FIELD_NUMBER: _ClassVar[int]
     REFERENCE_PROPERTY_FIELD_NUMBER: _ClassVar[int]
+    WHICH_COLLECTION_FIELD_NUMBER: _ClassVar[int]
     linked_properties: Properties
     metadata: AdditionalProperties
     reference_property: str
-    def __init__(self, reference_property: _Optional[str] = ..., linked_properties: _Optional[_Union[Properties, _Mapping]] = ..., metadata: _Optional[_Union[AdditionalProperties, _Mapping]] = ...) -> None: ...
+    which_collection: str
+    def __init__(self, reference_property: _Optional[str] = ..., linked_properties: _Optional[_Union[Properties, _Mapping]] = ..., metadata: _Optional[_Union[AdditionalProperties, _Mapping]] = ..., which_collection: _Optional[str] = ...) -> None: ...
 
 class ResultAdditionalProps(_message.Message):
     __slots__ = ["certainty", "certainty_present", "creation_time_unix", "creation_time_unix_present", "distance", "distance_present", "explain_score", "explain_score_present", "id", "last_update_time_unix", "last_update_time_unix_present", "score", "score_present", "vector"]
@@ -152,12 +188,13 @@ class SearchReply(_message.Message):
     def __init__(self, results: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ..., took: _Optional[float] = ...) -> None: ...
 
 class SearchRequest(_message.Message):
-    __slots__ = ["additional_properties", "after", "autocut", "bm25_search", "class_name", "hybrid_search", "limit", "near_object", "near_vector", "offset", "properties", "tenant"]
+    __slots__ = ["additional_properties", "after", "autocut", "bm25_search", "class_name", "filters", "hybrid_search", "limit", "near_object", "near_vector", "offset", "properties", "tenant"]
     ADDITIONAL_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     AFTER_FIELD_NUMBER: _ClassVar[int]
     AUTOCUT_FIELD_NUMBER: _ClassVar[int]
     BM25_SEARCH_FIELD_NUMBER: _ClassVar[int]
     CLASS_NAME_FIELD_NUMBER: _ClassVar[int]
+    FILTERS_FIELD_NUMBER: _ClassVar[int]
     HYBRID_SEARCH_FIELD_NUMBER: _ClassVar[int]
     LIMIT_FIELD_NUMBER: _ClassVar[int]
     NEAR_OBJECT_FIELD_NUMBER: _ClassVar[int]
@@ -170,6 +207,7 @@ class SearchRequest(_message.Message):
     autocut: int
     bm25_search: BM25SearchParams
     class_name: str
+    filters: Filters
     hybrid_search: HybridSearchParams
     limit: int
     near_object: NearObjectParams
@@ -177,7 +215,7 @@ class SearchRequest(_message.Message):
     offset: int
     properties: Properties
     tenant: str
-    def __init__(self, class_name: _Optional[str] = ..., limit: _Optional[int] = ..., additional_properties: _Optional[_Union[AdditionalProperties, _Mapping]] = ..., near_vector: _Optional[_Union[NearVectorParams, _Mapping]] = ..., near_object: _Optional[_Union[NearObjectParams, _Mapping]] = ..., properties: _Optional[_Union[Properties, _Mapping]] = ..., hybrid_search: _Optional[_Union[HybridSearchParams, _Mapping]] = ..., bm25_search: _Optional[_Union[BM25SearchParams, _Mapping]] = ..., offset: _Optional[int] = ..., autocut: _Optional[int] = ..., after: _Optional[str] = ..., tenant: _Optional[str] = ...) -> None: ...
+    def __init__(self, class_name: _Optional[str] = ..., limit: _Optional[int] = ..., additional_properties: _Optional[_Union[AdditionalProperties, _Mapping]] = ..., near_vector: _Optional[_Union[NearVectorParams, _Mapping]] = ..., near_object: _Optional[_Union[NearObjectParams, _Mapping]] = ..., properties: _Optional[_Union[Properties, _Mapping]] = ..., hybrid_search: _Optional[_Union[HybridSearchParams, _Mapping]] = ..., bm25_search: _Optional[_Union[BM25SearchParams, _Mapping]] = ..., offset: _Optional[int] = ..., autocut: _Optional[int] = ..., after: _Optional[str] = ..., tenant: _Optional[str] = ..., filters: _Optional[_Union[Filters, _Mapping]] = ...) -> None: ...
 
 class SearchResult(_message.Message):
     __slots__ = ["additional_properties", "properties"]

@@ -17,7 +17,9 @@ from weaviate.collection.classes import (
     PQEncoderType,
     PQEncoderDistribution,
     ReferenceProperty,
-    RefToObject,
+    ReferencePropertyMultiTarget,
+    ReferenceTo,
+    ReferenceToMultiTarget,
     StopwordsUpdate,
     MultiTenancyConfig,
     StopwordsPreset,
@@ -25,7 +27,7 @@ from weaviate.collection.classes import (
     VectorIndexConfigUpdate,
     Vectorizer,
 )
-from weaviate.collection.grpc import HybridFusion, LinkTo, MetadataQuery
+from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery
 
 
 @pytest.fixture(scope="module")
@@ -247,27 +249,35 @@ def test_reference_add_delete_replace(client: weaviate.Client):
     uuid_to = ref_collection.data.insert(data={})
     collection_config = CollectionConfig(
         name="SomethingElse",
-        properties=[ReferenceProperty(name="ref", reference_class_name="RefClass2")],
+        properties=[ReferenceProperty(name="ref", target_collection="RefClass2")],
         vectorizer=Vectorizer.NONE,
     )
     collection = client.collection.create(collection_config)
 
     uuid_from1 = collection.data.insert({}, uuid.uuid4())
-    uuid_from2 = collection.data.insert({"ref": RefToObject(uuid_to)}, uuid.uuid4())
-    collection.data.reference_add(from_uuid=uuid_from1, from_property="ref", to_uuids=uuid_to)
+    uuid_from2 = collection.data.insert({"ref": ReferenceTo(uuids=uuid_to)}, uuid.uuid4())
+    collection.data.reference_add(
+        from_uuid=uuid_from1, from_property="ref", ref=ReferenceTo(uuids=uuid_to)
+    )
     objects = collection.data.get()
     for obj in objects:
         assert str(uuid_to) in "".join([ref["beacon"] for ref in obj.data["ref"]])
 
-    collection.data.reference_delete(from_uuid=uuid_from1, from_property="ref", to_uuids=uuid_to)
+    collection.data.reference_delete(
+        from_uuid=uuid_from1, from_property="ref", ref=ReferenceTo(uuids=uuid_to)
+    )
     assert len(collection.data.get_by_id(uuid_from1).data["ref"]) == 0
 
-    collection.data.reference_add(from_uuid=uuid_from2, from_property="ref", to_uuids=uuid_to)
+    collection.data.reference_add(
+        from_uuid=uuid_from2, from_property="ref", ref=ReferenceTo(uuids=uuid_to)
+    )
     obj = collection.data.get_by_id(uuid_from2)
     assert len(obj.data["ref"]) == 2
     assert str(uuid_to) in "".join([ref["beacon"] for ref in obj.data["ref"]])
 
-    collection.data.reference_replace(from_uuid=uuid_from2, from_property="ref", to_uuids=[])
+    collection.data.reference_replace(
+        from_uuid=uuid_from2, from_property="ref", ref=ReferenceTo(uuids=[])
+    )
     assert len(collection.data.get_by_id(uuid_from2).data["ref"]) == 0
 
     client.collection.delete("SomethingElse")
@@ -446,7 +456,7 @@ def test_near_object(client: weaviate.Client):
     client.collection.delete("TestNearObject")
 
 
-def test_references_grcp(client: weaviate.Client):
+def test_mono_references_grcp(client: weaviate.Client):
     A = client.collection.create(
         CollectionConfig(
             name="A",
@@ -464,25 +474,25 @@ def test_references_grcp(client: weaviate.Client):
             name="B",
             properties=[
                 Property(name="Name", data_type=DataType.TEXT),
-                ReferenceProperty(name="ref", reference_class_name="A"),
+                ReferenceProperty(name="ref", target_collection="A"),
             ],
             vectorizer=Vectorizer.NONE,
         )
     )
-    uuid_B = B.data.insert({"Name": "B", "ref": RefToObject(uuid_A1)})
-    B.data.reference_add(from_uuid=uuid_B, from_property="ref", to_uuids=uuid_A2)
+    uuid_B = B.data.insert({"Name": "B", "ref": ReferenceTo(uuids=uuid_A1)})
+    B.data.reference_add(from_uuid=uuid_B, from_property="ref", ref=ReferenceTo(uuids=uuid_A2))
 
     C = client.collection.create(
         CollectionConfig(
             name="C",
             properties=[
                 Property(name="Name", data_type=DataType.TEXT),
-                ReferenceProperty(name="ref", reference_class_name="B"),
+                ReferenceProperty(name="ref", target_collection="B"),
             ],
             vectorizer=Vectorizer.NONE,
         )
     )
-    C.data.insert({"Name": "find me", "ref": RefToObject(uuid_B)})
+    C.data.insert({"Name": "find me", "ref": ReferenceTo(uuids=uuid_B)})
 
     objects = C.query.bm25_flat(
         query="find",
@@ -506,6 +516,85 @@ def test_references_grcp(client: weaviate.Client):
     assert objects[0].data["ref"][0].data["name"] == "B"
     assert objects[0].data["ref"][0].data["ref"][0].data["name"] == "A1"
     assert objects[0].data["ref"][0].data["ref"][1].data["name"] == "A2"
+
+
+def test_multi_references_grcp(client: weaviate.Client):
+    client.collection.delete("A")
+    client.collection.delete("B")
+    client.collection.delete("C")
+
+    A = client.collection.create(
+        CollectionConfig(
+            name="A",
+            vectorizer=Vectorizer.NONE,
+            properties=[
+                Property(name="Name", data_type=DataType.TEXT),
+            ],
+        )
+    )
+    uuid_A = A.data.insert(data={"Name": "A"})
+
+    B = client.collection.create(
+        CollectionConfig(
+            name="B",
+            properties=[
+                Property(name="Name", data_type=DataType.TEXT),
+            ],
+            vectorizer=Vectorizer.NONE,
+        )
+    )
+    uuid_B = B.data.insert({"Name": "B"})
+
+    C = client.collection.create(
+        CollectionConfig(
+            name="C",
+            properties=[
+                Property(name="Name", data_type=DataType.TEXT),
+                ReferencePropertyMultiTarget(name="ref", target_collections=["A", "B"]),
+            ],
+            vectorizer=Vectorizer.NONE,
+        )
+    )
+    C.data.insert(
+        {"Name": "first", "ref": ReferenceToMultiTarget(uuids=uuid_A, target_collection="A")}
+    )
+    C.data.insert(
+        {"Name": "second", "ref": ReferenceToMultiTarget(uuids=uuid_B, target_collection="B")}
+    )
+
+    objects = C.query.bm25_flat(
+        query="first",
+        return_properties=[
+            "name",
+            LinkToMultiTarget(
+                link_on="ref",
+                target_collection="A",
+                properties=["name"],
+                metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
+            ),
+        ],
+    )
+    assert objects[0].data["name"] == "first"
+    assert len(objects[0].data["ref"]) == 1
+    assert objects[0].data["ref"][0].data["name"] == "A"
+
+    objects = C.query.bm25_flat(
+        query="second",
+        return_properties=[
+            "name",
+            LinkToMultiTarget(
+                link_on="ref",
+                target_collection="B",
+                properties=[
+                    "name",
+                ],
+                metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
+            ),
+        ],
+    )
+    assert objects[0].data["name"] == "second"
+    assert len(objects[0].data["ref"]) == 1
+    assert objects[0].data["ref"][0].data["name"] == "B"
 
     client.collection.delete("A")
     client.collection.delete("B")
@@ -660,7 +749,7 @@ def test_add_property(client: weaviate.Client):
         )
     )
     uuid1 = collection.data.insert({"name": "first"})
-    collection.add_property(Property(name="number", data_type=DataType.INT))
+    collection.config.add_property(Property(name="number", data_type=DataType.INT))
     uuid2 = collection.data.insert({"name": "second", "number": 5})
     obj1 = collection.data.get_by_id(uuid1)
     obj2 = collection.data.get_by_id(uuid2)

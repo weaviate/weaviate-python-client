@@ -1,12 +1,13 @@
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Union, Set
+from typing import Optional, List, Dict, Union, Set, Protocol, Generic, cast
 
 import grpc
 import uuid as uuid_lib
 from google.protobuf import struct_pb2
+from pydantic import BaseModel
 from typing_extensions import TypeAlias
 
-from weaviate.collection.classes import _MetadataReturn
+from weaviate.collection.classes import _MetadataReturn, _Object, Properties, Model, Type
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGRPCException
 from weaviate.util import BaseEnum
@@ -69,14 +70,17 @@ class MetadataQuery:
     explain_score: bool = False
 
 
-@dataclass
-class LinkTo:
+class LinkTo(BaseModel):
     link_on: str
     properties: "PROPERTIES"
     metadata: MetadataQuery
 
     def __hash__(self):  # for set
         return hash(str(self))
+
+
+class LinkToMultiTarget(LinkTo):
+    target_collection: str
 
 
 PROPERTIES = Union[List[Union[str, LinkTo]], str]
@@ -119,7 +123,7 @@ class _GRPC:
         self,
         connection: Connection,
         name: str,
-        tenant: Optional[str] = None,
+        tenant: Optional[str],
         default_properties: Optional[Set[str]] = None,
     ):
         self._connection: Connection = connection
@@ -321,7 +325,8 @@ class _GRPC:
         for prop in props:
             if isinstance(prop, LinkTo):
                 ref_props[prop.link_on] = RefProps(
-                    meta=prop.metadata, refs=self._ref_props_return_meta(prop.properties)
+                    meta=prop.metadata,
+                    refs=self._ref_props_return_meta(prop.properties),
                 )
         return ref_props
 
@@ -354,7 +359,7 @@ class _GRPC:
         return result
 
     def _convert_references_to_grpc(
-        self, properties: Set[Union[LinkTo, str]]
+        self, properties: Set[Union[LinkTo, LinkToMultiTarget, str]]
     ) -> "weaviate_pb2.Properties":
         return weaviate_pb2.Properties(
             non_ref_properties=[prop for prop in properties if isinstance(prop, str)],
@@ -363,6 +368,9 @@ class _GRPC:
                     reference_property=prop.link_on,
                     linked_properties=self._convert_references_to_grpc(set(prop.properties)),
                     metadata=self._metadata_to_grpc(prop.metadata),
+                    which_collection=prop.target_collection
+                    if isinstance(prop, LinkToMultiTarget)
+                    else None,
                 )
                 for prop in properties
                 if isinstance(prop, LinkTo)
@@ -387,3 +395,234 @@ class _GRPC:
             score=add_props.score if add_props.score_present else None,
             explain_score=add_props.explain_score if add_props.explain_score_present else None,
         )
+
+
+class SupportsResultToObject(Generic[Properties], Protocol):
+    def _result_to_object(self, result: GrpcResult) -> _Object[Properties]:
+        ...
+
+
+class _Grpc(Generic[Properties], SupportsResultToObject[Properties]):
+    def __init__(self, connection: Connection, name: str, tenant: Optional[str]):
+        self.__connection = connection
+        self.__name = name
+        self.__tenant = tenant
+
+    def __create_query(self) -> _GRPC:
+        return _GRPC(self.__connection, self.__name, self.__tenant)
+
+    def get_flat(
+        self,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> List[_Object]:
+        return [
+            self._result_to_object(obj)
+            for obj in self.__create_query().get(
+                limit, offset, after, return_metadata, return_properties
+            )
+        ]
+
+    def get_options(
+        self, returns: ReturnValues, options: Optional[GetOptions]
+    ) -> List[_Object[Properties]]:
+        if options is None:
+            options = GetOptions()
+        return [
+            self._result_to_object(obj)
+            for obj in self.__create_query().get(
+                options.limit, options.offset, options.after, returns.metadata, returns.properties
+            )
+        ]
+
+    def hybrid_flat(
+        self,
+        query: str,
+        alpha: Optional[float] = None,
+        vector: Optional[List[float]] = None,
+        properties: Optional[List[str]] = None,
+        fusion_type: Optional[HybridFusion] = None,
+        limit: Optional[int] = None,
+        autocut: Optional[int] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> List[_Object[Properties]]:
+
+        objects = self.__create_query().hybrid(
+            query,
+            alpha,
+            vector,
+            properties,
+            fusion_type,
+            limit,
+            autocut,
+            return_metadata,
+            return_properties,
+        )
+        return [self._result_to_object(obj) for obj in objects]
+
+    def hybrid_options(
+        self,
+        query: str,
+        returns: ReturnValues,
+        options: Optional[HybridOptions] = None,
+    ) -> List[_Object[Properties]]:
+        if options is None:
+            options = HybridOptions()
+
+        objects = self.__create_query().hybrid(
+            query,
+            options.alpha,
+            options.vector,
+            options.properties,
+            options.fusion_type,
+            options.limit,
+            options.autocut,
+            returns.metadata,
+            returns.properties,
+        )
+        return [self._result_to_object(obj) for obj in objects]
+
+    def bm25_flat(
+        self,
+        query: str,
+        properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        autocut: Optional[int] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> List[_Object[Properties]]:
+
+        return [
+            self._result_to_object(obj)
+            for obj in self.__create_query().bm25(
+                query, properties, limit, autocut, return_metadata, return_properties
+            )
+        ]
+
+    def bm25_options(
+        self,
+        query: str,
+        returns: ReturnValues,
+        options: Optional[BM25Options] = None,
+    ) -> List[_Object[Properties]]:
+        if options is None:
+            options = BM25Options()
+
+        return [
+            self._result_to_object(obj)
+            for obj in self.__create_query().bm25(
+                query,
+                options.properties,
+                options.limit,
+                options.autocut,
+                returns.metadata,
+                returns.properties,
+            )
+        ]
+
+    def near_vector_flat(
+        self,
+        vector: List[float],
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        autocut: Optional[int] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> List[_Object[Properties]]:
+
+        return [
+            self._result_to_object(obj)
+            for obj in self.__create_query().near_vector(
+                vector, certainty, distance, autocut, return_metadata, return_properties
+            )
+        ]
+
+    def near_vector_options(
+        self,
+        vector: List[float],
+        returns: ReturnValues,
+        options: Optional[NearVectorOptions] = None,
+    ) -> List[_Object[Properties]]:
+        if options is None:
+            options = NearVectorOptions()
+
+        return [
+            self._result_to_object(obj)
+            for obj in self.__create_query().near_vector(
+                vector,
+                options.certainty,
+                options.distance,
+                options.autocut,
+                returns.metadata,
+                returns.properties,
+            )
+        ]
+
+    def near_object_flat(
+        self,
+        obj: UUID,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        autocut: Optional[int] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> List[_Object]:
+
+        return [
+            self._result_to_object(obj)
+            for obj in self.__create_query().near_object(
+                obj, certainty, distance, autocut, return_metadata, return_properties
+            )
+        ]
+
+    def near_object_options(
+        self,
+        obj: UUID,
+        returns: ReturnValues,
+        options: Optional[NearObjectOptions] = None,
+    ) -> List[_Object[Properties]]:
+        if options is None:
+            options = NearObjectOptions()
+
+        return [
+            self._result_to_object(obj)
+            for obj in self.__create_query().near_object(
+                obj,
+                options.certainty,
+                options.distance,
+                options.autocut,
+                returns.metadata,
+                returns.properties,
+            )
+        ]
+
+
+class _GrpcCollection(Generic[Properties], _Grpc[Properties]):
+    def __init__(self, connection: Connection, name: str, tenant: Optional[str]):
+        super().__init__(connection, name, tenant)
+
+    def _result_to_object(self, obj: GrpcResult) -> _Object[Properties]:
+        data = obj.result
+        for key in data.keys():
+            entry = data[key]
+            if isinstance(entry, list):
+                value: List = entry
+                for i, _ in enumerate(value):
+                    value[i] = self._result_to_object(value[i])
+        data = cast(Properties, data)
+        return _Object[Properties](data=data, metadata=obj.metadata)
+
+
+class _GrpcCollectionModel(Generic[Model], _Grpc[Model]):
+    def __init__(
+        self, connection: Connection, name: str, model: Type[Model], tenant: Optional[str] = None
+    ):
+        super().__init__(connection, name, tenant)
+        self.model = model
+
+    def _result_to_object(self, obj: GrpcResult) -> _Object[Model]:
+        return _Object[Model](data=self.model(**obj.result), metadata=obj.metadata)
