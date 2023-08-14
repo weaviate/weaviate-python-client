@@ -6,12 +6,14 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.collection.classes import (
     BatchReference,
     DataObject,
+    DataType,
     Error,
     Errors,
     ReferenceTo,
     GetObjectByIdIncludes,
     GetObjectsIncludes,
     IncludesModel,
+    _ReferenceDataType,
     _metadata_from_dict,
     _Object,
     UUID,
@@ -161,7 +163,12 @@ class _Data:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
-        beacons = ref.to_beacons()
+        if self.__config.is_strict():
+            beacons = ref.to_beacons_strict(
+                self.__config._get_property_by_name(from_property).data_type
+            )
+        else:
+            beacons = ref.to_beacons()
         for beacon in beacons:
             try:
                 response = self._connection.post(
@@ -194,7 +201,12 @@ class _Data:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
-        beacons = ref.to_beacons()
+        if self.__config.is_strict():
+            beacons = ref.to_beacons_strict(
+                self.__config._get_property_by_name(from_property).data_type
+            )
+        else:
+            beacons = ref.to_beacons()
         for beacon in beacons:
             try:
                 response = self._connection.delete(
@@ -211,7 +223,12 @@ class _Data:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
-        beacons = ref.to_beacons()
+        if self.__config.is_strict():
+            beacons = ref.to_beacons_strict(
+                self.__config._get_property_by_name(from_property).data_type
+            )
+        else:
+            beacons = ref.to_beacons()
         try:
             response = self._connection.put(
                 path=path,
@@ -239,11 +256,34 @@ class _Data:
             params["consistency_level"] = self.__consistency_level
         return params, obj
 
+    def __compare_with_config(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        props: Dict[str, Any] = {}
+        for schema_prop in self.__config.get().properties:
+            if schema_prop.name not in data:
+                continue
+            if isinstance(schema_prop.data_type, DataType):
+                props[schema_prop.name] = data[schema_prop.name]
+                continue
+            assert isinstance(schema_prop.data_type, _ReferenceDataType)
+            user_ref_prop = data[schema_prop.name]
+            if not isinstance(user_ref_prop, ReferenceTo):
+                raise TypeError(
+                    f"Expected a ReferenceTo object for property {schema_prop.name} but got {user_ref_prop}. ReferenceTo must be used when inserting a reference property."
+                )
+            props[schema_prop.name] = user_ref_prop.to_beacons_strict(schema_prop.data_type)
+        return props
+
     def _parse_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        return {
-            key: val if not isinstance(val, ReferenceTo) else val.to_beacons()
-            for key, val in data.items()
-        }
+        user_props = {key.lower(): value for key, value in data.items()}
+        # weaviate converts all property names to lowercase so we must do this here
+        # to compare user input to the defined collection schema/config
+        if self.__config.is_strict():
+            return self.__compare_with_config(user_props)
+        else:
+            return {
+                key: val if not isinstance(val, ReferenceTo) else val.to_beacons()
+                for key, val in data.items()
+            }
 
 
 class _DataCollection(_Data):

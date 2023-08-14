@@ -28,10 +28,21 @@ class _ConfigBase:
     the `collection.config` class attribute.
     """
 
-    def __init__(self, connection: Connection, name: str) -> None:
+    def __init__(self, connection: Connection, name: str, strict: bool) -> None:
         self.__cached: Optional[Dict[str, Any]] = None
         self.__connection = connection
         self.__name = name
+        self.__strict = strict
+
+    @classmethod
+    def make(cls, connection: Connection, name: str, strict: bool = False):
+        _cls = cls(connection, name, strict)
+        if strict:
+            _cls._fetch()
+        return _cls
+
+    def is_strict(self) -> bool:
+        return self.__strict
 
     def _fetch(self) -> None:
         try:

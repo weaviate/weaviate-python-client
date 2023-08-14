@@ -66,18 +66,20 @@ class CollectionModel(CollectionBase):
     def __init__(self, connection: Connection):
         super().__init__(connection)
 
-    def create(self, config: CollectionModelConfig[Model]) -> CollectionObjectModel[Model]:
+    def create(
+        self, config: CollectionModelConfig[Model], debug_mode: bool = False
+    ) -> CollectionObjectModel[Model]:
         name = super()._create(config)
         config_name = _capitalize_first_letter(config.model.__name__)
         if config_name != name:
             raise ValueError(
                 f"Name of created collection ({name}) does not match given name ({config_name})"
             )
-        return self.get(config.model)
+        return self.get(config.model, debug_mode)
 
-    def get(self, model: Type[Model]) -> CollectionObjectModel[Model]:
+    def get(self, model: Type[Model], debug_mode: bool = False) -> CollectionObjectModel[Model]:
         name = _capitalize_first_letter(model.__name__)
-        config = _ConfigCollectionModel(self._connection, name)
+        config = _ConfigCollectionModel.make(self._connection, name, debug_mode)
         if config.is_invalid(model):
             raise TypeError(
                 f"Model {model.__name__} definition does not match collection {name} config"
@@ -121,6 +123,6 @@ class CollectionModel(CollectionBase):
 
     def update(self, model: Type[Model]) -> CollectionObjectModel[Model]:
         name = _capitalize_first_letter(model.__name__)
-        config = _ConfigCollectionModel(self._connection, name)
+        config = _ConfigCollectionModel.make(self._connection, name, True)
         config.update_model(model)
         return CollectionObjectModel[model](self._connection, name, model, config)
