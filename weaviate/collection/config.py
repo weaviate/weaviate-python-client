@@ -114,7 +114,7 @@ class _ConfigBase:
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Add property to collection", response)
 
-        self._fetch()  # Update the cached schema, TODO: optimise this to only update the relevant part of the schema
+        self._fetch()
 
     def _get_property_by_name(self, property_name: str) -> Optional[_Property]:
         for prop in self.get().properties:
