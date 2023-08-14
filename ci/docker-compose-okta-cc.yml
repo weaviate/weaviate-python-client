@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:1.20.0-prealpha-628c8ff
+    image: semitechnologies/weaviate:preview-add-batch-queue-congestion-info-to-node-status-c14301b
     ports:
       - 8082:8082
     restart: on-failure:0

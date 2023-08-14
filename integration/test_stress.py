@@ -1,10 +1,10 @@
 import datetime
 import random
-import uuid
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
 
 import pytest
+import uuid
 
 import weaviate
 
