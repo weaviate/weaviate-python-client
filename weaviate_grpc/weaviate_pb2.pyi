@@ -36,6 +36,62 @@ class BM25SearchParams(_message.Message):
     query: str
     def __init__(self, query: _Optional[str] = ..., properties: _Optional[_Iterable[str]] = ...) -> None: ...
 
+class BatchObject(_message.Message):
+    __slots__ = ["class_name", "properties", "tenant", "uuid", "vector"]
+    class Properties(_message.Message):
+        __slots__ = ["non_ref_properties", "ref_props_multi", "ref_props_single"]
+        NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+        REF_PROPS_MULTI_FIELD_NUMBER: _ClassVar[int]
+        REF_PROPS_SINGLE_FIELD_NUMBER: _ClassVar[int]
+        non_ref_properties: _struct_pb2.Struct
+        ref_props_multi: _containers.RepeatedCompositeFieldContainer[BatchObject.RefPropertiesMultiTarget]
+        ref_props_single: _containers.RepeatedCompositeFieldContainer[BatchObject.RefPropertiesSingleTarget]
+        def __init__(self, non_ref_properties: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., ref_props_single: _Optional[_Iterable[_Union[BatchObject.RefPropertiesSingleTarget, _Mapping]]] = ..., ref_props_multi: _Optional[_Iterable[_Union[BatchObject.RefPropertiesMultiTarget, _Mapping]]] = ...) -> None: ...
+    class RefPropertiesMultiTarget(_message.Message):
+        __slots__ = ["prop_name", "target_collection", "uuids"]
+        PROP_NAME_FIELD_NUMBER: _ClassVar[int]
+        TARGET_COLLECTION_FIELD_NUMBER: _ClassVar[int]
+        UUIDS_FIELD_NUMBER: _ClassVar[int]
+        prop_name: str
+        target_collection: str
+        uuids: _containers.RepeatedScalarFieldContainer[str]
+        def __init__(self, uuids: _Optional[_Iterable[str]] = ..., prop_name: _Optional[str] = ..., target_collection: _Optional[str] = ...) -> None: ...
+    class RefPropertiesSingleTarget(_message.Message):
+        __slots__ = ["prop_name", "uuids"]
+        PROP_NAME_FIELD_NUMBER: _ClassVar[int]
+        UUIDS_FIELD_NUMBER: _ClassVar[int]
+        prop_name: str
+        uuids: _containers.RepeatedScalarFieldContainer[str]
+        def __init__(self, uuids: _Optional[_Iterable[str]] = ..., prop_name: _Optional[str] = ...) -> None: ...
+    CLASS_NAME_FIELD_NUMBER: _ClassVar[int]
+    PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    TENANT_FIELD_NUMBER: _ClassVar[int]
+    UUID_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_FIELD_NUMBER: _ClassVar[int]
+    class_name: str
+    properties: BatchObject.Properties
+    tenant: str
+    uuid: str
+    vector: _containers.RepeatedScalarFieldContainer[float]
+    def __init__(self, uuid: _Optional[str] = ..., vector: _Optional[_Iterable[float]] = ..., properties: _Optional[_Union[BatchObject.Properties, _Mapping]] = ..., class_name: _Optional[str] = ..., tenant: _Optional[str] = ...) -> None: ...
+
+class BatchObjectsReply(_message.Message):
+    __slots__ = ["results", "took"]
+    class BatchResults(_message.Message):
+        __slots__ = []
+        def __init__(self) -> None: ...
+    RESULTS_FIELD_NUMBER: _ClassVar[int]
+    TOOK_FIELD_NUMBER: _ClassVar[int]
+    results: _containers.RepeatedCompositeFieldContainer[BatchObjectsReply.BatchResults]
+    took: float
+    def __init__(self, results: _Optional[_Iterable[_Union[BatchObjectsReply.BatchResults, _Mapping]]] = ..., took: _Optional[float] = ...) -> None: ...
+
+class BatchObjectsRequest(_message.Message):
+    __slots__ = ["objects"]
+    OBJECTS_FIELD_NUMBER: _ClassVar[int]
+    objects: _containers.RepeatedCompositeFieldContainer[BatchObject]
+    def __init__(self, objects: _Optional[_Iterable[_Union[BatchObject, _Mapping]]] = ...) -> None: ...
+
 class Filters(_message.Message):
     __slots__ = ["filters", "on", "operator", "value_bool", "value_date", "value_float", "value_int", "value_str"]
     class OperatorType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):

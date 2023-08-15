@@ -1,6 +1,7 @@
 from typing import Dict, Any, Optional, List, Tuple, Union, Generic, Type
 
 import uuid as uuid_package
+from google.protobuf.struct_pb2 import Struct
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.classes import (
@@ -16,12 +17,15 @@ from weaviate.collection.classes import (
     _Object,
     UUID,
     Model,
+    ReferenceToMultiTarget,
 )
 from weaviate.collection.config import _ConfigBase, _ConfigCollectionModel
+from weaviate.collection.grpc_batch import _BatchGRPC
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException, ObjectAlreadyExistsException
 from weaviate.weaviate_types import BEACON, UUIDS
+from weaviate_grpc import weaviate_pb2
 
 
 class _Data:
@@ -37,7 +41,8 @@ class _Data:
         self.name = name
         self.__config = config
         self.__consistency_level = consistency_level
-        self.__tenant = tenant
+        self._tenant = tenant
+        self._batch = _BatchGRPC(connection)
 
     def _insert(self, weaviate_obj: Dict[str, Any]) -> uuid_package.UUID:
         path = "/objects"
@@ -61,9 +66,9 @@ class _Data:
         if self.__consistency_level is not None:
             params["consistency_level"] = self.__consistency_level
 
-        if self.__tenant is not None:
+        if self._tenant is not None:
             for obj in objects:
-                obj["tenant"] = self.__tenant
+                obj["tenant"] = self._tenant
 
         response = self._connection.post(
             path="/batch/objects",
@@ -179,9 +184,9 @@ class _Data:
         if self.__consistency_level is not None:
             params["consistency_level"] = self.__consistency_level
 
-        if self.__tenant is not None:
+        if self._tenant is not None:
             for ref in refs:
-                ref["tenant"] = self.__tenant
+                ref["tenant"] = self._tenant
 
         response = self._connection.post(
             path="/batch/references", weaviate_object=refs, params=params
@@ -224,8 +229,8 @@ class _Data:
             raise UnexpectedStatusCodeException("Add property reference to object", response)
 
     def __apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        if self.__tenant is not None:
-            params["tenant"] = self.__tenant
+        if self._tenant is not None:
+            params["tenant"] = self._tenant
         if self.__consistency_level is not None:
             params["consistency_level"] = self.__consistency_level
         return params
@@ -233,8 +238,8 @@ class _Data:
     def __apply_context_to_params_and_object(
         self, params: Dict[str, Any], obj: Dict[str, Any]
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        if self.__tenant is not None:
-            obj["tenant"] = self.__tenant
+        if self._tenant is not None:
+            obj["tenant"] = self._tenant
         if self.__consistency_level is not None:
             params["consistency_level"] = self.__consistency_level
         return params, obj
@@ -244,6 +249,32 @@ class _Data:
             key: val if not isinstance(val, ReferenceTo) else val.to_beacons()
             for key, val in data.items()
         }
+
+    def _parse_properties_grpc(self, data: Dict[str, Any]) -> weaviate_pb2.Properties:
+        multi_target: List[weaviate_pb2.BatchObject.RefPropertiesMultiTarget] = []
+        single_target: List[weaviate_pb2.BatchObject.RefPropertiesSingleTarget] = []
+        non_ref_properties: Struct = Struct()
+        for key, val in data.items():
+            if isinstance(val, ReferenceToMultiTarget):
+                multi_target.append(
+                    weaviate_pb2.BatchObject.RefPropertiesMultiTarget(
+                        uuids=val.uuids, target_collection=val.target_collection, prop_name=key
+                    )
+                )
+            elif isinstance(val, ReferenceTo):
+                single_target.append(
+                    weaviate_pb2.BatchObject.RefPropertiesSingleTarget(
+                        uuids=val.uuids, prop_name=key
+                    )
+                )
+            else:
+                non_ref_properties.update({key: val})
+
+        return weaviate_pb2.BatchObject.Properties(
+            non_ref_properties=non_ref_properties,
+            ref_props_multi=multi_target,
+            ref_props_single=single_target,
+        )
 
 
 class _DataCollection(_Data):
@@ -271,16 +302,20 @@ class _DataCollection(_Data):
         return self._insert(weaviate_obj)
 
     def insert_many(self, objects: List[DataObject]) -> List[Union[uuid_package.UUID, Errors]]:
-        weaviate_objs: List[Dict[str, Any]] = [
-            {
-                "class": self.name,
-                "properties": self._parse_properties(obj.data),
-                "id": str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
-            }
+        weaviate_objs: List[weaviate_pb2.BatchObject] = [
+            weaviate_pb2.BatchObject(
+                class_name=self.name,
+                vector=obj.vector if obj.vector is not None else None,
+                uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
+                properties=self._parse_properties_grpc(obj.data),
+                tenant=self._tenant,
+            )
             for obj in objects
         ]
 
-        return self._insert_many(weaviate_objs)
+        self._batch.batch(weaviate_objs)
+
+        return [obj.uuid for obj in weaviate_objs]
 
     def replace(
         self, data: Dict[str, Any], uuid: UUID, vector: Optional[List[float]] = None
