@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-add-grpc-batching-3dd278b
+    image: semitechnologies/weaviate:preview-add-grpc-batching-c69bda5
     ports:
       - 8081:8081
     restart: on-failure:0

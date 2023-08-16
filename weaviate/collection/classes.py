@@ -728,6 +728,12 @@ def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
 class ReferenceTo(BaseModel):
     uuids: Union[List[UUID], UUID]
 
+    def model_post_init(self, __context: Any) -> None:
+        if isinstance(self.uuids, UUID):
+            self.uuids = [str(self.uuids)]
+        else:
+            self.uuids = [str(uid) for uid in self.uuids]
+
     def to_beacons(self) -> List[Dict[str, str]]:
         return _to_beacons(self.uuids)
 

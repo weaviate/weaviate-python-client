@@ -32,6 +32,8 @@ from weaviate.collection.classes import (
 )
 from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery
 
+BEACON_START = "weaviate://localhost"
+
 
 @pytest.fixture(scope="module")
 def client():
@@ -91,6 +93,66 @@ def test_insert_many(client: weaviate.Client):
     assert obj2.data["name"] == "some other name"
 
     client.collection.delete(name)
+
+
+def test_insert_many_with_refs(client: weaviate.Client):
+    name_target = "RefClassBatchTarget"
+    client.collection.delete(name_target)
+
+    ref_collection = client.collection.create(
+        CollectionConfig(name=name_target, vectorizer=Vectorizer.NONE)
+    )
+    uuid_to1 = ref_collection.data.insert(data={})
+    uuid_to2 = ref_collection.data.insert(data={})
+
+    name = "TestInsertManyRefs"
+    client.collection.delete(name)
+
+    collection_config = CollectionConfig(
+        name=name,
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+            ReferenceProperty(name="ref_single", target_collection=name_target),
+            ReferencePropertyMultiTarget(name="ref_many", target_collections=[name_target, name]),
+        ],
+        vectorizer=Vectorizer.NONE,
+    )
+    collection = client.collection.create(collection_config)
+    uuid_from = collection.data.insert(data={"name": "first"})
+
+    uuids = collection.data.insert_many(
+        [
+            DataObject(
+                data={
+                    "name": "some name",
+                    "ref_single": ReferenceTo(uuids=[uuid_to1, uuid_to2]),
+                    "ref_many": ReferenceToMultiTarget(uuids=uuid_from, target_collection=name),
+                },
+                vector=[1, 2, 3],
+            ),
+            DataObject(
+                data={
+                    "name": "some other name",
+                    "ref_single": ReferenceTo(uuids=uuid_to2),
+                    "ref_many": ReferenceToMultiTarget(
+                        uuids=uuid_to1, target_collection=name_target
+                    ),
+                },
+                uuid=uuid.uuid4(),
+            ),
+        ]
+    )
+    assert isinstance(uuids, UUIDList)
+    obj1 = collection.data.get_by_id(uuids[0])
+    assert obj1.data["name"] == "some name"
+    assert obj1.data["ref_single"][0]["beacon"] == BEACON_START + f"/{name_target}/{uuid_to1}"
+    assert obj1.data["ref_single"][1]["beacon"] == BEACON_START + f"/{name_target}/{uuid_to2}"
+    assert obj1.data["ref_many"][0]["beacon"] == BEACON_START + f"/{name}/{uuid_from}"
+
+    obj1 = collection.data.get_by_id(uuids[1])
+    assert obj1.data["name"] == "some other name"
+    assert obj1.data["ref_single"][0]["beacon"] == BEACON_START + f"/{name_target}/{uuid_to2}"
+    assert obj1.data["ref_many"][0]["beacon"] == BEACON_START + f"/{name_target}/{uuid_to1}"
 
 
 def test_insert_many_error(client: weaviate.Client):
