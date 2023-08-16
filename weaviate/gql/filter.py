@@ -593,7 +593,6 @@ class Where(Filter):
             self.operands.append(Where(operand))
 
     def _render_value_geo_range(self, content: dict) -> str:
-        print(content)
         latitude = content["geoCoordinates"]["latitude"]
         longitude = content["geoCoordinates"]["longitude"]
         distance = content["distance"]["max"]
