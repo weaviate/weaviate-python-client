@@ -730,10 +730,10 @@ class ReferenceTo:
     uuids: Union[List[UUID], UUID]
 
     def __post_init__(self) -> None:
-        if isinstance(self.uuids, UUID):
-            self.uuids = [str(self.uuids)]
-        else:
+        if isinstance(self.uuids, list):
             self.uuids = [str(uid) for uid in self.uuids]
+        else:
+            self.uuids = [str(self.uuids)]
 
     def to_beacons(self) -> List[Dict[str, str]]:
         return _to_beacons(self.uuids)
