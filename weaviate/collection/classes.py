@@ -39,6 +39,24 @@ class UUIDandErrorList(list):
     success: ClassVar[bool] = False
 
 
+@dataclass
+class _BatchSuccess:
+    idx: int
+    uuid: UUID
+
+
+@dataclass
+class _BatchError:
+    idx: int
+    error: Error
+
+
+@dataclass
+class _BatchReturn:
+    data: List[_BatchSuccess]
+    errors: List[_BatchError]
+
+
 Errors = List[Error]
 
 

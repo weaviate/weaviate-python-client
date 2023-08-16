@@ -20,6 +20,9 @@ from weaviate.collection.classes import (
     ReferenceToMultiTarget,
     UUIDList,
     UUIDandErrorList,
+    _BatchSuccess,
+    _BatchError,
+    _BatchReturn,
 )
 from weaviate.collection.config import _ConfigBase, _ConfigCollectionModel
 from weaviate.collection.grpc_batch import _BatchGRPC
@@ -302,6 +305,29 @@ class _DataCollection(_Data):
             weaviate_obj["vector"] = vector
 
         return self._insert(weaviate_obj)
+
+    def insert_many2(self, objects: List[DataObject]) -> _BatchReturn:
+        weaviate_objs: List[weaviate_pb2.BatchObject] = [
+            weaviate_pb2.BatchObject(
+                class_name=self.name,
+                vector=obj.vector if obj.vector is not None else None,
+                uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
+                properties=self._parse_properties_grpc(obj.data),
+                tenant=self._tenant,
+            )
+            for obj in objects
+        ]
+
+        errors = self._batch.batch(weaviate_objs)
+
+        return_errors: List[_BatchError] = []
+        return_success: List[_BatchSuccess] = []
+        for i, obj in enumerate(weaviate_objs):
+            if i in errors:
+                return_errors.append(_BatchError(i, error=Error(errors[i])))
+            else:
+                return_success.append(_BatchSuccess(i, obj.uuid))
+        return _BatchReturn(data=return_success, errors=return_errors)
 
     def insert_many(self, objects: List[DataObject]) -> Union[UUIDList, UUIDandErrorList]:
         weaviate_objs: List[weaviate_pb2.BatchObject] = [
