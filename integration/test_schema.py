@@ -132,8 +132,16 @@ def test_class_tenants_activate_deactivate(client: weaviate.Client):
     client.schema.add_class_tenants(class_name, tenants)
     tenants_get = client.schema.get_class_tenants(class_name)
     assert len(tenants_get) == len(tenants)
-    assert tenants_get[0].name == "Tenant1"
-    assert tenants_get[0].activity_status == TenantActivityStatus.HOT
+    # below required because tenants are returned in random order by the server
+    for tenant in tenants_get:
+        if tenant.name == "Tenant1":
+            assert tenant.activity_status == TenantActivityStatus.HOT
+        elif tenant.name == "Tenant2":
+            assert tenant.activity_status == TenantActivityStatus.COLD
+        elif tenant.name == "Tenant3":
+            assert tenant.activity_status == TenantActivityStatus.HOT
+        else:
+            raise AssertionError(f"Unexpected tenant: {tenant.name}")
 
     updated_tenants = [
         Tenant(activity_status=TenantActivityStatus.COLD, name="Tenant1"),
