@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 from typing import Dict, Any, Optional, List, Tuple, Union, Generic, Type
 
 import uuid as uuid_package
@@ -24,6 +24,7 @@ from weaviate.collection.config import _ConfigBase, _ConfigCollectionModel
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException, ObjectAlreadyExistsException
+from weaviate.warnings import _Warnings
 from weaviate.weaviate_types import BEACON, UUIDS
 
 
@@ -263,7 +264,7 @@ class _Data:
             if schema_prop.name not in data:
                 continue
             if isinstance(schema_prop.data_type, DataType):
-                props[schema_prop.name] = self.__convert_primative_with_vaidation(
+                props[schema_prop.name] = self.__convert_primitive_with_validation(
                     schema_prop.data_type, schema_prop.name, data[schema_prop.name]
                 )
                 continue
@@ -280,34 +281,40 @@ class _Data:
         return {
             key: val.to_beacons()
             if isinstance(val, ReferenceTo)
-            else self.__convert_primative_without_validation(val)
+            else self.__convert_primitive_without_validation(val)
             for key, val in data.items()
         }
 
-    def __convert_primative_without_validation(self, value: Any) -> Any:
+    def __convert_primitive_without_validation(self, value: Any) -> Any:
         if isinstance(value, uuid_package.UUID):
             return str(value)
-        if isinstance(value, datetime):
-            return value.isoformat(sep="T", timespec="milliseconds")
+        if isinstance(value, datetime.datetime):
+            if value.tzinfo is None:
+                _Warnings.datetime_insertion_with_no_specified_timezone(value)
+                value = value.replace(tzinfo=datetime.timezone.utc)
+            return value.isoformat(sep="T", timespec="microseconds")
         if isinstance(value, list):
-            return [self.__convert_primative_without_validation(val) for val in value]
+            return [self.__convert_primitive_without_validation(val) for val in value]
         return value
 
-    def __convert_primative_with_vaidation(self, dtype: DataType, name: str, value: Any) -> Any:
+    def __convert_primitive_with_validation(self, dtype: DataType, name: str, value: Any) -> Any:
         if isinstance(value, uuid_package.UUID):
             if dtype != DataType.UUID:
                 raise TypeError(
                     f"Cannot insert a UUID for property {name} as it is not of type UUID: {dtype}."
                 )
             return str(value)
-        if isinstance(value, datetime):
+        if isinstance(value, datetime.datetime):
             if dtype != DataType.DATE:
                 raise TypeError(
                     f"Cannot insert a datetime for property {name} as it is not of type DATE: {dtype}."
                 )
-            return value.isoformat(sep="T", timespec="milliseconds")
+            if value.tzinfo is None:
+                _Warnings.datetime_insertion_with_no_specified_timezone(value)
+                value = value.replace(tzinfo=datetime.timezone.utc)
+            return value.isoformat(sep="T", timespec="microseconds")
         if isinstance(value, list):
-            return [self.__convert_primative_with_vaidation(dtype, name, val) for val in value]
+            return [self.__convert_primitive_with_validation(dtype, name, val) for val in value]
         return value
 
     def _parse_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:

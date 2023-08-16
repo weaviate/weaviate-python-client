@@ -1,4 +1,5 @@
 import warnings
+from datetime import datetime
 from importlib.metadata import version, PackageNotFoundError
 from typing import Optional
 
@@ -122,5 +123,16 @@ class _Warnings:
             message=f"""Dep005: You are using weaviate-client version {client_version}. The latest version is {latest_version}.
             Please consider upgrading to the latest version. See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
             category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def datetime_insertion_with_no_specified_timezone(date: datetime):
+        warnings.warn(
+            message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.
+            If you want to use a different timezone, please specify it in the datetime object. For example:
+            datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=datetime.timezone(-datetime.timedelta(hours=2))).isoformat() = 2021-01-01T00:00:00-02:00
+            """,
+            category=UserWarning,
             stacklevel=1,
         )
