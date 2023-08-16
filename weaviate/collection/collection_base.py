@@ -9,7 +9,6 @@ from weaviate.collection.classes import (
 )
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
-from weaviate.util import _capitalize_first_letter
 
 
 class CollectionBase:
@@ -34,7 +33,7 @@ class CollectionBase:
         return collection_name
 
     def _exists(self, name: str) -> bool:
-        path = f"/schema/{_capitalize_first_letter(name)}"
+        path = f"/schema/{name}"
         try:
             response = self._connection.get(path=path)
         except RequestsConnectionError as conn_err:
@@ -47,7 +46,7 @@ class CollectionBase:
         raise UnexpectedStatusCodeException("collection exists", response)
 
     def _delete(self, name: str) -> None:
-        path = f"/schema/{_capitalize_first_letter(name)}"
+        path = f"/schema/{name}"
         try:
             response = self._connection.delete(path=path)
         except RequestsConnectionError as conn_err:

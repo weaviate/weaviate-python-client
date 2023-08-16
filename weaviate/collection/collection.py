@@ -1,13 +1,14 @@
 from typing import Optional
 
 from weaviate.collection.classes import CollectionConfig
-from weaviate.collection.config import _ConfigCollection
 from weaviate.collection.collection_base import CollectionBase
+from weaviate.collection.config import _ConfigCollection
 from weaviate.collection.data import _DataCollection
 from weaviate.collection.grpc import _GrpcCollection
 from weaviate.collection.tenants import _Tenants
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
+from weaviate.util import _capitalize_first_letter
 
 
 class CollectionObject:
@@ -65,7 +66,7 @@ class Collection(CollectionBase):
         Parameters:
         - name: The name of the collection to delete.
         """
-        self._delete(name)
+        self._delete(_capitalize_first_letter(name))
 
     def exists(self, name: str) -> bool:
-        return self._exists(name)
+        return self._exists(_capitalize_first_letter(name))
