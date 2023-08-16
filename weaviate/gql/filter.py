@@ -592,6 +592,13 @@ class Where(Filter):
         for operand in _content["operands"]:
             self.operands.append(Where(operand))
 
+    def _render_value_geo_range(self, content: dict) -> str:
+        print(content)
+        latitude = content["geoCoordinates"]["latitude"]
+        longitude = content["geoCoordinates"]["longitude"]
+        distance = content["distance"]["max"]
+        return f"{{ geoCoordinates: {{ latitude: {latitude} longitude: {longitude} }} distance: {{ max: {distance} }} }}"
+
     def __str__(self):
         if self.is_filter:
             gql = f"where: {{path: {self.path} operator: {self.operator} {self.value_type}: "
@@ -600,7 +607,7 @@ class Where(Filter):
             elif self.value_type == "valueBoolean":
                 gql += f"{_bool_to_str(self.value)}}}"
             elif self.value_type == "valueGeoRange":
-                gql += f"{dumps(self.value)}}}"
+                gql += self._render_value_geo_range(self.value)
             else:
                 gql += f'"{self.value}"}}'
             return gql + " "

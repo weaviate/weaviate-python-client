@@ -644,7 +644,7 @@ class TestWhere(unittest.TestCase):
         test_filter = helper_get_test_filter("valueGeoRange", geo_range)
         result = str(Where(test_filter))
         self.assertEqual(
-            'where: {path: ["name"] operator: Equal valueGeoRange: {"geoCoordinates": {"latitude": 51.51, "longitude": -0.09}, "distance": {"max": 2000}}} ',
+            'where: {path: ["name"] operator: Equal valueGeoRange: { geoCoordinates: { latitude: 51.51 longitude: -0.09 } distance: { max: 2000 } } ',
             str(result),
         )
 
