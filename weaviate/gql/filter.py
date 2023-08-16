@@ -606,7 +606,7 @@ class Where(Filter):
             elif self.value_type == "valueBoolean":
                 gql += f"{_bool_to_str(self.value)}}}"
             elif self.value_type == "valueGeoRange":
-                gql += self._render_value_geo_range(self.value)
+                gql += f"{self._render_value_geo_range(self.value)}}}"
             else:
                 gql += f'"{self.value}"}}'
             return gql + " "
