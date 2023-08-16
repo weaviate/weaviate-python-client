@@ -26,6 +26,9 @@ from weaviate.collection.classes import (
     Tenant,
     VectorIndexConfigUpdate,
     Vectorizer,
+    UUIDList,
+    UUIDandErrorList,
+    Error,
 )
 from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery
 
@@ -90,6 +93,32 @@ def test_insert_many(client: weaviate.Client):
     client.collection.delete(name)
 
 
+def test_insert_many_error(client: weaviate.Client):
+    name = "TestInsertManyWitHError"
+    collection_config = CollectionConfig(
+        name=name,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer=Vectorizer.NONE,
+    )
+    collection = client.collection.create(collection_config)
+    uuids = collection.data.insert_many(
+        [
+            DataObject(data={"wrong_name": "some name"}, vector=[1, 2, 3]),
+            DataObject(data={"name": "some other name"}, uuid=uuid.uuid4()),
+            DataObject(data={"other_thing": "is_wrong"}, vector=[1, 2, 3]),
+        ]
+    )
+    assert isinstance(uuids, UUIDandErrorList)
+    assert not uuids.success
+    assert isinstance(uuids[0], Error)
+    assert isinstance(uuids[2], Error)
+
+    obj2 = collection.data.get_by_id(uuids[1])
+    assert obj2.data["name"] == "some other name"
+
+    client.collection.delete(name)
+
+
 def test_insert_many_with_tenant(client: weaviate.Client):
     name = "TestInsertManyWithTenant"
     collection_config = CollectionConfig(
@@ -110,6 +139,8 @@ def test_insert_many_with_tenant(client: weaviate.Client):
             DataObject(data={"name": "some other name"}, uuid=uuid.uuid4()),
         ]
     )
+    assert isinstance(uuids, UUIDList)
+    assert uuids.success
     obj1 = tenant1.data.get_by_id(uuids[0])
     obj2 = tenant1.data.get_by_id(uuids[1])
     assert obj1.data["name"] == "some name"

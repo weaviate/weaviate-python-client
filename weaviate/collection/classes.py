@@ -14,6 +14,7 @@ from typing import (
     get_args,
     get_origin,
     get_type_hints,
+    ClassVar,
 )
 
 import uuid as uuid_package
@@ -26,8 +27,16 @@ from weaviate.weaviate_types import UUID, PYTHON_TYPE_TO_DATATYPE
 
 @dataclass
 class Error:
-    code: int
     message: str
+    code: Optional[int] = None
+
+
+class UUIDList(list):
+    success: ClassVar[bool] = True
+
+
+class UUIDandErrorList(list):
+    success: ClassVar[bool] = False
 
 
 Errors = List[Error]

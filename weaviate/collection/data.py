@@ -18,6 +18,8 @@ from weaviate.collection.classes import (
     UUID,
     Model,
     ReferenceToMultiTarget,
+    UUIDList,
+    UUIDandErrorList,
 )
 from weaviate.collection.config import _ConfigBase, _ConfigCollectionModel
 from weaviate.collection.grpc_batch import _BatchGRPC
@@ -301,7 +303,7 @@ class _DataCollection(_Data):
 
         return self._insert(weaviate_obj)
 
-    def insert_many(self, objects: List[DataObject]) -> List[Union[uuid_package.UUID, Errors]]:
+    def insert_many(self, objects: List[DataObject]) -> Union[UUIDList, UUIDandErrorList]:
         weaviate_objs: List[weaviate_pb2.BatchObject] = [
             weaviate_pb2.BatchObject(
                 class_name=self.name,
@@ -313,9 +315,16 @@ class _DataCollection(_Data):
             for obj in objects
         ]
 
-        self._batch.batch(weaviate_objs)
+        errors = self._batch.batch(weaviate_objs)
 
-        return [obj.uuid for obj in weaviate_objs]
+        if len(errors) == 0:
+            return UUIDList(obj.uuid for obj in weaviate_objs)
+
+        uuids_and_errors: UUIDandErrorList = UUIDandErrorList(obj.uuid for obj in weaviate_objs)
+        for index, error in errors.items():
+            uuids_and_errors[index] = Error(message=error)
+
+        return uuids_and_errors
 
     def replace(
         self, data: Dict[str, Any], uuid: UUID, vector: Optional[List[float]] = None

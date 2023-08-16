@@ -78,8 +78,12 @@ class BatchObject(_message.Message):
 class BatchObjectsReply(_message.Message):
     __slots__ = ["results", "took"]
     class BatchResults(_message.Message):
-        __slots__ = []
-        def __init__(self) -> None: ...
+        __slots__ = ["error", "index"]
+        ERROR_FIELD_NUMBER: _ClassVar[int]
+        INDEX_FIELD_NUMBER: _ClassVar[int]
+        error: str
+        index: int
+        def __init__(self, index: _Optional[int] = ..., error: _Optional[str] = ...) -> None: ...
     RESULTS_FIELD_NUMBER: _ClassVar[int]
     TOOK_FIELD_NUMBER: _ClassVar[int]
     results: _containers.RepeatedCompositeFieldContainer[BatchObjectsReply.BatchResults]

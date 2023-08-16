@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 
 from weaviate.collection import grpc
 from weaviate.connect import Connection
@@ -10,7 +10,7 @@ class _BatchGRPC:
     def __init__(self, connection: Connection):
         self._connection: Connection = connection
 
-    def batch(self, batch: List[weaviate_pb2.BatchObject]):
+    def batch(self, batch: List[weaviate_pb2.BatchObject]) -> Dict[int, str]:
         metadata = ()
         access_token = self._connection.get_current_bearer_token()
         if len(access_token) > 0:
@@ -22,5 +22,10 @@ class _BatchGRPC:
                 ),
                 metadata=metadata,
             )
+
+            objects: Dict[int, str] = {}
+            for result in res.results:
+                objects[result.index] = result.error
+            return objects
         except grpc.RpcError as e:
             raise WeaviateGRPCException(e.details())
