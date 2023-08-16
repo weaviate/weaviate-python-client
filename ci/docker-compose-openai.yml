@@ -9,7 +9,7 @@ services:
       - '8086'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-add-batch-queue-congestion-info-to-node-status-c14301b
+    image: semitechnologies/weaviate:preview-release-v1-21-0-rc-1-d7c8d9e
     ports:
       - 8086:8086
     restart: on-failure:0
