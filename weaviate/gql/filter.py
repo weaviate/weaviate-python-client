@@ -592,12 +592,6 @@ class Where(Filter):
         for operand in _content["operands"]:
             self.operands.append(Where(operand))
 
-    def _render_value_geo_range(self, content: dict) -> str:
-        latitude = content["geoCoordinates"]["latitude"]
-        longitude = content["geoCoordinates"]["longitude"]
-        distance = content["distance"]["max"]
-        return f"{{ geoCoordinates: {{ latitude: {latitude} longitude: {longitude} }} distance: {{ max: {distance} }} }}"
-
     def __str__(self):
         if self.is_filter:
             gql = f"where: {{path: {self.path} operator: {self.operator} {self.value_type}: "
@@ -606,7 +600,7 @@ class Where(Filter):
             elif self.value_type == "valueBoolean":
                 gql += f"{_bool_to_str(self.value)}}}"
             elif self.value_type == "valueGeoRange":
-                gql += f"{self._render_value_geo_range(self.value)} }}"
+                gql += f"{_geo_range_to_str(self.value)}}}"
             else:
                 gql += f'"{self.value}"}}'
             return gql + " "
@@ -617,6 +611,26 @@ class Where(Filter):
             operands_str.append(str(operand)[7:-1])
         operands = ", ".join(operands_str)
         return f"where: {{operator: {self.operator} operands: [{operands}]}} "
+
+
+def _geo_range_to_str(value: dict) -> str:
+    """
+    Convert the valueGeoRange object to match `json` formatting.
+
+    Parameters
+    ----------
+    value : dict
+        The value to be converted.
+
+    Returns
+    -------
+    str
+        The string interpretation of the value in `json` format.
+    """
+    latitude = value["geoCoordinates"]["latitude"]
+    longitude = value["geoCoordinates"]["longitude"]
+    distance = value["distance"]["max"]
+    return f"{{ geoCoordinates: {{ latitude: {latitude} longitude: {longitude} }} distance: {{ max: {distance} }}}}"
 
 
 def _bool_to_str(value: bool) -> str:
