@@ -38,7 +38,7 @@ class BM25:
     properties: Optional[List[str]]
 
     def __str__(self) -> str:
-        ret = f'query: "{util.strip_newlines(self.query)}"'
+        ret = f"query: {dumps(util.strip_newlines(self.query))}"
         if self.properties is not None and len(self.properties) > 0:
             props = '","'.join(self.properties)
             ret += f', properties: ["{props}"]'
