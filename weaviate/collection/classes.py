@@ -725,10 +725,11 @@ def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
     )
 
 
-class ReferenceTo(BaseModel):
+@dataclass
+class ReferenceTo:
     uuids: Union[List[UUID], UUID]
 
-    def model_post_init(self, __context: Any) -> None:
+    def __post_init__(self) -> None:
         if isinstance(self.uuids, UUID):
             self.uuids = [str(self.uuids)]
         else:
@@ -738,6 +739,7 @@ class ReferenceTo(BaseModel):
         return _to_beacons(self.uuids)
 
 
+@dataclass
 class ReferenceToMultiTarget(ReferenceTo):
     target_collection: str
 
