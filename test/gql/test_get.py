@@ -68,6 +68,7 @@ def test_getbuilder_with_additional_props(additional_props: AdditionalProperties
         ("other query", [], 'bm25:{query: "other query"}'),
         ("other query", None, 'bm25:{query: "other query"}'),
         ('what is an "airport"', None, 'bm25:{query: "what is an \\"airport\\""}'),
+        ("what is an 'airport'", None, """bm25:{query: "what is an 'airport'"}"""),
     ],
 )
 def test_bm25(query: str, properties: List[str], expected: str):
