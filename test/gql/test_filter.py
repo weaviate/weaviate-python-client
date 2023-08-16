@@ -619,6 +619,23 @@ class TestWhere(unittest.TestCase):
         result = str(Where(test_filter))
         self.assertEqual('where: {path: ["name"] operator: Equal valueString: "Test"} ', result)
 
+        test_filter = helper_get_test_filter("valueText", "n\n")
+        result = str(Where(test_filter))
+        self.assertEqual('where: {path: ["name"] operator: Equal valueText: "n "} ', result)
+
+        test_filter = helper_get_test_filter("valueString", 'what is an "airport"?')
+        result = str(Where(test_filter))
+        self.assertEqual(
+            'where: {path: ["name"] operator: Equal valueString: "what is an \\"airport\\"?"} ',
+            result,
+        )
+
+        test_filter = helper_get_test_filter("valueText", "what is an 'airport'?")
+        result = str(Where(test_filter))
+        self.assertEqual(
+            'where: {path: ["name"] operator: Equal valueText: "what is an \'airport\'?"} ', result
+        )
+
         test_filter = helper_get_test_filter("valueInt", 1)
         result = str(Where(test_filter))
         self.assertEqual('where: {path: ["name"] operator: Equal valueInt: 1} ', result)
