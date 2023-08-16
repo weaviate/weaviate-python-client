@@ -251,7 +251,9 @@ class _Data:
 
     def _parse_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
         return {
-            key: val if not isinstance(val, ReferenceTo) else val.to_beacons()
+            key: val
+            if not (isinstance(val, ReferenceTo) or isinstance(val, ReferenceToMultiTarget))
+            else val.to_beacons()
             for key, val in data.items()
         }
 
