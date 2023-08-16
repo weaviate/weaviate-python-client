@@ -740,8 +740,15 @@ class ReferenceTo:
 
 
 @dataclass
-class ReferenceToMultiTarget(ReferenceTo):
+class ReferenceToMultiTarget:  # cannot inherit from ReferenceTo because of python 3.8+9 problems with isinstance checks
+    uuids: Union[List[UUID], UUID]
     target_collection: str
+
+    def __post_init__(self) -> None:
+        if isinstance(self.uuids, UUID):
+            self.uuids = [str(self.uuids)]
+        else:
+            self.uuids = [str(uid) for uid in self.uuids]
 
     def to_beacons(self) -> List[Dict[str, str]]:
         return _to_beacons(self.uuids, self.target_collection)
