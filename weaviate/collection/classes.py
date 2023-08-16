@@ -619,11 +619,13 @@ class CollectionConfig(CollectionConfigCreateBase):
     name: str
     properties: Optional[List[Union[Property, ReferencePropertyBase]]] = None
 
+    def model_post_init(self, __context: Any) -> None:
+        self.name = _capitalize_first_letter(self.name)
+
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
 
-        if self.name is not None:
-            ret_dict["class"] = _capitalize_first_letter(self.name)
+        ret_dict["class"] = self.name
 
         if self.properties is not None:
             ret_dict["properties"] = [prop.to_dict() for prop in self.properties]

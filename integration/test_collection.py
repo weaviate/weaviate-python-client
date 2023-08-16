@@ -879,3 +879,20 @@ def test_empty_search_returns_everything(client: weaviate.Client):
     assert objects[0].metadata.creation_time_unix is not None
 
     client.collection.delete("TestReturnEverything")
+
+
+def test_collection_name_capitalization(client: weaviate.Client):
+    name_small = "collectionCapitalizationTest"
+    name_big = "CollectionCapitalizationTest"
+    collection = client.collection.create(
+        CollectionConfig(
+            name=name_small,
+            vectorizer=Vectorizer.NONE,
+            properties=[Property(name="name", data_type=DataType.TEXT)],
+        )
+    )
+
+    assert collection.name == name_big
+    client.collection.delete(name_small)
+    assert not client.collection.exists(name_small)
+    assert not client.collection.exists(name_big)
