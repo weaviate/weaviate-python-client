@@ -38,7 +38,7 @@ class BM25:
     properties: Optional[List[str]]
 
     def __str__(self) -> str:
-        ret = f'query: "{util.strip_newlines(self.query)}"'
+        ret = f"query: {dumps(util.strip_newlines(self.query))}"
         if self.properties is not None and len(self.properties) > 0:
             props = '","'.join(self.properties)
             ret += f', properties: ["{props}"]'
@@ -59,7 +59,7 @@ class Hybrid:
     fusion_type: Optional[HybridFusion]
 
     def __str__(self) -> str:
-        ret = f'query: "{util.strip_newlines(self.query)}"'
+        ret = f"query: {dumps(util.strip_newlines(self.query))}"
         if self.vector is not None:
             ret += f", vector: {self.vector}"
         if self.alpha is not None:
@@ -1130,14 +1130,16 @@ class GetBuilder(GraphQL):
         task_and_prompt = ""
         if single_prompt is not None:
             results.append("singleResult")
-            task_and_prompt += f'singleResult:{{prompt:"{util.strip_newlines(single_prompt)}"}}'
+            task_and_prompt += (
+                f"singleResult:{{prompt:{dumps(util.strip_newlines(single_prompt))}}}"
+            )
         if grouped_task is not None or (
             grouped_properties is not None and len(grouped_properties) > 0
         ):
             results.append("groupedResult")
             args = []
             if grouped_task is not None:
-                args.append(f'task:"{util.strip_newlines(grouped_task)}"')
+                args.append(f"task:{dumps(util.strip_newlines(grouped_task))}")
             if grouped_properties is not None and len(grouped_properties) > 0:
                 props = '","'.join(grouped_properties)
                 args.append(f'properties:["{props}"]')
