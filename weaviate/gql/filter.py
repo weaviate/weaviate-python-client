@@ -597,10 +597,12 @@ class Where(Filter):
             gql = f"where: {{path: {self.path} operator: {self.operator} {self.value_type}: "
             if self.value_type in ["valueInt", "valueNumber"]:
                 gql += f"{self.value}}}"
+            elif self.value_type in ["valueText", "valueString"]:
+                gql += f"{_sanitize_str(self.value)}}}"
             elif self.value_type == "valueBoolean":
                 gql += f"{_bool_to_str(self.value)}}}"
             elif self.value_type == "valueGeoRange":
-                gql += f"{dumps(self.value)}}}"
+                gql += f"{_geo_range_to_str(self.value)}}}"
             else:
                 gql += f'"{self.value}"}}'
             return gql + " "
@@ -611,6 +613,44 @@ class Where(Filter):
             operands_str.append(str(operand)[7:-1])
         operands = ", ".join(operands_str)
         return f"where: {{operator: {self.operator} operands: [{operands}]}} "
+
+
+def _geo_range_to_str(value: dict) -> str:
+    """
+    Convert the valueGeoRange object to match `json` formatting.
+
+    Parameters
+    ----------
+    value : dict
+        The value to be converted.
+
+    Returns
+    -------
+    str
+        The string interpretation of the value in `json` format.
+    """
+    latitude = value["geoCoordinates"]["latitude"]
+    longitude = value["geoCoordinates"]["longitude"]
+    distance = value["distance"]["max"]
+    return f"{{ geoCoordinates: {{ latitude: {latitude} longitude: {longitude} }} distance: {{ max: {distance} }}}}"
+
+
+def _sanitize_str(value: str) -> str:
+    """
+    Ensures string is sanitized for GraphQL.
+
+    Parameters
+    ----------
+    value : str
+        The value to be converted.
+
+    Returns
+    -------
+    str
+        The sanitized string.
+    """
+    value = value.replace("\n", " ")
+    return dumps(value)
 
 
 def _bool_to_str(value: bool) -> str:

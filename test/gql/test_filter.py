@@ -619,6 +619,37 @@ class TestWhere(unittest.TestCase):
         result = str(Where(test_filter))
         self.assertEqual('where: {path: ["name"] operator: Equal valueString: "Test"} ', result)
 
+        test_filter = helper_get_test_filter("valueText", "n\n")
+        result = str(Where(test_filter))
+        self.assertEqual('where: {path: ["name"] operator: Equal valueText: "n "} ', result)
+
+        test_filter = helper_get_test_filter("valueString", 'what is an "airport"?')
+        result = str(Where(test_filter))
+        self.assertEqual(
+            'where: {path: ["name"] operator: Equal valueString: "what is an \\"airport\\"?"} ',
+            result,
+        )
+
+        test_filter = helper_get_test_filter("valueString", "this is an escape sequence \a")
+        result = str(Where(test_filter))
+        self.assertEqual(
+            'where: {path: ["name"] operator: Equal valueString: "this is an escape sequence \\u0007"} ',
+            result,
+        )
+
+        test_filter = helper_get_test_filter("valueString", "this is a hex value \u03A9")
+        result = str(Where(test_filter))
+        self.assertEqual(
+            'where: {path: ["name"] operator: Equal valueString: "this is a hex value \\u03a9"} ',
+            result,
+        )
+
+        test_filter = helper_get_test_filter("valueText", "what is an 'airport'?")
+        result = str(Where(test_filter))
+        self.assertEqual(
+            'where: {path: ["name"] operator: Equal valueText: "what is an \'airport\'?"} ', result
+        )
+
         test_filter = helper_get_test_filter("valueInt", 1)
         result = str(Where(test_filter))
         self.assertEqual('where: {path: ["name"] operator: Equal valueInt: 1} ', result)
@@ -644,7 +675,7 @@ class TestWhere(unittest.TestCase):
         test_filter = helper_get_test_filter("valueGeoRange", geo_range)
         result = str(Where(test_filter))
         self.assertEqual(
-            'where: {path: ["name"] operator: Equal valueGeoRange: {"geoCoordinates": {"latitude": 51.51, "longitude": -0.09}, "distance": {"max": 2000}}} ',
+            'where: {path: ["name"] operator: Equal valueGeoRange: { geoCoordinates: { latitude: 51.51 longitude: -0.09 } distance: { max: 2000 }}} ',
             str(result),
         )
 
