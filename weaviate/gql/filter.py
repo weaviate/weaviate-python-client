@@ -13,7 +13,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.connect import Connection
 from weaviate.error_msgs import FILTER_BEACON_V14_CLS_NS_W
 from weaviate.exceptions import UnexpectedStatusCodeException
-from weaviate.util import get_vector
+from weaviate.util import get_vector, _sanitize_str
 
 VALUE_TYPES = {
     "valueString",
@@ -633,24 +633,6 @@ def _geo_range_to_str(value: dict) -> str:
     longitude = value["geoCoordinates"]["longitude"]
     distance = value["distance"]["max"]
     return f"{{ geoCoordinates: {{ latitude: {latitude} longitude: {longitude} }} distance: {{ max: {distance} }}}}"
-
-
-def _sanitize_str(value: str) -> str:
-    """
-    Ensures string is sanitized for GraphQL.
-
-    Parameters
-    ----------
-    value : str
-        The value to be converted.
-
-    Returns
-    -------
-    str
-        The sanitized string.
-    """
-    value = value.replace("\n", " ")
-    return dumps(value)
 
 
 def _bool_to_str(value: bool) -> str:

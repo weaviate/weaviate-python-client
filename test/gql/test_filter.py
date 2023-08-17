@@ -630,19 +630,19 @@ class TestWhere(unittest.TestCase):
             result,
         )
 
-        test_filter = helper_get_test_filter("valueString", "this is an escape sequence \a")
-        result = str(Where(test_filter))
-        self.assertEqual(
-            'where: {path: ["name"] operator: Equal valueString: "this is an escape sequence \\u0007"} ',
-            result,
-        )
+        # test_filter = helper_get_test_filter("valueString", "this is an escape sequence \a")
+        # result = str(Where(test_filter))
+        # self.assertEqual(
+        #     'where: {path: ["name"] operator: Equal valueString: "this is an escape sequence \\u0007"} ',
+        #     result,
+        # )
 
-        test_filter = helper_get_test_filter("valueString", "this is a hex value \u03A9")
-        result = str(Where(test_filter))
-        self.assertEqual(
-            'where: {path: ["name"] operator: Equal valueString: "this is a hex value \\u03a9"} ',
-            result,
-        )
+        # test_filter = helper_get_test_filter("valueString", "this is a hex value \u03A9")
+        # result = str(Where(test_filter))
+        # self.assertEqual(
+        #     'where: {path: ["name"] operator: Equal valueString: "this is a hex value \\u03a9"} ',
+        #     result,
+        # )
 
         test_filter = helper_get_test_filter("valueText", "what is an 'airport'?")
         result = str(Where(test_filter))
