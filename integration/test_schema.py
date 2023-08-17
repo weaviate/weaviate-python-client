@@ -3,7 +3,7 @@ from typing import Optional
 import pytest
 
 import weaviate
-from weaviate import Tenant
+from weaviate import Tenant, TenantActivityStatus
 
 
 @pytest.fixture(scope="module")
@@ -115,3 +115,48 @@ def test_class_tenants(client: weaviate.Client):
     client.schema.remove_class_tenants(class_name, ["Tenant2", "Tenant4"])
     tenants_get = client.schema.get_class_tenants(class_name)
     assert len(tenants_get) == 2
+
+
+def test_class_tenants_activate_deactivate(client: weaviate.Client):
+    class_name = "MultiTenancyActivateDeactivateSchemaTest"
+    single_class = {"class": class_name, "multiTenancyConfig": {"enabled": True}}
+    client.schema.delete_all()
+    client.schema.create_class(single_class)
+    assert client.schema.exists(class_name)
+
+    tenants = [
+        Tenant(name="Tenant1"),
+        Tenant(activity_status=TenantActivityStatus.COLD, name="Tenant2"),
+        Tenant(name="Tenant3"),
+    ]
+    client.schema.add_class_tenants(class_name, tenants)
+    tenants_get = client.schema.get_class_tenants(class_name)
+    assert len(tenants_get) == len(tenants)
+    # below required because tenants are returned in random order by the server
+    for tenant in tenants_get:
+        if tenant.name == "Tenant1":
+            assert tenant.activity_status == TenantActivityStatus.HOT
+        elif tenant.name == "Tenant2":
+            assert tenant.activity_status == TenantActivityStatus.COLD
+        elif tenant.name == "Tenant3":
+            assert tenant.activity_status == TenantActivityStatus.HOT
+        else:
+            raise AssertionError(f"Unexpected tenant: {tenant.name}")
+
+    updated_tenants = [
+        Tenant(activity_status=TenantActivityStatus.COLD, name="Tenant1"),
+        Tenant(activity_status=TenantActivityStatus.HOT, name="Tenant2"),
+    ]
+    client.schema.update_class_tenant_activities(class_name, updated_tenants)
+    tenants_get = client.schema.get_class_tenants(class_name)
+    assert len(tenants_get) == len(tenants)
+    # below required because tenants are returned in random order by the server
+    for tenant in tenants_get:
+        if tenant.name == "Tenant1":
+            assert tenant.activity_status == TenantActivityStatus.COLD
+        elif tenant.name == "Tenant2":
+            assert tenant.activity_status == TenantActivityStatus.HOT
+        elif tenant.name == "Tenant3":
+            assert tenant.activity_status == TenantActivityStatus.HOT
+        else:
+            raise AssertionError(f"Unexpected tenant: {tenant.name}")
