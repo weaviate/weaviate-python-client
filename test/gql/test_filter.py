@@ -679,6 +679,37 @@ class TestWhere(unittest.TestCase):
             str(result),
         )
 
+        test_filter = {
+            "path": ["name"],
+            "operator": "ContainsAny",
+            "valueText": ["A", "B\n"],
+        }
+        result = str(Where(test_filter))
+        self.assertEqual(
+            'where: {path: ["name"] operator: ContainsAny valueText: ["A","B "]} ', str(result)
+        )
+
+        test_filter = {
+            "path": ["name"],
+            "operator": "ContainsAll",
+            "valueString": ["A", '"B"'],
+        }
+        result = str(Where(test_filter))
+        self.assertEqual(
+            'where: {path: ["name"] operator: ContainsAll valueString: ["A","\\"B\\""]} ',
+            str(result),
+        )
+
+        test_filter = {
+            "path": ["name"],
+            "operator": "Equal",
+            "valueText": "😃",
+        }
+        result = str(Where(test_filter))
+        self.assertEqual(
+            'where: {path: ["name"] operator: Equal valueText: "\\ud83d\\ude03"} ', str(result)
+        )
+
 
 class TestAskFilter(unittest.TestCase):
     def test___init__(self):
