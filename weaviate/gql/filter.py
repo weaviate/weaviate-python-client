@@ -25,7 +25,7 @@ VALUE_TYPES = {
     "valueGeoRange",
 }
 
-WHERE_OPERATORS = {
+WHERE_OPERATORS = [
     "And",
     "ContainsAll",
     "ContainsAny",
@@ -40,7 +40,7 @@ WHERE_OPERATORS = {
     "NotEqual",
     "Or",
     "WithinGeoRange",
-}
+]
 
 
 class GraphQL(ABC):
@@ -583,7 +583,7 @@ class Where(Filter):
         if content["operator"] not in WHERE_OPERATORS:
             raise ValueError(
                 f"Operator {content['operator']} is not allowed. "
-                f"Allowed operators are: {WHERE_OPERATORS}"
+                f"Allowed operators are: {', '.join(WHERE_OPERATORS)}"
             )
         self.path = dumps(content["path"])
         self.operator = content["operator"]

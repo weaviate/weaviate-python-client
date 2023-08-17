@@ -1,7 +1,15 @@
 import unittest
 
 from test.util import check_error_message, check_startswith_error_message
-from weaviate.gql.filter import NearText, NearVector, NearObject, NearImage, Where, Ask
+from weaviate.gql.filter import (
+    NearText,
+    NearVector,
+    NearObject,
+    NearImage,
+    Where,
+    Ask,
+    WHERE_OPERATORS,
+)
 
 
 def helper_get_test_filter(filter_type, value):
@@ -539,6 +547,9 @@ class TestWhere(unittest.TestCase):
         path_key_error = "Filter is missing required field `operator`. Given: "
         dtype_no_value_error_msg = "Filter is missing required field 'value<TYPE>': "
         dtype_multiple_value_error_msg = "Multiple fields 'value<TYPE>' are not supported: "
+        operator_error_msg = (
+            lambda op: f"Operator {op} is not allowed. Allowed operators are: {', '.join(WHERE_OPERATORS)}"
+        )
 
         with self.assertRaises(TypeError) as error:
             Where(None)
@@ -575,6 +586,10 @@ class TestWhere(unittest.TestCase):
         with self.assertRaises(TypeError) as error:
             Where({"operands": ["some_path"], "operator": "Like"})
         check_error_message(self, error, content_error_msg(str))
+
+        with self.assertRaises(ValueError) as error:
+            Where({"path": "some_path", "operator": "NotValid"})
+        check_error_message(self, error, operator_error_msg("NotValid"))
 
         # test valid calls
         Where({"path": "hasTheOneRing", "operator": "Equal", "valueBoolean": False})
