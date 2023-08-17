@@ -580,7 +580,8 @@ def _sanitize_str(value: str) -> str:
     str
         The sanitized string.
     """
-    value = value.replace("\n", " ").replace('"', '\\"')
+    value = strip_newlines(value)
+    value = re.sub(r'(?<!\\)"', '\\"', value)  # only replaces unescaped double quotes
     return f'"{value}"'
 
 
