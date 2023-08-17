@@ -6,7 +6,7 @@ import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from json import dumps
-from typing import Any, Union
+from typing import Any, List, Union
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -23,6 +23,23 @@ VALUE_TYPES = {
     "valueDate",
     "valueBoolean",
     "valueGeoRange",
+}
+
+WHERE_OPERATORS = {
+    "And",
+    "ContainsAll",
+    "ContainsAny",
+    "Equal",
+    "GreaterThan",
+    "GreaterThanEqual",
+    "IsNull",
+    "LessThan",
+    "LessThanEqual",
+    "Like",
+    "Not",
+    "NotEqual",
+    "Or",
+    "WithinGeoRange",
 }
 
 
@@ -563,7 +580,11 @@ class Where(Filter):
 
         if "operator" not in content:
             raise ValueError("Filter is missing required field `operator`. " f"Given: {content}")
-
+        if content["operator"] not in WHERE_OPERATORS:
+            raise ValueError(
+                f"Operator {content['operator']} is not allowed. "
+                f"Allowed operators are: {WHERE_OPERATORS}"
+            )
         self.path = dumps(content["path"])
         self.operator = content["operator"]
         self.value_type = _find_value_type(content)
@@ -586,6 +607,11 @@ class Where(Filter):
 
         if "operator" not in content:
             raise ValueError("Filter is missing required field `operator`." f" Given: {content}")
+        if content["operator"] not in WHERE_OPERATORS:
+            raise ValueError(
+                f"Operator {content['operator']} is not allowed. "
+                f"Allowed operators are: {WHERE_OPERATORS}"
+            )
         _content = deepcopy(content)
         self.operator = _content["operator"]
         self.operands = []
@@ -598,7 +624,11 @@ class Where(Filter):
             if self.value_type in ["valueInt", "valueNumber"]:
                 gql += f"{self.value}}}"
             elif self.value_type in ["valueText", "valueString"]:
-                gql += f"{_sanitize_str(self.value)}}}"
+                if isinstance(self.value, list):
+                    val = f'[{",".join([_sanitize_str(v) for v in self.value])}]'
+                else:
+                    val = _sanitize_str(self.value)
+                gql += f"{val}}}"
             elif self.value_type == "valueBoolean":
                 gql += f"{_bool_to_str(self.value)}}}"
             elif self.value_type == "valueGeoRange":
@@ -651,6 +681,23 @@ def _sanitize_str(value: str) -> str:
     """
     value = value.replace("\n", " ")
     return dumps(value)
+
+
+def _sanitize_list(value: List[str]) -> List[str]:
+    """
+    Ensures list of strings is sanitized for GraphQL.
+
+    Parameters
+    ----------
+    value : List[str]
+        The value to be converted.
+
+    Returns
+    -------
+    List[str]
+        The sanitized list of strings.
+    """
+    return dumps(value).replace("\n", " ")
 
 
 def _bool_to_str(value: bool) -> str:
