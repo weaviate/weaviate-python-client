@@ -110,6 +110,8 @@ def test_get_references(property_name: str, in_class: str, properties: List[str]
             'hybrid:{query: "query", vector: [1, 2, 3], alpha: 0.5}',
         ),
         ("query", None, None, None, None, 'hybrid:{query: "query"}'),
+        ('query "query2"', None, None, None, None, 'hybrid:{query: "query \\"query2\\""}'),
+        ("query 'query2'", None, None, None, None, """hybrid:{query: "query 'query2'"}"""),
         ("query", None, None, ["prop1"], None, 'hybrid:{query: "query", properties: ["prop1"]}'),
         (
             "query",
@@ -167,10 +169,34 @@ def test_hybrid(
             """generate(singleResult:{prompt:"What is the meaning of life?"}){error singleResult} """,
         ),
         (
+            'What is the meaning of "life"?',
+            None,
+            None,
+            """generate(singleResult:{prompt:"What is the meaning of \\"life\\"?"}){error singleResult} """,
+        ),
+        (
+            "What is the meaning of 'life'?",
+            None,
+            None,
+            """generate(singleResult:{prompt:"What is the meaning of 'life'?"}){error singleResult} """,
+        ),
+        (
             None,
             "Explain why these magazines or newspapers are about finance",
             None,
             """generate(groupedResult:{task:"Explain why these magazines or newspapers are about finance"}){error groupedResult} """,
+        ),
+        (
+            None,
+            'Explain why these magazines or newspapers are about "finance"',
+            None,
+            """generate(groupedResult:{task:"Explain why these magazines or newspapers are about \\"finance\\""}){error groupedResult} """,
+        ),
+        (
+            None,
+            "Explain why these magazines or newspapers are about 'finance'",
+            None,
+            """generate(groupedResult:{task:"Explain why these magazines or newspapers are about 'finance'"}){error groupedResult} """,
         ),
         (
             "What is the meaning of life?",
