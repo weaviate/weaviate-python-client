@@ -598,7 +598,6 @@ class Where(Filter):
             if self.value_type in ["valueInt", "valueNumber"]:
                 gql += f"{self.value}}}"
             elif self.value_type in ["valueText", "valueString"]:
-                print(self.value)
                 gql += f"{_sanitize_str(self.value)}}}"
             elif self.value_type == "valueBoolean":
                 gql += f"{_bool_to_str(self.value)}}}"
