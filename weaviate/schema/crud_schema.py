@@ -49,10 +49,8 @@ class TenantActivityStatus(str, Enum):
 
     Attributes
     ----------
-    HOT : str
-        The tenant is fully active and can be used.
-    COLD : str
-        The tenant is not active, files stored locally.
+    HOT: The tenant is fully active and can be used.
+    COLD: The tenant is not active, files stored locally.
     """
 
     HOT = "HOT"
@@ -72,7 +70,7 @@ class Tenant:
     """
 
     name: str
-    activity_status: TenantActivityStatus = "HOT"
+    activity_status: TenantActivityStatus = TenantActivityStatus.HOT
 
     def _to_weaviate_object(self) -> Dict[str, str]:
         return {
