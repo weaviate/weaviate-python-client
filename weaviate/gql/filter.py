@@ -652,7 +652,7 @@ class Where(Filter):
                 gql += f"{self.value}}}"
             elif self.value_type in ["valueIntList", "valueNumberList"]:
                 _check_is_list(self.value, self.value_type)
-                gql += f"{_render_list(self.value)}}}"
+                gql += f"{self.value}}}"
             elif self.value_type in ["valueText", "valueString"]:
                 _check_is_not_list(self.value, self.value_type)
                 gql += f"{_sanitize_str(self.value)}}}"

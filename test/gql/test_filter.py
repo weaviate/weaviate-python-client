@@ -745,6 +745,12 @@ class TestWhere(unittest.TestCase):
             str(result),
         )
 
+        test_filter = {"path": ["name"], "operator": "ContainsAny", "valueIntList": [1, 2]}
+        result = str(Where(test_filter))
+        self.assertEqual(
+            'where: {path: ["name"] operator: ContainsAny valueInt: [1, 2]} ', str(result)
+        )
+
         test_filter = {
             "path": ["name"],
             "operator": "ContainsAny",
