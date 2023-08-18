@@ -51,6 +51,7 @@ __all__ = [
     "AdditionalProperties",
     "LinkTo",
     "Tenant",
+    "TenantActivityStatus",
 ]
 
 import sys
@@ -66,7 +67,7 @@ from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken, Au
 from .batch.crud_batch import WeaviateErrorRetryConf
 from .client import Client
 from .data.replication import ConsistencyLevel
-from .schema.crud_schema import Tenant
+from .schema.crud_schema import Tenant, TenantActivityStatus
 from .embedded import EmbeddedOptions
 from .exceptions import (
     UnexpectedStatusCodeException,
