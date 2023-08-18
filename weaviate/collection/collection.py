@@ -4,7 +4,7 @@ from weaviate.collection.classes import CollectionConfig
 from weaviate.collection.collection_base import CollectionBase
 from weaviate.collection.config import _ConfigCollection
 from weaviate.collection.data import _DataCollection
-from weaviate.collection.grpc import _GrpcCollection
+from weaviate.collection.grpc import _GrpcCollection, _RawObject
 from weaviate.collection.tenants import _Tenants
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
@@ -25,7 +25,7 @@ class CollectionObject:
 
         self.config = config
         self.data = _DataCollection(connection, name, config, consistency_level, tenant)
-        self.query = _GrpcCollection(connection, name, tenant)
+        self.query = _GrpcCollection[_RawObject](connection, name, tenant)
         self.tenants = _Tenants(connection, name)
 
         self.__tenant = tenant

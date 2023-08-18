@@ -87,6 +87,8 @@ PROPERTIES = Union[List[Union[str, LinkTo]], str]
 
 # Can be found in the google.protobuf.internal.well_known_types.pyi stub file but is defined explicitly here for clarity.
 _StructValue: TypeAlias = Union[struct_pb2.Struct, struct_pb2.ListValue, str, float, bool, None]
+_PyValue: TypeAlias = Union[Dict[str, "_PyValue"], List["_PyValue"], str, float, bool, None]
+_RawObject = Dict[str, _PyValue]
 
 
 @dataclass
@@ -145,7 +147,7 @@ class _GRPC:
         self._hybrid_alpha: Optional[float] = None
         self._hybrid_vector: Optional[List[float]] = None
         self._hybrid_properties: Optional[List[str]] = None
-        self._hybrid_fusion_type: Optional[weaviate_pb2.HybridSearchParams.FusionType] = None
+        self._hybrid_fusion_type: Optional[int] = None
 
         self._bm25_query: Optional[str] = None
         self._bm25_properties: Optional[List[str]] = None
@@ -301,7 +303,9 @@ class _GRPC:
                         query=self._hybrid_query,
                         alpha=self._hybrid_alpha,
                         vector=self._hybrid_vector,
-                        fusion_type=self._hybrid_fusion_type,
+                        fusion_type=cast(
+                            weaviate_pb2.HybridSearchParams.FusionType, self._hybrid_fusion_type
+                        ),
                     )
                     if self._hybrid_query is not None
                     else None,
@@ -400,12 +404,12 @@ class _GRPC:
         )
 
 
-class SupportsResultToObject(Generic[Properties], Protocol):
+class SupportsResultToObject(Protocol, Generic[Properties]):
     def _result_to_object(self, result: GrpcResult) -> _Object[Properties]:
         ...
 
 
-class _Grpc(Generic[Properties], SupportsResultToObject[Properties]):
+class _Grpc(SupportsResultToObject, Generic[Properties]):
     def __init__(self, connection: Connection, name: str, tenant: Optional[str]):
         self.__connection = connection
         self.__name = name
@@ -603,12 +607,8 @@ class _Grpc(Generic[Properties], SupportsResultToObject[Properties]):
             )
         ]
 
-
-class _GrpcCollection(Generic[Properties], _Grpc[Properties]):
-    def __init__(self, connection: Connection, name: str, tenant: Optional[str]):
-        super().__init__(connection, name, tenant)
-
-    def _result_to_object(self, obj: GrpcResult) -> _Object[Properties]:
+    def _parse_out(self, obj: GrpcResult) -> _RawObject:
+        out: _RawObject = {}
         data = obj.result
         for key in data.keys():
             entry = data[key]
@@ -616,8 +616,37 @@ class _GrpcCollection(Generic[Properties], _Grpc[Properties]):
                 value: List = entry
                 for i, _ in enumerate(value):
                     value[i] = self._result_to_object(value[i])
-        data = cast(Properties, data)
-        return _Object[Properties](data=data, metadata=obj.metadata)
+                out[key] = value
+            else:
+                out[key] = self.__struct_value_to_py_value(entry)
+        return out
+
+    def __struct_value_to_py_value(self, value: _StructValue) -> _PyValue:
+        if isinstance(value, struct_pb2.Struct):
+            return {key: self.__struct_value_to_py_value(value) for key, value in value.items()}
+        elif isinstance(value, struct_pb2.ListValue):
+            return [
+                self.__struct_value_to_py_value(cast(_StructValue, value)) for value in value.values
+            ]
+        elif isinstance(value, str):
+            return value
+        elif isinstance(value, float):
+            return value
+        elif isinstance(value, bool):
+            return value
+        elif value is None:
+            return None
+        else:
+            raise ValueError(f"Unknown type: {type(value)}")
+
+
+class _GrpcCollection(Generic[Properties], _Grpc[Properties]):
+    def __init__(self, connection: Connection, name: str, tenant: Optional[str]):
+        super().__init__(connection, name, tenant)
+
+    def _result_to_object(self, obj: GrpcResult) -> _Object[Properties]:
+        out = self._parse_out(obj)
+        return _Object[Properties](data=cast(Properties, out), metadata=obj.metadata)
 
 
 class _GrpcCollectionModel(Generic[Model], _Grpc[Model]):
@@ -628,4 +657,5 @@ class _GrpcCollectionModel(Generic[Model], _Grpc[Model]):
         self.model = model
 
     def _result_to_object(self, obj: GrpcResult) -> _Object[Model]:
-        return _Object[Model](data=self.model(**obj.result), metadata=obj.metadata)
+        out = self._parse_out(obj)
+        return _Object[Model](data=self.model.model_validate(out), metadata=obj.metadata)
