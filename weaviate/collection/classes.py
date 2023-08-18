@@ -28,7 +28,7 @@ from weaviate.weaviate_types import UUID, PYTHON_TYPE_TO_DATATYPE
 class Error:
     message: str
     code: Optional[int] = None
-    original_uuid: Optional[uuid_package.UUID] = None
+    original_uuid: Optional[UUID] = None
 
 
 @dataclass
@@ -719,11 +719,12 @@ def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
 class ReferenceTo:
     uuids: Union[List[UUID], UUID]
 
-    def __post_init__(self) -> None:
+    @property
+    def uuids_str(self) -> List[str]:
         if isinstance(self.uuids, list):
-            self.uuids = [str(uid) for uid in self.uuids]
+            return [str(uid) for uid in self.uuids]
         else:
-            self.uuids = [str(self.uuids)]
+            return [str(self.uuids)]
 
     def to_beacons(self) -> List[Dict[str, str]]:
         return _to_beacons(self.uuids)

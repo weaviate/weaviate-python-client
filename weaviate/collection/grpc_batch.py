@@ -1,6 +1,7 @@
-from typing import List, Dict
+from typing import List, Dict, Tuple, Optional
 
-from weaviate.collection import grpc
+import grpc
+
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGRPCException
 from weaviate_grpc import weaviate_pb2
@@ -11,11 +12,12 @@ class _BatchGRPC:
         self._connection: Connection = connection
 
     def batch(self, batch: List[weaviate_pb2.BatchObject]) -> Dict[int, str]:
-        metadata = ()
+        metadata: Optional[Tuple[Tuple[str, str]]] = None
         access_token = self._connection.get_current_bearer_token()
         if len(access_token) > 0:
             metadata = (("authorization", access_token),)
         try:
+            assert self._connection.grpc_stub is not None
             res, _ = self._connection.grpc_stub.BatchObjects.with_call(
                 weaviate_pb2.BatchObjectsRequest(
                     objects=batch,

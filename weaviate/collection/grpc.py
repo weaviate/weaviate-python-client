@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Union, Set, Protocol, Generic, cast
+from typing import Optional, List, Dict, Union, Set, Protocol, Generic, cast, Tuple
 
 import grpc
 import uuid as uuid_lib
@@ -75,7 +75,7 @@ class LinkTo(BaseModel):
     properties: "PROPERTIES"
     metadata: MetadataQuery
 
-    def __hash__(self):  # for set
+    def __hash__(self) -> int:  # for set
         return hash(str(self))
 
 
@@ -124,14 +124,14 @@ class _GRPC:
         connection: Connection,
         name: str,
         tenant: Optional[str],
-        default_properties: Optional[Set[str]] = None,
+        default_properties: Optional[PROPERTIES] = None,
     ):
         self._connection: Connection = connection
         self._name: str = name
         self._tenant = tenant
 
         if default_properties is not None:
-            self._default_props: Set[str] = default_properties
+            self._default_props: Set[Union[str, LinkTo]] = set(default_properties)
         else:
             self._default_props = set()
         self._metadata: Optional[MetadataQuery] = None
@@ -162,7 +162,7 @@ class _GRPC:
         after: Optional[UUID] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ):
+    ) -> List[GrpcResult]:
         self._limit = limit
         self._offset = offset
         self._after = after
@@ -182,7 +182,7 @@ class _GRPC:
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ):
+    ) -> List[GrpcResult]:
         self._hybrid_query = query
         self._hybrid_alpha = alpha
         self._hybrid_vector = vector
@@ -208,7 +208,7 @@ class _GRPC:
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ):
+    ) -> List[GrpcResult]:
         self._bm25_query = query
         self._bm25_properties = properties
         self._limit = limit
@@ -227,7 +227,7 @@ class _GRPC:
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ):
+    ) -> List[GrpcResult]:
         self._near_vector_vec = vector
         self._near_certainty = certainty
         self._near_distance = distance
@@ -246,7 +246,7 @@ class _GRPC:
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ):
+    ) -> List[GrpcResult]:
         self._near_object_obj = near_object
         self._near_certainty = certainty
         self._near_distance = distance
@@ -258,12 +258,13 @@ class _GRPC:
 
         return self.__call()
 
-    def __call(self):
-        metadata = ()
+    def __call(self) -> List[GrpcResult]:
+        metadata: Optional[Tuple[Tuple[str, str]]] = None
         access_token = self._connection.get_current_bearer_token()
         if len(access_token) > 0:
             metadata = (("authorization", access_token),)
         try:
+            assert self._connection.grpc_stub is not None
             res: SearchResponse  # According to PEP-0526
             res, _ = self._connection.grpc_stub.Search.with_call(
                 weaviate_pb2.SearchRequest(
@@ -342,7 +343,9 @@ class _GRPC:
             score=metadata.score,
         )
 
-    def _convert_references_to_grpc_result(self, properties: "weaviate_pb2.ResultProperties"):
+    def _convert_references_to_grpc_result(
+        self, properties: "weaviate_pb2.ResultProperties"
+    ) -> Dict[str, Union[_StructValue, List["GrpcResult"]]]:
         result: Dict[str, Union[_StructValue, List["GrpcResult"]]] = {}
         for name, non_ref_prop in properties.non_ref_properties.items():
             result[name] = non_ref_prop

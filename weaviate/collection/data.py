@@ -24,7 +24,7 @@ from weaviate.collection.grpc_batch import _BatchGRPC
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException, ObjectAlreadyExistsException
-from weaviate.weaviate_types import BEACON, UUIDS
+from weaviate.weaviate_types import BEACON
 from weaviate_grpc import weaviate_pb2
 
 
@@ -269,13 +269,13 @@ class _Data:
             if isinstance(val, ReferenceToMultiTarget):
                 multi_target.append(
                     weaviate_pb2.BatchObject.RefPropertiesMultiTarget(
-                        uuids=val.uuids, target_collection=val.target_collection, prop_name=key
+                        uuids=val.uuids_str, target_collection=val.target_collection, prop_name=key
                     )
                 )
             elif isinstance(val, ReferenceTo):
                 single_target.append(
                     weaviate_pb2.BatchObject.RefPropertiesSingleTarget(
-                        uuids=val.uuids, prop_name=key
+                        uuids=val.uuids_str, prop_name=key
                     )
                 )
             else:
@@ -484,20 +484,14 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         return [self._json_to_object(obj) for obj in ret["objects"]]
 
-    def reference_add(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
-        self._reference_add(
-            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
-        )
+    def reference_add(self, from_uuid: UUID, from_property: str, ref: ReferenceTo) -> None:
+        self._reference_add(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_delete(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
-        self._reference_delete(
-            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
-        )
+    def reference_delete(self, from_uuid: UUID, from_property: str, ref: ReferenceTo) -> None:
+        self._reference_delete(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_replace(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
-        self._reference_replace(
-            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
-        )
+    def reference_replace(self, from_uuid: UUID, from_property: str, ref: ReferenceTo) -> None:
+        self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
     def reference_add_many(self, from_property: str, refs: List[BatchReference]) -> None:
         refs_dict = [
@@ -508,30 +502,3 @@ class _DataCollectionModel(Generic[Model], _Data):
             for ref in refs
         ]
         self._reference_add_many(refs_dict)
-
-    @staticmethod
-    def __parse_properties_grpc(data: Dict[str, Any]) -> weaviate_pb2.Properties:
-        multi_target: List[weaviate_pb2.BatchObject.RefPropertiesMultiTarget] = []
-        single_target: List[weaviate_pb2.BatchObject.RefPropertiesSingleTarget] = []
-        non_ref_properties: Struct = Struct()
-        for key, val in data.items():
-            if isinstance(val, ReferenceToMultiTarget):
-                multi_target.append(
-                    weaviate_pb2.BatchObject.RefPropertiesMultiTarget(
-                        uuids=val.uuids, target_collection=val.target_collection, prop_name=key
-                    )
-                )
-            elif isinstance(val, ReferenceTo):
-                single_target.append(
-                    weaviate_pb2.BatchObject.RefPropertiesSingleTarget(
-                        uuids=val.uuids, prop_name=key
-                    )
-                )
-            else:
-                non_ref_properties.update({key: val})
-
-        return weaviate_pb2.BatchObject.Properties(
-            non_ref_properties=non_ref_properties,
-            ref_props_multi=multi_target,
-            ref_props_single=single_target,
-        )
