@@ -55,6 +55,7 @@ class _BatchError:
 class _BatchReturn:
     data: List[_BatchSuccess]
     errors: List[_BatchError]
+    success: ClassVar[bool] = False
 
 
 Errors = List[Error]

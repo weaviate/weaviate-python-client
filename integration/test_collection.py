@@ -205,6 +205,53 @@ def test_insert_many_error2(client: weaviate.Client):
     client.collection.delete(name)
 
 
+def test_insert_many_error3(client: weaviate.Client):
+    name = "TestInsertManyWithError3"
+    collection_config = CollectionConfig(
+        name=name,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer=Vectorizer.NONE,
+    )
+    collection = client.collection.create(collection_config)
+    objects = [
+        DataObject(data={"wrong_name": "some name"}, vector=[1, 2, 3]),
+        DataObject(data={"name": "some other name"}, uuid=uuid.uuid4()),
+        DataObject(data={"other_thing": "is_wrong"}, vector=[1, 2, 3]),
+    ]
+    ret = collection.data.insert_many3(objects)
+    assert not ret.success
+    for uid in ret.data:
+        obj2 = collection.data.get_by_id(uid.uuid)
+        assert obj2.data["name"] == objects[uid.idx].data["name"]
+
+    errors = [uid.idx for uid in ret.errors]
+    assert errors == [0, 2]
+
+    client.collection.delete(name)
+
+
+def test_insert_many3(client: weaviate.Client):
+    name = "TestInsertMany3"
+    collection_config = CollectionConfig(
+        name=name,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer=Vectorizer.NONE,
+    )
+    collection = client.collection.create(collection_config)
+    objects = [
+        DataObject(data={"name": "some name"}, vector=[1, 2, 3]),
+        DataObject(data={"name": "some other name"}, uuid=uuid.uuid4()),
+        DataObject(data={"name": "is_wrong"}, vector=[1, 2, 3]),
+    ]
+    ret = collection.data.insert_many3(objects)
+    assert ret.success
+    for i, uid in enumerate(ret):
+        obj = collection.data.get_by_id(uid)
+        assert obj.data["name"] == objects[i].data["name"]
+
+    client.collection.delete(name)
+
+
 def test_insert_many_with_tenant(client: weaviate.Client):
     name = "TestInsertManyWithTenant"
     collection_config = CollectionConfig(
