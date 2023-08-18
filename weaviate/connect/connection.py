@@ -640,26 +640,6 @@ class BaseConnection:
                 f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
             ) from error
 
-    @property
-    def grpc_stub(self) -> weaviate_pb2_grpc.WeaviateStub:
-        return self._grpc_stub
-
-    @property
-    def server_version(self) -> str:
-        """
-        Version of the weaviate instance.
-        """
-        return self._server_version
-
-    def get_meta(self) -> Dict[str, str]:
-        """
-        Returns the meta endpoint.
-        """
-        response = self.get(path="/meta")
-        if response.status_code == 200:
-            return response.json()
-        raise UnexpectedStatusCodeException("Meta endpoint", response)
-
 
 class Connection(BaseConnection):
     def __init__(
