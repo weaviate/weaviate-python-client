@@ -96,7 +96,7 @@ def parse_client_options(request: FixtureRequest) -> dict:
         return
 
 
-def test_get_data(client):
+def test_get_data(client: weaviate.Client):
     """Test GraphQL's Get clause."""
     where_filter = {"path": ["size"], "operator": "LessThan", "valueInt": 10}
     result = client.query.get("Ship", ["name", "size"]).with_limit(2).with_where(where_filter).do()
@@ -111,7 +111,44 @@ def test_get_data(client):
     assert a_found and d_found and len(objects) == 2
 
 
-def test_get_data_after(client):
+def test_get_data_with_where_contains_any(client: weaviate.Client):
+    """Test GraphQL's Get clause with where filter."""
+    where_filter = {"path": ["size"], "operator": "ContainsAny", "valueIntList": [5]}
+    result = client.query.get("Ship", ["name", "size"]).with_where(where_filter).do()
+    objects = get_objects_from_result(result)
+    a_found = False
+    for obj in objects:
+        if obj["name"] == "HMS British Name":
+            a_found = True
+    assert a_found and len(objects) == 1
+
+
+def test_get_data_with_where_contains_all(client: weaviate.Client):
+    """Test GraphQL's Get clause with where filter."""
+    where_filter = {
+        "path": ["description"],
+        "operator": "ContainsAll",
+        "valueStringList": ["sponges, sponges, sponges"],
+    }
+    result = client.query.get("Ship", ["name", "size"]).with_where(where_filter).do()
+    objects = get_objects_from_result(result)
+    a_found = False
+    for obj in objects:
+        if obj["name"] == "The Crusty Crab":
+            a_found = True
+    assert a_found and len(objects) == 1
+
+    where_filter = {
+        "path": ["description"],
+        "operator": "ContainsAll",
+        "valueStringList": ["sponges, sponges, sponges", "doesn't exist"],
+    }
+    result = client.query.get("Ship", ["name", "size"]).with_where(where_filter).do()
+    objects = get_objects_from_result(result)
+    assert len(objects) == 0
+
+
+def test_get_data_after(client: weaviate.Client):
     full_results = client.query.get("Ship", ["name"]).with_additional(["id"]).do()
     for i, ship in enumerate(full_results["data"]["Get"]["Ship"][:-1]):
         result = (
@@ -127,14 +164,14 @@ def test_get_data_after(client):
         )
 
 
-def test_get_data_after_wrong_types(client):
+def test_get_data_after_wrong_types(client: weaviate.Client):
     with pytest.raises(TypeError):
         client.query.get("Ship", ["name"]).with_additional(["id"]).with_limit(1).with_after(
             1234
         ).do()
 
 
-def test_multi_get_data(client, people_schema):
+def test_multi_get_data(client: weaviate.Client, people_schema):
     """Test GraphQL's MultiGet clause."""
     client.schema.create(people_schema)
     client.data_object.create(
@@ -159,7 +196,7 @@ def test_multi_get_data(client, people_schema):
     assert result["Person"][0]["name"] == "John"
 
 
-def test_aggregate_data(client):
+def test_aggregate_data(client: weaviate.Client):
     """Test GraphQL's Aggregate clause."""
     where_filter = {"path": ["name"], "operator": "Equal", "valueString": "The dragon ship"}
 
@@ -177,7 +214,7 @@ def test_aggregate_data(client):
     assert "name" in aggregation, "Missing name property"
 
 
-def test_aggregate_data_with_group_by_and_limit(client):
+def test_aggregate_data_with_group_by_and_limit(client: weaviate.Client):
     """Test GraphQL's Aggregate clause with group_by and limit."""
     result = (
         client.query.aggregate("Ship")
@@ -191,7 +228,7 @@ def test_aggregate_data_with_group_by_and_limit(client):
     assert len(objects) == 2, "Expected 2 results"
 
 
-def test_aggregate_data_with_just_limit(client):
+def test_aggregate_data_with_just_limit(client: weaviate.Client):
     """Test GraphQL's Aggregate clause with only limit. It's idempotent."""
     result = client.query.aggregate("Ship").with_fields("name{count}").with_limit(2).do()
 
@@ -214,20 +251,20 @@ def get_objects_from_aggregate_result(result):
 
 
 @pytest.mark.parametrize("query", ["sponges", "sponges\n"])
-def test_bm25(client, query):
+def test_bm25(client: weaviate.Client, query):
     result = client.query.get("Ship", ["name"]).with_bm25(query, ["name", "description"]).do()
     assert len(result["data"]["Get"]["Ship"]) == 1
     assert result["data"]["Get"]["Ship"][0]["name"] == "The Crusty Crab"
 
 
-def test_bm25_no_result(client):
+def test_bm25_no_result(client: weaviate.Client):
     result = client.query.get("Ship", ["name"]).with_bm25("sponges\n", ["name"]).do()
     assert len(result["data"]["Get"]["Ship"]) == 0
 
 
 @pytest.mark.parametrize("query", ["sponges", "sponges\n"])
 @pytest.mark.parametrize("fusion_type", [HybridFusion.RANKED, HybridFusion.RELATIVE_SCORE, None])
-def test_hybrid(client, query: str, fusion_type: Optional[HybridFusion]):
+def test_hybrid(client: weaviate.Client, query: str, fusion_type: Optional[HybridFusion]):
     """Test hybrid search with alpha=0.5 to have a combination of BM25 and vector search."""
     result = (
         client.query.get("Ship", ["name", "description"])
@@ -244,7 +281,9 @@ def test_hybrid(client, query: str, fusion_type: Optional[HybridFusion]):
     "properties,num_results",
     [(None, 1), ([], 1), (["description"], 1), (["description", "name"], 1), (["name"], 0)],
 )
-def test_hybrid_properties(client, properties: Optional[List[str]], num_results: int):
+def test_hybrid_properties(
+    client: weaviate.Client, properties: Optional[List[str]], num_results: int
+):
     """Test hybrid search with alpha=0.5 to have a combination of BM25 and vector search."""
     result = (
         client.query.get("Ship", ["name"])
@@ -262,7 +301,7 @@ def test_hybrid_properties(client, properties: Optional[List[str]], num_results:
 
 
 @pytest.mark.parametrize("autocut,num_results", [(1, 1), (2, 6), (-1, len(SHIPS))])
-def test_autocut(client, autocut, num_results):
+def test_autocut(client: weaviate.Client, autocut, num_results):
     result = (
         client.query.get("Ship", ["name"])
         .with_hybrid(query="sponges", properties=["name", "description"], alpha=0.5)
@@ -274,7 +313,7 @@ def test_autocut(client, autocut, num_results):
     assert result["data"]["Get"]["Ship"][0]["name"] == "The Crusty Crab"
 
 
-def test_group_by(client, people_schema):
+def test_group_by(client: weaviate.Client, people_schema):
     """Test hybrid search with alpha=0.5 to have a combination of BM25 and vector search."""
     client.schema.delete_all()
     client.schema.create(people_schema)
@@ -321,7 +360,7 @@ def test_group_by(client, people_schema):
     ],
     indirect=["client"],
 )
-def test_consistency_level(client, level):
+def test_consistency_level(client: weaviate.Client, level):
     result = (
         client.query.get("Ship", ["name"])
         .with_consistency_level(level)
