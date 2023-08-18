@@ -85,7 +85,7 @@ class _Data:
                 return_errors[idx] = error
                 all_responses[idx] = error
             else:
-                success = obj.uuid
+                success = uuid_package.UUID(obj.uuid)
                 return_success[idx] = success
                 all_responses[idx] = success
 
