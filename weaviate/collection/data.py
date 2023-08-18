@@ -75,7 +75,7 @@ class _Data:
 
         errors = self._batch.batch(weaviate_objs)
 
-        all_responses: List[Union[uuid_package.UUID, Error]] = list(range(len))
+        all_responses: List[Union[uuid_package.UUID, Error]] = list(range(len(weaviate_objs)))
         return_success: Dict[int, uuid_package.UUID] = {}
         return_errors: Dict[int, Error] = {}
 
