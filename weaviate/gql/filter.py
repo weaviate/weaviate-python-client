@@ -47,7 +47,6 @@ WHERE_OPERATORS = [
     "LessThan",
     "LessThanEqual",
     "Like",
-    "Not",
     "NotEqual",
     "Or",
     "WithinGeoRange",
