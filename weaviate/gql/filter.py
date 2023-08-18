@@ -15,7 +15,16 @@ from weaviate.error_msgs import FILTER_BEACON_V14_CLS_NS_W
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import get_vector, _sanitize_str
 
-VALUE_TYPES = {
+VALUE_LIST_TYPES = {
+    "valueStringList",
+    "valueTextList",
+    "valueIntList",
+    "valueNumberList",
+    "valueBooleanList",
+    "valueDateList",
+}
+
+VALUE_PRIMITIVE_TYPES = {
     "valueString",
     "valueText",
     "valueInt",
@@ -24,6 +33,24 @@ VALUE_TYPES = {
     "valueBoolean",
     "valueGeoRange",
 }
+
+VALUE_TYPES = VALUE_LIST_TYPES.union(VALUE_PRIMITIVE_TYPES)
+
+WHERE_OPERATORS = [
+    "And",
+    "ContainsAll",
+    "ContainsAny",
+    "Equal",
+    "GreaterThan",
+    "GreaterThanEqual",
+    "IsNull",
+    "LessThan",
+    "LessThanEqual",
+    "Like",
+    "NotEqual",
+    "Or",
+    "WithinGeoRange",
+]
 
 
 class GraphQL(ABC):
@@ -563,11 +590,30 @@ class Where(Filter):
 
         if "operator" not in content:
             raise ValueError("Filter is missing required field `operator`. " f"Given: {content}")
-
+        if content["operator"] not in WHERE_OPERATORS:
+            raise ValueError(
+                f"Operator {content['operator']} is not allowed. "
+                f"Allowed operators are: {', '.join(WHERE_OPERATORS)}"
+            )
         self.path = dumps(content["path"])
         self.operator = content["operator"]
         self.value_type = _find_value_type(content)
         self.value = content[self.value_type]
+
+        if (
+            self.operator in ["ContainsAny", "ContainsAll"]
+            and self.value_type not in VALUE_LIST_TYPES
+        ):
+            raise ValueError(
+                f"Operator {self.operator} requires a value of type {self.value_type}List. "
+                f"Given value type: {self.value_type}"
+            )
+
+        if self.operator == "WithinGeoRange" and self.value_type != "valueGeoRange":
+            raise ValueError(
+                f"Operator {self.operator} requires a value of type valueGeoRange. "
+                f"Given value type: {self.value_type}"
+            )
 
     def _parse_operator(self, content: dict) -> None:
         """
@@ -586,6 +632,11 @@ class Where(Filter):
 
         if "operator" not in content:
             raise ValueError("Filter is missing required field `operator`." f" Given: {content}")
+        if content["operator"] not in WHERE_OPERATORS:
+            raise ValueError(
+                f"Operator {content['operator']} is not allowed. "
+                f"Allowed operators are: {WHERE_OPERATORS}"
+            )
         _content = deepcopy(content)
         self.operator = _content["operator"]
         self.operands = []
@@ -594,16 +645,34 @@ class Where(Filter):
 
     def __str__(self):
         if self.is_filter:
-            gql = f"where: {{path: {self.path} operator: {self.operator} {self.value_type}: "
+            gql = f"where: {{path: {self.path} operator: {self.operator} {_convert_value_type(self.value_type)}: "
             if self.value_type in ["valueInt", "valueNumber"]:
+                _check_is_not_list(self.value, self.value_type)
+                gql += f"{self.value}}}"
+            elif self.value_type in ["valueIntList", "valueNumberList"]:
+                _check_is_list(self.value, self.value_type)
                 gql += f"{self.value}}}"
             elif self.value_type in ["valueText", "valueString"]:
+                _check_is_not_list(self.value, self.value_type)
                 gql += f"{_sanitize_str(self.value)}}}"
+            elif self.value_type in ["valueTextList", "valueStringList"]:
+                _check_is_list(self.value, self.value_type)
+                val = [_sanitize_str(v) for v in self.value]
+                gql += f"{_render_list(val)}}}"
             elif self.value_type == "valueBoolean":
+                _check_is_not_list(self.value, self.value_type)
                 gql += f"{_bool_to_str(self.value)}}}"
+            elif self.value_type == "valueBooleanList":
+                _check_is_list(self.value, self.value_type)
+                gql += f"{_render_list(self.value)}}}"
+            elif self.value_type == "valueDateList":
+                _check_is_list(self.value, self.value_type)
+                gql += f"{_render_list(self.value)}}}"
             elif self.value_type == "valueGeoRange":
+                _check_is_not_list(self.value, self.value_type)
                 gql += f"{_geo_range_to_str(self.value)}}}"
             else:
+                _check_is_not_list(self.value, self.value_type)
                 gql += f'"{self.value}"}}'
             return gql + " "
 
@@ -613,6 +682,93 @@ class Where(Filter):
             operands_str.append(str(operand)[7:-1])
         operands = ", ".join(operands_str)
         return f"where: {{operator: {self.operator} operands: [{operands}]}} "
+
+
+def _convert_value_type(_type: str) -> str:
+    """Convert the value type to match `json` formatting required by Weaviate.
+
+    Parameters
+    ----------
+    _type : str
+        The type to be converted.
+
+    Returns
+    -------
+    str
+        The string interpretation of the type in `json` format.
+    """
+    if _type == "valueTextList":
+        return "valueText"
+    elif _type == "valueStringList":
+        return "valueString"
+    elif _type == "valueIntList":
+        return "valueInt"
+    elif _type == "valueNumberList":
+        return "valueNumber"
+    elif _type == "valueBooleanList":
+        return "valueBoolean"
+    elif _type == "valueDateList":
+        return "valueDate"
+    else:
+        return _type
+
+
+def _render_list(value: list) -> str:
+    """Convert a list of values to string (lowercased) to match `json` formatting.
+
+    Parameters
+    ----------
+    value : list
+        The value to be converted
+
+    Returns
+    -------
+    str
+        The string interpretation of the value in `json` format.
+    """
+    return f'[{",".join(value)}]'
+
+
+def _check_is_list(value: Any, _type: str):
+    """Checks whether the provided value is a list to match the given `value_type`.
+
+    Parameters
+    ----------
+    value : list
+        The value to be checked.
+    _type : str
+        The type to be checked against.
+
+    Raises
+    ------
+    TypeError
+        If the value is not a list.
+    """
+    if not isinstance(value, list):
+        raise TypeError(
+            f"Must provide a list when constructing where filter for {_type} with {value}"
+        )
+
+
+def _check_is_not_list(value: Any, _type: str):
+    """Checks whether the provided value is a list to match the given `value_type`.
+
+    Parameters
+    ----------
+    value : list
+        The value to be checked.
+    _type : str
+        The type to be checked against.
+
+    Raises
+    ------
+    TypeError
+        If the value is a list.
+    """
+    if isinstance(value, list):
+        raise TypeError(
+            f"Cannot provide a list when constructing where filter for {_type} with {value}"
+        )
 
 
 def _geo_range_to_str(value: dict) -> str:
