@@ -26,8 +26,6 @@ from weaviate.collection.classes import (
     Tenant,
     VectorIndexConfigUpdate,
     Vectorizer,
-    UUIDList,
-    UUIDandErrorList,
     Error,
 )
 from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery
@@ -81,14 +79,14 @@ def test_insert_many(client: weaviate.Client):
         vectorizer=Vectorizer.NONE,
     )
     collection = client.collection.create(collection_config)
-    uuids = collection.data.insert_many(
+    ret = collection.data.insert_many(
         [
             DataObject(data={"name": "some name"}, vector=[1, 2, 3]),
             DataObject(data={"name": "some other name"}, uuid=uuid.uuid4()),
         ]
     )
-    obj1 = collection.data.get_by_id(uuids[0])
-    obj2 = collection.data.get_by_id(uuids[1])
+    obj1 = collection.data.get_by_id(ret.uuids[0])
+    obj2 = collection.data.get_by_id(ret.uuids[1])
     assert obj1.data["name"] == "some name"
     assert obj2.data["name"] == "some other name"
 
@@ -120,7 +118,7 @@ def test_insert_many_with_refs(client: weaviate.Client):
     collection = client.collection.create(collection_config)
     uuid_from = collection.data.insert(data={"name": "first"})
 
-    uuids = collection.data.insert_many(
+    ret = collection.data.insert_many(
         [
             DataObject(
                 data={
@@ -142,14 +140,13 @@ def test_insert_many_with_refs(client: weaviate.Client):
             ),
         ]
     )
-    assert isinstance(uuids, UUIDList)
-    obj1 = collection.data.get_by_id(uuids[0])
+    obj1 = collection.data.get_by_id(ret.uuids[0])
     assert obj1.data["name"] == "some name"
     assert obj1.data["ref_single"][0]["beacon"] == BEACON_START + f"/{name_target}/{uuid_to1}"
     assert obj1.data["ref_single"][1]["beacon"] == BEACON_START + f"/{name_target}/{uuid_to2}"
     assert obj1.data["ref_many"][0]["beacon"] == BEACON_START + f"/{name}/{uuid_from}"
 
-    obj1 = collection.data.get_by_id(uuids[1])
+    obj1 = collection.data.get_by_id(ret.uuids[1])
     assert obj1.data["name"] == "some other name"
     assert obj1.data["ref_single"][0]["beacon"] == BEACON_START + f"/{name_target}/{uuid_to2}"
     assert obj1.data["ref_many"][0]["beacon"] == BEACON_START + f"/{name_target}/{uuid_to1}"
@@ -163,91 +160,23 @@ def test_insert_many_error(client: weaviate.Client):
         vectorizer=Vectorizer.NONE,
     )
     collection = client.collection.create(collection_config)
-    uuids = collection.data.insert_many(
+    ret = collection.data.insert_many(
         [
             DataObject(data={"wrong_name": "some name"}, vector=[1, 2, 3]),
             DataObject(data={"name": "some other name"}, uuid=uuid.uuid4()),
             DataObject(data={"other_thing": "is_wrong"}, vector=[1, 2, 3]),
         ]
     )
-    assert isinstance(uuids, UUIDandErrorList)
-    assert not uuids.success
-    assert isinstance(uuids[0], Error)
-    assert isinstance(uuids[2], Error)
+    assert ret.has_errors
 
-    obj2 = collection.data.get_by_id(uuids[1])
-    assert obj2.data["name"] == "some other name"
+    obj = collection.data.get_by_id(ret.uuids[1])
+    assert obj.data["name"] == "some other name"
 
-    client.collection.delete(name)
+    assert len(ret.errors) == 2
+    assert 0 in ret.errors and 2 in ret.errors
 
-
-def test_insert_many_error2(client: weaviate.Client):
-    name = "TestInsertManyWitHError2"
-    collection_config = CollectionConfig(
-        name=name,
-        properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer=Vectorizer.NONE,
-    )
-    collection = client.collection.create(collection_config)
-    objects = [
-        DataObject(data={"wrong_name": "some name"}, vector=[1, 2, 3]),
-        DataObject(data={"name": "some other name"}, uuid=uuid.uuid4()),
-        DataObject(data={"other_thing": "is_wrong"}, vector=[1, 2, 3]),
-    ]
-    ret = collection.data.insert_many2(objects)
-    for uid in ret.data:
-        obj2 = collection.data.get_by_id(uid.uuid)
-        assert obj2.data["name"] == objects[uid.idx].data["name"]
-
-    errors = [uid.idx for uid in ret.errors]
-    assert errors == [0, 2]
-
-    client.collection.delete(name)
-
-
-def test_insert_many_error3(client: weaviate.Client):
-    name = "TestInsertManyWithError3"
-    collection_config = CollectionConfig(
-        name=name,
-        properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer=Vectorizer.NONE,
-    )
-    collection = client.collection.create(collection_config)
-    objects = [
-        DataObject(data={"wrong_name": "some name"}, vector=[1, 2, 3]),
-        DataObject(data={"name": "some other name"}, uuid=uuid.uuid4()),
-        DataObject(data={"other_thing": "is_wrong"}, vector=[1, 2, 3]),
-    ]
-    ret = collection.data.insert_many3(objects)
-    assert not ret.success
-    for uid in ret.data:
-        obj2 = collection.data.get_by_id(uid.uuid)
-        assert obj2.data["name"] == objects[uid.idx].data["name"]
-
-    errors = [uid.idx for uid in ret.errors]
-    assert errors == [0, 2]
-
-    client.collection.delete(name)
-
-
-def test_insert_many3(client: weaviate.Client):
-    name = "TestInsertMany3"
-    collection_config = CollectionConfig(
-        name=name,
-        properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer=Vectorizer.NONE,
-    )
-    collection = client.collection.create(collection_config)
-    objects = [
-        DataObject(data={"name": "some name"}, vector=[1, 2, 3]),
-        DataObject(data={"name": "some other name"}, uuid=uuid.uuid4()),
-        DataObject(data={"name": "is_wrong"}, vector=[1, 2, 3]),
-    ]
-    ret = collection.data.insert_many3(objects)
-    assert ret.success
-    for i, uid in enumerate(ret):
-        obj = collection.data.get_by_id(uid)
-        assert obj.data["name"] == objects[i].data["name"]
+    assert isinstance(ret.all_responses[0], Error) and isinstance(ret.all_responses[2], Error)
+    assert isinstance(ret.all_responses[1], uuid.UUID)
 
     client.collection.delete(name)
 
@@ -266,20 +195,19 @@ def test_insert_many_with_tenant(client: weaviate.Client):
     tenant1 = collection.with_tenant("tenant1")
     tenant2 = collection.with_tenant("tenant2")
 
-    uuids = tenant1.data.insert_many(
+    ret = tenant1.data.insert_many(
         [
             DataObject(data={"name": "some name"}, vector=[1, 2, 3]),
             DataObject(data={"name": "some other name"}, uuid=uuid.uuid4()),
         ]
     )
-    assert isinstance(uuids, UUIDList)
-    assert uuids.success
-    obj1 = tenant1.data.get_by_id(uuids[0])
-    obj2 = tenant1.data.get_by_id(uuids[1])
+    assert not ret.has_errors
+    obj1 = tenant1.data.get_by_id(ret.uuids[0])
+    obj2 = tenant1.data.get_by_id(ret.uuids[1])
     assert obj1.data["name"] == "some name"
     assert obj2.data["name"] == "some other name"
-    assert tenant2.data.get_by_id(uuids[0]) is None
-    assert tenant2.data.get_by_id(uuids[1]) is None
+    assert tenant2.data.get_by_id(ret.uuids[0]) is None
+    assert tenant2.data.get_by_id(ret.uuids[1]) is None
 
     client.collection.delete(name)
 

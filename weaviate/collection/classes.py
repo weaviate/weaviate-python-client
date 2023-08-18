@@ -14,7 +14,6 @@ from typing import (
     get_args,
     get_origin,
     get_type_hints,
-    ClassVar,
 )
 
 import uuid as uuid_package
@@ -29,36 +28,15 @@ from weaviate.weaviate_types import UUID, PYTHON_TYPE_TO_DATATYPE
 class Error:
     message: str
     code: Optional[int] = None
-
-
-class UUIDList(list):
-    success: ClassVar[bool] = True
-
-
-class UUIDandErrorList(list):
-    success: ClassVar[bool] = False
-
-
-@dataclass
-class _BatchSuccess:
-    idx: int
-    uuid: UUID
-
-
-@dataclass
-class _BatchError:
-    idx: int
-    error: Error
+    original_uuid: Optional[uuid_package.UUID] = None
 
 
 @dataclass
 class _BatchReturn:
-    data: List[_BatchSuccess]
-    errors: List[_BatchError]
-    success: ClassVar[bool] = False
-
-
-Errors = List[Error]
+    all_responses: List[Union[uuid_package.UUID, Error]]
+    uuids: Dict[int, uuid_package.UUID]
+    errors: Dict[int, Error]
+    has_errors: bool = False
 
 
 class DataType(str, Enum):
