@@ -116,36 +116,30 @@ def test_get_data_with_where_contains_any(client: weaviate.Client):
     where_filter = {"path": ["size"], "operator": "ContainsAny", "valueIntList": [5]}
     result = client.query.get("Ship", ["name", "size"]).with_where(where_filter).do()
     objects = get_objects_from_result(result)
-    a_found = False
-    for obj in objects:
-        if obj["name"] == "HMS British Name":
-            a_found = True
-    assert a_found and len(objects) == 1
+    assert len(objects) == 1 and objects[0]["name"] == "HMS British Name"
 
 
-def test_get_data_with_where_contains_all(client: weaviate.Client):
+@pytest.mark.parametrize(
+    "value_string_list,expected_objects_len",
+    [
+        (["sponges, sponges, sponges"], 1),
+        (["sponges, sponges, sponges", "doesn't exist"], 0),
+    ],
+)
+def test_get_data_with_where_contains_all(
+    client: weaviate.Client, value_string_list: List[str], expected_objects_len: int
+):
     """Test GraphQL's Get clause with where filter."""
     where_filter = {
         "path": ["description"],
         "operator": "ContainsAll",
-        "valueStringList": ["sponges, sponges, sponges"],
+        "valueStringList": value_string_list,
     }
-    result = client.query.get("Ship", ["name", "size"]).with_where(where_filter).do()
+    result = client.query.get("Ship", ["name"]).with_where(where_filter).do()
     objects = get_objects_from_result(result)
-    a_found = False
-    for obj in objects:
-        if obj["name"] == "The Crusty Crab":
-            a_found = True
-    assert a_found and len(objects) == 1
-
-    where_filter = {
-        "path": ["description"],
-        "operator": "ContainsAll",
-        "valueStringList": ["sponges, sponges, sponges", "doesn't exist"],
-    }
-    result = client.query.get("Ship", ["name", "size"]).with_where(where_filter).do()
-    objects = get_objects_from_result(result)
-    assert len(objects) == 0
+    assert len(objects) == expected_objects_len
+    if expected_objects_len == 1:
+        assert objects[0]["name"] == "The Crusty Crab"
 
 
 def test_get_data_after(client: weaviate.Client):
