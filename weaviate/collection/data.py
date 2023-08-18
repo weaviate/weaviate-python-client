@@ -261,7 +261,7 @@ class _Data:
         }
 
     @staticmethod
-    def __parse_properties_grpc(data: Dict[str, Any]) -> weaviate_pb2.Properties:
+    def __parse_properties_grpc(data: Dict[str, Any]) -> weaviate_pb2.BatchObject.Properties:
         multi_target: List[weaviate_pb2.BatchObject.RefPropertiesMultiTarget] = []
         single_target: List[weaviate_pb2.BatchObject.RefPropertiesSingleTarget] = []
         non_ref_properties: Struct = Struct()
