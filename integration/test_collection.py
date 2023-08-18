@@ -40,7 +40,7 @@ def client():
     client.schema.delete_all()
 
 
-def test_create_and_delete(client: weaviate.Client):
+def test_create_and_delete(client: weaviate.CollectionClient):
     name = "TestCreateAndDelete"
     collection_config = CollectionConfig(
         name=name,
@@ -54,7 +54,7 @@ def test_create_and_delete(client: weaviate.Client):
     assert not client.collection.exists(name)
 
 
-def test_insert(client: weaviate.Client):
+def test_insert(client: weaviate.CollectionClient):
     name = "TestInsert"
     collection_config = CollectionConfig(
         name=name,
@@ -68,7 +68,7 @@ def test_insert(client: weaviate.Client):
     client.collection.delete(name)
 
 
-def test_insert_many(client: weaviate.Client):
+def test_insert_many(client: weaviate.CollectionClient):
     name = "TestInsertMany"
     collection_config = CollectionConfig(
         name=name,
@@ -90,7 +90,7 @@ def test_insert_many(client: weaviate.Client):
     client.collection.delete(name)
 
 
-def test_insert_many_with_refs(client: weaviate.Client):
+def test_insert_many_with_refs(client: weaviate.CollectionClient):
     name_target = "RefClassBatchTarget"
     client.collection.delete(name_target)
 
@@ -178,7 +178,7 @@ def test_insert_many_error(client: weaviate.CollectionClient):
     client.collection.delete(name)
 
 
-def test_insert_many_with_tenant(client: weaviate.Client):
+def test_insert_many_with_tenant(client: weaviate.CollectionClient):
     name = "TestInsertManyWithTenant"
     collection_config = CollectionConfig(
         name=name,
@@ -209,7 +209,7 @@ def test_insert_many_with_tenant(client: weaviate.Client):
     client.collection.delete(name)
 
 
-def test_replace(client: weaviate.Client):
+def test_replace(client: weaviate.CollectionClient):
     name = "TestReplace"
     collection_config = CollectionConfig(
         name=name,
@@ -224,7 +224,7 @@ def test_replace(client: weaviate.Client):
     client.collection.delete(name)
 
 
-def test_replace_overwrites_vector(client: weaviate.Client):
+def test_replace_overwrites_vector(client: weaviate.CollectionClient):
     name = "TestReplaceOverwritesVector"
     collection_config = CollectionConfig(
         name=name,
@@ -245,7 +245,7 @@ def test_replace_overwrites_vector(client: weaviate.Client):
     client.collection.delete(name)
 
 
-def test_replace_with_tenant(client: weaviate.Client):
+def test_replace_with_tenant(client: weaviate.CollectionClient):
     name = "TestReplaceWithTenant"
     collection_config = CollectionConfig(
         name=name,
@@ -267,7 +267,7 @@ def test_replace_with_tenant(client: weaviate.Client):
     client.collection.delete(name)
 
 
-def test_update(client: weaviate.Client):
+def test_update(client: weaviate.CollectionClient):
     name = "TestUpdate"
     collection_config = CollectionConfig(
         name=name,
@@ -282,7 +282,7 @@ def test_update(client: weaviate.Client):
     client.collection.delete(name)
 
 
-def test_update_with_tenant(client: weaviate.Client):
+def test_update_with_tenant(client: weaviate.CollectionClient):
     name = "TestUpdateWithTenant"
     collection_config = CollectionConfig(
         name=name,
@@ -315,7 +315,7 @@ def test_update_with_tenant(client: weaviate.Client):
         (DataType.NUMBER_ARRAY, [1.0, 2.1]),
     ],
 )
-def test_types(client: weaviate.Client, data_type, value):
+def test_types(client: weaviate.CollectionClient, data_type, value):
     name = "name"
     collection_config = CollectionConfig(
         name="Something",
@@ -331,7 +331,7 @@ def test_types(client: weaviate.Client, data_type, value):
     client.collection.delete("Something")
 
 
-def test_reference_add_delete_replace(client: weaviate.Client):
+def test_reference_add_delete_replace(client: weaviate.CollectionClient):
     ref_collection = client.collection.create(
         CollectionConfig(name="RefClass2", vectorizer=Vectorizer.NONE)
     )
@@ -374,7 +374,7 @@ def test_reference_add_delete_replace(client: weaviate.Client):
 
 
 @pytest.mark.parametrize("fusion_type", [HybridFusion.RANKED, HybridFusion.RELATIVE_SCORE])
-def test_search_hybrid(client: weaviate.Client, fusion_type):
+def test_search_hybrid(client: weaviate.CollectionClient, fusion_type):
     collection = client.collection.create(
         CollectionConfig(
             name="Testing",
@@ -390,7 +390,7 @@ def test_search_hybrid(client: weaviate.Client, fusion_type):
 
 
 @pytest.mark.parametrize("limit", [1, 5])
-def test_search_limit(client: weaviate.Client, limit):
+def test_search_limit(client: weaviate.CollectionClient, limit):
     collection = client.collection.create(
         CollectionConfig(
             name="TestLimit",
@@ -407,7 +407,7 @@ def test_search_limit(client: weaviate.Client, limit):
 
 
 @pytest.mark.parametrize("offset", [0, 1, 5])
-def test_search_offset(client: weaviate.Client, offset):
+def test_search_offset(client: weaviate.CollectionClient, offset):
     collection = client.collection.create(
         CollectionConfig(
             name="TestOffset",
@@ -426,7 +426,7 @@ def test_search_offset(client: weaviate.Client, offset):
     client.collection.delete("TestOffset")
 
 
-def test_search_after(client: weaviate.Client):
+def test_search_after(client: weaviate.CollectionClient):
     collection = client.collection.create(
         CollectionConfig(
             name="TestOffset",
@@ -447,7 +447,7 @@ def test_search_after(client: weaviate.Client):
     client.collection.delete("TestOffset")
 
 
-def test_autocut(client: weaviate.Client):
+def test_autocut(client: weaviate.CollectionClient):
     collection = client.collection.create(
         CollectionConfig(
             name="TestAutocut",
@@ -481,7 +481,7 @@ def test_autocut(client: weaviate.Client):
     client.collection.delete("TestAutocut")
 
 
-def test_near_vector(client: weaviate.Client):
+def test_near_vector(client: weaviate.CollectionClient):
     collection = client.collection.create(
         CollectionConfig(
             name="TestNearVector",
@@ -514,7 +514,7 @@ def test_near_vector(client: weaviate.Client):
     client.collection.delete("TestNearVector")
 
 
-def test_near_object(client: weaviate.Client):
+def test_near_object(client: weaviate.CollectionClient):
     collection = client.collection.create(
         CollectionConfig(
             name="TestNearObject",
@@ -545,7 +545,7 @@ def test_near_object(client: weaviate.Client):
     client.collection.delete("TestNearObject")
 
 
-def test_mono_references_grcp(client: weaviate.Client):
+def test_mono_references_grcp(client: weaviate.CollectionClient):
     A = client.collection.create(
         CollectionConfig(
             name="A",
@@ -607,7 +607,7 @@ def test_mono_references_grcp(client: weaviate.Client):
     assert objects[0].data["ref"][0].data["ref"][1].data["name"] == "A2"
 
 
-def test_multi_references_grcp(client: weaviate.Client):
+def test_multi_references_grcp(client: weaviate.CollectionClient):
     client.collection.delete("A")
     client.collection.delete("B")
     client.collection.delete("C")
@@ -690,7 +690,7 @@ def test_multi_references_grcp(client: weaviate.Client):
     client.collection.delete("C")
 
 
-def test_tenants(client: weaviate.Client):
+def test_tenants(client: weaviate.CollectionClient):
     collection = client.collection.create(
         CollectionConfig(
             name="Tenants",
@@ -716,7 +716,7 @@ def test_tenants(client: weaviate.Client):
     client.collection.delete("Tenants")
 
 
-def test_multi_searches(client: weaviate.Client):
+def test_multi_searches(client: weaviate.CollectionClient):
     collection = client.collection.create(
         CollectionConfig(
             name="TestMultiSearches",
@@ -744,7 +744,7 @@ def test_multi_searches(client: weaviate.Client):
     client.collection.delete("TestMultiSearches")
 
 
-def test_search_with_tenant(client: weaviate.Client):
+def test_search_with_tenant(client: weaviate.CollectionClient):
     collection = client.collection.create(
         CollectionConfig(
             name="TestTenantSearch",
@@ -768,7 +768,7 @@ def test_search_with_tenant(client: weaviate.Client):
     client.collection.delete("TestTenantSearch")
 
 
-def test_get_by_id_with_tenant(client: weaviate.Client):
+def test_get_by_id_with_tenant(client: weaviate.CollectionClient):
     collection = client.collection.create(
         CollectionConfig(
             name="TestTenantGet",
@@ -799,7 +799,7 @@ def test_get_by_id_with_tenant(client: weaviate.Client):
     client.collection.delete("TestTenantGet")
 
 
-def test_get_with_tenant(client: weaviate.Client):
+def test_get_with_tenant(client: weaviate.CollectionClient):
     collection = client.collection.create(
         CollectionConfig(
             name="TestTenantGetWithTenant",
@@ -829,7 +829,7 @@ def test_get_with_tenant(client: weaviate.Client):
     client.collection.delete("TestTenantGetWithTenant")
 
 
-def test_add_property(client: weaviate.Client):
+def test_add_property(client: weaviate.CollectionClient):
     collection = client.collection.create(
         CollectionConfig(
             name="TestAddProperty",
@@ -849,7 +849,7 @@ def test_add_property(client: weaviate.Client):
     client.collection.delete("TestAddProperty")
 
 
-def test_collection_config_get(client: weaviate.Client):
+def test_collection_config_get(client: weaviate.CollectionClient):
     collection = client.collection.create(
         CollectionConfig(
             name="TestCollectionSchemaGet",
@@ -872,7 +872,7 @@ def test_collection_config_get(client: weaviate.Client):
     client.collection.delete("TestCollectionSchemaGet")
 
 
-def test_collection_config_update(client: weaviate.Client):
+def test_collection_config_update(client: weaviate.CollectionClient):
     collection = client.collection.create(
         CollectionConfig(
             name="TestCollectionSchemaUpdate",
@@ -948,7 +948,7 @@ def test_collection_config_update(client: weaviate.Client):
     client.collection.delete("TestCollectionSchemaUpdate")
 
 
-def test_empty_search_returns_everything(client: weaviate.Client):
+def test_empty_search_returns_everything(client: weaviate.CollectionClient):
     collection = client.collection.create(
         CollectionConfig(
             name="TestReturnEverything",
@@ -970,7 +970,7 @@ def test_empty_search_returns_everything(client: weaviate.Client):
     client.collection.delete("TestReturnEverything")
 
 
-def test_collection_name_capitalization(client: weaviate.Client):
+def test_collection_name_capitalization(client: weaviate.CollectionClient):
     name_small = "collectionCapitalizationTest"
     name_big = "CollectionCapitalizationTest"
     collection = client.collection.create(

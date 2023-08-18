@@ -45,7 +45,7 @@ def client():
     yield client
 
 
-def test_with_existing_collection(client: weaviate.Client):
+def test_with_existing_collection(client: weaviate.CollectionClient):
     obj = client._collection_model.get(Group).data.get_by_id(REF_TO_UUID)
     assert obj.data.name == "Name"
 
@@ -62,7 +62,7 @@ def test_with_existing_collection(client: weaviate.Client):
     ],
 )
 @pytest.mark.parametrize("optional", [True, False])
-def test_types(client: weaviate.Client, member_type, value, optional: bool):
+def test_types(client: weaviate.CollectionClient, member_type, value, optional: bool):
     if optional:
         member_type = Optional[member_type]
 
@@ -95,7 +95,9 @@ def test_types(client: weaviate.Client, member_type, value, optional: bool):
         (Optional[UUIDS], CrossReference(Group), [str(REF_TO_UUID)], "Group"),
     ],
 )
-def test_types_annotates(client: weaviate.Client, member_type, annotation, value, expected: str):
+def test_types_annotates(
+    client: weaviate.CollectionClient, member_type, annotation, value, expected: str
+):
     class ModelTypes(BaseProperty):
         name: Annotated[member_type, annotation]
 
@@ -113,7 +115,7 @@ def test_types_annotates(client: weaviate.Client, member_type, annotation, value
     assert object_get.data.name == value
 
 
-def test_create_and_delete(client: weaviate.Client):
+def test_create_and_delete(client: weaviate.CollectionClient):
     class DeleteModel(BaseProperty):
         name: int
 
@@ -127,7 +129,7 @@ def test_create_and_delete(client: weaviate.Client):
     assert not client._collection_model.exists(DeleteModel)
 
 
-def test_search(client: weaviate.Client):
+def test_search(client: weaviate.CollectionClient):
     class SearchTest(BaseProperty):
         name: str
 
@@ -144,7 +146,7 @@ def test_search(client: weaviate.Client):
     assert objects[0].data.name == "test name"
 
 
-def test_tenants(client: weaviate.Client):
+def test_tenants(client: weaviate.CollectionClient):
     class TenantsTest(BaseProperty):
         name: str
 
@@ -170,7 +172,7 @@ def test_tenants(client: weaviate.Client):
     assert len(tenants) == 0
 
 
-def test_multi_searches(client: weaviate.Client):
+def test_multi_searches(client: weaviate.CollectionClient):
     class TestMultiSearches(BaseProperty):
         name: str
 
@@ -201,7 +203,7 @@ def test_multi_searches(client: weaviate.Client):
 
 
 @pytest.mark.skip()
-def test_multi_searches_with_references(client: weaviate.Client):
+def test_multi_searches_with_references(client: weaviate.CollectionClient):
     class TestMultiSearchesWithReferences(BaseProperty):
         name: Optional[str] = None
         group: Annotated[Optional[UUIDS], CrossReference(Group)] = None
@@ -235,7 +237,7 @@ def test_multi_searches_with_references(client: weaviate.Client):
     assert objects[0].metadata.last_update_time_unix is None
 
 
-def test_search_with_tenant(client: weaviate.Client):
+def test_search_with_tenant(client: weaviate.CollectionClient):
     class TestTenantSearch(BaseProperty):
         name: str
 
@@ -280,7 +282,7 @@ def make_list() -> List[int]:
     ],
 )
 def test_update_properties(
-    client: weaviate.Client,
+    client: weaviate.CollectionClient,
     member_type: type,
     value_to_add,
     default,
@@ -339,7 +341,7 @@ def test_update_properties(
         assert second.data.number == value_to_add
 
 
-def test_empty_search_returns_everything(client: weaviate.Client):
+def test_empty_search_returns_everything(client: weaviate.CollectionClient):
     class TestReturnEverythingORM(BaseProperty):
         name: Optional[str] = None
 
@@ -362,7 +364,7 @@ def test_empty_search_returns_everything(client: weaviate.Client):
 
 
 @pytest.mark.skip(reason="ORM models do not support empty properties in search yet")
-def test_empty_return_properties(client: weaviate.Client):
+def test_empty_return_properties(client: weaviate.CollectionClient):
     class TestEmptyProperties(BaseProperty):
         name: str
 
@@ -380,7 +382,7 @@ def test_empty_return_properties(client: weaviate.Client):
 
 
 @pytest.mark.skip(reason="ORM models do not support updating reference properties yet")
-def test_update_reference_property(client: weaviate.Client):
+def test_update_reference_property(client: weaviate.CollectionClient):
     uuid_first: Optional[uuid.UUID] = None
 
     def create_original_collection():
