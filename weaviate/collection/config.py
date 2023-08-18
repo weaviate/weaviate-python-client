@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Optional, Type, Union
+from typing import Dict, Any, List, Optional, Type, Union, Tuple
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -31,11 +31,11 @@ class _ConfigBase:
     def __init__(self, connection: Connection, name: str) -> None:
         self.__cached: Optional[Dict[str, Any]] = None
         self.__connection = connection
-        self.__name = name
+        self._name = name
 
-    def _fetch(self) -> None:
+    def _fetch(self) -> Dict[str, Any]:
         try:
-            response = self.__connection.get(path=f"/schema/{self.__name}")
+            response = self.__connection.get(path=f"/schema/{self._name}")
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
                 "Collection configuration could not be retrieved."
@@ -44,12 +44,12 @@ class _ConfigBase:
             raise UnexpectedStatusCodeException("Get collection configuration", response)
         schema: Dict[str, Any] = response.json()
         self.__cached = schema
+        return self.__cached
 
     def __get(self) -> Dict[str, Any]:
         if self.__cached is not None:
             return self.__cached
-        self._fetch()
-        return self.__cached
+        return self._fetch()
 
     def get(self) -> _CollectionConfig:
         """Get the configuration for this collection from Weaviate.
@@ -85,7 +85,7 @@ class _ConfigBase:
         schema = self.__get()
         schema = config.merge_with_existing(schema)
         try:
-            response = self.__connection.put(path=f"/schema/{self.__name}", weaviate_object=schema)
+            response = self.__connection.put(path=f"/schema/{self._name}", weaviate_object=schema)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
                 "Collection configuration could not be updated."
@@ -94,7 +94,7 @@ class _ConfigBase:
             raise UnexpectedStatusCodeException("Update collection configuration", response)
 
     def _add_property(self, additional_property: Property) -> None:
-        path = f"/schema/{self.__name}/properties"
+        path = f"/schema/{self._name}/properties"
         obj = additional_property.to_dict()
         try:
             response = self.__connection.post(path=path, weaviate_object=obj)
@@ -129,7 +129,7 @@ class _ConfigCollection(_ConfigBase):
         """
         if self._get_property_by_name(additional_property.name) is not None:
             raise ObjectAlreadyExistsException(
-                f"Property with name '{additional_property.name}' already exists in collection '{self.name}'."
+                f"Property with name '{additional_property.name}' already exists in collection '{self._name}'."
             )
         self._add_property(additional_property)
 
@@ -137,7 +137,7 @@ class _ConfigCollection(_ConfigBase):
 class _ConfigCollectionModel(_ConfigBase):
     def __compare_properties_with_model(
         self, schema_props: List[_Property], model_props: List[Union[Property, ReferenceProperty]]
-    ):
+    ) -> Tuple[List[_Property], List[Union[Property, ReferenceProperty]]]:
         only_in_model: List[Union[Property, ReferenceProperty]] = []
         only_in_schema: List[_Property] = list(schema_props)
 
@@ -166,7 +166,7 @@ class _ConfigCollectionModel(_ConfigBase):
                 only_in_model.append(prop)
         return only_in_schema, only_in_model
 
-    def update_model(self, model: Type[Model]):
+    def update_model(self, model: Type[Model]) -> None:
         only_in_schema, only_in_model = self.__compare_properties_with_model(
             self.get().properties, model.type_to_properties(model)
         )

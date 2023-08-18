@@ -1,13 +1,13 @@
-from typing import Dict, Any, Optional, List, Tuple, Union, Generic, Type
+from typing import Dict, Any, Optional, List, Tuple, Generic, Type, Union
 
 import uuid as uuid_package
+from google.protobuf.struct_pb2 import Struct
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.classes import (
     BatchReference,
     DataObject,
     Error,
-    Errors,
     ReferenceTo,
     GetObjectByIdIncludes,
     GetObjectsIncludes,
@@ -16,12 +16,16 @@ from weaviate.collection.classes import (
     _Object,
     UUID,
     Model,
+    ReferenceToMultiTarget,
+    _BatchReturn,
 )
 from weaviate.collection.config import _ConfigBase, _ConfigCollectionModel
+from weaviate.collection.grpc_batch import _BatchGRPC
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException, ObjectAlreadyExistsException
-from weaviate.weaviate_types import BEACON, UUIDS
+from weaviate.weaviate_types import BEACON
+from weaviate_grpc import weaviate_pb2
 
 
 class _Data:
@@ -37,7 +41,8 @@ class _Data:
         self.name = name
         self.__config = config
         self.__consistency_level = consistency_level
-        self.__tenant = tenant
+        self._tenant = tenant
+        self._batch = _BatchGRPC(connection)
 
     def _insert(self, weaviate_obj: Dict[str, Any]) -> uuid_package.UUID:
         path = "/objects"
@@ -56,32 +61,40 @@ class _Data:
             pass
         raise UnexpectedStatusCodeException("Creating object", response)
 
-    def _insert_many(self, objects: List[Dict[str, Any]]) -> List[Union[uuid_package.UUID, Errors]]:
-        params: Dict[str, str] = {}
-        if self.__consistency_level is not None:
-            params["consistency_level"] = self.__consistency_level
+    def _insert_many(self, objects: List[DataObject]) -> _BatchReturn:
+        weaviate_objs: List[weaviate_pb2.BatchObject] = [
+            weaviate_pb2.BatchObject(
+                class_name=self.name,
+                vector=obj.vector if obj.vector is not None else None,
+                uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
+                properties=self.__parse_properties_grpc(obj.data),
+                tenant=self._tenant,
+            )
+            for obj in objects
+        ]
 
-        if self.__tenant is not None:
-            for obj in objects:
-                obj["tenant"] = self.__tenant
+        errors = self._batch.batch(weaviate_objs)
 
-        response = self._connection.post(
-            path="/batch/objects",
-            weaviate_object={"fields": ["ALL"], "objects": objects},
-            params=params,
+        all_responses: List[Union[uuid_package.UUID, Error]] = list(range(len(weaviate_objs)))
+        return_success: Dict[int, uuid_package.UUID] = {}
+        return_errors: Dict[int, Error] = {}
+
+        for idx, obj in enumerate(weaviate_objs):
+            if idx in errors:
+                error = Error(errors[idx], original_uuid=objects[idx].uuid)
+                return_errors[idx] = error
+                all_responses[idx] = error
+            else:
+                success = uuid_package.UUID(obj.uuid)
+                return_success[idx] = success
+                all_responses[idx] = success
+
+        return _BatchReturn(
+            uuids=return_success,
+            errors=return_errors,
+            has_errors=len(errors) > 0,
+            all_responses=all_responses,
         )
-        if response.status_code == 200:
-            results = response.json()
-            return [
-                [Error(message=err) for err in result["result"]["errors"]["error"]]
-                if "result" in result
-                and "errors" in result["result"]
-                and "error" in result["result"]["errors"]
-                else objects[i]["id"]
-                for i, result in enumerate(results)
-            ]
-
-        raise UnexpectedStatusCodeException("Send object batch", response)
 
     def delete(self, uuid: UUID) -> bool:
         path = f"/objects/{self.name}/{uuid}"
@@ -179,9 +192,9 @@ class _Data:
         if self.__consistency_level is not None:
             params["consistency_level"] = self.__consistency_level
 
-        if self.__tenant is not None:
+        if self._tenant is not None:
             for ref in refs:
-                ref["tenant"] = self.__tenant
+                ref["tenant"] = self._tenant
 
         response = self._connection.post(
             path="/batch/references", weaviate_object=refs, params=params
@@ -224,8 +237,8 @@ class _Data:
             raise UnexpectedStatusCodeException("Add property reference to object", response)
 
     def __apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        if self.__tenant is not None:
-            params["tenant"] = self.__tenant
+        if self._tenant is not None:
+            params["tenant"] = self._tenant
         if self.__consistency_level is not None:
             params["consistency_level"] = self.__consistency_level
         return params
@@ -233,17 +246,46 @@ class _Data:
     def __apply_context_to_params_and_object(
         self, params: Dict[str, Any], obj: Dict[str, Any]
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        if self.__tenant is not None:
-            obj["tenant"] = self.__tenant
+        if self._tenant is not None:
+            obj["tenant"] = self._tenant
         if self.__consistency_level is not None:
             params["consistency_level"] = self.__consistency_level
         return params, obj
 
     def _parse_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
         return {
-            key: val if not isinstance(val, ReferenceTo) else val.to_beacons()
+            key: val
+            if not (isinstance(val, ReferenceTo) or isinstance(val, ReferenceToMultiTarget))
+            else val.to_beacons()
             for key, val in data.items()
         }
+
+    @staticmethod
+    def __parse_properties_grpc(data: Dict[str, Any]) -> weaviate_pb2.BatchObject.Properties:
+        multi_target: List[weaviate_pb2.BatchObject.RefPropertiesMultiTarget] = []
+        single_target: List[weaviate_pb2.BatchObject.RefPropertiesSingleTarget] = []
+        non_ref_properties: Struct = Struct()
+        for key, val in data.items():
+            if isinstance(val, ReferenceToMultiTarget):
+                multi_target.append(
+                    weaviate_pb2.BatchObject.RefPropertiesMultiTarget(
+                        uuids=val.uuids_str, target_collection=val.target_collection, prop_name=key
+                    )
+                )
+            elif isinstance(val, ReferenceTo):
+                single_target.append(
+                    weaviate_pb2.BatchObject.RefPropertiesSingleTarget(
+                        uuids=val.uuids_str, prop_name=key
+                    )
+                )
+            else:
+                non_ref_properties.update({key: val})
+
+        return weaviate_pb2.BatchObject.Properties(
+            non_ref_properties=non_ref_properties,
+            ref_props_multi=multi_target,
+            ref_props_single=single_target,
+        )
 
 
 class _DataCollection(_Data):
@@ -270,17 +312,8 @@ class _DataCollection(_Data):
 
         return self._insert(weaviate_obj)
 
-    def insert_many(self, objects: List[DataObject]) -> List[Union[uuid_package.UUID, Errors]]:
-        weaviate_objs: List[Dict[str, Any]] = [
-            {
-                "class": self.name,
-                "properties": self._parse_properties(obj.data),
-                "id": str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
-            }
-            for obj in objects
-        ]
-
-        return self._insert_many(weaviate_objs)
+    def insert_many(self, objects: List[DataObject]) -> _BatchReturn:
+        return self._insert_many(objects)
 
     def replace(
         self, data: Dict[str, Any], uuid: UUID, vector: Optional[List[float]] = None
@@ -397,19 +430,20 @@ class _DataCollectionModel(Generic[Model], _Data):
         self._insert(weaviate_obj)
         return uuid_package.UUID(str(obj.uuid))
 
-    def insert_many(self, objects: List[Model]) -> List[Union[uuid_package.UUID, Errors]]:
+    def insert_many(self, objects: List[Model]) -> _BatchReturn:
         for obj in objects:
             self.__model.model_validate(obj)
 
-        weaviate_objs: List[Dict[str, Any]] = [
-            {
-                "class": self.name,
-                "properties": self._parse_properties(obj.props_to_dict()),
-                "id": str(obj.uuid),
-            }
+        data_objects = [
+            DataObject(
+                data=obj.props_to_dict(),
+                uuid=obj.uuid,
+                vector=obj.vector,
+            )
             for obj in objects
         ]
-        return self._insert_many(weaviate_objs)
+
+        return self._insert_many(data_objects)
 
     def replace(self, obj: Model, uuid: UUID) -> None:
         self.__model.model_validate(obj)
@@ -450,20 +484,14 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         return [self._json_to_object(obj) for obj in ret["objects"]]
 
-    def reference_add(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
-        self._reference_add(
-            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
-        )
+    def reference_add(self, from_uuid: UUID, from_property: str, ref: ReferenceTo) -> None:
+        self._reference_add(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_delete(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
-        self._reference_delete(
-            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
-        )
+    def reference_delete(self, from_uuid: UUID, from_property: str, ref: ReferenceTo) -> None:
+        self._reference_delete(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_replace(self, from_uuid: UUID, from_property: str, to_uuids: UUIDS) -> None:
-        self._reference_replace(
-            from_uuid=from_uuid, from_property_name=from_property, to_uuids=to_uuids
-        )
+    def reference_replace(self, from_uuid: UUID, from_property: str, ref: ReferenceTo) -> None:
+        self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
     def reference_add_many(self, from_property: str, refs: List[BatchReference]) -> None:
         refs_dict = [
