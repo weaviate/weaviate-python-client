@@ -3,7 +3,6 @@ from typing import List, Optional
 
 from pydantic_core._pydantic_core import PydanticUndefined
 
-from weaviate import Config
 from weaviate.collection.grpc import MetadataQuery
 from weaviate.exceptions import WeaviateAddInvalidPropertyError
 
@@ -36,11 +35,9 @@ class Group(BaseProperty):
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.Client(
-        "http://localhost:8080", additional_config=Config(grpc_port_experimental=50051)
-    )
-    client.collection_model.delete(Group)
-    collection = client.collection_model.create(
+    client = weaviate.CollectionClient("http://localhost:8080", grpc_port=50051)
+    client._collection_model.delete(Group)
+    collection = client._collection_model.create(
         CollectionModelConfig[Group](model=Group, vectorizer=Vectorizer.NONE)
     )
     collection.data.insert(obj=Group(name="Name", uuid=REF_TO_UUID))
@@ -49,7 +46,7 @@ def client():
 
 
 def test_with_existing_collection(client: weaviate.Client):
-    obj = client.collection_model.get(Group).data.get_by_id(REF_TO_UUID)
+    obj = client._collection_model.get(Group).data.get_by_id(REF_TO_UUID)
     assert obj.data.name == "Name"
 
 
@@ -72,8 +69,8 @@ def test_types(client: weaviate.Client, member_type, value, optional: bool):
     class ModelTypes(BaseProperty):
         name: member_type
 
-    client.collection_model.delete(ModelTypes)
-    collection = client.collection_model.create(
+    client._collection_model.delete(ModelTypes)
+    collection = client._collection_model.create(
         CollectionModelConfig[ModelTypes](model=ModelTypes, vectorizer=Vectorizer.NONE)
     )
     assert collection.model == ModelTypes
@@ -102,8 +99,8 @@ def test_types_annotates(client: weaviate.Client, member_type, annotation, value
     class ModelTypes(BaseProperty):
         name: Annotated[member_type, annotation]
 
-    client.collection_model.delete(ModelTypes)
-    collection = client.collection_model.create(
+    client._collection_model.delete(ModelTypes)
+    collection = client._collection_model.create(
         CollectionModelConfig[ModelTypes](model=ModelTypes, vectorizer=Vectorizer.NONE)
     )
     assert collection.model == ModelTypes
@@ -120,22 +117,22 @@ def test_create_and_delete(client: weaviate.Client):
     class DeleteModel(BaseProperty):
         name: int
 
-    client.collection_model.delete(DeleteModel)
-    client.collection_model.create(
+    client._collection_model.delete(DeleteModel)
+    client._collection_model.create(
         CollectionModelConfig[DeleteModel](model=DeleteModel, vectorizer=Vectorizer.NONE)
     )
 
-    assert client.collection_model.exists(DeleteModel)
-    client.collection_model.delete(DeleteModel)
-    assert not client.collection_model.exists(DeleteModel)
+    assert client._collection_model.exists(DeleteModel)
+    client._collection_model.delete(DeleteModel)
+    assert not client._collection_model.exists(DeleteModel)
 
 
 def test_search(client: weaviate.Client):
     class SearchTest(BaseProperty):
         name: str
 
-    client.collection_model.delete(SearchTest)
-    collection = client.collection_model.create(
+    client._collection_model.delete(SearchTest)
+    collection = client._collection_model.create(
         CollectionModelConfig[SearchTest](model=SearchTest, vectorizer=Vectorizer.NONE)
     )
 
@@ -151,8 +148,8 @@ def test_tenants(client: weaviate.Client):
     class TenantsTest(BaseProperty):
         name: str
 
-    client.collection_model.delete(TenantsTest)
-    collection = client.collection_model.create(
+    client._collection_model.delete(TenantsTest)
+    collection = client._collection_model.create(
         CollectionModelConfig[TenantsTest](
             vectorizer=Vectorizer.NONE,
             multi_tenancy_config=MultiTenancyConfig(enabled=True),
@@ -177,8 +174,8 @@ def test_multi_searches(client: weaviate.Client):
     class TestMultiSearches(BaseProperty):
         name: str
 
-    client.collection_model.delete(TestMultiSearches)
-    collection = client.collection_model.create(
+    client._collection_model.delete(TestMultiSearches)
+    collection = client._collection_model.create(
         CollectionModelConfig[TestMultiSearches](
             model=TestMultiSearches, vectorizer=Vectorizer.NONE
         )
@@ -209,8 +206,8 @@ def test_multi_searches_with_references(client: weaviate.Client):
         name: Optional[str] = None
         group: Annotated[Optional[UUIDS], CrossReference(Group)] = None
 
-    client.collection_model.delete(TestMultiSearchesWithReferences)
-    collection = client.collection_model.create(
+    client._collection_model.delete(TestMultiSearchesWithReferences)
+    collection = client._collection_model.create(
         CollectionModelConfig[TestMultiSearchesWithReferences](
             model=TestMultiSearchesWithReferences, vectorizer=Vectorizer.NONE
         )
@@ -242,8 +239,8 @@ def test_search_with_tenant(client: weaviate.Client):
     class TestTenantSearch(BaseProperty):
         name: str
 
-    client.collection_model.delete(TestTenantSearch)
-    collection = client.collection_model.create(
+    client._collection_model.delete(TestTenantSearch)
+    collection = client._collection_model.create(
         CollectionModelConfig[TestTenantSearch](
             model=TestTenantSearch,
             vectorizer=Vectorizer.NONE,
@@ -299,8 +296,8 @@ def test_update_properties(
         class TestPropUpdate(BaseProperty):
             name: str
 
-        client.collection_model.delete(TestPropUpdate)
-        collection_first = client.collection_model.create(
+        client._collection_model.delete(TestPropUpdate)
+        collection_first = client._collection_model.create(
             CollectionModelConfig[TestPropUpdate](model=TestPropUpdate, vectorizer=Vectorizer.NONE)
         )
         uuid_first = collection_first.data.insert(TestPropUpdate(name="first"))
@@ -319,9 +316,9 @@ def test_update_properties(
 
     if exception:
         with pytest.raises(WeaviateAddInvalidPropertyError):
-            client.collection_model.update(TestPropUpdate)
+            client._collection_model.update(TestPropUpdate)
     else:
-        collection = client.collection_model.update(TestPropUpdate)
+        collection = client._collection_model.update(TestPropUpdate)
         uuid_second = collection.data.insert(TestPropUpdate(name="second", number=value_to_add))
         objects = collection.data.get()
         assert len(objects) == 2
@@ -346,8 +343,8 @@ def test_empty_search_returns_everything(client: weaviate.Client):
     class TestReturnEverythingORM(BaseProperty):
         name: Optional[str] = None
 
-    client.collection_model.delete(TestReturnEverythingORM)
-    collection = client.collection_model.create(
+    client._collection_model.delete(TestReturnEverythingORM)
+    collection = client._collection_model.create(
         CollectionModelConfig[TestReturnEverythingORM](
             model=TestReturnEverythingORM,
             vectorizer=Vectorizer.NONE,
@@ -369,8 +366,8 @@ def test_empty_return_properties(client: weaviate.Client):
     class TestEmptyProperties(BaseProperty):
         name: str
 
-    client.collection_model.delete(TestEmptyProperties)
-    collection = client.collection_model.create(
+    client._collection_model.delete(TestEmptyProperties)
+    collection = client._collection_model.create(
         CollectionModelConfig[TestEmptyProperties](
             model=TestEmptyProperties,
             vectorizer=Vectorizer.NONE,
@@ -393,8 +390,8 @@ def test_update_reference_property(client: weaviate.Client):
         class TestRefPropUpdate(BaseProperty):
             name: str
 
-        client.collection_model.delete(TestRefPropUpdate)
-        collection_first = client.collection_model.create(
+        client._collection_model.delete(TestRefPropUpdate)
+        collection_first = client._collection_model.create(
             CollectionModelConfig[TestRefPropUpdate](
                 model=TestRefPropUpdate, vectorizer=Vectorizer.NONE
             )
@@ -406,4 +403,4 @@ def test_update_reference_property(client: weaviate.Client):
         group: Annotated[Optional[UUIDS], CrossReference(Group)] = None
 
     create_original_collection()
-    client.collection_model.update(TestRefPropUpdate)
+    client._collection_model.update(TestRefPropUpdate)

@@ -34,6 +34,7 @@ __version__ : str
 
 __all__ = [
     "Client",
+    "CollectionClient",
     "AuthClientCredentials",
     "AuthClientPassword",
     "AuthBearerToken",
@@ -64,7 +65,7 @@ except PackageNotFoundError:
 
 from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken, AuthApiKey
 from .batch.crud_batch import WeaviateErrorRetryConf
-from .client import Client
+from .client import Client, CollectionClient
 from .data.replication import ConsistencyLevel
 from .schema.crud_schema import Tenant
 from .embedded import EmbeddedOptions

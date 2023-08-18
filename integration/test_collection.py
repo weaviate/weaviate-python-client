@@ -2,7 +2,6 @@ import pytest as pytest
 import uuid
 
 import weaviate
-from weaviate import Config
 from weaviate.collection.classes import (
     BM25ConfigUpdate,
     CollectionConfig,
@@ -35,9 +34,7 @@ BEACON_START = "weaviate://localhost"
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.Client(
-        "http://localhost:8080", additional_config=Config(grpc_port_experimental=50051)
-    )
+    client = weaviate.CollectionClient("http://localhost:8080", grpc_port=50051)
     client.schema.delete_all()
     yield client
     client.schema.delete_all()
@@ -152,7 +149,7 @@ def test_insert_many_with_refs(client: weaviate.Client):
     assert obj1.data["ref_many"][0]["beacon"] == BEACON_START + f"/{name_target}/{uuid_to1}"
 
 
-def test_insert_many_error(client: weaviate.Client):
+def test_insert_many_error(client: weaviate.CollectionClient):
     name = "TestInsertManyWitHError"
     collection_config = CollectionConfig(
         name=name,

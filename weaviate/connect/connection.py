@@ -27,6 +27,7 @@ from weaviate.exceptions import (
     AuthenticationFailedException,
     UnexpectedStatusCodeException,
     WeaviateStartUpError,
+    WeaviateGRPCException,
 )
 from weaviate.util import (
     _check_positive_num,
@@ -639,6 +640,26 @@ class BaseConnection:
                 f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
             ) from error
 
+    @property
+    def grpc_stub(self) -> weaviate_pb2_grpc.WeaviateStub:
+        return self._grpc_stub
+
+    @property
+    def server_version(self) -> str:
+        """
+        Version of the weaviate instance.
+        """
+        return self._server_version
+
+    def get_meta(self) -> Dict[str, str]:
+        """
+        Returns the meta endpoint.
+        """
+        response = self.get(path="/meta")
+        if response.status_code == 200:
+            return response.json()
+        raise UnexpectedStatusCodeException("Meta endpoint", response)
+
 
 class Connection(BaseConnection):
     def __init__(
@@ -700,6 +721,42 @@ class Connection(BaseConnection):
         if response.status_code == 200:
             return response.json()
         raise UnexpectedStatusCodeException("Meta endpoint", response)
+
+
+class GRPCConnection(Connection):
+    def __init__(
+        self,
+        url: str,
+        auth_client_secret: Optional[AuthCredentials],
+        timeout_config: TIMEOUT_TYPE_RETURN,
+        proxies: Union[dict, str, None],
+        trust_env: bool,
+        additional_headers: Optional[Dict[str, Any]],
+        startup_period: Optional[int],
+        connection_config: ConnectionConfig,
+        embedded_db: Optional[EmbeddedDB] = None,
+        grcp_port: Optional[int] = None,
+    ):
+        super().__init__(
+            url,
+            auth_client_secret,
+            timeout_config,
+            proxies,
+            trust_env,
+            additional_headers,
+            startup_period,
+            connection_config,
+            embedded_db,
+            grcp_port,
+        )
+        if self._server_version < "1.21" or self._grpc_stub is None:
+            raise WeaviateGRPCException(
+                f"GRPC is not enabled. Are you on the latest weaviate version? Current is {self._server_version}"
+            )
+
+    @property
+    def grpc_stub(self) -> weaviate_pb2_grpc.WeaviateStub:
+        return self._grpc_stub
 
 
 def _get_epoch_time() -> int:

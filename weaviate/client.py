@@ -13,7 +13,7 @@ from .cluster import Cluster
 from .collection import Collection
 from .collection.collection_model import CollectionModel
 from .config import Config
-from .connect.connection import Connection, TIMEOUT_TYPE_RETURN
+from .connect.connection import Connection, TIMEOUT_TYPE_RETURN, GRPCConnection
 from .contextionary import Contextionary
 from .data import DataObject
 from .embedded import EmbeddedDB, EmbeddedOptions
@@ -26,7 +26,146 @@ from .weaviate_types import NUMBER
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
 
-class Client:
+class _ClientBase:
+    _connection: Connection
+
+    def is_ready(self) -> bool:
+        """
+        Ping Weaviate's ready state
+
+        Returns
+        -------
+        bool
+            True if Weaviate is ready to accept requests,
+            False otherwise.
+        """
+
+        try:
+            response = self._connection.get(path="/.well-known/ready")
+            if response.status_code == 200:
+                return True
+            return False
+        except RequestsConnectionError:
+            return False
+
+    def is_live(self) -> bool:
+        """
+        Ping Weaviate's live state.
+
+        Returns
+        --------
+        bool
+            True if weaviate is live and should not be killed,
+            False otherwise.
+        """
+
+        response = self._connection.get(path="/.well-known/live")
+        if response.status_code == 200:
+            return True
+        return False
+
+    def get_meta(self) -> dict:
+        """
+        Get the meta endpoint description of weaviate.
+
+        Returns
+        -------
+        dict
+            The dict describing the weaviate configuration.
+
+        Raises
+        ------
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        """
+
+        return self._connection.get_meta()
+
+    def get_open_id_configuration(self) -> Optional[Dict[str, Any]]:
+        """
+        Get the openid-configuration.
+
+        Returns
+        -------
+        dict
+            The configuration or None if not configured.
+
+        Raises
+        ------
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        """
+
+        response = self._connection.get(path="/.well-known/openid-configuration")
+        if response.status_code == 200:
+            return _type_request_response(response.json())
+        if response.status_code == 404:
+            return None
+        raise UnexpectedStatusCodeException("Meta endpoint", response)
+
+    @staticmethod
+    def _parse_url_and_embedded_db(
+        url: Optional[str], embedded_options: Optional[EmbeddedOptions]
+    ) -> Tuple[str, Optional[EmbeddedDB]]:
+        if embedded_options is None and url is None:
+            raise TypeError("Either url or embedded options must be present.")
+        elif embedded_options is not None and url is not None:
+            raise TypeError(
+                f"URL is not expected to be set when using embedded_options but URL was {url}"
+            )
+
+        if embedded_options is not None:
+            embedded_db = EmbeddedDB(options=embedded_options)
+            embedded_db.start()
+            return f"http://localhost:{embedded_db.options.port}", embedded_db
+
+        if not isinstance(url, str):
+            raise TypeError(f"URL is expected to be string but is {type(url)}")
+        return url.strip("/"), None
+
+    def __del__(self) -> None:
+        # in case an exception happens before definition of these members
+        if hasattr(self, "_connection"):
+            self._connection.close()
+
+
+class CollectionClient(_ClientBase):
+    def __init__(
+        self,
+        url: Optional[str] = None,
+        grpc_port: int = 50051,
+        auth_client_secret: Optional[AuthCredentials] = None,
+        additional_headers: Optional[Dict[str, Any]] = None,
+        embedded_options: Optional[EmbeddedOptions] = None,
+    ) -> None:
+        url, embedded_db = self._parse_url_and_embedded_db(url, embedded_options)
+        config = Config()
+
+        self._connection = GRPCConnection(
+            url=url,
+            auth_client_secret=auth_client_secret,
+            timeout_config=_get_valid_timeout_config((10, 60)),
+            additional_headers=additional_headers,
+            embedded_db=embedded_db,
+            grcp_port=grpc_port,
+            connection_config=config.connection_config,
+            proxies=None,
+            trust_env=False,
+            startup_period=None,
+        )
+        self.classification = Classification(self._connection)
+        self.schema = Schema(self._connection)
+        self.contextionary = Contextionary(self._connection)
+        self.batch = Batch(self._connection)
+        self.data_object = DataObject(self._connection)
+        self.query = Query(self._connection)
+        self.backup = Backup(self._connection)
+        self.cluster = Cluster(self._connection)
+        self.collection = Collection(self._connection)
+        self._collection_model = CollectionModel(self._connection)  # experimental
+
+
+class Client(_ClientBase):
     """
     A python native Weaviate Client class that encapsulates Weaviate functionalities in one object.
     A Client instance creates all the needed objects to interact with Weaviate, and connects all of
@@ -146,7 +285,7 @@ class Client:
         TypeError
             If arguments are of a wrong data type.
         """
-        url, embedded_db = self.__parse_url_and_embedded_db(url, embedded_options)
+        url, embedded_db = self._parse_url_and_embedded_db(url, embedded_options)
         config = Config() if additional_config is None else additional_config
 
         self._connection = Connection(
@@ -169,82 +308,6 @@ class Client:
         self.query = Query(self._connection)
         self.backup = Backup(self._connection)
         self.cluster = Cluster(self._connection)
-        self.collection = Collection(self._connection)
-        self.collection_model = CollectionModel(self._connection)
-
-    def is_ready(self) -> bool:
-        """
-        Ping Weaviate's ready state
-
-        Returns
-        -------
-        bool
-            True if Weaviate is ready to accept requests,
-            False otherwise.
-        """
-
-        try:
-            response = self._connection.get(path="/.well-known/ready")
-            if response.status_code == 200:
-                return True
-            return False
-        except RequestsConnectionError:
-            return False
-
-    def is_live(self) -> bool:
-        """
-        Ping Weaviate's live state.
-
-        Returns
-        --------
-        bool
-            True if weaviate is live and should not be killed,
-            False otherwise.
-        """
-
-        response = self._connection.get(path="/.well-known/live")
-        if response.status_code == 200:
-            return True
-        return False
-
-    def get_meta(self) -> dict:
-        """
-        Get the meta endpoint description of weaviate.
-
-        Returns
-        -------
-        dict
-            The dict describing the weaviate configuration.
-
-        Raises
-        ------
-        weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
-        """
-
-        return self._connection.get_meta()
-
-    def get_open_id_configuration(self) -> Optional[Dict[str, Any]]:
-        """
-        Get the openid-configuration.
-
-        Returns
-        -------
-        dict
-            The configuration or None if not configured.
-
-        Raises
-        ------
-        weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
-        """
-
-        response = self._connection.get(path="/.well-known/openid-configuration")
-        if response.status_code == 200:
-            return _type_request_response(response.json())
-        if response.status_code == 404:
-            return None
-        raise UnexpectedStatusCodeException("Meta endpoint", response)
 
     @property
     def timeout_config(self) -> TIMEOUT_TYPE_RETURN:
@@ -275,28 +338,3 @@ class Client:
         """
 
         self._connection.timeout_config = _get_valid_timeout_config(timeout_config)
-
-    @staticmethod
-    def __parse_url_and_embedded_db(
-        url: Optional[str], embedded_options: Optional[EmbeddedOptions]
-    ) -> Tuple[str, Optional[EmbeddedDB]]:
-        if embedded_options is None and url is None:
-            raise TypeError("Either url or embedded options must be present.")
-        elif embedded_options is not None and url is not None:
-            raise TypeError(
-                f"URL is not expected to be set when using embedded_options but URL was {url}"
-            )
-
-        if embedded_options is not None:
-            embedded_db = EmbeddedDB(options=embedded_options)
-            embedded_db.start()
-            return f"http://localhost:{embedded_db.options.port}", embedded_db
-
-        if not isinstance(url, str):
-            raise TypeError(f"URL is expected to be string but is {type(url)}")
-        return url.strip("/"), None
-
-    def __del__(self) -> None:
-        # in case an exception happens before definition of these members
-        if hasattr(self, "_connection"):
-            self._connection.close()
