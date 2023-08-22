@@ -914,8 +914,8 @@ class Schema:
         tenant_resp = response.json()
         return [Tenant._from_weaviate_object(tenant) for tenant in tenant_resp]
 
-    def update_class_tenant_activities(self, class_name: str, tenants: List[Tenant]) -> None:
-        """Update the activity status of tenants for a class.
+    def update_class_tenants(self, class_name: str, tenants: List[Tenant]) -> None:
+        """Update class tenants.
 
         Use this when you want to move tenants from one activity state to another.
 
