@@ -135,6 +135,26 @@ def image_decoder_b64(encoded_image: str) -> bytes:
     return base64.b64decode(encoded_image.encode("utf-8"))
 
 
+def file_decoder_b64(encoded_file: str) -> bytes:
+    """
+    Decode file from a Weaviate format image.
+
+    Parameters
+    ----------
+    encoded_file : str
+        The encoded file.
+
+    Returns
+    -------
+    bytes
+        Decoded file as a binary string. Use this in your file
+        handling code to convert it into a specific file type of choice.
+        E.g., PIL for images.
+    """
+
+    return base64.b64decode(encoded_file.encode("utf-8"))
+
+
 def generate_local_beacon(
     to_uuid: Union[str, uuid_lib.UUID],
     class_name: Optional[str] = None,
