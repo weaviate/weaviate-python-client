@@ -275,22 +275,9 @@ class Batch:
         # thread pool executor
         self._executor: Optional[BatchExecutor] = None
 
-    def configure(
-        self,
-        batch_size: Optional[int] = None,
-        creation_time: Optional[Real] = None,
-        timeout_retries: int = 3,
-        connection_error_retries: int = 3,
-        weaviate_error_retries: Optional[WeaviateErrorRetryConf] = None,
-        callback: Optional[Callable[[dict], None]] = check_batch_result,
-        dynamic: bool = False,
-        num_workers: int = 1,
-        consistency_level: Optional[ConsistencyLevel] = None,
-    ) -> "Batch":
+    def __call__(self, **kwargs) -> "Batch":
         """
-        Configure the instance to your needs. (`__call__` and `configure` methods are the same).
-        NOTE: It has default values and if you want to change only one use a setter instead, or
-        provide all the configurations.
+        WARNING: This method will be deprecated in the next major release. Use `configure` instead.
 
         Parameters
         ----------
@@ -333,20 +320,10 @@ class Batch:
         ValueError
             If the value of one of the arguments is wrong.
         """
+        _Warnings.use_of_client_batch_will_be_removed_in_next_major_release()
+        return self.configure(**kwargs)
 
-        return self.__call__(
-            batch_size=batch_size,
-            creation_time=creation_time,
-            timeout_retries=timeout_retries,
-            weaviate_error_retries=weaviate_error_retries,
-            connection_error_retries=connection_error_retries,
-            callback=callback,
-            dynamic=dynamic,
-            num_workers=num_workers,
-            consistency_level=consistency_level,
-        )
-
-    def __call__(
+    def configure(
         self,
         batch_size: Optional[int] = None,
         creation_time: Optional[Real] = None,
@@ -359,9 +336,12 @@ class Batch:
         consistency_level: Optional[ConsistencyLevel] = None,
     ) -> "Batch":
         """
-        Configure the instance to your needs. (`__call__` and `configure` methods are the same).
-        NOTE: It has default values and if you want to change only one use a setter instead, or
-        provide all the configurations.
+        Warnings
+        --------
+            - It has default values and if you want to change only one use a setter instead or
+        provide all the configurations, both the old and new ones.
+            - This method will return `None` in the next major release. If you are using the returned
+        `Batch` object then you should start using the `client.batch` object instead.
 
         Parameters
         ----------
