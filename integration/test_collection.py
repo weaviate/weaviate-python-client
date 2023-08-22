@@ -27,6 +27,7 @@ from weaviate.collection.classes import (
     VectorIndexConfigUpdate,
     Vectorizer,
     Error,
+    TenantActivityStatus,
 )
 from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery
 
@@ -988,3 +989,26 @@ def test_collection_name_capitalization(client: weaviate.Client):
     client.collection.delete(name_small)
     assert not client.collection.exists(name_small)
     assert not client.collection.exists(name_big)
+
+
+def test_tenant_with_activity(client: weaviate.Client):
+    name = "tenantActivity"
+    collection = client.collection.create(
+        CollectionConfig(
+            name=name,
+            vectorizer=Vectorizer.NONE,
+            properties=[Property(name="name", data_type=DataType.TEXT)],
+            multi_tenancy_config=MultiTenancyConfig(enabled=True),
+        )
+    )
+    collection.tenants.add(
+        [
+            Tenant(name="1", activity_status=TenantActivityStatus.HOT),
+            Tenant(name="2", activity_status=TenantActivityStatus.COLD),
+            Tenant(name="3"),
+        ]
+    )
+    tenants = collection.tenants.get()
+    assert tenants["1"].activity_status == TenantActivityStatus.HOT
+    assert tenants["2"].activity_status == TenantActivityStatus.COLD
+    assert tenants["3"].activity_status == TenantActivityStatus.HOT

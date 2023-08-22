@@ -34,7 +34,7 @@ class _Tenants:
             - If Weaviate reports a non-OK status.
         """
 
-        loaded_tenants = [{"name": tenant.name} for tenant in tenants]
+        loaded_tenants = [tenant.model_dump() for tenant in tenants]
 
         path = "/schema/" + self.__name + "/tenants"
         try:
@@ -76,7 +76,7 @@ class _Tenants:
                 f"Delete collection tenants for {self.__name}", response
             )
 
-    def get(self) -> List[Tenant]:
+    def get(self) -> Dict[str, Tenant]:
         """Return all tenants currently associated with a collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
@@ -100,4 +100,4 @@ class _Tenants:
             )
 
         tenant_resp: List[Dict[str, Any]] = response.json()
-        return [Tenant(**tenant) for tenant in tenant_resp]
+        return {tenant["name"]: Tenant(**tenant) for tenant in tenant_resp}
