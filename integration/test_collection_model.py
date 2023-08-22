@@ -23,6 +23,7 @@ from weaviate.collection.classes import (
     CrossReference,
     Tenant,
     Vectorizer,
+    TenantActivityStatus,
 )
 from weaviate.weaviate_types import UUIDS
 from pydantic import Field
@@ -171,6 +172,52 @@ def test_tenants(client: weaviate.Client):
 
     tenants = collection.tenants.get()
     assert len(tenants) == 0
+
+
+def test_tenants_activity(client: weaviate.Client):
+    class TenantsUpdateTest(BaseProperty):
+        name: str
+
+    client.collection_model.delete(TenantsUpdateTest)
+    collection = client.collection_model.create(
+        CollectionModelConfig[TenantsUpdateTest](
+            vectorizer=Vectorizer.NONE,
+            multi_tenancy_config=MultiTenancyConfig(enabled=True),
+            model=TenantsUpdateTest,
+        )
+    )
+    collection.tenants.add(
+        [
+            Tenant(name="1", activity_status=TenantActivityStatus.HOT),
+            Tenant(name="2", activity_status=TenantActivityStatus.COLD),
+            Tenant(name="3"),
+        ]
+    )
+    tenants = collection.tenants.get()
+    assert tenants["1"].activity_status == TenantActivityStatus.HOT
+    assert tenants["2"].activity_status == TenantActivityStatus.COLD
+    assert tenants["3"].activity_status == TenantActivityStatus.HOT
+
+
+def test_tenants_update(client: weaviate.Client):
+    class TenantsUpdateTest(BaseProperty):
+        name: str
+
+    client.collection_model.delete(TenantsUpdateTest)
+    collection = client.collection_model.create(
+        CollectionModelConfig[TenantsUpdateTest](
+            vectorizer=Vectorizer.NONE,
+            multi_tenancy_config=MultiTenancyConfig(enabled=True),
+            model=TenantsUpdateTest,
+        )
+    )
+    collection.tenants.add([Tenant(name="1", activity_status=TenantActivityStatus.HOT)])
+    tenants = collection.tenants.get()
+    assert tenants["1"].activity_status == TenantActivityStatus.HOT
+
+    collection.tenants.update([Tenant(name="1", activity_status=TenantActivityStatus.COLD)])
+    tenants = collection.tenants.get()
+    assert tenants["1"].activity_status == TenantActivityStatus.COLD
 
 
 def test_multi_searches(client: weaviate.Client):
