@@ -12,8 +12,7 @@ This minor version updates the client to work with Weaviate's 1.21 version and i
     - ``client.query.get().with_near_imu()``
     - ``client.query.get().with_near_thermal()``
     - ``client.query.get().with_near_video()``
-- Adds support for updating individual tenants within a multi-tenancy class configuration.
-    - ``client.schema.update_class_tenants``
+- Adds support for updating individual tenants within a multi-tenancy class configuration: ``client.schema.update_class_tenants``.
 - Adds support for new ``ContainsAny`` and ``ContainsAll`` filters when using ``.with_where``.
 - Deprecates configuring ``client.batch`` using ``client.batch()`` in favour of using ``client.batch.configure()``.
     - ``client.batch()`` will be removed in a future version.
