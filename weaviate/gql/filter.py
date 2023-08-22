@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from json import dumps
 from typing import Any, Union
+from enum import Enum
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -51,6 +52,15 @@ WHERE_OPERATORS = [
     "Or",
     "WithinGeoRange",
 ]
+
+
+class MediaType(Enum):
+    IMAGE = "image"
+    AUDIO = "audio"
+    VIDEO = "video"
+    THERMAL = "thermal"
+    DEPTH = "depth"
+    IMU = "imu"
 
 
 class GraphQL(ABC):
@@ -398,9 +408,67 @@ class Ask(Filter):
         return ask + "} "
 
 
-class NearImage(Filter):
+class NearMedia(Filter):
+    def __init__(
+        self,
+        content: dict,
+        media_type: MediaType,
+    ):
+        """
+        Initialize a NearMedia class instance.
+
+        Parameters
+        ----------
+        content : list
+            The content of the `near<Media>` clause.
+
+        Raises
+        ------
+        TypeError
+            If 'content' is not of type dict.
+        TypeError
+            If 'content["<media>"]' is not of type str.
+        ValueError
+            If 'content'  has key "certainty"/"distance" but the value is not float.
+        """
+
+        super().__init__(content)
+
+        self._media_type = media_type
+
+        if self._media_type.value not in self._content:
+            raise ValueError(f'"content" is missing the mandatory key "{self._media_type.value}"!')
+
+        _check_type(
+            var_name=self._media_type.value, value=self._content[self._media_type.value], dtype=str
+        )
+        if "certainty" in self._content:
+            if "distance" in self._content:
+                raise ValueError(
+                    "Cannot have both 'certainty' and 'distance' at the same time. "
+                    "Only one is accepted."
+                )
+            _check_type(var_name="certainty", value=self._content["certainty"], dtype=float)
+        if "distance" in self._content:
+            _check_type(var_name="distance", value=self._content["distance"], dtype=float)
+
+    def __str__(self):
+        media = self._media_type.value.capitalize()
+        if self._media_type == MediaType.IMU:
+            media = self._media_type.value.upper()
+        near_media = (
+            f'near{media}: {{{self._media_type.value}: "{self._content[self._media_type.value]}"'
+        )
+        if "certainty" in self._content:
+            near_media += f' certainty: {self._content["certainty"]}'
+        if "distance" in self._content:
+            near_media += f' distance: {self._content["distance"]}'
+        return near_media + "} "
+
+
+class NearImage(NearMedia):
     """
-    NearObject class used to filter weaviate objects.
+    NearImage class used to filter weaviate objects.
     """
 
     def __init__(
@@ -424,30 +492,152 @@ class NearImage(Filter):
         ValueError
             If 'content'  has key "certainty"/"distance" but the value is not float.
         """
+        super().__init__(content, MediaType.IMAGE)
 
-        super().__init__(content)
 
-        if "image" not in self._content:
-            raise ValueError('"content" is missing the mandatory key "image"!')
+class NearVideo(NearMedia):
+    """
+    NearVideo class used to filter weaviate objects.
+    """
 
-        _check_type(var_name="image", value=self._content["image"], dtype=str)
-        if "certainty" in self._content:
-            if "distance" in self._content:
-                raise ValueError(
-                    "Cannot have both 'certainty' and 'distance' at the same time. "
-                    "Only one is accepted."
-                )
-            _check_type(var_name="certainty", value=self._content["certainty"], dtype=float)
-        if "distance" in self._content:
-            _check_type(var_name="distance", value=self._content["distance"], dtype=float)
+    def __init__(
+        self,
+        content: dict,
+    ):
+        """
+        Initialize a NearVideo class instance.
 
-    def __str__(self):
-        near_image = f'nearImage: {{image: "{self._content["image"]}"'
-        if "certainty" in self._content:
-            near_image += f' certainty: {self._content["certainty"]}'
-        if "distance" in self._content:
-            near_image += f' distance: {self._content["distance"]}'
-        return near_image + "} "
+        Parameters
+        ----------
+        content : list
+            The content of the `nearVideo` clause.
+
+        Raises
+        ------
+        TypeError
+            If 'content' is not of type dict.
+        TypeError
+            If 'content["video"]' is not of type str.
+        ValueError
+            If 'content'  has key "certainty"/"distance" but the value is not float.
+        """
+        super().__init__(content, MediaType.VIDEO)
+
+
+class NearAudio(NearMedia):
+    """
+    NearAudio class used to filter weaviate objects.
+    """
+
+    def __init__(
+        self,
+        content: dict,
+    ):
+        """
+        Initialize a NearAudio class instance.
+
+        Parameters
+        ----------
+        content : list
+            The content of the `nearAudio` clause.
+
+        Raises
+        ------
+        TypeError
+            If 'content' is not of type dict.
+        TypeError
+            If 'content["audio"]' is not of type str.
+        ValueError
+            If 'content'  has key "certainty"/"distance" but the value is not float.
+        """
+        super().__init__(content, MediaType.AUDIO)
+
+
+class NearDepth(NearMedia):
+    """
+    NearDepth class used to filter weaviate objects.
+    """
+
+    def __init__(
+        self,
+        content: dict,
+    ):
+        """
+        Initialize a NearDepth class instance.
+
+        Parameters
+        ----------
+        content : list
+            The content of the `nearDepth` clause.
+
+        Raises
+        ------
+        TypeError
+            If 'content' is not of type dict.
+        TypeError
+            If 'content["depth"]' is not of type str.
+        ValueError
+            If 'content'  has key "certainty"/"distance" but the value is not float.
+        """
+        super().__init__(content, MediaType.DEPTH)
+
+
+class NearThermal(NearMedia):
+    """
+    NearThermal class used to filter weaviate objects.
+    """
+
+    def __init__(
+        self,
+        content: dict,
+    ):
+        """
+        Initialize a NearThermal class instance.
+
+        Parameters
+        ----------
+        content : list
+            The content of the `nearThermal` clause.
+
+        Raises
+        ------
+        TypeError
+            If 'content' is not of type dict.
+        TypeError
+            If 'content["thermal"]' is not of type str.
+        ValueError
+            If 'content'  has key "certainty"/"distance" but the value is not float.
+        """
+        super().__init__(content, MediaType.THERMAL)
+
+
+class NearIMU(NearMedia):
+    """
+    NearIMU class used to filter weaviate objects.
+    """
+
+    def __init__(
+        self,
+        content: dict,
+    ):
+        """
+        Initialize a NearIMU class instance.
+
+        Parameters
+        ----------
+        content : list
+            The content of the `nearIMU` clause.
+
+        Raises
+        ------
+        TypeError
+            If 'content' is not of type dict.
+        TypeError
+            If 'content["imu"]' is not of type str.
+        ValueError
+            If 'content'  has key "certainty"/"distance" but the value is not float.
+        """
+        super().__init__(content, MediaType.IMU)
 
 
 class Sort(Filter):

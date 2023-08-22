@@ -6,6 +6,12 @@ from weaviate.gql.filter import (
     NearVector,
     NearObject,
     NearImage,
+    MediaType,
+    NearVideo,
+    NearAudio,
+    NearDepth,
+    NearThermal,
+    NearIMU,
     Where,
     Ask,
     WHERE_OPERATORS,
@@ -965,3 +971,343 @@ class TestAskFilter(unittest.TestCase):
         self.assertEqual(
             str(ask), (f"ask: {{question: \"{content['question']}\"" " rerank: false} ")
         )
+
+
+class TestNearVideo(unittest.TestCase):
+    def test___init__(self):
+        """
+        Test the `__init__` method.
+        """
+
+        # invalid calls
+
+        ## error messages
+        media_type = MediaType.VIDEO
+        arg_name = media_type.value.capitalize()
+        content_error_msg = (
+            lambda dt: f"Near{arg_name} filter is expected to be type dict but is {dt}"
+        )
+        media_key_error_msg = f'"content" is missing the mandatory key "{media_type.value}"!'
+        media_value_error_msg = (
+            lambda dt: f"'{media_type.value}' key-value is expected to be of type <class 'str'> but is {dt}!"
+        )
+        certainty_error_msg = lambda dtype: (
+            f"'certainty' key-value is expected to be of type <class 'float'> but is {dtype}!"
+        )
+
+        with self.assertRaises(TypeError) as error:
+            NearVideo(123)
+        check_error_message(self, error, content_error_msg(int))
+
+        with self.assertRaises(ValueError) as error:
+            NearVideo({"id": "video_path.avi", "certainty": 456})
+        check_error_message(self, error, media_key_error_msg)
+
+        with self.assertRaises(TypeError) as error:
+            NearVideo({"video": True})
+        check_error_message(self, error, media_value_error_msg(bool))
+
+        with self.assertRaises(TypeError) as error:
+            NearVideo({"video": b"True"})
+        check_error_message(self, error, media_value_error_msg(bytes))
+
+        with self.assertRaises(TypeError) as error:
+            NearVideo({"video": "the_encoded_video", "certainty": False})
+        check_error_message(self, error, certainty_error_msg(bool))
+
+        # valid calls
+
+        NearVideo(
+            {
+                "video": "test_video",
+            }
+        )
+
+        NearVideo({"video": "test_video_2", "certainty": 0.7})
+
+    def test___str__(self):
+        """
+        Test the `__str__` method.
+        """
+
+        near_object = NearVideo(
+            {
+                "video": "test_video",
+            }
+        )
+        self.assertEqual(str(near_object), 'nearVideo: {video: "test_video"} ')
+
+        near_object = NearVideo({"video": "test_video", "certainty": 0.7})
+        self.assertEqual(str(near_object), 'nearVideo: {video: "test_video" certainty: 0.7} ')
+
+
+class TestNearAudio(unittest.TestCase):
+    def test___init__(self):
+        """
+        Test the `__init__` method.
+        """
+
+        # invalid calls
+
+        ## error messages
+        media_type = MediaType.AUDIO
+        arg_name = media_type.value.capitalize()
+        content_error_msg = (
+            lambda dt: f"Near{arg_name} filter is expected to be type dict but is {dt}"
+        )
+        media_key_error_msg = f'"content" is missing the mandatory key "{media_type.value}"!'
+        media_value_error_msg = (
+            lambda dt: f"'{media_type.value}' key-value is expected to be of type <class 'str'> but is {dt}!"
+        )
+        certainty_error_msg = lambda dtype: (
+            f"'certainty' key-value is expected to be of type <class 'float'> but is {dtype}!"
+        )
+
+        with self.assertRaises(TypeError) as error:
+            NearAudio(123)
+        check_error_message(self, error, content_error_msg(int))
+
+        with self.assertRaises(ValueError) as error:
+            NearAudio({"id": "audio_path.wav", "certainty": 456})
+        check_error_message(self, error, media_key_error_msg)
+
+        with self.assertRaises(TypeError) as error:
+            NearAudio({"audio": True})
+        check_error_message(self, error, media_value_error_msg(bool))
+
+        with self.assertRaises(TypeError) as error:
+            NearAudio({"audio": b"True"})
+        check_error_message(self, error, media_value_error_msg(bytes))
+
+        with self.assertRaises(TypeError) as error:
+            NearAudio({"audio": "the_encoded_audio", "certainty": False})
+        check_error_message(self, error, certainty_error_msg(bool))
+
+        # valid calls
+
+        NearAudio(
+            {
+                "audio": "test_audio",
+            }
+        )
+
+        NearAudio({"audio": "test_audio_2", "certainty": 0.7})
+
+    def test___str__(self):
+        """
+        Test the `__str__` method.
+        """
+
+        near_object = NearAudio(
+            {
+                "audio": "test_audio",
+            }
+        )
+        self.assertEqual(str(near_object), 'nearAudio: {audio: "test_audio"} ')
+
+        near_object = NearAudio({"audio": "test_audio", "certainty": 0.7})
+        self.assertEqual(str(near_object), 'nearAudio: {audio: "test_audio" certainty: 0.7} ')
+
+
+class TestNearDepth(unittest.TestCase):
+    def test___init__(self):
+        """
+        Test the `__init__` method.
+        """
+
+        # invalid calls
+
+        ## error messages
+        media_type = MediaType.DEPTH
+        arg_name = media_type.value.capitalize()
+        content_error_msg = (
+            lambda dt: f"Near{arg_name} filter is expected to be type dict but is {dt}"
+        )
+        media_key_error_msg = f'"content" is missing the mandatory key "{media_type.value}"!'
+        media_value_error_msg = (
+            lambda dt: f"'{media_type.value}' key-value is expected to be of type <class 'str'> but is {dt}!"
+        )
+        certainty_error_msg = lambda dtype: (
+            f"'certainty' key-value is expected to be of type <class 'float'> but is {dtype}!"
+        )
+
+        with self.assertRaises(TypeError) as error:
+            NearDepth(123)
+        check_error_message(self, error, content_error_msg(int))
+
+        with self.assertRaises(ValueError) as error:
+            NearDepth({"id": "depth_path.png", "certainty": 456})
+        check_error_message(self, error, media_key_error_msg)
+
+        with self.assertRaises(TypeError) as error:
+            NearDepth({"depth": True})
+        check_error_message(self, error, media_value_error_msg(bool))
+
+        with self.assertRaises(TypeError) as error:
+            NearDepth({"depth": b"True"})
+        check_error_message(self, error, media_value_error_msg(bytes))
+
+        with self.assertRaises(TypeError) as error:
+            NearDepth({"depth": "the_encoded_depth", "certainty": False})
+        check_error_message(self, error, certainty_error_msg(bool))
+
+        # valid calls
+
+        NearDepth(
+            {
+                "depth": "test_depth",
+            }
+        )
+
+        NearDepth({"depth": "test_depth_2", "certainty": 0.7})
+
+    def test___str__(self):
+        """
+        Test the `__str__` method.
+        """
+
+        near_object = NearDepth(
+            {
+                "depth": "test_depth",
+            }
+        )
+        self.assertEqual(str(near_object), 'nearDepth: {depth: "test_depth"} ')
+
+        near_object = NearDepth({"depth": "test_depth", "certainty": 0.7})
+        self.assertEqual(str(near_object), 'nearDepth: {depth: "test_depth" certainty: 0.7} ')
+
+
+class TestNearThermal(unittest.TestCase):
+    def test___init__(self):
+        """
+        Test the `__init__` method.
+        """
+
+        # invalid calls
+
+        ## error messages
+        media_type = MediaType.THERMAL
+        arg_name = media_type.value.capitalize()
+        content_error_msg = (
+            lambda dt: f"Near{arg_name} filter is expected to be type dict but is {dt}"
+        )
+        media_key_error_msg = f'"content" is missing the mandatory key "{media_type.value}"!'
+        media_value_error_msg = (
+            lambda dt: f"'{media_type.value}' key-value is expected to be of type <class 'str'> but is {dt}!"
+        )
+        certainty_error_msg = lambda dtype: (
+            f"'certainty' key-value is expected to be of type <class 'float'> but is {dtype}!"
+        )
+
+        with self.assertRaises(TypeError) as error:
+            NearThermal(123)
+        check_error_message(self, error, content_error_msg(int))
+
+        with self.assertRaises(ValueError) as error:
+            NearThermal({"id": "thermal_path.png", "certainty": 456})
+        check_error_message(self, error, media_key_error_msg)
+
+        with self.assertRaises(TypeError) as error:
+            NearThermal({"thermal": True})
+        check_error_message(self, error, media_value_error_msg(bool))
+
+        with self.assertRaises(TypeError) as error:
+            NearThermal({"thermal": b"True"})
+        check_error_message(self, error, media_value_error_msg(bytes))
+
+        with self.assertRaises(TypeError) as error:
+            NearThermal({"thermal": "the_encoded_thermal", "certainty": False})
+        check_error_message(self, error, certainty_error_msg(bool))
+
+        # valid calls
+
+        NearThermal(
+            {
+                "thermal": "test_thermal",
+            }
+        )
+
+        NearThermal({"thermal": "test_thermal_2", "certainty": 0.7})
+
+    def test___str__(self):
+        """
+        Test the `__str__` method.
+        """
+
+        near_object = NearThermal(
+            {
+                "thermal": "test_thermal",
+            }
+        )
+        self.assertEqual(str(near_object), 'nearThermal: {thermal: "test_thermal"} ')
+
+        near_object = NearThermal({"thermal": "test_thermal", "certainty": 0.7})
+        self.assertEqual(str(near_object), 'nearThermal: {thermal: "test_thermal" certainty: 0.7} ')
+
+
+class TestNearIMU(unittest.TestCase):
+    def test___init__(self):
+        """
+        Test the `__init__` method.
+        """
+
+        # invalid calls
+
+        ## error messages
+        media_type = MediaType.IMU
+        arg_name = media_type.value.upper()
+        content_error_msg = (
+            lambda dt: f"Near{arg_name} filter is expected to be type dict but is {dt}"
+        )
+        media_key_error_msg = f'"content" is missing the mandatory key "{media_type.value}"!'
+        media_value_error_msg = (
+            lambda dt: f"'{media_type.value}' key-value is expected to be of type <class 'str'> but is {dt}!"
+        )
+        certainty_error_msg = lambda dtype: (
+            f"'certainty' key-value is expected to be of type <class 'float'> but is {dtype}!"
+        )
+
+        with self.assertRaises(TypeError) as error:
+            NearIMU(123)
+        check_error_message(self, error, content_error_msg(int))
+
+        with self.assertRaises(ValueError) as error:
+            NearIMU({"id": "imu_path.txt", "certainty": 456})
+        check_error_message(self, error, media_key_error_msg)
+
+        with self.assertRaises(TypeError) as error:
+            NearIMU({"imu": True})
+        check_error_message(self, error, media_value_error_msg(bool))
+
+        with self.assertRaises(TypeError) as error:
+            NearIMU({"imu": b"True"})
+        check_error_message(self, error, media_value_error_msg(bytes))
+
+        with self.assertRaises(TypeError) as error:
+            NearIMU({"imu": "the_encoded_imu", "certainty": False})
+        check_error_message(self, error, certainty_error_msg(bool))
+
+        # valid calls
+
+        NearIMU(
+            {
+                "imu": "test_imu",
+            }
+        )
+
+        NearIMU({"imu": "test_imu_2", "certainty": 0.7})
+
+    def test___str__(self):
+        """
+        Test the `__str__` method.
+        """
+
+        near_object = NearIMU(
+            {
+                "imu": "test_imu",
+            }
+        )
+        self.assertEqual(str(near_object), 'nearIMU: {imu: "test_imu"} ')
+
+        near_object = NearIMU({"imu": "test_imu", "certainty": 0.7})
+        self.assertEqual(str(near_object), 'nearIMU: {imu: "test_imu" certainty: 0.7} ')
