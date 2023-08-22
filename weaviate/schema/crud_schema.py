@@ -3,7 +3,7 @@ Schema class definition.
 """
 from dataclasses import dataclass
 from enum import Enum
-from typing import Union, Optional, List, Dict
+from typing import Union, Optional, List, Dict, Any
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -79,10 +79,10 @@ class Tenant:
         }
 
     @classmethod
-    def _from_weaviate_object(cls, weaviate_object: Dict[str, str]) -> "Tenant":
+    def _from_weaviate_object(cls, weaviate_object: Dict[str, Any]) -> "Tenant":
         return cls(
             name=weaviate_object["name"],
-            activity_status=weaviate_object.get("activityStatus", "HOT"),
+            activity_status=weaviate_object.get("activityStatus", TenantActivityStatus.HOT),
         )
 
 
