@@ -677,8 +677,8 @@ class GetBuilder(GraphQL):
 
         With `encoded` False:
 
-        >>> from weaviate.util import audio_encoder_b64, audio_decoder_b64
-        >>> encoded_audio = audio_encoder_b64("my_audio_path.wav")
+        >>> from weaviate.util import file_encoder_b64
+        >>> encoded_audio = file_encoder_b64("my_audio_path.wav")
         >>> content = {
         ...     'audio': encoded_audio,
         ...     'certainty': 0.7 # or 'distance' instead
@@ -688,9 +688,9 @@ class GetBuilder(GraphQL):
 
         OR
 
-        >>> from weaviate.util import audio_encoder_b64, audio_decoder_b64
+        >>> from weaviate.util import file_encoder_b64
         >>> with open("my_audio_path.wav", "br") as my_audio_file:
-        ...     encoded_audio = audio_encoder_b64(my_audio_file)
+        ...     encoded_audio = file_encoder_b64(my_audio_file)
         >>> content = {
         ...     'audio': encoded_audio,
         ...     'certainty': 0.7 # or 'distance' instead
@@ -786,8 +786,8 @@ class GetBuilder(GraphQL):
 
         With `encoded` False:
 
-        >>> from weaviate.util import video_encoder_b64, video_decoder_b64
-        >>> encoded_video = video_encoder_b64("my_video_path.avi")
+        >>> from weaviate.util import file_encoder_b64
+        >>> encoded_video = file_encoder_b64("my_video_path.avi")
         >>> content = {
         ...     'video': encoded_video,
         ...     'certainty': 0.7 # or 'distance' instead
@@ -797,9 +797,9 @@ class GetBuilder(GraphQL):
 
         OR
 
-        >>> from weaviate.util import video_encoder_b64, video_decoder_b64
+        >>> from weaviate.util import file_encoder_b64, video_decoder_b64
         >>> with open("my_video_path.avi", "br") as my_video_file:
-        ...     encoded_video = video_encoder_b64(my_video_file)
+        ...     encoded_video = file_encoder_b64(my_video_file)
         >>> content = {
         ...     'video': encoded_video,
         ...     'certainty': 0.7 # or 'distance' instead
@@ -895,8 +895,8 @@ class GetBuilder(GraphQL):
 
         With `encoded` False:
 
-        >>> from weaviate.util import depth_encoder_b64, depth_decoder_b64
-        >>> encoded_depth = depth_encoder_b64("my_depth_path.png")
+        >>> from weaviate.util import file_encoder_b64
+        >>> encoded_depth = file_encoder_b64("my_depth_path.png")
         >>> content = {
         ...     'depth': encoded_depth,
         ...     'certainty': 0.7 # or 'distance' instead
@@ -906,9 +906,9 @@ class GetBuilder(GraphQL):
 
         OR
 
-        >>> from weaviate.util import depth_encoder_b64, depth_decoder_b64
+        >>> from weaviate.util import file_encoder_b64
         >>> with open("my_depth_path.png", "br") as my_depth_file:
-        ...     encoded_depth = depth_encoder_b64(my_depth_file)
+        ...     encoded_depth = file_encoder_b64(my_depth_file)
         >>> content = {
         ...     'depth': encoded_depth,
         ...     'certainty': 0.7 # or 'distance' instead
@@ -1004,8 +1004,8 @@ class GetBuilder(GraphQL):
 
         With `encoded` False:
 
-        >>> from weaviate.util import thermal_encoder_b64, thermal_decoder_b64
-        >>> encoded_thermal = thermal_encoder_b64("my_thermal_path.png")
+        >>> from weaviate.util import file_encoder_b64
+        >>> encoded_thermal = file_encoder_b64("my_thermal_path.png")
         >>> content = {
         ...     'thermal': encoded_thermal,
         ...     'certainty': 0.7 # or 'distance' instead
@@ -1015,9 +1015,9 @@ class GetBuilder(GraphQL):
 
         OR
 
-        >>> from weaviate.util import thermal_encoder_b64, thermal_decoder_b64
+        >>> from weaviate.util import file_encoder_b64
         >>> with open("my_thermal_path.png", "br") as my_thermal_file:
-        ...     encoded_thermal = thermal_encoder_b64(my_thermal_file)
+        ...     encoded_thermal = file_encoder_b64(my_thermal_file)
         >>> content = {
         ...     'thermal': encoded_thermal,
         ...     'certainty': 0.7 # or 'distance' instead
@@ -1113,8 +1113,8 @@ class GetBuilder(GraphQL):
 
         With `encoded` False:
 
-        >>> from weaviate.util import thermal_encoder_b64, thermal_decoder_b64
-        >>> encoded_thermal = thermal_encoder_b64("my_thermal_path.png")
+        >>> from weaviate.util import file_encoder_b64
+        >>> encoded_thermal = file_encoder_b64("my_thermal_path.png")
         >>> content = {
         ...     'thermal': encoded_thermal,
         ...     'certainty': 0.7 # or 'distance' instead
@@ -1124,9 +1124,9 @@ class GetBuilder(GraphQL):
 
         OR
 
-        >>> from weaviate.util import thermal_encoder_b64, thermal_decoder_b64
+        >>> from weaviate.util import file_encoder_b64
         >>> with open("my_thermal_path.png", "br") as my_thermal_file:
-        ...     encoded_thermal = thermal_encoder_b64(my_thermal_file)
+        ...     encoded_thermal = file_encoder_b64(my_thermal_file)
         >>> content = {
         ...     'thermal': encoded_thermal,
         ...     'certainty': 0.7 # or 'distance' instead
