@@ -147,7 +147,7 @@ def test_class_tenants_activate_deactivate(client: weaviate.Client):
         Tenant(activity_status=TenantActivityStatus.COLD, name="Tenant1"),
         Tenant(activity_status=TenantActivityStatus.HOT, name="Tenant2"),
     ]
-    client.schema.update_class_tenant_activities(class_name, updated_tenants)
+    client.schema.update_class_tenants(class_name, updated_tenants)
     tenants_get = client.schema.get_class_tenants(class_name)
     assert len(tenants_get) == len(tenants)
     # below required because tenants are returned in random order by the server
