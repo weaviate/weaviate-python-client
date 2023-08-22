@@ -1,6 +1,24 @@
 Changelog
 =========
 
+Version 3.23.0
+--------------
+This minor version updates the client to work with Weaviate's 1.21 version and includes:
+
+- Adds support for `near<Media>` filters when using the new `multi2vec-bind` module for neural searching on different media types.
+    - :meth:`~client.gql.get.with_near_audio`
+    - :meth:`~client.gql.get.with_near_depth`
+    - :meth:`~client.gql.get.with_near_image` (unchanged from previous versions but usable by the module)
+    - :meth:`~client.gql.get.with_near_imu`
+    - :meth:`~client.gql.get.with_near_thermal`
+    - :meth:`~client.gql.get.with_near_video`
+- Adds support for updating individual tenants within a multi-tenancy class configuration.
+    - :meth:`~client.schema.update_class_tenants`
+- Adds support for new `ContainsAny` and `ContainsAll` filters when using `.with_where`.
+- Deprecates configuring `client.batch` using `client.batch()` in favour of using `client.batch.configure()`.
+- Improves `client.batch` algorithm to choose batch size dynamically maximising throughput.
+- Fixes bugs associateed when using `.with_where` with `valueText`, `valueString`, and `valueGeoRange` types.
+
 Version 3.22.1
 --------------
 This patch version includes:
