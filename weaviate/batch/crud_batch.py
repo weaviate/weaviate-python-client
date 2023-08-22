@@ -261,15 +261,16 @@ class Batch:
         self._callback_lock = threading.Lock()
 
         # user configurable, need to be public should implement a setter/getter
-        self._recommended_num_objects = None
-        self._recommended_num_references = None
         self._callback: Optional[Callable[[BatchResponse], None]] = check_batch_result
         self._weaviate_error_retry: Optional[WeaviateErrorRetryConf] = None
-        self._batch_size = None
+        self._batch_size: Optional[int] = 50
         self._creation_time = min(self._connection.timeout_config[1] / 10, 2)
         self._timeout_retries = 3
         self._connection_error_retries = 3
-        self._batching_type = None
+        self._batching_type: Optional[str] = "dynamic"
+        self._recommended_num_objects = self._batch_size
+        self._recommended_num_references = self._batch_size
+
         self._num_workers = 1
         self._consistency_level = None
         # thread pool executor
@@ -929,7 +930,7 @@ class Batch:
                 self._objects_throughput_frame
             )
 
-            self._recommended_num_objects = round(obj_per_second * self._creation_time)
+            self._recommended_num_objects = max(round(obj_per_second * self._creation_time), 1)
 
             return response.json()
         return []
@@ -1126,9 +1127,12 @@ class Batch:
             obj_per_second = (
                 sum(self._objects_throughput_frame) / len(self._objects_throughput_frame) * 0.75
             )
-            self._recommended_num_objects = min(
-                round(obj_per_second * self._creation_time),
-                self._recommended_num_objects + 250,
+            self._recommended_num_objects = max(
+                min(
+                    round(obj_per_second * self._creation_time),
+                    self._recommended_num_objects + 250,
+                ),
+                1,
             )
 
         # Create references after all the objects have been created
