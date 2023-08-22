@@ -463,7 +463,8 @@ class AggregateBuilder(GraphQL):
         ...     'image': "my_image_path.png",
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Image', 'description')\\
+        >>> query = client.query.aggregate('Image')\\
+                .with_fields('description')\\
         ...     .with_near_image(content, encode=True) # <- encode MUST be set to True
 
         OR
@@ -473,7 +474,8 @@ class AggregateBuilder(GraphQL):
         ...     'image': my_image_file,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Image', 'description')\\
+        >>> query = client.query.aggregate('Image')\\
+                .with_fields('description')\\
         ...     .with_near_image(content, encode=True) # <- encode MUST be set to True
         >>> my_image_file.close()
 
@@ -485,7 +487,8 @@ class AggregateBuilder(GraphQL):
         ...     'image': encoded_image,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Image', 'description')\\
+        >>> query = client.query.aggregate('Image')\\
+                .with_fields('description')\\
         ...     .with_near_image(content, encode=False) # <- encode MUST be set to False
 
         OR
@@ -497,7 +500,8 @@ class AggregateBuilder(GraphQL):
         ...     'image': encoded_image,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Image', 'description')\\
+        >>> query = client.query.aggregate('Image')\\
+                .with_fields('description')\\
         ...     .with_near_image(content, encode=False) # <- encode MUST be set to False
 
         Encode Image yourself:
@@ -509,13 +513,14 @@ class AggregateBuilder(GraphQL):
         ...     'image': encoded_image,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Image', 'description')\\
+        >>> query = client.query.aggregate('Image')\\
+                .with_fields('description')\\
         ...     .with_near_image(content, encode=False) # <- encode MUST be set to False
 
         Returns
         -------
-        weaviate.gql.get.GetBuilder
-            The updated GetBuilder.
+        weaviate.gql.aggregate.AggregateBuilder
+            The updated AggregateBuilder.
 
         Raises
         ------
@@ -541,7 +546,7 @@ class AggregateBuilder(GraphQL):
         Parameters
         ----------
         content : dict
-            The content of the `nearObject` filter to set. See examples below.
+            The content of the `nearAudio` filter to set. See examples below.
         encode : bool, optional
             Whether to encode the `content["audio"]` to base64 and convert to string. If True, the
             `content["audio"]` can be an audio path or a file opened in binary read mode. If False,
@@ -571,7 +576,8 @@ class AggregateBuilder(GraphQL):
         ...     'audio': "my_audio_path.wav",
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Audio', 'description')\\
+        >>> query = client.query.aggregate('Audio')\\
+                .with_fields('description')\\
         ...     .with_near_audio(content, encode=True) # <- encode MUST be set to True
 
         OR
@@ -581,7 +587,8 @@ class AggregateBuilder(GraphQL):
         ...     'audio': my_audio_file,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Audio', 'description')\\
+        >>> query = client.query.aggregate('Audio')\\
+                .with_fields('description')\\
         ...     .with_near_audio(content, encode=True) # <- encode MUST be set to True
         >>> my_audio_file.close()
 
@@ -593,7 +600,8 @@ class AggregateBuilder(GraphQL):
         ...     'audio': encoded_audio,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Audio', 'description')\\
+        >>> query = client.query.aggregate('Audio')\\
+                .with_fields('description')\\
         ...     .with_near_audio(content, encode=False) # <- encode MUST be set to False
 
         OR
@@ -605,7 +613,8 @@ class AggregateBuilder(GraphQL):
         ...     'audio': encoded_audio,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Audio', 'description')\\
+        >>> query = client.query.aggregate('Audio')\\
+                .with_fields('description')\\
         ...     .with_near_audio(content, encode=False) # <- encode MUST be set to False
 
         Encode Audio yourself:
@@ -617,13 +626,14 @@ class AggregateBuilder(GraphQL):
         ...     'audio': encoded_audio,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Audio', 'description')\\
+        >>> query = client.query.aggregate('Audio')\\
+                .with_fields('description')\\
         ...     .with_near_audio(content, encode=False) # <- encode MUST be set to False
 
         Returns
         -------
-        weaviate.gql.get.GetBuilder
-            The updated GetBuilder.
+        weaviate.gql.aggregate.AggregateBuilder
+            The updated AggregateBuilder.
 
         Raises
         ------
@@ -650,7 +660,7 @@ class AggregateBuilder(GraphQL):
         Parameters
         ----------
         content : dict
-            The content of the `nearObject` filter to set. See examples below.
+            The content of the `nearVideo` filter to set. See examples below.
         encode : bool, optional
             Whether to encode the `content["video"]` to base64 and convert to string. If True, the
             `content["video"]` can be an video path or a file opened in binary read mode. If False,
@@ -680,7 +690,8 @@ class AggregateBuilder(GraphQL):
         ...     'video': "my_video_path.avi",
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Video', 'description')\\
+        >>> query = client.query.aggregate('Video')\\
+                .with_fields('description')\\
         ...     .with_near_video(content, encode=True) # <- encode MUST be set to True
 
         OR
@@ -690,7 +701,8 @@ class AggregateBuilder(GraphQL):
         ...     'video': my_video_file,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Video', 'description')\\
+        >>> query = client.query.aggregate('Video')\\
+                .with_fields('description')\\
         ...     .with_near_video(content, encode=True) # <- encode MUST be set to True
         >>> my_video_file.close()
 
@@ -702,7 +714,8 @@ class AggregateBuilder(GraphQL):
         ...     'video': encoded_video,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Video', 'description')\\
+        >>> query = client.query.aggregate('Video')\\
+                .with_fields('description')\\
         ...     .with_near_video(content, encode=False) # <- encode MUST be set to False
 
         OR
@@ -714,7 +727,8 @@ class AggregateBuilder(GraphQL):
         ...     'video': encoded_video,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Video', 'description')\\
+        >>> query = client.query.aggregate('Video')\\
+                .with_fields('description')\\
         ...     .with_near_video(content, encode=False) # <- encode MUST be set to False
 
         Encode Video yourself:
@@ -726,13 +740,14 @@ class AggregateBuilder(GraphQL):
         ...     'video': encoded_video,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Video', 'description')\\
+        >>> query = client.query.aggregate('Video')\\
+                .with_fields('description')\\
         ...     .with_near_video(content, encode=False) # <- encode MUST be set to False
 
         Returns
         -------
-        weaviate.gql.get.GetBuilder
-            The updated GetBuilder.
+        weaviate.gql.aggregate.AggregateBuilder
+            The updated AggregateBuilder.
 
         Raises
         ------
@@ -759,7 +774,7 @@ class AggregateBuilder(GraphQL):
         Parameters
         ----------
         content : dict
-            The content of the `nearObject` filter to set. See examples below.
+            The content of the `nearDepth` filter to set. See examples below.
         encode : bool, optional
             Whether to encode the `content["depth"]` to base64 and convert to string. If True, the
             `content["depth"]` can be an depth path or a file opened in binary read mode. If False,
@@ -789,7 +804,8 @@ class AggregateBuilder(GraphQL):
         ...     'depth': "my_depth_path.png",
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Depth', 'description')\\
+        >>> query = client.query.aggregate('Depth')\\
+                .with_fields('description')\\
         ...     .with_near_depth(content, encode=True) # <- encode MUST be set to True
 
         OR
@@ -799,7 +815,8 @@ class AggregateBuilder(GraphQL):
         ...     'depth': my_depth_file,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Depth', 'description')\\
+        >>> query = client.query.aggregate('Depth')\\
+                .with_fields('description')\\
         ...     .with_near_depth(content, encode=True) # <- encode MUST be set to True
         >>> my_depth_file.close()
 
@@ -811,7 +828,8 @@ class AggregateBuilder(GraphQL):
         ...     'depth': encoded_depth,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Depth', 'description')\\
+        >>> query = client.query.aggregate('Depth')\\
+                .with_fields('description')\\
         ...     .with_near_depth(content, encode=False) # <- encode MUST be set to False
 
         OR
@@ -823,7 +841,8 @@ class AggregateBuilder(GraphQL):
         ...     'depth': encoded_depth,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Depth', 'description')\\
+        >>> query = client.query.aggregate('Depth')\\
+                .with_fields('description')\\
         ...     .with_near_depth(content, encode=False) # <- encode MUST be set to False
 
         Encode Depth yourself:
@@ -835,13 +854,14 @@ class AggregateBuilder(GraphQL):
         ...     'depth': encoded_depth,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Depth', 'description')\\
+        >>> query = client.query.aggregate('Depth')\\
+                .with_fields('description')\\
         ...     .with_near_depth(content, encode=False) # <- encode MUST be set to False
 
         Returns
         -------
-        weaviate.gql.get.GetBuilder
-            The updated GetBuilder.
+        weaviate.gql.aggregate.AggregateBuilder
+            The updated AggregateBuilder.
 
         Raises
         ------
@@ -868,7 +888,7 @@ class AggregateBuilder(GraphQL):
         Parameters
         ----------
         content : dict
-            The content of the `nearObject` filter to set. See examples below.
+            The content of the `nearThermal` filter to set. See examples below.
         encode : bool, optional
             Whether to encode the `content["thermal"]` to base64 and convert to string. If True, the
             `content["thermal"]` can be an thermal path or a file opened in binary read mode. If False,
@@ -908,7 +928,8 @@ class AggregateBuilder(GraphQL):
         ...     'thermal': my_thermal_file,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Thermal', 'description')\\
+        >>> query = client.query.aggregate('Thermal')\\
+        ...     .with_fields('description')\\
         ...     .with_near_thermal(content, encode=True) # <- encode MUST be set to True
         >>> my_thermal_file.close()
 
@@ -920,7 +941,8 @@ class AggregateBuilder(GraphQL):
         ...     'thermal': encoded_thermal,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Thermal', 'description')\\
+        >>> query = client.query.aggregate('Thermal')\\
+        ...     .with_fields('description')\\
         ...     .with_near_thermal(content, encode=False) # <- encode MUST be set to False
 
         OR
@@ -932,7 +954,8 @@ class AggregateBuilder(GraphQL):
         ...     'thermal': encoded_thermal,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Thermal', 'description')\\
+        >>> query = client.query.aggregate('Thermal')\\
+        ...     .with_fields('description')\\
         ...     .with_near_thermal(content, encode=False) # <- encode MUST be set to False
 
         Encode Thermal yourself:
@@ -944,13 +967,14 @@ class AggregateBuilder(GraphQL):
         ...     'thermal': encoded_thermal,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('Thermal', 'description')\\
+        >>> query = client.query.aggregate('Thermal')\\
+        ...     .with_fields('description')\\
         ...     .with_near_thermal(content, encode=False) # <- encode MUST be set to False
 
         Returns
         -------
-        weaviate.gql.get.GetBuilder
-            The updated GetBuilder.
+        weaviate.gql.aggregate.AggregateBuilder
+            The updated AggregateBuilder.
 
         Raises
         ------
@@ -977,7 +1001,7 @@ class AggregateBuilder(GraphQL):
         Parameters
         ----------
         content : dict
-            The content of the `nearObject` filter to set. See examples below.
+            The content of the `nearIMU` filter to set. See examples below.
         encode : bool, optional
             Whether to encode the `content["thermal"]` to base64 and convert to string. If True, the
             `content["thermal"]` can be an thermal path or a file opened in binary read mode. If False,
@@ -1007,7 +1031,8 @@ class AggregateBuilder(GraphQL):
         ...     'thermal': "my_thermal_path.png",
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('IMU', 'description')\\
+        >>> query = client.query.aggregate('IMU')\\
+        ...     .with_fields('description')\\
         ...     .with_near_thermal(content, encode=True) # <- encode MUST be set to True
 
         OR
@@ -1017,7 +1042,8 @@ class AggregateBuilder(GraphQL):
         ...     'thermal': my_thermal_file,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('IMU', 'description')\\
+        >>> query = client.query.aggregate('IMU')\\
+        ...     .with_fields('description')\\
         ...     .with_near_thermal(content, encode=True) # <- encode MUST be set to True
         >>> my_thermal_file.close()
 
@@ -1029,7 +1055,8 @@ class AggregateBuilder(GraphQL):
         ...     'thermal': encoded_thermal,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('IMU', 'description')\\
+        >>> query = client.query.aggregate('IMU')\\
+        ...     .with_fields('description')\\
         ...     .with_near_thermal(content, encode=False) # <- encode MUST be set to False
 
         OR
@@ -1041,7 +1068,8 @@ class AggregateBuilder(GraphQL):
         ...     'thermal': encoded_thermal,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('IMU', 'description')\\
+        >>> query = client.query.aggregate('IMU')\\
+        ...     .with_fields('description')\\
         ...     .with_near_thermal(content, encode=False) # <- encode MUST be set to False
 
         Encode IMU yourself:
@@ -1053,13 +1081,14 @@ class AggregateBuilder(GraphQL):
         ...     'thermal': encoded_thermal,
         ...     'certainty': 0.7 # or 'distance' instead
         ... }
-        >>> query = client.query.get('IMU', 'description')\\
+        >>> query = client.query.aggregate('IMU')\\
+        ...     .with_fields('description')\\
         ...     .with_near_thermal(content, encode=False) # <- encode MUST be set to False
 
         Returns
         -------
-        weaviate.gql.get.GetBuilder
-            The updated GetBuilder.
+        weaviate.gql.aggregate.AggregateBuilder
+            The updated AggregateBuilder.
 
         Raises
         ------
