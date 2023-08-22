@@ -522,16 +522,16 @@ class AggregateBuilder(GraphQL):
         AttributeError
             If another 'near' filter was already set.
         """
-
-        if self._near_clause is not None:
+        self._media_type = MediaType.IMAGE
+        if self._near is not None:
             raise AttributeError(
                 "Cannot use multiple 'near' filters, or a 'near' filter along"
                 " with a 'ask' filter!"
             )
         if encode:
             content["image"] = file_encoder_b64(content["image"])
-        self._near_clause = NearImage(content)
-        self._contains_filter = True
+        self._near = NearImage(content)
+        self._uses_filter = True
         return self
 
     def with_near_audio(self, content: dict, encode: bool = True) -> "AggregateBuilder":
@@ -632,15 +632,15 @@ class AggregateBuilder(GraphQL):
         """
 
         self._media_type = MediaType.AUDIO
-        if self._near_clause is not None:
+        if self._near is not None:
             raise AttributeError(
                 "Cannot use multiple 'near' filters, or a 'near' filter along"
                 " with a 'ask' filter!"
             )
         if encode:
             content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
-        self._near_clause = NearAudio(content)
-        self._contains_filter = True
+        self._near = NearAudio(content)
+        self._uses_filter = True
         return self
 
     def with_near_video(self, content: dict, encode: bool = True) -> "AggregateBuilder":
@@ -741,15 +741,15 @@ class AggregateBuilder(GraphQL):
         """
 
         self._media_type = MediaType.VIDEO
-        if self._near_clause is not None:
+        if self._near is not None:
             raise AttributeError(
                 "Cannot use multiple 'near' filters, or a 'near' filter along"
                 " with a 'ask' filter!"
             )
         if encode:
             content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
-        self._near_clause = NearVideo(content)
-        self._contains_filter = True
+        self._near = NearVideo(content)
+        self._uses_filter = True
         return self
 
     def with_near_depth(self, content: dict, encode: bool = True) -> "AggregateBuilder":
@@ -850,15 +850,15 @@ class AggregateBuilder(GraphQL):
         """
 
         self._media_type = MediaType.DEPTH
-        if self._near_clause is not None:
+        if self._near is not None:
             raise AttributeError(
                 "Cannot use multiple 'near' filters, or a 'near' filter along"
                 " with a 'ask' filter!"
             )
         if encode:
             content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
-        self._near_clause = NearDepth(content)
-        self._contains_filter = True
+        self._near = NearDepth(content)
+        self._uses_filter = True
         return self
 
     def with_near_thermal(self, content: dict, encode: bool = True) -> "AggregateBuilder":
@@ -959,15 +959,15 @@ class AggregateBuilder(GraphQL):
         """
 
         self._media_type = MediaType.THERMAL
-        if self._near_clause is not None:
+        if self._near is not None:
             raise AttributeError(
                 "Cannot use multiple 'near' filters, or a 'near' filter along"
                 " with a 'ask' filter!"
             )
         if encode:
             content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
-        self._near_clause = NearThermal(content)
-        self._contains_filter = True
+        self._near = NearThermal(content)
+        self._uses_filter = True
         return self
 
     def with_near_imu(self, content: dict, encode: bool = True) -> "AggregateBuilder":
@@ -1068,15 +1068,15 @@ class AggregateBuilder(GraphQL):
         """
 
         self._media_type = MediaType.IMU
-        if self._near_clause is not None:
+        if self._near is not None:
             raise AttributeError(
                 "Cannot use multiple 'near' filters, or a 'near' filter along"
                 " with a 'ask' filter!"
             )
         if encode:
             content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
-        self._near_clause = NearIMU(content)
-        self._contains_filter = True
+        self._near = NearIMU(content)
+        self._uses_filter = True
         return self
 
     def build(self) -> str:
