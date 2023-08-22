@@ -1,12 +1,33 @@
 Changelog
 =========
 
+Version 3.23.0
+--------------
+This minor version updates the client to work with Weaviate's 1.21 version and includes:
+
+- Adds support for ``near<Media>`` filters when using the new ``multi2vec-bind`` module for neural searching on different media types
+    - ``client.query.get().with_near_audio()``
+    - ``client.query.get().with_near_depth()``
+    - ``client.query.get().with_near_image()`` (unchanged from previous versions but usable by the module)
+    - ``client.query.get().with_near_imu()``
+    - ``client.query.get().with_near_thermal()``
+    - ``client.query.get().with_near_video()``
+- Deprecates configuring ``client.batch`` using ``client.batch()`` in favour of using ``client.batch.configure()``
+    - ``client.batch()`` will be removed in a future version
+    - ``client.batch.configure()`` will return ``None`` in a future version
+    - ``with client.batch as batch`` should be the standard way to initiate a batch
+- Adds support for new ``ContainsAny`` and ``ContainsAll`` filters when using ``.with_where``
+- Adds support for updating individual tenants within a multi-tenancy class configuration: ``client.schema.update_class_tenants``
+- Improves ``client.batch`` algorithm to choose batch size dynamically maximising throughput
+- Provides sensible defaults to ``client.batch`` that do not cause unexpected damaging consequences like infinite batch sizes
+- Fixes bugs when using ``.with_where`` with ``valueText``, ``valueString``, and ``valueGeoRange`` types
+
 Version 3.22.1
 --------------
 This patch version includes:
 
 - Fix "is client outdated"-check in air-gaped environments
-- Add `tenant` to batch delete
+- Add ``tenant`` to batch delete
 
 Version 3.22.0
 --------------
@@ -38,7 +59,7 @@ Version 3.20.0
 
 This minor version includes:
 
-- Increase maximum version of request library to `2.31.0`. This also updates to urllib 2.0. This may contain minor breaking changes if you use urllib in other projects in the same virtual environment.
+- Increase maximum version of request library to ``2.31.0``. This also updates to urllib 2.0. This may contain minor breaking changes if you use urllib in other projects in the same virtual environment.
 - Add licensing information to pypi package
 - Increase default embedded version to 1.19.7
 
@@ -54,7 +75,7 @@ Version 3.19.1
 --------------
 This patch version includes:
 
-- Fixes imports of of `weaviate_pb2`.
+- Fixes imports of of ``weaviate_pb2``.
 
 Version 3.19.0
 --------------

@@ -936,7 +936,7 @@ class Schema:
                     Tenant(name="Tenant3")
                 ]
             )
-        >>> client.schema.update_class_tenant_activities(
+        >>> client.schema.update_class_tenants(
                 "class_name",
                 [
                     Tenant(activity_status=TenantActivityStatus.COLD, name="Tenant1")),
