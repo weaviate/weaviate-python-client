@@ -992,12 +992,11 @@ def test_collection_name_capitalization(client: weaviate.Client):
 
 
 def test_tenant_with_activity(client: weaviate.Client):
-    name = "tenantActivity"
+    name = "TestTenantActivity"
     collection = client.collection.create(
         CollectionConfig(
             name=name,
             vectorizer=Vectorizer.NONE,
-            properties=[Property(name="name", data_type=DataType.TEXT)],
             multi_tenancy_config=MultiTenancyConfig(enabled=True),
         )
     )
@@ -1012,3 +1011,21 @@ def test_tenant_with_activity(client: weaviate.Client):
     assert tenants["1"].activity_status == TenantActivityStatus.HOT
     assert tenants["2"].activity_status == TenantActivityStatus.COLD
     assert tenants["3"].activity_status == TenantActivityStatus.HOT
+
+
+def test_update_tenant(client: weaviate.Client):
+    name = "TestUpdateTenant"
+    collection = client.collection.create(
+        CollectionConfig(
+            name=name,
+            vectorizer=Vectorizer.NONE,
+            multi_tenancy_config=MultiTenancyConfig(enabled=True),
+        )
+    )
+    collection.tenants.add([Tenant(name="1", activity_status=TenantActivityStatus.HOT)])
+    tenants = collection.tenants.get()
+    assert tenants["1"].activity_status == TenantActivityStatus.HOT
+
+    collection.tenants.update([Tenant(name="1", activity_status=TenantActivityStatus.COLD)])
+    tenants = collection.tenants.get()
+    assert tenants["1"].activity_status == TenantActivityStatus.COLD
