@@ -1,8 +1,8 @@
 import json
-import uuid
 from typing import Optional
 
 import pytest
+import uuid
 from werkzeug.wrappers import Request, Response
 
 import weaviate
@@ -94,6 +94,7 @@ def test_automatic_retry_refs(weaviate_mock):
         batch_size=batch_size,
         weaviate_error_retries=WeaviateErrorRetryConf(number_retries=3),
         num_workers=2,
+        dynamic=False,
     ) as batch:
         for _ in range(n):
             batch.add_reference(
