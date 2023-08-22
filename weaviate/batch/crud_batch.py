@@ -265,11 +265,11 @@ class Batch:
         self._recommended_num_references = None
         self._callback: Optional[Callable[[BatchResponse], None]] = check_batch_result
         self._weaviate_error_retry: Optional[WeaviateErrorRetryConf] = None
-        self._batch_size = None
+        self._batch_size: Optional[int] = 50
         self._creation_time = min(self._connection.timeout_config[1] / 10, 2)
         self._timeout_retries = 3
         self._connection_error_retries = 3
-        self._batching_type = None
+        self._batching_type: Optional[str] = "dynamic"
         self._num_workers = 1
         self._consistency_level = None
         # thread pool executor
