@@ -523,7 +523,7 @@ class GetBuilder(GraphQL):
         Parameters
         ----------
         content : dict
-            The content of the `nearObject` filter to set. See examples below.
+            The content of the `nearImage` filter to set. See examples below.
         encode : bool, optional
             Whether to encode the `content["image"]` to base64 and convert to string. If True, the
             `content["image"]` can be an image path or a file opened in binary read mode. If False,
@@ -631,7 +631,7 @@ class GetBuilder(GraphQL):
         Parameters
         ----------
         content : dict
-            The content of the `nearObject` filter to set. See examples below.
+            The content of the `nearAudio` filter to set. See examples below.
         encode : bool, optional
             Whether to encode the `content["audio"]` to base64 and convert to string. If True, the
             `content["audio"]` can be an audio path or a file opened in binary read mode. If False,
@@ -740,7 +740,7 @@ class GetBuilder(GraphQL):
         Parameters
         ----------
         content : dict
-            The content of the `nearObject` filter to set. See examples below.
+            The content of the `nearVideo` filter to set. See examples below.
         encode : bool, optional
             Whether to encode the `content["video"]` to base64 and convert to string. If True, the
             `content["video"]` can be an video path or a file opened in binary read mode. If False,
@@ -849,7 +849,7 @@ class GetBuilder(GraphQL):
         Parameters
         ----------
         content : dict
-            The content of the `nearObject` filter to set. See examples below.
+            The content of the `nearDepth` filter to set. See examples below.
         encode : bool, optional
             Whether to encode the `content["depth"]` to base64 and convert to string. If True, the
             `content["depth"]` can be an depth path or a file opened in binary read mode. If False,
@@ -958,7 +958,7 @@ class GetBuilder(GraphQL):
         Parameters
         ----------
         content : dict
-            The content of the `nearObject` filter to set. See examples below.
+            The content of the `nearThermal` filter to set. See examples below.
         encode : bool, optional
             Whether to encode the `content["thermal"]` to base64 and convert to string. If True, the
             `content["thermal"]` can be an thermal path or a file opened in binary read mode. If False,
@@ -1067,7 +1067,7 @@ class GetBuilder(GraphQL):
         Parameters
         ----------
         content : dict
-            The content of the `nearObject` filter to set. See examples below.
+            The content of the `nearIMU` filter to set. See examples below.
         encode : bool, optional
             Whether to encode the `content["thermal"]` to base64 and convert to string. If True, the
             `content["thermal"]` can be an thermal path or a file opened in binary read mode. If False,
