@@ -433,7 +433,7 @@ class AggregateBuilder(GraphQL):
         Parameters
         ----------
         content : dict
-            The content of the `nearObject` filter to set. See examples below.
+            The content of the `nearImage` filter to set. See examples below.
         encode : bool, optional
             Whether to encode the `content["image"]` to base64 and convert to string. If True, the
             `content["image"]` can be an image path or a file opened in binary read mode. If False,
