@@ -930,7 +930,7 @@ class Batch:
                 self._objects_throughput_frame
             )
 
-            self._recommended_num_objects = round(obj_per_second * self._creation_time)
+            self._recommended_num_objects = max(round(obj_per_second * self._creation_time), 1)
 
             return response.json()
         return []
@@ -1127,9 +1127,12 @@ class Batch:
             obj_per_second = (
                 sum(self._objects_throughput_frame) / len(self._objects_throughput_frame) * 0.75
             )
-            self._recommended_num_objects = min(
-                round(obj_per_second * self._creation_time),
-                self._recommended_num_objects + 250,
+            self._recommended_num_objects = max(
+                min(
+                    round(obj_per_second * self._creation_time),
+                    self._recommended_num_objects + 250,
+                ),
+                1,
             )
 
         # Create references after all the objects have been created
