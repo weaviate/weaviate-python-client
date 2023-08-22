@@ -164,8 +164,8 @@ def test_tenants(client: weaviate.Client):
 
     tenants = collection.tenants.get()
     assert len(tenants) == 1
-    assert type(tenants[0]) is Tenant
-    assert tenants[0].name == "tenant1"
+    assert type(tenants["tenant1"]) is Tenant
+    assert tenants["tenant1"].name == "tenant1"
 
     collection.tenants.remove(["tenant1"])
 
