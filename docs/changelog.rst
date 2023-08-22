@@ -17,7 +17,8 @@ This minor version updates the client to work with Weaviate's 1.21 version and i
 - Adds support for new `ContainsAny` and `ContainsAll` filters when using `.with_where`.
 - Deprecates configuring `client.batch` using `client.batch()` in favour of using `client.batch.configure()`.
 - Improves `client.batch` algorithm to choose batch size dynamically maximising throughput.
-- Fixes bugs associateed when using `.with_where` with `valueText`, `valueString`, and `valueGeoRange` types.
+- Provides sensible defaults to `client.batch` that do not cause unexpected damaging consequences like infinite batch sizes.
+- Fixes bugs when using `.with_where` with `valueText`, `valueString`, and `valueGeoRange` types.
 
 Version 3.22.1
 --------------
