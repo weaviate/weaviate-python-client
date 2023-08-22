@@ -325,13 +325,13 @@ class Batch:
 
     def configure(
         self,
-        batch_size: Optional[int] = None,
+        batch_size: Optional[int] = 50,
         creation_time: Optional[Real] = None,
         timeout_retries: int = 3,
         connection_error_retries: int = 3,
         weaviate_error_retries: Optional[WeaviateErrorRetryConf] = None,
         callback: Optional[Callable[[dict], None]] = check_batch_result,
-        dynamic: bool = False,
+        dynamic: bool = True,
         num_workers: int = 1,
         consistency_level: Optional[ConsistencyLevel] = None,
     ) -> "Batch":
@@ -351,7 +351,7 @@ class Batch:
             positive number auto-creation is enabled and the value represents: 1) in case `dynamic`
             is False -> the number of data in the Batch (sum of objects and references) when to
             auto-create; 2) in case `dynamic` is True -> the initial value for both
-            `recommended_num_objects` and `recommended_num_references`, by default None
+            `recommended_num_objects` and `recommended_num_references`, by default 50
         creation_time : Real, optional
             How long it should take to create a Batch. Used ONLY for computing dynamic batch sizes. By default None
         timeout_retries : int, optional
@@ -366,7 +366,7 @@ class Batch:
             A callback function on the results of each (objects and references) batch types.
             By default `weaviate.util.check_batch_result`
         dynamic : bool, optional
-            Whether to use dynamic batching or not, by default False
+            Whether to use dynamic batching or not, by default True
         num_workers : int, optional
             The maximal number of concurrent threads to run batch import. Only used for non-MANUAL
             batching. i.e. is used only with AUTO or DYNAMIC batching.
