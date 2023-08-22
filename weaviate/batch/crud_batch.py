@@ -261,8 +261,6 @@ class Batch:
         self._callback_lock = threading.Lock()
 
         # user configurable, need to be public should implement a setter/getter
-        self._recommended_num_objects = None
-        self._recommended_num_references = None
         self._callback: Optional[Callable[[BatchResponse], None]] = check_batch_result
         self._weaviate_error_retry: Optional[WeaviateErrorRetryConf] = None
         self._batch_size: Optional[int] = 50
@@ -270,6 +268,9 @@ class Batch:
         self._timeout_retries = 3
         self._connection_error_retries = 3
         self._batching_type: Optional[str] = "dynamic"
+        self._recommended_num_objects = self._batch_size
+        self._recommended_num_references = self._batch_size
+
         self._num_workers = 1
         self._consistency_level = None
         # thread pool executor
