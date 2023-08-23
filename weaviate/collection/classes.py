@@ -119,7 +119,7 @@ ModuleConfig = Dict[Vectorizer, Dict[str, Any]]
 
 
 class ConfigCreateModel(BaseModel):
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         return self.model_dump(exclude_none=True)
 
 
@@ -175,7 +175,7 @@ class PQConfigCreate(ConfigCreateModel):
     enabled: bool = False
     segments: int = 0
     trainingLimit: int = Field(10000, alias="training_limit")
-    encoder: PQEncoderConfigUpdate = PQEncoderConfigCreate()
+    encoder: PQEncoderConfigCreate = PQEncoderConfigCreate()
 
 
 class PQConfigUpdate(ConfigUpdateModel):
@@ -193,12 +193,11 @@ class VectorIndexConfigCreate(ConfigCreateModel):
     dynamicEfMin: int = Field(100, alias="dynamic_ef_min")
     dynamicEfMax: int = Field(500, alias="dynamic_ef_max")
     dynamicEfFactor: int = Field(8, alias="dynamic_ef_factor")
-    efConstruction: int = 128
-    ef: int = -1
     efConstruction: int = Field(128, alias="ef_construction")
+    ef: int = -1
     flatSearchCutoff: int = Field(40000, alias="flat_search_cutoff")
     maxConnections: int = Field(64, alias="max_connections")
-    pq: PQConfigCreate = PQConfigCreate()
+    pq: PQConfigCreate = PQConfigCreate(bit_compression=False, training_limit=10000)
     skip: bool = False
     vectorCacheMaxObjects: int = Field(1000000000000, alias="vector_cache_max_objects")
 
@@ -290,7 +289,7 @@ class CollectionConfigCreateBase(ConfigCreateModel):
     vectorizer: Vectorizer = Vectorizer.NONE
 
     def to_dict(self) -> Dict[str, Any]:
-        ret_dict = {}
+        ret_dict: Dict[str, Any] = {}
 
         for cls_field in self.model_fields:
             val = getattr(self, cls_field)
@@ -343,7 +342,12 @@ class _MultiTenancyConfig:
 
 @dataclass
 class _ReferenceDataType:
-    collections: List[str]
+    target_collection: str
+
+
+@dataclass
+class _ReferenceDataTypeMultiTarget:
+    target_collections: List[str]
 
 
 class ReferenceDataType(BaseModel):
@@ -364,7 +368,7 @@ class ReferenceDataType(BaseModel):
 
 @dataclass
 class _Property:
-    data_type: Union[DataType, _ReferenceDataType]
+    data_type: Union[DataType, _ReferenceDataType, _ReferenceDataTypeMultiTarget]
     description: Optional[str]
     index_filterable: bool
     index_searchable: bool
@@ -372,11 +376,12 @@ class _Property:
     tokenization: Optional[Tokenization]
 
     def to_weaviate_dict(self) -> Dict[str, Any]:
-        data_type = (
-            [str(self.data_type.value)]
-            if isinstance(self.data_type, DataType)
-            else self.data_type.collections
-        )
+        if isinstance(self.data_type, DataType):
+            data_type = [self.data_type.value]
+        elif isinstance(self.data_type, _ReferenceDataType):
+            data_type = [self.data_type.target_collection]
+        else:
+            data_type = self.data_type.target_collections
         return {
             "dataType": data_type,
             "description": self.description,
@@ -456,10 +461,14 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
 
     def _property_data_type_from_weaviate_data_type(
         data_type: List[str],
-    ) -> Union[DataType, _ReferenceDataType]:
+    ) -> Union[DataType, _ReferenceDataType, _ReferenceDataTypeMultiTarget]:
         if len(data_type) == 1 and _is_primitive(data_type[0]):
             return DataType(data_type[0])
-        return _ReferenceDataType(data_type)
+
+        if len(data_type) == 1:
+            return _ReferenceDataType(target_collection=data_type[0])
+
+        return _ReferenceDataTypeMultiTarget(target_collections=data_type)
 
     return _CollectionConfig(
         name=schema["class"],
@@ -607,6 +616,9 @@ class ReferencePropertyMultiTarget(ReferencePropertyBase):
         return ret_dict
 
 
+PropertyType = Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]
+
+
 class CollectionConfig(CollectionConfigCreateBase):
     """Use this class when specifying all the configuration options relevant to your collection when using
     the non-ORM collections API. This class is a superset of the `CollectionConfigCreateBase` class, and
@@ -692,7 +704,7 @@ class _MetadataReturn:
     is_consistent: Optional[bool] = None
 
 
-Properties = TypeVar("Properties", bound=Dict[str, Any])
+Properties = TypeVar("Properties")
 
 
 @dataclass
@@ -765,7 +777,7 @@ class DataObject:
 
 
 class BaseProperty(BaseModel):
-    uuid: UUID = Field(default_factory=uuid_package.uuid4)
+    uuid: uuid_package.UUID = Field(default_factory=uuid_package.uuid4)
     vector: Optional[List[float]] = None
 
     # def __new__(cls, *args, **kwargs):
@@ -883,7 +895,7 @@ class BaseProperty(BaseModel):
     @staticmethod
     def type_to_properties(
         model: Type["BaseProperty"],
-    ) -> List[Union[Property, ReferencePropertyBase]]:
+    ) -> List[Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]]:
         types = get_type_hints(model)
 
         non_optional_types = {
@@ -893,19 +905,17 @@ class BaseProperty(BaseModel):
         }
 
         non_ref_fields = model.get_non_ref_fields(model)
-        properties: List[Union[Property, ReferencePropertyBase]] = []
+        properties: List[Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]] = []
         for name in non_ref_fields:
-            prop = {
-                "name": name,
-                "dataType": [PYTHON_TYPE_TO_DATATYPE[non_optional_types[name]]],
-            }
+            data_type = [PYTHON_TYPE_TO_DATATYPE[non_optional_types[name]]]
+            prop: Dict[str, Any] = {}
             metadata_list = model.model_fields[name].metadata
             if metadata_list is not None and len(metadata_list) > 0:
                 metadata = metadata_list[0]
                 if isinstance(metadata, PropertyConfig):
                     prop.update(metadata.to_dict())
 
-            properties.append(Property(**prop, data_type=DataType(prop["dataType"][0])))
+            properties.append(Property(name=name, data_type=DataType(data_type[0]), **prop))
 
         reference_fields = model.get_ref_fields(model)
         properties.extend(
