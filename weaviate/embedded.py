@@ -29,7 +29,7 @@ GITHUB_RELEASE_DOWNLOAD_URL = "https://github.com/weaviate/weaviate/releases/dow
 class EmbeddedOptions:
     persistence_data_path: str = os.environ.get("XDG_DATA_HOME", DEFAULT_PERSISTENCE_DATA_PATH)
     binary_path: str = os.environ.get("XDG_CACHE_HOME", DEFAULT_BINARY_PATH)
-    version: str = "1.20.5"
+    version: str = "1.21.1"
     port: int = 6666
     hostname: str = "127.0.0.1"
     additional_env_vars: Optional[Dict[str, str]] = None
@@ -192,7 +192,8 @@ class EmbeddedDB:
         my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(get_random_port()))
         my_env.setdefault(
             "ENABLE_MODULES",
-            "text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,generative-openai,qna-openai",
+            "text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,generative-openai,qna-openai,"
+            "reranker-cohere",
         )
 
         # have a deterministic hostname in case of changes in the network name. This allows to run multiple parallel
