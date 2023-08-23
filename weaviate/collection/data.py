@@ -7,14 +7,12 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.collection.classes import (
     BatchReference,
     DataObject,
-    DataType,
     Error,
     Errors,
     ReferenceTo,
     GetObjectByIdIncludes,
     GetObjectsIncludes,
     IncludesModel,
-    _ReferenceDataType,
     _metadata_from_dict,
     _Object,
     UUID,
@@ -165,13 +163,7 @@ class _Data:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
-        if self.__config.is_strict():
-            beacons = ref.to_beacons_strict(
-                self.__config._get_property_by_name(from_property).data_type
-            )
-        else:
-            beacons = ref.to_beacons()
-        for beacon in beacons:
+        for beacon in ref.to_beacons():
             try:
                 response = self._connection.post(
                     path=path,
@@ -203,13 +195,7 @@ class _Data:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
-        if self.__config.is_strict():
-            beacons = ref.to_beacons_strict(
-                self.__config._get_property_by_name(from_property).data_type
-            )
-        else:
-            beacons = ref.to_beacons()
-        for beacon in beacons:
+        for beacon in ref.to_beacons():
             try:
                 response = self._connection.delete(
                     path=path,
@@ -225,16 +211,10 @@ class _Data:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
-        if self.__config.is_strict():
-            beacons = ref.to_beacons_strict(
-                self.__config._get_property_by_name(from_property).data_type
-            )
-        else:
-            beacons = ref.to_beacons()
         try:
             response = self._connection.put(
                 path=path,
-                weaviate_object=beacons,
+                weaviate_object=ref.to_beacons(),
                 params=self.__apply_context(params),
             )
         except RequestsConnectionError as conn_err:
@@ -258,34 +238,13 @@ class _Data:
             params["consistency_level"] = self.__consistency_level
         return params, obj
 
-    def __parse_properties_with_config_validation(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        props: Dict[str, Any] = {}
-        for schema_prop in self.__config.get().properties:
-            if schema_prop.name not in data:
-                continue
-            if isinstance(schema_prop.data_type, DataType):
-                props[schema_prop.name] = self.__convert_primitive_with_validation(
-                    schema_prop.data_type, schema_prop.name, data[schema_prop.name]
-                )
-                continue
-            assert isinstance(schema_prop.data_type, _ReferenceDataType)
-            user_ref_prop = data[schema_prop.name]
-            if not isinstance(user_ref_prop, ReferenceTo):
-                raise TypeError(
-                    f"Expected a ReferenceTo object for property {schema_prop.name} but got {user_ref_prop}. ReferenceTo must be used when inserting a reference property."
-                )
-            props[schema_prop.name] = user_ref_prop.to_beacons_strict(schema_prop.data_type)
-        return props
-
-    def __parse_properties_without_config_validation(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _parse_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
         return {
-            key: val.to_beacons()
-            if isinstance(val, ReferenceTo)
-            else self.__convert_primitive_without_validation(val)
+            key: val.to_beacons() if isinstance(val, ReferenceTo) else self.__convert_primitive(val)
             for key, val in data.items()
         }
 
-    def __convert_primitive_without_validation(self, value: Any) -> Any:
+    def __convert_primitive(self, value: Any) -> Any:
         if isinstance(value, uuid_package.UUID):
             return str(value)
         if isinstance(value, datetime.datetime):
@@ -294,38 +253,8 @@ class _Data:
                 value = value.replace(tzinfo=datetime.timezone.utc)
             return value.isoformat(sep="T", timespec="microseconds")
         if isinstance(value, list):
-            return [self.__convert_primitive_without_validation(val) for val in value]
+            return [self.__convert_primitive(val) for val in value]
         return value
-
-    def __convert_primitive_with_validation(self, dtype: DataType, name: str, value: Any) -> Any:
-        if isinstance(value, uuid_package.UUID):
-            if dtype != DataType.UUID:
-                raise TypeError(
-                    f"Cannot insert a UUID for property {name} as it is not of type UUID: {dtype}."
-                )
-            return str(value)
-        if isinstance(value, datetime.datetime):
-            if dtype != DataType.DATE:
-                raise TypeError(
-                    f"Cannot insert a datetime for property {name} as it is not of type DATE: {dtype}."
-                )
-            if value.tzinfo is None:
-                _Warnings.datetime_insertion_with_no_specified_timezone(value)
-                value = value.replace(tzinfo=datetime.timezone.utc)
-            return value.isoformat(sep="T", timespec="microseconds")
-        if isinstance(value, list):
-            return [self.__convert_primitive_with_validation(dtype, name, val) for val in value]
-        return value
-
-    def _parse_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        user_props = {key.lower(): value for key, value in data.items()}
-        # weaviate converts all property names to lowercase so we must do this here
-        # to compare user input to the defined collection schema/config
-        return (
-            self.__parse_properties_with_config_validation(user_props)
-            if self.__config.is_strict()
-            else self.__parse_properties_without_config_validation(user_props)
-        )
 
 
 class _DataCollection(_Data):

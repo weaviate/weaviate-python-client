@@ -699,26 +699,12 @@ def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
 class ReferenceTo(BaseModel):
     uuids: Union[List[UUID], UUID]
 
-    def to_beacons_strict(self, ref_dtype: _ReferenceDataType) -> List[Dict[str, str]]:
-        if len(ref_dtype.collections) > 1:
-            raise ValueError(
-                "Can only use ReferenceTo on a reference property with a single target collection, use ReferenceToMultiTarget instead"
-            )
-        return _to_beacons(self.uuids)
-
     def to_beacons(self) -> List[Dict[str, str]]:
         return _to_beacons(self.uuids)
 
 
 class ReferenceToMultiTarget(ReferenceTo):
     target_collection: str
-
-    def to_beacons_strict(self, ref_dtype: _ReferenceDataType) -> List[Dict[str, str]]:
-        if self.target_collection not in ref_dtype.collections:
-            raise ValueError(
-                f"target_collection must be one of {ref_dtype.collections} since these are the collections specified in the reference property of this collection but got {self.target_collection} instead"
-            )
-        return _to_beacons(self.uuids, self.target_collection)
 
     def to_beacons(self) -> List[Dict[str, str]]:
         return _to_beacons(self.uuids, self.target_collection)
