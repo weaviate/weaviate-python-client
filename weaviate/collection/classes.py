@@ -197,7 +197,7 @@ class VectorIndexConfigCreate(ConfigCreateModel):
     ef: int = -1
     flatSearchCutoff: int = Field(40000, alias="flat_search_cutoff")
     maxConnections: int = Field(64, alias="max_connections")
-    pq: PQConfigCreate = PQConfigCreate()
+    pq: PQConfigCreate = PQConfigCreate(bit_compression=False, training_limit=10000)
     skip: bool = False
     vectorCacheMaxObjects: int = Field(1000000000000, alias="vector_cache_max_objects")
 
