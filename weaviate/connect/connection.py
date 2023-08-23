@@ -52,7 +52,7 @@ TIMEOUT_TYPE_RETURN = Tuple[NUMBERS, NUMBERS]
 PYPI_TIMEOUT = 1
 
 
-class BaseConnection:
+class Connection:
     """
     Connection class used to communicate to a weaviate instance.
     """
@@ -164,6 +164,21 @@ class BaseConnection:
 
         self._create_session(auth_client_secret)
         self._add_adapter_to_session(connection_config)
+
+        self._server_version = self.get_meta()["version"]
+        if self._server_version < "1.14":
+            _Warnings.weaviate_server_older_than_1_14(self._server_version)
+        if is_weaviate_too_old(self._server_version):
+            _Warnings.weaviate_too_old_vs_latest(self._server_version)
+
+        try:
+            pkg_info = requests.get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
+            pkg_info = pkg_info.get("info", {})
+            latest_version = pkg_info.get("version", "unknown version")
+            if is_weaviate_client_too_old(client_version, latest_version):
+                _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
+        except RequestsConnectionError:
+            pass  # air-gaped environments
 
     def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
         """Creates a request session.
@@ -631,48 +646,6 @@ class BaseConnection:
             raise WeaviateStartUpError(
                 f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
             ) from error
-
-
-class Connection(BaseConnection):
-    def __init__(
-        self,
-        url: str,
-        auth_client_secret: Optional[AuthCredentials],
-        timeout_config: TIMEOUT_TYPE_RETURN,
-        proxies: Union[dict, str, None],
-        trust_env: bool,
-        additional_headers: Optional[Dict[str, Any]],
-        startup_period: Optional[int],
-        connection_config: ConnectionConfig,
-        embedded_db: Optional[EmbeddedDB] = None,
-        grcp_port: Optional[int] = None,
-    ):
-        super().__init__(
-            url,
-            auth_client_secret,
-            timeout_config,
-            proxies,
-            trust_env,
-            additional_headers,
-            startup_period,
-            connection_config,
-            embedded_db,
-            grcp_port,
-        )
-        self._server_version = self.get_meta()["version"]
-        if self._server_version < "1.14":
-            _Warnings.weaviate_server_older_than_1_14(self._server_version)
-        if is_weaviate_too_old(self._server_version):
-            _Warnings.weaviate_too_old_vs_latest(self._server_version)
-
-        try:
-            pkg_info = requests.get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
-            pkg_info = pkg_info.get("info", {})
-            latest_version = pkg_info.get("version", "unknown version")
-            if is_weaviate_client_too_old(client_version, latest_version):
-                _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
-        except RequestsConnectionError:
-            pass  # air-gaped environments
 
     @property
     def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
