@@ -628,16 +628,11 @@ class _Grpc(SupportsResultToObject, Generic[Properties]):
             return [
                 self.__struct_value_to_py_value(cast(_StructValue, value)) for value in value.values
             ]
-        elif isinstance(value, str):
+        elif isinstance(value, str) or isinstance(value, float) or isinstance(value, bool):
             return value
-        elif isinstance(value, float):
-            return value
-        elif isinstance(value, bool):
-            return value
-        elif value is None:
-            return None
         else:
-            raise ValueError(f"Unknown type: {type(value)}")
+            assert value is None
+            return None
 
 
 class _GrpcCollection(Generic[Properties], _Grpc[Properties]):
