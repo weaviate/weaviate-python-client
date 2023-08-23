@@ -54,7 +54,7 @@ class Collection(CollectionBase):
         return self.get(name)
 
     def get(self, name: str) -> CollectionObject:
-        config = _ConfigCollection.make(self._connection, name)
+        config = _ConfigCollection(self._connection, name)
         return CollectionObject(self._connection, name, config)
 
     def delete(self, name: str) -> None:

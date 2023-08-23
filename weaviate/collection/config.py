@@ -30,10 +30,6 @@ class _ConfigBase:
         self.__connection = connection
         self._name = name
 
-    @classmethod
-    def make(cls, connection: Connection, name: str):
-        return cls(connection, name)
-
     def __get(self) -> Dict[str, Any]:
         try:
             response = self.__connection.get(path=f"/schema/{self._name}")

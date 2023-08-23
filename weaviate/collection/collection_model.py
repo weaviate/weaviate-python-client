@@ -77,7 +77,7 @@ class CollectionModel(CollectionBase):
 
     def get(self, model: Type[Model]) -> CollectionObjectModel[Model]:
         name = _capitalize_first_letter(model.__name__)
-        config = _ConfigCollectionModel.make(self._connection, name)
+        config = _ConfigCollectionModel(self._connection, name)
         if config.is_invalid(model):
             raise TypeError(
                 f"Model {model.__name__} definition does not match collection {name} config"
@@ -121,6 +121,6 @@ class CollectionModel(CollectionBase):
 
     def update(self, model: Type[Model]) -> CollectionObjectModel[Model]:
         name = _capitalize_first_letter(model.__name__)
-        config = _ConfigCollectionModel.make(self._connection, name)
+        config = _ConfigCollectionModel(self._connection, name)
         config.update_model(model)
         return CollectionObjectModel[Model](self._connection, name, model, config)
