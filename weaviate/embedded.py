@@ -192,7 +192,8 @@ class EmbeddedDB:
         my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(get_random_port()))
         my_env.setdefault(
             "ENABLE_MODULES",
-            "text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,generative-openai,qna-openai",
+            "text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,generative-openai,qna-openai,"
+            "reranker-cohere",
         )
 
         # have a deterministic hostname in case of changes in the network name. This allows to run multiple parallel
