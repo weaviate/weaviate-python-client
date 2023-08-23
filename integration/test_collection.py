@@ -1,4 +1,5 @@
 import pytest as pytest
+import datetime
 import uuid
 
 import weaviate
@@ -972,6 +973,42 @@ def test_empty_search_returns_everything(client: weaviate.Client):
     assert objects[0].metadata.creation_time_unix is not None
 
     client.collection.delete("TestReturnEverything")
+
+
+@pytest.mark.parametrize("hours,minutes,sign", [(0, 0, 1), (1, 20, -1), (2, 0, 1), (3, 40, -1)])
+def test_insert_date_property(client: weaviate.Client, hours: int, minutes: int, sign: int):
+    client.collection.delete("TestInsertDateProperty")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestInsertDateProperty",
+            vectorizer=Vectorizer.NONE,
+            properties=[Property(name="date", data_type=DataType.DATE)],
+        )
+    )
+
+    now = datetime.datetime.now(
+        datetime.timezone(sign * datetime.timedelta(hours=hours, minutes=minutes))
+    )
+    uuid = collection.data.insert(data={"date": now})
+
+    obj = collection.data.get_by_id(uuid)
+
+    assert (
+        datetime.datetime.strptime(
+            "".join(
+                obj.data["date"].rsplit(":", 1) if obj.data["date"][-1] != "Z" else obj.data["date"]
+            ),
+            "%Y-%m-%dT%H:%M:%S.%f%z",
+        )
+        == now
+    )
+    # weaviate drops any trailing zeros from the microseconds part of the date
+    # this means that the returned dates aren't in the ISO format and so cannot be parsed easily to datetime
+    # moreover, UTC timezones specified as +-00:00 are converted to Z further complicating matters
+    # as such the above line is a workaround to parse the date returned by weaviate, which may prove useful
+    # when parsing the date property in generics and the ORM in the future
+
+    client.collection.delete("TestInsertDateProperty")
 
 
 def test_collection_name_capitalization(client: weaviate.Client):

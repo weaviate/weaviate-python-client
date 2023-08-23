@@ -1,4 +1,5 @@
 import sys
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from pydantic_core._pydantic_core import PydanticUndefined
@@ -454,3 +455,24 @@ def test_update_reference_property(client: weaviate.Client):
 
     create_original_collection()
     client.collection_model.update(TestRefPropUpdate)
+
+
+def test_model_with_datetime_property(client: weaviate.Client):
+    class TestDatetime(BaseProperty):
+        name: str
+        date: datetime
+
+    client.collection_model.delete(TestDatetime)
+    collection = client.collection_model.create(
+        CollectionModelConfig[TestDatetime](model=TestDatetime, vectorizer=Vectorizer.NONE)
+    )
+    now = datetime.now(timezone.utc)
+    collection.data.insert(TestDatetime(name="test", date=now))
+    objects = collection.data.get()
+    assert len(objects) == 1
+    assert objects[0].data.name == "test"
+    assert type(objects[0].data.date) is datetime
+
+    # assert objects[0].data.date == now
+    # The same issue as in test_collection.py@introduce_date_parsing_to_collections occurs here
+    # Weaviate parsing of dates is not perfectly compatible with the python datetime library

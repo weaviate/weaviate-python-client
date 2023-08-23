@@ -27,11 +27,10 @@ class _ConfigBase:
     """
 
     def __init__(self, connection: Connection, name: str) -> None:
-        self.__cached: Optional[Dict[str, Any]] = None
         self.__connection = connection
         self._name = name
 
-    def _fetch(self) -> Dict[str, Any]:
+    def __get(self) -> Dict[str, Any]:
         try:
             response = self.__connection.get(path=f"/schema/{self._name}")
         except RequestsConnectionError as conn_err:
@@ -40,14 +39,7 @@ class _ConfigBase:
             ) from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Get collection configuration", response)
-        schema: Dict[str, Any] = response.json()
-        self.__cached = schema
-        return self.__cached
-
-    def __get(self) -> Dict[str, Any]:
-        if self.__cached is not None:
-            return self.__cached
-        return self._fetch()
+        return response.json()
 
     def get(self) -> _CollectionConfig:
         """Get the configuration for this collection from Weaviate.
@@ -101,8 +93,6 @@ class _ConfigBase:
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Add property to collection", response)
 
-        self._fetch()
-
     def _get_property_by_name(self, property_name: str) -> Optional[_Property]:
         for prop in self.get().properties:
             if prop.name == property_name:
@@ -152,6 +142,7 @@ class _ConfigCollectionModel(_ConfigBase):
                 idx = schema_props_simple.index(
                     {"name": prop.name, "dataType": prop.to_dict().get("dataType")}
                 )
+                schema_props_simple.pop(idx)
                 only_in_schema.pop(idx)
             except ValueError:
                 only_in_model.append(prop)
@@ -175,8 +166,6 @@ class _ConfigCollectionModel(_ConfigBase):
 
         for prop in only_in_model:
             self._add_property(prop)
-
-        self._fetch()  # revalidate the cache
 
     def is_invalid(self, model: Type[Model]) -> bool:
         only_in_schema, only_in_model = self.__compare_properties_with_model(

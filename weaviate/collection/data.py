@@ -1,4 +1,5 @@
-from typing import Dict, Any, Optional, List, Tuple, Generic, Type, Union, cast
+import datetime
+from typing import Dict, Any, Optional, List, Tuple, Union, Generic, Type, cast
 
 import uuid as uuid_package
 from google.protobuf.struct_pb2 import Struct
@@ -24,6 +25,7 @@ from weaviate.collection.grpc_batch import _BatchGRPC
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException, ObjectAlreadyExistsException
+from weaviate.warnings import _Warnings
 from weaviate.weaviate_types import BEACON
 from weaviate_grpc import weaviate_pb2
 
@@ -176,8 +178,7 @@ class _Data:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
-        beacons = ref.to_beacons()
-        for beacon in beacons:
+        for beacon in ref.to_beacons():
             try:
                 response = self._connection.post(
                     path=path,
@@ -209,8 +210,7 @@ class _Data:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
-        beacons = ref.to_beacons()
-        for beacon in beacons:
+        for beacon in ref.to_beacons():
             try:
                 response = self._connection.delete(
                     path=path,
@@ -226,11 +226,10 @@ class _Data:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
-        beacons = ref.to_beacons()
         try:
             response = self._connection.put(
                 path=path,
-                weaviate_object=beacons,
+                weaviate_object=ref.to_beacons(),
                 params=self.__apply_context(params),
             )
         except RequestsConnectionError as conn_err:
@@ -256,11 +255,21 @@ class _Data:
 
     def _parse_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
         return {
-            key: val
-            if not (isinstance(val, ReferenceTo) or isinstance(val, ReferenceToMultiTarget))
-            else val.to_beacons()
+            key: val.to_beacons() if isinstance(val, ReferenceTo) else self.__convert_primitive(val)
             for key, val in data.items()
         }
+
+    def __convert_primitive(self, value: Any) -> Any:
+        if isinstance(value, uuid_package.UUID):
+            return str(value)
+        if isinstance(value, datetime.datetime):
+            if value.tzinfo is None:
+                _Warnings.datetime_insertion_with_no_specified_timezone(value)
+                value = value.replace(tzinfo=datetime.timezone.utc)
+            return value.isoformat(sep="T", timespec="microseconds")
+        if isinstance(value, list):
+            return [self.__convert_primitive(val) for val in value]
+        return value
 
     @staticmethod
     def __parse_properties_grpc(data: Dict[str, Any]) -> weaviate_pb2.BatchObject.Properties:
@@ -485,10 +494,10 @@ class _DataCollectionModel(Generic[Model], _Data):
             return None
         return self._json_to_object(ret)
 
-    def get(self, includes: Optional[GetObjectsIncludes] = None) -> Optional[List[_Object[Model]]]:
+    def get(self, includes: Optional[GetObjectsIncludes] = None) -> List[_Object[Model]]:
         ret = self._get(includes=includes)
         if ret is None:
-            return None
+            return []
 
         return [self._json_to_object(obj) for obj in ret["objects"]]
 
