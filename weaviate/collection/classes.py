@@ -1,5 +1,6 @@
 import hashlib
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from typing import (
     Union,
@@ -22,6 +23,7 @@ from pydantic_core._pydantic_core import PydanticUndefined
 
 from weaviate.util import _to_beacons, _capitalize_first_letter
 from weaviate.weaviate_types import UUID, PYTHON_TYPE_TO_DATATYPE
+from weaviate_grpc import weaviate_pb2
 
 
 @dataclass
@@ -1007,3 +1009,120 @@ class Tenant(BaseModel):
     @property
     def activity_status(self) -> TenantActivityStatus:
         return self.activityStatus
+
+
+class Filters:
+    pass
+
+
+class FilterAnd(Filters):
+    def __init__(self, *args: Filters):
+        self.filters: List[Filters] = list(args)
+
+    # replace with the following once 3.11 is the minimum version
+    #     Operator: weaviate_pb2.Filters.OperatorType = weaviate_pb2.Filters.OperatorAnd
+    @property
+    def operator(self) -> weaviate_pb2.Filters.OperatorType:
+        return weaviate_pb2.Filters.OperatorAnd
+
+
+class FilterOr(Filters):
+    def __init__(self, *args: Filters):
+        self.filters: List[Filters] = list(args)
+
+    # replace with the following once 3.11 is the minimum version
+    #     Operator: weaviate_pb2.Filters.OperatorType = weaviate_pb2.Filters.OperatorOr
+    @property
+    def operator(self) -> weaviate_pb2.Filters.OperatorType:
+        return weaviate_pb2.Filters.OperatorOr
+
+
+FilterValues = Union[int, float, str, bool, datetime.date, None]
+
+
+@dataclass
+class FilterValue(Filters):
+    path: Union[str, List[str]]
+    value: FilterValues
+    operator: weaviate_pb2.Filters.OperatorType
+
+    def __and__(self, other: "FilterValue"):
+        return FilterAnd(self, other)
+
+    def __or__(self, other: "FilterValue"):
+        return FilterOr(self, other)
+
+
+@dataclass
+class FilterProp(Filters):
+    path: Union[str, List[str]]
+    length: bool = False
+
+    def __post_init__(self):
+        if self.length:
+            self.__internal_path = "len(" + self.path + ")"
+        else:
+            self.__internal_path = self.path
+
+    def __eq__(self, other: FilterValues) -> FilterValue:
+        if other is not None:
+            return FilterValue(
+                path=self.__internal_path, value=other, operator=weaviate_pb2.Filters.OperatorEqual
+            )
+        else:
+            return FilterValue(
+                path=self.__internal_path, value=True, operator=weaviate_pb2.Filters.OperatorIsNull
+            )
+
+    def __ne__(self, other: FilterValues) -> FilterValue:
+        if other is not None:
+            return FilterValue(
+                path=self.__internal_path,
+                value=other,
+                operator=weaviate_pb2.Filters.OperatorNotEqual,
+            )
+        else:
+            return FilterValue(
+                path=self.__internal_path, value=False, operator=weaviate_pb2.Filters.OperatorIsNull
+            )
+
+    def __gt__(self, other: FilterValues) -> FilterValue:
+        return FilterValue(
+            path=self.__internal_path,
+            value=other,
+            operator=weaviate_pb2.Filters.OperatorGreaterThan,
+        )
+
+    def __lt__(self, other: FilterValues) -> FilterValue:
+        return FilterValue(
+            path=self.__internal_path, value=other, operator=weaviate_pb2.Filters.OperatorLessThan
+        )
+
+    def __le__(self, other: FilterValues) -> FilterValue:
+        return FilterValue(
+            path=self.__internal_path,
+            value=other,
+            operator=weaviate_pb2.Filters.OperatorLessThanEqual,
+        )
+
+    def __ge__(self, other: FilterValues) -> FilterValue:
+        return FilterValue(
+            path=self.__internal_path,
+            value=other,
+            operator=weaviate_pb2.Filters.OperatorGreaterThanEqual,
+        )
+
+    def __mul__(self, other: FilterValues) -> FilterValue:
+        return FilterValue(
+            path=self.__internal_path, value=other, operator=weaviate_pb2.Filters.OperatorLike
+        )
+
+    def is_null(self) -> FilterValue:
+        return FilterValue(
+            path=self.__internal_path, value=True, operator=weaviate_pb2.Filters.OperatorIsNull
+        )
+
+    def is_not_null(self) -> FilterValue:
+        return FilterValue(
+            path=self.__internal_path, value=False, operator=weaviate_pb2.Filters.OperatorIsNull
+        )
