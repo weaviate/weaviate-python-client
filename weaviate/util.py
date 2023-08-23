@@ -566,6 +566,25 @@ def strip_newlines(s: str) -> str:
     return s.replace("\n", " ")
 
 
+def _sanitize_str(value: str) -> str:
+    """
+    Ensures string is sanitized for GraphQL.
+
+    Parameters
+    ----------
+    value : str
+        The value to be converted.
+
+    Returns
+    -------
+    str
+        The sanitized string.
+    """
+    value = strip_newlines(value)
+    value = re.sub(r'(?<!\\)"', '\\"', value)  # only replaces unescaped double quotes
+    return f'"{value}"'
+
+
 def parse_version_string(ver_str: str) -> tuple:
     """
     Parse a version string into a float.

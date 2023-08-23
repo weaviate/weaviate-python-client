@@ -17,7 +17,7 @@ from typing import (
 )
 
 import uuid as uuid_package
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from pydantic_core._pydantic_core import PydanticUndefined
 
 from weaviate.util import _to_beacons, _capitalize_first_letter
@@ -26,11 +26,28 @@ from weaviate.weaviate_types import UUID, PYTHON_TYPE_TO_DATATYPE
 
 @dataclass
 class Error:
-    code: int
     message: str
+    code: Optional[int] = None
+    original_uuid: Optional[UUID] = None
 
 
-Errors = List[Error]
+@dataclass
+class _BatchReturn:
+    """This class contains the results of a batch `insert_many` operation.
+
+    Since the individual objects within the batch can error for differing reasons, the data is split up within this class for ease use when performing error checking, handling, and data revalidation.
+
+    Attributes:
+        all_responses: A list of all the responses from the batch operation. Each response is either a `uuid_package.UUID` object or an `Error` object.
+        uuids: A dictionary of all the successful responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `uuid_package.UUID` objects.
+        errors: A dictionary of all the failed responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `Error` objects.
+        has_errors: A boolean indicating whether or not any of the objects in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry.
+    """
+
+    all_responses: List[Union[uuid_package.UUID, Error]]
+    uuids: Dict[int, uuid_package.UUID]
+    errors: Dict[int, Error]
+    has_errors: bool = False
 
 
 class DataType(str, Enum):
@@ -619,11 +636,13 @@ class CollectionConfig(CollectionConfigCreateBase):
     name: str
     properties: Optional[List[Union[Property, ReferencePropertyBase]]] = None
 
+    def model_post_init(self, __context: Any) -> None:
+        self.name = _capitalize_first_letter(self.name)
+
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
 
-        if self.name is not None:
-            ret_dict["class"] = _capitalize_first_letter(self.name)
+        ret_dict["class"] = self.name
 
         if self.properties is not None:
             ret_dict["properties"] = [prop.to_dict() for prop in self.properties]
@@ -696,13 +715,22 @@ def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
     )
 
 
-class ReferenceTo(BaseModel):
+@dataclass
+class ReferenceTo:
     uuids: Union[List[UUID], UUID]
+
+    @property
+    def uuids_str(self) -> List[str]:
+        if isinstance(self.uuids, list):
+            return [str(uid) for uid in self.uuids]
+        else:
+            return [str(self.uuids)]
 
     def to_beacons(self) -> List[Dict[str, str]]:
         return _to_beacons(self.uuids)
 
 
+@dataclass
 class ReferenceToMultiTarget(ReferenceTo):
     target_collection: str
 
@@ -940,5 +968,32 @@ class CollectionModelConfig(CollectionConfigCreateBase, Generic[Model]):
         return ret_dict
 
 
+class TenantActivityStatus(str, Enum):
+    """TenantActivityStatus class used to describe the activity status of a tenant in Weaviate.
+
+    Attributes
+    HOT: The tenant is fully active and can be used.
+    COLD: The tenant is not active, files stored locally.
+    """
+
+    HOT = "HOT"
+    COLD = "COLD"
+
+
 class Tenant(BaseModel):
+    """Tenant class used to describe a tenant in Weaviate.
+
+    Attributes
+    name: the name of the tenant.
+    activity_status : TenantActivityStatus, default: "HOT"
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
     name: str
+    activityStatus: TenantActivityStatus = Field(
+        default=TenantActivityStatus.HOT, alias="activity_status"
+    )
+
+    @property
+    def activity_status(self) -> TenantActivityStatus:
+        return self.activityStatus

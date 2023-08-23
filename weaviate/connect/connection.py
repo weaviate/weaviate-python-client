@@ -50,6 +50,7 @@ except ImportError:
 Session = Union[requests.sessions.Session, OAuth2Session]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
 PYPI_TIMEOUT = 1
+MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC server
 
 
 class BaseConnection:
@@ -125,7 +126,13 @@ class BaseConnection:
                 s.connect((parsed_url.hostname, grcp_port))
                 s.shutdown(2)
                 s.close()
-                channel = grpc.insecure_channel(f"{parsed_url.hostname}:{grcp_port}")
+                channel = grpc.insecure_channel(
+                    f"{parsed_url.hostname}:{grcp_port}",
+                    options=[
+                        ("grpc.max_send_message_length", MAX_GRPC_MESSAGE_LENGTH),
+                        ("grpc.max_receive_message_length", MAX_GRPC_MESSAGE_LENGTH),
+                    ],
+                )
                 self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(channel)
             except (
                 ConnectionRefusedError,

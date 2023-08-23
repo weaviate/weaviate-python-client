@@ -13,6 +13,27 @@ The next time you open your shell, you can activate your virtual environment usi
 
 To run local instance of Weaviate, we recommend using Docker (see https://weaviate.io/developers/weaviate/installation/docker-compose).
 
+#### Installation
+
+To install the library into your virtual environment while in development, we recommend installing it in “edit mode”:
+
+```shell
+pip install -e /PATH/TO/WEAVIATE-PYTHON-CLIENT
+```
+
+If you do so from the root of the repository, you can use the following command:
+
+```shell
+pip install -e .
+```
+
+You can install a particular branch directly from GitHub with:
+
+```shell
+pip install git+https://github.com/weaviate/weaviate-python-client.git@BRANCH_NAME
+```
+
+
 ### Testing
 
 > Note: We use [pytest](https://docs.pytest.org) to write tests, however many older tests use [unittest](https://docs.python.org/3/library/unittest.html). Regardless, the below commands will run all tests.

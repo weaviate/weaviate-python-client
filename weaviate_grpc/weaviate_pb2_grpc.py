@@ -19,12 +19,23 @@ class WeaviateStub(object):
                 request_serializer=weaviate__pb2.SearchRequest.SerializeToString,
                 response_deserializer=weaviate__pb2.SearchReply.FromString,
                 )
+        self.BatchObjects = channel.unary_unary(
+                '/weaviategrpc.Weaviate/BatchObjects',
+                request_serializer=weaviate__pb2.BatchObjectsRequest.SerializeToString,
+                response_deserializer=weaviate__pb2.BatchObjectsReply.FromString,
+                )
 
 
 class WeaviateServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def Search(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def BatchObjects(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -37,6 +48,11 @@ def add_WeaviateServicer_to_server(servicer, server):
                     servicer.Search,
                     request_deserializer=weaviate__pb2.SearchRequest.FromString,
                     response_serializer=weaviate__pb2.SearchReply.SerializeToString,
+            ),
+            'BatchObjects': grpc.unary_unary_rpc_method_handler(
+                    servicer.BatchObjects,
+                    request_deserializer=weaviate__pb2.BatchObjectsRequest.FromString,
+                    response_serializer=weaviate__pb2.BatchObjectsReply.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -62,5 +78,22 @@ class Weaviate(object):
         return grpc.experimental.unary_unary(request, target, '/weaviategrpc.Weaviate/Search',
             weaviate__pb2.SearchRequest.SerializeToString,
             weaviate__pb2.SearchReply.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def BatchObjects(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/weaviategrpc.Weaviate/BatchObjects',
+            weaviate__pb2.BatchObjectsRequest.SerializeToString,
+            weaviate__pb2.BatchObjectsReply.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

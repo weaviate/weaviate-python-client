@@ -27,8 +27,12 @@ from weaviate.collection.classes import (
     Tenant,
     VectorIndexConfigUpdate,
     Vectorizer,
+    Error,
+    TenantActivityStatus,
 )
 from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery
+
+BEACON_START = "weaviate://localhost"
 
 
 @pytest.fixture(scope="module")
@@ -77,16 +81,104 @@ def test_insert_many(client: weaviate.Client):
         vectorizer=Vectorizer.NONE,
     )
     collection = client.collection.create(collection_config)
-    uuids = collection.data.insert_many(
+    ret = collection.data.insert_many(
         [
             DataObject(data={"name": "some name"}, vector=[1, 2, 3]),
             DataObject(data={"name": "some other name"}, uuid=uuid.uuid4()),
         ]
     )
-    obj1 = collection.data.get_by_id(uuids[0])
-    obj2 = collection.data.get_by_id(uuids[1])
+    obj1 = collection.data.get_by_id(ret.uuids[0])
+    obj2 = collection.data.get_by_id(ret.uuids[1])
     assert obj1.data["name"] == "some name"
     assert obj2.data["name"] == "some other name"
+
+    client.collection.delete(name)
+
+
+def test_insert_many_with_refs(client: weaviate.Client):
+    name_target = "RefClassBatchTarget"
+    client.collection.delete(name_target)
+
+    ref_collection = client.collection.create(
+        CollectionConfig(name=name_target, vectorizer=Vectorizer.NONE)
+    )
+    uuid_to1 = ref_collection.data.insert(data={})
+    uuid_to2 = ref_collection.data.insert(data={})
+
+    name = "TestInsertManyRefs"
+    client.collection.delete(name)
+
+    collection_config = CollectionConfig(
+        name=name,
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+            ReferenceProperty(name="ref_single", target_collection=name_target),
+            ReferencePropertyMultiTarget(name="ref_many", target_collections=[name_target, name]),
+        ],
+        vectorizer=Vectorizer.NONE,
+    )
+    collection = client.collection.create(collection_config)
+    uuid_from = collection.data.insert(data={"name": "first"})
+
+    ret = collection.data.insert_many(
+        [
+            DataObject(
+                data={
+                    "name": "some name",
+                    "ref_single": ReferenceTo(uuids=[uuid_to1, uuid_to2]),
+                    "ref_many": ReferenceToMultiTarget(uuids=uuid_from, target_collection=name),
+                },
+                vector=[1, 2, 3],
+            ),
+            DataObject(
+                data={
+                    "name": "some other name",
+                    "ref_single": ReferenceTo(uuids=uuid_to2),
+                    "ref_many": ReferenceToMultiTarget(
+                        uuids=uuid_to1, target_collection=name_target
+                    ),
+                },
+                uuid=uuid.uuid4(),
+            ),
+        ]
+    )
+    obj1 = collection.data.get_by_id(ret.uuids[0])
+    assert obj1.data["name"] == "some name"
+    assert obj1.data["ref_single"][0]["beacon"] == BEACON_START + f"/{name_target}/{uuid_to1}"
+    assert obj1.data["ref_single"][1]["beacon"] == BEACON_START + f"/{name_target}/{uuid_to2}"
+    assert obj1.data["ref_many"][0]["beacon"] == BEACON_START + f"/{name}/{uuid_from}"
+
+    obj1 = collection.data.get_by_id(ret.uuids[1])
+    assert obj1.data["name"] == "some other name"
+    assert obj1.data["ref_single"][0]["beacon"] == BEACON_START + f"/{name_target}/{uuid_to2}"
+    assert obj1.data["ref_many"][0]["beacon"] == BEACON_START + f"/{name_target}/{uuid_to1}"
+
+
+def test_insert_many_error(client: weaviate.Client):
+    name = "TestInsertManyWitHError"
+    collection_config = CollectionConfig(
+        name=name,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer=Vectorizer.NONE,
+    )
+    collection = client.collection.create(collection_config)
+    ret = collection.data.insert_many(
+        [
+            DataObject(data={"wrong_name": "some name"}, vector=[1, 2, 3]),
+            DataObject(data={"name": "some other name"}, uuid=uuid.uuid4()),
+            DataObject(data={"other_thing": "is_wrong"}, vector=[1, 2, 3]),
+        ]
+    )
+    assert ret.has_errors
+
+    obj = collection.data.get_by_id(ret.uuids[1])
+    assert obj.data["name"] == "some other name"
+
+    assert len(ret.errors) == 2
+    assert 0 in ret.errors and 2 in ret.errors
+
+    assert isinstance(ret.all_responses[0], Error) and isinstance(ret.all_responses[2], Error)
+    assert isinstance(ret.all_responses[1], uuid.UUID)
 
     client.collection.delete(name)
 
@@ -105,18 +197,19 @@ def test_insert_many_with_tenant(client: weaviate.Client):
     tenant1 = collection.with_tenant("tenant1")
     tenant2 = collection.with_tenant("tenant2")
 
-    uuids = tenant1.data.insert_many(
+    ret = tenant1.data.insert_many(
         [
             DataObject(data={"name": "some name"}, vector=[1, 2, 3]),
             DataObject(data={"name": "some other name"}, uuid=uuid.uuid4()),
         ]
     )
-    obj1 = tenant1.data.get_by_id(uuids[0])
-    obj2 = tenant1.data.get_by_id(uuids[1])
+    assert not ret.has_errors
+    obj1 = tenant1.data.get_by_id(ret.uuids[0])
+    obj2 = tenant1.data.get_by_id(ret.uuids[1])
     assert obj1.data["name"] == "some name"
     assert obj2.data["name"] == "some other name"
-    assert tenant2.data.get_by_id(uuids[0]) is None
-    assert tenant2.data.get_by_id(uuids[1]) is None
+    assert tenant2.data.get_by_id(ret.uuids[0]) is None
+    assert tenant2.data.get_by_id(ret.uuids[1]) is None
 
     client.collection.delete(name)
 
@@ -617,8 +710,8 @@ def test_tenants(client: weaviate.Client):
 
     tenants = collection.tenants.get()
     assert len(tenants) == 1
-    assert type(tenants[0]) is Tenant
-    assert tenants[0].name == "tenant1"
+    assert type(tenants["tenant1"]) is Tenant
+    assert tenants["tenant1"].name == "tenant1"
 
     collection.tenants.remove(["tenant1"])
 
@@ -917,3 +1010,60 @@ def test_insert_date_property(client: weaviate.Client, hours: int, minutes: int,
     # when parsing the date property in generics and the ORM in the future
 
     client.collection.delete("TestInsertDateProperty")
+
+
+def test_collection_name_capitalization(client: weaviate.Client):
+    name_small = "collectionCapitalizationTest"
+    name_big = "CollectionCapitalizationTest"
+    collection = client.collection.create(
+        CollectionConfig(
+            name=name_small,
+            vectorizer=Vectorizer.NONE,
+            properties=[Property(name="name", data_type=DataType.TEXT)],
+        )
+    )
+
+    assert collection.name == name_big
+    client.collection.delete(name_small)
+    assert not client.collection.exists(name_small)
+    assert not client.collection.exists(name_big)
+
+
+def test_tenant_with_activity(client: weaviate.Client):
+    name = "TestTenantActivity"
+    collection = client.collection.create(
+        CollectionConfig(
+            name=name,
+            vectorizer=Vectorizer.NONE,
+            multi_tenancy_config=MultiTenancyConfig(enabled=True),
+        )
+    )
+    collection.tenants.add(
+        [
+            Tenant(name="1", activity_status=TenantActivityStatus.HOT),
+            Tenant(name="2", activity_status=TenantActivityStatus.COLD),
+            Tenant(name="3"),
+        ]
+    )
+    tenants = collection.tenants.get()
+    assert tenants["1"].activity_status == TenantActivityStatus.HOT
+    assert tenants["2"].activity_status == TenantActivityStatus.COLD
+    assert tenants["3"].activity_status == TenantActivityStatus.HOT
+
+
+def test_update_tenant(client: weaviate.Client):
+    name = "TestUpdateTenant"
+    collection = client.collection.create(
+        CollectionConfig(
+            name=name,
+            vectorizer=Vectorizer.NONE,
+            multi_tenancy_config=MultiTenancyConfig(enabled=True),
+        )
+    )
+    collection.tenants.add([Tenant(name="1", activity_status=TenantActivityStatus.HOT)])
+    tenants = collection.tenants.get()
+    assert tenants["1"].activity_status == TenantActivityStatus.HOT
+
+    collection.tenants.update([Tenant(name="1", activity_status=TenantActivityStatus.COLD)])
+    tenants = collection.tenants.get()
+    assert tenants["1"].activity_status == TenantActivityStatus.COLD

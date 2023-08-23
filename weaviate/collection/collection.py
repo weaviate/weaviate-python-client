@@ -1,13 +1,14 @@
 from typing import Optional
 
 from weaviate.collection.classes import CollectionConfig
-from weaviate.collection.config import _ConfigCollection
 from weaviate.collection.collection_base import CollectionBase
+from weaviate.collection.config import _ConfigCollection
 from weaviate.collection.data import _DataCollection
 from weaviate.collection.grpc import _GrpcCollection
 from weaviate.collection.tenants import _Tenants
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
+from weaviate.util import _capitalize_first_letter
 
 
 class CollectionObject:
@@ -44,16 +45,16 @@ class CollectionObject:
 
 
 class Collection(CollectionBase):
-    def create(self, config: CollectionConfig, debug_mode: bool = False) -> CollectionObject:
+    def create(self, config: CollectionConfig) -> CollectionObject:
         name = super()._create(config)
         if config.name != name:
             raise ValueError(
                 f"Name of created collection ({name}) does not match given name ({config.name})"
             )
-        return self.get(name, debug_mode)
+        return self.get(name)
 
-    def get(self, name: str, debug_mode: bool = False) -> CollectionObject:
-        config = _ConfigCollection.make(self._connection, name, debug_mode)
+    def get(self, name: str) -> CollectionObject:
+        config = _ConfigCollection.make(self._connection, name)
         return CollectionObject(self._connection, name, config)
 
     def delete(self, name: str) -> None:
@@ -65,7 +66,7 @@ class Collection(CollectionBase):
         Parameters:
         - name: The name of the collection to delete.
         """
-        self._delete(name)
+        self._delete(_capitalize_first_letter(name))
 
     def exists(self, name: str) -> bool:
-        return self._exists(name)
+        return self._exists(_capitalize_first_letter(name))

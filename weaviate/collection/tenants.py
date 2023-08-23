@@ -34,7 +34,7 @@ class _Tenants:
             - If Weaviate reports a non-OK status.
         """
 
-        loaded_tenants = [{"name": tenant.name} for tenant in tenants]
+        loaded_tenants = [tenant.model_dump() for tenant in tenants]
 
         path = "/schema/" + self.__name + "/tenants"
         try:
@@ -76,7 +76,7 @@ class _Tenants:
                 f"Delete collection tenants for {self.__name}", response
             )
 
-    def get(self) -> List[Tenant]:
+    def get(self) -> Dict[str, Tenant]:
         """Return all tenants currently associated with a collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
@@ -100,4 +100,19 @@ class _Tenants:
             )
 
         tenant_resp: List[Dict[str, Any]] = response.json()
-        return [Tenant(**tenant) for tenant in tenant_resp]
+        return {tenant["name"]: Tenant(**tenant) for tenant in tenant_resp}
+
+    def update(self, tenants: List[Tenant]):
+        loaded_tenants = [tenant.model_dump() for tenant in tenants]
+
+        path = "/schema/" + self.__name + "/tenants"
+        try:
+            response = self.__connection.put(path=path, weaviate_object=loaded_tenants)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                f"Collection tenants may not have been updated properly for {self.__name}"
+            ) from conn_err
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException(
+                f"Update collection tenants for {self.__name}", response
+            )
