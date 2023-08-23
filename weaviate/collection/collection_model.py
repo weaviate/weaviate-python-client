@@ -35,10 +35,10 @@ class CollectionObjectModel(Generic[Model]):
         self.name = name
 
         self.config = config
-        self.data = _DataCollectionModel[model](
+        self.data = _DataCollectionModel[Model](
             connection, name, model, config, consistency_level, tenant
         )
-        self.query = _GrpcCollectionModel[model](connection, name, model, tenant)
+        self.query = _GrpcCollectionModel[Model](connection, name, model, tenant)
         self.tenants = _Tenants(connection, name)
 
         self.__consistency_level = consistency_level
@@ -82,9 +82,9 @@ class CollectionModel(CollectionBase):
             raise TypeError(
                 f"Model {model.__name__} definition does not match collection {name} config"
             )
-        return CollectionObjectModel[model](self._connection, name, model, config)
+        return CollectionObjectModel[Model](self._connection, name, model, config)
 
-    def get_dynamic(self, name: str) -> Tuple[CollectionObjectModel[Model], UserModelType]:
+    def get_dynamic(self, name: str) -> Tuple[CollectionObjectModel[BaseProperty], UserModelType]:
         path = f"/schema/{_capitalize_first_letter(name)}"
 
         try:
@@ -100,8 +100,8 @@ class CollectionModel(CollectionBase):
             for prop in response_json["properties"]
         }
         model = create_model(response_json["class"], **fields, __base__=BaseProperty)
-
-        return CollectionObjectModel(self._connection, name, model), model
+        config = _ConfigCollectionModel(self._connection, name)
+        return CollectionObjectModel[BaseProperty](self._connection, name, model, config), model
 
     def delete(self, model: Type[Model]) -> None:
         """Use this method to delete a collection from the Weaviate instance by its ORM model.
@@ -123,4 +123,4 @@ class CollectionModel(CollectionBase):
         name = _capitalize_first_letter(model.__name__)
         config = _ConfigCollectionModel.make(self._connection, name)
         config.update_model(model)
-        return CollectionObjectModel[model](self._connection, name, model, config)
+        return CollectionObjectModel[Model](self._connection, name, model, config)

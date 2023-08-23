@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, Any, Optional, List, Tuple, Union, Generic, Type
+from typing import Dict, Any, Optional, List, Tuple, Union, Generic, Type, cast
 
 import uuid as uuid_package
 from google.protobuf.struct_pb2 import Struct
@@ -77,7 +77,9 @@ class _Data:
 
         errors = self._batch.batch(weaviate_objs)
 
-        all_responses: List[Union[uuid_package.UUID, Error]] = list(range(len(weaviate_objs)))
+        all_responses: List[Union[uuid_package.UUID, Error]] = cast(
+            List[Union[uuid_package.UUID, Error]], list(range(len(weaviate_objs)))
+        )
         return_success: Dict[int, uuid_package.UUID] = {}
         return_errors: Dict[int, Error] = {}
 
@@ -419,11 +421,17 @@ class _DataCollectionModel(Generic[Model], _Data):
             if prop not in obj["properties"]:
                 obj["properties"][prop] = None
 
+        metadata = _metadata_from_dict(obj)
         model_object = _Object[Model](
-            data=self.__model(**obj["properties"]), metadata=_metadata_from_dict(obj)
+            data=self.__model.model_validate(
+                {
+                    **obj["properties"],
+                    "uuid": metadata.uuid,
+                    "vector": metadata.vector,
+                }
+            ),
+            metadata=metadata,
         )
-        model_object.data.uuid = model_object.metadata.uuid
-        model_object.data.vector = model_object.metadata.vector
         return model_object
 
     def insert(self, obj: Model) -> uuid_package.UUID:

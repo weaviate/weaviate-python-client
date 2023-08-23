@@ -1,13 +1,11 @@
-from typing import Dict, Any, List, Optional, Type, Union, Tuple
+from typing import Dict, Any, List, Optional, Type, Tuple
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.classes import (
     CollectionConfigUpdate,
-    DataType,
     Model,
-    Property,
-    ReferenceProperty,
+    PropertyType,
     _collection_config_from_json,
     _CollectionConfig,
     _Property,
@@ -89,7 +87,7 @@ class _ConfigBase:
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Update collection configuration", response)
 
-    def _add_property(self, additional_property: Property) -> None:
+    def _add_property(self, additional_property: PropertyType) -> None:
         path = f"/schema/{self._name}/properties"
         obj = additional_property.to_dict()
         try:
@@ -107,7 +105,7 @@ class _ConfigBase:
 
 
 class _ConfigCollection(_ConfigBase):
-    def add_property(self, additional_property: Property) -> None:
+    def add_property(self, additional_property: PropertyType) -> None:
         """Add a property to the collection in Weaviate.
 
         Parameters:
@@ -130,17 +128,15 @@ class _ConfigCollection(_ConfigBase):
 
 class _ConfigCollectionModel(_ConfigBase):
     def __compare_properties_with_model(
-        self, schema_props: List[_Property], model_props: List[Union[Property, ReferenceProperty]]
-    ) -> Tuple[List[_Property], List[Union[Property, ReferenceProperty]]]:
-        only_in_model: List[Union[Property, ReferenceProperty]] = []
+        self, schema_props: List[_Property], model_props: List[PropertyType]
+    ) -> Tuple[List[_Property], List[PropertyType]]:
+        only_in_model: List[PropertyType] = []
         only_in_schema: List[_Property] = list(schema_props)
 
         schema_props_simple = [
             {
                 "name": prop.name,
-                "dataType": prop.data_type
-                if isinstance(prop.data_type, DataType)
-                else prop.data_type.collections,
+                "dataType": prop.to_weaviate_dict().get("dataType"),
             }
             for prop in schema_props
         ]
@@ -148,12 +144,7 @@ class _ConfigCollectionModel(_ConfigBase):
         for prop in model_props:
             try:
                 idx = schema_props_simple.index(
-                    {
-                        "name": prop.name,
-                        "dataType": prop.dataType
-                        if isinstance(prop, Property)
-                        else [prop.target_collection],
-                    }
+                    {"name": prop.name, "dataType": prop.to_dict().get("dataType")}
                 )
                 schema_props_simple.pop(idx)
                 only_in_schema.pop(idx)
@@ -171,6 +162,8 @@ class _ConfigCollectionModel(_ConfigBase):
         # we can only allow new optional types unless the default is None
         for prop in only_in_model:
             new_field = model.model_fields[prop.name]
+            if new_field.annotation is None:
+                continue  # if user did not annotate with type then ignore field
             non_optional_type = model.remove_optional_type(new_field.annotation)
             if new_field.default is not None and non_optional_type == new_field.annotation:
                 raise WeaviateAddInvalidPropertyError(prop.name)
