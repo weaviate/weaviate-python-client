@@ -472,4 +472,7 @@ def test_model_with_datetime_property(client: weaviate.Client):
     assert len(objects) == 1
     assert objects[0].data.name == "test"
     assert type(objects[0].data.date) is datetime
+
     # assert objects[0].data.date == now
+    # The same issue as in test_collection.py@introduce_date_parsing_to_collections occurs here
+    # Weaviate parsing of dates is not perfectly compatible with the python datetime library

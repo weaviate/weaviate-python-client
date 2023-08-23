@@ -989,7 +989,6 @@ def test_insert_date_property(client: weaviate.Client, hours: int, minutes: int,
     now = datetime.datetime.now(
         datetime.timezone(sign * datetime.timedelta(hours=hours, minutes=minutes))
     )
-    print(now.isoformat())
     uuid = collection.data.insert(data={"date": now})
 
     obj = collection.data.get_by_id(uuid)
