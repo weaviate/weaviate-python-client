@@ -17,7 +17,7 @@ from typing import (
 )
 
 import uuid as uuid_package
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from pydantic_core._pydantic_core import PydanticUndefined
 
 from weaviate.util import _to_beacons, _capitalize_first_letter
@@ -968,5 +968,32 @@ class CollectionModelConfig(CollectionConfigCreateBase, Generic[Model]):
         return ret_dict
 
 
+class TenantActivityStatus(str, Enum):
+    """TenantActivityStatus class used to describe the activity status of a tenant in Weaviate.
+
+    Attributes
+    HOT: The tenant is fully active and can be used.
+    COLD: The tenant is not active, files stored locally.
+    """
+
+    HOT = "HOT"
+    COLD = "COLD"
+
+
 class Tenant(BaseModel):
+    """Tenant class used to describe a tenant in Weaviate.
+
+    Attributes
+    name: the name of the tenant.
+    activity_status : TenantActivityStatus, default: "HOT"
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
     name: str
+    activityStatus: TenantActivityStatus = Field(
+        default=TenantActivityStatus.HOT, alias="activity_status"
+    )
+
+    @property
+    def activity_status(self) -> TenantActivityStatus:
+        return self.activityStatus

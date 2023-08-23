@@ -27,6 +27,7 @@ from weaviate.collection.classes import (
     VectorIndexConfigUpdate,
     Vectorizer,
     Error,
+    TenantActivityStatus,
 )
 from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery
 
@@ -708,8 +709,8 @@ def test_tenants(client: weaviate.Client):
 
     tenants = collection.tenants.get()
     assert len(tenants) == 1
-    assert type(tenants[0]) is Tenant
-    assert tenants[0].name == "tenant1"
+    assert type(tenants["tenant1"]) is Tenant
+    assert tenants["tenant1"].name == "tenant1"
 
     collection.tenants.remove(["tenant1"])
 
@@ -988,3 +989,43 @@ def test_collection_name_capitalization(client: weaviate.Client):
     client.collection.delete(name_small)
     assert not client.collection.exists(name_small)
     assert not client.collection.exists(name_big)
+
+
+def test_tenant_with_activity(client: weaviate.Client):
+    name = "TestTenantActivity"
+    collection = client.collection.create(
+        CollectionConfig(
+            name=name,
+            vectorizer=Vectorizer.NONE,
+            multi_tenancy_config=MultiTenancyConfig(enabled=True),
+        )
+    )
+    collection.tenants.add(
+        [
+            Tenant(name="1", activity_status=TenantActivityStatus.HOT),
+            Tenant(name="2", activity_status=TenantActivityStatus.COLD),
+            Tenant(name="3"),
+        ]
+    )
+    tenants = collection.tenants.get()
+    assert tenants["1"].activity_status == TenantActivityStatus.HOT
+    assert tenants["2"].activity_status == TenantActivityStatus.COLD
+    assert tenants["3"].activity_status == TenantActivityStatus.HOT
+
+
+def test_update_tenant(client: weaviate.Client):
+    name = "TestUpdateTenant"
+    collection = client.collection.create(
+        CollectionConfig(
+            name=name,
+            vectorizer=Vectorizer.NONE,
+            multi_tenancy_config=MultiTenancyConfig(enabled=True),
+        )
+    )
+    collection.tenants.add([Tenant(name="1", activity_status=TenantActivityStatus.HOT)])
+    tenants = collection.tenants.get()
+    assert tenants["1"].activity_status == TenantActivityStatus.HOT
+
+    collection.tenants.update([Tenant(name="1", activity_status=TenantActivityStatus.COLD)])
+    tenants = collection.tenants.get()
+    assert tenants["1"].activity_status == TenantActivityStatus.COLD
