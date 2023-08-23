@@ -16,6 +16,7 @@ nohup.out
 .coverage
 coverage.xml
 .pytest_cache
+.mypy_cache
 
 image.png
 .vscode/
