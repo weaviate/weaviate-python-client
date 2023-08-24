@@ -1,7 +1,7 @@
+import datetime
 from typing import List
 
 import pytest as pytest
-import datetime
 import uuid
 
 import weaviate
@@ -1082,6 +1082,9 @@ def test_update_tenant(client: weaviate.Client):
         (FilterProp(path="name") == "Banana", [0]),
         (FilterProp(path="name") != "Banana", [1, 2]),
         (FilterProp(path="name") * "*nana", [0]),
+        (FilterProp(path="name").equal("Banana"), [0]),
+        (FilterProp(path="name").not_equal("Banana"), [1, 2]),
+        (FilterProp(path="name").like("*nana"), [0]),
     ],
 )
 def test_filters_text(client: weaviate.Client, weaviate_filter: FilterValue, results: List[int]):
@@ -1122,6 +1125,11 @@ def test_filters_text(client: weaviate.Client, weaviate_filter: FilterValue, res
         ),
         (
             (FilterProp(path="num") <= 1) | (FilterProp(path="num") >= 3),
+            [0, 2],
+        ),
+        (
+            FilterProp(path="num").less_than_equal(1)
+            | FilterProp(path="num").greater_than_equal(3),
             [0, 2],
         ),
         (
@@ -1173,7 +1181,6 @@ def test_filters_nested(
 
 
 def test_length_filter(client: weaviate.Client):
-    pytest.skip("implement length in weaviate")
     client.collection.delete("TestFilterNested")
     collection = client.collection.create(
         CollectionConfig(
@@ -1191,11 +1198,12 @@ def test_length_filter(client: weaviate.Client):
     ]
     objects = collection.query.get_flat(filters=FilterProp(path="field", length=True) == 3)
     assert len(objects) == 2
+    objects_uuids = [obj.metadata.uuid for obj in objects]
 
     results = [0, 1]
     for res in results:
-        objects.remove(uuids[res])
-    assert len(uuids) == 0
+        objects_uuids.remove(uuids[res])
+    assert len(objects_uuids) == 0
 
 
 @pytest.mark.parametrize(
@@ -1203,8 +1211,8 @@ def test_length_filter(client: weaviate.Client):
     [
         (FilterProp(path="number") == None, [3]),
         (FilterProp(path="number") != None, [0, 1, 2]),
-        (FilterProp(path="number").is_null(), [3]),
-        (FilterProp(path="number").is_not_null(), [0, 1, 2]),
+        (FilterProp(path="number").is_null(True), [3]),
+        (FilterProp(path="number").is_null(False), [0, 1, 2]),
     ],
 )
 def test_filters_comparison(
@@ -1228,6 +1236,113 @@ def test_filters_comparison(
     ]
 
     objects = collection.query.get_flat(filters=weaviate_filter)
+    assert len(objects) == len(results)
+
+    uuids = [uuids[result] for result in results]
+    for obj in objects:
+        uuids.remove(obj.metadata.uuid)
+    assert len(uuids) == 0
+
+
+@pytest.mark.parametrize(
+    "weaviate_filter,results",
+    [
+        (FilterProp(path="nums").contains_any([1, 4]), [0, 3]),
+        (FilterProp(path="nums").contains_any([10]), []),
+        (FilterProp(path="text").contains_any(["test"]), [0, 1]),
+        (FilterProp(path="text").contains_any(["real", "deal"]), [1, 2, 3]),
+        (FilterProp(path="floats").contains_any([2.0]), [0, 1]),
+        (FilterProp(path="floats").contains_any([0.4, 0.7]), [0, 1, 3]),
+        (FilterProp(path="floats").contains_any([2]), [0, 1]),
+        (FilterProp(path="bools").contains_any([True, False]), [0, 1, 3]),
+        (FilterProp(path="bools").contains_any([False]), [0, 1]),
+        (FilterProp(path="nums").contains_all([1, 4]), [0]),
+        (FilterProp(path="text").contains_all(["real", "test"]), [1]),
+        (FilterProp(path="floats").contains_all([0.7, 2]), [1]),
+        (FilterProp(path="bools").contains_all([True, False]), [0]),
+    ],
+)
+def test_filters_contains(
+    client: weaviate.Client, weaviate_filter: FilterValue, results: List[int]
+):
+    client.collection.delete("TestFilterContains")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestFilterContains",
+            vectorizer=Vectorizer.NONE,
+            properties=[
+                Property(name="text", data_type=DataType.TEXT),
+                Property(name="nums", data_type=DataType.INT_ARRAY),
+                Property(name="floats", data_type=DataType.NUMBER_ARRAY),
+                Property(name="bools", data_type=DataType.BOOL_ARRAY),
+            ],
+        )
+    )
+
+    uuids = [
+        collection.data.insert(
+            {
+                "text": "this is a test",
+                "nums": [1, 2, 4],
+                "floats": [0.4, 0.9, 2],
+                "bools": [True, False],
+            }
+        ),
+        collection.data.insert(
+            {
+                "text": "this is not a real test",
+                "nums": [5, 6, 9],
+                "floats": [0.1, 0.7, 2],
+                "bools": [False, False],
+            }
+        ),
+        collection.data.insert({"text": "real deal", "nums": [], "floats": [], "bools": []}),
+        collection.data.insert(
+            {"text": "not real deal", "nums": [4], "floats": [0.7], "bools": [True]}
+        ),
+    ]
+
+    objects = collection.query.get_flat(
+        filters=weaviate_filter, return_metadata=MetadataQuery(uuid=True)
+    )
+    assert len(objects) == len(results)
+
+    uuids = [uuids[result] for result in results]
+    assert all(obj.metadata.uuid in uuids for obj in objects)
+
+
+@pytest.mark.parametrize("test_number,results", [(0, [0, 1])])
+def test_filters_contains_dates(client: weaviate.Client, test_number: int, results: List[int]):
+    pytest.skip("Date arrays not yet supported")
+    client.collection.delete("TestFilterContainsDates")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestFilterContainsDates",
+            vectorizer=Vectorizer.NONE,
+            properties=[Property(name="dates", data_type=DataType.DATE_ARRAY)],
+        )
+    )
+    now = datetime.datetime.now(datetime.timezone.utc)
+    later = now + datetime.timedelta(hours=1)
+    much_later = now + datetime.timedelta(days=1)
+
+    uuids = [
+        collection.data.insert({"dates": [now, later, much_later]}),
+        collection.data.insert({"dates": [now, now, much_later]}),
+        collection.data.insert({"dates": []}),
+        collection.data.insert({"dates": [much_later]}),
+    ]
+
+    if test_number == 1:
+        contains = [now, later]
+    else:
+        contains = [now]
+
+    weav_filter = FilterProp(path="dates").contains_any(contains)
+
+    objects = collection.query.get_flat(
+        filters=weav_filter, return_metadata=MetadataQuery(uuid=True)
+    )
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]

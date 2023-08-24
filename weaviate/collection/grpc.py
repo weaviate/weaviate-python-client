@@ -351,6 +351,17 @@ class _GRPC:
 
             if isinstance(weav_filter.value, datetime.date):
                 timestamp.FromDatetime(weav_filter.value)
+
+            if isinstance(weav_filter.value, list) and isinstance(
+                weav_filter.value[0], datetime.date
+            ):
+                dates: List[Timestamp] = []
+                for date in weav_filter.value:
+                    timestamp = Timestamp()
+                    timestamp.FromDatetime(date)
+                    dates.append(timestamp)
+                date_array = weaviate_pb2.dateArray(vals=dates)
+
             return weaviate_pb2.Filters(
                 operator=weav_filter.operator,
                 value_str=weav_filter.value if isinstance(weav_filter.value, str) else None,
@@ -358,6 +369,22 @@ class _GRPC:
                 value_bool=weav_filter.value if isinstance(weav_filter.value, bool) else None,
                 value_date=timestamp if isinstance(weav_filter.value, datetime.date) else None,
                 value_float=weav_filter.value if isinstance(weav_filter.value, float) else None,
+                value_int_array=weaviate_pb2.intArray(vals=weav_filter.value)
+                if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], int)
+                else None,
+                value_float_array=weaviate_pb2.floatArray(vals=weav_filter.value)
+                if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], float)
+                else None,
+                value_str_array=weaviate_pb2.strArray(vals=weav_filter.value)
+                if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], str)
+                else None,
+                value_bool_array=weaviate_pb2.boolArray(vals=weav_filter.value)
+                if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], bool)
+                else None,
+                value_date_array=date_array
+                if isinstance(weav_filter.value, list)
+                and isinstance(weav_filter.value[0], datetime.date)
+                else None,
                 on=weav_filter.path if isinstance(weav_filter.path, list) else [weav_filter.path],
             )
 

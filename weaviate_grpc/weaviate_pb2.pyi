@@ -97,13 +97,15 @@ class BatchObjectsRequest(_message.Message):
     def __init__(self, objects: _Optional[_Iterable[_Union[BatchObject, _Mapping]]] = ...) -> None: ...
 
 class Filters(_message.Message):
-    __slots__ = ["filters", "on", "operator", "value_bool", "value_date", "value_float", "value_int", "value_str"]
+    __slots__ = ["filters", "on", "operator", "value_bool", "value_bool_array", "value_date", "value_date_array", "value_float", "value_float_array", "value_int", "value_int_array", "value_str", "value_str_array"]
     class OperatorType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
         __slots__ = []
     FILTERS_FIELD_NUMBER: _ClassVar[int]
     ON_FIELD_NUMBER: _ClassVar[int]
     OPERATOR_FIELD_NUMBER: _ClassVar[int]
     OperatorAnd: Filters.OperatorType
+    OperatorContainsAll: Filters.OperatorType
+    OperatorContainsAny: Filters.OperatorType
     OperatorEqual: Filters.OperatorType
     OperatorGreaterThan: Filters.OperatorType
     OperatorGreaterThanEqual: Filters.OperatorType
@@ -114,20 +116,30 @@ class Filters(_message.Message):
     OperatorNotEqual: Filters.OperatorType
     OperatorOr: Filters.OperatorType
     OperatorWithinGeoRange: Filters.OperatorType
+    VALUE_BOOL_ARRAY_FIELD_NUMBER: _ClassVar[int]
     VALUE_BOOL_FIELD_NUMBER: _ClassVar[int]
+    VALUE_DATE_ARRAY_FIELD_NUMBER: _ClassVar[int]
     VALUE_DATE_FIELD_NUMBER: _ClassVar[int]
+    VALUE_FLOAT_ARRAY_FIELD_NUMBER: _ClassVar[int]
     VALUE_FLOAT_FIELD_NUMBER: _ClassVar[int]
+    VALUE_INT_ARRAY_FIELD_NUMBER: _ClassVar[int]
     VALUE_INT_FIELD_NUMBER: _ClassVar[int]
+    VALUE_STR_ARRAY_FIELD_NUMBER: _ClassVar[int]
     VALUE_STR_FIELD_NUMBER: _ClassVar[int]
     filters: _containers.RepeatedCompositeFieldContainer[Filters]
     on: _containers.RepeatedScalarFieldContainer[str]
     operator: Filters.OperatorType
     value_bool: bool
+    value_bool_array: boolArray
     value_date: _timestamp_pb2.Timestamp
+    value_date_array: dateArray
     value_float: float
+    value_float_array: floatArray
     value_int: int
+    value_int_array: intArray
     value_str: str
-    def __init__(self, operator: _Optional[_Union[Filters.OperatorType, str]] = ..., on: _Optional[_Iterable[str]] = ..., filters: _Optional[_Iterable[_Union[Filters, _Mapping]]] = ..., value_str: _Optional[str] = ..., value_int: _Optional[int] = ..., value_bool: bool = ..., value_float: _Optional[float] = ..., value_date: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    value_str_array: strArray
+    def __init__(self, operator: _Optional[_Union[Filters.OperatorType, str]] = ..., on: _Optional[_Iterable[str]] = ..., filters: _Optional[_Iterable[_Union[Filters, _Mapping]]] = ..., value_str: _Optional[str] = ..., value_int: _Optional[int] = ..., value_bool: bool = ..., value_float: _Optional[float] = ..., value_date: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., value_str_array: _Optional[_Union[strArray, _Mapping]] = ..., value_int_array: _Optional[_Union[intArray, _Mapping]] = ..., value_bool_array: _Optional[_Union[boolArray, _Mapping]] = ..., value_float_array: _Optional[_Union[floatArray, _Mapping]] = ..., value_date_array: _Optional[_Union[dateArray, _Mapping]] = ...) -> None: ...
 
 class HybridSearchParams(_message.Message):
     __slots__ = ["alpha", "fusion_type", "properties", "query", "vector"]
@@ -284,3 +296,33 @@ class SearchResult(_message.Message):
     additional_properties: ResultAdditionalProps
     properties: ResultProperties
     def __init__(self, properties: _Optional[_Union[ResultProperties, _Mapping]] = ..., additional_properties: _Optional[_Union[ResultAdditionalProps, _Mapping]] = ...) -> None: ...
+
+class boolArray(_message.Message):
+    __slots__ = ["vals"]
+    VALS_FIELD_NUMBER: _ClassVar[int]
+    vals: _containers.RepeatedScalarFieldContainer[bool]
+    def __init__(self, vals: _Optional[_Iterable[bool]] = ...) -> None: ...
+
+class dateArray(_message.Message):
+    __slots__ = ["vals"]
+    VALS_FIELD_NUMBER: _ClassVar[int]
+    vals: _containers.RepeatedCompositeFieldContainer[_timestamp_pb2.Timestamp]
+    def __init__(self, vals: _Optional[_Iterable[_Union[_timestamp_pb2.Timestamp, _Mapping]]] = ...) -> None: ...
+
+class floatArray(_message.Message):
+    __slots__ = ["vals"]
+    VALS_FIELD_NUMBER: _ClassVar[int]
+    vals: _containers.RepeatedScalarFieldContainer[float]
+    def __init__(self, vals: _Optional[_Iterable[float]] = ...) -> None: ...
+
+class intArray(_message.Message):
+    __slots__ = ["vals"]
+    VALS_FIELD_NUMBER: _ClassVar[int]
+    vals: _containers.RepeatedScalarFieldContainer[int]
+    def __init__(self, vals: _Optional[_Iterable[int]] = ...) -> None: ...
+
+class strArray(_message.Message):
+    __slots__ = ["vals"]
+    VALS_FIELD_NUMBER: _ClassVar[int]
+    vals: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, vals: _Optional[_Iterable[str]] = ...) -> None: ...
