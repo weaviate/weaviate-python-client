@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:1.21.0
+    image: semitechnologies/weaviate:1.21.1
     ports:
       - "8080:8080"
       - "50051:50051"

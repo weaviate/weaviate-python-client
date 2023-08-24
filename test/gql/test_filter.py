@@ -733,7 +733,7 @@ class TestWhere(unittest.TestCase):
         test_filter = {
             "path": ["name"],
             "operator": "ContainsAny",
-            "valueTextList": ["A", "B\n"],
+            "valueTextArray": ["A", "B\n"],
         }
         result = str(Where(test_filter))
         self.assertEqual(
@@ -743,7 +743,7 @@ class TestWhere(unittest.TestCase):
         test_filter = {
             "path": ["name"],
             "operator": "ContainsAll",
-            "valueStringList": ["A", '"B"'],
+            "valueStringArray": ["A", '"B"'],
         }
         result = str(Where(test_filter))
         self.assertEqual(
@@ -751,7 +751,7 @@ class TestWhere(unittest.TestCase):
             str(result),
         )
 
-        test_filter = {"path": ["name"], "operator": "ContainsAny", "valueIntList": [1, 2]}
+        test_filter = {"path": ["name"], "operator": "ContainsAny", "valueIntArray": [1, 2]}
         result = str(Where(test_filter))
         self.assertEqual(
             'where: {path: ["name"] operator: ContainsAny valueInt: [1, 2]} ', str(result)
@@ -760,20 +760,20 @@ class TestWhere(unittest.TestCase):
         test_filter = {
             "path": ["name"],
             "operator": "ContainsAny",
-            "valueStringList": "A",
+            "valueStringArray": "A",
         }
         with self.assertRaises(TypeError) as error:
             str(Where(test_filter))
-        check_error_message(self, error, value_is_not_list_err("A", "valueStringList"))
+        check_error_message(self, error, value_is_not_list_err("A", "valueStringArray"))
 
         test_filter = {
             "path": ["name"],
             "operator": "ContainsAll",
-            "valueTextList": "A",
+            "valueTextArray": "A",
         }
         with self.assertRaises(TypeError) as error:
             str(Where(test_filter))
-        check_error_message(self, error, value_is_not_list_err("A", "valueTextList"))
+        check_error_message(self, error, value_is_not_list_err("A", "valueTextArray"))
 
         test_filter = {
             "path": ["name"],

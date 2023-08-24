@@ -18,6 +18,7 @@ from requests.exceptions import HTTPError as RequestsHTTPError
 
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
+from weaviate.gql.filter import _find_value_type
 from weaviate.types import UUID
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest, BatchResponse
 from ..cluster import Cluster
@@ -1308,7 +1309,7 @@ class Batch:
         payload = {
             "match": {
                 "class": class_name,
-                "where": where,
+                "where": _clean_delete_objects_where(where),
             },
             "output": output,
             "dryRun": dry_run,
@@ -1795,3 +1796,53 @@ def _batch_create_error_handler(retry: int, max_retries: int, error: Exception) 
         flush=True,
     )
     time.sleep((retry + 1) * 2)
+
+
+def _clean_delete_objects_where(where: dict) -> dict:
+    """Converts the Python-defined where filter type into the Weaviate-defined
+    where filter type used in the Batch REST request endpoint.
+
+    Parameters
+    ----------
+    where : dict
+        The Python-defined where filter.
+
+    Returns
+    -------
+    dict
+        The Weaviate-defined where filter.
+    """
+    py_value_type = _find_value_type(where)
+    weaviate_value_type = _convert_value_type(py_value_type)
+    where[weaviate_value_type] = where.pop(py_value_type)
+    return where
+
+
+def _convert_value_type(_type: str) -> str:
+    """Converts the Python-defined where filter type into the Weaviate-defined
+    where filter type used in the Batch REST request endpoint.
+
+    Parameters
+    ----------
+    _type : str
+        The Python-defined where filter type.
+
+    Returns
+    -------
+    str
+        The Weaviate-defined where filter type.
+    """
+    if _type == "valueTextList":
+        return "valueTextArray"
+    elif _type == "valueStringList":
+        return "valueStringArray"
+    elif _type == "valueIntList":
+        return "valueIntArray"
+    elif _type == "valueNumberList":
+        return "valueNumberArray"
+    elif _type == "valueBooleanList":
+        return "valueBooleanList"
+    elif _type == "valueDateList":
+        return "valueDateArray"
+    else:
+        return _type

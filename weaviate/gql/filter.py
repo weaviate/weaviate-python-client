@@ -17,6 +17,12 @@ from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import get_vector, _sanitize_str
 
 VALUE_LIST_TYPES = {
+    "valueStringArray",
+    "valueTextArray",
+    "valueIntArray",
+    "valueNumberArray",
+    "valueBooleanArray",
+    "valueDateArray",
     "valueStringList",
     "valueTextList",
     "valueIntList",
@@ -839,23 +845,23 @@ class Where(Filter):
             if self.value_type in ["valueInt", "valueNumber"]:
                 _check_is_not_list(self.value, self.value_type)
                 gql += f"{self.value}}}"
-            elif self.value_type in ["valueIntList", "valueNumberList"]:
+            elif self.value_type in ["valueIntArray", "valueNumberArray"]:
                 _check_is_list(self.value, self.value_type)
                 gql += f"{self.value}}}"
             elif self.value_type in ["valueText", "valueString"]:
                 _check_is_not_list(self.value, self.value_type)
                 gql += f"{_sanitize_str(self.value)}}}"
-            elif self.value_type in ["valueTextList", "valueStringList"]:
+            elif self.value_type in ["valueTextArray", "valueStringArray"]:
                 _check_is_list(self.value, self.value_type)
                 val = [_sanitize_str(v) for v in self.value]
                 gql += f"{_render_list(val)}}}"
             elif self.value_type == "valueBoolean":
                 _check_is_not_list(self.value, self.value_type)
                 gql += f"{_bool_to_str(self.value)}}}"
-            elif self.value_type == "valueBooleanList":
+            elif self.value_type == "valueBooleanArray":
                 _check_is_list(self.value, self.value_type)
                 gql += f"{_render_list(self.value)}}}"
-            elif self.value_type == "valueDateList":
+            elif self.value_type == "valueDateArray":
                 _check_is_list(self.value, self.value_type)
                 gql += f"{_render_list(self.value)}}}"
             elif self.value_type == "valueGeoRange":
@@ -875,29 +881,31 @@ class Where(Filter):
 
 
 def _convert_value_type(_type: str) -> str:
-    """Convert the value type to match `json` formatting required by Weaviate.
+    """Convert the value type to match `json` formatting required by the Weaviate-defined
+    GraphQL endpoints. NOTE: This is crucially different to the Batch REST endpoints wherein
+    the where filter is also used.
 
     Parameters
     ----------
     _type : str
-        The type to be converted.
+        The Python-defined type to be converted.
 
     Returns
     -------
     str
-        The string interpretation of the type in `json` format.
+        The string interpretation of the type in Weaviate-defined `json` format.
     """
-    if _type == "valueTextList":
+    if _type == "valueTextArray" or _type == "valueTextList":
         return "valueText"
-    elif _type == "valueStringList":
+    elif _type == "valueStringArray" or _type == "valueStringList":
         return "valueString"
-    elif _type == "valueIntList":
+    elif _type == "valueIntArray" or _type == "valueIntList":
         return "valueInt"
-    elif _type == "valueNumberList":
+    elif _type == "valueNumberArray" or _type == "valueNumberList":
         return "valueNumber"
-    elif _type == "valueBooleanList":
+    elif _type == "valueBooleanArray" or _type == "valueBooleanList":
         return "valueBoolean"
-    elif _type == "valueDateList":
+    elif _type == "valueDateArray" or _type == "valueDateList":
         return "valueDate"
     else:
         return _type
