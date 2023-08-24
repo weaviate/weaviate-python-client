@@ -23,6 +23,12 @@ VALUE_LIST_TYPES = {
     "valueNumberArray",
     "valueBooleanArray",
     "valueDateArray",
+    "valueStringList",
+    "valueTextList",
+    "valueIntList",
+    "valueNumberList",
+    "valueBooleanList",
+    "valueDateList",
 }
 
 VALUE_PRIMITIVE_TYPES = {
@@ -889,17 +895,17 @@ def _convert_value_type(_type: str) -> str:
     str
         The string interpretation of the type in Weaviate-defined `json` format.
     """
-    if _type == "valueTextArray":
+    if _type == "valueTextArray" or _type == "valueTextList":
         return "valueText"
-    elif _type == "valueStringArray":
+    elif _type == "valueStringArray" or _type == "valueStringList":
         return "valueString"
-    elif _type == "valueIntArray":
+    elif _type == "valueIntArray" or _type == "valueIntList":
         return "valueInt"
-    elif _type == "valueNumberArray":
+    elif _type == "valueNumberArray" or _type == "valueNumberList":
         return "valueNumber"
-    elif _type == "valueBooleanArray":
+    elif _type == "valueBooleanArray" or _type == "valueBooleanList":
         return "valueBoolean"
-    elif _type == "valueDateArray":
+    elif _type == "valueDateArray" or _type == "valueDateList":
         return "valueDate"
     else:
         return _type
