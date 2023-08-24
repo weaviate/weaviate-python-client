@@ -1102,9 +1102,7 @@ def test_filters_text(client: weaviate.Client, weaviate_filter: _FilterValue, re
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
-    for obj in objects:
-        uuids.remove(obj.metadata.uuid)
-    assert len(uuids) == 0
+    assert all(obj.metadata.uuid in uuids for obj in objects)
 
 
 @pytest.mark.parametrize(
@@ -1119,17 +1117,12 @@ def test_filters_text(client: weaviate.Client, weaviate_filter: _FilterValue, re
             Filter(path="num").less_than_equal(1) | Filter(path="num").greater_than_equal(3),
             [0, 2],
         ),
-        # (
-        #     FilterOr(
-        #         FilterAnd(
-        #             FilterValue(path="num", value=1, operator=FilterOperator.LESS_THAN_EQUAL),
-        #             FilterValue(path="num", value=1, operator=FilterOperator.GREATER_THAN_EQUAL),
-        #         ),
-        #         FilterValue(path="num", value=3, operator=FilterOperator.GREATER_THAN_EQUAL),
-        #         FilterValue(path="num", value=True, operator=FilterOperator.IS_NULL),
-        #     ),
-        #     [0, 2, 3],
-        # ),
+        (
+            (Filter(path="num").less_than_equal(1) & Filter(path="num").greater_than_equal(1))
+            | Filter(path="num").greater_than_equal(3)
+            | Filter(path="num").is_none(True),
+            [0, 2, 3],
+        ),
     ],
 )
 def test_filters_nested(
@@ -1160,9 +1153,7 @@ def test_filters_nested(
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
-    for obj in objects:
-        uuids.remove(obj.metadata.uuid)
-    assert len(uuids) == 0
+    assert all(obj.metadata.uuid in uuids for obj in objects)
 
 
 def test_length_filter(client: weaviate.Client):
@@ -1182,13 +1173,11 @@ def test_length_filter(client: weaviate.Client):
         collection.data.insert({"field": "four"}),
     ]
     objects = collection.query.get_flat(filters=Filter(path="field", length=True).equal(3))
-    assert len(objects) == 2
-    objects_uuids = [obj.metadata.uuid for obj in objects]
 
     results = [0, 1]
-    for res in results:
-        objects_uuids.remove(uuids[res])
-    assert len(objects_uuids) == 0
+    assert len(objects) == len(results)
+    uuids = [uuids[result] for result in results]
+    assert all(obj.metadata.uuid in uuids for obj in objects)
 
 
 @pytest.mark.parametrize(
@@ -1222,9 +1211,7 @@ def test_filters_comparison(
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
-    for obj in objects:
-        uuids.remove(obj.metadata.uuid)
-    assert len(uuids) == 0
+    assert all(obj.metadata.uuid in uuids for obj in objects)
 
 
 @pytest.mark.parametrize(
@@ -1232,20 +1219,28 @@ def test_filters_comparison(
     [
         (Filter(path="nums").contains_any([1, 4]), [0, 3]),
         (Filter(path="nums").contains_any([10]), []),
+        (Filter(path="num").contains_any([1]), [0, 1]),
         (Filter(path="text").contains_any(["test"]), [0, 1]),
         (Filter(path="text").contains_any(["real", "deal"]), [1, 2, 3]),
         (Filter(path="texts").contains_any(["test"]), [0, 1]),
         (Filter(path="texts").contains_any(["real", "deal"]), [1, 2, 3]),
+        (Filter(path="float").contains_any([2.0]), []),
+        (Filter(path="float").contains_any([2]), []),
+        (Filter(path="float").contains_any([8]), [3]),
+        (Filter(path="float").contains_any([8.0]), [3]),
         (Filter(path="floats").contains_any([2.0]), [0, 1]),
         (Filter(path="floats").contains_any([0.4, 0.7]), [0, 1, 3]),
         (Filter(path="floats").contains_any([2]), [0, 1]),
         (Filter(path="bools").contains_any([True, False]), [0, 1, 3]),
         (Filter(path="bools").contains_any([False]), [0, 1]),
+        (Filter(path="bool").contains_any([True]), [0, 1, 3]),
         (Filter(path="nums").contains_all([1, 4]), [0]),
         (Filter(path="text").contains_all(["real", "test"]), [1]),
         (Filter(path="texts").contains_all(["real", "test"]), [1]),
         (Filter(path="floats").contains_all([0.7, 2]), [1]),
         (Filter(path="bools").contains_all([True, False]), [0]),
+        (Filter(path="bool").contains_all([True, False]), []),
+        (Filter(path="bool").contains_all([True]), [0, 1, 3]),
     ],
 )
 def test_filters_contains(
@@ -1259,8 +1254,11 @@ def test_filters_contains(
             properties=[
                 Property(name="text", data_type=DataType.TEXT),
                 Property(name="texts", data_type=DataType.TEXT_ARRAY),
+                Property(name="num", data_type=DataType.INT),
                 Property(name="nums", data_type=DataType.INT_ARRAY),
+                Property(name="float", data_type=DataType.NUMBER),
                 Property(name="floats", data_type=DataType.NUMBER_ARRAY),
+                Property(name="bool", data_type=DataType.BOOL),
                 Property(name="bools", data_type=DataType.BOOL_ARRAY),
             ],
         )
@@ -1271,8 +1269,11 @@ def test_filters_contains(
             {
                 "text": "this is a test",
                 "texts": "this is a test".split(" "),
+                "num": 1,
                 "nums": [1, 2, 4],
+                "float": 0.5,
                 "floats": [0.4, 0.9, 2],
+                "bool": True,
                 "bools": [True, False],
             }
         ),
@@ -1280,8 +1281,11 @@ def test_filters_contains(
             {
                 "text": "this is not a real test",
                 "texts": "this is not a real test".split(" "),
+                "num": 1,
                 "nums": [5, 6, 9],
+                "float": 0.3,
                 "floats": [0.1, 0.7, 2],
+                "bool": True,
                 "bools": [False, False],
             }
         ),
@@ -1289,8 +1293,10 @@ def test_filters_contains(
             {
                 "text": "real deal",
                 "texts": "real deal".split(" "),
+                "num": 3,
                 "nums": [],
                 "floats": [],
+                "bool": False,
                 "bools": [],
             }
         ),
@@ -1298,8 +1304,11 @@ def test_filters_contains(
             {
                 "text": "not real deal",
                 "texts": "not real deal".split(" "),
+                "num": 4,
                 "nums": [4],
+                "float": 8,
                 "floats": [0.7],
+                "bool": True,
                 "bools": [True],
             }
         ),
@@ -1349,6 +1358,4 @@ def test_filters_contains_dates(client: weaviate.Client, test_number: int, resul
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
-    for obj in objects:
-        uuids.remove(obj.metadata.uuid)
-    assert len(uuids) == 0
+    assert all(obj.metadata.uuid in uuids for obj in objects)
