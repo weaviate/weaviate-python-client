@@ -14,10 +14,10 @@ from weaviate.collection.classes import (
     Properties,
     Model,
     Type,
-    FilterValue,
-    Filters,
-    FilterAnd,
-    FilterOr,
+    _FilterValue,
+    _Filters,
+    _FilterAnd,
+    _FilterOr,
 )
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGRPCException
@@ -168,14 +168,14 @@ class _GRPC:
         self._near_certainty: Optional[float] = None
         self._near_distance: Optional[float] = None
 
-        self._filters: Optional[Filters] = None
+        self._filters: Optional[_Filters] = None
 
     def get(
         self,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
-        filters: Optional[Filters] = None,
+        filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[GrpcResult]:
@@ -341,26 +341,16 @@ class _GRPC:
         except grpc.RpcError as e:
             raise WeaviateGRPCException(e.details())
 
-    def __extract_filters(self, weav_filter: Filters) -> Optional[weaviate_pb2.Filters]:
+    def __extract_filters(self, weav_filter: _Filters) -> Optional[weaviate_pb2.Filters]:
         if weav_filter is None:
             return None
         from google.protobuf.timestamp_pb2 import Timestamp
 
-        if isinstance(weav_filter, FilterValue):
+        if isinstance(weav_filter, _FilterValue):
             timestamp = Timestamp()
 
             if isinstance(weav_filter.value, datetime.date):
                 timestamp.FromDatetime(weav_filter.value)
-
-            if isinstance(weav_filter.value, list) and isinstance(
-                weav_filter.value[0], datetime.date
-            ):
-                dates: List[Timestamp] = []
-                for date in weav_filter.value:
-                    timestamp = Timestamp()
-                    timestamp.FromDatetime(date)
-                    dates.append(timestamp)
-                date_array = weaviate_pb2.dateArray(vals=dates)
 
             return weaviate_pb2.Filters(
                 operator=weav_filter.operator,
@@ -381,15 +371,11 @@ class _GRPC:
                 value_bool_array=weaviate_pb2.boolArray(vals=weav_filter.value)
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], bool)
                 else None,
-                value_date_array=date_array
-                if isinstance(weav_filter.value, list)
-                and isinstance(weav_filter.value[0], datetime.date)
-                else None,
                 on=weav_filter.path if isinstance(weav_filter.path, list) else [weav_filter.path],
             )
 
         else:
-            assert isinstance(weav_filter, FilterAnd) or isinstance(weav_filter, FilterOr)
+            assert isinstance(weav_filter, _FilterAnd) or isinstance(weav_filter, _FilterOr)
             return weaviate_pb2.Filters(
                 operator=weav_filter.operator,
                 filters=[
@@ -495,7 +481,7 @@ class _Grpc(SupportsResultToObject, Generic[Properties]):
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
-        filters: Optional[Filters] = None,
+        filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object]:
@@ -510,7 +496,7 @@ class _Grpc(SupportsResultToObject, Generic[Properties]):
         self,
         returns: ReturnValues,
         options: Optional[GetOptions],
-        filters: Optional[Filters] = None,
+        filters: Optional[_Filters] = None,
     ) -> List[_Object[Properties]]:
         if options is None:
             options = GetOptions()

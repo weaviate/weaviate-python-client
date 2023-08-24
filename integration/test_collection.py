@@ -31,12 +31,10 @@ from weaviate.collection.classes import (
     Vectorizer,
     Error,
     TenantActivityStatus,
-    FilterProp,
+    Filter,
     InvertedIndexConfigCreate,
-    Filters,
-    FilterValue,
-    FilterAnd,
-    FilterOr,
+    _Filters,
+    _FilterValue,
 )
 from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery
 
@@ -1079,15 +1077,12 @@ def test_update_tenant(client: weaviate.Client):
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
-        (FilterProp(path="name") == "Banana", [0]),
-        (FilterProp(path="name") != "Banana", [1, 2]),
-        (FilterProp(path="name") * "*nana", [0]),
-        (FilterProp(path="name").equal("Banana"), [0]),
-        (FilterProp(path="name").not_equal("Banana"), [1, 2]),
-        (FilterProp(path="name").like("*nana"), [0]),
+        (Filter(path="name").equal("Banana"), [0]),
+        (Filter(path="name").not_equal("Banana"), [1, 2]),
+        (Filter(path="name").like("*nana"), [0]),
     ],
 )
-def test_filters_text(client: weaviate.Client, weaviate_filter: FilterValue, results: List[int]):
+def test_filters_text(client: weaviate.Client, weaviate_filter: _FilterValue, results: List[int]):
     client.collection.delete("TestFilterText")
     collection = client.collection.create(
         CollectionConfig(
@@ -1115,25 +1110,13 @@ def test_filters_text(client: weaviate.Client, weaviate_filter: FilterValue, res
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
+        (Filter(path="num").greater_than(1) & Filter(path="num").less_than(3), [1]),
         (
-            (FilterProp(path="num") > 1) & (FilterProp(path="num") < 3),
-            [1],
-        ),
-        (
-            FilterAnd(FilterProp(path="num") > 1, FilterProp(path="num") < 3),
-            [1],
-        ),
-        (
-            (FilterProp(path="num") <= 1) | (FilterProp(path="num") >= 3),
+            (Filter(path="num").less_than_equal(1)) | Filter(path="num").greater_than_equal(3),
             [0, 2],
         ),
         (
-            FilterProp(path="num").less_than_equal(1)
-            | FilterProp(path="num").greater_than_equal(3),
-            [0, 2],
-        ),
-        (
-            FilterOr(FilterProp(path="num") <= 1, FilterProp(path="num") >= 3),
+            Filter(path="num").less_than_equal(1) | Filter(path="num").greater_than_equal(3),
             [0, 2],
         ),
         # (
@@ -1151,7 +1134,7 @@ def test_filters_text(client: weaviate.Client, weaviate_filter: FilterValue, res
 )
 def test_filters_nested(
     client: weaviate.Client,
-    weaviate_filter: Filters,
+    weaviate_filter: _Filters,
     results: List[int],
 ):
     client.collection.delete("TestFilterNested")
@@ -1171,7 +1154,9 @@ def test_filters_nested(
         collection.data.insert({"num": None}),
     ]
 
-    objects = collection.query.get_flat(filters=weaviate_filter)
+    objects = collection.query.get_flat(
+        filters=weaviate_filter, return_metadata=MetadataQuery(uuid=True)
+    )
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
@@ -1196,7 +1181,7 @@ def test_length_filter(client: weaviate.Client):
         collection.data.insert({"field": "three"}),
         collection.data.insert({"field": "four"}),
     ]
-    objects = collection.query.get_flat(filters=FilterProp(path="field", length=True) == 3)
+    objects = collection.query.get_flat(filters=Filter(path="field", length=True).equal(3))
     assert len(objects) == 2
     objects_uuids = [obj.metadata.uuid for obj in objects]
 
@@ -1209,14 +1194,12 @@ def test_length_filter(client: weaviate.Client):
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
-        (FilterProp(path="number") == None, [3]),
-        (FilterProp(path="number") != None, [0, 1, 2]),
-        (FilterProp(path="number").is_null(True), [3]),
-        (FilterProp(path="number").is_null(False), [0, 1, 2]),
+        (Filter(path="number").is_none(True), [3]),
+        (Filter(path="number").is_none(False), [0, 1, 2]),
     ],
 )
 def test_filters_comparison(
-    client: weaviate.Client, weaviate_filter: FilterValue, results: List[int]
+    client: weaviate.Client, weaviate_filter: _FilterValue, results: List[int]
 ):
     client.collection.delete("TestFilterNumber")
     collection = client.collection.create(
@@ -1247,23 +1230,26 @@ def test_filters_comparison(
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
-        (FilterProp(path="nums").contains_any([1, 4]), [0, 3]),
-        (FilterProp(path="nums").contains_any([10]), []),
-        (FilterProp(path="text").contains_any(["test"]), [0, 1]),
-        (FilterProp(path="text").contains_any(["real", "deal"]), [1, 2, 3]),
-        (FilterProp(path="floats").contains_any([2.0]), [0, 1]),
-        (FilterProp(path="floats").contains_any([0.4, 0.7]), [0, 1, 3]),
-        (FilterProp(path="floats").contains_any([2]), [0, 1]),
-        (FilterProp(path="bools").contains_any([True, False]), [0, 1, 3]),
-        (FilterProp(path="bools").contains_any([False]), [0, 1]),
-        (FilterProp(path="nums").contains_all([1, 4]), [0]),
-        (FilterProp(path="text").contains_all(["real", "test"]), [1]),
-        (FilterProp(path="floats").contains_all([0.7, 2]), [1]),
-        (FilterProp(path="bools").contains_all([True, False]), [0]),
+        (Filter(path="nums").contains_any([1, 4]), [0, 3]),
+        (Filter(path="nums").contains_any([10]), []),
+        (Filter(path="text").contains_any(["test"]), [0, 1]),
+        (Filter(path="text").contains_any(["real", "deal"]), [1, 2, 3]),
+        (Filter(path="texts").contains_any(["test"]), [0, 1]),
+        (Filter(path="texts").contains_any(["real", "deal"]), [1, 2, 3]),
+        (Filter(path="floats").contains_any([2.0]), [0, 1]),
+        (Filter(path="floats").contains_any([0.4, 0.7]), [0, 1, 3]),
+        (Filter(path="floats").contains_any([2]), [0, 1]),
+        (Filter(path="bools").contains_any([True, False]), [0, 1, 3]),
+        (Filter(path="bools").contains_any([False]), [0, 1]),
+        (Filter(path="nums").contains_all([1, 4]), [0]),
+        (Filter(path="text").contains_all(["real", "test"]), [1]),
+        (Filter(path="texts").contains_all(["real", "test"]), [1]),
+        (Filter(path="floats").contains_all([0.7, 2]), [1]),
+        (Filter(path="bools").contains_all([True, False]), [0]),
     ],
 )
 def test_filters_contains(
-    client: weaviate.Client, weaviate_filter: FilterValue, results: List[int]
+    client: weaviate.Client, weaviate_filter: _FilterValue, results: List[int]
 ):
     client.collection.delete("TestFilterContains")
     collection = client.collection.create(
@@ -1272,6 +1258,7 @@ def test_filters_contains(
             vectorizer=Vectorizer.NONE,
             properties=[
                 Property(name="text", data_type=DataType.TEXT),
+                Property(name="texts", data_type=DataType.TEXT_ARRAY),
                 Property(name="nums", data_type=DataType.INT_ARRAY),
                 Property(name="floats", data_type=DataType.NUMBER_ARRAY),
                 Property(name="bools", data_type=DataType.BOOL_ARRAY),
@@ -1283,6 +1270,7 @@ def test_filters_contains(
         collection.data.insert(
             {
                 "text": "this is a test",
+                "texts": "this is a test".split(" "),
                 "nums": [1, 2, 4],
                 "floats": [0.4, 0.9, 2],
                 "bools": [True, False],
@@ -1291,14 +1279,29 @@ def test_filters_contains(
         collection.data.insert(
             {
                 "text": "this is not a real test",
+                "texts": "this is not a real test".split(" "),
                 "nums": [5, 6, 9],
                 "floats": [0.1, 0.7, 2],
                 "bools": [False, False],
             }
         ),
-        collection.data.insert({"text": "real deal", "nums": [], "floats": [], "bools": []}),
         collection.data.insert(
-            {"text": "not real deal", "nums": [4], "floats": [0.7], "bools": [True]}
+            {
+                "text": "real deal",
+                "texts": "real deal".split(" "),
+                "nums": [],
+                "floats": [],
+                "bools": [],
+            }
+        ),
+        collection.data.insert(
+            {
+                "text": "not real deal",
+                "texts": "not real deal".split(" "),
+                "nums": [4],
+                "floats": [0.7],
+                "bools": [True],
+            }
         ),
     ]
 
@@ -1338,7 +1341,7 @@ def test_filters_contains_dates(client: weaviate.Client, test_number: int, resul
     else:
         contains = [now]
 
-    weav_filter = FilterProp(path="dates").contains_any(contains)
+    weav_filter = Filter(path="dates").contains_any(contains)
 
     objects = collection.query.get_flat(
         filters=weav_filter, return_metadata=MetadataQuery(uuid=True)

@@ -1011,13 +1011,13 @@ class Tenant(BaseModel):
         return self.activityStatus
 
 
-class Filters:
+class _Filters:
     pass
 
 
-class FilterAnd(Filters):
-    def __init__(self, *args: Filters):
-        self.filters: List[Filters] = list(args)
+class _FilterAnd(_Filters):
+    def __init__(self, *args: _Filters):
+        self.filters: List[_Filters] = list(args)
 
     # replace with the following once 3.11 is the minimum version
     #     Operator: weaviate_pb2.Filters.OperatorType = weaviate_pb2.Filters.OperatorAnd
@@ -1026,9 +1026,9 @@ class FilterAnd(Filters):
         return weaviate_pb2.Filters.OperatorAnd
 
 
-class FilterOr(Filters):
-    def __init__(self, *args: Filters):
-        self.filters: List[Filters] = list(args)
+class _FilterOr(_Filters):
+    def __init__(self, *args: _Filters):
+        self.filters: List[_Filters] = list(args)
 
     # replace with the following once 3.11 is the minimum version
     #     Operator: weaviate_pb2.Filters.OperatorType = weaviate_pb2.Filters.OperatorOr
@@ -1042,20 +1042,20 @@ FilterValues = Union[int, float, str, bool, datetime.date, None, FilterValuesLis
 
 
 @dataclass
-class FilterValue(Filters):
+class _FilterValue(_Filters):
     path: Union[str, List[str]]
     value: FilterValues
     operator: weaviate_pb2.Filters.OperatorType
 
-    def __and__(self, other: "FilterValue"):
-        return FilterAnd(self, other)
+    def __and__(self, other: "_FilterValue"):
+        return _FilterAnd(self, other)
 
-    def __or__(self, other: "FilterValue"):
-        return FilterOr(self, other)
+    def __or__(self, other: "_FilterValue"):
+        return _FilterOr(self, other)
 
 
 @dataclass
-class FilterProp:
+class Filter:
     path: Union[str, List[str]]
     length: bool = False
 
@@ -1070,109 +1070,56 @@ class FilterProp:
         else:
             self.__internal_path = path
 
-    def __eq__(self, val: FilterValues) -> FilterValue:
-        if val is not None:
-            return FilterValue(
-                path=self.__internal_path, value=val, operator=weaviate_pb2.Filters.OperatorEqual
-            )
-        else:
-            return FilterValue(
-                path=self.__internal_path, value=True, operator=weaviate_pb2.Filters.OperatorIsNull
-            )
-
-    def __ne__(self, val: FilterValues) -> FilterValue:
-        if val is not None:
-            return FilterValue(
-                path=self.__internal_path,
-                value=val,
-                operator=weaviate_pb2.Filters.OperatorNotEqual,
-            )
-        else:
-            return FilterValue(
-                path=self.__internal_path, value=False, operator=weaviate_pb2.Filters.OperatorIsNull
-            )
-
-    def __gt__(self, val: FilterValues) -> FilterValue:
-        return FilterValue(
-            path=self.__internal_path,
-            value=val,
-            operator=weaviate_pb2.Filters.OperatorGreaterThan,
-        )
-
-    def __lt__(self, val: FilterValues) -> FilterValue:
-        return FilterValue(
-            path=self.__internal_path, value=val, operator=weaviate_pb2.Filters.OperatorLessThan
-        )
-
-    def __le__(self, val: FilterValues) -> FilterValue:
-        return FilterValue(
-            path=self.__internal_path,
-            value=val,
-            operator=weaviate_pb2.Filters.OperatorLessThanEqual,
-        )
-
-    def __ge__(self, val: FilterValues) -> FilterValue:
-        return FilterValue(
-            path=self.__internal_path,
-            value=val,
-            operator=weaviate_pb2.Filters.OperatorGreaterThanEqual,
-        )
-
-    def __mul__(self, val: FilterValues) -> FilterValue:
-        return FilterValue(
-            path=self.__internal_path, value=val, operator=weaviate_pb2.Filters.OperatorLike
-        )
-
-    def is_null(self, val: bool) -> FilterValue:
-        return FilterValue(
+    def is_none(self, val: bool) -> _FilterValue:
+        return _FilterValue(
             path=self.__internal_path, value=val, operator=weaviate_pb2.Filters.OperatorIsNull
         )
 
-    def contains_any(self, val: FilterValuesList) -> FilterValue:
-        return FilterValue(
+    def contains_any(self, val: FilterValuesList) -> _FilterValue:
+        return _FilterValue(
             path=self.__internal_path, value=val, operator=weaviate_pb2.Filters.OperatorContainsAny
         )
 
-    def contains_all(self, val: FilterValuesList) -> FilterValue:
-        return FilterValue(
+    def contains_all(self, val: FilterValuesList) -> _FilterValue:
+        return _FilterValue(
             path=self.__internal_path, value=val, operator=weaviate_pb2.Filters.OperatorContainsAll
         )
 
-    def equal(self, val: FilterValues) -> FilterValue:
-        return FilterValue(
+    def equal(self, val: FilterValues) -> _FilterValue:
+        return _FilterValue(
             path=self.__internal_path, value=val, operator=weaviate_pb2.Filters.OperatorEqual
         )
 
-    def not_equal(self, val: FilterValues) -> FilterValue:
-        return FilterValue(
+    def not_equal(self, val: FilterValues) -> _FilterValue:
+        return _FilterValue(
             path=self.__internal_path, value=val, operator=weaviate_pb2.Filters.OperatorNotEqual
         )
 
-    def less_than(self, val: FilterValues) -> FilterValue:
-        return FilterValue(
+    def less_than(self, val: FilterValues) -> _FilterValue:
+        return _FilterValue(
             path=self.__internal_path, value=val, operator=weaviate_pb2.Filters.OperatorLessThan
         )
 
-    def less_than_equal(self, val: FilterValues) -> FilterValue:
-        return FilterValue(
+    def less_than_equal(self, val: FilterValues) -> _FilterValue:
+        return _FilterValue(
             path=self.__internal_path,
             value=val,
             operator=weaviate_pb2.Filters.OperatorLessThanEqual,
         )
 
-    def greater_than(self, val: FilterValues) -> FilterValue:
-        return FilterValue(
+    def greater_than(self, val: FilterValues) -> _FilterValue:
+        return _FilterValue(
             path=self.__internal_path, value=val, operator=weaviate_pb2.Filters.OperatorGreaterThan
         )
 
-    def greater_than_equal(self, val: FilterValues) -> FilterValue:
-        return FilterValue(
+    def greater_than_equal(self, val: FilterValues) -> _FilterValue:
+        return _FilterValue(
             path=self.__internal_path,
             value=val,
             operator=weaviate_pb2.Filters.OperatorGreaterThanEqual,
         )
 
-    def like(self, val: str) -> FilterValue:
-        return FilterValue(
+    def like(self, val: str) -> _FilterValue:
+        return _FilterValue(
             path=self.__internal_path, value=val, operator=weaviate_pb2.Filters.OperatorLike
         )
