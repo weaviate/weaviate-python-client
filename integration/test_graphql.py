@@ -113,7 +113,7 @@ def test_get_data(client: weaviate.Client):
 
 def test_get_data_with_where_contains_any(client: weaviate.Client):
     """Test GraphQL's Get clause with where filter."""
-    where_filter = {"path": ["size"], "operator": "ContainsAny", "valueIntArray": [5]}
+    where_filter = {"path": ["size"], "operator": "ContainsAny", "valueIntList": [5]}
     result = client.query.get("Ship", ["name", "size"]).with_where(where_filter).do()
     objects = get_objects_from_result(result)
     assert len(objects) == 1 and objects[0]["name"] == "HMS British Name"
@@ -133,7 +133,7 @@ def test_get_data_with_where_contains_all(
     where_filter = {
         "path": ["description"],
         "operator": "ContainsAll",
-        "valueStringArray": value_string_list,
+        "valueStringList": value_string_list,
     }
     result = client.query.get("Ship", ["name"]).with_where(where_filter).do()
     objects = get_objects_from_result(result)

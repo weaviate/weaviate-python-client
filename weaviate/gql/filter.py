@@ -16,13 +16,13 @@ from weaviate.error_msgs import FILTER_BEACON_V14_CLS_NS_W
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import get_vector, _sanitize_str
 
-VALUE_ARRAY_TYPES = {
-    "valueStringArray",
-    "valueTextArray",
-    "valueIntArray",
-    "valueNumberArray",
-    "valueBooleanArray",
-    "valueDateArray",
+VALUE_LIST_TYPES = {
+    "valueStringList",
+    "valueTextList",
+    "valueIntList",
+    "valueNumberList",
+    "valueBooleanList",
+    "valueDateList",
 }
 
 VALUE_PRIMITIVE_TYPES = {
@@ -35,7 +35,7 @@ VALUE_PRIMITIVE_TYPES = {
     "valueGeoRange",
 }
 
-VALUE_TYPES = VALUE_ARRAY_TYPES.union(VALUE_PRIMITIVE_TYPES)
+VALUE_TYPES = VALUE_LIST_TYPES.union(VALUE_PRIMITIVE_TYPES)
 
 WHERE_OPERATORS = [
     "And",
@@ -792,7 +792,7 @@ class Where(Filter):
 
         if (
             self.operator in ["ContainsAny", "ContainsAll"]
-            and self.value_type not in VALUE_ARRAY_TYPES
+            and self.value_type not in VALUE_LIST_TYPES
         ):
             raise ValueError(
                 f"Operator {self.operator} requires a value of type {self.value_type}List. "
@@ -835,27 +835,27 @@ class Where(Filter):
 
     def __str__(self):
         if self.is_filter:
-            gql = f"where: {{path: {self.path} operator: {self.operator} {self.value_type}: "
+            gql = f"where: {{path: {self.path} operator: {self.operator} {_convert_value_type(self.value_type)}: "
             if self.value_type in ["valueInt", "valueNumber"]:
                 _check_is_not_list(self.value, self.value_type)
                 gql += f"{self.value}}}"
-            elif self.value_type in ["valueIntArray", "valueNumberArray"]:
+            elif self.value_type in ["valueIntList", "valueNumberList"]:
                 _check_is_list(self.value, self.value_type)
                 gql += f"{self.value}}}"
             elif self.value_type in ["valueText", "valueString"]:
                 _check_is_not_list(self.value, self.value_type)
                 gql += f"{_sanitize_str(self.value)}}}"
-            elif self.value_type in ["valueTextArray", "valueStringArray"]:
+            elif self.value_type in ["valueTextList", "valueStringList"]:
                 _check_is_list(self.value, self.value_type)
                 val = [_sanitize_str(v) for v in self.value]
                 gql += f"{_render_list(val)}}}"
             elif self.value_type == "valueBoolean":
                 _check_is_not_list(self.value, self.value_type)
                 gql += f"{_bool_to_str(self.value)}}}"
-            elif self.value_type == "valueBooleanArray":
+            elif self.value_type == "valueBooleanList":
                 _check_is_list(self.value, self.value_type)
                 gql += f"{_render_list(self.value)}}}"
-            elif self.value_type == "valueDateArray":
+            elif self.value_type == "valueDateList":
                 _check_is_list(self.value, self.value_type)
                 gql += f"{_render_list(self.value)}}}"
             elif self.value_type == "valueGeoRange":
@@ -872,6 +872,35 @@ class Where(Filter):
             operands_str.append(str(operand)[7:-1])
         operands = ", ".join(operands_str)
         return f"where: {{operator: {self.operator} operands: [{operands}]}} "
+
+
+def _convert_value_type(_type: str) -> str:
+    """Convert the value type to match `json` formatting required by Weaviate.
+
+    Parameters
+    ----------
+    _type : str
+        The type to be converted.
+
+    Returns
+    -------
+    str
+        The string interpretation of the type in `json` format.
+    """
+    if _type == "valueTextList":
+        return "valueText"
+    elif _type == "valueStringList":
+        return "valueString"
+    elif _type == "valueIntList":
+        return "valueInt"
+    elif _type == "valueNumberList":
+        return "valueNumber"
+    elif _type == "valueBooleanList":
+        return "valueBoolean"
+    elif _type == "valueDateList":
+        return "valueDate"
+    else:
+        return _type
 
 
 def _render_list(value: list) -> str:
