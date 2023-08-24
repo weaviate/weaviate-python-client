@@ -875,17 +875,19 @@ class Where(Filter):
 
 
 def _convert_value_type(_type: str) -> str:
-    """Convert the value type to match `json` formatting required by Weaviate.
+    """Convert the value type to match `json` formatting required by the Weaviate-defined
+    GraphQL endpoints. NOTE: This is crucially different to the Batch REST endpoints wherein
+    the where filter is also used.
 
     Parameters
     ----------
     _type : str
-        The type to be converted.
+        The Python-defined type to be converted.
 
     Returns
     -------
     str
-        The string interpretation of the type in `json` format.
+        The string interpretation of the type in Weaviate-defined `json` format.
     """
     if _type == "valueTextList":
         return "valueText"

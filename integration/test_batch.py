@@ -54,7 +54,10 @@ def client():
     client.schema.create_class(
         {
             "class": "Test",
-            "properties": [{"name": "test", "dataType": ["Test"]}],
+            "properties": [
+                {"name": "test", "dataType": ["Test"]},
+                {"name": "name", "dataType": ["string"]},
+            ],
             "vectorizer": "none",
         }
     )
@@ -77,6 +80,56 @@ def test_add_data_object(client: weaviate.Client, uuid: Optional[UUID], vector: 
     )
     response = client.batch.create_objects()
     assert has_batch_errors(response) is False, str(response)
+
+
+def test_delete_objects(client: weaviate.Client):
+    with client.batch as batch:
+        batch.add_data_object(data_object={"name": "one"}, class_name="Test")
+        batch.add_data_object(data_object={"name": "two"}, class_name="Test")
+        batch.add_data_object(data_object={"name": "three"}, class_name="Test")
+        batch.add_data_object(data_object={"name": "four"}, class_name="Test")
+        batch.add_data_object(data_object={"name": "five"}, class_name="Test")
+
+    with client.batch as batch:
+        batch.delete_objects(
+            "Test",
+            where={
+                "path": ["name"],
+                "operator": "Equal",
+                "valueText": "one",
+            },
+        )
+    res = client.data_object.get()
+    names = [obj["properties"]["name"] for obj in res["objects"]]
+    assert "one" not in names
+
+    with client.batch as batch:
+        batch.delete_objects(
+            "Test",
+            where={
+                "path": ["name"],
+                "operator": "ContainsAny",
+                "valueTextList": ["two", "three"],
+            },
+        )
+    res = client.data_object.get()
+    names = [obj["properties"]["name"] for obj in res["objects"]]
+    assert "two" not in names
+    assert "three" not in names
+
+    with client.batch as batch:
+        batch.delete_objects(
+            "Test",
+            where={
+                "path": ["name"],
+                "operator": "ContainsAll",
+                "valueTextList": ["four", "five"],
+            },
+        )
+    res = client.data_object.get()
+    names = [obj["properties"]["name"] for obj in res["objects"]]
+    assert "four" in names
+    assert "five" in names
 
 
 @pytest.mark.parametrize("from_object_uuid", [uuid.uuid4(), str(uuid.uuid4()), uuid.uuid4().hex])
