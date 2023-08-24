@@ -109,7 +109,7 @@ def test_delete_objects(client: weaviate.Client):
             where={
                 "path": ["name"],
                 "operator": "ContainsAny",
-                "valueTextList": ["two", "three"],
+                "valueTextArray": ["two", "three"],
             },
         )
     res = client.data_object.get()
@@ -123,7 +123,7 @@ def test_delete_objects(client: weaviate.Client):
             where={
                 "path": ["name"],
                 "operator": "ContainsAll",
-                "valueTextList": ["four", "five"],
+                "valueTextArray": ["four", "five"],
             },
         )
     res = client.data_object.get()

@@ -1832,17 +1832,17 @@ def _convert_value_type(_type: str) -> str:
     str
         The Weaviate-defined where filter type.
     """
-    if _type == "valueTextList":
+    if _type == "valueTextArray":
         return "valueTextArray"
-    elif _type == "valueStringList":
+    elif _type == "valueStringArray":
         return "valueStringArray"
-    elif _type == "valueIntList":
+    elif _type == "valueIntArray":
         return "valueIntArray"
-    elif _type == "valueNumberList":
+    elif _type == "valueNumberArray":
         return "valueNumberArray"
-    elif _type == "valueBooleanList":
+    elif _type == "valueBooleanArray":
         return "valueBooleanArray"
-    elif _type == "valueDateList":
+    elif _type == "valueDateArray":
         return "valueDateArray"
     else:
         return _type
