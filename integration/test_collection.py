@@ -1359,3 +1359,36 @@ def test_filters_contains_dates(client: weaviate.Client, test_number: int, resul
 
     uuids = [uuids[result] for result in results]
     assert all(obj.metadata.uuid in uuids for obj in objects)
+
+
+def test_ref_filters(client: weaviate.Client):
+    client.collection.delete("TestFilterRef")
+    client.collection.delete("TestFilterRef2")
+    to_collection = client.collection.create(
+        CollectionConfig(
+            name="TestFilterRef2",
+            vectorizer=Vectorizer.NONE,
+            properties=[Property(name="int", data_type=DataType.INT)],
+        )
+    )
+    uuid_to = to_collection.data.insert(data={"int": 0})
+    uuid_to2 = to_collection.data.insert(data={"int": 5})
+    from_collection = client.collection.create(
+        CollectionConfig(
+            name="TestFilterRef",
+            properties=[
+                ReferenceProperty(name="ref", target_collection="TestFilterRef2"),
+                Property(name="name", data_type=DataType.TEXT),
+            ],
+            vectorizer=Vectorizer.NONE,
+        )
+    )
+
+    from_collection.data.insert({"ref": ReferenceTo(uuid_to), "name": "first"})
+    from_collection.data.insert({"ref": ReferenceTo(uuid_to2), "name": "second"})
+
+    objects = from_collection.query.get_flat(
+        filters=Filter(path=["ref", "TestFilterRef2", "int"]).greater_than(3)
+    )
+    assert len(objects) == 1
+    assert objects[0].data["name"] == "second"
