@@ -22,7 +22,6 @@ VALUE_LIST_TYPES = {
     "valueIntList",
     "valueNumberList",
     "valueBooleanList",
-    "valueDateList",
 }
 
 VALUE_ARRAY_TYPES = {
@@ -31,7 +30,6 @@ VALUE_ARRAY_TYPES = {
     "valueIntArray",
     "valueNumberArray",
     "valueBooleanArray",
-    "valueDateArray",
 }
 
 VALUE_PRIMITIVE_TYPES = {
