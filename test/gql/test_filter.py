@@ -552,7 +552,7 @@ class TestWhere(unittest.TestCase):
         content_error_msg = lambda dt: f"Where filter is expected to be type dict but is {dt}"
         content_key_error_msg = "Filter is missing required fields `path` or `operands`. Given: "
         path_key_error = "Filter is missing required field `operator`. Given: "
-        dtype_no_value_error_msg = "Filter is missing required field 'value<TYPE>': "
+        dtype_no_value_error_msg = "'value<TYPE>' field is either missing or incorrect: "
         dtype_multiple_value_error_msg = "Multiple fields 'value<TYPE>' are not supported: "
         operator_error_msg = (
             lambda op: f"Operator {op} is not allowed. Allowed operators are: {', '.join(WHERE_OPERATORS)}"
