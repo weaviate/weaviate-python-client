@@ -11,6 +11,8 @@ from typing import (
     Set,
     TypeVar,
     Type,
+    TypeAlias,
+    TypedDict,
     Generic,
     get_args,
     get_origin,
@@ -706,12 +708,14 @@ class _MetadataReturn:
     is_consistent: Optional[bool] = None
 
 
-Properties = TypeVar("Properties")
+Properties = TypeVar("Properties", bound=Union[Dict[str, Any], TypedDict])
+
+P = TypeVar("P")
 
 
 @dataclass
-class _Object(Generic[Properties]):
-    data: Properties
+class _Object(Generic[P]):
+    properties: P
     metadata: _MetadataReturn
 
 
@@ -727,6 +731,18 @@ def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
         score=metadata.get("score"),
         is_consistent=metadata.get("isConsistent"),
     )
+
+
+Reference: TypeAlias = List[_Object[Properties]]
+
+
+def _extract_props_from_list_of_objects(typ):
+    """Extract inner type from List[_Object[T]]"""
+    if getattr(typ, "__origin__", None) == List:
+        inner_type = typ.__args__[0]
+        if getattr(inner_type, "__origin__", None) == _Object:
+            return inner_type.__args__[0]
+    return None
 
 
 @dataclass

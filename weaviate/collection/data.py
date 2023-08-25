@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, Any, Optional, List, Tuple, Union, Generic, Type, cast
+from typing import Dict, Any, Optional, List, Tuple, Union, Generic, Type, cast, get_type_hints
 
 import uuid as uuid_package
 from google.protobuf.struct_pb2 import Struct
@@ -19,6 +19,7 @@ from weaviate.collection.classes import (
     Model,
     ReferenceToMultiTarget,
     _BatchReturn,
+    Properties,
 )
 from weaviate.collection.config import _ConfigBase, _ConfigCollectionModel
 from weaviate.collection.grpc_batch import _BatchGRPC
@@ -253,13 +254,15 @@ class _Data:
             params["consistency_level"] = self.__consistency_level
         return params, obj
 
-    def _parse_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _serialize_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
         return {
-            key: val.to_beacons() if isinstance(val, ReferenceTo) else self.__convert_primitive(val)
+            key: val.to_beacons()
+            if isinstance(val, ReferenceTo)
+            else self.__serialize_primitive(val)
             for key, val in data.items()
         }
 
-    def __convert_primitive(self, value: Any) -> Any:
+    def __serialize_primitive(self, value: Any) -> Any:
         if isinstance(value, uuid_package.UUID):
             return str(value)
         if isinstance(value, datetime.datetime):
@@ -268,7 +271,20 @@ class _Data:
                 value = value.replace(tzinfo=datetime.timezone.utc)
             return value.isoformat(sep="T", timespec="microseconds")
         if isinstance(value, list):
-            return [self.__convert_primitive(val) for val in value]
+            return [self.__serialize_primitive(val) for val in value]
+        return value
+
+    def _deserialize_primitive(self, value: Any, type_value: Optional[Any]) -> Any:
+        if type_value is None:
+            return value
+        if type_value == uuid_package.UUID:
+            return uuid_package.UUID(value)
+        if type_value == datetime.datetime:
+            return datetime.datetime.fromisoformat(value)
+        if isinstance(type_value, list):
+            return [
+                self._deserialize_primitive(val, type_value[idx]) for idx, val in enumerate(value)
+            ]
         return value
 
     @staticmethod
@@ -299,22 +315,39 @@ class _Data:
         )
 
 
-class _DataCollection(_Data):
-    def _json_to_object(self, obj: Dict[str, Any]) -> _Object:
+class _DataCollection(Generic[Properties], _Data):
+    def __init__(
+        self,
+        connection: Connection,
+        name: str,
+        config: _ConfigBase,
+        consistency_level: Optional[ConsistencyLevel],
+        tenant: Optional[str],
+        type_: Type[Properties],
+    ):
+        super().__init__(connection, name, config, consistency_level, tenant)
+        self.__type = type_
+
+    def __deserialize_properties(self, data: Dict[str, Any]) -> Properties:
+        hints = get_type_hints(self.__type) if self.__type is not Dict[str, Any] else {}
+        return {key: self._deserialize_primitive(val, hints.get(key)) for key, val in data.items()}
+
+    def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Properties]:
+        props = self.__deserialize_properties(obj["properties"])
         return _Object(
-            data={prop: val for prop, val in obj["properties"].items()},
+            properties=cast(Properties, props),
             metadata=_metadata_from_dict(obj),
         )
 
     def insert(
         self,
-        data: Dict[str, Any],
+        data: Properties,
         uuid: Optional[UUID] = None,
         vector: Optional[List[float]] = None,
     ) -> uuid_package.UUID:
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": self._parse_properties(data),
+            "properties": self._serialize_properties(data),
             "id": str(uuid if uuid is not None else uuid_package.uuid4()),
         }
 
@@ -326,24 +359,20 @@ class _DataCollection(_Data):
     def insert_many(self, objects: List[DataObject]) -> _BatchReturn:
         return self._insert_many(objects)
 
-    def replace(
-        self, data: Dict[str, Any], uuid: UUID, vector: Optional[List[float]] = None
-    ) -> None:
+    def replace(self, data: Properties, uuid: UUID, vector: Optional[List[float]] = None) -> None:
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": self._parse_properties(data),
+            "properties": self._serialize_properties(data),
         }
         if vector is not None:
             weaviate_obj["vector"] = vector
 
         self._replace(weaviate_obj, uuid=uuid)
 
-    def update(
-        self, data: Dict[str, Any], uuid: UUID, vector: Optional[List[float]] = None
-    ) -> None:
+    def update(self, data: Properties, uuid: UUID, vector: Optional[List[float]] = None) -> None:
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": self._parse_properties(data),
+            "properties": self._serialize_properties(data),
         }
         if vector is not None:
             weaviate_obj["vector"] = vector
@@ -352,13 +381,13 @@ class _DataCollection(_Data):
 
     def get_by_id(
         self, uuid: UUID, includes: Optional[GetObjectByIdIncludes] = None
-    ) -> Optional[_Object]:
+    ) -> Optional[_Object[Properties]]:
         ret = self._get_by_id(uuid=uuid, includes=includes)
         if ret is None:
             return ret
         return self._json_to_object(ret)
 
-    def get(self, includes: Optional[GetObjectsIncludes] = None) -> List[_Object]:
+    def get(self, includes: Optional[GetObjectsIncludes] = None) -> List[_Object[Properties]]:
         ret = self._get(includes=includes)
         if ret is None:
             return []
