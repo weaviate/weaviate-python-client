@@ -17,18 +17,21 @@ from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import get_vector, _sanitize_str
 
 VALUE_LIST_TYPES = {
-    "valueStringArray",
-    "valueTextArray",
-    "valueIntArray",
-    "valueNumberArray",
-    "valueBooleanArray",
-    "valueDateArray",
     "valueStringList",
     "valueTextList",
     "valueIntList",
     "valueNumberList",
     "valueBooleanList",
     "valueDateList",
+}
+
+VALUE_ARRAY_TYPES = {
+    "valueStringArray",
+    "valueTextArray",
+    "valueIntArray",
+    "valueNumberArray",
+    "valueBooleanArray",
+    "valueDateArray",
 }
 
 VALUE_PRIMITIVE_TYPES = {
@@ -41,7 +44,7 @@ VALUE_PRIMITIVE_TYPES = {
     "valueGeoRange",
 }
 
-VALUE_TYPES = VALUE_LIST_TYPES.union(VALUE_PRIMITIVE_TYPES)
+VALUE_TYPES = VALUE_LIST_TYPES.union(VALUE_ARRAY_TYPES).union(VALUE_PRIMITIVE_TYPES)
 
 WHERE_OPERATORS = [
     "And",

@@ -6,6 +6,7 @@ import pytest
 
 import weaviate
 from weaviate import Tenant
+from weaviate.gql.filter import VALUE_ARRAY_TYPES, WHERE_OPERATORS
 
 UUID = Union[str, uuid.UUID]
 
@@ -130,6 +131,50 @@ def test_delete_objects(client: weaviate.Client):
     names = [obj["properties"]["name"] for obj in res["objects"]]
     assert "four" in names
     assert "five" in names
+
+    with pytest.raises(ValueError) as error:
+        with client.batch as batch:
+            batch.delete_objects(
+                "Test",
+                where={
+                    "path": ["name"],
+                    "operator": "ContainsAny",
+                    "valueText": ["four"],
+                },
+            )
+    assert (
+        error.value.args[0]
+        == f"Operator 'ContainsAny' is not supported for value type 'valueText'. Supported value types are: {VALUE_ARRAY_TYPES}"
+    )
+
+    where = {
+        "path": ["name"],
+        "valueTextArray": ["four"],
+    }
+    with pytest.raises(ValueError) as error:
+        with client.batch as batch:
+            batch.delete_objects(
+                "Test",
+                where=where,
+            )
+    assert (
+        error.value.args[0] == f"Where filter is missing required field `operator`. Given: {where}"
+    )
+
+    with pytest.raises(ValueError) as error:
+        with client.batch as batch:
+            batch.delete_objects(
+                "Test",
+                where={
+                    "path": ["name"],
+                    "operator": "Wrong",
+                    "valueText": ["four"],
+                },
+            )
+    assert (
+        error.value.args[0]
+        == f"Operator Wrong is not allowed. Allowed operators are: {WHERE_OPERATORS}"
+    )
 
 
 @pytest.mark.parametrize("from_object_uuid", [uuid.uuid4(), str(uuid.uuid4()), uuid.uuid4().hex])

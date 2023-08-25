@@ -18,7 +18,7 @@ from requests.exceptions import HTTPError as RequestsHTTPError
 
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.gql.filter import _find_value_type
+from weaviate.gql.filter import _find_value_type, VALUE_ARRAY_TYPES, WHERE_OPERATORS
 from weaviate.types import UUID
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest, BatchResponse
 from ..cluster import Cluster
@@ -1814,6 +1814,18 @@ def _clean_delete_objects_where(where: dict) -> dict:
     """
     py_value_type = _find_value_type(where)
     weaviate_value_type = _convert_value_type(py_value_type)
+    if "operator" not in where:
+        raise ValueError("Where filter is missing required field `operator`." f" Given: {where}")
+    if where["operator"] not in WHERE_OPERATORS:
+        raise ValueError(
+            f"Operator {where['operator']} is not allowed. "
+            f"Allowed operators are: {WHERE_OPERATORS}"
+        )
+    operator = where["operator"]
+    if "Contains" in operator and "Array" not in weaviate_value_type:
+        raise ValueError(
+            f"Operator '{operator}' is not supported for value type '{weaviate_value_type}'. Supported value types are: {VALUE_ARRAY_TYPES}"
+        )
     where[weaviate_value_type] = where.pop(py_value_type)
     return where
 
