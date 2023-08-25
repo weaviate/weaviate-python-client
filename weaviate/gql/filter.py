@@ -796,15 +796,6 @@ class Where(Filter):
         self.value_type = _find_value_type(content)
         self.value = content[self.value_type]
 
-        if (
-            self.operator in ["ContainsAny", "ContainsAll"]
-            and self.value_type not in VALUE_LIST_TYPES
-        ):
-            raise ValueError(
-                f"Operator {self.operator} requires a value of type {self.value_type}List. "
-                f"Given value type: {self.value_type}"
-            )
-
         if self.operator == "WithinGeoRange" and self.value_type != "valueGeoRange":
             raise ValueError(
                 f"Operator {self.operator} requires a value of type valueGeoRange. "
