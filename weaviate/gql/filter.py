@@ -1144,7 +1144,7 @@ def _find_value_type(content: dict) -> str:
 
     if len(value_type) == 0:
         raise ValueError(
-            f"Filter is missing required field 'value<TYPE>': {content}. Valid values are: {VALUE_TYPES}."
+            f"'value<TYPE>' field is either missing or incorrect: {content}. Valid values are: {VALUE_TYPES}."
         )
     if len(value_type) != 1:
         raise ValueError(f"Multiple fields 'value<TYPE>' are not supported: {content}")

@@ -790,7 +790,7 @@ class TestWhere(unittest.TestCase):
             str(Where(test_filter))
         assert (
             error.exception.args[0]
-            == f"Filter is missing required field 'value<TYPE>': {test_filter}. Valid values are: {VALUE_TYPES}."
+            == f"'value<TYPE>' field is either missing or incorrect: {test_filter}. Valid values are: {VALUE_TYPES}."
         )
 
 
