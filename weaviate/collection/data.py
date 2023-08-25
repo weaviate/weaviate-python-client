@@ -452,7 +452,7 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         metadata = _metadata_from_dict(obj)
         model_object = _Object[Model](
-            data=self.__model.model_validate(
+            properties=self.__model.model_validate(
                 {
                     **obj["properties"],
                     "uuid": metadata.uuid,
@@ -467,7 +467,7 @@ class _DataCollectionModel(Generic[Model], _Data):
         self.__model.model_validate(obj)
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": self._parse_properties(obj.props_to_dict()),
+            "properties": self._serialize_properties(obj.props_to_dict()),
             "id": str(obj.uuid),
         }
         if obj.vector is not None:
@@ -496,7 +496,7 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": self._parse_properties(obj.props_to_dict()),
+            "properties": self._serialize_properties(obj.props_to_dict()),
         }
         if obj.vector is not None:
             weaviate_obj["vector"] = obj.vector
@@ -508,7 +508,7 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": self._parse_properties(obj.props_to_dict()),
+            "properties": self._serialize_properties(obj.props_to_dict()),
         }
         if obj.vector is not None:
             weaviate_obj["vector"] = obj.vector
