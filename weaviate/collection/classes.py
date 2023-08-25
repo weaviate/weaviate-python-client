@@ -736,10 +736,10 @@ def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
 Reference: TypeAlias = List[_Object[Properties]]
 
 
-def _extract_props_from_list_of_objects(typ):
-    """Extract inner type from List[_Object[T]]"""
-    if getattr(typ, "__origin__", None) == List:
-        inner_type = typ.__args__[0]
+def _extract_props_from_list_of_objects(type_: List[_Object[Properties]]) -> Optional[Properties]:
+    """Extract inner type from List[_Object[Properties]]"""
+    if getattr(type_, "__origin__", None) == List:
+        inner_type = type_.__args__[0]
         if getattr(inner_type, "__origin__", None) == _Object:
             return inner_type.__args__[0]
     return None
