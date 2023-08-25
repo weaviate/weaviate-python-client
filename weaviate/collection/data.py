@@ -323,13 +323,13 @@ class _DataCollection(Generic[Properties], _Data):
         config: _ConfigBase,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
-        type_: Type[Properties],
+        type_: Optional[Type[Properties]] = None,
     ):
         super().__init__(connection, name, config, consistency_level, tenant)
         self.__type = type_
 
     def __deserialize_properties(self, data: Dict[str, Any]) -> Properties:
-        hints = get_type_hints(self.__type) if self.__type is not Dict[str, Any] else {}
+        hints = get_type_hints(self.__type) if self.__type else {}
         return {key: self._deserialize_primitive(val, hints.get(key)) for key, val in data.items()}
 
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Properties]:

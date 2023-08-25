@@ -2,6 +2,7 @@ import datetime
 
 import pytest as pytest
 import uuid
+from dataclasses import dataclass
 from typing import Dict, TypedDict
 
 import weaviate
@@ -48,18 +49,55 @@ def client():
     client.schema.delete_all()
 
 
-def test_create_and_delete(client: weaviate.Client):
-    name = "TestCreateAndDelete"
+def test_create_get_and_delete(client: weaviate.Client):
+    name = "TestCreateGetAndDelete"
     collection_config = CollectionConfig(
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer=Vectorizer.NONE,
     )
     client.collection.create(collection_config)
-
+    client.collection.get(name)
     assert client.collection.exists(name)
     client.collection.delete(name)
     assert not client.collection.exists(name)
+
+
+@pytest.mark.parametrize(
+    "should_error",
+    [
+        (False),
+        (True),
+    ],
+)
+def test_create_get_and_delete_generic(client: weaviate.Client, should_error: bool):
+    name = "TestCreateGetAndDeleteGeneric"
+    collection_config = CollectionConfig(
+        name=name,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer=Vectorizer.NONE,
+    )
+    if should_error:
+
+        @dataclass
+        class Wrong:
+            name: str
+
+        client.collection.create(collection_config)
+        client.collection.get(name, Wrong)  # bad type because dataclass not bound by generic
+        assert client.collection.exists(name)
+        client.collection.delete(name)
+        assert not client.collection.exists(name)
+    else:
+
+        class Right(TypedDict):
+            name: str
+
+        client.collection.create(collection_config, Right)
+        client.collection.get(name, Right)
+        assert client.collection.exists(name)
+        client.collection.delete(name)
+        assert not client.collection.exists(name)
 
 
 @pytest.mark.parametrize(
@@ -82,12 +120,14 @@ def test_insert(client: weaviate.Client, insert_data: Dict[str, str], use_typed_
         name: str
 
     if use_typed_dict:
-        collection = client.collection.create(collection_config, TestInsert)
+        client.collection.create(collection_config)
+        collection = client.collection.get(name, TestInsert)
         uuid = collection.data.insert(data=TestInsert(**insert_data))
         name = collection.data.get_by_id(uuid).properties["name"]
         assert name == "some name"
     else:
-        collection = client.collection.create(collection_config)
+        client.collection.create(collection_config)
+        collection = client.collection.get(name)
         uuid = collection.data.insert(data=insert_data)
         name = collection.data.get_by_id(uuid).properties["name"]
         assert name == "some name"
@@ -100,7 +140,8 @@ def test_insert_many(client: weaviate.Client):
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer=Vectorizer.NONE,
     )
-    collection = client.collection.create(collection_config)
+    client.collection.create(collection_config)
+    collection = client.collection.get(name)
     ret = collection.data.insert_many(
         [
             DataObject(data={"name": "some name"}, vector=[1, 2, 3]),
@@ -119,9 +160,8 @@ def test_insert_many_with_refs(client: weaviate.Client):
     name_target = "RefClassBatchTarget"
     client.collection.delete(name_target)
 
-    ref_collection = client.collection.create(
-        CollectionConfig(name=name_target, vectorizer=Vectorizer.NONE)
-    )
+    client.collection.create(CollectionConfig(name=name_target, vectorizer=Vectorizer.NONE))
+    ref_collection = client.collection.get(name_target)
     uuid_to1 = ref_collection.data.insert(data={})
     uuid_to2 = ref_collection.data.insert(data={})
 
@@ -137,7 +177,8 @@ def test_insert_many_with_refs(client: weaviate.Client):
         ],
         vectorizer=Vectorizer.NONE,
     )
-    collection = client.collection.create(collection_config)
+    client.collection.create(collection_config)
+    collection = client.collection.get(name)
     uuid_from = collection.data.insert(data={"name": "first"})
 
     ret = collection.data.insert_many(
@@ -181,7 +222,8 @@ def test_insert_many_error(client: weaviate.Client):
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer=Vectorizer.NONE,
     )
-    collection = client.collection.create(collection_config)
+    client.collection.create(collection_config)
+    collection = client.collection.get(name)
     ret = collection.data.insert_many(
         [
             DataObject(data={"wrong_name": "some name"}, vector=[1, 2, 3]),
@@ -211,8 +253,8 @@ def test_insert_many_with_tenant(client: weaviate.Client):
         vectorizer=Vectorizer.NONE,
         multi_tenancy_config=MultiTenancyConfig(enabled=True),
     )
-    collection = client.collection.create(collection_config)
-
+    client.collection.create(collection_config)
+    collection = client.collection.get(name)
     collection.tenants.add([Tenant(name="tenant1"), Tenant(name="tenant2")])
     tenant1 = collection.with_tenant("tenant1")
     tenant2 = collection.with_tenant("tenant2")
@@ -241,7 +283,9 @@ def test_replace(client: weaviate.Client):
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer=Vectorizer.NONE,
     )
-    collection = client.collection.create(collection_config)
+    client.collection.create(collection_config)
+    collection = client.collection.get(name)
+
     uuid = collection.data.insert(data={"name": "some name"})
     collection.data.replace(data={"name": "other name"}, uuid=uuid)
     assert collection.data.get_by_id(uuid).properties["name"] == "other name"
@@ -256,7 +300,9 @@ def test_replace_overwrites_vector(client: weaviate.Client):
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer=Vectorizer.NONE,
     )
-    collection = client.collection.create(collection_config)
+    client.collection.create(collection_config)
+    collection = client.collection.get(name)
+
     uuid = collection.data.insert(data={"name": "some name"}, vector=[1, 2, 3])
     obj = collection.data.get_by_id(uuid, includes=GetObjectByIdIncludes(vector=True))
     assert obj.properties["name"] == "some name"
@@ -278,7 +324,8 @@ def test_replace_with_tenant(client: weaviate.Client):
         vectorizer=Vectorizer.NONE,
         multi_tenancy_config=MultiTenancyConfig(enabled=True),
     )
-    collection = client.collection.create(collection_config)
+    client.collection.create(collection_config)
+    collection = client.collection.get(name)
 
     collection.tenants.add([Tenant(name="tenant1"), Tenant(name="tenant2")])
     tenant1 = collection.with_tenant("tenant1")
@@ -299,7 +346,9 @@ def test_update(client: weaviate.Client):
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer=Vectorizer.NONE,
     )
-    collection = client.collection.create(collection_config)
+    client.collection.create(collection_config)
+    collection = client.collection.get(name)
+
     uuid = collection.data.insert(data={"name": "some name"})
     collection.data.update(data={"name": "other name"}, uuid=uuid)
     assert collection.data.get_by_id(uuid).properties["name"] == "other name"
@@ -315,7 +364,8 @@ def test_update_with_tenant(client: weaviate.Client):
         vectorizer=Vectorizer.NONE,
         multi_tenancy_config=MultiTenancyConfig(enabled=True),
     )
-    collection = client.collection.create(collection_config)
+    client.collection.create(collection_config)
+    collection = client.collection.get(name)
 
     collection.tenants.add([Tenant(name="tenant1"), Tenant(name="tenant2")])
     tenant1 = collection.with_tenant("tenant1")
@@ -347,9 +397,10 @@ def test_types(client: weaviate.Client, data_type, value):
         properties=[Property(name=name, data_type=data_type)],
         vectorizer=Vectorizer.NONE,
     )
-    collection = client.collection.create(collection_config)
-    uuid_object = collection.data.insert(data={name: value})
+    client.collection.create(collection_config)
+    collection = client.collection.get("Something")
 
+    uuid_object = collection.data.insert(data={name: value})
     object_get = collection.data.get_by_id(uuid_object)
     assert object_get.properties[name] == value
 
@@ -357,16 +408,16 @@ def test_types(client: weaviate.Client, data_type, value):
 
 
 def test_reference_add_delete_replace(client: weaviate.Client):
-    ref_collection = client.collection.create(
-        CollectionConfig(name="RefClass2", vectorizer=Vectorizer.NONE)
-    )
+    client.collection.create(CollectionConfig(name="RefClass2", vectorizer=Vectorizer.NONE))
+    ref_collection = client.collection.get("RefClass2")
     uuid_to = ref_collection.data.insert(data={})
     collection_config = CollectionConfig(
         name="SomethingElse",
         properties=[ReferenceProperty(name="ref", target_collection="RefClass2")],
         vectorizer=Vectorizer.NONE,
     )
-    collection = client.collection.create(collection_config)
+    client.collection.create(collection_config)
+    collection = client.collection.get("SomethingElse")
 
     uuid_from1 = collection.data.insert({}, uuid.uuid4())
     uuid_from2 = collection.data.insert({"ref": ReferenceTo(uuids=uuid_to)}, uuid.uuid4())
@@ -400,13 +451,14 @@ def test_reference_add_delete_replace(client: weaviate.Client):
 
 @pytest.mark.parametrize("fusion_type", [HybridFusion.RANKED, HybridFusion.RELATIVE_SCORE])
 def test_search_hybrid(client: weaviate.Client, fusion_type):
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="Testing",
             properties=[Property(name="Name", data_type=DataType.TEXT)],
             vectorizer=Vectorizer.TEXT2VEC_CONTEXTIONARY,
         )
     )
+    collection = client.collection.get("Testing")
     collection.data.insert({"Name": "some name"}, uuid.uuid4())
     collection.data.insert({"Name": "other word"}, uuid.uuid4())
     res = collection.query.hybrid_flat(alpha=0, query="name", fusion_type=fusion_type)
@@ -416,13 +468,15 @@ def test_search_hybrid(client: weaviate.Client, fusion_type):
 
 @pytest.mark.parametrize("limit", [1, 5])
 def test_search_limit(client: weaviate.Client, limit):
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="TestLimit",
             properties=[Property(name="Name", data_type=DataType.TEXT)],
             vectorizer=Vectorizer.NONE,
         )
     )
+    collection = client.collection.get("TestLimit")
+
     for i in range(5):
         collection.data.insert({"Name": str(i)})
 
@@ -433,13 +487,14 @@ def test_search_limit(client: weaviate.Client, limit):
 
 @pytest.mark.parametrize("offset", [0, 1, 5])
 def test_search_offset(client: weaviate.Client, offset):
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="TestOffset",
             properties=[Property(name="Name", data_type=DataType.TEXT)],
             vectorizer=Vectorizer.NONE,
         )
     )
+    collection = client.collection.get("TestOffset")
 
     nr_objects = 5
     for i in range(nr_objects):
@@ -452,13 +507,14 @@ def test_search_offset(client: weaviate.Client, offset):
 
 
 def test_search_after(client: weaviate.Client):
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="TestOffset",
             properties=[Property(name="Name", data_type=DataType.TEXT)],
             vectorizer=Vectorizer.NONE,
         )
     )
+    collection = client.collection.get("TestOffset")
 
     nr_objects = 10
     for i in range(nr_objects):
@@ -473,13 +529,15 @@ def test_search_after(client: weaviate.Client):
 
 
 def test_autocut(client: weaviate.Client):
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="TestAutocut",
             properties=[Property(name="Name", data_type=DataType.TEXT)],
             vectorizer=Vectorizer.NONE,
         )
     )
+    collection = client.collection.get("TestAutocut")
+
     for _ in range(4):
         collection.data.insert({"Name": "rain rain"})
     for _ in range(4):
@@ -507,13 +565,14 @@ def test_autocut(client: weaviate.Client):
 
 
 def test_near_vector(client: weaviate.Client):
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="TestNearVector",
             properties=[Property(name="Name", data_type=DataType.TEXT)],
             vectorizer=Vectorizer.TEXT2VEC_CONTEXTIONARY,
         )
     )
+    collection = client.collection.get("TestNearVector")
     uuid_banana = collection.data.insert({"Name": "Banana"})
     collection.data.insert({"Name": "Fruit"})
     collection.data.insert({"Name": "car"})
@@ -540,13 +599,14 @@ def test_near_vector(client: weaviate.Client):
 
 
 def test_near_object(client: weaviate.Client):
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="TestNearObject",
             properties=[Property(name="Name", data_type=DataType.TEXT)],
             vectorizer=Vectorizer.TEXT2VEC_CONTEXTIONARY,
         )
     )
+    collection = client.collection.get("TestNearObject")
     uuid_banana = collection.data.insert({"Name": "Banana"})
     collection.data.insert({"Name": "Fruit"})
     collection.data.insert({"Name": "car"})
@@ -574,7 +634,7 @@ def test_mono_references_grcp(client: weaviate.Client):
     client.collection.delete("A")
     client.collection.delete("B")
     client.collection.delete("C")
-    A = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="A",
             vectorizer=Vectorizer.NONE,
@@ -583,10 +643,11 @@ def test_mono_references_grcp(client: weaviate.Client):
             ],
         )
     )
-    uuid_A1 = A.data.insert(data={"Name": "A1"})
-    uuid_A2 = A.data.insert(data={"Name": "A2"})
+    collection_A = client.collection.get("A")
+    uuid_A1 = collection_A.data.insert(data={"Name": "A1"})
+    uuid_A2 = collection_A.data.insert(data={"Name": "A2"})
 
-    B = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="B",
             properties=[
@@ -596,10 +657,14 @@ def test_mono_references_grcp(client: weaviate.Client):
             vectorizer=Vectorizer.NONE,
         )
     )
-    uuid_B = B.data.insert({"Name": "B", "ref": ReferenceTo(uuids=uuid_A1)})
-    B.data.reference_add(from_uuid=uuid_B, from_property="ref", ref=ReferenceTo(uuids=uuid_A2))
+    collection_B = client.collection.get("B")
 
-    C = client.collection.create(
+    uuid_B = collection_B.data.insert({"Name": "B", "ref": ReferenceTo(uuids=uuid_A1)})
+    collection_B.data.reference_add(
+        from_uuid=uuid_B, from_property="ref", ref=ReferenceTo(uuids=uuid_A2)
+    )
+
+    client.collection.create(
         CollectionConfig(
             name="C",
             properties=[
@@ -609,9 +674,10 @@ def test_mono_references_grcp(client: weaviate.Client):
             vectorizer=Vectorizer.NONE,
         )
     )
-    C.data.insert({"Name": "find me", "ref": ReferenceTo(uuids=uuid_B)})
+    collection_C = client.collection.get("C")
+    collection_C.data.insert({"Name": "find me", "ref": ReferenceTo(uuids=uuid_B)})
 
-    objects = C.query.bm25_flat(
+    objects = collection_C.query.bm25_flat(
         query="find",
         return_properties=[
             "name",
@@ -643,7 +709,7 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
     class AProps(TypedDict):
         name: str
 
-    A = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="A",
             vectorizer=Vectorizer.NONE,
@@ -652,14 +718,15 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
             ],
         )
     )
-    uuid_A1 = A.data.insert(AProps(name="A1"))
-    uuid_A2 = A.data.insert(AProps(name="A2"))
+    collection_A = client.collection.get("A")
+    uuid_A1 = collection_A.data.insert(AProps(name="A1"))
+    uuid_A2 = collection_A.data.insert(AProps(name="A2"))
 
     class BPropsInsert(TypedDict):
         name: str
         ref: ReferenceTo
 
-    B = client.collection.create(
+    collection_B = client.collection.create(
         CollectionConfig(
             name="B",
             properties=[
@@ -670,15 +737,18 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
         ),
         BPropsInsert,
     )
-    uuid_B = B.data.insert(BPropsInsert(name="B", ref=ReferenceTo(uuids=uuid_A1)))
-    B.data.reference_add(from_uuid=uuid_B, from_property="ref", ref=ReferenceTo(uuids=uuid_A2))
+    collection_B = client.collection.get("B")
+    uuid_B = collection_B.data.insert(BPropsInsert(name="B", ref=ReferenceTo(uuids=uuid_A1)))
+    collection_B.data.reference_add(
+        from_uuid=uuid_B, from_property="ref", ref=ReferenceTo(uuids=uuid_A2)
+    )
 
     class CPropsInsert(TypedDict):
         name: str
         ref: ReferenceTo
         age: int
 
-    C = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="C",
             properties=[
@@ -690,7 +760,8 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
         ),
         CPropsInsert,
     )
-    C.data.insert(CPropsInsert(name="find me", age=10, ref=ReferenceTo(uuids=uuid_B)))
+    collection_C = client.collection.get("C")
+    collection_C.data.insert(CPropsInsert(name="find me", age=10, ref=ReferenceTo(uuids=uuid_B)))
 
     class BPropsGet(TypedDict):
         name: str
@@ -701,7 +772,7 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
         ref: Reference[BPropsGet]
         not_specified: str
 
-    objects = C.query.bm25_flat(
+    objects = collection_C.query.bm25_flat(
         query="find",
         return_properties=[
             "name",
@@ -740,7 +811,7 @@ def test_multi_references_grcp(client: weaviate.Client):
     client.collection.delete("B")
     client.collection.delete("C")
 
-    A = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="A",
             vectorizer=Vectorizer.NONE,
@@ -749,9 +820,10 @@ def test_multi_references_grcp(client: weaviate.Client):
             ],
         )
     )
-    uuid_A = A.data.insert(data={"Name": "A"})
+    collection_A = client.collection.get("A")
+    uuid_A = collection_A.data.insert(data={"Name": "A"})
 
-    B = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="B",
             properties=[
@@ -760,9 +832,10 @@ def test_multi_references_grcp(client: weaviate.Client):
             vectorizer=Vectorizer.NONE,
         )
     )
-    uuid_B = B.data.insert({"Name": "B"})
+    collection_B = client.collection.get("B")
+    uuid_B = collection_B.data.insert({"Name": "B"})
 
-    C = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="C",
             properties=[
@@ -772,14 +845,15 @@ def test_multi_references_grcp(client: weaviate.Client):
             vectorizer=Vectorizer.NONE,
         )
     )
-    C.data.insert(
+    collection_C = client.collection.get("C")
+    collection_C.data.insert(
         {"Name": "first", "ref": ReferenceToMultiTarget(uuids=uuid_A, target_collection="A")}
     )
-    C.data.insert(
+    collection_C.data.insert(
         {"Name": "second", "ref": ReferenceToMultiTarget(uuids=uuid_B, target_collection="B")}
     )
 
-    objects = C.query.bm25_flat(
+    objects = collection_C.query.bm25_flat(
         query="first",
         return_properties=[
             "name",
@@ -795,7 +869,7 @@ def test_multi_references_grcp(client: weaviate.Client):
     assert len(objects[0].properties["ref"]) == 1
     assert objects[0].properties["ref"][0].properties["name"] == "A"
 
-    objects = C.query.bm25_flat(
+    objects = collection_C.query.bm25_flat(
         query="second",
         return_properties=[
             "name",
@@ -819,7 +893,7 @@ def test_multi_references_grcp(client: weaviate.Client):
 
 
 def test_tenants(client: weaviate.Client):
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="Tenants",
             vectorizer=Vectorizer.NONE,
@@ -828,7 +902,7 @@ def test_tenants(client: weaviate.Client):
             ),
         )
     )
-
+    collection = client.collection.get("Tenants")
     collection.tenants.add([Tenant(name="tenant1")])
 
     tenants = collection.tenants.get()
@@ -845,14 +919,14 @@ def test_tenants(client: weaviate.Client):
 
 
 def test_multi_searches(client: weaviate.Client):
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="TestMultiSearches",
             properties=[Property(name="name", data_type=DataType.TEXT)],
             vectorizer=Vectorizer.NONE,
         )
     )
-
+    collection = client.collection.get("TestMultiSearches")
     collection.data.insert(data={"name": "word"})
     collection.data.insert(data={"name": "other"})
 
@@ -873,7 +947,7 @@ def test_multi_searches(client: weaviate.Client):
 
 
 def test_search_with_tenant(client: weaviate.Client):
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="TestTenantSearch",
             vectorizer=Vectorizer.NONE,
@@ -881,7 +955,7 @@ def test_search_with_tenant(client: weaviate.Client):
             multi_tenancy_config=MultiTenancyConfig(enabled=True),
         )
     )
-
+    collection = client.collection.get("TestTenantSearch")
     collection.tenants.add([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
     tenant1 = collection.with_tenant("Tenant1")
     tenant2 = collection.with_tenant("Tenant2")
@@ -897,7 +971,7 @@ def test_search_with_tenant(client: weaviate.Client):
 
 
 def test_get_by_id_with_tenant(client: weaviate.Client):
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="TestTenantGet",
             vectorizer=Vectorizer.NONE,
@@ -905,7 +979,7 @@ def test_get_by_id_with_tenant(client: weaviate.Client):
             multi_tenancy_config=MultiTenancyConfig(enabled=True),
         )
     )
-
+    collection = client.collection.get("TestTenantGet")
     collection.tenants.add([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
     tenant1 = collection.with_tenant("Tenant1")
     tenant2 = collection.with_tenant("Tenant2")
@@ -928,7 +1002,7 @@ def test_get_by_id_with_tenant(client: weaviate.Client):
 
 
 def test_get_with_tenant(client: weaviate.Client):
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="TestTenantGetWithTenant",
             vectorizer=Vectorizer.NONE,
@@ -936,7 +1010,7 @@ def test_get_with_tenant(client: weaviate.Client):
             multi_tenancy_config=MultiTenancyConfig(enabled=True),
         )
     )
-
+    collection = client.collection.get("TestTenantGetWithTenant")
     collection.tenants.add([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
     tenant1 = collection.with_tenant("Tenant1")
     tenant2 = collection.with_tenant("Tenant2")
@@ -958,13 +1032,14 @@ def test_get_with_tenant(client: weaviate.Client):
 
 
 def test_add_property(client: weaviate.Client):
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="TestAddProperty",
             vectorizer=Vectorizer.NONE,
             properties=[Property(name="name", data_type=DataType.TEXT)],
         )
     )
+    collection = client.collection.get("TestAddProperty")
     uuid1 = collection.data.insert({"name": "first"})
     collection.config.add_property(Property(name="number", data_type=DataType.INT))
     uuid2 = collection.data.insert({"name": "second", "number": 5})
@@ -978,7 +1053,7 @@ def test_add_property(client: weaviate.Client):
 
 
 def test_collection_config_get(client: weaviate.Client):
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="TestCollectionSchemaGet",
             vectorizer=Vectorizer.NONE,
@@ -988,6 +1063,7 @@ def test_collection_config_get(client: weaviate.Client):
             ],
         )
     )
+    collection = client.collection.get("TestCollectionSchemaGet")
     config = collection.config.get()
     assert config.name == "TestCollectionSchemaGet"
     assert len(config.properties) == 2
@@ -1001,7 +1077,7 @@ def test_collection_config_get(client: weaviate.Client):
 
 
 def test_collection_config_update(client: weaviate.Client):
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="TestCollectionSchemaUpdate",
             vectorizer=Vectorizer.NONE,
@@ -1011,6 +1087,7 @@ def test_collection_config_update(client: weaviate.Client):
             ],
         )
     )
+    collection = client.collection.get("TestCollectionSchemaUpdate")
 
     config = collection.config.get()
 
@@ -1077,14 +1154,14 @@ def test_collection_config_update(client: weaviate.Client):
 
 
 def test_empty_search_returns_everything(client: weaviate.Client):
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="TestReturnEverything",
             vectorizer=Vectorizer.NONE,
             properties=[Property(name="name", data_type=DataType.TEXT)],
         )
     )
-
+    collection = client.collection.get("TestReturnEverything")
     collection.data.insert(data={"name": "word"})
 
     objects = collection.query.bm25_flat(query="word")
@@ -1101,13 +1178,14 @@ def test_empty_search_returns_everything(client: weaviate.Client):
 @pytest.mark.parametrize("hours,minutes,sign", [(0, 0, 1), (1, 20, -1), (2, 0, 1), (3, 40, -1)])
 def test_insert_date_property(client: weaviate.Client, hours: int, minutes: int, sign: int):
     client.collection.delete("TestInsertDateProperty")
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="TestInsertDateProperty",
             vectorizer=Vectorizer.NONE,
             properties=[Property(name="date", data_type=DataType.DATE)],
         )
     )
+    collection = client.collection.get("TestInsertDateProperty")
 
     now = datetime.datetime.now(
         datetime.timezone(sign * datetime.timedelta(hours=hours, minutes=minutes))
@@ -1139,13 +1217,14 @@ def test_insert_date_property(client: weaviate.Client, hours: int, minutes: int,
 def test_collection_name_capitalization(client: weaviate.Client):
     name_small = "collectionCapitalizationTest"
     name_big = "CollectionCapitalizationTest"
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name=name_small,
             vectorizer=Vectorizer.NONE,
             properties=[Property(name="name", data_type=DataType.TEXT)],
         )
     )
+    collection = client.collection.get(name_small)
 
     assert collection.name == name_big
     client.collection.delete(name_small)
@@ -1155,13 +1234,14 @@ def test_collection_name_capitalization(client: weaviate.Client):
 
 def test_tenant_with_activity(client: weaviate.Client):
     name = "TestTenantActivity"
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name=name,
             vectorizer=Vectorizer.NONE,
             multi_tenancy_config=MultiTenancyConfig(enabled=True),
         )
     )
+    collection = client.collection.get(name)
     collection.tenants.add(
         [
             Tenant(name="1", activity_status=TenantActivityStatus.HOT),
@@ -1177,13 +1257,15 @@ def test_tenant_with_activity(client: weaviate.Client):
 
 def test_update_tenant(client: weaviate.Client):
     name = "TestUpdateTenant"
-    collection = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name=name,
             vectorizer=Vectorizer.NONE,
             multi_tenancy_config=MultiTenancyConfig(enabled=True),
         )
     )
+    collection = client.collection.get(name)
+
     collection.tenants.add([Tenant(name="1", activity_status=TenantActivityStatus.HOT)])
     tenants = collection.tenants.get()
     assert tenants["1"].activity_status == TenantActivityStatus.HOT

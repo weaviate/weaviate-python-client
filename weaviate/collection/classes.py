@@ -9,21 +9,20 @@ from typing import (
     Optional,
     List,
     Set,
-    TypeVar,
     Type,
-    TypeAlias,
-    TypedDict,
+    Mapping,
     Generic,
+    cast,
     get_args,
     get_origin,
     get_type_hints,
 )
-
+from typing_extensions import TypeAlias, TypeVar
 import uuid as uuid_package
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from pydantic_core._pydantic_core import PydanticUndefined
 
-from weaviate.util import _to_beacons, _capitalize_first_letter
+from weaviate.util import _capitalize_first_letter
 from weaviate.weaviate_types import UUID, PYTHON_TYPE_TO_DATATYPE
 from weaviate_grpc import weaviate_pb2
 
@@ -124,7 +123,7 @@ ModuleConfig = Dict[Vectorizer, Dict[str, Any]]
 
 class ConfigCreateModel(BaseModel):
     def to_dict(self) -> Dict[str, Any]:
-        return self.model_dump(exclude_none=True)
+        return cast(Dict[str, Any], self.model_dump(exclude_none=True))
 
 
 class ConfigUpdateModel(BaseModel):
@@ -708,7 +707,8 @@ class _MetadataReturn:
     is_consistent: Optional[bool] = None
 
 
-Properties = TypeVar("Properties", bound=Union[Dict[str, Any], TypedDict])
+# https://github.com/python/mypy/issues/4976#issuecomment-384719025 for explanation of bound
+Properties = TypeVar("Properties", bound=Mapping[str, Any], default=Dict[str, Any])
 
 P = TypeVar("P")
 
@@ -736,7 +736,7 @@ def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
 Reference: TypeAlias = List[_Object[Properties]]
 
 
-def _extract_props_from_list_of_objects(type_: List[_Object[Properties]]) -> Optional[Properties]:
+def _extract_props_from_list_of_objects(type_: Any) -> Optional[Any]:
     """Extract inner type from List[_Object[Properties]]"""
     if getattr(type_, "__origin__", None) == List:
         inner_type = type_.__args__[0]
@@ -745,9 +745,24 @@ def _extract_props_from_list_of_objects(type_: List[_Object[Properties]]) -> Opt
     return None
 
 
+UUIDS = Union[List[UUID], UUID]
+
+
+def _to_beacons(uuids: UUIDS, to_class: str = "") -> List[Dict[str, str]]:
+    if isinstance(uuids, UUID) or isinstance(
+        uuids, str
+    ):  # replace with isinstance(uuids, UUID) in 3.10
+        uuids = [uuids]
+
+    if len(to_class) > 0:
+        to_class = to_class + "/"
+
+    return [{"beacon": f"weaviate://localhost/{to_class}{uuid_to}"} for uuid_to in uuids]
+
+
 @dataclass
 class ReferenceTo:
-    uuids: Union[List[UUID], UUID]
+    uuids: UUIDS
 
     @property
     def uuids_str(self) -> List[str]:
@@ -770,7 +785,7 @@ class ReferenceToMultiTarget(ReferenceTo):
 
 @dataclass
 class CrossReference:
-    ref_type: Union[Type, str]
+    ref_type: Union[type, str]
 
     @property
     def name(self) -> str:

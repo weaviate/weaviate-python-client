@@ -1,4 +1,4 @@
-from typing import Any, Dict, Generic, Optional, Type
+from typing import Generic, Optional, Type
 
 from weaviate.collection.classes import CollectionConfig, Properties
 from weaviate.collection.collection_base import CollectionBase
@@ -16,7 +16,7 @@ class CollectionObject(Generic[Properties]):
         self,
         connection: Connection,
         name: str,
-        type_: Type[Properties],
+        type_: Optional[Type[Properties]] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
         tenant: Optional[str] = None,
     ) -> None:
@@ -48,26 +48,35 @@ class CollectionObject(Generic[Properties]):
 
 
 class Collection(CollectionBase):
-    def create(
-        self, config: CollectionConfig, data_model: Type[Properties] = Dict[str, Any]
-    ) -> CollectionObject[Properties]:
+    def create(self, config: CollectionConfig) -> None:
         name = super()._create(config)
         if config.name != name:
             raise ValueError(
                 f"Name of created collection ({name}) does not match given name ({config.name})"
             )
-        return self.get(name, data_model)
 
     def get(
-        self, name: str, data_model: Type[Properties] = Dict[str, Any]
+        self, name: str, data_model: Optional[Type[Properties]] = None
     ) -> CollectionObject[Properties]:
-        return CollectionObject[data_model](self._connection, name, data_model)
+        if data_model is not None:
+            try:
+                data_model()
+            except TypeError as e:
+                raise ValueError(
+                    "The only generics allowed to be used in data_model are Dicts and TypedDicts"
+                ) from e
+        name = _capitalize_first_letter(name)
+        return (
+            CollectionObject[Properties](self._connection, name, data_model)
+            if data_model
+            else CollectionObject(self._connection, name)
+        )
 
     def delete(self, name: str) -> None:
         """Use this method to delete a collection from the Weaviate instance by its name.
 
-        WARNING: If you have instances of client.collection_model.get() or client.collection_model.create()
-        for this collection within your code, they will be cease to function correctly after this operation.
+        WARNING: If you have instances of client.collection.get() or client.collection.create()
+        for this collection within your code, they will cease to function correctly after this operation.
 
         Parameters:
         - name: The name of the collection to delete.
