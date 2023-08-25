@@ -15,6 +15,7 @@ from weaviate.gql.filter import (
     Where,
     Ask,
     WHERE_OPERATORS,
+    VALUE_TYPES,
 )
 
 
@@ -551,13 +552,10 @@ class TestWhere(unittest.TestCase):
         content_error_msg = lambda dt: f"Where filter is expected to be type dict but is {dt}"
         content_key_error_msg = "Filter is missing required fields `path` or `operands`. Given: "
         path_key_error = "Filter is missing required field `operator`. Given: "
-        dtype_no_value_error_msg = "Filter is missing required field 'value<TYPE>': "
+        dtype_no_value_error_msg = "'value<TYPE>' field is either missing or incorrect: "
         dtype_multiple_value_error_msg = "Multiple fields 'value<TYPE>' are not supported: "
         operator_error_msg = (
             lambda op: f"Operator {op} is not allowed. Allowed operators are: {', '.join(WHERE_OPERATORS)}"
-        )
-        contains_operator_value_type_mismatch_msg = (
-            lambda op, vt: f"Operator {op} requires a value of type {vt}List. Given value type: {vt}"
         )
         geo_operator_value_type_mismatch_msg = (
             lambda op, vt: f"Operator {op} requires a value of type valueGeoRange. Given value type: {vt}"
@@ -602,18 +600,6 @@ class TestWhere(unittest.TestCase):
         with self.assertRaises(ValueError) as error:
             Where({"path": "some_path", "operator": "NotValid"})
         check_error_message(self, error, operator_error_msg("NotValid"))
-
-        with self.assertRaises(ValueError) as error:
-            Where({"path": "some_path", "operator": "ContainsAll", "valueString": "A"})
-        check_error_message(
-            self, error, contains_operator_value_type_mismatch_msg("ContainsAll", "valueString")
-        )
-
-        with self.assertRaises(ValueError) as error:
-            Where({"path": "some_path", "operator": "ContainsAny", "valueInt": 1})
-        check_error_message(
-            self, error, contains_operator_value_type_mismatch_msg("ContainsAny", "valueInt")
-        )
 
         with self.assertRaises(ValueError) as error:
             Where({"path": "some_path", "operator": "WithinGeoRange", "valueBoolean": True})
@@ -795,15 +781,17 @@ class TestWhere(unittest.TestCase):
             self, error, value_is_list_err(["test-2021-02-02", "test-2021-02-03"], "valueDate")
         )
 
-        # test_filter = {
-        #     "path": ["name"],
-        #     "operator": "Equal",
-        #     "valueText": "😃",
-        # }
-        # result = str(Where(test_filter))
-        # self.assertEqual(
-        #     'where: {path: ["name"] operator: Equal valueText: "\\ud83d\\ude03"} ', str(result)
-        # )
+        test_filter = {
+            "path": ["name"],
+            "operator": "Equal",
+            "valueWrong": "whatever",
+        }
+        with self.assertRaises(ValueError) as error:
+            str(Where(test_filter))
+        assert (
+            error.exception.args[0]
+            == f"'value<TYPE>' field is either missing or incorrect: {test_filter}. Valid values are: {VALUE_TYPES}."
+        )
 
 
 class TestAskFilter(unittest.TestCase):

@@ -17,18 +17,19 @@ from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import get_vector, _sanitize_str
 
 VALUE_LIST_TYPES = {
-    "valueStringArray",
-    "valueTextArray",
-    "valueIntArray",
-    "valueNumberArray",
-    "valueBooleanArray",
-    "valueDateArray",
     "valueStringList",
     "valueTextList",
     "valueIntList",
     "valueNumberList",
     "valueBooleanList",
-    "valueDateList",
+}
+
+VALUE_ARRAY_TYPES = {
+    "valueStringArray",
+    "valueTextArray",
+    "valueIntArray",
+    "valueNumberArray",
+    "valueBooleanArray",
 }
 
 VALUE_PRIMITIVE_TYPES = {
@@ -41,7 +42,8 @@ VALUE_PRIMITIVE_TYPES = {
     "valueGeoRange",
 }
 
-VALUE_TYPES = VALUE_LIST_TYPES.union(VALUE_PRIMITIVE_TYPES)
+ALL_VALUE_TYPES = VALUE_LIST_TYPES.union(VALUE_ARRAY_TYPES).union(VALUE_PRIMITIVE_TYPES)
+VALUE_TYPES = VALUE_ARRAY_TYPES.union(VALUE_PRIMITIVE_TYPES)
 
 WHERE_OPERATORS = [
     "And",
@@ -796,15 +798,6 @@ class Where(Filter):
         self.value_type = _find_value_type(content)
         self.value = content[self.value_type]
 
-        if (
-            self.operator in ["ContainsAny", "ContainsAll"]
-            and self.value_type not in VALUE_LIST_TYPES
-        ):
-            raise ValueError(
-                f"Operator {self.operator} requires a value of type {self.value_type}List. "
-                f"Given value type: {self.value_type}"
-            )
-
         if self.operator == "WithinGeoRange" and self.value_type != "valueGeoRange":
             raise ValueError(
                 f"Operator {self.operator} requires a value of type valueGeoRange. "
@@ -1147,11 +1140,11 @@ def _find_value_type(content: dict) -> str:
         If missing required fields.
     """
 
-    value_type = VALUE_TYPES & set(content.keys())
+    value_type = ALL_VALUE_TYPES & set(content.keys())
 
     if len(value_type) == 0:
         raise ValueError(
-            f"Filter is missing required field 'value<TYPE>': {content}. Valid values are: {VALUE_TYPES}."
+            f"'value<TYPE>' field is either missing or incorrect: {content}. Valid values are: {VALUE_TYPES}."
         )
     if len(value_type) != 1:
         raise ValueError(f"Multiple fields 'value<TYPE>' are not supported: {content}")
