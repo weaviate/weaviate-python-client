@@ -1,5 +1,6 @@
-import pytest as pytest
 import datetime
+
+import pytest as pytest
 import uuid
 
 import weaviate
