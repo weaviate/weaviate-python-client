@@ -498,7 +498,7 @@ class _GrpcCollection(_Grpc):
         properties: "weaviate_pb2.ResultProperties",
         type_: Optional[Type[Properties]],
     ) -> Properties:
-        hints = get_type_hints(type_) if type_ is not None else {}
+        hints = get_type_hints(type_) if type_ != Dict[str, Any] and type_ is not None else {}
 
         result: Properties = {}
 
@@ -508,7 +508,7 @@ class _GrpcCollection(_Grpc):
         for ref_prop in properties.ref_props:
             hint = hints.get(ref_prop.prop_name)
             if hint is not None:
-                referenced_property_type = (lambda: "TODO: implement this")()
+                referenced_property_type = _extract_props_from_list_of_objects(hint)
                 result[ref_prop.prop_name] = [
                     _Object(
                         properties=self.__parse_result(prop, referenced_property_type),
@@ -760,7 +760,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
         for ref_prop in properties.ref_props:
             hint = hints.get(ref_prop.prop_name)
             if hint is not None:
-                referenced_property_type = _extract_props_from_list_of_objects(hint)
+                referenced_property_type = (lambda: "TODO: implement this")()
                 result[ref_prop.prop_name] = [
                     _Object(
                         properties=self.__parse_result(prop, referenced_property_type),
