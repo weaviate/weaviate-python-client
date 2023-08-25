@@ -61,8 +61,8 @@ class Collection(CollectionBase):
         if data_model is not None:
             try:
                 data_model()
-            except TypeError as e:
-                raise ValueError(
+            except Exception as e:
+                raise TypeError(
                     "The only generics allowed to be used in data_model are Dicts and TypedDicts"
                 ) from e
         name = _capitalize_first_letter(name)

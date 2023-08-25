@@ -36,6 +36,9 @@ from weaviate.collection.classes import (
 )
 from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery
 
+from pydantic import BaseModel
+from pydantic.dataclasses import dataclass as pydantic_dataclass
+
 BEACON_START = "weaviate://localhost"
 
 
@@ -77,27 +80,66 @@ def test_create_get_and_delete_generic(client: weaviate.Client, should_error: bo
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer=Vectorizer.NONE,
     )
+    client.collection.create(collection_config)
     if should_error:
 
         @dataclass
-        class Wrong:
+        class OneWrong:
             name: str
 
-        client.collection.create(collection_config)
-        client.collection.get(name, Wrong)  # bad type because dataclass not bound by generic
-        assert client.collection.exists(name)
-        client.collection.delete(name)
-        assert not client.collection.exists(name)
+        with pytest.raises(TypeError) as error:
+            client.collection.get(name, OneWrong)  # bad type because dataclass not bound by generic
+        assert (
+            error.value.args[0]
+            == "The only generics allowed to be used in data_model are Dicts and TypedDicts"
+        )
+
+        class AnotherWrong:
+            name: str
+
+            def __init__(self, name: str):
+                self.name = name
+
+        with pytest.raises(TypeError) as error:
+            client.collection.get(name, AnotherWrong)
+        assert (
+            error.value.args[0]
+            == "The only generics allowed to be used in data_model are Dicts and TypedDicts"
+        )
+
+        class YetAnotherWrong(BaseModel):
+            name: str
+
+        with pytest.raises(TypeError) as error:
+            client.collection.get(name, YetAnotherWrong)
+        assert (
+            error.value.args[0]
+            == "The only generics allowed to be used in data_model are Dicts and TypedDicts"
+        )
+
+        @pydantic_dataclass
+        class NotAnotherOne:
+            name: str
+
+        with pytest.raises(TypeError) as error:
+            client.collection.get(name, NotAnotherOne)
+        assert (
+            error.value.args[0]
+            == "The only generics allowed to be used in data_model are Dicts and TypedDicts"
+        )
     else:
 
         class Right(TypedDict):
             name: str
 
-        client.collection.create(collection_config, Right)
+        class AlsoRight:
+            name: str
+
         client.collection.get(name, Right)
-        assert client.collection.exists(name)
-        client.collection.delete(name)
-        assert not client.collection.exists(name)
+        client.collection.get(name, AlsoRight)
+    assert client.collection.exists(name)
+    client.collection.delete(name)
+    assert not client.collection.exists(name)
 
 
 @pytest.mark.parametrize(
@@ -701,7 +743,7 @@ def test_mono_references_grcp(client: weaviate.Client):
     assert objects[0].properties["ref"][0].properties["ref"][1].properties["name"] == "A2"
 
 
-def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
+def test_mono_references_grcp_generic(client: weaviate.Client):
     client.collection.delete("A")
     client.collection.delete("B")
     client.collection.delete("C")
@@ -726,7 +768,7 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
         name: str
         ref: ReferenceTo
 
-    collection_B = client.collection.create(
+    client.collection.create(
         CollectionConfig(
             name="B",
             properties=[
@@ -735,7 +777,6 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
             ],
             vectorizer=Vectorizer.NONE,
         ),
-        BPropsInsert,
     )
     collection_B = client.collection.get("B")
     uuid_B = collection_B.data.insert(BPropsInsert(name="B", ref=ReferenceTo(uuids=uuid_A1)))
@@ -757,8 +798,7 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
                 ReferenceProperty(name="ref", target_collection="B"),
             ],
             vectorizer=Vectorizer.NONE,
-        ),
-        CPropsInsert,
+        )
     )
     collection_C = client.collection.get("C")
     collection_C.data.insert(CPropsInsert(name="find me", age=10, ref=ReferenceTo(uuids=uuid_B)))
