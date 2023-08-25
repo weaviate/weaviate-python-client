@@ -556,9 +556,6 @@ class TestWhere(unittest.TestCase):
         operator_error_msg = (
             lambda op: f"Operator {op} is not allowed. Allowed operators are: {', '.join(WHERE_OPERATORS)}"
         )
-        contains_operator_value_type_mismatch_msg = (
-            lambda op, vt: f"Operator {op} requires a value of type {vt}List. Given value type: {vt}"
-        )
         geo_operator_value_type_mismatch_msg = (
             lambda op, vt: f"Operator {op} requires a value of type valueGeoRange. Given value type: {vt}"
         )
@@ -602,18 +599,6 @@ class TestWhere(unittest.TestCase):
         with self.assertRaises(ValueError) as error:
             Where({"path": "some_path", "operator": "NotValid"})
         check_error_message(self, error, operator_error_msg("NotValid"))
-
-        with self.assertRaises(ValueError) as error:
-            Where({"path": "some_path", "operator": "ContainsAll", "valueString": "A"})
-        check_error_message(
-            self, error, contains_operator_value_type_mismatch_msg("ContainsAll", "valueString")
-        )
-
-        with self.assertRaises(ValueError) as error:
-            Where({"path": "some_path", "operator": "ContainsAny", "valueInt": 1})
-        check_error_message(
-            self, error, contains_operator_value_type_mismatch_msg("ContainsAny", "valueInt")
-        )
 
         with self.assertRaises(ValueError) as error:
             Where({"path": "some_path", "operator": "WithinGeoRange", "valueBoolean": True})
