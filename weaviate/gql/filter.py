@@ -42,7 +42,8 @@ VALUE_PRIMITIVE_TYPES = {
     "valueGeoRange",
 }
 
-VALUE_TYPES = VALUE_LIST_TYPES.union(VALUE_ARRAY_TYPES).union(VALUE_PRIMITIVE_TYPES)
+ALL_VALUE_TYPES = VALUE_LIST_TYPES.union(VALUE_ARRAY_TYPES).union(VALUE_PRIMITIVE_TYPES)
+VALUE_TYPES = VALUE_ARRAY_TYPES.union(VALUE_PRIMITIVE_TYPES)
 
 WHERE_OPERATORS = [
     "And",
@@ -1139,7 +1140,7 @@ def _find_value_type(content: dict) -> str:
         If missing required fields.
     """
 
-    value_type = VALUE_TYPES & set(content.keys())
+    value_type = ALL_VALUE_TYPES & set(content.keys())
 
     if len(value_type) == 0:
         raise ValueError(

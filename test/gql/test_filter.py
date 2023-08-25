@@ -15,6 +15,7 @@ from weaviate.gql.filter import (
     Where,
     Ask,
     WHERE_OPERATORS,
+    VALUE_TYPES,
 )
 
 
@@ -780,15 +781,17 @@ class TestWhere(unittest.TestCase):
             self, error, value_is_list_err(["test-2021-02-02", "test-2021-02-03"], "valueDate")
         )
 
-        # test_filter = {
-        #     "path": ["name"],
-        #     "operator": "Equal",
-        #     "valueText": "😃",
-        # }
-        # result = str(Where(test_filter))
-        # self.assertEqual(
-        #     'where: {path: ["name"] operator: Equal valueText: "\\ud83d\\ude03"} ', str(result)
-        # )
+        test_filter = {
+            "path": ["name"],
+            "operator": "Equal",
+            "valueWrong": "whatever",
+        }
+        with self.assertRaises(ValueError) as error:
+            str(Where(test_filter))
+        assert (
+            error.exception.args[0]
+            == f"Filter is missing required field 'value<TYPE>': {test_filter}. Valid values are: {VALUE_TYPES}."
+        )
 
 
 class TestAskFilter(unittest.TestCase):
