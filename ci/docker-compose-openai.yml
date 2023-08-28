@@ -9,7 +9,7 @@ services:
       - '8086'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-add-containsany-all-filter-and-length-filtering-to-grpc-9b2f46e
+    image: semitechnologies/weaviate:preview-grpc-proto-lint-fixes-4a2387c
     ports:
       - 8086:8086
     restart: on-failure:0
