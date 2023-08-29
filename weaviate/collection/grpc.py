@@ -28,8 +28,8 @@ from weaviate_grpc import weaviate_pb2
 
 
 class HybridFusion(str, BaseEnum):
-    RANKED = "rankedFusion"
-    RELATIVE_SCORE = "relativeScoreFusion"
+    RANKED = "FUSION_TYPE_RANKED"
+    RELATIVE_SCORE = "FUSION_TYPE_RELATIVE_SCORE"
 
 
 @dataclass
@@ -206,7 +206,7 @@ class _GRPC:
         self._hybrid_vector = vector
         self._hybrid_properties = properties
         self._hybrid_fusion_type = (
-            weaviate_pb2.HybridSearchParams.FusionType.Value(fusion_type.name)
+            weaviate_pb2.HybridSearchParams.FusionType.Value(fusion_type.value)
             if fusion_type is not None
             else None
         )
@@ -349,21 +349,21 @@ class _GRPC:
 
             return weaviate_pb2.Filters(
                 operator=weav_filter.operator,
-                value_str=weav_filter.value if isinstance(weav_filter.value, str) else None,
+                value_text=weav_filter.value if isinstance(weav_filter.value, str) else None,
                 value_int=weav_filter.value if isinstance(weav_filter.value, int) else None,
-                value_bool=weav_filter.value if isinstance(weav_filter.value, bool) else None,
+                value_boolean=weav_filter.value if isinstance(weav_filter.value, bool) else None,
                 value_date=timestamp if isinstance(weav_filter.value, datetime.date) else None,
-                value_float=weav_filter.value if isinstance(weav_filter.value, float) else None,
-                value_int_array=weaviate_pb2.intArray(vals=weav_filter.value)
+                value_number=weav_filter.value if isinstance(weav_filter.value, float) else None,
+                value_int_array=weaviate_pb2.IntArray(vals=weav_filter.value)
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], int)
                 else None,
-                value_float_array=weaviate_pb2.floatArray(vals=weav_filter.value)
+                value_number_array=weaviate_pb2.NumberArray(vals=weav_filter.value)
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], float)
                 else None,
-                value_str_array=weaviate_pb2.strArray(vals=weav_filter.value)
+                value_text_array=weaviate_pb2.TextArray(vals=weav_filter.value)
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], str)
                 else None,
-                value_bool_array=weaviate_pb2.boolArray(vals=weav_filter.value)
+                value_boolean_array=weaviate_pb2.BooleanArray(vals=weav_filter.value)
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], bool)
                 else None,
                 on=weav_filter.path if isinstance(weav_filter.path, list) else [weav_filter.path],
