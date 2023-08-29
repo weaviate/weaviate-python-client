@@ -3,8 +3,6 @@ from dataclasses import dataclass
 from typing import Any, Dict, Generic, List, Mapping, Optional
 from typing_extensions import TypeAlias, TypeVar
 
-from weaviate.weaviate_types import UUIDS
-
 Properties = TypeVar("Properties", bound=Mapping[str, Any], default=Dict[str, Any])
 
 P = TypeVar("P")
@@ -53,15 +51,3 @@ def _extract_props_from_list_of_objects(type_: Any) -> Optional[Any]:
         if getattr(inner_type, "__origin__", None) == _Object:
             return inner_type.__args__[0]
     return None
-
-
-def _to_beacons(uuids: UUIDS, to_class: str = "") -> List[Dict[str, str]]:
-    if isinstance(uuids, uuid_package.UUID) or isinstance(
-        uuids, str
-    ):  # replace with isinstance(uuids, UUID) in 3.10
-        uuids = [uuids]
-
-    if len(to_class) > 0:
-        to_class = to_class + "/"
-
-    return [{"beacon": f"weaviate://localhost/{to_class}{uuid_to}"} for uuid_to in uuids]
