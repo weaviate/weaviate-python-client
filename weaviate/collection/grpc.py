@@ -31,7 +31,7 @@ from weaviate.collection.classes.grpc import (
     _PyValue,
     _RawObject,
 )
-from weaviate.collection.classes.object import (
+from weaviate.collection.classes.internal import (
     _MetadataReturn,
     _Object,
     Properties,

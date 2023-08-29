@@ -6,6 +6,8 @@ from google.protobuf.struct_pb2 import Struct
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.classes.data import (
+    BatchReference,
+    DataObject,
     Error,
     ReferenceTo,
     GetObjectByIdIncludes,
@@ -14,9 +16,7 @@ from weaviate.collection.classes.data import (
     ReferenceToMultiTarget,
     _BatchReturn,
 )
-from weaviate.collection.classes.object import (
-    BatchReference,
-    DataObject,
+from weaviate.collection.classes.internal import (
     _Object,
     _metadata_from_dict,
 )

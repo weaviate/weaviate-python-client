@@ -5,14 +5,12 @@ import uuid
 
 import weaviate
 from weaviate import Config
-from weaviate.collection.classes import (
+from weaviate.collection.classes.config import (
     BM25ConfigUpdate,
     CollectionConfig,
     CollectionConfigUpdate,
-    DataObject,
     Property,
     DataType,
-    GetObjectByIdIncludes,
     InvertedIndexConfigUpdate,
     PQConfigUpdate,
     PQEncoderConfigUpdate,
@@ -20,18 +18,21 @@ from weaviate.collection.classes import (
     PQEncoderDistribution,
     ReferenceProperty,
     ReferencePropertyMultiTarget,
-    ReferenceTo,
-    ReferenceToMultiTarget,
     StopwordsUpdate,
     MultiTenancyConfig,
     StopwordsPreset,
-    Tenant,
     VectorIndexConfigUpdate,
     Vectorizer,
-    Error,
-    TenantActivityStatus,
 )
-from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery
+from weaviate.collection.classes.data import (
+    DataObject,
+    Error,
+    GetObjectByIdIncludes,
+    ReferenceTo,
+    ReferenceToMultiTarget,
+)
+from weaviate.collection.classes.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery
+from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 
 BEACON_START = "weaviate://localhost"
 

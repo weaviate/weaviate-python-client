@@ -1,6 +1,6 @@
 import uuid as uuid_package
 from dataclasses import dataclass
-from typing import List, Optional, Dict, Union
+from typing import Any, List, Optional, Dict, Union
 
 from pydantic import BaseModel, Field
 from weaviate.util import _to_beacons
@@ -74,3 +74,16 @@ class ReferenceToMultiTarget(ReferenceTo):
 
     def to_beacons(self) -> List[Dict[str, str]]:
         return _to_beacons(self.uuids, self.target_collection)
+
+
+@dataclass
+class BatchReference:
+    from_uuid: UUID
+    to_uuid: UUID
+
+
+@dataclass
+class DataObject:
+    data: Dict[str, Any]
+    uuid: Optional[UUID] = None
+    vector: Optional[List[float]] = None

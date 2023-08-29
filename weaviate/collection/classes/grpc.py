@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, TypeAlias, Union
 from google.protobuf import struct_pb2
 from pydantic import BaseModel
 
-from weaviate.collection.classes.object import _MetadataReturn
+from weaviate.collection.classes.internal import _MetadataReturn
 from weaviate.util import BaseEnum
 from weaviate.weaviate_types import UUID
 from weaviate_grpc import weaviate_pb2

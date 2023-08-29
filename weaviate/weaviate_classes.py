@@ -17,6 +17,7 @@ from weaviate.collection.classes.config import (
     VectorIndexType,
 )
 from weaviate.collection.classes.data import (
+    DataObject,
     GetObjectByIdIncludes,
     GetObjectsIncludes,
     ReferenceTo,
@@ -33,9 +34,6 @@ from weaviate.collection.classes.grpc import (
     NearObjectOptions,
     NearVectorOptions,
     ReturnValues,
-)
-from weaviate.collection.classes.object import (
-    DataObject,
 )
 from weaviate.collection.classes.orm import (
     BaseProperty,

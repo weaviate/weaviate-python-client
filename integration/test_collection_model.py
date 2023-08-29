@@ -5,7 +5,7 @@ from typing import List, Optional
 from pydantic_core._pydantic_core import PydanticUndefined
 
 from weaviate import Config
-from weaviate.collection.grpc import MetadataQuery
+from weaviate.collection.classes.grpc import MetadataQuery
 from weaviate.exceptions import WeaviateAddInvalidPropertyError
 
 if sys.version_info < (3, 9):
@@ -16,16 +16,13 @@ import pytest as pytest
 import uuid
 
 import weaviate
-from weaviate.collection.classes import (
-    BaseProperty,
-    CollectionModelConfig,
+from weaviate.collection.classes.config import (
     MultiTenancyConfig,
     PropertyConfig,
-    CrossReference,
-    Tenant,
     Vectorizer,
-    TenantActivityStatus,
 )
+from weaviate.collection.classes.orm import BaseProperty, CollectionModelConfig, CrossReference
+from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.weaviate_types import UUIDS
 from pydantic import Field
 

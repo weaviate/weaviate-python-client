@@ -3,8 +3,6 @@ from dataclasses import dataclass
 from typing import Any, Dict, Generic, List, Optional
 from typing_extensions import TypeVar
 
-from weaviate.weaviate_types import UUID
-
 Properties = TypeVar("Properties")
 
 
@@ -48,16 +46,3 @@ def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
         score=metadata.get("score"),
         is_consistent=metadata.get("isConsistent"),
     )
-
-
-@dataclass
-class BatchReference:
-    from_uuid: UUID
-    to_uuid: UUID
-
-
-@dataclass
-class DataObject:
-    data: Dict[str, Any]
-    uuid: Optional[UUID] = None
-    vector: Optional[List[float]] = None
