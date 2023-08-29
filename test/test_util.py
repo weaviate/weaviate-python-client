@@ -158,6 +158,18 @@ class TestUtil(unittest.TestCase):
             beacon["beacon"], "weaviate://localhost/fcf33178-1b5d-5174-b2e7-04a2129dd35b"
         )
 
+        beacon = generate_local_beacon(uuid_lib.UUID("fcf331781b5d5174b2e704a2129dd35b"), "Test1")
+        self.assertTrue("beacon" in beacon)
+        self.assertEqual(
+            beacon["beacon"], "weaviate://localhost/Test1/fcf33178-1b5d-5174-b2e7-04a2129dd35b"
+        )
+
+        beacon = generate_local_beacon(uuid_lib.UUID("fcf331781b5d5174b2e704a2129dd35b"), "test2")
+        self.assertTrue("beacon" in beacon)
+        self.assertEqual(
+            beacon["beacon"], "weaviate://localhost/Test2/fcf33178-1b5d-5174-b2e7-04a2129dd35b"
+        )
+
     def test__get_dict_from_object(self):
         """
         Test the `_get_dict_from_object` function.

@@ -195,7 +195,7 @@ def generate_local_beacon(
 
     if class_name is None:
         return {"beacon": f"weaviate://localhost/{uuid}"}
-    return {"beacon": f"weaviate://localhost/{class_name}/{uuid}"}
+    return {"beacon": f"weaviate://localhost/{_capitalize_first_letter(class_name)}/{uuid}"}
 
 
 def _get_dict_from_object(object_: Union[str, dict]) -> dict:

@@ -840,7 +840,7 @@ class Schema:
 
         loaded_tenants = [tenant._to_weaviate_object() for tenant in tenants]
 
-        path = "/schema/" + class_name + "/tenants"
+        path = f"/schema/{_capitalize_first_letter(class_name)}/tenants"
         try:
             response = self._connection.post(path=path, weaviate_object=loaded_tenants)
         except RequestsConnectionError as conn_err:
@@ -874,7 +874,7 @@ class Schema:
         weaviate.UnexpectedStatusCodeException
             If Weaviate reports a non-OK status.
         """
-        path = "/schema/" + class_name + "/tenants"
+        path = f"/schema/{_capitalize_first_letter(class_name)}/tenants"
         try:
             response = self._connection.delete(path=path, weaviate_object=tenants)
         except RequestsConnectionError as conn_err:
@@ -903,7 +903,7 @@ class Schema:
         weaviate.UnexpectedStatusCodeException
             If Weaviate reports a non-OK status.
         """
-        path = "/schema/" + class_name + "/tenants"
+        path = f"/schema/{_capitalize_first_letter(class_name)}/tenants"
         try:
             response = self._connection.get(path=path)
         except RequestsConnectionError as conn_err:
@@ -958,7 +958,7 @@ class Schema:
         weaviate.UnexpectedStatusCodeException
             If Weaviate reports a non-OK status.
         """
-        path = "/schema/" + class_name + "/tenants"
+        path = f"/schema/{_capitalize_first_letter(class_name)}/tenants"
         loaded_tenants = [tenant._to_weaviate_object() for tenant in tenants]
         try:
             response = self._connection.put(path=path, weaviate_object=loaded_tenants)

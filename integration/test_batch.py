@@ -86,9 +86,9 @@ def test_add_data_object(client: weaviate.Client, uuid: Optional[UUID], vector: 
 def test_delete_objects(client: weaviate.Client):
     with client.batch as batch:
         batch.add_data_object(data_object={"name": "one"}, class_name="Test")
-        batch.add_data_object(data_object={"name": "two"}, class_name="Test")
+        batch.add_data_object(data_object={"name": "two"}, class_name="test")
         batch.add_data_object(data_object={"name": "three"}, class_name="Test")
-        batch.add_data_object(data_object={"name": "four"}, class_name="Test")
+        batch.add_data_object(data_object={"name": "four"}, class_name="test")
         batch.add_data_object(data_object={"name": "five"}, class_name="Test")
 
     with client.batch as batch:
@@ -106,7 +106,7 @@ def test_delete_objects(client: weaviate.Client):
 
     with client.batch as batch:
         batch.delete_objects(
-            "Test",
+            "test",
             where={
                 "path": ["name"],
                 "operator": "ContainsAny",
@@ -135,7 +135,7 @@ def test_delete_objects(client: weaviate.Client):
     with pytest.raises(ValueError) as error:
         with client.batch as batch:
             batch.delete_objects(
-                "Test",
+                "test",
                 where={
                     "path": ["name"],
                     "operator": "ContainsAny",
