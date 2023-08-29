@@ -254,7 +254,7 @@ class _Data:
             params["consistency_level"] = self.__consistency_level
         return params, obj
 
-    def _serialize_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _serialize_properties(self, data: Properties) -> Dict[str, Any]:
         return {
             key: val.to_beacons()
             if isinstance(val, ReferenceTo)
@@ -330,7 +330,10 @@ class _DataCollection(Generic[Properties], _Data):
 
     def __deserialize_properties(self, data: Dict[str, Any]) -> Properties:
         hints = get_type_hints(self.__type) if self.__type else {}
-        return {key: self._deserialize_primitive(val, hints.get(key)) for key, val in data.items()}
+        return cast(
+            Properties,
+            {key: self._deserialize_primitive(val, hints.get(key)) for key, val in data.items()},
+        )
 
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Properties]:
         props = self.__deserialize_properties(obj["properties"])

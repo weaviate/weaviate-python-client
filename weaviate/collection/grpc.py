@@ -1,6 +1,18 @@
 import datetime
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Union, Set, Any, Generic, cast, Tuple, get_type_hints
+from typing import (
+    Optional,
+    List,
+    Dict,
+    Union,
+    Set,
+    Any,
+    Generic,
+    cast,
+    Tuple,
+    get_type_hints,
+    Mapping,
+)
 
 import grpc
 import uuid as uuid_lib
@@ -179,7 +191,7 @@ class _GRPC:
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[GrpcResult]:
+    ) -> List[SearchResult]:
         self._limit = limit
         self._offset = offset
         self._after = after
@@ -200,7 +212,7 @@ class _GRPC:
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[GrpcResult]:
+    ) -> List[SearchResult]:
         self._hybrid_query = query
         self._hybrid_alpha = alpha
         self._hybrid_vector = vector
@@ -226,7 +238,7 @@ class _GRPC:
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[GrpcResult]:
+    ) -> List[SearchResult]:
         self._bm25_query = query
         self._bm25_properties = properties
         self._limit = limit
@@ -245,7 +257,7 @@ class _GRPC:
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[GrpcResult]:
+    ) -> List[SearchResult]:
         self._near_vector_vec = vector
         self._near_certainty = certainty
         self._near_distance = distance
@@ -264,7 +276,7 @@ class _GRPC:
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[GrpcResult]:
+    ) -> List[SearchResult]:
         self._near_object_obj = near_object
         self._near_certainty = certainty
         self._near_distance = distance
@@ -336,7 +348,7 @@ class _GRPC:
         except grpc.RpcError as e:
             raise WeaviateGRPCException(e.details())
 
-    def __extract_filters(self, weav_filter: _Filters) -> Optional[weaviate_pb2.Filters]:
+    def __extract_filters(self, weav_filter: Optional[_Filters]) -> Optional[weaviate_pb2.Filters]:
         if weav_filter is None:
             return None
         from google.protobuf.timestamp_pb2 import Timestamp
@@ -351,19 +363,23 @@ class _GRPC:
                 operator=weav_filter.operator,
                 value_text=weav_filter.value if isinstance(weav_filter.value, str) else None,
                 value_int=weav_filter.value if isinstance(weav_filter.value, int) else None,
-                value_boolean=weav_filter.value if isinstance(weav_filter.value, bool) else None,
+                value_boolean=weav_filter.value if isinstance(weav_filter.value, bool) else False,
                 value_date=timestamp if isinstance(weav_filter.value, datetime.date) else None,
                 value_number=weav_filter.value if isinstance(weav_filter.value, float) else None,
-                value_int_array=weaviate_pb2.IntArray(vals=weav_filter.value)
+                value_int_array=weaviate_pb2.IntArray(vals=cast(List[int], weav_filter.value))
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], int)
                 else None,
-                value_number_array=weaviate_pb2.NumberArray(vals=weav_filter.value)
+                value_number_array=weaviate_pb2.NumberArray(
+                    vals=cast(List[float], weav_filter.value)
+                )
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], float)
                 else None,
-                value_text_array=weaviate_pb2.TextArray(vals=weav_filter.value)
+                value_text_array=weaviate_pb2.TextArray(vals=cast(List[str], weav_filter.value))
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], str)
                 else None,
-                value_boolean_array=weaviate_pb2.BooleanArray(vals=weav_filter.value)
+                value_boolean_array=weaviate_pb2.BooleanArray(
+                    vals=cast(List[bool], weav_filter.value)
+                )
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], bool)
                 else None,
                 on=weav_filter.path if isinstance(weav_filter.path, list) else [weav_filter.path],
@@ -374,7 +390,10 @@ class _GRPC:
             return weaviate_pb2.Filters(
                 operator=weav_filter.operator,
                 filters=[
-                    self.__extract_filters(single_filter) for single_filter in weav_filter.filters
+                    cast(
+                        Union[weaviate_pb2.Filters, Mapping], self.__extract_filters(single_filter)
+                    )
+                    for single_filter in weav_filter.filters
                 ],
             )
 
@@ -500,7 +519,7 @@ class _GrpcCollection(_Grpc):
     ) -> Properties:
         hints = get_type_hints(type_) if type_ != Dict[str, Any] and type_ is not None else {}
 
-        result: Properties = {}
+        result = {}
 
         for name, non_ref_prop in properties.non_ref_properties.items():
             result[name] = self._deserialize_primitive(non_ref_prop, hints.get(name))
@@ -525,7 +544,7 @@ class _GrpcCollection(_Grpc):
                     for prop in ref_prop.properties
                 ]
 
-        return result
+        return cast(Properties, result)
 
     def __result_to_object(
         self, res: SearchResult, type_: Optional[Type[Properties]]
@@ -542,7 +561,7 @@ class _GrpcCollection(_Grpc):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-        type_: Type[Properties] = None,
+        type_: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         return [
             self.__result_to_object(obj, type_)
@@ -556,7 +575,7 @@ class _GrpcCollection(_Grpc):
         returns: ReturnValues,
         options: Optional[GetOptions],
         filters: Optional[_Filters] = None,
-        type_: Type[Properties] = None,
+        type_: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         if options is None:
             options = GetOptions()
@@ -583,7 +602,7 @@ class _GrpcCollection(_Grpc):
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-        type_: Type[Properties] = None,
+        type_: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         return [
             self.__result_to_object(obj, type_)
@@ -605,7 +624,7 @@ class _GrpcCollection(_Grpc):
         query: str,
         returns: ReturnValues,
         options: Optional[HybridOptions] = None,
-        type_: Type[Properties] = None,
+        type_: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         if options is None:
             options = HybridOptions()
@@ -632,7 +651,7 @@ class _GrpcCollection(_Grpc):
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-        type_: Type[Properties] = None,
+        type_: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         return [
             self.__result_to_object(obj, type_)
@@ -646,7 +665,7 @@ class _GrpcCollection(_Grpc):
         query: str,
         returns: ReturnValues,
         options: Optional[BM25Options] = None,
-        type_: Type[Properties] = None,
+        type_: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         if options is None:
             options = BM25Options()
@@ -670,7 +689,7 @@ class _GrpcCollection(_Grpc):
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-        type_: Type[Properties] = None,
+        type_: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         return [
             self.__result_to_object(obj, type_)
@@ -684,7 +703,7 @@ class _GrpcCollection(_Grpc):
         vector: List[float],
         returns: ReturnValues,
         options: Optional[NearVectorOptions] = None,
-        type_: Type[Properties] = None,
+        type_: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         if options is None:
             options = NearVectorOptions()
@@ -708,7 +727,7 @@ class _GrpcCollection(_Grpc):
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-        type_: Type[Properties] = None,
+        type_: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         return [
             self.__result_to_object(obj, type_)
@@ -722,7 +741,7 @@ class _GrpcCollection(_Grpc):
         obj: UUID,
         returns: ReturnValues,
         options: Optional[NearObjectOptions] = None,
-        type_: Type[Properties] = None,
+        type_: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         if options is None:
             options = NearObjectOptions()
@@ -749,10 +768,11 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
     def __parse_result(
         self,
         properties: "weaviate_pb2.ResultProperties",
+        type_: Type[Model],
     ) -> Model:
-        hints = get_type_hints(self.model)
+        hints = get_type_hints(type_)
 
-        result: Properties = {}
+        result = {}
 
         for name, non_ref_prop in properties.non_ref_properties.items():
             result[name] = self._deserialize_primitive(non_ref_prop, hints.get(name))
@@ -773,10 +793,10 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
                     f"Property {ref_prop.prop_name} is not defined with a Reference[Model] type hint in the model {self.model}"
                 )
 
-        return self.model(**result)
+        return type_(**result)
 
-    def __result_to_object(self, res: SearchResult) -> _Object[Properties]:
-        properties = self.__parse_result(res.properties)
+    def __result_to_object(self, res: SearchResult) -> _Object[Model]:
+        properties = self.__parse_result(res.properties, self.model)
         metadata = self._extract_metadata_for_object(res.additional_properties)
         return _Object[Model](properties=properties, metadata=metadata)
 

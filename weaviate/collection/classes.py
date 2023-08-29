@@ -976,7 +976,7 @@ class BaseProperty(BaseModel):
         if len(args) == 0:
             return python_type
 
-        return_type = [t for t in args if t is not None][0]
+        return_type: type = [t for t in args if t is not None][0]
 
         if is_list:
             return List[return_type]
@@ -1043,10 +1043,10 @@ class Tenant(BaseModel):
 
 
 class _Filters:
-    def __and__(self, other: "_Filters"):
+    def __and__(self, other: "_Filters") -> "_FilterAnd":
         return _FilterAnd(self, other)
 
-    def __or__(self, other: "_Filters"):
+    def __or__(self, other: "_Filters") -> "_FilterOr":
         return _FilterOr(self, other)
 
 
@@ -1072,8 +1072,8 @@ class _FilterOr(_Filters):
         return weaviate_pb2.Filters.OPERATOR_OR
 
 
-FilterValuesList = Union[List[str], List[bool], List[int], List[float], List[datetime.date]]
-FilterValues = Union[int, float, str, bool, datetime.date, None, FilterValuesList]
+FilterValuesList = Union[List[str], List[bool], List[int], List[float], List[datetime]]
+FilterValues = Union[int, float, str, bool, datetime, None, FilterValuesList]
 
 
 @dataclass
@@ -1082,10 +1082,10 @@ class _FilterValue(_Filters):
     value: FilterValues
     operator: weaviate_pb2.Filters.Operator
 
-    def __and__(self, other: "_Filters"):
+    def __and__(self, other: "_Filters") -> "_FilterAnd":
         return _FilterAnd(self, other)
 
-    def __or__(self, other: "_Filters"):
+    def __or__(self, other: "_Filters") -> "_FilterOr":
         return _FilterOr(self, other)
 
 
@@ -1094,7 +1094,7 @@ class Filter:
     path: Union[str, List[str]]
     length: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if isinstance(self.path, str):
             path = [self.path]
         else:
