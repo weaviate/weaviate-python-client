@@ -333,8 +333,8 @@ def test_ref_filters(client: weaviate.Client):
             properties=[Property(name="int", data_type=DataType.INT)],
         )
     )
-    uuid_to = to_collection.data.insert(data={"int": 0})
-    uuid_to2 = to_collection.data.insert(data={"int": 5})
+    uuid_to = to_collection.data.insert(properties={"int": 0})
+    uuid_to2 = to_collection.data.insert(properties={"int": 5})
     from_collection = client.collection.create(
         CollectionConfig(
             name="TestFilterRef",
@@ -353,7 +353,7 @@ def test_ref_filters(client: weaviate.Client):
         filters=Filter(path=["ref", "TestFilterRef2", "int"]).greater_than(3)
     )
     assert len(objects) == 1
-    assert objects[0].data["name"] == "second"
+    assert objects[0].properties["name"] == "second"
 
 
 def test_ref_filters_multi_target(client: weaviate.Client):
@@ -368,8 +368,8 @@ def test_ref_filters_multi_target(client: weaviate.Client):
             properties=[Property(name="int", data_type=DataType.INT)],
         )
     )
-    uuid_to = to_collection.data.insert(data={"int": 0})
-    uuid_to2 = to_collection.data.insert(data={"int": 5})
+    uuid_to = to_collection.data.insert(properties={"int": 0})
+    uuid_to2 = to_collection.data.insert(properties={"int": 5})
     from_collection = client.collection.create(
         CollectionConfig(
             name=source,
@@ -406,10 +406,10 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         filters=Filter(path=["ref", target, "int"]).greater_than(3)
     )
     assert len(objects) == 1
-    assert objects[0].data["name"] == "second"
+    assert objects[0].properties["name"] == "second"
 
     objects = from_collection.query.get_flat(
         filters=Filter(path=["ref", source, "name"]).equal("first")
     )
     assert len(objects) == 1
-    assert objects[0].data["name"] == "third"
+    assert objects[0].properties["name"] == "third"
