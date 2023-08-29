@@ -1,30 +1,28 @@
-from weaviate.collection.classes import (
-    BaseProperty,
+from weaviate.collection.classes.config import (
     CollectionConfig,
-    CollectionModelConfig,
-    DataObject,
     DataType,
-    GetObjectByIdIncludes,
-    GetObjectsIncludes,
     InvertedIndexConfigCreate,
     InvertedIndexConfigUpdate,
     Property,
     ReferenceDataType,
     ReferenceProperty,
     ReferencePropertyMultiTarget,
-    ReferenceTo,
-    ReferenceToMultiTarget,
     ShardingConfigCreate,
     StopwordsCreate,
     StopwordsUpdate,
-    Tenant,
     Tokenization,
     Vectorizer,
     VectorIndexConfigCreate,
     VectorIndexConfigUpdate,
     VectorIndexType,
 )
-from weaviate.collection.grpc import (
+from weaviate.collection.classes.data import (
+    GetObjectByIdIncludes,
+    GetObjectsIncludes,
+    ReferenceTo,
+    ReferenceToMultiTarget,
+)
+from weaviate.collection.classes.grpc import (
     BM25Options,
     GetOptions,
     HybridFusion,
@@ -36,6 +34,14 @@ from weaviate.collection.grpc import (
     NearVectorOptions,
     ReturnValues,
 )
+from weaviate.collection.classes.object import (
+    DataObject,
+)
+from weaviate.collection.classes.orm import (
+    BaseProperty,
+    CollectionModelConfig,
+)
+from weaviate.collection.classes.tenants import Tenant
 
 __all__ = [
     "BaseProperty",
