@@ -387,7 +387,9 @@ class _GRPC:
                 operator=weav_filter.operator,
                 value_text=weav_filter.value if isinstance(weav_filter.value, str) else None,
                 value_int=weav_filter.value if isinstance(weav_filter.value, int) else None,
-                value_boolean=weav_filter.value if isinstance(weav_filter.value, bool) else False,
+                value_boolean=weav_filter.value
+                if isinstance(weav_filter.value, bool)
+                else None,  # None required here, can't be False
                 value_date=timestamp if isinstance(weav_filter.value, datetime.date) else None,
                 value_number=weav_filter.value if isinstance(weav_filter.value, float) else None,
                 value_int_array=weaviate_pb2.IntArray(vals=cast(List[int], weav_filter.value))
