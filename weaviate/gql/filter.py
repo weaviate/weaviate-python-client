@@ -882,7 +882,7 @@ class Where(Filter):
                 _check_is_not_list(self.value, self.value_type)
                 gql += f"{_geo_range_to_str(self.value)}}}"
             else:
-                gql += f'"{self.value}"}}'
+                gql += f"{self.value}}}"
             return gql + " "
 
         operands_str = []
