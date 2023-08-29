@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional, TypeAlias, Union
+from typing import Dict, List, Optional, Union
+from typing_extensions import TypeAlias
 
 from google.protobuf import struct_pb2
 from pydantic import BaseModel
