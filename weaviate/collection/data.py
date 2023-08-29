@@ -5,20 +5,23 @@ import uuid as uuid_package
 from google.protobuf.struct_pb2 import Struct
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.collection.classes import (
-    BatchReference,
-    DataObject,
+from weaviate.collection.classes.data import (
     Error,
     ReferenceTo,
     GetObjectByIdIncludes,
     GetObjectsIncludes,
     IncludesModel,
-    _metadata_from_dict,
-    _Object,
-    UUID,
-    Model,
     ReferenceToMultiTarget,
     _BatchReturn,
+)
+from weaviate.collection.classes.object import (
+    BatchReference,
+    DataObject,
+    _Object,
+    _metadata_from_dict,
+)
+from weaviate.collection.classes.orm import (
+    Model,
 )
 from weaviate.collection.config import _ConfigBase, _ConfigCollectionModel
 from weaviate.collection.grpc_batch import _BatchGRPC
@@ -26,7 +29,7 @@ from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException, ObjectAlreadyExistsException
 from weaviate.warnings import _Warnings
-from weaviate.weaviate_types import BEACON
+from weaviate.weaviate_types import BEACON, UUID
 from weaviate_grpc import weaviate_pb2
 
 

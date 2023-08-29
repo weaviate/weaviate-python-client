@@ -1,6 +1,6 @@
 from typing import Optional
 
-from weaviate.collection.classes import CollectionConfig
+from weaviate.collection.classes.config import CollectionConfig
 from weaviate.collection.collection_base import CollectionBase
 from weaviate.collection.config import _ConfigCollection
 from weaviate.collection.data import _DataCollection
