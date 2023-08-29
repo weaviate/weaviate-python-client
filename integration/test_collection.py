@@ -1301,4 +1301,4 @@ def test_return_list_properties(client: weaviate.Client):
     dates = data.pop("dates")
     assert dates2 == dates
 
-    assert objects[0].data == data
+    assert objects[0].properties == data
