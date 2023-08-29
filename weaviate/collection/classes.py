@@ -749,7 +749,7 @@ UUIDS = Union[List[UUID], UUID]
 
 
 def _to_beacons(uuids: UUIDS, to_class: str = "") -> List[Dict[str, str]]:
-    if isinstance(uuids, UUID) or isinstance(
+    if isinstance(uuids, uuid_package.UUID) or isinstance(
         uuids, str
     ):  # replace with isinstance(uuids, UUID) in 3.10
         uuids = [uuids]
