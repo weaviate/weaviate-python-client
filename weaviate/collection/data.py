@@ -145,20 +145,20 @@ class _Data:
         raise UnexpectedStatusCodeException("Update object", response)
 
     def _get_by_id(
-        self, uuid: UUID, includes: Optional[GetObjectByIdMetadata] = None
+        self, uuid: UUID, metadata: Optional[GetObjectByIdMetadata] = None
     ) -> Optional[Dict[str, Any]]:
         path = f"/objects/{self.name}/{uuid}"
 
         return self._get_from_weaviate(
-            params=self.__apply_context({}), path=path, includes=includes
+            params=self.__apply_context({}), path=path, includes=metadata
         )
 
-    def _get(self, includes: Optional[GetObjectsMetadata] = None) -> Optional[Dict[str, Any]]:
+    def _get(self, metadata: Optional[GetObjectsMetadata] = None) -> Optional[Dict[str, Any]]:
         path = "/objects"
         params: Dict[str, Any] = {"class": self.name}
 
         return self._get_from_weaviate(
-            params=self.__apply_context(params), path=path, includes=includes
+            params=self.__apply_context(params), path=path, includes=metadata
         )
 
     def _get_from_weaviate(
@@ -356,13 +356,13 @@ class _DataCollection(_Data):
     def get_by_id(
         self, uuid: UUID, metadata: Optional[GetObjectByIdMetadata] = None
     ) -> Optional[_Object]:
-        ret = self._get_by_id(uuid=uuid, includes=metadata)
+        ret = self._get_by_id(uuid=uuid, metadata=metadata)
         if ret is None:
             return ret
         return self._json_to_object(ret)
 
     def get(self, metadata: Optional[GetObjectsMetadata] = None) -> List[_Object]:
-        ret = self._get(includes=metadata)
+        ret = self._get(metadata=metadata)
         if ret is None:
             return []
 
