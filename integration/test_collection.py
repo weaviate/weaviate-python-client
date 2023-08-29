@@ -5,7 +5,7 @@ import uuid
 from dataclasses import dataclass
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
-from typing import Dict, TypedDict
+from typing import TypedDict
 
 import weaviate
 from weaviate import Config
@@ -65,14 +65,7 @@ def test_create_get_and_delete(client: weaviate.Client):
     assert not client.collection.exists(name)
 
 
-@pytest.mark.parametrize(
-    "should_error",
-    [
-        (False),
-        (True),
-    ],
-)
-def test_create_get_and_delete_generic(client: weaviate.Client, should_error: bool):
+def test_create_get_and_delete_with_supported_generic(client: weaviate.Client):
     name = "TestCreateGetAndDeleteGeneric"
     collection_config = CollectionConfig(
         name=name,
@@ -80,75 +73,74 @@ def test_create_get_and_delete_generic(client: weaviate.Client, should_error: bo
         vectorizer=Vectorizer.NONE,
     )
     client.collection.create(collection_config)
-    if should_error:
 
-        @dataclass
-        class OneWrong:
-            name: str
+    class Right(TypedDict):
+        name: str
 
-        with pytest.raises(TypeError) as error:
-            client.collection.get(name, OneWrong)  # bad type because dataclass not bound by generic
-        assert (
-            error.value.args[0]
-            == "The only generics allowed to be used in data_model are Dicts and TypedDicts"
-        )
+    class AlsoRight:
+        name: str
 
-        class AnotherWrong:
-            name: str
-
-            def __init__(self, name: str):
-                self.name = name
-
-        with pytest.raises(TypeError) as error:
-            client.collection.get(name, AnotherWrong)
-        assert (
-            error.value.args[0]
-            == "The only generics allowed to be used in data_model are Dicts and TypedDicts"
-        )
-
-        class YetAnotherWrong(BaseModel):
-            name: str
-
-        with pytest.raises(TypeError) as error:
-            client.collection.get(name, YetAnotherWrong)
-        assert (
-            error.value.args[0]
-            == "The only generics allowed to be used in data_model are Dicts and TypedDicts"
-        )
-
-        @pydantic_dataclass
-        class NotAnotherOne:
-            name: str
-
-        with pytest.raises(TypeError) as error:
-            client.collection.get(name, NotAnotherOne)
-        assert (
-            error.value.args[0]
-            == "The only generics allowed to be used in data_model are Dicts and TypedDicts"
-        )
-    else:
-
-        class Right(TypedDict):
-            name: str
-
-        class AlsoRight:
-            name: str
-
-        client.collection.get(name, Right)
-        client.collection.get(name, AlsoRight)
+    client.collection.get(name, Right)
+    client.collection.get(name, AlsoRight)
     assert client.collection.exists(name)
     client.collection.delete(name)
     assert not client.collection.exists(name)
 
 
+def test_get_with_unsupported_generic(client: weaviate.Client):
+    @dataclass
+    class OneWrong:
+        name: str
+
+    with pytest.raises(TypeError) as error:
+        client.collection.get(
+            "NotImportant", OneWrong
+        )  # bad type because dataclass not bound by generic
+    assert (
+        error.value.args[0]
+        == "The only generics allowed to be used in data_model are Dicts and TypedDicts"
+    )
+
+    class AnotherWrong:
+        name: str
+
+        def __init__(self, name: str):
+            self.name = name
+
+    with pytest.raises(TypeError) as error:
+        client.collection.get("NotImportant", AnotherWrong)
+    assert (
+        error.value.args[0]
+        == "The only generics allowed to be used in data_model are Dicts and TypedDicts"
+    )
+
+    class YetAnotherWrong(BaseModel):
+        name: str
+
+    with pytest.raises(TypeError) as error:
+        client.collection.get("NotImportant", YetAnotherWrong)
+    assert (
+        error.value.args[0]
+        == "The only generics allowed to be used in data_model are Dicts and TypedDicts"
+    )
+
+    @pydantic_dataclass
+    class NotAnotherOne:
+        name: str
+
+    with pytest.raises(TypeError) as error:
+        client.collection.get("NotImportant", NotAnotherOne)
+    assert (
+        error.value.args[0]
+        == "The only generics allowed to be used in data_model are Dicts and TypedDicts"
+    )
+
+
 @pytest.mark.parametrize(
-    "insert_data,use_typed_dict",
-    [
-        ({"name": "some name"}, False),
-        ({"name": "some name"}, True),
-    ],
+    "use_typed_dict",
+    [False, True],
 )
-def test_insert(client: weaviate.Client, insert_data: Dict[str, str], use_typed_dict: bool):
+def test_insert(client: weaviate.Client, use_typed_dict: bool):
     name = "TestInsert"
     client.collection.delete(name)
     collection_config = CollectionConfig(
@@ -160,16 +152,15 @@ def test_insert(client: weaviate.Client, insert_data: Dict[str, str], use_typed_
     class TestInsert(TypedDict):
         name: str
 
+    insert_data = {"name": "some name"}
     if use_typed_dict:
         collection = client.collection.create(collection_config, TestInsert)
         uuid = collection.data.insert(data=TestInsert(**insert_data))
-        name = collection.data.get_by_id(uuid).properties["name"]
-        assert name == "some name"
     else:
         collection = client.collection.create(collection_config)
         uuid = collection.data.insert(data=insert_data)
-        name = collection.data.get_by_id(uuid).properties["name"]
-        assert name == "some name"
+    name = collection.data.get_by_id(uuid).properties["name"]
+    assert name == insert_data["name"]
 
 
 def test_insert_many(client: weaviate.Client):
@@ -715,16 +706,16 @@ def test_mono_references_grcp(client: weaviate.Client):
 
 
 def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
-    client.collection.delete("A")
-    client.collection.delete("B")
-    client.collection.delete("C")
+    client.collection.delete("ATypedDicts")
+    client.collection.delete("BTypedDicts")
+    client.collection.delete("CTypedDicts")
 
     class AProps(TypedDict):
         name: str
 
     A = client.collection.create(
         CollectionConfig(
-            name="A",
+            name="ATypedDicts",
             vectorizer=Vectorizer.NONE,
             properties=[
                 Property(name="Name", data_type=DataType.TEXT),
@@ -740,7 +731,7 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
 
     B = client.collection.create(
         CollectionConfig(
-            name="B",
+            name="BTypedDicts",
             properties=[
                 Property(name="Name", data_type=DataType.TEXT),
                 ReferenceProperty(name="ref", target_collection="A"),
@@ -759,7 +750,7 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
 
     C = client.collection.create(
         CollectionConfig(
-            name="C",
+            name="CTypedDicts",
             properties=[
                 Property(name="Name", data_type=DataType.TEXT),
                 Property(name="Age", data_type=DataType.INT),
