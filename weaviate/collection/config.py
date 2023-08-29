@@ -5,10 +5,10 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.collection.classes.config import (
     CollectionConfigUpdate,
     PropertyType,
-    _collection_config_from_json,
     _CollectionConfig,
     _Property,
 )
+from weaviate.collection.classes.config_methods import _collection_config_from_json
 from weaviate.collection.classes.orm import Model
 from weaviate.connect import Connection
 from weaviate.exceptions import (

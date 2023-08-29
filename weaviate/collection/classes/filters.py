@@ -45,12 +45,6 @@ class _FilterValue(_Filters):
     value: FilterValues
     operator: weaviate_pb2.Filters.Operator
 
-    def __and__(self, other: "_Filters"):
-        return _FilterAnd(self, other)
-
-    def __or__(self, other: "_Filters"):
-        return _FilterOr(self, other)
-
 
 @dataclass
 class Filter:

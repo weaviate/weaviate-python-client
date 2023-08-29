@@ -8,15 +8,6 @@ Properties = TypeVar("Properties")
 
 @dataclass
 class _MetadataReturn:
-    # uuid: Optional[uuid_package.UUID] = Field(None, alias="id")
-    # vector: Optional[List[float]] = None
-    # creation_time_unix: Optional[int] = Field(None, alias="creationTimeUnix")
-    # last_update_time_unix: Optional[int] = Field(None, alias="lastUpdateTimeUnix")
-    # distance: Optional[float] = None
-    # certainty: Optional[float] = None
-    # score: Optional[float] = None
-    # explain_score: Optional[str] = Field(None, alias="explainScore")
-    # is_consistent: Optional[bool] = Field(None, alias="isConsistent")
     uuid: Optional[uuid_package.UUID] = None
     vector: Optional[List[float]] = None
     creation_time_unix: Optional[int] = None

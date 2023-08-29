@@ -48,23 +48,6 @@ class BaseProperty(BaseModel):
     uuid: uuid_package.UUID = Field(default_factory=uuid_package.uuid4)
     vector: Optional[List[float]] = None
 
-    # def __new__(cls, *args, **kwargs):
-    #     #
-    #     build = super().__new__(cls)
-    #     # fields, class_vars = collect_model_fields(cls)
-    #     for name, field in build.model_fields.items():
-    #         if name not in BaseProperty.model_fields:
-    #             field_type = build._remove_optional_type(field.annotation)
-    #             if inspect.isclass(field_type):
-    #                 if field.annotation not in PYTHON_TYPE_TO_DATATYPE:
-    #                     build.model_fields[name] = fields.FieldInfo(annotation=typing.Optional[UUID], default=None)
-    #
-    #     build.__class_vars__.update(build.__class_vars__)
-    #     return build
-    #
-    #
-    # make references optional by default - does not work
-
     def model_post_init(self, __context: Any) -> None:
         self._reference_fields: Set[str] = self.get_ref_fields(type(self))
 

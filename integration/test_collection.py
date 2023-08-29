@@ -27,7 +27,7 @@ from weaviate.collection.classes.config import (
 from weaviate.collection.classes.data import (
     DataObject,
     Error,
-    GetObjectByIdIncludes,
+    GetObjectsMetadata,
     ReferenceTo,
     ReferenceToMultiTarget,
 )
@@ -240,12 +240,12 @@ def test_replace_overwrites_vector(client: weaviate.Client):
     )
     collection = client.collection.create(collection_config)
     uuid = collection.data.insert(data={"name": "some name"}, vector=[1, 2, 3])
-    obj = collection.data.get_by_id(uuid, includes=GetObjectByIdIncludes(vector=True))
+    obj = collection.data.get_by_id(uuid, includes=GetObjectsMetadata(vector=True))
     assert obj.data["name"] == "some name"
     assert obj.metadata.vector == [1, 2, 3]
 
     collection.data.replace(data={"name": "other name"}, uuid=uuid)
-    obj = collection.data.get_by_id(uuid, includes=GetObjectByIdIncludes(vector=True))
+    obj = collection.data.get_by_id(uuid, includes=GetObjectsMetadata(vector=True))
     assert obj.data["name"] == "other name"
     assert obj.metadata.vector is None
 
@@ -501,7 +501,7 @@ def test_near_vector(client: weaviate.Client):
     collection.data.insert({"Name": "car"})
     collection.data.insert({"Name": "Mountain"})
 
-    banana = collection.data.get_by_id(uuid_banana, includes=GetObjectByIdIncludes(vector=True))
+    banana = collection.data.get_by_id(uuid_banana, includes=GetObjectsMetadata(vector=True))
 
     full_objects = collection.query.near_vector_flat(
         banana.metadata.vector, return_metadata=MetadataQuery(distance=True, certainty=True)

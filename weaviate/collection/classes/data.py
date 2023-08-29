@@ -16,12 +16,12 @@ class IncludesModel(BaseModel):
         return ",".join(include)
 
 
-class GetObjectByIdIncludes(IncludesModel):
+class GetObjectByIdMetadata(IncludesModel):
     classification: bool = False
     vector: bool = False
 
 
-class GetObjectsIncludes(IncludesModel):
+class GetObjectsMetadata(IncludesModel):
     classification: bool = False
     featureProjection: bool = Field(False, alias="feature_projection")
     vector: bool = False

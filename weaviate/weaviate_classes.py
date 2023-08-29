@@ -4,7 +4,6 @@ from weaviate.collection.classes.config import (
     InvertedIndexConfigCreate,
     InvertedIndexConfigUpdate,
     Property,
-    ReferenceDataType,
     ReferenceProperty,
     ReferencePropertyMultiTarget,
     ShardingConfigCreate,
@@ -18,8 +17,8 @@ from weaviate.collection.classes.config import (
 )
 from weaviate.collection.classes.data import (
     DataObject,
-    GetObjectByIdIncludes,
-    GetObjectsIncludes,
+    GetObjectByIdMetadata,
+    GetObjectsMetadata,
     ReferenceTo,
     ReferenceToMultiTarget,
 )
@@ -51,8 +50,8 @@ __all__ = [
     "GetOptions",
     "HybridFusion",
     "HybridOptions",
-    "GetObjectByIdIncludes",
-    "GetObjectsIncludes",
+    "GetObjectByIdMetadata",
+    "GetObjectsMetadata",
     "InvertedIndexConfigCreate",
     "InvertedIndexConfigUpdate",
     "LinkTo",
@@ -60,7 +59,6 @@ __all__ = [
     "MetadataQuery",
     "NearObjectOptions",
     "NearVectorOptions",
-    "ReferenceDataType",
     "ReferenceProperty",
     "ReferencePropertyMultiTarget",
     "Property",

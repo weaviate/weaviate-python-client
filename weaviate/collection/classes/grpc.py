@@ -1,14 +1,10 @@
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union
-from typing_extensions import TypeAlias
 
-from google.protobuf import struct_pb2
 from pydantic import BaseModel
 
-from weaviate.collection.classes.internal import _MetadataReturn
 from weaviate.util import BaseEnum
 from weaviate.weaviate_types import UUID
-from weaviate_grpc import weaviate_pb2
 
 
 class HybridFusion(str, BaseEnum):
@@ -81,41 +77,6 @@ class LinkToMultiTarget(LinkTo):
 
 PROPERTIES = Union[List[Union[str, LinkTo]], str]
 
-# Can be found in the google.protobuf.internal.well_known_types.pyi stub file but is defined explicitly here for clarity.
-_StructValue: TypeAlias = Union[
-    struct_pb2.Struct,
-    struct_pb2.ListValue,
-    str,
-    float,
-    bool,
-    None,
-    List[float],
-    List[int],
-    List[str],
-    List[bool],
-    List[UUID],
-]
-_PyValue: TypeAlias = Union[
-    Dict[str, "_PyValue"],
-    List["_PyValue"],
-    str,
-    float,
-    bool,
-    None,
-    List[float],
-    List[int],
-    List[str],
-    List[bool],
-    List[UUID],
-]
-_RawObject = Dict[str, _PyValue]
-
-
-@dataclass
-class GrpcResult:
-    metadata: _MetadataReturn
-    result: Dict[str, Union[_StructValue, List["GrpcResult"]]]
-
 
 @dataclass
 class ReturnValues:
@@ -127,14 +88,3 @@ class ReturnValues:
 class RefProps:
     meta: MetadataQuery
     refs: Dict[str, "RefProps"]
-
-
-@dataclass
-class SearchResult:
-    properties: weaviate_pb2.ResultProperties
-    additional_properties: weaviate_pb2.ResultAdditionalProps
-
-
-@dataclass
-class SearchResponse:
-    results: List[SearchResult]
