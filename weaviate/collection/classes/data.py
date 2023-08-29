@@ -84,6 +84,6 @@ class BatchReference:
 
 @dataclass
 class DataObject:
-    data: Dict[str, Any]
+    properties: Dict[str, Any]
     uuid: Optional[UUID] = None
     vector: Optional[List[float]] = None
