@@ -4,7 +4,7 @@ from typing import Any, List, Optional, Dict, Union
 
 from pydantic import BaseModel, Field
 from weaviate.util import _to_beacons
-from weaviate.weaviate_types import UUID
+from weaviate.weaviate_types import UUID, UUIDS
 
 
 class IncludesModel(BaseModel):
@@ -55,7 +55,7 @@ class _BatchReturn:
 
 @dataclass
 class ReferenceTo:
-    uuids: Union[List[UUID], UUID]
+    uuids: UUIDS
 
     @property
     def uuids_str(self) -> List[str]:

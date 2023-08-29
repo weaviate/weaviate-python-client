@@ -456,7 +456,7 @@ class _Grpc(SupportsResultToObject, Generic[Properties]):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[_Object]:
+    ) -> List[_Object[Properties]]:
         return [
             self._result_to_object(obj)
             for obj in self.__create_query().get(
@@ -616,7 +616,7 @@ class _Grpc(SupportsResultToObject, Generic[Properties]):
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[_Object]:
+    ) -> List[_Object[Properties]]:
 
         return [
             self._result_to_object(obj)

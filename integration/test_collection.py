@@ -3,6 +3,12 @@ import datetime
 import pytest as pytest
 import uuid
 
+from dataclasses import dataclass
+from typing import TypedDict
+
+from pydantic import BaseModel
+from pydantic.dataclasses import dataclass as pydantic_dataclass
+
 import weaviate
 from weaviate import Config
 from weaviate.collection.classes.config import (
@@ -32,6 +38,7 @@ from weaviate.collection.classes.data import (
     ReferenceToMultiTarget,
 )
 from weaviate.collection.classes.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery
+from weaviate.collection.classes.internal import Reference
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 
 BEACON_START = "weaviate://localhost"
@@ -61,18 +68,102 @@ def test_create_and_delete(client: weaviate.Client):
     assert not client.collection.exists(name)
 
 
-def test_insert(client: weaviate.Client):
-    name = "TestInsert"
+def test_create_get_and_delete_with_supported_generic(client: weaviate.Client):
+    name = "TestCreateGetAndDeleteGeneric"
     collection_config = CollectionConfig(
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer=Vectorizer.NONE,
     )
-    collection = client.collection.create(collection_config)
-    uuid = collection.data.insert(data={"name": "some name"})
-    assert collection.data.get_by_id(uuid).data["name"] == "some name"
+    client.collection.create(collection_config)
 
+    class Right(TypedDict):
+        name: str
+
+    class AlsoRight:
+        name: str
+
+    client.collection.get(name, Right)
+    client.collection.get(name, AlsoRight)
+    assert client.collection.exists(name)
     client.collection.delete(name)
+    assert not client.collection.exists(name)
+
+
+def test_get_with_unsupported_generic(client: weaviate.Client):
+    @dataclass
+    class OneWrong:
+        name: str
+
+    with pytest.raises(TypeError) as error:
+        client.collection.get(
+            "NotImportant", OneWrong
+        )  # bad type because dataclass not bound by generic
+    assert (
+        error.value.args[0]
+        == "The only generics allowed to be used in data_model are Dicts and TypedDicts"
+    )
+
+    class AnotherWrong:
+        name: str
+
+        def __init__(self, name: str):
+            self.name = name
+
+    with pytest.raises(TypeError) as error:
+        client.collection.get("NotImportant", AnotherWrong)
+    assert (
+        error.value.args[0]
+        == "The only generics allowed to be used in data_model are Dicts and TypedDicts"
+    )
+
+    class YetAnotherWrong(BaseModel):
+        name: str
+
+    with pytest.raises(TypeError) as error:
+        client.collection.get("NotImportant", YetAnotherWrong)
+    assert (
+        error.value.args[0]
+        == "The only generics allowed to be used in data_model are Dicts and TypedDicts"
+    )
+
+    @pydantic_dataclass
+    class NotAnotherOne:
+        name: str
+
+    with pytest.raises(TypeError) as error:
+        client.collection.get("NotImportant", NotAnotherOne)
+    assert (
+        error.value.args[0]
+        == "The only generics allowed to be used in data_model are Dicts and TypedDicts"
+    )
+
+
+@pytest.mark.parametrize(
+    "use_typed_dict",
+    [False, True],
+)
+def test_insert(client: weaviate.Client, use_typed_dict: bool):
+    name = "TestInsert"
+    client.collection.delete(name)
+    collection_config = CollectionConfig(
+        name=name,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer=Vectorizer.NONE,
+    )
+
+    class TestInsert(TypedDict):
+        name: str
+
+    insert_data = {"name": "some name"}
+    if use_typed_dict:
+        collection = client.collection.create(collection_config, TestInsert)
+        uuid = collection.data.insert(data=TestInsert(**insert_data))
+    else:
+        collection = client.collection.create(collection_config)
+        uuid = collection.data.insert(data=insert_data)
+    name = collection.data.get_by_id(uuid).data["name"]
+    assert name == insert_data["name"]
 
 
 def test_insert_many(client: weaviate.Client):
@@ -609,6 +700,104 @@ def test_mono_references_grcp(client: weaviate.Client):
         ],
     )
     assert objects[0].data["name"] == "find me"
+    assert objects[0].data["ref"][0].data["name"] == "B"
+    assert objects[0].data["ref"][0].data["ref"][0].data["name"] == "A1"
+    assert objects[0].data["ref"][0].data["ref"][1].data["name"] == "A2"
+
+
+def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
+    client.collection.delete("ATypedDicts")
+    client.collection.delete("BTypedDicts")
+    client.collection.delete("CTypedDicts")
+
+    class AProps(TypedDict):
+        name: str
+
+    A = client.collection.create(
+        CollectionConfig(
+            name="ATypedDicts",
+            vectorizer=Vectorizer.NONE,
+            properties=[
+                Property(name="Name", data_type=DataType.TEXT),
+            ],
+        )
+    )
+    uuid_A1 = A.data.insert(AProps(name="A1"))
+    uuid_A2 = A.data.insert(AProps(name="A2"))
+
+    class BPropsInsert(TypedDict):
+        name: str
+        ref: ReferenceTo
+
+    B = client.collection.create(
+        CollectionConfig(
+            name="BTypedDicts",
+            properties=[
+                Property(name="Name", data_type=DataType.TEXT),
+                ReferenceProperty(name="ref", target_collection="ATypedDicts"),
+            ],
+            vectorizer=Vectorizer.NONE,
+        ),
+        BPropsInsert,
+    )
+    uuid_B = B.data.insert(BPropsInsert(name="B", ref=ReferenceTo(uuids=uuid_A1)))
+    B.data.reference_add(from_uuid=uuid_B, from_property="ref", ref=ReferenceTo(uuids=uuid_A2))
+
+    class CPropsInsert(TypedDict):
+        name: str
+        ref: ReferenceTo
+        age: int
+
+    C = client.collection.create(
+        CollectionConfig(
+            name="CTypedDicts",
+            properties=[
+                Property(name="Name", data_type=DataType.TEXT),
+                Property(name="Age", data_type=DataType.INT),
+                ReferenceProperty(name="ref", target_collection="BTypedDicts"),
+            ],
+            vectorizer=Vectorizer.NONE,
+        ),
+        CPropsInsert,
+    )
+    C.data.insert(CPropsInsert(name="find me", age=10, ref=ReferenceTo(uuids=uuid_B)))
+
+    class BPropsGet(TypedDict):
+        name: str
+        ref: Reference[AProps]
+
+    class CPropsGet(TypedDict):
+        name: str
+        ref: Reference[BPropsGet]
+        not_specified: str
+
+    objects = C.query.bm25_flat(
+        query="find",
+        return_properties=[
+            "name",
+            "age",
+            LinkTo(
+                link_on="ref",
+                properties=[
+                    "name",
+                    LinkTo(
+                        link_on="ref",
+                        properties=["name"],
+                        metadata=MetadataQuery(uuid=True),
+                    ),
+                ],
+                metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
+            ),
+        ],
+        # type_=CPropsGet,
+    )
+    assert objects[0].data["name"] == "find me"  # happy path (in type and in return_properties)
+    assert (
+        objects[0].data.get("not_specified") is None
+    )  # type is str but instance is None (in type but not in return_properties)
+    assert (
+        objects[0].data.get("age") == 10
+    )  # type is Any | None but instance is 10 (not in type but in return_properties)
     assert objects[0].data["ref"][0].data["name"] == "B"
     assert objects[0].data["ref"][0].data["ref"][0].data["name"] == "A1"
     assert objects[0].data["ref"][0].data["ref"][1].data["name"] == "A2"

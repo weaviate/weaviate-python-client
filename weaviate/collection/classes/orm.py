@@ -33,7 +33,7 @@ from weaviate.weaviate_types import PYTHON_TYPE_TO_DATATYPE, UUID
 
 @dataclass
 class CrossReference:
-    ref_type: Union[Type, str]
+    ref_type: Union[type, str]
 
     @property
     def name(self) -> str:
