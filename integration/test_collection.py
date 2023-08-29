@@ -1261,3 +1261,44 @@ def test_update_tenant(client: weaviate.Client):
     collection.tenants.update([Tenant(name="1", activity_status=TenantActivityStatus.COLD)])
     tenants = collection.tenants.get()
     assert tenants["1"].activity_status == TenantActivityStatus.COLD
+
+
+def test_return_list_properties(client: weaviate.Client):
+    name_small = "TestReturnList"
+    collection = client.collection.create(
+        CollectionConfig(
+            name=name_small,
+            vectorizer=Vectorizer.NONE,
+            properties=[
+                Property(name="ints", data_type=DataType.INT_ARRAY),
+                Property(name="floats", data_type=DataType.NUMBER_ARRAY),
+                Property(name="strings", data_type=DataType.TEXT_ARRAY),
+                Property(name="bools", data_type=DataType.BOOL_ARRAY),
+                Property(name="dates", data_type=DataType.DATE_ARRAY),
+                Property(name="uuids", data_type=DataType.UUID_ARRAY),
+            ],
+        )
+    )
+    data = {
+        "ints": [1, 2, 3],
+        "floats": [0.1, 0.4, 10.5],
+        "strings": ["a", "list", "of", "strings"],
+        "bools": [True, False, True],
+        "dates": [
+            datetime.datetime.strptime("2012-02-09", "%Y-%m-%d").replace(
+                tzinfo=datetime.timezone.utc
+            )
+        ],
+        "uuids": [uuid.uuid4(), uuid.uuid4()],
+    }
+    collection.data.insert(data=data)
+    objects = collection.query.get_flat()
+    assert len(objects) == 1
+
+    # remove dates because of problems comparing dates
+    dates_from_weaviate = objects[0].data.pop("dates")
+    dates2 = [datetime.datetime.fromisoformat(date) for date in dates_from_weaviate]
+    dates = data.pop("dates")
+    assert dates2 == dates
+
+    assert objects[0].data == data

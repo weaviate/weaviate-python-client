@@ -110,8 +110,32 @@ class LinkToMultiTarget(LinkTo):
 PROPERTIES = Union[List[Union[str, LinkTo]], str]
 
 # Can be found in the google.protobuf.internal.well_known_types.pyi stub file but is defined explicitly here for clarity.
-_StructValue: TypeAlias = Union[struct_pb2.Struct, struct_pb2.ListValue, str, float, bool, None]
-_PyValue: TypeAlias = Union[Dict[str, "_PyValue"], List["_PyValue"], str, float, bool, None]
+_StructValue: TypeAlias = Union[
+    struct_pb2.Struct,
+    struct_pb2.ListValue,
+    str,
+    float,
+    bool,
+    None,
+    List[float],
+    List[int],
+    List[str],
+    List[bool],
+    List[UUID],
+]
+_PyValue: TypeAlias = Union[
+    Dict[str, "_PyValue"],
+    List["_PyValue"],
+    str,
+    float,
+    bool,
+    None,
+    List[float],
+    List[int],
+    List[str],
+    List[bool],
+    List[UUID],
+]
 _RawObject = Dict[str, _PyValue]
 
 
@@ -523,6 +547,23 @@ class _GrpcCollection(_Grpc):
 
         for name, non_ref_prop in properties.non_ref_properties.items():
             result[name] = self._deserialize_primitive(non_ref_prop, hints.get(name))
+
+        for number_array_property in properties.number_array_properties:
+            result[number_array_property.key] = [float(val) for val in number_array_property.vals]
+
+        for int_array_property in properties.int_array_properties:
+            result[int_array_property.key] = [int(val) for val in int_array_property.vals]
+
+        for text_array_property in properties.text_array_properties:
+            result[text_array_property.key] = [str(val) for val in text_array_property.vals]
+
+        for boolean_array_property in properties.boolean_array_properties:
+            result[boolean_array_property.key] = [bool(val) for val in boolean_array_property.vals]
+
+        for uuid_array_property in properties.uuid_array_properties:
+            result[uuid_array_property.key] = [
+                uuid_lib.UUID(val) for val in uuid_array_property.vals
+            ]
 
         for ref_prop in properties.ref_props:
             hint = hints.get(ref_prop.prop_name)
