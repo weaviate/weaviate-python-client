@@ -492,13 +492,13 @@ class _DataCollectionModel(Generic[Model], _Data):
     def get_by_id(
         self, uuid: UUID, metadata: Optional[GetObjectByIdMetadata] = None
     ) -> Optional[_Object[Model]]:
-        ret = self._get_by_id(uuid=uuid, includes=metadata)
+        ret = self._get_by_id(uuid=uuid, metadata=metadata)
         if ret is None:
             return None
         return self._json_to_object(ret)
 
     def get(self, metadata: Optional[GetObjectsMetadata] = None) -> List[_Object[Model]]:
-        ret = self._get(includes=metadata)
+        ret = self._get(metadata=metadata)
         if ret is None:
             return []
 
