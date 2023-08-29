@@ -3,7 +3,7 @@ from typing import Type, Optional, Any, Dict, Generic, Tuple
 from pydantic import create_model
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.collection.classes import (
+from weaviate.collection.classes.orm import (
     BaseProperty,
     CollectionModelConfig,
     Model,

@@ -2,7 +2,7 @@ from typing import Dict, Any, List
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.collection.classes import Tenant
+from weaviate.collection.classes.tenants import Tenant
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 

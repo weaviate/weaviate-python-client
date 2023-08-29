@@ -5,21 +5,25 @@ import pytest as pytest
 
 import weaviate
 from weaviate import Config
-from weaviate.collection.classes import (
+from weaviate.collection.classes.config import (
     CollectionConfig,
     Property,
     DataType,
     ReferenceProperty,
     ReferencePropertyMultiTarget,
+    Vectorizer,
+    InvertedIndexConfigCreate,
+)
+from weaviate.collection.classes.data import (
     ReferenceTo,
     ReferenceToMultiTarget,
-    Vectorizer,
+)
+from weaviate.collection.classes.filters import (
     Filter,
-    InvertedIndexConfigCreate,
     _Filters,
     _FilterValue,
 )
-from weaviate.collection.grpc import MetadataQuery
+from weaviate.collection.classes.grpc import MetadataQuery
 
 
 @pytest.fixture(scope="module")

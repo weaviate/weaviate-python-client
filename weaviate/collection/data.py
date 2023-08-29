@@ -5,20 +5,23 @@ import uuid as uuid_package
 from google.protobuf.struct_pb2 import Struct
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.collection.classes import (
+from weaviate.collection.classes.data import (
     BatchReference,
     DataObject,
     Error,
     ReferenceTo,
-    GetObjectByIdIncludes,
-    GetObjectsIncludes,
+    GetObjectByIdMetadata,
+    GetObjectsMetadata,
     IncludesModel,
-    _metadata_from_dict,
-    _Object,
-    UUID,
-    Model,
     ReferenceToMultiTarget,
     _BatchReturn,
+)
+from weaviate.collection.classes.internal import (
+    _Object,
+    _metadata_from_dict,
+)
+from weaviate.collection.classes.orm import (
+    Model,
 )
 from weaviate.collection.config import _ConfigBase, _ConfigCollectionModel
 from weaviate.collection.grpc_batch import _BatchGRPC
@@ -26,7 +29,7 @@ from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException, ObjectAlreadyExistsException
 from weaviate.warnings import _Warnings
-from weaviate.weaviate_types import BEACON
+from weaviate.weaviate_types import BEACON, UUID
 from weaviate_grpc import weaviate_pb2
 
 
@@ -142,20 +145,20 @@ class _Data:
         raise UnexpectedStatusCodeException("Update object", response)
 
     def _get_by_id(
-        self, uuid: UUID, includes: Optional[GetObjectByIdIncludes] = None
+        self, uuid: UUID, metadata: Optional[GetObjectByIdMetadata] = None
     ) -> Optional[Dict[str, Any]]:
         path = f"/objects/{self.name}/{uuid}"
 
         return self._get_from_weaviate(
-            params=self.__apply_context({}), path=path, includes=includes
+            params=self.__apply_context({}), path=path, includes=metadata
         )
 
-    def _get(self, includes: Optional[GetObjectsIncludes] = None) -> Optional[Dict[str, Any]]:
+    def _get(self, metadata: Optional[GetObjectsMetadata] = None) -> Optional[Dict[str, Any]]:
         path = "/objects"
         params: Dict[str, Any] = {"class": self.name}
 
         return self._get_from_weaviate(
-            params=self.__apply_context(params), path=path, includes=includes
+            params=self.__apply_context(params), path=path, includes=metadata
         )
 
     def _get_from_weaviate(
@@ -351,15 +354,15 @@ class _DataCollection(_Data):
         self._update(weaviate_obj, uuid=uuid)
 
     def get_by_id(
-        self, uuid: UUID, includes: Optional[GetObjectByIdIncludes] = None
+        self, uuid: UUID, metadata: Optional[GetObjectByIdMetadata] = None
     ) -> Optional[_Object]:
-        ret = self._get_by_id(uuid=uuid, includes=includes)
+        ret = self._get_by_id(uuid=uuid, metadata=metadata)
         if ret is None:
             return ret
         return self._json_to_object(ret)
 
-    def get(self, includes: Optional[GetObjectsIncludes] = None) -> List[_Object]:
-        ret = self._get(includes=includes)
+    def get(self, metadata: Optional[GetObjectsMetadata] = None) -> List[_Object]:
+        ret = self._get(metadata=metadata)
         if ret is None:
             return []
 
@@ -487,15 +490,15 @@ class _DataCollectionModel(Generic[Model], _Data):
         self._update(weaviate_obj, uuid)
 
     def get_by_id(
-        self, uuid: UUID, includes: Optional[GetObjectByIdIncludes] = None
+        self, uuid: UUID, metadata: Optional[GetObjectByIdMetadata] = None
     ) -> Optional[_Object[Model]]:
-        ret = self._get_by_id(uuid=uuid, includes=includes)
+        ret = self._get_by_id(uuid=uuid, metadata=metadata)
         if ret is None:
             return None
         return self._json_to_object(ret)
 
-    def get(self, includes: Optional[GetObjectsIncludes] = None) -> List[_Object[Model]]:
-        ret = self._get(includes=includes)
+    def get(self, metadata: Optional[GetObjectsMetadata] = None) -> List[_Object[Model]]:
+        ret = self._get(metadata=metadata)
         if ret is None:
             return []
 

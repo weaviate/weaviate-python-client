@@ -2,14 +2,14 @@ from typing import Dict, Any, List, Optional, Type, Tuple
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.collection.classes import (
+from weaviate.collection.classes.config import (
     CollectionConfigUpdate,
-    Model,
     PropertyType,
-    _collection_config_from_json,
     _CollectionConfig,
     _Property,
 )
+from weaviate.collection.classes.config_methods import _collection_config_from_json
+from weaviate.collection.classes.orm import Model
 from weaviate.connect import Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,

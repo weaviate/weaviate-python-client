@@ -2,11 +2,11 @@ from typing import Dict
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.collection.classes import (
+from weaviate.collection.classes.config import (
     CollectionConfigCreateBase,
-    _collection_configs_from_json,
     _CollectionConfig,
 )
+from weaviate.collection.classes.config_methods import _collection_configs_from_json
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 
