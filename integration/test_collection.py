@@ -734,7 +734,7 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
             name="BTypedDicts",
             properties=[
                 Property(name="Name", data_type=DataType.TEXT),
-                ReferenceProperty(name="ref", target_collection="A"),
+                ReferenceProperty(name="ref", target_collection="ATypedDicts"),
             ],
             vectorizer=Vectorizer.NONE,
         ),
@@ -754,7 +754,7 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
             properties=[
                 Property(name="Name", data_type=DataType.TEXT),
                 Property(name="Age", data_type=DataType.INT),
-                ReferenceProperty(name="ref", target_collection="B"),
+                ReferenceProperty(name="ref", target_collection="BTypedDicts"),
             ],
             vectorizer=Vectorizer.NONE,
         ),
