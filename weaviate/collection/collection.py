@@ -56,7 +56,7 @@ class Collection(CollectionBase):
             raise ValueError(
                 f"Name of created collection ({name}) does not match given name ({config.name})"
             )
-        return CollectionObject[Properties](self._connection, name, data_model)
+        return self.get(name, data_model)
 
     def get(
         self, name: str, data_model: Optional[Type[Properties]] = None
