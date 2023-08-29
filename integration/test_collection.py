@@ -1296,7 +1296,7 @@ def test_return_list_properties(client: weaviate.Client):
     assert len(objects) == 1
 
     # remove dates because of problems comparing dates
-    dates_from_weaviate = objects[0].data.pop("dates")
+    dates_from_weaviate = objects[0].properties.pop("dates")
     dates2 = [datetime.datetime.fromisoformat(date) for date in dates_from_weaviate]
     dates = data.pop("dates")
     assert dates2 == dates
