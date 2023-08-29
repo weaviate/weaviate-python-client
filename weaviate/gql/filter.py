@@ -835,33 +835,53 @@ class Where(Filter):
     def __str__(self):
         if self.is_filter:
             gql = f"where: {{path: {self.path} operator: {self.operator} {_convert_value_type(self.value_type)}: "
-            if self.value_type in ["valueInt", "valueNumber"]:
-                _check_is_not_list(self.value, self.value_type)
+            if self.value_type in [
+                "valueInt",
+                "valueNumber",
+                "valueIntArray",
+                "valueNumberArray",
+                "valueIntList",
+                "valueNumberList",
+            ]:
+                if self.value_type in [
+                    "valueIntList",
+                    "valueNumberList",
+                    "valueIntList",
+                    "valueNumberList",
+                ]:
+                    _check_is_list(self.value, self.value_type)
                 gql += f"{self.value}}}"
-            elif self.value_type in ["valueIntArray", "valueNumberArray"]:
-                _check_is_list(self.value, self.value_type)
-                gql += f"{self.value}}}"
-            elif self.value_type in ["valueText", "valueString"]:
-                _check_is_not_list(self.value, self.value_type)
-                gql += f"{_sanitize_str(self.value)}}}"
-            elif self.value_type in ["valueTextArray", "valueStringArray"]:
-                _check_is_list(self.value, self.value_type)
-                val = [_sanitize_str(v) for v in self.value]
-                gql += f"{_render_list(val)}}}"
-            elif self.value_type == "valueBoolean":
-                _check_is_not_list(self.value, self.value_type)
-                gql += f"{_bool_to_str(self.value)}}}"
-            elif self.value_type == "valueBooleanArray":
-                _check_is_list(self.value, self.value_type)
-                gql += f"{_render_list(self.value)}}}"
-            elif self.value_type == "valueDateArray":
-                _check_is_list(self.value, self.value_type)
-                gql += f"{_render_list(self.value)}}}"
+            elif self.value_type in [
+                "valueText",
+                "valueString",
+                "valueTextList",
+                "valueStringList",
+                "valueTextArray",
+                "valueStringArray",
+            ]:
+                if self.value_type in [
+                    "valueTextList",
+                    "valueStringList",
+                    "valueTextArray",
+                    "valueStringArray",
+                ]:
+                    _check_is_list(self.value, self.value_type)
+                if isinstance(self.value, list):
+                    val = [_sanitize_str(v) for v in self.value]
+                    gql += f"{_render_list(val)}}}"
+                else:
+                    gql += f"{_sanitize_str(self.value)}}}"
+            elif self.value_type in ["valueBoolean", "valueBooleanArray", "valueBooleanList"]:
+                if self.value_type in ["valueBooleanArray", "valueBooleanList"]:
+                    _check_is_list(self.value, self.value_type)
+                if isinstance(self.value, list):
+                    gql += f"{_render_list(self.value)}}}"
+                else:
+                    gql += f"{_bool_to_str(self.value)}}}"
             elif self.value_type == "valueGeoRange":
                 _check_is_not_list(self.value, self.value_type)
                 gql += f"{_geo_range_to_str(self.value)}}}"
             else:
-                _check_is_not_list(self.value, self.value_type)
                 gql += f'"{self.value}"}}'
             return gql + " "
 

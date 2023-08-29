@@ -626,9 +626,6 @@ class TestWhere(unittest.TestCase):
         value_is_not_list_err = (
             lambda v, t: f"Must provide a list when constructing where filter for {t} with {v}"
         )
-        value_is_list_err = (
-            lambda v, t: f"Cannot provide a list when constructing where filter for {t} with {v}"
-        )
 
         test_filter = {"path": ["name"], "operator": "Equal", "valueString": "A"}
         result = str(Where(test_filter))
@@ -760,26 +757,6 @@ class TestWhere(unittest.TestCase):
         with self.assertRaises(TypeError) as error:
             str(Where(test_filter))
         check_error_message(self, error, value_is_not_list_err("A", "valueTextArray"))
-
-        test_filter = {
-            "path": ["name"],
-            "operator": "GreaterThan",
-            "valueInt": [1, 2],
-        }
-        with self.assertRaises(TypeError) as error:
-            str(Where(test_filter))
-        check_error_message(self, error, value_is_list_err([1, 2], "valueInt"))
-
-        test_filter = {
-            "path": ["name"],
-            "operator": "Equal",
-            "valueDate": ["test-2021-02-02", "test-2021-02-03"],
-        }
-        with self.assertRaises(TypeError) as error:
-            str(Where(test_filter))
-        check_error_message(
-            self, error, value_is_list_err(["test-2021-02-02", "test-2021-02-03"], "valueDate")
-        )
 
         test_filter = {
             "path": ["name"],

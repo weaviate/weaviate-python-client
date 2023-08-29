@@ -1,7 +1,7 @@
 import json
 import os
 import uuid
-from typing import Optional, List
+from typing import Optional, List, Union
 
 import pytest
 from pytest import FixtureRequest
@@ -20,6 +20,7 @@ schema = {
                 {"dataType": ["string"], "description": "name", "name": "name"},
                 {"dataType": ["string"], "description": "description", "name": "description"},
                 {"dataType": ["int"], "description": "size", "name": "size"},
+                {"dataType": ["number"], "description": "rating", "name": "rating"},
             ],
             "vectorizer": "text2vec-contextionary",
         }
@@ -28,30 +29,50 @@ schema = {
 
 SHIPS = [
     {
-        "props": {"name": "HMS British Name", "size": 5, "description": "Super long description"},
+        "props": {
+            "name": "HMS British Name",
+            "size": 5,
+            "rating": 0.0,
+            "description": "Super long description",
+        },
         "id": uuid.uuid4(),
     },
     {
         "props": {
             "name": "The dragon ship",
+            "rating": 6.66,
             "size": 20,
             "description": "Interesting things about dragons",
         },
         "id": uuid.uuid4(),
     },
     {
-        "props": {"name": "Blackbeard", "size": 43, "description": "Background info about movies"},
+        "props": {
+            "name": "Blackbeard",
+            "size": 43,
+            "rating": 7.2,
+            "description": "Background info about movies",
+        },
         "id": uuid.uuid4(),
     },
-    {"props": {"name": "Titanic", "size": 1, "description": "Everyone knows"}, "id": uuid.uuid4()},
     {
-        "props": {"name": "Artemis", "size": 34, "description": "Name from some story"},
+        "props": {"name": "Titanic", "size": 1, "rating": 4.5, "description": "Everyone knows"},
+        "id": uuid.uuid4(),
+    },
+    {
+        "props": {
+            "name": "Artemis",
+            "size": 34,
+            "rating": 9.1,
+            "description": "Name from some story",
+        },
         "id": uuid.uuid4(),
     },
     {
         "props": {
             "name": "The Crusty Crab",
             "size": 303,
+            "rating": 10.0,
             "description": "sponges, sponges, sponges",
         },
         "id": uuid.uuid4(),
@@ -113,33 +134,157 @@ def test_get_data(client: weaviate.Client):
 
 def test_get_data_with_where_contains_any(client: weaviate.Client):
     """Test GraphQL's Get clause with where filter."""
-    where_filter = {"path": ["size"], "operator": "ContainsAny", "valueIntArray": [5]}
+    where_filter = {"path": ["size"], "operator": "ContainsAny", "valueInt": [5]}
     result = client.query.get("Ship", ["name", "size"]).with_where(where_filter).do()
     objects = get_objects_from_result(result)
     assert len(objects) == 1 and objects[0]["name"] == "HMS British Name"
 
 
 @pytest.mark.parametrize(
-    "value_string_list,expected_objects_len",
+    "path,operator,value_type_key,value_type_value,name,expected_objects_len",
     [
-        (["sponges, sponges, sponges"], 1),
-        (["sponges, sponges, sponges", "doesn't exist"], 0),
+        (
+            ["description"],
+            "ContainsAll",
+            "valueString",
+            ["sponges, sponges, sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAll",
+            "valueText",
+            ["sponges", "sponges", "sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAll",
+            "valueStringArray",
+            ["sponges", "sponges", "sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAll",
+            "valueTextArray",
+            ["sponges, sponges, sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAll",
+            "valueStringList",
+            ["sponges", "sponges", "sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAll",
+            "valueTextList",
+            ["sponges", "sponges", "sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAny",
+            "valueString",
+            ["sponges, sponges, sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAny",
+            "valueText",
+            ["sponges", "sponges", "sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAny",
+            "valueStringArray",
+            ["sponges", "sponges", "sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAny",
+            "valueTextArray",
+            ["sponges, sponges, sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAny",
+            "valueStringList",
+            ["sponges", "sponges", "sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAny",
+            "valueTextList",
+            ["sponges", "sponges", "sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (["size"], "ContainsAll", "valueInt", [5], "HMS British Name", 1),
+        (["size"], "ContainsAll", "valueIntList", [5], "HMS British Name", 1),
+        (["size"], "ContainsAll", "valueIntArray", [5], "HMS British Name", 1),
+        (["size"], "ContainsAny", "valueInt", [5], "HMS British Name", 1),
+        (["size"], "ContainsAny", "valueIntList", [5], "HMS British Name", 1),
+        (["size"], "ContainsAny", "valueIntArray", [5], "HMS British Name", 1),
+        (["rating"], "ContainsAll", "valueNumber", [6.66], "The dragon ship", 1),
+        (["rating"], "ContainsAll", "valueNumberList", [6.66], "The dragon ship", 1),
+        (["rating"], "ContainsAll", "valueNumberArray", [6.66], "The dragon ship", 1),
+        (["rating"], "ContainsAny", "valueNumber", [6.66], "The dragon ship", 1),
+        (["rating"], "ContainsAny", "valueNumberList", [6.66], "The dragon ship", 1),
+        (["rating"], "ContainsAny", "valueNumberArray", [6.66], "The dragon ship", 1),
+        (["size"], "Equal", "valueInt", 5, "HMS British Name", 1),
+        (["size"], "LessThan", "valueInt", 5, "Titanic", 1),
+        (["size"], "LessThanEqual", "valueInt", 1, "Titanic", 1),
+        (["size"], "GreaterThan", "valueInt", 300, "The Crusty Crab", 1),
+        (["size"], "GreaterThanEqual", "valueInt", 303, "The Crusty Crab", 1),
+        (["description"], "Like", "valueString", "sponges", "The Crusty Crab", 1),
+        (["description"], "Like", "valueText", "sponges", "The Crusty Crab", 1),
+        (["rating"], "IsNull", "valueBoolean", True, "irrelevant", 0),
+        (["rating"], "NotEqual", "valueNumber", 6.66, "irrelevant", 5),
     ],
 )
-def test_get_data_with_where_contains_all(
-    client: weaviate.Client, value_string_list: List[str], expected_objects_len: int
+def test_get_data_with_where(
+    client: weaviate.Client,
+    path: List[str],
+    operator: str,
+    value_type_key: str,
+    value_type_value: Union[List[int], List[str]],
+    name,
+    expected_objects_len: int,
 ):
     """Test GraphQL's Get clause with where filter."""
     where_filter = {
-        "path": ["description"],
-        "operator": "ContainsAll",
-        "valueStringArray": value_string_list,
+        "path": path,
+        "operator": operator,
+        value_type_key: value_type_value,
     }
     result = client.query.get("Ship", ["name"]).with_where(where_filter).do()
     objects = get_objects_from_result(result)
-    assert len(objects) == expected_objects_len
-    if expected_objects_len == 1:
-        assert objects[0]["name"] == "The Crusty Crab"
+    if expected_objects_len == 0:
+        assert objects is None
+    else:
+        assert len(objects) == expected_objects_len
+        if expected_objects_len == 1:
+            assert objects[0]["name"] == name
 
 
 def test_get_data_after(client: weaviate.Client):
