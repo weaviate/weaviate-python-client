@@ -1294,11 +1294,11 @@ class Batch:
         if not isinstance(class_name, str):
             raise TypeError(f"'class_name' must be of type str. Given type: {type(class_name)}.")
         if not isinstance(where, dict):
-            raise TypeError(f"'where' must be of type dict. Given type: {type(class_name)}.")
+            raise TypeError(f"'where' must be of type dict. Given type: {type(where)}.")
         if not isinstance(output, str):
-            raise TypeError(f"'output' must be of type str. Given type: {type(class_name)}.")
+            raise TypeError(f"'output' must be of type str. Given type: {type(output)}.")
         if not isinstance(dry_run, bool):
-            raise TypeError(f"'dry_run' must be of type bool. Given type: {type(class_name)}.")
+            raise TypeError(f"'dry_run' must be of type bool. Given type: {type(dry_run)}.")
 
         params = {}
         if self._consistency_level is not None:
@@ -1308,7 +1308,7 @@ class Batch:
 
         payload = {
             "match": {
-                "class": class_name,
+                "class": _capitalize_first_letter(class_name),
                 "where": _clean_delete_objects_where(where),
             },
             "output": output,

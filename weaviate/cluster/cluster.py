@@ -11,6 +11,8 @@ from weaviate.exceptions import (
     EmptyResponseException,
 )
 
+from ..util import _capitalize_first_letter
+
 
 class Cluster:
     """
@@ -54,7 +56,7 @@ class Cluster:
         """
         path = "/nodes"
         if class_name is not None:
-            path += "/" + class_name
+            path += "/" + _capitalize_first_letter(class_name)
 
         try:
             response = self._connection.get(path=path)
