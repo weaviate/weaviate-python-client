@@ -354,15 +354,15 @@ class _DataCollection(_Data):
         self._update(weaviate_obj, uuid=uuid)
 
     def get_by_id(
-        self, uuid: UUID, includes: Optional[GetObjectByIdMetadata] = None
+        self, uuid: UUID, metadata: Optional[GetObjectByIdMetadata] = None
     ) -> Optional[_Object]:
-        ret = self._get_by_id(uuid=uuid, includes=includes)
+        ret = self._get_by_id(uuid=uuid, metadata=metadata)
         if ret is None:
             return ret
         return self._json_to_object(ret)
 
-    def get(self, includes: Optional[GetObjectsMetadata] = None) -> List[_Object]:
-        ret = self._get(includes=includes)
+    def get(self, metadata: Optional[GetObjectsMetadata] = None) -> List[_Object]:
+        ret = self._get(metadata=metadata)
         if ret is None:
             return []
 
