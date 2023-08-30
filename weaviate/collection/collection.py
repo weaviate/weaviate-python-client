@@ -63,11 +63,12 @@ class Collection(CollectionBase):
         self, name: str, data_model: Optional[Type[Properties]] = None
     ) -> CollectionObject[Properties]:
         if data_model is not None:
+            print(data_model, data_model.__bases__)
             try:
-                data_model()
+                assert data_model.__bases__[0] == dict
             except Exception as e:
                 raise TypeError(
-                    "The only generics allowed to be used in data_model are Dicts and TypedDicts"
+                    "data_model can only be a dict or a class that inherits from TypedDict"
                 ) from e
         name = _capitalize_first_letter(name)
         return (

@@ -337,19 +337,19 @@ class _DataCollection(Generic[Properties], _Data):
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Properties]:
         props = self.__deserialize_properties(obj["properties"])
         return _Object(
-            data=cast(Properties, props),
+            properties=cast(Properties, props),
             metadata=_metadata_from_dict(obj),
         )
 
     def insert(
         self,
-        data: Properties,
+        properties: Properties,
         uuid: Optional[UUID] = None,
         vector: Optional[List[float]] = None,
     ) -> uuid_package.UUID:
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": self._serialize_properties(data),
+            "properties": self._serialize_properties(properties),
             "id": str(uuid if uuid is not None else uuid_package.uuid4()),
         }
 
@@ -361,20 +361,24 @@ class _DataCollection(Generic[Properties], _Data):
     def insert_many(self, objects: List[DataObject]) -> _BatchReturn:
         return self._insert_many(objects)
 
-    def replace(self, data: Properties, uuid: UUID, vector: Optional[List[float]] = None) -> None:
+    def replace(
+        self, properties: Properties, uuid: UUID, vector: Optional[List[float]] = None
+    ) -> None:
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": self._serialize_properties(data),
+            "properties": self._serialize_properties(properties),
         }
         if vector is not None:
             weaviate_obj["vector"] = vector
 
         self._replace(weaviate_obj, uuid=uuid)
 
-    def update(self, data: Properties, uuid: UUID, vector: Optional[List[float]] = None) -> None:
+    def update(
+        self, properties: Properties, uuid: UUID, vector: Optional[List[float]] = None
+    ) -> None:
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": self._serialize_properties(data),
+            "properties": self._serialize_properties(properties),
         }
         if vector is not None:
             weaviate_obj["vector"] = vector

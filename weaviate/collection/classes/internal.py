@@ -42,12 +42,3 @@ def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
         score=metadata.get("score"),
         is_consistent=metadata.get("isConsistent"),
     )
-
-
-def _extract_props_from_list_of_objects(type_: Any) -> Optional[Any]:
-    """Extract inner type from List[_Object[Properties]]"""
-    if getattr(type_, "__origin__", None) == List:
-        inner_type = type_.__args__[0]
-        if getattr(inner_type, "__origin__", None) == _Object:
-            return inner_type.__args__[0]
-    return None
