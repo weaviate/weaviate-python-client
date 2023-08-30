@@ -80,7 +80,7 @@ class EmbeddedDB:
             response = requests.get(
                 "https://api.github.com/repos/weaviate/weaviate/releases/latest"
             )
-            latest = _decode_json_response_dict(response)
+            latest = _decode_json_response_dict(response, "get tag of latest weaviate release")
             self._set_download_url_from_version_tag(latest["tag_name"])
         else:
             raise exceptions.WeaviateEmbeddedInvalidVersion(self.options.version)

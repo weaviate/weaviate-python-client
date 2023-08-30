@@ -3,13 +3,13 @@ import signal
 import socket
 import tarfile
 import time
-import uuid
 from pathlib import Path
 from sys import platform
 from unittest.mock import patch
 
 import pytest
 import requests
+import uuid
 from pytest_httpserver import HTTPServer
 from werkzeug import Request, Response
 
@@ -18,7 +18,7 @@ from weaviate import embedded, EmbeddedOptions
 from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import WeaviateEmbeddedInvalidVersion, WeaviateStartUpError
 
-if platform != "linux":
+if platform != "linux" and platform != "darwin":
     pytest.skip("Currently only supported on linux", allow_module_level=True)
 
 
