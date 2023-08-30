@@ -155,10 +155,10 @@ def test_get_with_pydantic_dataclass_generic(client: weaviate.Client):
 
 
 @pytest.mark.parametrize(
-    "use_typed_dict",
-    [False, True],
+    "which_generic",
+    ["typed_dict", "dict", "none"],
 )
-def test_insert(client: weaviate.Client, use_typed_dict: bool):
+def test_insert(client: weaviate.Client, which_generic: str):
     name = "TestInsert"
     client.collection.delete(name)
     collection_config = CollectionConfig(
@@ -171,9 +171,12 @@ def test_insert(client: weaviate.Client, use_typed_dict: bool):
         name: str
 
     insert_data = {"name": "some name"}
-    if use_typed_dict:
+    if which_generic == "typed_dict":
         collection = client.collection.create(collection_config, TestInsert)
         uuid = collection.data.insert(properties=TestInsert(**insert_data))
+    elif which_generic == "dict":
+        collection = client.collection.create(collection_config, Dict[str, str])
+        uuid = collection.data.insert(properties=insert_data)
     else:
         collection = client.collection.create(collection_config)
         uuid = collection.data.insert(properties=insert_data)
@@ -193,6 +196,34 @@ def test_insert_many(client: weaviate.Client):
         [
             DataObject(properties={"name": "some name"}, vector=[1, 2, 3]),
             DataObject(properties={"name": "some other name"}, uuid=uuid.uuid4()),
+        ]
+    )
+    obj1 = collection.data.get_by_id(ret.uuids[0])
+    obj2 = collection.data.get_by_id(ret.uuids[1])
+    assert obj1.properties["name"] == "some name"
+    assert obj2.properties["name"] == "some other name"
+
+    client.collection.delete(name)
+
+
+def test_insert_many_with_typed_dict(client: weaviate.Client):
+    name = "TestInsertManyWithTypedDict"
+
+    class TestInsertManyWithTypedDict(TypedDict):
+        name: str
+
+    collection_config = CollectionConfig(
+        name=name,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer=Vectorizer.NONE,
+    )
+    collection = client.collection.create(collection_config, TestInsertManyWithTypedDict)
+    ret = collection.data.insert_many(
+        [
+            DataObject(properties=TestInsertManyWithTypedDict(name="some name"), vector=[1, 2, 3]),
+            DataObject(
+                properties=TestInsertManyWithTypedDict(name="some other name"), uuid=uuid.uuid4()
+            ),
         ]
     )
     obj1 = collection.data.get_by_id(ret.uuids[0])

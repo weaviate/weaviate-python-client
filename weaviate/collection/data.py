@@ -63,13 +63,13 @@ class _Data:
             pass
         raise UnexpectedStatusCodeException("Creating object", response)
 
-    def _insert_many(self, objects: List[DataObject]) -> _BatchReturn:
+    def _insert_many(self, objects: List[Dict[str, Any]]) -> _BatchReturn:
         weaviate_objs: List[weaviate_pb2.BatchObject] = [
             weaviate_pb2.BatchObject(
                 class_name=self.name,
-                vector=obj.vector if obj.vector is not None else None,
-                uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
-                properties=self.__parse_properties_grpc(obj.properties),
+                vector=obj["vector"] if obj["vector"] is not None else None,
+                uuid=str(obj["vector"]) if obj["vector"] is not None else str(uuid_package.uuid4()),
+                properties=self.__parse_properties_grpc(obj["properties"]),
                 tenant=self._tenant,
             )
             for obj in objects
@@ -358,8 +358,17 @@ class _DataCollection(Generic[Properties], _Data):
 
         return self._insert(weaviate_obj)
 
-    def insert_many(self, objects: List[DataObject]) -> _BatchReturn:
-        return self._insert_many(objects)
+    def insert_many(self, objects: List[DataObject[Properties]]) -> _BatchReturn:
+        return self._insert_many(
+            [
+                {
+                    "properties": obj.properties,
+                    "vector": obj.vector,
+                    "uuid": obj.uuid,
+                }
+                for obj in objects
+            ]
+        )
 
     def replace(
         self, properties: Properties, uuid: UUID, vector: Optional[List[float]] = None
