@@ -813,10 +813,10 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
         name: str
         ref: Reference[AProps]
 
-    # class CPropsGet(TypedDict):
-    #     name: str
-    #     ref: Reference[BPropsGet]
-    #     not_specified: str
+    class CPropsGet(TypedDict):
+        name: str
+        ref: Reference[BPropsGet]
+        not_specified: str
 
     objects = C.query.bm25_flat(
         query="find",
@@ -836,7 +836,7 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
                 metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
             ),
         ],
-        # type_=CPropsGet,
+        data_model=CPropsGet,
     )
     assert (
         objects[0].properties["name"] == "find me"
