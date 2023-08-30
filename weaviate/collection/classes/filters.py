@@ -46,18 +46,17 @@ class _FilterValue(_Filters):
     operator: weaviate_pb2.Filters.Operator
 
 
-@dataclass
 class Filter:
-    path: Union[str, List[str]]
     length: bool = False
+    __internal_path: Union[str, List[str]]
 
-    def __post_init__(self):
-        if isinstance(self.path, str):
-            path = [self.path]
+    def __init__(self, path: Union[str, List[str]], length: bool = False):
+        if isinstance(path, str):
+            path = [path]
         else:
-            path = self.path
+            path = path
 
-        if self.length:
+        if length:
             self.__internal_path = "len(" + path[-1] + ")"
         else:
             self.__internal_path = path
