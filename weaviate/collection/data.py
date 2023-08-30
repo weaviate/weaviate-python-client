@@ -69,7 +69,7 @@ class _Data:
                 class_name=self.name,
                 vector=obj.vector if obj.vector is not None else None,
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
-                properties=self.__parse_properties_grpc(obj.data),
+                properties=self.__parse_properties_grpc(obj.properties),
                 tenant=self._tenant,
             )
             for obj in objects
@@ -454,7 +454,7 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         metadata = _metadata_from_dict(obj)
         model_object = _Object[Model](
-            data=self.__model.model_validate(
+            properties=self.__model.model_validate(
                 {
                     **obj["properties"],
                     "uuid": metadata.uuid,
@@ -484,7 +484,7 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         data_objects = [
             DataObject(
-                data=obj.props_to_dict(),
+                properties=obj.props_to_dict(),
                 uuid=obj.uuid,
                 vector=obj.vector,
             )

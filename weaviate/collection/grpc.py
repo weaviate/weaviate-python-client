@@ -681,7 +681,7 @@ class _GrpcCollection(Generic[Properties], _Grpc[Properties]):
 
     def _result_to_object(self, obj: GrpcResult) -> _Object[Properties]:
         out = self._parse_out(obj)
-        return _Object[Properties](data=cast(Properties, out), metadata=obj.metadata)
+        return _Object[Properties](properties=cast(Properties, out), metadata=obj.metadata)
 
 
 class _GrpcCollectionModel(Generic[Model], _Grpc[Model]):
@@ -693,4 +693,4 @@ class _GrpcCollectionModel(Generic[Model], _Grpc[Model]):
 
     def _result_to_object(self, obj: GrpcResult) -> _Object[Model]:
         out = self._parse_out(obj)
-        return _Object[Model](data=self.model.model_validate(out), metadata=obj.metadata)
+        return _Object[Model](properties=self.model.model_validate(out), metadata=obj.metadata)

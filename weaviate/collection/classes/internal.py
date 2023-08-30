@@ -23,7 +23,7 @@ class _MetadataReturn:
 
 @dataclass
 class _Object(Generic[P]):
-    data: P
+    properties: P
     metadata: _MetadataReturn
 
 
