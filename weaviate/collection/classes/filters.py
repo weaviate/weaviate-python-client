@@ -47,16 +47,12 @@ class _FilterValue(_Filters):
 
 
 class Filter:
-    length: bool = False
-
     def __init__(self, path: Union[str, List[str]], length: bool = False):
         if isinstance(path, str):
             path = [path]
-
         if length:
-            self.__internal_path: Union[str, List[str]] = "len(" + path[-1] + ")"
-        else:
-            self.__internal_path = path
+            path[-1] = "len(" + path[-1] + ")"
+        self.__internal_path = path
 
     def is_none(self, val: bool) -> _FilterValue:
         return _FilterValue(
