@@ -1,5 +1,17 @@
 import datetime
-from typing import Dict, Any, Optional, List, Tuple, Union, Generic, Type, cast, get_type_hints
+from typing import (
+    Dict,
+    Any,
+    Optional,
+    List,
+    Tuple,
+    Union,
+    Generic,
+    Type,
+    cast,
+    get_type_hints,
+    get_origin,
+)
 
 import uuid as uuid_package
 from google.protobuf.struct_pb2 import Struct
@@ -328,7 +340,11 @@ class _DataCollection(Generic[Properties], _Data):
         self.__type = type_
 
     def __deserialize_properties(self, data: Dict[str, Any]) -> Properties:
-        hints = get_type_hints(self.__type) if self.__type else {}
+        hints = (
+            get_type_hints(self.__type)
+            if self.__type and not get_origin(self.__type) == dict
+            else {}
+        )
         return cast(
             Properties,
             {key: self._deserialize_primitive(val, hints.get(key)) for key, val in data.items()},
