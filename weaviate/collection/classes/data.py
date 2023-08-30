@@ -1,10 +1,11 @@
 import uuid as uuid_package
 from dataclasses import dataclass
-from typing import Any, List, Optional, Dict, Union
+from typing import List, Optional, Dict, Union, Generic
 
 from pydantic import BaseModel, Field
+from weaviate.collection.classes.internal import Properties
 from weaviate.util import _to_beacons
-from weaviate.weaviate_types import UUID
+from weaviate.weaviate_types import UUID, UUIDS
 
 
 class IncludesModel(BaseModel):
@@ -55,7 +56,7 @@ class _BatchReturn:
 
 @dataclass
 class ReferenceTo:
-    uuids: Union[List[UUID], UUID]
+    uuids: UUIDS
 
     @property
     def uuids_str(self) -> List[str]:
@@ -83,7 +84,7 @@ class BatchReference:
 
 
 @dataclass
-class DataObject:
-    properties: Dict[str, Any]
+class DataObject(Generic[Properties]):
+    properties: Properties
     uuid: Optional[UUID] = None
     vector: Optional[List[float]] = None

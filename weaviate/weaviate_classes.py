@@ -34,6 +34,7 @@ from weaviate.collection.classes.grpc import (
     NearVectorOptions,
     ReturnValues,
 )
+from weaviate.collection.classes.internal import Reference
 from weaviate.collection.classes.orm import (
     BaseProperty,
     CollectionModelConfig,
@@ -62,6 +63,7 @@ __all__ = [
     "ReferenceProperty",
     "ReferencePropertyMultiTarget",
     "Property",
+    "Reference",
     "ReferenceTo",
     "ReferenceToMultiTarget",
     "ReturnValues",
