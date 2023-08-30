@@ -47,9 +47,9 @@ class TestClassification(unittest.TestCase):
         check_startswith_error_message(self, error, unexpected_error_message)
 
         # valid calls
-        mock_conn = mock_connection_func("get", return_json="OK!", status_code=200)
+        mock_conn = mock_connection_func("get", return_json={"OK": "GOOD"}, status_code=200)
         result = Classification(mock_conn).get("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92")
-        self.assertEqual(result, "OK!")
+        self.assertEqual(result, {"OK": "GOOD"})
 
     @patch("weaviate.classification.classification.Classification._check_status")
     def test_is_complete(self, mock_check_status):

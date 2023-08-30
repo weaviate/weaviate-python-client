@@ -18,7 +18,7 @@ def test_json_decode_exception_dict(weaviate_mock):
 
 
 def test_json_decode_exception_list(weaviate_mock):
-    """Tests that expected timeout exception is raised."""
+    """Tests that JsonDecodeException is raised containing the correct error."""
 
     weaviate_mock.expect_request("/v1/schema/Test/shards").respond_with_data("JsonCannotParseThis")
 

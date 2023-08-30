@@ -788,7 +788,6 @@ def _decode_json_response_dict(
     if response.status_code == 200:
         try:
             json_response = response.json()
-            assert isinstance(json_response, dict)
             return json_response
         except JSONDecodeError:
             raise ResponseCannotBeDecodedException(location, response)
@@ -805,7 +804,6 @@ def _decode_json_response_list(
     if response.status_code == 200:
         try:
             json_response = response.json()
-            assert isinstance(json_response, list)
             return json_response
         except JSONDecodeError:
             raise ResponseCannotBeDecodedException(location, response)
