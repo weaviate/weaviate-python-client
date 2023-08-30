@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Union
 
 from pydantic import BaseModel
 
+from weaviate.collection.classes.filters import _Filters
 from weaviate.util import BaseEnum
 from weaviate.weaviate_types import UUID
 
@@ -48,6 +49,55 @@ class NearObjectOptions:
     certainty: Optional[float] = None
     distance: Optional[float] = None
     autocut: Optional[int] = None
+
+
+@dataclass
+class Move:
+    force: float
+    objects: Optional[Union[List[UUID], UUID]] = None
+    concepts: Optional[Union[List[str], str]] = None
+
+    def __post_init__(self):
+        if (
+            self.objects is None or (isinstance(self.objects, list) and len(self.objects) == 0)
+        ) and (
+            self.concepts is None
+            or (isinstance(self.concepts, list) and len(self.concepts) == 0) == 0
+        ):
+            raise ValueError("Either objects or concepts need to be given")
+
+        # accept single values, but make them a list
+        if self.objects is None:
+            self.__objects = None
+        elif not isinstance(self.objects, list):
+            self.__objects = [str(self.objects)]
+        else:
+            self.__objects = [str(obj_uuid) for obj_uuid in self.objects]
+
+        if self.concepts is None:
+            self.__concepts = None
+        elif not isinstance(self.concepts, list):
+            self.__concepts = [self.concepts]
+        else:
+            self.__concepts = self.concepts
+
+    @property
+    def objects_list(self) -> Optional[List[str]]:
+        return self.__objects
+
+    @property
+    def concepts_list(self) -> Optional[List[str]]:
+        return self.__concepts
+
+
+@dataclass
+class NearTextOptions:
+    certainty: Optional[float] = None
+    distance: Optional[float] = None
+    move_to: Optional[Move] = None
+    move_away: Optional[Move] = None
+    autocut: Optional[int] = None
+    filters: Optional[_Filters] = None
 
 
 @dataclass
