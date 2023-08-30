@@ -79,6 +79,8 @@ class ResponseCannotBeDecodedException(WeaviateBaseError):
         +
             Parameters
             ----------
+            location: str
+                From which code path the exception was raised.
             response: requests.Response
                 The request response of which the status code was unexpected.
         """
