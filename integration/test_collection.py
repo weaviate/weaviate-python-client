@@ -75,7 +75,7 @@ def test_create_and_delete_with_dict_generic(client: weaviate.Client):
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer=Vectorizer.NONE,
     )
-    client.collection.create(collection_config)
+    client.collection.create(collection_config, Dict[str, str])
 
     client.collection.get(name, Dict[str, str])
     assert client.collection.exists(name)
@@ -90,18 +90,18 @@ def test_create_get_and_delete_with_typed_dict_generic(client: weaviate.Client):
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer=Vectorizer.NONE,
     )
-    client.collection.create(collection_config)
 
     class Right(TypedDict):
         name: str
 
+    client.collection.create(collection_config, Right)
     client.collection.get(name, Right)
     assert client.collection.exists(name)
     client.collection.delete(name)
     assert not client.collection.exists(name)
 
 
-wrong_generic_error_msg = "data_model can only be a dict type, e.g. Dict[str, str], or a class that inherits from TypedDict"
+WRONG_GENERIC_ERROR_MSG = "data_model can only be a dict type, e.g. Dict[str, str], or a class that inherits from TypedDict"
 
 
 def test_get_with_empty_class_generic(client: weaviate.Client):
@@ -110,7 +110,7 @@ def test_get_with_empty_class_generic(client: weaviate.Client):
 
     with pytest.raises(TypeError) as error:
         client.collection.get("NotImportant", Wrong)
-    assert error.value.args[0] == wrong_generic_error_msg
+    assert error.value.args[0] == WRONG_GENERIC_ERROR_MSG
 
 
 def test_get_with_dataclass_generic(client: weaviate.Client):
@@ -120,7 +120,7 @@ def test_get_with_dataclass_generic(client: weaviate.Client):
 
     with pytest.raises(TypeError) as error:
         client.collection.get("NotImportant", Wrong)
-    assert error.value.args[0] == wrong_generic_error_msg
+    assert error.value.args[0] == WRONG_GENERIC_ERROR_MSG
 
 
 def test_get_with_initialisable_class_generic(client: weaviate.Client):
@@ -132,7 +132,7 @@ def test_get_with_initialisable_class_generic(client: weaviate.Client):
 
     with pytest.raises(TypeError) as error:
         client.collection.get("NotImportant", Wrong)
-    assert error.value.args[0] == wrong_generic_error_msg
+    assert error.value.args[0] == WRONG_GENERIC_ERROR_MSG
 
 
 def test_get_with_pydantic_class_generic(client: weaviate.Client):
@@ -141,7 +141,7 @@ def test_get_with_pydantic_class_generic(client: weaviate.Client):
 
     with pytest.raises(TypeError) as error:
         client.collection.get("NotImportant", Wrong)
-    assert error.value.args[0] == wrong_generic_error_msg
+    assert error.value.args[0] == WRONG_GENERIC_ERROR_MSG
 
 
 def test_get_with_pydantic_dataclass_generic(client: weaviate.Client):
@@ -151,7 +151,7 @@ def test_get_with_pydantic_dataclass_generic(client: weaviate.Client):
 
     with pytest.raises(TypeError) as error:
         client.collection.get("NotImportant", NotAnotherOne)
-    assert error.value.args[0] == wrong_generic_error_msg
+    assert error.value.args[0] == WRONG_GENERIC_ERROR_MSG
 
 
 @pytest.mark.parametrize(
