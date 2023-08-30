@@ -4,7 +4,7 @@ import pytest as pytest
 import uuid
 
 from dataclasses import dataclass
-from typing import TypedDict
+from typing import Dict, TypedDict
 
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
@@ -54,8 +54,8 @@ def client():
     client.schema.delete_all()
 
 
-def test_create_and_delete(client: weaviate.Client):
-    name = "TestCreateAndDelete"
+def test_create_and_delete_with_no_generic(client: weaviate.Client):
+    name = "TestCreateAndDeleteNoGeneric"
     collection_config = CollectionConfig(
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
@@ -68,8 +68,23 @@ def test_create_and_delete(client: weaviate.Client):
     assert not client.collection.exists(name)
 
 
-def test_create_get_and_delete_with_supported_generic(client: weaviate.Client):
-    name = "TestCreateGetAndDeleteGeneric"
+def test_create_and_delete_with_dict_generic(client: weaviate.Client):
+    name = "TestCreateAndDeleteDictGeneric"
+    collection_config = CollectionConfig(
+        name=name,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer=Vectorizer.NONE,
+    )
+    client.collection.create(collection_config)
+
+    client.collection.get(name, Dict[str, str])
+    assert client.collection.exists(name)
+    client.collection.delete(name)
+    assert not client.collection.exists(name)
+
+
+def test_create_get_and_delete_with_typed_dict_generic(client: weaviate.Client):
+    name = "TestCreateGetAndDeleteTypedDictGeneric"
     collection_config = CollectionConfig(
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
@@ -86,34 +101,29 @@ def test_create_get_and_delete_with_supported_generic(client: weaviate.Client):
     assert not client.collection.exists(name)
 
 
-def test_get_with_empty_class(client: weaviate.Client):
+wrong_generic_error_msg = "data_model can only be a dict type, e.g. Dict[str, str], or a class that inherits from TypedDict"
+
+
+def test_get_with_empty_class_generic(client: weaviate.Client):
     class Wrong:
         name: str
 
     with pytest.raises(TypeError) as error:
         client.collection.get("NotImportant", Wrong)
-    assert (
-        error.value.args[0]
-        == "data_model can only be a dict or a class that inherits from TypedDict"
-    )
+    assert error.value.args[0] == wrong_generic_error_msg
 
 
-def test_get_with_dataclass(client: weaviate.Client):
+def test_get_with_dataclass_generic(client: weaviate.Client):
     @dataclass
     class Wrong:
         name: str
 
     with pytest.raises(TypeError) as error:
-        client.collection.get(
-            "NotImportant", Wrong
-        )  # bad type because dataclass not bound by generic
-    assert (
-        error.value.args[0]
-        == "data_model can only be a dict or a class that inherits from TypedDict"
-    )
+        client.collection.get("NotImportant", Wrong)
+    assert error.value.args[0] == wrong_generic_error_msg
 
 
-def test_get_with_initialisable_class(client: weaviate.Client):
+def test_get_with_initialisable_class_generic(client: weaviate.Client):
     class Wrong:
         name: str
 
@@ -122,35 +132,26 @@ def test_get_with_initialisable_class(client: weaviate.Client):
 
     with pytest.raises(TypeError) as error:
         client.collection.get("NotImportant", Wrong)
-    assert (
-        error.value.args[0]
-        == "data_model can only be a dict or a class that inherits from TypedDict"
-    )
+    assert error.value.args[0] == wrong_generic_error_msg
 
 
-def test_get_with_pydantic_class(client: weaviate.Client):
+def test_get_with_pydantic_class_generic(client: weaviate.Client):
     class Wrong(BaseModel):
         name: str
 
     with pytest.raises(TypeError) as error:
         client.collection.get("NotImportant", Wrong)
-    assert (
-        error.value.args[0]
-        == "data_model can only be a dict or a class that inherits from TypedDict"
-    )
+    assert error.value.args[0] == wrong_generic_error_msg
 
 
-def test_get_with_pydantic_dataclass(client: weaviate.Client):
+def test_get_with_pydantic_dataclass_generic(client: weaviate.Client):
     @pydantic_dataclass
     class NotAnotherOne:
         name: str
 
     with pytest.raises(TypeError) as error:
         client.collection.get("NotImportant", NotAnotherOne)
-    assert (
-        error.value.args[0]
-        == "data_model can only be a dict or a class that inherits from TypedDict"
-    )
+    assert error.value.args[0] == wrong_generic_error_msg
 
 
 @pytest.mark.parametrize(
