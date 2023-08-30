@@ -68,7 +68,7 @@ class _Data:
             weaviate_pb2.BatchObject(
                 class_name=self.name,
                 vector=obj["vector"] if obj["vector"] is not None else None,
-                uuid=str(obj["vector"]) if obj["vector"] is not None else str(uuid_package.uuid4()),
+                uuid=str(obj["uuid"]) if obj["uuid"] is not None else str(uuid_package.uuid4()),
                 properties=self.__parse_properties_grpc(obj["properties"]),
                 tenant=self._tenant,
             )
@@ -85,7 +85,7 @@ class _Data:
 
         for idx, obj in enumerate(weaviate_objs):
             if idx in errors:
-                error = Error(errors[idx], original_uuid=objects[idx].uuid)
+                error = Error(errors[idx], original_uuid=objects[idx].get("uuid"))
                 return_errors[idx] = error
                 all_responses[idx] = error
             else:
