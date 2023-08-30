@@ -73,6 +73,26 @@ class UnexpectedStatusCodeException(WeaviateBaseError):
         return self._status_code
 
 
+class ResponseCannotBeDecodedException(WeaviateBaseError):
+    def __init__(self, location: str, response: Response):
+        """Raised when a weaviate response cannot be decoded to json
+
+        Parameters
+        ----------
+        location: str
+            From which code path the exception was raised.
+        response: requests.Response
+            The request response of which the status code was unexpected.
+        """
+        msg = f"Cannot decode response from weaviate {response} with content {response.content} for request from {location}"
+        super().__init__(msg)
+        self._status_code: int = response.status_code
+
+    @property
+    def status_code(self) -> int:
+        return self._status_code
+
+
 class ObjectAlreadyExistsException(WeaviateBaseError):
     """
     Object Already Exists Exception.

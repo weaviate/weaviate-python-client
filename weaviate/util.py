@@ -5,15 +5,20 @@ import base64
 import json
 import os
 import re
-import uuid as uuid_lib
 from enum import Enum, EnumMeta
 from io import BufferedReader
 from typing import Union, Sequence, Any, Optional, List, Dict, Tuple
 
 import requests
+import uuid as uuid_lib
 import validators
+from requests.exceptions import JSONDecodeError
 
-from weaviate.exceptions import SchemaValidationException
+from weaviate.exceptions import (
+    SchemaValidationException,
+    UnexpectedStatusCodeException,
+    ResponseCannotBeDecodedException,
+)
 from weaviate.types import NUMBERS
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"
@@ -772,3 +777,34 @@ def _type_request_response(json_response: Any) -> Optional[Dict[str, Any]]:
         return None
     assert isinstance(json_response, dict)
     return json_response
+
+
+def _decode_json_response_dict(
+    response: requests.Response, location: str
+) -> Optional[Dict[str, Any]]:
+    if response is None:
+        return None
+
+    if 200 <= response.status_code < 300:
+        try:
+            json_response = response.json()
+            return json_response
+        except JSONDecodeError:
+            raise ResponseCannotBeDecodedException(location, response)
+
+    raise UnexpectedStatusCodeException(location, response)
+
+
+def _decode_json_response_list(
+    response: requests.Response, location: str
+) -> Optional[List[Dict[str, Any]]]:
+    if response is None:
+        return None
+
+    if 200 <= response.status_code < 300:
+        try:
+            json_response = response.json()
+            return json_response
+        except JSONDecodeError:
+            raise ResponseCannotBeDecodedException(location, response)
+    raise UnexpectedStatusCodeException(location, response)

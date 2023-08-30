@@ -54,7 +54,7 @@ def test_retry_on_timeout(weaviate_no_auth_mock):
             # 75% of objects have to be resent
             assert len(request.json["objects"]) == n / 4 * 3
 
-        return Response(json.dumps({}))
+        return Response(json.dumps([]))
 
     weaviate_no_auth_mock.expect_request("/v1/batch/objects").respond_with_handler(
         handler_batch_objects
@@ -101,7 +101,7 @@ def test_retry_on_timeout_all_succesfull(weaviate_no_auth_mock):
         nonlocal n
         assert len(request.json["objects"]) == n  # all objects are send the first time
         time.sleep(1)  # cause timeout
-        return Response(json.dumps({}))
+        return Response(json.dumps([]))
 
     weaviate_no_auth_mock.expect_oneshot_request("/v1/batch/objects").respond_with_handler(
         handler_batch_objects

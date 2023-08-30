@@ -1,6 +1,6 @@
 import unittest
-from unittest.mock import patch
 from typing import List, Callable, Tuple
+from unittest.mock import patch
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -174,7 +174,7 @@ class TestAggregateBuilder(unittest.TestCase):
         check_error_message(self, error, requests_error_message)
 
         # weaviate.UnexpectedStatusCodeException
-        mock_obj = mock_connection_func("post", status_code=204)
+        mock_obj = mock_connection_func("post", status_code=404)
         self.aggregate._connection = mock_obj
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             self.aggregate.do()

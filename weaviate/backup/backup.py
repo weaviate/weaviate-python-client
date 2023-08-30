@@ -8,11 +8,10 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.exceptions import (
-    UnexpectedStatusCodeException,
     BackupFailedException,
     EmptyResponseException,
 )
-from weaviate.util import _capitalize_first_letter, _type_request_response
+from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 
 STORAGE_NAMES = {
     "filesystem",
@@ -117,11 +116,8 @@ class Backup:
             raise RequestsConnectionError(
                 "Backup creation failed due to connection error."
             ) from conn_err
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Backup creation", response)
 
-        create_status: dict = response.json()
-
+        create_status = _decode_json_response_dict(response, "Backup creation")
         if wait_for_completion:
             while True:
                 status: dict = self.get_create_status(
@@ -171,10 +167,8 @@ class Backup:
             raise RequestsConnectionError(
                 "Backup creation status failed due to connection error."
             ) from conn_err
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Backup status check", response)
 
-        typed_response = _type_request_response(response.json())
+        typed_response = _decode_json_response_dict(response, "Backup status check")
         if typed_response is None:
             raise EmptyResponseException()
         return typed_response
@@ -251,10 +245,7 @@ class Backup:
             raise RequestsConnectionError(
                 "Backup restore failed due to connection error."
             ) from conn_err
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Backup restore", response)
-
-        restore_status: dict = response.json()
+        restore_status = _decode_json_response_dict(response, "Backup restore")
 
         if wait_for_completion:
             while True:
@@ -304,9 +295,8 @@ class Backup:
             raise RequestsConnectionError(
                 "Backup restore status failed due to connection error."
             ) from conn_err
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Backup restore status check", response)
-        typed_response = _type_request_response(response.json())
+
+        typed_response = _decode_json_response_dict(response, "Backup restore status check")
         if typed_response is None:
             raise EmptyResponseException()
         return typed_response
