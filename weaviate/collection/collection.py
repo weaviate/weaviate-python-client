@@ -62,14 +62,13 @@ class Collection(CollectionBase):
     def get(
         self, name: str, data_model: Optional[Type[Properties]] = None
     ) -> CollectionObject[Properties]:
-        if data_model is not None:
-            if get_origin(data_model) is not dict:
-                try:
-                    assert data_model.__bases__[0] == dict
-                except Exception as e:
-                    raise TypeError(
-                        "data_model can only be a dict type, e.g. Dict[str, str], or a class that inherits from TypedDict"
-                    ) from e
+        if data_model is not None and get_origin(data_model) is not dict:
+            try:
+                assert data_model.__bases__[0] == dict
+            except Exception as e:
+                raise TypeError(
+                    "data_model can only be a dict type, e.g. Dict[str, str], or a class that inherits from TypedDict"
+                ) from e
         name = _capitalize_first_letter(name)
         return (
             CollectionObject[Properties](self._connection, name, data_model)
