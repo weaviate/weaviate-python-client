@@ -54,7 +54,7 @@ class Filter:
             path = [path]
 
         if length:
-            self.__internal_path = "len(" + path[-1] + ")"
+            self.__internal_path: Union[str, List[str]] = "len(" + path[-1] + ")"
         else:
             self.__internal_path = path
 
