@@ -20,6 +20,8 @@ from weaviate.util import (
     _get_dict_from_object,
     _is_sub_schema,
     _capitalize_first_letter,
+    _decode_json_response_dict,
+    _decode_json_response_list,
 )
 
 _PRIMITIVE_WEAVIATE_TYPES_SET = {
@@ -551,9 +553,8 @@ class Schema:
             response = self._connection.get(path=path)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Schema could not be retrieved.") from conn_err
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Get schema", response)
-        return response.json()
+
+        return _decode_json_response_dict(response, "Get schema")
 
     def get_class_shards(self, class_name: str) -> list:
         """
@@ -596,9 +597,8 @@ class Schema:
             raise RequestsConnectionError(
                 "Class shards' status could not be retrieved due to connection error."
             ) from conn_err
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Get shards' status", response)
-        return response.json()
+
+        return _decode_json_response_list(response, "Get shards' status")
 
     def update_class_shard(
         self,
@@ -691,12 +691,10 @@ class Schema:
                     f"Class shards' status could not be updated for shard '{_shard_name}' due to "
                     "connection error."
                 ) from conn_err
-            if response.status_code != 200:
-                raise UnexpectedStatusCodeException(
-                    f"Update shard '{_shard_name}' status",
-                    response,
-                )
-            to_return.append(response.json())
+
+            to_return.append(
+                _decode_json_response_dict(response, f"Update shard '{_shard_name}' status")
+            )
 
         if shard_name is None:
             return to_return
@@ -908,10 +906,8 @@ class Schema:
             response = self._connection.get(path=path)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Could not get class tenants.") from conn_err
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Get classes tenants", response)
 
-        tenant_resp = response.json()
+        tenant_resp = _decode_json_response_list(response, "Get class tenants")
         return [Tenant._from_weaviate_object(tenant) for tenant in tenant_resp]
 
     def update_class_tenants(self, class_name: str, tenants: List[Tenant]) -> None:

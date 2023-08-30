@@ -5,7 +5,7 @@ from mock_tests.conftest import MOCK_SERVER_URL
 
 
 def test_manual_batching_warning_object(recwarn, weaviate_mock):
-    weaviate_mock.expect_request("/v1/batch/objects").respond_with_json({})
+    weaviate_mock.expect_request("/v1/batch/objects").respond_with_json([])
 
     client = weaviate.Client(url=MOCK_SERVER_URL)
 
@@ -20,7 +20,7 @@ def test_manual_batching_warning_object(recwarn, weaviate_mock):
 
 
 def test_manual_batching_warning_ref(recwarn, weaviate_mock):
-    weaviate_mock.expect_request("/v1/batch/references").respond_with_json({})
+    weaviate_mock.expect_request("/v1/batch/references").respond_with_json([])
 
     client = weaviate.Client(url=MOCK_SERVER_URL)
     client.batch.configure(batch_size=None, dynamic=False)

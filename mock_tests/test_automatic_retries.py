@@ -49,11 +49,14 @@ def test_automatic_retry_obs(weaviate_mock, error):
     n = (
         50 * batch_size
     )  # multiple of the batch size, otherwise it is difficult to calculate the number of expected errors
-    with client.batch(
+    client.batch.configure(
         batch_size=batch_size,
         num_workers=2,
         weaviate_error_retries=WeaviateErrorRetryConf(number_retries=3),
-    ) as batch:
+        dynamic=False,
+    )
+
+    with client.batch as batch:
         for i in range(n):
             added_uuids.append(uuid.uuid4())
             batch.add_data_object({"name": "test" + str(i)}, "test", added_uuids[-1])

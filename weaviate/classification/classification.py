@@ -4,8 +4,7 @@ Classification class definition.
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
-from weaviate.exceptions import UnexpectedStatusCodeException
-from weaviate.util import get_valid_uuid
+from weaviate.util import get_valid_uuid, _decode_json_response_dict
 from .config_builder import ConfigBuilder
 
 
@@ -74,9 +73,8 @@ class Classification:
             raise RequestsConnectionError(
                 "Classification status could not be retrieved."
             ) from conn_err
-        if response.status_code == 200:
-            return response.json()
-        raise UnexpectedStatusCodeException("Get classification status", response)
+
+        return _decode_json_response_dict(response, "Get classification status")
 
     def is_complete(self, classification_uuid: str) -> bool:
         """

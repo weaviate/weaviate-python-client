@@ -25,7 +25,6 @@ from weaviate.connect.authentication import _Auth
 from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import (
     AuthenticationFailedException,
-    UnexpectedStatusCodeException,
     WeaviateStartUpError,
 )
 from weaviate.types import NUMBERS
@@ -35,6 +34,7 @@ from weaviate.util import (
     is_weaviate_too_old,
     is_weaviate_client_too_old,
     PYPI_PACKAGE_URL,
+    _decode_json_response_dict,
 )
 from weaviate.warnings import _Warnings
 
@@ -177,7 +177,7 @@ class Connection:
             latest_version = pkg_info.get("version", "unknown version")
             if is_weaviate_client_too_old(client_version, latest_version):
                 _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
-        except RequestsConnectionError:
+        except (RequestsConnectionError, JSONDecodeError):
             pass  # air-gaped environments
 
     def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
@@ -663,9 +663,7 @@ class Connection:
         Returns the meta endpoint.
         """
         response = self.get(path="/meta")
-        if response.status_code == 200:
-            return response.json()
-        raise UnexpectedStatusCodeException("Meta endpoint", response)
+        return _decode_json_response_dict(response, "Meta endpoint")
 
 
 def _get_epoch_time() -> int:

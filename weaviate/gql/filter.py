@@ -5,16 +5,15 @@ GraphQL abstract class for GraphQL commands to inherit from.
 import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from enum import Enum
 from json import dumps
 from typing import Any, Union
-from enum import Enum
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.error_msgs import FILTER_BEACON_V14_CLS_NS_W
-from weaviate.exceptions import UnexpectedStatusCodeException
-from weaviate.util import get_vector, _sanitize_str
+from weaviate.util import get_vector, _sanitize_str, _decode_json_response_dict
 
 VALUE_LIST_TYPES = {
     "valueStringList",
@@ -121,9 +120,8 @@ class GraphQL(ABC):
             response = self._connection.post(path="/graphql", weaviate_object={"query": query})
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Query was not successful.") from conn_err
-        if response.status_code == 200:
-            return response.json()  # success
-        raise UnexpectedStatusCodeException("Query was not successful", response)
+
+        return _decode_json_response_dict(response, "Query was not successful")
 
 
 class Filter(ABC):

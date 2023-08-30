@@ -32,6 +32,8 @@ from ..util import (
     _capitalize_first_letter,
     check_batch_result,
     _check_positive_num,
+    _decode_json_response_dict,
+    _decode_json_response_list,
 )
 from ..warnings import _Warnings
 
@@ -688,7 +690,7 @@ class Batch:
                     )
                     connection_count += 1
                 else:
-                    response_json = response.json()
+                    response_json = _decode_json_response_list(response, "batch response")
                     if (
                         self._weaviate_error_retry is not None
                         and batch_error_count < self._weaviate_error_retry.number_retries
@@ -789,7 +791,7 @@ class Batch:
                 path="/objects/" + class_name + "/" + uuid,
             )
 
-            obj_weav = response.json()
+            obj_weav = _decode_json_response_dict(response, "Re-add objects")
             if obj_weav["properties"] != obj["properties"] or obj.get(
                 "vector", None
             ) != obj_weav.get("vector", None):
@@ -933,7 +935,7 @@ class Batch:
 
             self._recommended_num_objects = max(round(obj_per_second * self._creation_time), 1)
 
-            return response.json()
+            return _decode_json_response_list(response, "batch add objects")
         return []
 
     def create_references(self) -> list:
@@ -1028,7 +1030,7 @@ class Batch:
 
             self._recommended_num_references = round(ref_per_sec * self._creation_time)
 
-            return response.json()
+            return _decode_json_response_list(response, "Create references")
         return []
 
     def _flush_in_thread(
@@ -1323,9 +1325,7 @@ class Batch:
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Batch delete was not successful.") from conn_err
-        if response.status_code == 200:
-            return response.json()
-        raise UnexpectedStatusCodeException("Delete in batch", response)
+        return _decode_json_response_dict(response, "Delete in batch")
 
     def num_objects(self) -> int:
         """

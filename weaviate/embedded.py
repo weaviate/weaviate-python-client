@@ -19,6 +19,7 @@ import validators as validators
 
 from weaviate import exceptions
 from weaviate.exceptions import WeaviateStartUpError
+from weaviate.util import _decode_json_response_dict
 
 DEFAULT_BINARY_PATH = str(Path.home() / ".cache/weaviate-embedded/")
 DEFAULT_PERSISTENCE_DATA_PATH = str(Path.home() / ".local/share/weaviate")
@@ -76,9 +77,10 @@ class EmbeddedDB:
             self._parsed_weaviate_version = version_tag
             self._set_download_url_from_version_tag(version_tag)
         elif self.options.version == "latest":
-            latest = requests.get(
+            response = requests.get(
                 "https://api.github.com/repos/weaviate/weaviate/releases/latest"
-            ).json()
+            )
+            latest = _decode_json_response_dict(response)
             self._set_download_url_from_version_tag(latest["tag_name"])
         else:
             raise exceptions.WeaviateEmbeddedInvalidVersion(self.options.version)
