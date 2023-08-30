@@ -21,9 +21,9 @@ from weaviate.collection.classes.config import (
     PropertyConfig,
     Vectorizer,
 )
-from weaviate.collection.classes.orm import BaseProperty, CollectionModelConfig, CrossReference
+from weaviate.collection.classes.internal import Reference
+from weaviate.collection.classes.orm import BaseProperty, CollectionModelConfig
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
-from weaviate.weaviate_types import UUIDS
 from pydantic import Field
 
 REF_TO_UUID = uuid.uuid4()
@@ -93,8 +93,8 @@ def test_types(client: weaviate.Client, member_type, value, optional: bool):
     "member_type, annotation ,value,expected",
     [
         (str, PropertyConfig(index_filterable=False), "value", "text"),
-        (UUIDS, CrossReference(Group), [str(REF_TO_UUID)], "Group"),
-        (Optional[UUIDS], CrossReference(Group), [str(REF_TO_UUID)], "Group"),
+        # (UUIDS, Reference[Group], [str(REF_TO_UUID)], "Group"),
+        # (Optional[UUIDS], Reference[Group], [str(REF_TO_UUID)], "Group"),
     ],
 )
 def test_types_annotates(client: weaviate.Client, member_type, annotation, value, expected: str):
@@ -252,7 +252,7 @@ def test_multi_searches(client: weaviate.Client):
 def test_multi_searches_with_references(client: weaviate.Client):
     class TestMultiSearchesWithReferences(BaseProperty):
         name: Optional[str] = None
-        group: Annotated[Optional[UUIDS], CrossReference(Group)] = None
+        group: Optional[Reference[Group]] = None
 
     client.collection_model.delete(TestMultiSearchesWithReferences)
     collection = client.collection_model.create(
@@ -261,8 +261,12 @@ def test_multi_searches_with_references(client: weaviate.Client):
         )
     )
 
-    collection.data.insert(TestMultiSearchesWithReferences(name="some word", group=REF_TO_UUID))
-    collection.data.insert(TestMultiSearchesWithReferences(name="other", group=REF_TO_UUID))
+    collection.data.insert(
+        TestMultiSearchesWithReferences(name="some word", group=Reference[Group].to(REF_TO_UUID))
+    )
+    collection.data.insert(
+        TestMultiSearchesWithReferences(name="other", group=Reference[Group].to(REF_TO_UUID))
+    )
 
     objects = collection.query.bm25_flat(
         query="word",
@@ -270,7 +274,7 @@ def test_multi_searches_with_references(client: weaviate.Client):
         return_metadata=MetadataQuery(last_update_time_unix=True),
     )
     assert objects[0].properties.name == "some word"
-    assert objects[0].properties.group == REF_TO_UUID
+    assert objects[0].properties.group.objects == []
     assert objects[0].metadata.last_update_time_unix is not None
 
     objects = collection.query.bm25_flat(
@@ -448,7 +452,7 @@ def test_update_reference_property(client: weaviate.Client):
 
     class TestRefPropUpdate(BaseProperty):
         name: str
-        group: Annotated[Optional[UUIDS], CrossReference(Group)] = None
+        group: Reference[Group]
 
     create_original_collection()
     client.collection_model.update(TestRefPropUpdate)

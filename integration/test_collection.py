@@ -712,8 +712,8 @@ def test_mono_references_grcp(client: weaviate.Client):
             vectorizer=Vectorizer.NONE,
         )
     )
-    uuid_B = B.data.insert({"Name": "B", "ref": ReferenceTo(uuids=uuid_A1)})
-    B.data.reference_add(from_uuid=uuid_B, from_property="ref", ref=ReferenceTo(uuids=uuid_A2))
+    uuid_B = B.data.insert({"Name": "B", "ref": Reference.to(uuids=uuid_A1)})
+    B.data.reference_add(from_uuid=uuid_B, from_property="ref", ref=Reference.to(uuids=uuid_A2))
 
     C = client.collection.create(
         CollectionConfig(
@@ -725,7 +725,7 @@ def test_mono_references_grcp(client: weaviate.Client):
             vectorizer=Vectorizer.NONE,
         )
     )
-    C.data.insert({"Name": "find me", "ref": ReferenceTo(uuids=uuid_B)})
+    C.data.insert({"Name": "find me", "ref": Reference.to(uuids=uuid_B)})
 
     objects = C.query.bm25_flat(
         query="find",
@@ -746,9 +746,15 @@ def test_mono_references_grcp(client: weaviate.Client):
         ],
     )
     assert objects[0].properties["name"] == "find me"
-    assert objects[0].properties["ref"][0].properties["name"] == "B"
-    assert objects[0].properties["ref"][0].properties["ref"][0].properties["name"] == "A1"
-    assert objects[0].properties["ref"][0].properties["ref"][1].properties["name"] == "A2"
+    assert objects[0].properties["ref"].objects[0].properties["name"] == "B"
+    assert (
+        objects[0].properties["ref"].objects[0].properties["ref"].objects[0].properties["name"]
+        == "A1"
+    )
+    assert (
+        objects[0].properties["ref"].objects[0].properties["ref"].objects[1].properties["name"]
+        == "A2"
+    )
 
 
 def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
@@ -758,6 +764,14 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
 
     class AProps(TypedDict):
         name: str
+
+    class BProps(TypedDict):
+        name: str
+        ref: Reference[AProps]
+
+    class CProps(TypedDict):
+        name: str
+        ref: Reference[BProps]
 
     A = client.collection.create(
         CollectionConfig(
@@ -772,10 +786,6 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
     uuid_A1 = A.data.insert(AProps(name="A1"))
     uuid_A2 = A.data.insert(AProps(name="A2"))
 
-    class BPropsInsert(TypedDict):
-        name: str
-        ref: ReferenceTo
-
     B = client.collection.create(
         CollectionConfig(
             name="BTypedDicts",
@@ -785,15 +795,10 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
             ],
             vectorizer=Vectorizer.NONE,
         ),
-        BPropsInsert,
+        BProps,
     )
-    uuid_B = B.data.insert(BPropsInsert(name="B", ref=ReferenceTo(uuids=uuid_A1)))
-    B.data.reference_add(from_uuid=uuid_B, from_property="ref", ref=ReferenceTo(uuids=uuid_A2))
-
-    class CPropsInsert(TypedDict):
-        name: str
-        ref: ReferenceTo
-        age: int
+    uuid_B = B.data.insert(BProps(name="B", ref=Reference.to(uuids=uuid_A1)))
+    B.data.reference_add(from_uuid=uuid_B, from_property="ref", ref=Reference.to(uuids=uuid_A2))
 
     C = client.collection.create(
         CollectionConfig(
@@ -805,18 +810,9 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
             ],
             vectorizer=Vectorizer.NONE,
         ),
-        CPropsInsert,
+        CProps,
     )
-    C.data.insert(CPropsInsert(name="find me", age=10, ref=ReferenceTo(uuids=uuid_B)))
-
-    class BPropsGet(TypedDict):
-        name: str
-        ref: Reference[AProps]
-
-    class CPropsGet(TypedDict):
-        name: str
-        ref: Reference[BPropsGet]
-        not_specified: str
+    C.data.insert(CProps(name="find me", age=10, ref=Reference.to(uuids=uuid_B)))
 
     objects = C.query.bm25_flat(
         query="find",
@@ -836,7 +832,6 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
                 metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
             ),
         ],
-        data_model=CPropsGet,
     )
     assert (
         objects[0].properties["name"] == "find me"
@@ -847,9 +842,15 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
     assert (
         objects[0].properties.get("age") == 10
     )  # type is Any | None but instance is 10 (not in type but in return_properties)
-    assert objects[0].properties["ref"][0].properties["name"] == "B"
-    assert objects[0].properties["ref"][0].properties["ref"][0].properties["name"] == "A1"
-    assert objects[0].properties["ref"][0].properties["ref"][1].properties["name"] == "A2"
+    assert objects[0].properties["ref"].objects[0].properties["name"] == "B"
+    assert (
+        objects[0].properties["ref"].objects[0].properties["ref"].objects[0].properties["name"]
+        == "A1"
+    )
+    assert (
+        objects[0].properties["ref"].objects[0].properties["ref"].objects[1].properties["name"]
+        == "A2"
+    )
 
 
 def test_multi_references_grcp(client: weaviate.Client):
@@ -909,8 +910,8 @@ def test_multi_references_grcp(client: weaviate.Client):
         ],
     )
     assert objects[0].properties["name"] == "first"
-    assert len(objects[0].properties["ref"]) == 1
-    assert objects[0].properties["ref"][0].properties["name"] == "A"
+    assert len(objects[0].properties["ref"].objects) == 1
+    assert objects[0].properties["ref"].objects[0].properties["name"] == "A"
 
     objects = C.query.bm25_flat(
         query="second",
@@ -927,8 +928,8 @@ def test_multi_references_grcp(client: weaviate.Client):
         ],
     )
     assert objects[0].properties["name"] == "second"
-    assert len(objects[0].properties["ref"]) == 1
-    assert objects[0].properties["ref"][0].properties["name"] == "B"
+    assert len(objects[0].properties["ref"].objects) == 1
+    assert objects[0].properties["ref"].objects[0].properties["name"] == "B"
 
     client.collection.delete("A")
     client.collection.delete("B")

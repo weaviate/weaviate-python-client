@@ -29,7 +29,7 @@ class CollectionObject(Generic[Properties]):
         self.data = _DataCollection[Properties](
             connection, name, self.config, consistency_level, tenant, type_
         )
-        self.query = _GrpcCollection(connection, name, tenant)
+        self.query = _GrpcCollection[Properties](connection, name, tenant, type_)
         self.tenants = _Tenants(connection, name)
 
         self.__tenant = tenant

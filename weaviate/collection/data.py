@@ -28,7 +28,7 @@ from weaviate.collection.classes.data import (
     ReferenceToMultiTarget,
     _BatchReturn,
 )
-from weaviate.collection.classes.internal import _Object, _metadata_from_dict, Properties
+from weaviate.collection.classes.internal import _Object, _metadata_from_dict, Properties, Reference
 from weaviate.collection.classes.orm import (
     Model,
 )
@@ -268,7 +268,7 @@ class _Data:
     def _serialize_properties(self, data: Properties) -> Dict[str, Any]:
         return {
             key: val.to_beacons()
-            if isinstance(val, ReferenceTo)
+            if isinstance(val, Reference) or isinstance(val, ReferenceTo)
             else self.__serialize_primitive(val)
             for key, val in data.items()
         }

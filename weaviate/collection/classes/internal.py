@@ -1,7 +1,10 @@
 import uuid as uuid_package
 from dataclasses import dataclass
 from typing import Any, Dict, Generic, List, Mapping, Optional
-from typing_extensions import TypeAlias, TypeVar
+from typing_extensions import TypeVar
+
+from weaviate.util import _to_beacons
+from weaviate.weaviate_types import UUIDS
 
 Properties = TypeVar("Properties", bound=Mapping[str, Any], default=Dict[str, Any])
 
@@ -27,7 +30,21 @@ class _Object(Generic[P]):
     metadata: _MetadataReturn
 
 
-Reference: TypeAlias = List[_Object[Properties]]
+class Reference(Generic[P]):
+    def __init__(self, objects: Optional[List[_Object[P]]], uuids: Optional[UUIDS]):
+        self.objects = objects
+        self.__uuids = uuids
+
+    @classmethod
+    def to(cls, uuids: UUIDS) -> "Reference[P]":
+        return cls(None, uuids)
+
+    def to_beacons(self) -> List[Dict[str, str]]:
+        return _to_beacons(self.__uuids)
+
+    @classmethod
+    def _from(cls, objects: List[_Object[P]]) -> "Reference[P]":
+        return cls(objects, None)
 
 
 def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
@@ -50,4 +67,11 @@ def _extract_props_from_list_of_objects(type_: Any) -> Optional[Any]:
         inner_type = type_.__args__[0]
         if getattr(inner_type, "__origin__", None) == _Object:
             return inner_type.__args__[0]
+    return None
+
+
+def _extract_props_from_reference(type_: Reference[P]) -> Optional[P]:
+    """Extract inner type from Reference[Properties]"""
+    if getattr(type_, "__origin__", None) == Reference:
+        return type_.__args__[0]
     return None

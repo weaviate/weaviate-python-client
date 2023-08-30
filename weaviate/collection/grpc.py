@@ -43,8 +43,9 @@ from weaviate.collection.classes.grpc import (
 from weaviate.collection.classes.internal import (
     _MetadataReturn,
     _Object,
+    Reference,
     Properties,
-    _extract_props_from_list_of_objects,
+    _extract_props_from_reference,
 )
 from weaviate.collection.classes.orm import Model
 from weaviate.connect import Connection
@@ -493,9 +494,16 @@ class _Grpc:
         return value
 
 
-class _GrpcCollection(_Grpc):
-    def __init__(self, connection: Connection, name: str, tenant: Optional[str]):
+class _GrpcCollection(Generic[Properties], _Grpc):
+    def __init__(
+        self,
+        connection: Connection,
+        name: str,
+        tenant: Optional[str],
+        type_: Optional[Properties] = None,
+    ):
         super().__init__(connection, name, tenant)
+        self.__type = type_
 
     def __parse_result(
         self, properties: "weaviate_pb2.ResultProperties", type_: Optional[Type[Properties]]
@@ -527,22 +535,27 @@ class _GrpcCollection(_Grpc):
         for ref_prop in properties.ref_props:
             hint = hints.get(ref_prop.prop_name)
             if hint is not None:
-                referenced_property_type = _extract_props_from_list_of_objects(hint)
-                result[ref_prop.prop_name] = [
-                    _Object(
-                        properties=self.__parse_result(prop, referenced_property_type),
-                        metadata=self._extract_metadata_for_object(prop.metadata),
-                    )
-                    for prop in ref_prop.properties
-                ]
+                assert get_origin(hint) is Reference
+                referenced_property_type = _extract_props_from_reference(hint)
+                result[ref_prop.prop_name] = Reference[referenced_property_type]._from(
+                    [
+                        _Object(
+                            properties=self.__parse_result(prop, referenced_property_type),
+                            metadata=self._extract_metadata_for_object(prop.metadata),
+                        )
+                        for prop in ref_prop.properties
+                    ]
+                )
             else:
-                result[ref_prop.prop_name] = [
-                    _Object(
-                        properties=self.__parse_result(prop, Dict[str, Any]),
-                        metadata=self._extract_metadata_for_object(prop.metadata),
-                    )
-                    for prop in ref_prop.properties
-                ]
+                result[ref_prop.prop_name] = Reference[Dict[str, Any]]._from(
+                    [
+                        _Object(
+                            properties=self.__parse_result(prop, Dict[str, Any]),
+                            metadata=self._extract_metadata_for_object(prop.metadata),
+                        )
+                        for prop in ref_prop.properties
+                    ]
+                )
 
         return cast(Properties, result)
 
@@ -561,10 +574,10 @@ class _GrpcCollection(_Grpc):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-        data_model: Optional[Type[Properties]] = None,
+        # data_model: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         return [
-            self.__result_to_object(obj, data_model)
+            self.__result_to_object(obj, self.__type)
             for obj in self._query().get(
                 limit, offset, after, filters, return_metadata, return_properties
             )
@@ -575,12 +588,12 @@ class _GrpcCollection(_Grpc):
         returns: ReturnValues,
         options: Optional[GetOptions],
         filters: Optional[_Filters] = None,
-        data_model: Optional[Type[Properties]] = None,
+        # data_model: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         if options is None:
             options = GetOptions()
         return [
-            self.__result_to_object(obj, data_model)
+            self.__result_to_object(obj, self.__type)
             for obj in self._query().get(
                 options.limit,
                 options.offset,
@@ -602,10 +615,10 @@ class _GrpcCollection(_Grpc):
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-        data_model: Optional[Type[Properties]] = None,
+        # data_model: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         return [
-            self.__result_to_object(obj, data_model)
+            self.__result_to_object(obj, self.__type)
             for obj in self._query().hybrid(
                 query,
                 alpha,
@@ -624,12 +637,12 @@ class _GrpcCollection(_Grpc):
         query: str,
         returns: ReturnValues,
         options: Optional[HybridOptions] = None,
-        data_model: Optional[Type[Properties]] = None,
+        # data_model: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         if options is None:
             options = HybridOptions()
         return [
-            self.__result_to_object(obj, data_model)
+            self.__result_to_object(obj, self.__type)
             for obj in self._query().hybrid(
                 query,
                 options.alpha,
@@ -651,10 +664,10 @@ class _GrpcCollection(_Grpc):
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-        data_model: Optional[Type[Properties]] = None,
+        # data_model: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         return [
-            self.__result_to_object(obj, data_model)
+            self.__result_to_object(obj, self.__type)
             for obj in self._query().bm25(
                 query, properties, limit, autocut, return_metadata, return_properties
             )
@@ -665,12 +678,12 @@ class _GrpcCollection(_Grpc):
         query: str,
         returns: ReturnValues,
         options: Optional[BM25Options] = None,
-        data_model: Optional[Type[Properties]] = None,
+        # data_model: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         if options is None:
             options = BM25Options()
         return [
-            self.__result_to_object(obj, data_model)
+            self.__result_to_object(obj, self.__type)
             for obj in self._query().bm25(
                 query,
                 options.properties,
@@ -689,10 +702,10 @@ class _GrpcCollection(_Grpc):
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-        data_model: Optional[Type[Properties]] = None,
+        # data_model: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         return [
-            self.__result_to_object(obj, data_model)
+            self.__result_to_object(obj, self.__type)
             for obj in self._query().near_vector(
                 vector, certainty, distance, autocut, return_metadata, return_properties
             )
@@ -703,12 +716,12 @@ class _GrpcCollection(_Grpc):
         vector: List[float],
         returns: ReturnValues,
         options: Optional[NearVectorOptions] = None,
-        data_model: Optional[Type[Properties]] = None,
+        # data_model: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         if options is None:
             options = NearVectorOptions()
         return [
-            self.__result_to_object(obj, data_model)
+            self.__result_to_object(obj, self.__type)
             for obj in self._query().near_vector(
                 vector,
                 options.certainty,
@@ -727,10 +740,10 @@ class _GrpcCollection(_Grpc):
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-        data_model: Optional[Type[Properties]] = None,
+        # data_model: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         return [
-            self.__result_to_object(obj, data_model)
+            self.__result_to_object(obj, self.__type)
             for obj in self._query().near_object(
                 obj, certainty, distance, autocut, return_metadata, return_properties
             )
@@ -741,12 +754,12 @@ class _GrpcCollection(_Grpc):
         obj: UUID,
         returns: ReturnValues,
         options: Optional[NearObjectOptions] = None,
-        data_model: Optional[Type[Properties]] = None,
+        # data_model: Optional[Type[Properties]] = None,
     ) -> List[_Object[Properties]]:
         if options is None:
             options = NearObjectOptions()
         return [
-            self.__result_to_object(obj, data_model)
+            self.__result_to_object(obj, self.__type)
             for obj in self._query().near_object(
                 obj,
                 options.certainty,
