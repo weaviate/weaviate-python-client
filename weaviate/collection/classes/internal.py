@@ -21,7 +21,7 @@ class _MetadataReturn:
 
 @dataclass
 class _Object(Generic[Properties]):
-    data: Properties
+    properties: Properties
     metadata: _MetadataReturn
 
 

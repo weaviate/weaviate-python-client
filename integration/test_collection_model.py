@@ -49,7 +49,7 @@ def client():
 
 def test_with_existing_collection(client: weaviate.Client):
     obj = client.collection_model.get(Group).data.get_by_id(REF_TO_UUID)
-    assert obj.data.name == "Name"
+    assert obj.properties.name == "Name"
 
 
 @pytest.mark.parametrize(
@@ -81,12 +81,12 @@ def test_types(client: weaviate.Client, member_type, value, optional: bool):
     assert type(uuid_object) is uuid.UUID
 
     object_get = collection.data.get_by_id(uuid_object)
-    assert object_get.data == ModelTypes(name=value, uuid=uuid_object)
+    assert object_get.properties == ModelTypes(name=value, uuid=uuid_object)
 
     if optional:
         uuid_object_optional = collection.data.insert(ModelTypes(name=None))
         object_get_optional = collection.data.get_by_id(uuid_object_optional)
-        assert object_get_optional.data == ModelTypes(name=None, uuid=uuid_object_optional)
+        assert object_get_optional.properties == ModelTypes(name=None, uuid=uuid_object_optional)
 
 
 @pytest.mark.parametrize(
@@ -110,9 +110,9 @@ def test_types_annotates(client: weaviate.Client, member_type, annotation, value
     uuid_object = collection.data.insert(ModelTypes(name=value))
 
     object_get = collection.data.get_by_id(uuid_object)
-    assert type(object_get.data) is ModelTypes
+    assert type(object_get.properties) is ModelTypes
 
-    assert object_get.data.name == value
+    assert object_get.properties.name == value
 
 
 def test_create_and_delete(client: weaviate.Client):
@@ -142,8 +142,8 @@ def test_search(client: weaviate.Client):
     collection.data.insert(SearchTest(name="other words"))
 
     objects = collection.query.bm25_flat(query="test", return_properties=["name"])
-    assert type(objects[0].data) is SearchTest
-    assert objects[0].data.name == "test name"
+    assert type(objects[0].properties) is SearchTest
+    assert objects[0].properties.name == "test name"
 
 
 def test_tenants(client: weaviate.Client):
@@ -237,13 +237,13 @@ def test_multi_searches(client: weaviate.Client):
         return_properties=["name"],
         return_metadata=MetadataQuery(last_update_time_unix=True),
     )
-    assert objects[0].data.name == "some word"
+    assert objects[0].properties.name == "some word"
     assert objects[0].metadata.last_update_time_unix is not None
 
     objects = collection.query.bm25_flat(
         query="other", return_properties=["name"], return_metadata=MetadataQuery(uuid=True)
     )
-    assert objects[0].data.name == "other"
+    assert objects[0].properties.name == "other"
     assert objects[0].metadata.uuid is not None
     assert objects[0].metadata.last_update_time_unix is None
 
@@ -269,16 +269,16 @@ def test_multi_searches_with_references(client: weaviate.Client):
         return_properties=["name", "group"],
         return_metadata=MetadataQuery(last_update_time_unix=True),
     )
-    assert objects[0].data.name == "some word"
-    assert objects[0].data.group == REF_TO_UUID
+    assert objects[0].properties.name == "some word"
+    assert objects[0].properties.group == REF_TO_UUID
     assert objects[0].metadata.last_update_time_unix is not None
 
     objects = collection.query.bm25_flat(
         query="other",
         return_metadata=MetadataQuery(uuid=True),
     )
-    assert objects[0].data.name is None
-    assert objects[0].data.group is None
+    assert objects[0].properties.name is None
+    assert objects[0].properties.group is None
     assert objects[0].metadata.uuid is not None
     assert objects[0].metadata.last_update_time_unix is None
 
@@ -373,18 +373,18 @@ def test_update_properties(
         assert uuid_first is not None
         first = collection.data.get_by_id(uuid_first)
 
-        assert first.data.name == "first"
+        assert first.properties.name == "first"
         assert (
-            first.data.number == default
+            first.properties.number == default
             if default is not None and default != PydanticUndefined
             else default_factory()
             if default_factory is not None
-            else first.data.number is None
+            else first.properties.number is None
         )
 
         second = collection.data.get_by_id(uuid_second)
-        assert second.data.name == "second"
-        assert second.data.number == value_to_add
+        assert second.properties.name == "second"
+        assert second.properties.number == value_to_add
 
 
 def test_empty_search_returns_everything(client: weaviate.Client):
@@ -401,8 +401,8 @@ def test_empty_search_returns_everything(client: weaviate.Client):
     collection.data.insert(TestReturnEverythingORM(name="word"))
 
     objects = collection.query.bm25_flat(query="word")
-    assert objects[0].data.name is not None
-    assert objects[0].data.name == "word"
+    assert objects[0].properties.name is not None
+    assert objects[0].properties.name == "word"
     assert objects[0].metadata.uuid is not None
     assert objects[0].metadata.score is not None
     assert objects[0].metadata.last_update_time_unix is not None
@@ -424,7 +424,7 @@ def test_empty_return_properties(client: weaviate.Client):
     collection.data.insert(TestEmptyProperties(name="word"))
 
     objects = collection.query.bm25_flat(query="word", return_metadata=MetadataQuery(uuid=True))
-    assert objects[0].data.name is None
+    assert objects[0].properties.name is None
 
 
 @pytest.mark.skip(reason="ORM models do not support updating reference properties yet")
@@ -467,9 +467,9 @@ def test_model_with_datetime_property(client: weaviate.Client):
     collection.data.insert(TestDatetime(name="test", date=now))
     objects = collection.data.get()
     assert len(objects) == 1
-    assert objects[0].data.name == "test"
-    assert type(objects[0].data.date) is datetime
+    assert objects[0].properties.name == "test"
+    assert type(objects[0].properties.date) is datetime
 
-    # assert objects[0].data.date == now
+    # assert objects[0].properties.date == now
     # The same issue as in test_collection.py@introduce_date_parsing_to_collections occurs here
     # Weaviate parsing of dates is not perfectly compatible with the python datetime library
