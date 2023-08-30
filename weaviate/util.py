@@ -785,7 +785,7 @@ def _decode_json_response_dict(
     if response is None:
         return None
 
-    if response.status_code == 200:
+    if 200 <= response.status_code < 300:
         try:
             json_response = response.json()
             return json_response
@@ -801,7 +801,7 @@ def _decode_json_response_list(
     if response is None:
         return None
 
-    if response.status_code == 200:
+    if 200 <= response.status_code < 300:
         try:
             json_response = response.json()
             return json_response

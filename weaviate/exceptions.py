@@ -76,13 +76,13 @@ class UnexpectedStatusCodeException(WeaviateBaseError):
 class ResponseCannotBeDecodedException(WeaviateBaseError):
     def __init__(self, location: str, response: Response):
         """Raised when a weaviate response cannot be decoded to json
-        +
-            Parameters
-            ----------
-            location: str
-                From which code path the exception was raised.
-            response: requests.Response
-                The request response of which the status code was unexpected.
+
+        Parameters
+        ----------
+        location: str
+            From which code path the exception was raised.
+        response: requests.Response
+            The request response of which the status code was unexpected.
         """
         msg = f"Cannot decode response from weaviate {response} with content {response.content} for request from {location}"
         super().__init__(msg)
