@@ -1,12 +1,12 @@
 import sys
 import uuid as uuid_package
 from dataclasses import dataclass
-from typing import Any, Dict, Generic, List, Optional, Union, get_origin, get_type_hints
+from typing import Any, Dict, Generic, List, Optional, Union
 
 if sys.version_info < (3, 9):
-    from typing_extensions import Annotated
+    from typing_extensions import Annotated, get_type_hints, get_origin
 else:
-    from typing import Annotated
+    from typing import Annotated, get_type_hints, get_origin
 
 from weaviate.collection.classes.grpc import LinkTo, LinkToMultiTarget, MetadataQuery, PROPERTIES
 from weaviate.collection.classes.types import Properties, P
@@ -96,36 +96,63 @@ def _extract_property_type_from_reference(type_: Reference[P]) -> Optional[P]:
     return None
 
 
+def _extract_property_type_from_annotated_reference(
+    type_: Union[
+        Annotated[Reference[P], MetadataQuery], Annotated[Reference[P], MetadataQuery, str]
+    ]
+) -> Optional[P]:
+    """Extract inner type from Annotated[Reference[Properties]]"""
+    if get_origin(type_) is Annotated:
+        inner_type = type_.__args__[0]
+        if get_origin(inner_type) is Reference:
+            return inner_type.__args__[0]
+    return None
+
+
 def __create_link_to_from_annotated_reference(
     link_on: str,
     value: Union[
         Annotated[Reference[Properties], MetadataQuery],
         Annotated[Reference[Properties], MetadataQuery, str],
     ],
-) -> Union[LinkTo, LinkToMultiTarget, None]:
+) -> Union[LinkTo, LinkToMultiTarget]:
     """Create LinkTo or LinkToMultiTarget from Annotated[Reference[Properties]]"""
-    if get_origin(value) is Annotated:
-        inner_type = value.__args__[0]
-        metadata = value.__metadata__[0]
-        if get_origin(inner_type) is Reference:
-            try:
-                target_collection = value.__metadata__[1]
-                return LinkToMultiTarget(
-                    link_on=link_on,
-                    metadata=metadata,
-                    properties=_extract_properties_from_data_model(
-                        _extract_property_type_from_reference(inner_type)
-                    ),
-                    target_collection=target_collection,
-                )
-            except IndexError:
-                return LinkTo(
-                    link_on=link_on,
-                    metadata=metadata,
-                    properties=_extract_properties_from_data_model(
-                        _extract_property_type_from_reference(inner_type)
-                    ),
-                )
+    assert get_origin(value) is Annotated
+    inner_type = value.__args__[0]
+    assert get_origin(inner_type) is Reference
+    metadata = value.__metadata__[0]
+    try:
+        target_collection = value.__metadata__[1]
+        return LinkToMultiTarget(
+            link_on=link_on,
+            metadata=metadata,
+            properties=_extract_properties_from_data_model(
+                _extract_property_type_from_annotated_reference(value)
+            ),
+            target_collection=target_collection,
+        )
+    except IndexError:
+        return LinkTo(
+            link_on=link_on,
+            metadata=metadata,
+            properties=_extract_properties_from_data_model(
+                _extract_property_type_from_annotated_reference(value)
+            ),
+        )
+
+
+def __create_link_to_from_reference(
+    link_on: str,
+    value: Reference[Properties],
+) -> Union[LinkTo, None]:
+    """Create LinkTo from Reference[Properties]"""
+    return LinkTo(
+        link_on=link_on,
+        metadata=MetadataQuery(),
+        properties=_extract_properties_from_data_model(
+            _extract_property_type_from_reference(value)
+        ),
+    )
 
 
 def _extract_properties_from_data_model(type_: Properties) -> PROPERTIES:
@@ -133,6 +160,8 @@ def _extract_properties_from_data_model(type_: Properties) -> PROPERTIES:
     return [
         __create_link_to_from_annotated_reference(key, value)
         if get_origin(value) is Annotated
-        else key
+        else (
+            __create_link_to_from_reference(key, value) if get_origin(value) is Reference else key
+        )
         for key, value in get_type_hints(type_, include_extras=True).items()
     ]

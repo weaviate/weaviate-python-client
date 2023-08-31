@@ -1,4 +1,5 @@
 import datetime
+import sys
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -11,10 +12,13 @@ from typing import (
     Type,
     Generic,
     cast,
-    get_origin,
-    get_type_hints,
 )
 from typing_extensions import TypeAlias
+
+if sys.version_info < (3, 9):
+    from typing_extensions import Annotated, get_type_hints, get_origin
+else:
+    from typing import Annotated, get_type_hints, get_origin
 
 import grpc
 import uuid as uuid_lib
@@ -45,6 +49,7 @@ from weaviate.collection.classes.internal import (
     _Object,
     Reference,
     Properties,
+    _extract_property_type_from_annotated_reference,
     _extract_property_type_from_reference,
     _extract_properties_from_data_model,
 )
@@ -525,8 +530,11 @@ class _GrpcCollection(_Grpc):
         for ref_prop in properties.ref_props:
             hint = hints.get(ref_prop.prop_name)
             if hint is not None:
-                assert get_origin(hint) is Reference
-                referenced_property_type = _extract_property_type_from_reference(hint)
+                if get_origin(hint) is Annotated:
+                    referenced_property_type = _extract_property_type_from_annotated_reference(hint)
+                else:
+                    assert get_origin(hint) is Reference
+                    referenced_property_type = _extract_property_type_from_reference(hint)
                 result[ref_prop.prop_name] = Reference[referenced_property_type]._from(
                     [
                         _Object(
