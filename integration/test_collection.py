@@ -34,8 +34,6 @@ from weaviate.collection.classes.data import (
     DataObject,
     Error,
     GetObjectsMetadata,
-    ReferenceTo,
-    ReferenceToMultiTarget,
 )
 from weaviate.collection.classes.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery
 from weaviate.collection.classes.internal import Reference
@@ -264,16 +262,16 @@ def test_insert_many_with_refs(client: weaviate.Client):
             DataObject(
                 properties={
                     "name": "some name",
-                    "ref_single": ReferenceTo(uuids=[uuid_to1, uuid_to2]),
-                    "ref_many": ReferenceToMultiTarget(uuids=uuid_from, target_collection=name),
+                    "ref_single": Reference.to(uuids=[uuid_to1, uuid_to2]),
+                    "ref_many": Reference.to_multi_target(uuids=uuid_from, target_collection=name),
                 },
                 vector=[1, 2, 3],
             ),
             DataObject(
                 properties={
                     "name": "some other name",
-                    "ref_single": ReferenceTo(uuids=uuid_to2),
-                    "ref_many": ReferenceToMultiTarget(
+                    "ref_single": Reference.to(uuids=uuid_to2),
+                    "ref_many": Reference.to_multi_target(
                         uuids=uuid_to1, target_collection=name_target
                     ),
                 },
@@ -488,28 +486,28 @@ def test_reference_add_delete_replace(client: weaviate.Client):
     collection = client.collection.create(collection_config)
 
     uuid_from1 = collection.data.insert({}, uuid.uuid4())
-    uuid_from2 = collection.data.insert({"ref": ReferenceTo(uuids=uuid_to)}, uuid.uuid4())
+    uuid_from2 = collection.data.insert({"ref": Reference.to(uuids=uuid_to)}, uuid.uuid4())
     collection.data.reference_add(
-        from_uuid=uuid_from1, from_property="ref", ref=ReferenceTo(uuids=uuid_to)
+        from_uuid=uuid_from1, from_property="ref", ref=Reference.to(uuids=uuid_to)
     )
     objects = collection.data.get()
     for obj in objects:
         assert str(uuid_to) in "".join([ref["beacon"] for ref in obj.properties["ref"]])
 
     collection.data.reference_delete(
-        from_uuid=uuid_from1, from_property="ref", ref=ReferenceTo(uuids=uuid_to)
+        from_uuid=uuid_from1, from_property="ref", ref=Reference.to(uuids=uuid_to)
     )
     assert len(collection.data.get_by_id(uuid_from1).properties["ref"]) == 0
 
     collection.data.reference_add(
-        from_uuid=uuid_from2, from_property="ref", ref=ReferenceTo(uuids=uuid_to)
+        from_uuid=uuid_from2, from_property="ref", ref=Reference.to(uuids=uuid_to)
     )
     obj = collection.data.get_by_id(uuid_from2)
     assert len(obj.properties["ref"]) == 2
     assert str(uuid_to) in "".join([ref["beacon"] for ref in obj.properties["ref"]])
 
     collection.data.reference_replace(
-        from_uuid=uuid_from2, from_property="ref", ref=ReferenceTo(uuids=[])
+        from_uuid=uuid_from2, from_property="ref", ref=Reference.to(uuids=[])
     )
     assert len(collection.data.get_by_id(uuid_from2).properties["ref"]) == 0
 
@@ -893,10 +891,10 @@ def test_multi_references_grcp(client: weaviate.Client):
         )
     )
     C.data.insert(
-        {"Name": "first", "ref": ReferenceToMultiTarget(uuids=uuid_A, target_collection="A")}
+        {"Name": "first", "ref": Reference.to_multi_target(uuids=uuid_A, target_collection="A")}
     )
     C.data.insert(
-        {"Name": "second", "ref": ReferenceToMultiTarget(uuids=uuid_B, target_collection="B")}
+        {"Name": "second", "ref": Reference.to_multi_target(uuids=uuid_B, target_collection="B")}
     )
 
     objects = C.query.bm25_flat(

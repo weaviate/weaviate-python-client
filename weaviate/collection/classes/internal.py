@@ -31,20 +31,45 @@ class _Object(Generic[P]):
 
 
 class Reference(Generic[P]):
-    def __init__(self, objects: Optional[List[_Object[P]]], uuids: Optional[UUIDS]):
+    def __init__(
+        self,
+        objects: Optional[List[_Object[P]]],
+        target_collection: Optional[str],
+        uuids: Optional[UUIDS],
+    ):
         self.objects = objects
+        self.__target_collection = target_collection if target_collection else ""
         self.__uuids = uuids
 
     @classmethod
     def to(cls, uuids: UUIDS) -> "Reference[P]":
-        return cls(None, uuids)
+        return cls(None, None, uuids)
 
-    def to_beacons(self) -> List[Dict[str, str]]:
-        return _to_beacons(self.__uuids)
+    @classmethod
+    def to_multi_target(cls, uuids: UUIDS, target_collection: str) -> "Reference[P]":
+        return cls(None, target_collection, uuids)
+
+    def _to_beacons(self) -> List[Dict[str, str]]:
+        return _to_beacons(self.__uuids, self.__target_collection)
 
     @classmethod
     def _from(cls, objects: List[_Object[P]]) -> "Reference[P]":
-        return cls(objects, None)
+        return cls(objects, None, None)
+
+    @property
+    def is_multi_target(self) -> bool:
+        return self.__target_collection != ""
+
+    @property
+    def uuids_str(self) -> List[str]:
+        if isinstance(self.__uuids, list):
+            return [str(uid) for uid in self.__uuids]
+        else:
+            return [str(self.__uuids)]
+
+    @property
+    def target_collection(self) -> str:
+        return self.__target_collection
 
 
 def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
