@@ -797,8 +797,10 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
         ),
         BProps,
     )
-    uuid_B = B.data.insert(BProps(name="B", ref=Reference.to(uuids=uuid_A1)))
-    B.data.reference_add(from_uuid=uuid_B, from_property="ref", ref=Reference.to(uuids=uuid_A2))
+    uuid_B = B.data.insert(BProps(name="B", ref=Reference[AProps].to(uuids=uuid_A1)))
+    B.data.reference_add(
+        from_uuid=uuid_B, from_property="ref", ref=Reference[AProps].to(uuids=uuid_A2)
+    )
 
     C = client.collection.create(
         CollectionConfig(
@@ -812,7 +814,7 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
         ),
         CProps,
     )
-    C.data.insert(CProps(name="find me", age=10, ref=Reference.to(uuids=uuid_B)))
+    C.data.insert(CProps(name="find me", age=10, ref=Reference[BProps].to(uuids=uuid_B)))
 
     objects = C.query.bm25_flat(
         query="find",
