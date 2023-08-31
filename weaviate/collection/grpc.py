@@ -37,7 +37,6 @@ from weaviate.collection.classes.grpc import (
     PROPERTIES,
     LinkTo,
     LinkToMultiTarget,
-    RefProps,
     ReturnValues,
 )
 from weaviate.collection.classes.internal import (
@@ -145,7 +144,7 @@ class _GRPC:
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[GrpcResult]:
+    ) -> List[SearchResult]:
         self._limit = limit
         self._offset = offset
         self._after = after
@@ -166,7 +165,7 @@ class _GRPC:
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[GrpcResult]:
+    ) -> List[SearchResult]:
         self._hybrid_query = query
         self._hybrid_alpha = alpha
         self._hybrid_vector = vector
@@ -192,7 +191,7 @@ class _GRPC:
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[GrpcResult]:
+    ) -> List[SearchResult]:
         self._bm25_query = query
         self._bm25_properties = properties
         self._limit = limit
@@ -211,7 +210,7 @@ class _GRPC:
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[GrpcResult]:
+    ) -> List[SearchResult]:
         self._near_vector_vec = vector
         self._near_certainty = certainty
         self._near_distance = distance
@@ -230,7 +229,7 @@ class _GRPC:
         autocut: Optional[int] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[GrpcResult]:
+    ) -> List[SearchResult]:
         self._near_object_obj = near_object
         self._near_certainty = certainty
         self._near_distance = distance
@@ -344,16 +343,6 @@ class _GRPC:
                 ],
             )
 
-    def _ref_props_return_meta(self, props: PROPERTIES) -> Dict[str, RefProps]:
-        ref_props = {}
-        for prop in props:
-            if isinstance(prop, LinkTo):
-                ref_props[prop.link_on] = RefProps(
-                    meta=prop.metadata,
-                    refs=self._ref_props_return_meta(prop.properties),
-                )
-        return ref_props
-
     def _metadata_to_grpc(self, metadata: MetadataQuery) -> weaviate_pb2.AdditionalProperties:
         return weaviate_pb2.AdditionalProperties(
             uuid=metadata.uuid,
@@ -365,41 +354,6 @@ class _GRPC:
             explainScore=metadata.explain_score,
             score=metadata.score,
         )
-
-    def _convert_references_to_grpc_result(
-        self, properties: "weaviate_pb2.ResultProperties"
-    ) -> Dict[str, Union[_StructValue, List["GrpcResult"]]]:
-        result: Dict[str, Union[_StructValue, List["GrpcResult"]]] = {}
-        for name, non_ref_prop in properties.non_ref_properties.items():
-            result[name] = non_ref_prop
-
-        for number_array_property in properties.number_array_properties:
-            result[number_array_property.key] = [float(val) for val in number_array_property.vals]
-
-        for int_array_property in properties.int_array_properties:
-            result[int_array_property.key] = [int(val) for val in int_array_property.vals]
-
-        for text_array_property in properties.text_array_properties:
-            result[text_array_property.key] = [str(val) for val in text_array_property.vals]
-
-        for boolean_array_property in properties.boolean_array_properties:
-            result[boolean_array_property.key] = [bool(val) for val in boolean_array_property.vals]
-
-        for uuid_array_property in properties.uuid_array_properties:
-            result[uuid_array_property.key] = [
-                uuid_lib.UUID(val) for val in uuid_array_property.vals
-            ]
-
-        for ref_prop in properties.ref_props:
-            result[ref_prop.prop_name] = [
-                GrpcResult(
-                    result=self._convert_references_to_grpc_result(prop),
-                    metadata=self.__extract_metadata_for_object(prop.metadata),
-                )
-                for prop in ref_prop.properties
-            ]
-
-        return result
 
     def _convert_references_to_grpc(
         self, properties: Set[Union[LinkTo, LinkToMultiTarget, str]]
@@ -418,25 +372,6 @@ class _GRPC:
                 for prop in properties
                 if isinstance(prop, LinkTo)
             ],
-        )
-
-    @staticmethod
-    def __extract_metadata_for_object(
-        add_props: "weaviate_pb2.ResultAdditionalProps",
-    ) -> _MetadataReturn:
-        return _MetadataReturn(
-            uuid=uuid_lib.UUID(add_props.id) if len(add_props.id) > 0 else None,
-            vector=[float(num) for num in add_props.vector] if len(add_props.vector) > 0 else None,
-            distance=add_props.distance if add_props.distance_present else None,
-            certainty=add_props.certainty if add_props.certainty_present else None,
-            creation_time_unix=add_props.creation_time_unix
-            if add_props.creation_time_unix_present
-            else None,
-            last_update_time_unix=add_props.last_update_time_unix
-            if add_props.last_update_time_unix_present
-            else None,
-            score=add_props.score if add_props.score_present else None,
-            explain_score=add_props.explain_score if add_props.explain_score_present else None,
         )
 
 
@@ -462,8 +397,8 @@ class _Grpc:
             assert value is None
             return None
 
+    @staticmethod
     def _extract_metadata_for_object(
-        self,
         add_props: "weaviate_pb2.ResultAdditionalProps",
     ) -> _MetadataReturn:
         return _MetadataReturn(
