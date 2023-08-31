@@ -51,6 +51,27 @@ class NearObjectOptions:
 
 
 @dataclass
+class NearImageOptions:
+    certainty: Optional[float] = None
+    distance: Optional[float] = None
+    autocut: Optional[int] = None
+
+
+@dataclass
+class NearAudioOptions:
+    certainty: Optional[float] = None
+    distance: Optional[float] = None
+    autocut: Optional[int] = None
+
+
+@dataclass
+class NearVideoOptions:
+    certainty: Optional[float] = None
+    distance: Optional[float] = None
+    autocut: Optional[int] = None
+
+
+@dataclass
 class MetadataQuery:
     uuid: bool = False
     vector: bool = False

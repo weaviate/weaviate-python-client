@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-grpc-proto-lint-fixes-4a2387c
+    image: semitechnologies/weaviate:preview-near-image-audio-and-video-to-grpc-622603a
     ports:
       - 8081:8081
     restart: on-failure:0

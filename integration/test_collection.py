@@ -1,15 +1,14 @@
 import datetime
+from dataclasses import dataclass
+from typing import Dict, TypedDict, Optional
 
 import pytest as pytest
 import uuid
-
-from dataclasses import dataclass
-from typing import Dict, TypedDict
-
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 import weaviate
+from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_ENCODED
 from weaviate import Config
 from weaviate.collection.classes.config import (
     BM25ConfigUpdate,
@@ -1349,3 +1348,30 @@ def test_return_list_properties(client: weaviate.Client):
     assert dates2 == dates
 
     assert objects[0].properties == data
+
+
+@pytest.mark.parametrize("distance,certainty", [(None, None), (10, None), (None, 0.1)])
+def test_near_image(client: weaviate.Client, distance: Optional[float], certainty: Optional[float]):
+    name = "TestNearImage"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        CollectionConfig(
+            name=name,
+            vectorizer=Vectorizer.IMG2VEC_NEURAL,
+            properties=[
+                Property(name="image", data_type=DataType.BLOB),
+                Property(name="text", data_type=DataType.TEXT),
+            ],
+            module_config={"img2vec-neural": {"imageFields": ["image"]}},
+        )
+    )
+
+    uuid1 = collection.data.insert(
+        properties={"image": WEAVIATE_LOGO_OLD_ENCODED, "text": "weaviate_logo"}
+    )
+    collection.data.insert(properties={"image": WEAVIATE_LOGO_NEW_ENCODED, "text": "other result"})
+
+    objects = collection.query.near_image_flat(
+        WEAVIATE_LOGO_OLD_ENCODED, distance=distance, certainty=certainty
+    )
+    assert objects[0].metadata.uuid == uuid1

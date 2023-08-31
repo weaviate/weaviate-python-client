@@ -2,7 +2,7 @@
 version: '3.4'
 services:
   weaviate-node-1:
-    image: semitechnologies/weaviate:preview-grpc-proto-lint-fixes-4a2387c
+    image: semitechnologies/weaviate:preview-near-image-audio-and-video-to-grpc-622603a
     restart: on-failure:0
     ports:
       - "8087:8080"
@@ -25,7 +25,7 @@ services:
       - '8080'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-grpc-proto-lint-fixes-4a2387c
+    image: semitechnologies/weaviate:preview-near-image-audio-and-video-to-grpc-622603a
     ports:
       - 8088:8080
       - 6061:6060
