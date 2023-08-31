@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 import requests
-import validators as validators
+import validators
 
 from weaviate import exceptions
 from weaviate.exceptions import WeaviateStartUpError
@@ -59,7 +59,10 @@ class EmbeddedDB:
             r"^\d\.\d{1,2}\.\d{1,2}?(-rc\.\d{1,2}|-beta\.\d{1,2}|-alpha\.\d{1,2}|$)$"
         )
 
-        if validators.url(self.options.version):
+        valid_url = validators.url(self.options.version)
+        if isinstance(valid_url, validators.ValidationError):
+            valid_url = validators.url(self.options.version, simple_host=True)  # for localhost
+        if valid_url:
             if not self.options.version.endswith(".tar.gz") and not self.options.version.endswith(
                 ".zip"
             ):
