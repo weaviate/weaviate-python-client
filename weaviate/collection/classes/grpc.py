@@ -51,35 +51,34 @@ class NearObjectOptions:
     autocut: Optional[int] = None
 
 
-@dataclass
 class Move:
-    force: float
-    objects: Optional[Union[List[UUID], UUID]] = None
-    concepts: Optional[Union[List[str], str]] = None
-
-    def __post_init__(self):
-        if (
-            self.objects is None or (isinstance(self.objects, list) and len(self.objects) == 0)
-        ) and (
-            self.concepts is None
-            or (isinstance(self.concepts, list) and len(self.concepts) == 0) == 0
+    def __init__(
+        self,
+        force: float,
+        objects: Optional[Union[List[UUID], UUID]] = None,
+        concepts: Optional[Union[List[str], str]] = None,
+    ):
+        if (objects is None or (isinstance(objects, list) and len(objects) == 0)) and (
+            concepts is None or (isinstance(concepts, list) and len(concepts) == 0)
         ):
             raise ValueError("Either objects or concepts need to be given")
 
-        # accept single values, but make them a list
-        if self.objects is None:
-            self.__objects = None
-        elif not isinstance(self.objects, list):
-            self.__objects = [str(self.objects)]
-        else:
-            self.__objects = [str(obj_uuid) for obj_uuid in self.objects]
+        self.force = force
 
-        if self.concepts is None:
-            self.__concepts = None
-        elif not isinstance(self.concepts, list):
-            self.__concepts = [self.concepts]
+        # accept single values, but make them a list
+        if objects is None:
+            self.__objects = None
+        elif not isinstance(objects, list):
+            self.__objects = [str(objects)]
         else:
-            self.__concepts = self.concepts
+            self.__objects = [str(obj_uuid) for obj_uuid in objects]
+
+        if concepts is None:
+            self.__concepts = None
+        elif not isinstance(concepts, list):
+            self.__concepts = [concepts]
+        else:
+            self.__concepts = concepts
 
     @property
     def objects_list(self) -> Optional[List[str]]:
