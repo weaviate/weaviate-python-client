@@ -8,6 +8,7 @@ from typing import (
     Optional,
     Union,
     Tuple,
+    Type,
     Generic,
     cast,
     get_origin,
@@ -18,7 +19,6 @@ from typing_extensions import TypeAlias
 import grpc
 import uuid as uuid_lib
 from google.protobuf import struct_pb2
-from typing import Type
 
 from weaviate.collection.classes.filters import (
     _FilterValue,
@@ -38,6 +38,8 @@ from weaviate.collection.classes.grpc import (
     LinkTo,
     LinkToMultiTarget,
     ReturnValues,
+    Move,
+    NearTextOptions,
 )
 from weaviate.collection.classes.internal import (
     _MetadataReturn,
@@ -97,6 +99,13 @@ class SearchResponse:
     results: List[SearchResult]
 
 
+@dataclass
+class _Move:
+    force: float
+    concepts: List[str]
+    objects: List[uuid_lib.UUID]
+
+
 class _GRPC:
     def __init__(
         self,
@@ -131,6 +140,10 @@ class _GRPC:
 
         self._near_vector_vec: Optional[List[float]] = None
         self._near_object_obj: Optional[UUID] = None
+        self._near_text: Optional[List[str]] = None
+        self._near_text_move_away: Optional[weaviate_pb2.NearTextSearchParams.Move] = None
+        self._near_text_move_to: Optional[weaviate_pb2.NearTextSearchParams.Move] = None
+
         self._near_certainty: Optional[float] = None
         self._near_distance: Optional[float] = None
 
@@ -241,7 +254,42 @@ class _GRPC:
 
         return self.__call()
 
-    def __call(self) -> List[SearchResult]:
+    def near_text(
+        self,
+        near_text: Union[List[str], str],
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        autocut: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> List[GrpcResult]:
+        if isinstance(near_text, str):
+            near_text = [near_text]
+        self._near_text = near_text
+        self._near_certainty = certainty
+        self._near_distance = distance
+        self._autocut = autocut
+        self._filters = filters
+        if move_away is not None:
+            self._near_text_move_away = weaviate_pb2.NearTextSearchParams.Move(
+                force=move_away.force,
+                concepts=move_away.concepts_list,
+                uuids=move_away.objects_list,
+            )
+        if move_to is not None:
+            self._near_text_move_to = weaviate_pb2.NearTextSearchParams.Move(
+                force=move_to.force, concepts=move_to.concepts_list, uuids=move_to.objects_list
+            )
+        self._metadata = return_metadata
+        if return_properties is not None:
+            self._default_props = self._default_props.union(return_properties)
+
+        return self.__call()
+
+    def __call(self) -> List[GrpcResult]:
         metadata: Optional[Tuple[Tuple[str, str]]] = None
         access_token = self._connection.get_current_bearer_token()
         if len(access_token) > 0:
@@ -292,6 +340,15 @@ class _GRPC:
                     else None,
                     tenant=self._tenant,
                     filters=self.__extract_filters(self._filters),
+                    near_text=weaviate_pb2.NearTextSearchParams(
+                        query=self._near_text,
+                        certainty=self._near_certainty,
+                        distance=self._near_distance,
+                        move_to=self._near_text_move_to,
+                        move_away=self._near_text_move_away,
+                    )
+                    if self._near_text is not None
+                    else None,
                 ),
                 metadata=metadata,
             )
@@ -692,6 +749,59 @@ class _GrpcCollection(_Grpc):
             )
         ]
 
+    def near_text_flat(
+        self,
+        query: Union[List[str], str],
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        autocut: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+        data_model: Optional[Type[Properties]] = None,
+    ) -> List[_Object[Properties]]:
+        return [
+            self.__result_to_object(obj, data_model)
+            for obj in self._query().near_text(
+                near_text=query,
+                certainty=certainty,
+                distance=distance,
+                move_to=move_to,
+                move_away=move_away,
+                autocut=autocut,
+                filters=filters,
+                return_metadata=return_metadata,
+                return_properties=return_properties,
+            )
+        ]
+
+    def near_text_options(
+        self,
+        query: Union[List[str], str],
+        returns: ReturnValues,
+        options: Optional[NearTextOptions] = None,
+        data_model: Optional[Type[Properties]] = None,
+    ) -> List[_Object[Properties]]:
+        if options is None:
+            options = NearObjectOptions()
+
+        return [
+            self.__result_to_object(obj, data_model)
+            for obj in self._query().near_text(
+                near_text=query,
+                certainty=options.certainty,
+                distance=options.distance,
+                move_to=options.move_to,
+                move_away=options.move_away,
+                autocut=options.autocut,
+                filters=options.filters,
+                return_metadata=returns.metadata,
+                return_properties=returns.properties,
+            )
+        ]
+
 
 class _GrpcCollectionModel(Generic[Model], _Grpc):
     def __init__(
@@ -926,5 +1036,56 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
                 options.autocut,
                 returns.metadata,
                 returns.properties,
+            )
+        ]
+
+    def near_text_flat(
+        self,
+        query: Union[List[str], str],
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        autocut: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> List[_Object[Properties]]:
+        return [
+            self.__result_to_object(obj)
+            for obj in self._query().near_text(
+                near_text=query,
+                certainty=certainty,
+                distance=distance,
+                move_to=move_to,
+                move_away=move_away,
+                autocut=autocut,
+                filters=filters,
+                return_metadata=return_metadata,
+                return_properties=return_properties,
+            )
+        ]
+
+    def near_text_options(
+        self,
+        query: Union[List[str], str],
+        returns: ReturnValues,
+        options: Optional[NearTextOptions] = None,
+    ) -> List[_Object[Properties]]:
+        if options is None:
+            options = NearObjectOptions()
+
+        return [
+            self.__result_to_object(obj)
+            for obj in self._query().near_text(
+                near_text=query,
+                certainty=options.certainty,
+                distance=options.distance,
+                move_to=options.move_to,
+                move_away=options.move_away,
+                autocut=options.autocut,
+                filters=options.filters,
+                return_metadata=returns.metadata,
+                return_properties=returns.properties,
             )
         ]

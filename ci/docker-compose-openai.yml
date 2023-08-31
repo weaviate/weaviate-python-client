@@ -9,7 +9,7 @@ services:
       - '8086'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-grpc-proto-lint-fixes-4a2387c
+    image: semitechnologies/weaviate:preview-wip-add-near-text-to-grpc-and-refactor-neartext-modules-72380fc
     ports:
       - 8086:8086
     restart: on-failure:0

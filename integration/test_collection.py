@@ -1,11 +1,10 @@
 import datetime
+from dataclasses import dataclass
+from typing import Dict, TypedDict
+from typing import Union, List
 
 import pytest as pytest
 import uuid
-
-from dataclasses import dataclass
-from typing import Dict, TypedDict
-
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
@@ -37,11 +36,15 @@ from weaviate.collection.classes.data import (
     ReferenceTo,
     ReferenceToMultiTarget,
 )
-from weaviate.collection.classes.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery
+from weaviate.collection.classes.grpc import NearTextOptions, ReturnValues
 from weaviate.collection.classes.internal import Reference
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
+from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery, Move
+from weaviate.weaviate_types import UUID
 
 BEACON_START = "weaviate://localhost"
+
+UUID1 = uuid.uuid4()
 
 
 @pytest.fixture(scope="module")
@@ -1349,3 +1352,60 @@ def test_return_list_properties(client: weaviate.Client):
     assert dates2 == dates
 
     assert objects[0].properties == data
+
+
+@pytest.mark.parametrize("query", ["cake", ["cake"]])
+@pytest.mark.parametrize("objects", [UUID1, str(UUID1), [UUID1], [str(UUID1)]])
+@pytest.mark.parametrize("concepts", ["hiking", ["hiking"]])
+def test_near_text(
+    client: weaviate.Client,
+    query: Union[str, List[str]],
+    objects: Union[UUID, List[UUID]],
+    concepts: Union[str, List[str]],
+):
+    name = "TestNearText"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        CollectionConfig(
+            name=name,
+            vectorizer=Vectorizer.TEXT2VEC_CONTEXTIONARY,
+            properties=[Property(name="value", data_type=DataType.TEXT)],
+        )
+    )
+
+    batch_return = collection.data.insert_many(
+        [
+            DataObject(properties={"value": "Apple"}, uuid=UUID1),
+            DataObject(properties={"value": "Mountain climbing"}),
+            DataObject(properties={"value": "apple cake"}),
+            DataObject(properties={"value": "cake"}),
+        ]
+    )
+
+    objs1 = collection.query.near_text_flat(
+        query=query,
+        move_to=Move(force=1.0, objects=objects),
+        move_away=Move(force=0.5, concepts=concepts),
+        return_metadata=MetadataQuery(uuid=True),
+        return_properties=["value"],
+    )
+    objs2 = collection.query.near_text_options(
+        query=query,
+        options=NearTextOptions(
+            move_to=Move(force=1.0, objects=objects), move_away=Move(force=0.5, concepts=concepts)
+        ),
+        returns=ReturnValues(metadata=MetadataQuery(uuid=True), properties=["value"]),
+    )
+
+    assert objs1 == objs2
+    assert objs1[0].metadata.uuid == batch_return.uuids[2]
+    assert objs1[0].properties["value"] == "apple cake"
+
+
+def test_near_text_error(client: weaviate.Client):
+    name = "TestNearTextError"
+    client.collection.delete(name)
+    collection = client.collection.create(CollectionConfig(name=name))
+
+    with pytest.raises(ValueError):
+        collection.query.near_text_flat(query="test", move_to=Move(force=1.0))
