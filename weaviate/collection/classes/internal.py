@@ -1,14 +1,11 @@
 import uuid as uuid_package
 from dataclasses import dataclass
-from typing import Any, Dict, Generic, List, Mapping, Optional
-from typing_extensions import TypeVar
+from typing import Annotated, Any, Dict, Generic, List, Optional, Union, get_origin, get_type_hints
 
+from weaviate.collection.classes.grpc import LinkTo, LinkToMultiTarget, MetadataQuery, PROPERTIES
+from weaviate.collection.classes.types import Properties, P
 from weaviate.util import _to_beacons
 from weaviate.weaviate_types import UUIDS
-
-Properties = TypeVar("Properties", bound=Mapping[str, Any], default=Dict[str, Any])
-
-P = TypeVar("P")
 
 
 @dataclass
@@ -86,17 +83,51 @@ def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
     )
 
 
-def _extract_props_from_list_of_objects(type_: Any) -> Optional[Any]:
-    """Extract inner type from List[_Object[Properties]]"""
-    if getattr(type_, "__origin__", None) == List:
-        inner_type = type_.__args__[0]
-        if getattr(inner_type, "__origin__", None) == _Object:
-            return inner_type.__args__[0]
-    return None
-
-
-def _extract_props_from_reference(type_: Reference[P]) -> Optional[P]:
+def _extract_property_type_from_reference(type_: Reference[P]) -> Optional[P]:
     """Extract inner type from Reference[Properties]"""
     if getattr(type_, "__origin__", None) == Reference:
         return type_.__args__[0]
     return None
+
+
+def __create_link_to_from_annotated_reference(
+    link_on: str,
+    value: Union[
+        Annotated[Reference[Properties], MetadataQuery],
+        Annotated[Reference[Properties], MetadataQuery],
+        str,
+    ],
+) -> LinkTo:
+    """Create LinkTo or LinkToMultiTarget from Annotated[Reference[Properties]]"""
+    if get_origin(value) is Annotated:
+        inner_type = value.__args__[0]
+        metadata = value.__metadata__[0]
+        if get_origin(inner_type) is Reference:
+            try:
+                target_collection = value.__metadata__[1]
+                return LinkToMultiTarget(
+                    link_on=link_on,
+                    metadata=metadata,
+                    properties=_extract_properties_from_data_model(
+                        _extract_property_type_from_reference(inner_type)
+                    ),
+                    target_collection=target_collection,
+                )
+            except IndexError:
+                return LinkTo(
+                    link_on=link_on,
+                    metadata=metadata,
+                    properties=_extract_properties_from_data_model(
+                        _extract_property_type_from_reference(inner_type)
+                    ),
+                )
+
+
+def _extract_properties_from_data_model(type_: Properties) -> PROPERTIES:
+    """Extract properties of Properties recursively from Properties"""
+    return [
+        __create_link_to_from_annotated_reference(key, value)
+        if get_origin(value) is Annotated
+        else key
+        for key, value in get_type_hints(type_, include_extras=True).items()
+    ]
