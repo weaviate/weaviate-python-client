@@ -1,10 +1,16 @@
 import datetime
+import sys
 
 import pytest as pytest
 import uuid
 
 from dataclasses import dataclass
-from typing import Annotated, Dict, List, TypedDict
+from typing import Dict, List, TypedDict
+
+if sys.version_info < (3, 9):
+    from typing_extensions import Annotated
+else:
+    from typing import Annotated
 
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
@@ -1350,7 +1356,7 @@ def test_return_properties_with_typed_dict(client: weaviate.Client, which_case: 
 
         objects = collection.query.get_flat(return_properties=DataModel)
         assert len(objects) == 1
-        assert objects[0].properties == {"int_": 1}
+        assert objects[0].properties == {"int": 1}
     elif which_case == 1:
 
         class DataModel(TypedDict):

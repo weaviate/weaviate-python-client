@@ -1,6 +1,12 @@
+import sys
 import uuid as uuid_package
 from dataclasses import dataclass
-from typing import Annotated, Any, Dict, Generic, List, Optional, Union, get_origin, get_type_hints
+from typing import Any, Dict, Generic, List, Optional, Union, get_origin, get_type_hints
+
+if sys.version_info < (3, 9):
+    from typing_extensions import Annotated
+else:
+    from typing import Annotated
 
 from weaviate.collection.classes.grpc import LinkTo, LinkToMultiTarget, MetadataQuery, PROPERTIES
 from weaviate.collection.classes.types import Properties, P
