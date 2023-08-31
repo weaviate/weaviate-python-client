@@ -94,8 +94,7 @@ def __create_link_to_from_annotated_reference(
     link_on: str,
     value: Union[
         Annotated[Reference[Properties], MetadataQuery],
-        Annotated[Reference[Properties], MetadataQuery],
-        str,
+        Annotated[Reference[Properties], MetadataQuery, str],
     ],
 ) -> LinkTo:
     """Create LinkTo or LinkToMultiTarget from Annotated[Reference[Properties]]"""
