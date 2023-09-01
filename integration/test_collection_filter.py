@@ -320,18 +320,31 @@ def test_filters_contains_dates(client: weaviate.Client, test_number: int, resul
     assert all(obj.metadata.uuid in uuids for obj in objects)
 
 
-def test_ref_filters(client: weaviate.Client):
+@pytest.mark.parametrize(
+    "weaviate_filter,results",
+    [
+        (Filter(path=["ref", "TestFilterRef2", "int"]).greater_than(3), [1]),
+        (Filter(path=["ref", "TestFilterRef2", "text"], length=True).less_than(6), [0]),
+    ],
+)
+def test_ref_filters(client: weaviate.Client, weaviate_filter: _FilterValue, results: List[int]):
     client.collection.delete("TestFilterRef")
     client.collection.delete("TestFilterRef2")
     to_collection = client.collection.create(
         CollectionConfig(
             name="TestFilterRef2",
             vectorizer=Vectorizer.NONE,
-            properties=[Property(name="int", data_type=DataType.INT)],
+            properties=[
+                Property(name="int", data_type=DataType.INT),
+                Property(name="text", data_type=DataType.TEXT),
+            ],
+            inverted_index_config=InvertedIndexConfigCreate(index_property_length=True),
         )
     )
-    uuid_to = to_collection.data.insert(properties={"int": 0})
-    uuid_to2 = to_collection.data.insert(properties={"int": 5})
+    uuids_to = [
+        to_collection.data.insert(properties={"int": 0, "text": "first"}),
+        to_collection.data.insert(properties={"int": 15, "text": "second"}),
+    ]
     from_collection = client.collection.create(
         CollectionConfig(
             name="TestFilterRef",
@@ -343,14 +356,18 @@ def test_ref_filters(client: weaviate.Client):
         )
     )
 
-    from_collection.data.insert({"ref": Reference.to(uuid_to), "name": "first"})
-    from_collection.data.insert({"ref": Reference.to(uuid_to2), "name": "second"})
+    uuids_from = [
+        from_collection.data.insert({"ref": Reference.to(uuids_to[0]), "name": "first"}),
+        from_collection.data.insert({"ref": Reference.to(uuids_to[1]), "name": "second"}),
+    ]
 
     objects = from_collection.query.get_flat(
-        filters=Filter(path=["ref", "TestFilterRef2", "int"]).greater_than(3)
+        filters=weaviate_filter, return_metadata=MetadataQuery(uuid=True)
     )
-    assert len(objects) == 1
-    assert objects[0].properties["name"] == "second"
+    assert len(objects) == len(results)
+
+    uuids = [uuids_from[result] for result in results]
+    assert all(obj.metadata.uuid in uuids for obj in objects)
 
 
 def test_ref_filters_multi_target(client: weaviate.Client):

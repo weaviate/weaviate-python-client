@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-grpc-proto-lint-fixes-4a2387c
+    image: semitechnologies/weaviate:preview-wip-add-near-text-to-grpc-and-refactor-neartext-modules-72380fc
     ports:
       - "8080:8080"
       - "50051:50051"

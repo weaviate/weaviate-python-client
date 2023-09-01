@@ -6,10 +6,10 @@ from weaviate_grpc import weaviate_pb2
 
 
 class _Filters:
-    def __and__(self, other: "_Filters"):
+    def __and__(self, other: "_Filters") -> "_FilterAnd":
         return _FilterAnd(self, other)
 
-    def __or__(self, other: "_Filters"):
+    def __or__(self, other: "_Filters") -> "_FilterOr":
         return _FilterOr(self, other)
 
 
@@ -35,8 +35,8 @@ class _FilterOr(_Filters):
         return weaviate_pb2.Filters.OPERATOR_OR
 
 
-FilterValuesList = Union[List[str], List[bool], List[int], List[float], List[datetime.date]]
-FilterValues = Union[int, float, str, bool, datetime.date, None, FilterValuesList]
+FilterValuesList = Union[List[str], List[bool], List[int], List[float], List[datetime]]
+FilterValues = Union[int, float, str, bool, datetime, None, FilterValuesList]
 
 
 @dataclass
@@ -46,21 +46,13 @@ class _FilterValue(_Filters):
     operator: weaviate_pb2.Filters.Operator
 
 
-@dataclass
 class Filter:
-    path: Union[str, List[str]]
-    length: bool = False
-
-    def __post_init__(self):
-        if isinstance(self.path, str):
-            path = [self.path]
-        else:
-            path = self.path
-
-        if self.length:
-            self.__internal_path = "len(" + path[-1] + ")"
-        else:
-            self.__internal_path = path
+    def __init__(self, path: Union[str, List[str]], length: bool = False):
+        if isinstance(path, str):
+            path = [path]
+        if length:
+            path[-1] = "len(" + path[-1] + ")"
+        self.__internal_path = path
 
     def is_none(self, val: bool) -> _FilterValue:
         return _FilterValue(
