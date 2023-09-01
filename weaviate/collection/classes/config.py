@@ -244,6 +244,7 @@ class CollectionConfigCreateBase(ConfigCreateModel):
     vectorIndexConfig: Optional[VectorIndexConfigCreate] = Field(None, alias="vector_index_config")
     vectorIndexType: VectorIndexType = Field(VectorIndexType.HNSW, alias="vector_index_type")
     vectorizer: Vectorizer = Vectorizer.NONE
+    moduleConfig: Dict[str, Any] = Field(None, alias="module_config")
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
@@ -256,6 +257,8 @@ class CollectionConfigCreateBase(ConfigCreateModel):
                 ret_dict[cls_field] = str(val.value)
             elif isinstance(val, (bool, float, str, int)):
                 ret_dict[cls_field] = str(val)
+            elif isinstance(val, dict):
+                ret_dict[cls_field] = val
             else:
                 assert isinstance(val, ConfigCreateModel)
                 ret_dict[cls_field] = val.to_dict()

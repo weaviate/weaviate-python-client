@@ -27,6 +27,9 @@ from weaviate.collection.classes.grpc import (
     LinkToMultiTarget,
     RefProps,
     ReturnValues,
+    NearImageOptions,
+    NearAudioOptions,
+    NearVideoOptions,
     Move,
     NearTextOptions,
 )
@@ -135,6 +138,10 @@ class _GRPC:
 
         self._near_certainty: Optional[float] = None
         self._near_distance: Optional[float] = None
+
+        self._near_image: Optional[str] = None
+        self._near_video: Optional[str] = None
+        self._near_audio: Optional[str] = None
 
         self._filters: Optional[_Filters] = None
 
@@ -278,6 +285,72 @@ class _GRPC:
 
         return self.__call()
 
+    def near_image(
+        self,
+        image: str,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        autocut: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> List[GrpcResult]:
+        self._near_image = image
+        self._near_certainty = certainty
+        self._near_distance = distance
+        self._autocut = autocut
+        self._filters = filters
+
+        self._metadata = return_metadata
+        if return_properties is not None:
+            self._default_props = self._default_props.union(return_properties)
+
+        return self.__call()
+
+    def near_video(
+        self,
+        video: str,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        autocut: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> List[GrpcResult]:
+        self._near_video = video
+        self._near_certainty = certainty
+        self._near_distance = distance
+        self._autocut = autocut
+        self._filters = filters
+
+        self._metadata = return_metadata
+        if return_properties is not None:
+            self._default_props = self._default_props.union(return_properties)
+
+        return self.__call()
+
+    def near_audio(
+        self,
+        audio: str,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        autocut: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> List[GrpcResult]:
+        self._near_audio = audio
+        self._near_certainty = certainty
+        self._near_distance = distance
+        self._autocut = autocut
+        self._filters = filters
+
+        self._metadata = return_metadata
+        if return_properties is not None:
+            self._default_props = self._default_props.union(return_properties)
+
+        return self.__call()
+
     def __call(self) -> List[GrpcResult]:
         metadata: Optional[Tuple[Tuple[str, str]]] = None
         access_token = self._connection.get_current_bearer_token()
@@ -337,6 +410,27 @@ class _GRPC:
                         move_away=self._near_text_move_away,
                     )
                     if self._near_text is not None
+                    else None,
+                    near_image=weaviate_pb2.NearImageSearchParams(
+                        image=self._near_image,
+                        distance=self._near_distance,
+                        certainty=self._near_certainty,
+                    )
+                    if self._near_image is not None
+                    else None,
+                    near_video=weaviate_pb2.NearVideoSearchParams(
+                        video=self._near_video,
+                        distance=self._near_distance,
+                        certainty=self._near_certainty,
+                    )
+                    if self._near_video is not None
+                    else None,
+                    near_audio=weaviate_pb2.NearAudioSearchParams(
+                        audio=self._near_audio,
+                        distance=self._near_distance,
+                        certainty=self._near_certainty,
+                    )
+                    if self._near_audio is not None
                     else None,
                 ),
                 metadata=metadata,
@@ -749,6 +843,147 @@ class _Grpc(SupportsResultToObject, Generic[Properties]):
                 move_away=options.move_away,
                 autocut=options.autocut,
                 filters=options.filters,
+                return_metadata=returns.metadata,
+                return_properties=returns.properties,
+            )
+        ]
+
+    def near_image_flat(
+        self,
+        image: str,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        autocut: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> List[_Object[Properties]]:
+
+        return [
+            self._result_to_object(obj)
+            for obj in self.__create_query().near_image(
+                image=image,
+                certainty=certainty,
+                distance=distance,
+                filters=filters,
+                autocut=autocut,
+                return_metadata=return_metadata,
+                return_properties=return_properties,
+            )
+        ]
+
+    def near_image_options(
+        self,
+        image: str,
+        returns: ReturnValues,
+        options: Optional[NearImageOptions] = None,
+        filters: Optional[_Filters] = None,
+    ) -> List[_Object[Properties]]:
+        if options is None:
+            options = NearObjectOptions()
+
+        return [
+            self._result_to_object(obj)
+            for obj in self.__create_query().near_image(
+                image=image,
+                certainty=options.certainty,
+                distance=options.distance,
+                filters=filters,
+                autocut=options.autocut,
+                return_metadata=returns.metadata,
+                return_properties=returns.properties,
+            )
+        ]
+
+    def near_audio_flat(
+        self,
+        audio: str,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        autocut: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> List[_Object[Properties]]:
+
+        return [
+            self._result_to_object(obj)
+            for obj in self.__create_query().near_audio(
+                audio=audio,
+                certainty=certainty,
+                distance=distance,
+                filters=filters,
+                autocut=autocut,
+                return_metadata=return_metadata,
+                return_properties=return_properties,
+            )
+        ]
+
+    def near_audio_options(
+        self,
+        audio: str,
+        returns: ReturnValues,
+        options: Optional[NearAudioOptions] = None,
+        filters: Optional[_Filters] = None,
+    ) -> List[_Object[Properties]]:
+        if options is None:
+            options = NearObjectOptions()
+
+        return [
+            self._result_to_object(obj)
+            for obj in self.__create_query().near_image(
+                image=audio,
+                certainty=options.certainty,
+                distance=options.distance,
+                filters=filters,
+                autocut=options.autocut,
+                return_metadata=returns.metadata,
+                return_properties=returns.properties,
+            )
+        ]
+
+    def near_video_flat(
+        self,
+        video: str,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        autocut: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> List[_Object[Properties]]:
+
+        return [
+            self._result_to_object(obj)
+            for obj in self.__create_query().near_video(
+                video=video,
+                certainty=certainty,
+                distance=distance,
+                filters=filters,
+                autocut=autocut,
+                return_metadata=return_metadata,
+                return_properties=return_properties,
+            )
+        ]
+
+    def near_video_options(
+        self,
+        video: str,
+        returns: ReturnValues,
+        options: Optional[NearVideoOptions] = None,
+        filters: Optional[_Filters] = None,
+    ) -> List[_Object[Properties]]:
+        if options is None:
+            options = NearObjectOptions()
+
+        return [
+            self._result_to_object(obj)
+            for obj in self.__create_query().near_video(
+                video=video,
+                certainty=options.certainty,
+                distance=options.distance,
+                filters=filters,
+                autocut=options.autocut,
                 return_metadata=returns.metadata,
                 return_properties=returns.properties,
             )

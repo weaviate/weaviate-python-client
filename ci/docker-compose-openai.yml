@@ -9,7 +9,7 @@ services:
       - '8086'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-wip-add-near-text-to-grpc-and-refactor-neartext-modules-72380fc
+    image: semitechnologies/weaviate:preview-near-image-audio-and-video-to-grpc-622603a
     ports:
       - 8086:8086
     restart: on-failure:0

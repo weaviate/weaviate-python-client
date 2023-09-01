@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-wip-add-near-text-to-grpc-and-refactor-neartext-modules-72380fc
+    image: semitechnologies/weaviate:preview-near-image-audio-and-video-to-grpc-622603a
     ports:
       - 8083:8083
     restart: on-failure:0
