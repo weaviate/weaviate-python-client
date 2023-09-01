@@ -38,17 +38,20 @@ class BM25Options:
 
 
 @dataclass
-class NearVectorOptions:
+class NearMediaOptions:
     certainty: Optional[float] = None
     distance: Optional[float] = None
     autocut: Optional[int] = None
 
 
 @dataclass
-class NearObjectOptions:
-    certainty: Optional[float] = None
-    distance: Optional[float] = None
-    autocut: Optional[int] = None
+class NearVectorOptions(NearMediaOptions):
+    pass
+
+
+@dataclass
+class NearObjectOptions(NearMediaOptions):
+    pass
 
 
 class Move:
@@ -90,13 +93,25 @@ class Move:
 
 
 @dataclass
-class NearTextOptions:
-    certainty: Optional[float] = None
-    distance: Optional[float] = None
+class NearTextOptions(NearMediaOptions):
     move_to: Optional[Move] = None
     move_away: Optional[Move] = None
-    autocut: Optional[int] = None
     filters: Optional[_Filters] = None
+
+
+@dataclass
+class NearImageOptions(NearMediaOptions):
+    pass
+
+
+@dataclass
+class NearAudioOptions(NearMediaOptions):
+    pass
+
+
+@dataclass
+class NearVideoOptions(NearMediaOptions):
+    pass
 
 
 @dataclass
