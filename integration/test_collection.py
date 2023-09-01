@@ -1421,18 +1421,20 @@ def test_near_image(client: weaviate.Client, distance: Optional[float], certaint
             vectorizer=Vectorizer.IMG2VEC_NEURAL,
             properties=[
                 Property(name="image", data_type=DataType.BLOB),
-                Property(name="text", data_type=DataType.TEXT),
             ],
-            module_config={"img2vec-neural": {"imageFields": ["image"]}},
+            module_config={
+                "img2vec-neural": {
+                    "imageFields": ["image"],
+                }
+            },
         )
     )
 
-    uuid1 = collection.data.insert(
-        properties={"image": WEAVIATE_LOGO_OLD_ENCODED, "text": "weaviate_logo"}
-    )
-    collection.data.insert(properties={"image": WEAVIATE_LOGO_NEW_ENCODED, "text": "other result"})
+    uuid1 = collection.data.insert(properties={"image": WEAVIATE_LOGO_OLD_ENCODED})
+    collection.data.insert(properties={"image": WEAVIATE_LOGO_NEW_ENCODED})
 
     objects = collection.query.near_image_flat(
         WEAVIATE_LOGO_OLD_ENCODED, distance=distance, certainty=certainty
     )
+    assert len(objects) == 2
     assert objects[0].metadata.uuid == uuid1
