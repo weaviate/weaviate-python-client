@@ -36,7 +36,7 @@ from weaviate.collection.classes.data import (
     ReferenceTo,
     ReferenceToMultiTarget,
 )
-from weaviate.collection.classes.grpc import NearTextOptions, ReturnValues
+from weaviate.collection.classes.grpc import NearImageOptions, NearTextOptions, ReturnValues
 from weaviate.collection.classes.internal import Reference
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery, Move
@@ -1412,7 +1412,9 @@ def test_near_text_error(client: weaviate.Client):
 
 
 @pytest.mark.parametrize("distance,certainty", [(None, None), (10, None), (None, 0.1)])
-def test_near_image(client: weaviate.Client, distance: Optional[float], certainty: Optional[float]):
+def test_near_image_flat(
+    client: weaviate.Client, distance: Optional[float], certainty: Optional[float]
+):
     name = "TestNearImage"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -1435,6 +1437,39 @@ def test_near_image(client: weaviate.Client, distance: Optional[float], certaint
 
     objects = collection.query.near_image_flat(
         WEAVIATE_LOGO_OLD_ENCODED, distance=distance, certainty=certainty
+    )
+    assert len(objects) == 2
+    assert objects[0].metadata.uuid == uuid1
+
+
+@pytest.mark.parametrize("distance,certainty", [(None, None), (10, None), (None, 0.1)])
+def test_near_image_options(
+    client: weaviate.Client, distance: Optional[float], certainty: Optional[float]
+):
+    name = "TestNearImage"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        CollectionConfig(
+            name=name,
+            vectorizer=Vectorizer.IMG2VEC_NEURAL,
+            properties=[
+                Property(name="imageProp", data_type=DataType.BLOB),
+            ],
+            module_config={
+                "img2vec-neural": {
+                    "imageFields": ["imageProp"],
+                }
+            },
+        )
+    )
+
+    uuid1 = collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_OLD_ENCODED})
+    collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_NEW_ENCODED})
+
+    objects = collection.query.near_image_options(
+        WEAVIATE_LOGO_OLD_ENCODED,
+        returns=ReturnValues(),
+        options=NearImageOptions(distance=distance, certainty=certainty),
     )
     assert len(objects) == 2
     assert objects[0].metadata.uuid == uuid1
