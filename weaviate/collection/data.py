@@ -28,7 +28,7 @@ from weaviate.collection.classes.data import (
     ReferenceTo,
     ReferenceToMultiTarget,
 )
-from weaviate.collection.classes.internal import _Object, _metadata_from_dict, Reference
+from weaviate.collection.classes.internal import _Object, _metadata_from_dict
 from weaviate.collection.classes.orm import (
     Model,
 )
@@ -569,13 +569,13 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         return [self._json_to_object(obj) for obj in ret["objects"]]
 
-    def reference_add(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
+    def reference_add(self, from_uuid: UUID, from_property: str, ref: ReferenceTo) -> None:
         self._reference_add(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_delete(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
+    def reference_delete(self, from_uuid: UUID, from_property: str, ref: ReferenceTo) -> None:
         self._reference_delete(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_replace(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
+    def reference_replace(self, from_uuid: UUID, from_property: str, ref: ReferenceTo) -> None:
         self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
     def reference_add_many(self, from_property: str, refs: List[BatchReference]) -> None:
