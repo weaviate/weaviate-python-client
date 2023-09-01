@@ -21,7 +21,7 @@ services:
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
       DEFAULT_VECTORIZER_MODULE: 'text2vec-contextionary'
-      ENABLE_MODULES: text2vec-contextionary,backup-filesystem,image2vec-neural
+      ENABLE_MODULES: text2vec-contextionary,backup-filesystem,img2vec-neural
       BACKUP_FILESYSTEM_PATH: "/tmp/backups"
       CLUSTER_GOSSIP_BIND_PORT: "7100"
       CLUSTER_DATA_BIND_PORT: "7101"
