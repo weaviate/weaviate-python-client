@@ -17,6 +17,7 @@ import uuid as uuid_package
 from google.protobuf.struct_pb2 import Struct
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
+from weaviate.collection.config import _ConfigBase
 from weaviate.collection.classes.data import (
     BatchReference,
     DataObject,
@@ -30,7 +31,7 @@ from weaviate.collection.classes.internal import _Object, _metadata_from_dict, R
 from weaviate.collection.classes.orm import (
     Model,
 )
-from weaviate.collection.classes.types import Properties, TProperties
+from weaviate.collection.classes.types import Properties
 from weaviate.collection.grpc_batch import _BatchGRPC
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
@@ -45,11 +46,13 @@ class _Data:
         self,
         connection: Connection,
         name: str,
+        config: _ConfigBase,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
     ) -> None:
         self._connection = connection
         self.name = name
+        self.__config = config
         self._consistency_level = consistency_level
         self._tenant = tenant
         self._batch = _BatchGRPC(connection)
@@ -325,29 +328,18 @@ class _Data:
         )
 
 
-class _DataCollection(Generic[TProperties], _Data):
+class _DataCollection(Generic[Properties], _Data):
     def __init__(
         self,
         connection: Connection,
         name: str,
+        config: _ConfigBase,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
-        type_: Optional[Type[TProperties]] = None,
+        type_: Optional[Type[Properties]] = None,
     ):
-        super().__init__(connection, name, consistency_level, tenant)
+        super().__init__(connection, name, config, consistency_level, tenant)
         self.__type = type_
-
-    def with_data_model(self, data_model: Type[Properties]) -> "_DataCollection[Properties]":
-        if data_model is not None and get_origin(data_model) is not dict:
-            try:
-                assert data_model.__bases__[0] == dict
-            except Exception as e:
-                raise TypeError(
-                    "data_model can only be a dict type, e.g. Dict[str, str], or a class that inherits from TypedDict"
-                ) from e
-        return _DataCollection[Properties](
-            self._connection, self.name, self._consistency_level, self._tenant, data_model
-        )
 
     def __deserialize_properties(self, data: Dict[str, Any]) -> Properties:
         hints = (
@@ -465,10 +457,11 @@ class _DataCollectionModel(Generic[Model], _Data):
         connection: Connection,
         name: str,
         model: Type[Model],
+        config: _ConfigBase,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
     ):
-        super().__init__(connection, name, consistency_level, tenant)
+        super().__init__(connection, name, config, consistency_level, tenant)
         self.__model = model
 
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Model]:
