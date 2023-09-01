@@ -5,7 +5,7 @@ import pytest as pytest
 import uuid
 
 from dataclasses import dataclass
-from typing import Dict, List, TypedDict, Union
+from typing import Dict, List, Optional, TypedDict, Union
 
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated
@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 import weaviate
+from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_ENCODED
 from weaviate import Config
 from weaviate.collection.classes.config import (
     BM25ConfigUpdate,
@@ -41,7 +42,7 @@ from weaviate.collection.classes.data import (
     Error,
     GetObjectsMetadata,
 )
-from weaviate.collection.classes.grpc import NearTextOptions, ReturnValues
+from weaviate.collection.classes.grpc import NearImageOptions, NearTextOptions, ReturnValues
 from weaviate.collection.classes.internal import Reference
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.exceptions import WeaviateGRPCException
@@ -1410,6 +1411,70 @@ def test_near_text_error(client: weaviate.Client):
 
     with pytest.raises(ValueError):
         collection.query.near_text_flat(query="test", move_to=Move(force=1.0))
+
+
+@pytest.mark.parametrize("distance,certainty", [(None, None), (10, None), (None, 0.1)])
+def test_near_image_flat(
+    client: weaviate.Client, distance: Optional[float], certainty: Optional[float]
+):
+    name = "TestNearImage"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        CollectionConfig(
+            name=name,
+            vectorizer=Vectorizer.IMG2VEC_NEURAL,
+            properties=[
+                Property(name="imageProp", data_type=DataType.BLOB),
+            ],
+            module_config={
+                "img2vec-neural": {
+                    "imageFields": ["imageProp"],
+                }
+            },
+        )
+    )
+
+    uuid1 = collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_OLD_ENCODED})
+    collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_NEW_ENCODED})
+
+    objects = collection.query.near_image_flat(
+        WEAVIATE_LOGO_OLD_ENCODED, distance=distance, certainty=certainty
+    )
+    assert len(objects) == 2
+    assert objects[0].metadata.uuid == uuid1
+
+
+@pytest.mark.parametrize("distance,certainty", [(None, None), (10, None), (None, 0.1)])
+def test_near_image_options(
+    client: weaviate.Client, distance: Optional[float], certainty: Optional[float]
+):
+    name = "TestNearImage"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        CollectionConfig(
+            name=name,
+            vectorizer=Vectorizer.IMG2VEC_NEURAL,
+            properties=[
+                Property(name="imageProp", data_type=DataType.BLOB),
+            ],
+            module_config={
+                "img2vec-neural": {
+                    "imageFields": ["imageProp"],
+                }
+            },
+        )
+    )
+
+    uuid1 = collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_OLD_ENCODED})
+    collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_NEW_ENCODED})
+
+    objects = collection.query.near_image_options(
+        WEAVIATE_LOGO_OLD_ENCODED,
+        returns=ReturnValues(),
+        options=NearImageOptions(distance=distance, certainty=certainty),
+    )
+    assert len(objects) == 2
+    assert objects[0].metadata.uuid == uuid1
 
 
 @pytest.mark.parametrize("which_case", [0, 1, 2, 3])
