@@ -368,8 +368,8 @@ class _GRPC:
                     )
                     if self._near_video is not None
                     else None,
-                    near_audio=weaviate_pb2.NearVideoSearchParams(
-                        video=self._near_audio,
+                    near_audio=weaviate_pb2.NearAudioSearchParams(
+                        audio=self._near_audio,
                         distance=self._near_distance,
                         certainty=self._near_certainty,
                     )
