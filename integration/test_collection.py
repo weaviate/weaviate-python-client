@@ -16,6 +16,7 @@ from weaviate.collection.classes.config import (
     CollectionConfigUpdate,
     Property,
     DataType,
+    Img2VecNeuralConfig,
     InvertedIndexConfigUpdate,
     PQConfigUpdate,
     PQEncoderConfigUpdate,
@@ -1424,11 +1425,9 @@ def test_near_image_flat(
             properties=[
                 Property(name="imageProp", data_type=DataType.BLOB),
             ],
-            module_config={
-                "img2vec-neural": {
-                    "imageFields": ["imageProp"],
-                }
-            },
+            module_config=Img2VecNeuralConfig(
+                image_fields=["imageProp"],
+            ),
         )
     )
 
@@ -1455,11 +1454,9 @@ def test_near_image_options(
             properties=[
                 Property(name="imageProp", data_type=DataType.BLOB),
             ],
-            module_config={
-                "img2vec-neural": {
-                    "imageFields": ["imageProp"],
-                }
-            },
+            module_config=Img2VecNeuralConfig(
+                image_fields=["imageProp"],
+            ),
         )
     )
 

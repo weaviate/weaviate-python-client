@@ -1,9 +1,18 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    FieldValidationInfo,
+    Field,
+    field_validator,
+    model_validator,
+    confloat,
+)
 
+from weaviate.warnings import _Warnings
 from weaviate.util import _capitalize_first_letter
 
 
@@ -44,9 +53,11 @@ class Vectorizer(str, Enum):
     TEXT2VEC_HUGGINGFACE = "text2vec-huggingface"
     TEXT2VEC_TRANSFORMERS = "text2vec-transformers"
     TEXT2VEC_CONTEXTIONARY = "text2vec-contextionary"
+    TEXT2VEC_GPT4ALL = "text2vec-gpt4all"
     IMG2VEC_NEURAL = "img2vec-neural"
     MULTI2VEC_CLIP = "multi2vec-clip"
-    REF2VEC_CENTROID = "ref2vec_centroid"
+    MULTI2VEC_BIND = "multi2vec-bind"
+    REF2VEC_CENTROID = "ref2vec-centroid"
 
 
 class VectorDistance(str, Enum):
@@ -72,15 +83,16 @@ class PQEncoderDistribution(str, Enum):
     NORMAL = "normal"
 
 
-ModuleConfig = Dict[Vectorizer, Dict[str, Any]]
-
-
 class ConfigCreateModel(BaseModel):
+    model_config = ConfigDict(strict=True)
+
     def to_dict(self) -> Dict[str, Any]:
         return self.model_dump(exclude_none=True)
 
 
 class ConfigUpdateModel(BaseModel):
+    model_config = ConfigDict(strict=True)
+
     def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
         for cls_field in self.model_fields:
             val = getattr(self, cls_field)
@@ -233,6 +245,139 @@ class MultiTenancyConfig(ConfigCreateModel):
     enabled: bool = False
 
 
+class ModuleConfig(ConfigCreateModel):
+    name: Vectorizer
+
+
+class PropertyModuleConfig(ConfigCreateModel):
+    skip: bool = False
+    vectorizePropertyName: bool = Field(True, alias="vectorize_property_name")
+
+
+class Text2VecCohereConfig(ModuleConfig):
+    name: Vectorizer = Field(Vectorizer.TEXT2VEC_COHERE, frozen=True, exclude=True)
+    model: Literal["embed_multilingual_v2.0"] = "embed_multilingual_v2.0"
+    truncate: Literal["RIGHT", "NONE"] = "RIGHT"
+
+
+class Text2VecHuggingFaceConfigOptions(ConfigCreateModel):
+    waitForModel: Optional[bool] = Field(None, alias="wait_for_model")
+    useGPU: Optional[bool] = Field(None, alias="use_gpu")
+    useCache: Optional[bool] = Field(None, alias="use_cache")
+
+
+class Text2VecHuggingFaceConfig(ModuleConfig):
+    name: Vectorizer = Field(Vectorizer.TEXT2VEC_HUGGINGFACE, frozen=True, exclude=True)
+    model: Optional[str] = Field(None)
+    passageModel: Optional[str] = Field(None, alias="passage_model")
+    queryModel: Optional[str] = Field(None, alias="query_model")
+    endpointURL: Optional[str] = Field(None, alias="endpoint_url")
+    options: Optional[Text2VecHuggingFaceConfigOptions] = None
+
+    @model_validator(mode="before")
+    def validate_mutually_exclusive_fields(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        if "passageModel" in values and "queryModel" not in values:
+            raise ValueError("Must specify queryModel when specifying passageModel")
+        if "queryModel" in values and "passageModel" not in values:
+            raise ValueError("Must specify passageModel when specifying queryModel")
+        if "model" in values and any(["passageModel" in values, "queryModel" in values]):
+            raise ValueError("Can only specify model alone or passageModel and queryModel together")
+        if (
+            any(["passageModel" in values, "queryModel" in values, "model" in values])
+            and "endpointURL" in values
+        ):
+            _Warnings.text2vec_huggingface_endpoint_url_and_model_set_together()
+        return values
+
+
+class Text2VecOpenAIConfig(ModuleConfig):
+    name: Vectorizer = Field(Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
+    model: Optional[Literal["ada", "babbage", "curie", "davinci"]] = None
+    modelVersion: Optional[str] = Field(None, alias="model_version")
+    type_: Optional[Literal["text", "code"]] = None
+    vectorizeClassName: bool = Field(True, alias="vectorize_class_name")
+
+    def to_dict(self) -> Dict[str, Any]:
+        ret_dict = super().to_dict()
+        try:
+            ret_dict["type"] = ret_dict.pop("type_")
+        except KeyError:
+            pass
+        return ret_dict
+
+
+class Text2VecAzureOpenAIConfig(ModuleConfig):
+    name: Vectorizer = Field(Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
+    resourceName: str = Field(..., alias="resource_name")
+    deploymentId: str = Field(..., alias="deployment_id")
+
+
+class Text2VecPalmConfig(ModuleConfig):
+    name: Vectorizer = Field(Vectorizer.TEXT2VEC_PALM, frozen=True, exclude=True)
+    projectId: str = Field(..., alias="project_id")
+    apiEndpoint: Optional[str] = Field(None, alias="api_endpoint")
+    modelId: Optional[str] = Field(None, alias="model_id")
+    vectorizeClassName: bool = Field(True, alias="vectorize_class_name")
+
+
+class Text2VecTransformersConfig(ModuleConfig):
+    name: Vectorizer = Field(Vectorizer.TEXT2VEC_TRANSFORMERS, frozen=True, exclude=True)
+    poolingStrategy: Literal["masked_mean", "cls"] = Field("masked_mean", alias="pooling_strategy")
+    vectorizeClassName: bool = Field(True, alias="vectorize_class_name")
+
+
+class Text2VecGPT4AllConfig(ModuleConfig):
+    name: Vectorizer = Field(Vectorizer.TEXT2VEC_GPT4ALL, frozen=True, exclude=True)
+    vectorizeClassName: bool = Field(True, alias="vectorize_class_name")
+
+
+class Img2VecNeuralConfig(ModuleConfig):
+    name: Vectorizer = Field(Vectorizer.IMG2VEC_NEURAL, frozen=True, exclude=True)
+    imageFields: List[str] = Field(..., alias="image_fields")
+
+
+class Multi2VecClipConfigWeights(ConfigCreateModel):
+    imageFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="image_fields")
+    textFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="text_fields")
+
+
+class Multi2VecClipConfig(ModuleConfig):
+    name: Vectorizer = Field(Vectorizer.MULTI2VEC_CLIP, frozen=True, exclude=True)
+    imageFields: Optional[List[str]] = Field(None, alias="image_fields")
+    textFields: Optional[List[str]] = Field(None, alias="text_fields")
+    vectorizeClassName: bool = Field(True, alias="vectorize_class_name")
+    weights: Optional[Multi2VecClipConfigWeights] = None
+
+
+class Multi2VecBindConfigWeights(ConfigCreateModel):
+    audioFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="audio_fields")
+    depthFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="depth_fields")
+    imageFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="image_fields")
+    IMUFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="imu_fields")
+    textFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="text_fields")
+    thermalFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="thermal_fields")
+    videoFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="video_fields")
+
+
+class Multi2VecBindConfig(ModuleConfig):
+    name: Vectorizer = Field(Vectorizer.MULTI2VEC_BIND, frozen=True, exclude=True)
+    audioFields: Optional[List[str]] = Field(None, alias="audio_fields")
+    depthFields: Optional[List[str]] = Field(None, alias="depth_fields")
+    imageFields: Optional[List[str]] = Field(None, alias="image_fields")
+    IMUFields: Optional[List[str]] = Field(None, alias="imu_fields")
+    textFields: Optional[List[str]] = Field(None, alias="text_fields")
+    thermalFields: Optional[List[str]] = Field(None, alias="thermal_fields")
+    videoFields: Optional[List[str]] = Field(None, alias="video_fields")
+    vectorizeClassName: bool = Field(True, alias="vectorize_class_name")
+    weights: Optional[Multi2VecBindConfigWeights] = None
+
+
+class Ref2VecCentroidConfig(ModuleConfig):
+    name: Vectorizer = Field(Vectorizer.REF2VEC_CENTROID, frozen=True, exclude=True)
+    referenceProperties: List[str] = Field(..., alias="reference_properties")
+    method: Literal["mean"] = "mean"
+
+
 class CollectionConfigCreateBase(ConfigCreateModel):
     description: Optional[str] = None
     invertedIndexConfig: Optional[InvertedIndexConfigCreate] = Field(
@@ -243,8 +388,8 @@ class CollectionConfigCreateBase(ConfigCreateModel):
     shardingConfig: Optional[ShardingConfigCreate] = Field(None, alias="sharding_config")
     vectorIndexConfig: Optional[VectorIndexConfigCreate] = Field(None, alias="vector_index_config")
     vectorIndexType: VectorIndexType = Field(VectorIndexType.HNSW, alias="vector_index_type")
-    vectorizer: Vectorizer = Vectorizer.NONE
-    moduleConfig: Dict[str, Any] = Field(None, alias="module_config")
+    vectorizer: Vectorizer = Field(Vectorizer.NONE)
+    moduleConfig: Optional[ModuleConfig] = Field(None, alias="module_config")
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
@@ -257,13 +402,25 @@ class CollectionConfigCreateBase(ConfigCreateModel):
                 ret_dict[cls_field] = str(val.value)
             elif isinstance(val, (bool, float, str, int)):
                 ret_dict[cls_field] = str(val)
-            elif isinstance(val, dict):
-                ret_dict[cls_field] = val
+            elif isinstance(val, ModuleConfig):
+                ret_dict[cls_field] = {self.vectorizer.value: val.to_dict()}
             else:
                 assert isinstance(val, ConfigCreateModel)
                 ret_dict[cls_field] = val.to_dict()
-
         return ret_dict
+
+    @field_validator("moduleConfig")
+    def validate_module_config(
+        cls, v: Optional[ModuleConfig], info: FieldValidationInfo
+    ) -> Optional[ModuleConfig]:
+        if v is None:
+            return v
+        vectorizer: Vectorizer = info.data["vectorizer"]
+        if vectorizer.value != v.name:
+            raise ValueError(
+                f"Vectorizer {vectorizer.value} does not match module_config name {v.name}"
+            )
+        return v
 
 
 class CollectionConfigUpdate(ConfigUpdateModel):
@@ -433,12 +590,14 @@ class Property(ConfigCreateModel):
     indexFilterable: Optional[bool] = Field(None, alias="index_filterable")
     indexSearchable: Optional[bool] = Field(None, alias="index_searchable")
     description: Optional[str] = None
-    moduleConfig: Optional[ModuleConfig] = Field(None, alias="module_config")
+    moduleConfig: Optional[PropertyModuleConfig] = Field(None, alias="module_config")
     tokenization: Optional[Tokenization] = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, vectorizer: Optional[Vectorizer] = None) -> Dict[str, Any]:
         ret_dict = super().to_dict()
         ret_dict["dataType"] = [ret_dict["dataType"]]
+        if "moduleConfig" in ret_dict and vectorizer is not None:
+            ret_dict["moduleConfig"] = {vectorizer.value: ret_dict["moduleConfig"]}
         return ret_dict
 
 
@@ -509,6 +668,9 @@ class CollectionConfig(CollectionConfigCreateBase):
         ret_dict["class"] = self.name
 
         if self.properties is not None:
-            ret_dict["properties"] = [prop.to_dict() for prop in self.properties]
+            ret_dict["properties"] = [
+                prop.to_dict(self.vectorizer) if isinstance(prop, Property) else prop.to_dict()
+                for prop in self.properties
+            ]
 
         return ret_dict
