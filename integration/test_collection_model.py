@@ -248,7 +248,7 @@ def test_multi_searches(client: weaviate.Client):
     assert objects[0].metadata.last_update_time_unix is None
 
 
-@pytest.mark.skip()
+@pytest.mark.skip(reason="ORM models do not support references yet")
 def test_multi_searches_with_references(client: weaviate.Client):
     class TestMultiSearchesWithReferences(BaseProperty):
         name: Optional[str] = None
