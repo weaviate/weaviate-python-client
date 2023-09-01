@@ -59,7 +59,7 @@ import sys
 from importlib.metadata import version, PackageNotFoundError
 
 try:
-    __version__ = version("weaviate")
+    __version__ = version("weaviate-client")
 except PackageNotFoundError:
     __version__ = "unknown version"
 
