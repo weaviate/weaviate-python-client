@@ -5,9 +5,7 @@ from typing import Any, Dict, List, Literal, Optional, Union
 from pydantic import (
     BaseModel,
     ConfigDict,
-    FieldValidationInfo,
     Field,
-    field_validator,
     model_validator,
     confloat,
 )
@@ -245,17 +243,22 @@ class MultiTenancyConfig(ConfigCreateModel):
     enabled: bool = False
 
 
-class ModuleConfig(ConfigCreateModel):
-    name: Vectorizer
+class VectorizerConfig(ConfigCreateModel):
+    vectorizer: Vectorizer
 
 
-class PropertyModuleConfig(ConfigCreateModel):
+class PropertyVectorizerConfig(ConfigCreateModel):
     skip: bool = False
     vectorizePropertyName: bool = Field(True, alias="vectorize_property_name")
 
 
-class Text2VecCohereConfig(ModuleConfig):
-    name: Vectorizer = Field(Vectorizer.TEXT2VEC_COHERE, frozen=True, exclude=True)
+class Text2VecContextionaryConfig(VectorizerConfig):
+    vectorizer: Vectorizer = Field(Vectorizer.TEXT2VEC_CONTEXTIONARY, frozen=True, exclude=True)
+    vectorizeClassName: bool = Field(True, alias="vectorize_property_name")
+
+
+class Text2VecCohereConfig(VectorizerConfig):
+    vectorizer: Vectorizer = Field(Vectorizer.TEXT2VEC_COHERE, frozen=True, exclude=True)
     model: Literal["embed_multilingual_v2.0"] = "embed_multilingual_v2.0"
     truncate: Literal["RIGHT", "NONE"] = "RIGHT"
 
@@ -266,8 +269,8 @@ class Text2VecHuggingFaceConfigOptions(ConfigCreateModel):
     useCache: Optional[bool] = Field(None, alias="use_cache")
 
 
-class Text2VecHuggingFaceConfig(ModuleConfig):
-    name: Vectorizer = Field(Vectorizer.TEXT2VEC_HUGGINGFACE, frozen=True, exclude=True)
+class Text2VecHuggingFaceConfig(VectorizerConfig):
+    vectorizer: Vectorizer = Field(Vectorizer.TEXT2VEC_HUGGINGFACE, frozen=True, exclude=True)
     model: Optional[str] = Field(None)
     passageModel: Optional[str] = Field(None, alias="passage_model")
     queryModel: Optional[str] = Field(None, alias="query_model")
@@ -290,8 +293,8 @@ class Text2VecHuggingFaceConfig(ModuleConfig):
         return values
 
 
-class Text2VecOpenAIConfig(ModuleConfig):
-    name: Vectorizer = Field(Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
+class Text2VecOpenAIConfig(VectorizerConfig):
+    vectorizer: Vectorizer = Field(Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
     model: Optional[Literal["ada", "babbage", "curie", "davinci"]] = None
     modelVersion: Optional[str] = Field(None, alias="model_version")
     type_: Optional[Literal["text", "code"]] = None
@@ -306,33 +309,33 @@ class Text2VecOpenAIConfig(ModuleConfig):
         return ret_dict
 
 
-class Text2VecAzureOpenAIConfig(ModuleConfig):
-    name: Vectorizer = Field(Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
+class Text2VecAzureOpenAIConfig(VectorizerConfig):
+    vectorizer: Vectorizer = Field(Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
     resourceName: str = Field(..., alias="resource_name")
     deploymentId: str = Field(..., alias="deployment_id")
 
 
-class Text2VecPalmConfig(ModuleConfig):
-    name: Vectorizer = Field(Vectorizer.TEXT2VEC_PALM, frozen=True, exclude=True)
+class Text2VecPalmConfig(VectorizerConfig):
+    vectorizer: Vectorizer = Field(Vectorizer.TEXT2VEC_PALM, frozen=True, exclude=True)
     projectId: str = Field(..., alias="project_id")
     apiEndpoint: Optional[str] = Field(None, alias="api_endpoint")
     modelId: Optional[str] = Field(None, alias="model_id")
     vectorizeClassName: bool = Field(True, alias="vectorize_class_name")
 
 
-class Text2VecTransformersConfig(ModuleConfig):
-    name: Vectorizer = Field(Vectorizer.TEXT2VEC_TRANSFORMERS, frozen=True, exclude=True)
+class Text2VecTransformersConfig(VectorizerConfig):
+    vectorizer: Vectorizer = Field(Vectorizer.TEXT2VEC_TRANSFORMERS, frozen=True, exclude=True)
     poolingStrategy: Literal["masked_mean", "cls"] = Field("masked_mean", alias="pooling_strategy")
     vectorizeClassName: bool = Field(True, alias="vectorize_class_name")
 
 
-class Text2VecGPT4AllConfig(ModuleConfig):
-    name: Vectorizer = Field(Vectorizer.TEXT2VEC_GPT4ALL, frozen=True, exclude=True)
+class Text2VecGPT4AllConfig(VectorizerConfig):
+    vectorizer: Vectorizer = Field(Vectorizer.TEXT2VEC_GPT4ALL, frozen=True, exclude=True)
     vectorizeClassName: bool = Field(True, alias="vectorize_class_name")
 
 
-class Img2VecNeuralConfig(ModuleConfig):
-    name: Vectorizer = Field(Vectorizer.IMG2VEC_NEURAL, frozen=True, exclude=True)
+class Img2VecNeuralConfig(VectorizerConfig):
+    vectorizer: Vectorizer = Field(Vectorizer.IMG2VEC_NEURAL, frozen=True, exclude=True)
     imageFields: List[str] = Field(..., alias="image_fields")
 
 
@@ -341,8 +344,8 @@ class Multi2VecClipConfigWeights(ConfigCreateModel):
     textFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="text_fields")
 
 
-class Multi2VecClipConfig(ModuleConfig):
-    name: Vectorizer = Field(Vectorizer.MULTI2VEC_CLIP, frozen=True, exclude=True)
+class Multi2VecClipConfig(VectorizerConfig):
+    vectorizer: Vectorizer = Field(Vectorizer.MULTI2VEC_CLIP, frozen=True, exclude=True)
     imageFields: Optional[List[str]] = Field(None, alias="image_fields")
     textFields: Optional[List[str]] = Field(None, alias="text_fields")
     vectorizeClassName: bool = Field(True, alias="vectorize_class_name")
@@ -359,8 +362,8 @@ class Multi2VecBindConfigWeights(ConfigCreateModel):
     videoFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="video_fields")
 
 
-class Multi2VecBindConfig(ModuleConfig):
-    name: Vectorizer = Field(Vectorizer.MULTI2VEC_BIND, frozen=True, exclude=True)
+class Multi2VecBindConfig(VectorizerConfig):
+    vectorizer: Vectorizer = Field(Vectorizer.MULTI2VEC_BIND, frozen=True, exclude=True)
     audioFields: Optional[List[str]] = Field(None, alias="audio_fields")
     depthFields: Optional[List[str]] = Field(None, alias="depth_fields")
     imageFields: Optional[List[str]] = Field(None, alias="image_fields")
@@ -372,8 +375,8 @@ class Multi2VecBindConfig(ModuleConfig):
     weights: Optional[Multi2VecBindConfigWeights] = None
 
 
-class Ref2VecCentroidConfig(ModuleConfig):
-    name: Vectorizer = Field(Vectorizer.REF2VEC_CENTROID, frozen=True, exclude=True)
+class Ref2VecCentroidConfig(VectorizerConfig):
+    vectorizer: Vectorizer = Field(Vectorizer.REF2VEC_CENTROID, frozen=True, exclude=True)
     referenceProperties: List[str] = Field(..., alias="reference_properties")
     method: Literal["mean"] = "mean"
 
@@ -388,8 +391,7 @@ class CollectionConfigCreateBase(ConfigCreateModel):
     shardingConfig: Optional[ShardingConfigCreate] = Field(None, alias="sharding_config")
     vectorIndexConfig: Optional[VectorIndexConfigCreate] = Field(None, alias="vector_index_config")
     vectorIndexType: VectorIndexType = Field(VectorIndexType.HNSW, alias="vector_index_type")
-    vectorizer: Vectorizer = Field(Vectorizer.NONE)
-    moduleConfig: Optional[ModuleConfig] = Field(None, alias="module_config")
+    moduleConfig: Optional[VectorizerConfig] = Field(None, alias="vectorizer_config")
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
@@ -402,25 +404,16 @@ class CollectionConfigCreateBase(ConfigCreateModel):
                 ret_dict[cls_field] = str(val.value)
             elif isinstance(val, (bool, float, str, int)):
                 ret_dict[cls_field] = str(val)
-            elif isinstance(val, ModuleConfig):
-                ret_dict[cls_field] = {self.vectorizer.value: val.to_dict()}
+            elif isinstance(val, VectorizerConfig):
+                ret_dict["vectorizer"] = val.vectorizer.value
+                if val.vectorizer != Vectorizer.NONE:
+                    ret_dict[cls_field] = {val.vectorizer.value: val.to_dict()}
             else:
                 assert isinstance(val, ConfigCreateModel)
                 ret_dict[cls_field] = val.to_dict()
+        if self.moduleConfig is None:
+            ret_dict["vectorizer"] = Vectorizer.NONE.value
         return ret_dict
-
-    @field_validator("moduleConfig")
-    def validate_module_config(
-        cls, v: Optional[ModuleConfig], info: FieldValidationInfo
-    ) -> Optional[ModuleConfig]:
-        if v is None:
-            return v
-        vectorizer: Vectorizer = info.data["vectorizer"]
-        if vectorizer.value != v.name:
-            raise ValueError(
-                f"Vectorizer {vectorizer.value} does not match module_config name {v.name}"
-            )
-        return v
 
 
 class CollectionConfigUpdate(ConfigUpdateModel):
@@ -570,7 +563,7 @@ class PropertyConfig:
     index_searchable: Optional[bool] = None
     tokenization: Optional[Tokenization] = None
     description: Optional[str] = None
-    module_config: Optional[ModuleConfig] = None
+    vectorizer_config: Optional[VectorizerConfig] = None
 
     # tmp solution. replace with a pydantic BaseModel, see bugreport: https://github.com/pydantic/pydantic/issues/6948
     # bugreport was closed as not planned :( so dataclasses must stay
@@ -580,7 +573,7 @@ class PropertyConfig:
             "indexSearchable": self.index_searchable,
             "tokenization": self.tokenization,
             "description": self.description,
-            "moduleConfig": self.module_config,
+            "moduleConfig": self.vectorizer_config,
         }
 
 
@@ -590,7 +583,7 @@ class Property(ConfigCreateModel):
     indexFilterable: Optional[bool] = Field(None, alias="index_filterable")
     indexSearchable: Optional[bool] = Field(None, alias="index_searchable")
     description: Optional[str] = None
-    moduleConfig: Optional[PropertyModuleConfig] = Field(None, alias="module_config")
+    moduleConfig: Optional[PropertyVectorizerConfig] = Field(None, alias="vectorizer_config")
     tokenization: Optional[Tokenization] = None
 
     def to_dict(self, vectorizer: Optional[Vectorizer] = None) -> Dict[str, Any]:
@@ -669,7 +662,9 @@ class CollectionConfig(CollectionConfigCreateBase):
 
         if self.properties is not None:
             ret_dict["properties"] = [
-                prop.to_dict(self.vectorizer) if isinstance(prop, Property) else prop.to_dict()
+                prop.to_dict(self.moduleConfig.vectorizer)
+                if isinstance(prop, Property)
+                else prop.to_dict()
                 for prop in self.properties
             ]
 

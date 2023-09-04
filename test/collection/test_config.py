@@ -4,13 +4,14 @@ from weaviate.collection.classes.config import (
     CollectionConfig,
     DataType,
     Img2VecNeuralConfig,
-    ModuleConfig,
+    VectorizerConfig,
     Multi2VecClipConfig,
     Multi2VecClipConfigWeights,
     Multi2VecBindConfig,
     Multi2VecBindConfigWeights,
     Text2VecAzureOpenAIConfig,
     Text2VecCohereConfig,
+    Text2VecContextionaryConfig,
     Text2VecGPT4AllConfig,
     Text2VecHuggingFaceConfig,
     Text2VecHuggingFaceConfigOptions,
@@ -19,7 +20,7 @@ from weaviate.collection.classes.config import (
     Text2VecTransformersConfig,
     Ref2VecCentroidConfig,
     Property,
-    PropertyModuleConfig,
+    PropertyVectorizerConfig,
     Vectorizer,
 )
 
@@ -42,23 +43,16 @@ def test_basic_config():
     }
 
 
-def test_config_with_vectorizer():
-    config = CollectionConfig(
-        name="test",
-        description="test",
-        vectorizer=Vectorizer.TEXT2VEC_CONTEXTIONARY,
-    )
-    assert config.to_dict() == {
-        **DEFAULTS,
-        "class": "Test",
-        "description": "test",
-        "vectorizer": "text2vec-contextionary",
-    }
-
-
 TEST_CONFIG_WITH_MODULE_PARAMETERS = [
     (
-        Vectorizer.TEXT2VEC_OPENAI,
+        Text2VecContextionaryConfig(),
+        {
+            "text2vec-contextionary": {
+                "vectorizeClassName": True,
+            }
+        },
+    ),
+    (
         Text2VecAzureOpenAIConfig(
             resource_name="resource",
             deployment_id="deployment",
@@ -71,17 +65,14 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Vectorizer.TEXT2VEC_COHERE,
         Text2VecCohereConfig(),
         {"text2vec-cohere": {"model": "embed_multilingual_v2.0", "truncate": "RIGHT"}},
     ),
     (
-        Vectorizer.TEXT2VEC_COHERE,
         Text2VecCohereConfig(model="embed_multilingual_v2.0", truncate="NONE"),
         {"text2vec-cohere": {"model": "embed_multilingual_v2.0", "truncate": "NONE"}},
     ),
     (
-        Vectorizer.TEXT2VEC_GPT4ALL,
         Text2VecGPT4AllConfig(),
         {
             "text2vec-gpt4all": {
@@ -90,7 +81,6 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Vectorizer.TEXT2VEC_GPT4ALL,
         Text2VecGPT4AllConfig(
             vectorize_class_name=False,
         ),
@@ -101,7 +91,6 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Vectorizer.TEXT2VEC_HUGGINGFACE,
         Text2VecHuggingFaceConfig(
             model="model",
             options=Text2VecHuggingFaceConfigOptions(
@@ -120,7 +109,6 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Vectorizer.TEXT2VEC_HUGGINGFACE,
         Text2VecHuggingFaceConfig(
             passage_model="passageModel",
             query_model="queryModel",
@@ -141,7 +129,6 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Vectorizer.TEXT2VEC_HUGGINGFACE,
         Text2VecHuggingFaceConfig(
             endpoint_url="endpoint",
         ),
@@ -152,7 +139,6 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Vectorizer.TEXT2VEC_OPENAI,
         Text2VecOpenAIConfig(),
         {
             "text2vec-openai": {
@@ -161,7 +147,6 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Vectorizer.TEXT2VEC_OPENAI,
         Text2VecOpenAIConfig(
             vectorize_class_name=False,
             model="ada",
@@ -178,7 +163,6 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Vectorizer.TEXT2VEC_PALM,
         Text2VecPalmConfig(
             project_id="project",
         ),
@@ -190,7 +174,6 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Vectorizer.TEXT2VEC_PALM,
         Text2VecPalmConfig(
             project_id="project",
             api_endpoint="endpoint",
@@ -207,7 +190,6 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Vectorizer.TEXT2VEC_TRANSFORMERS,
         Text2VecTransformersConfig(),
         {
             "text2vec-transformers": {
@@ -217,7 +199,6 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Vectorizer.TEXT2VEC_TRANSFORMERS,
         Text2VecTransformersConfig(
             pooling_strategy="cls",
             vectorize_class_name=False,
@@ -230,7 +211,6 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Vectorizer.IMG2VEC_NEURAL,
         Img2VecNeuralConfig(
             image_fields=["test"],
         ),
@@ -241,7 +221,6 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Vectorizer.MULTI2VEC_CLIP,
         Multi2VecClipConfig(
             image_fields=["image"],
             text_fields=["text"],
@@ -255,7 +234,6 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Vectorizer.MULTI2VEC_CLIP,
         Multi2VecClipConfig(
             image_fields=["image"],
             text_fields=["text"],
@@ -278,7 +256,6 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Vectorizer.MULTI2VEC_BIND,
         Multi2VecBindConfig(
             audio_fields=["audio"],
             depth_fields=["depth"],
@@ -300,7 +277,6 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Vectorizer.MULTI2VEC_BIND,
         Multi2VecBindConfig(
             audio_fields=["audio"],
             depth_fields=["depth"],
@@ -339,19 +315,18 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Vectorizer.REF2VEC_CENTROID,
         Ref2VecCentroidConfig(reference_properties=["prop"]),
         {"ref2vec-centroid": {"referenceProperties": ["prop"], "method": "mean"}},
     ),
 ]
 
 
-@pytest.mark.parametrize("vectorizer,module_config,expected", TEST_CONFIG_WITH_MODULE_PARAMETERS)
-def test_config_with_module(vectorizer: Vectorizer, module_config: ModuleConfig, expected: dict):
-    config = CollectionConfig(name="test", vectorizer=vectorizer, module_config=module_config)
+@pytest.mark.parametrize("vectorizer_config,expected", TEST_CONFIG_WITH_MODULE_PARAMETERS)
+def test_config_with_module(vectorizer_config: VectorizerConfig, expected: dict):
+    config = CollectionConfig(name="test", vectorizer_config=vectorizer_config)
     assert config.to_dict() == {
         **DEFAULTS,
-        "vectorizer": vectorizer.value,
+        "vectorizer": vectorizer_config.vectorizer.value,
         "class": "Test",
         "moduleConfig": expected,
     }
@@ -359,13 +334,14 @@ def test_config_with_module(vectorizer: Vectorizer, module_config: ModuleConfig,
 
 TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
     (
-        Vectorizer.TEXT2VEC_TRANSFORMERS,
         Text2VecTransformersConfig(),
         [
             Property(
                 name="text",
                 data_type=DataType.TEXT,
-                module_config=PropertyModuleConfig(skip=False, vectorize_property_name=False),
+                vectorizer_config=PropertyVectorizerConfig(
+                    skip=False, vectorize_property_name=False
+                ),
             )
         ],
         {
@@ -391,22 +367,21 @@ TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
 
 
 @pytest.mark.parametrize(
-    "vectorizer,module_config,properties,expected_mc,expected_props",
+    "vectorizer_config,properties,expected_mc,expected_props",
     TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS,
 )
 def test_config_with_module_and_properties(
-    vectorizer: Vectorizer,
-    module_config: ModuleConfig,
+    vectorizer_config: VectorizerConfig,
     properties: List[Property],
     expected_mc: dict,
     expected_props: dict,
 ):
     config = CollectionConfig(
-        name="test", vectorizer=vectorizer, properties=properties, module_config=module_config
+        name="test", properties=properties, vectorizer_config=vectorizer_config
     )
     assert config.to_dict() == {
         **DEFAULTS,
-        "vectorizer": vectorizer.value,
+        "vectorizer": vectorizer_config.vectorizer.value,
         "class": "Test",
         "properties": expected_props,
         "moduleConfig": expected_mc,
@@ -417,6 +392,7 @@ def test_config_with_properties():
     config = CollectionConfig(
         name="test",
         description="test",
+        vectorizer_config=VectorizerConfig(vectorizer=Vectorizer.NONE),
         properties=[
             Property(
                 name="text",
