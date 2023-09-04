@@ -14,16 +14,13 @@ from weaviate.collection.classes.config import (
     InvertedIndexConfigCreate,
     VectorizerFactory,
 )
-from weaviate.collection.classes.data import (
-    ReferenceTo,
-    ReferenceToMultiTarget,
-)
 from weaviate.collection.classes.filters import (
     Filter,
     _Filters,
     _FilterValue,
 )
 from weaviate.collection.classes.grpc import MetadataQuery
+from weaviate.collection.classes.internal import Reference
 
 
 @pytest.fixture(scope="module")
@@ -360,8 +357,8 @@ def test_ref_filters(client: weaviate.Client, weaviate_filter: _FilterValue, res
     )
 
     uuids_from = [
-        from_collection.data.insert({"ref": ReferenceTo(uuids_to[0]), "name": "first"}),
-        from_collection.data.insert({"ref": ReferenceTo(uuids_to[1]), "name": "second"}),
+        from_collection.data.insert({"ref": Reference.to(uuids_to[0]), "name": "first"}),
+        from_collection.data.insert({"ref": Reference.to(uuids_to[1]), "name": "second"}),
     ]
 
     objects = from_collection.query.get_flat(
@@ -401,20 +398,23 @@ def test_ref_filters_multi_target(client: weaviate.Client):
     )
 
     uuid_from_to_target1 = from_collection.data.insert(
-        {"ref": ReferenceToMultiTarget(uuids=uuid_to, target_collection=target), "name": "first"}
+        {"ref": Reference.to_multi_target(uuids=uuid_to, target_collection=target), "name": "first"}
     )
     uuid_from_to_target2 = from_collection.data.insert(
-        {"ref": ReferenceToMultiTarget(uuids=uuid_to2, target_collection=target), "name": "second"}
+        {
+            "ref": Reference.to_multi_target(uuids=uuid_to2, target_collection=target),
+            "name": "second",
+        }
     )
     from_collection.data.insert(
         {
-            "ref": ReferenceToMultiTarget(uuids=uuid_from_to_target1, target_collection=source),
+            "ref": Reference.to_multi_target(uuids=uuid_from_to_target1, target_collection=source),
             "name": "third",
         }
     )
     from_collection.data.insert(
         {
-            "ref": ReferenceToMultiTarget(uuids=uuid_from_to_target2, target_collection=source),
+            "ref": Reference.to_multi_target(uuids=uuid_from_to_target2, target_collection=source),
             "name": "fourth",
         }
     )

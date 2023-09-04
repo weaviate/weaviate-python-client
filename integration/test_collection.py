@@ -1,9 +1,17 @@
 import datetime
-from dataclasses import dataclass
-from typing import Dict, List, Optional, TypedDict, Union
+import sys
 
 import pytest as pytest
 import uuid
+
+from dataclasses import dataclass
+from typing import Dict, List, Optional, TypedDict, Union
+
+if sys.version_info < (3, 9):
+    from typing_extensions import Annotated
+else:
+    from typing import Annotated
+
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
@@ -37,12 +45,11 @@ from weaviate.collection.classes.data import (
     DataObject,
     Error,
     GetObjectsMetadata,
-    ReferenceTo,
-    ReferenceToMultiTarget,
 )
 from weaviate.collection.classes.grpc import NearImageOptions, NearTextOptions, ReturnValues
 from weaviate.collection.classes.internal import Reference
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
+from weaviate.exceptions import WeaviateGRPCException
 from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery, Move
 from weaviate.exceptions import InvalidDataModelException
 from weaviate.weaviate_types import UUID
@@ -259,16 +266,16 @@ def test_insert_many_with_refs(client: weaviate.Client):
             DataObject(
                 properties={
                     "name": "some name",
-                    "ref_single": ReferenceTo(uuids=[uuid_to1, uuid_to2]),
-                    "ref_many": ReferenceToMultiTarget(uuids=uuid_from, target_collection=name),
+                    "ref_single": Reference.to(uuids=[uuid_to1, uuid_to2]),
+                    "ref_many": Reference.to_multi_target(uuids=uuid_from, target_collection=name),
                 },
                 vector=[1, 2, 3],
             ),
             DataObject(
                 properties={
                     "name": "some other name",
-                    "ref_single": ReferenceTo(uuids=uuid_to2),
-                    "ref_many": ReferenceToMultiTarget(
+                    "ref_single": Reference.to(uuids=uuid_to2),
+                    "ref_many": Reference.to_multi_target(
                         uuids=uuid_to1, target_collection=name_target
                     ),
                 },
@@ -483,28 +490,28 @@ def test_reference_add_delete_replace(client: weaviate.Client):
     collection = client.collection.create(collection_config)
 
     uuid_from1 = collection.data.insert({}, uuid.uuid4())
-    uuid_from2 = collection.data.insert({"ref": ReferenceTo(uuids=uuid_to)}, uuid.uuid4())
+    uuid_from2 = collection.data.insert({"ref": Reference.to(uuids=uuid_to)}, uuid.uuid4())
     collection.data.reference_add(
-        from_uuid=uuid_from1, from_property="ref", ref=ReferenceTo(uuids=uuid_to)
+        from_uuid=uuid_from1, from_property="ref", ref=Reference.to(uuids=uuid_to)
     )
     objects = collection.data.get()
     for obj in objects:
         assert str(uuid_to) in "".join([ref["beacon"] for ref in obj.properties["ref"]])
 
     collection.data.reference_delete(
-        from_uuid=uuid_from1, from_property="ref", ref=ReferenceTo(uuids=uuid_to)
+        from_uuid=uuid_from1, from_property="ref", ref=Reference.to(uuids=uuid_to)
     )
     assert len(collection.data.get_by_id(uuid_from1).properties["ref"]) == 0
 
     collection.data.reference_add(
-        from_uuid=uuid_from2, from_property="ref", ref=ReferenceTo(uuids=uuid_to)
+        from_uuid=uuid_from2, from_property="ref", ref=Reference.to(uuids=uuid_to)
     )
     obj = collection.data.get_by_id(uuid_from2)
     assert len(obj.properties["ref"]) == 2
     assert str(uuid_to) in "".join([ref["beacon"] for ref in obj.properties["ref"]])
 
     collection.data.reference_replace(
-        from_uuid=uuid_from2, from_property="ref", ref=ReferenceTo(uuids=[])
+        from_uuid=uuid_from2, from_property="ref", ref=Reference.to(uuids=[])
     )
     assert len(collection.data.get_by_id(uuid_from2).properties["ref"]) == 0
 
@@ -707,8 +714,8 @@ def test_mono_references_grcp(client: weaviate.Client):
             vectorizer_config=VectorizerFactory.none(),
         )
     )
-    uuid_B = B.data.insert({"Name": "B", "ref": ReferenceTo(uuids=uuid_A1)})
-    B.data.reference_add(from_uuid=uuid_B, from_property="ref", ref=ReferenceTo(uuids=uuid_A2))
+    uuid_B = B.data.insert({"Name": "B", "ref": Reference.to(uuids=uuid_A1)})
+    B.data.reference_add(from_uuid=uuid_B, from_property="ref", ref=Reference.to(uuids=uuid_A2))
 
     C = client.collection.create(
         CollectionConfig(
@@ -720,7 +727,7 @@ def test_mono_references_grcp(client: weaviate.Client):
             vectorizer_config=VectorizerFactory.none(),
         )
     )
-    C.data.insert({"Name": "find me", "ref": ReferenceTo(uuids=uuid_B)})
+    C.data.insert({"Name": "find me", "ref": Reference.to(uuids=uuid_B)})
 
     objects = C.query.bm25_flat(
         query="find",
@@ -741,9 +748,15 @@ def test_mono_references_grcp(client: weaviate.Client):
         ],
     )
     assert objects[0].properties["name"] == "find me"
-    assert objects[0].properties["ref"][0].properties["name"] == "B"
-    assert objects[0].properties["ref"][0].properties["ref"][0].properties["name"] == "A1"
-    assert objects[0].properties["ref"][0].properties["ref"][1].properties["name"] == "A2"
+    assert objects[0].properties["ref"].objects[0].properties["name"] == "B"
+    assert (
+        objects[0].properties["ref"].objects[0].properties["ref"].objects[0].properties["name"]
+        == "A1"
+    )
+    assert (
+        objects[0].properties["ref"].objects[0].properties["ref"].objects[1].properties["name"]
+        == "A2"
+    )
 
 
 def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
@@ -753,6 +766,14 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
 
     class AProps(TypedDict):
         name: str
+
+    class BProps(TypedDict):
+        name: str
+        ref: Annotated[Reference[AProps], MetadataQuery(uuid=True)]
+
+    class CProps(TypedDict):
+        name: str
+        ref: Annotated[Reference[BProps], MetadataQuery(uuid=True)]
 
     A = client.collection.create(
         CollectionConfig(
@@ -766,10 +787,6 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
     uuid_A1 = A.insert(AProps(name="A1"))
     uuid_A2 = A.insert(AProps(name="A2"))
 
-    class BPropsInsert(TypedDict):
-        name: str
-        ref: ReferenceTo
-
     B = client.collection.create(
         CollectionConfig(
             name="BTypedDicts",
@@ -779,14 +796,9 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
             ],
             vectorizer_config=VectorizerFactory.none(),
         ),
-    ).data.with_data_model(BPropsInsert)
-    uuid_B = B.insert(BPropsInsert(name="B", ref=ReferenceTo(uuids=uuid_A1)))
-    B.reference_add(from_uuid=uuid_B, from_property="ref", ref=ReferenceTo(uuids=uuid_A2))
-
-    class CPropsInsert(TypedDict):
-        name: str
-        ref: ReferenceTo
-        age: int
+    ).data.with_data_model(BProps)
+    uuid_B = B.insert(properties=BProps(name="B", ref=Reference[AProps].to(uuids=uuid_A1)))
+    B.reference_add(from_uuid=uuid_B, from_property="ref", ref=Reference[AProps].to(uuids=uuid_A2))
 
     C = client.collection.create(
         CollectionConfig(
@@ -798,50 +810,38 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
             ],
             vectorizer_config=VectorizerFactory.none(),
         ),
-    ).data.with_data_model(CPropsInsert)
-    C.insert(CPropsInsert(name="find me", age=10, ref=ReferenceTo(uuids=uuid_B)))
-
-    class BPropsGet(TypedDict):
-        name: str
-        ref: Reference[AProps]
-
-    class CPropsGet(TypedDict):
-        name: str
-        ref: Reference[BPropsGet]
-        not_specified: str
+    ).data.with_data_model(CProps)
+    C.insert(properties=CProps(name="find me", age=10, ref=Reference[BProps].to(uuids=uuid_B)))
 
     objects = client.collection.get("CTypedDicts").query.bm25_flat(
         query="find",
-        return_properties=[
-            "name",
-            "age",
-            LinkTo(
-                link_on="ref",
-                properties=[
-                    "name",
-                    LinkTo(
-                        link_on="ref",
-                        properties=["name"],
-                        metadata=MetadataQuery(uuid=True),
-                    ),
-                ],
-                metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
-            ),
-        ],
-        data_model=CPropsGet,
+        return_properties=CProps,
     )
     assert (
         objects[0].properties["name"] == "find me"
     )  # happy path (in type and in return_properties)
+    assert objects[0].metadata.uuid is None
     assert (
         objects[0].properties.get("not_specified") is None
     )  # type is str but instance is None (in type but not in return_properties)
+    assert objects[0].properties["ref"].objects[0].properties["name"] == "B"
+    assert objects[0].properties["ref"].objects[0].metadata.uuid == uuid_B
     assert (
-        objects[0].properties.get("age") == 10
-    )  # type is Any | None but instance is 10 (not in type but in return_properties)
-    assert objects[0].properties["ref"][0].properties["name"] == "B"
-    assert objects[0].properties["ref"][0].properties["ref"][0].properties["name"] == "A1"
-    assert objects[0].properties["ref"][0].properties["ref"][1].properties["name"] == "A2"
+        objects[0].properties["ref"].objects[0].properties["ref"].objects[0].properties["name"]
+        == "A1"
+    )
+    assert (
+        objects[0].properties["ref"].objects[0].properties["ref"].objects[0].metadata.uuid
+        == uuid_A1
+    )
+    assert (
+        objects[0].properties["ref"].objects[0].properties["ref"].objects[1].properties["name"]
+        == "A2"
+    )
+    assert (
+        objects[0].properties["ref"].objects[0].properties["ref"].objects[1].metadata.uuid
+        == uuid_A2
+    )
 
 
 def test_multi_references_grcp(client: weaviate.Client):
@@ -882,10 +882,10 @@ def test_multi_references_grcp(client: weaviate.Client):
         )
     )
     C.data.insert(
-        {"Name": "first", "ref": ReferenceToMultiTarget(uuids=uuid_A, target_collection="A")}
+        {"Name": "first", "ref": Reference.to_multi_target(uuids=uuid_A, target_collection="A")}
     )
     C.data.insert(
-        {"Name": "second", "ref": ReferenceToMultiTarget(uuids=uuid_B, target_collection="B")}
+        {"Name": "second", "ref": Reference.to_multi_target(uuids=uuid_B, target_collection="B")}
     )
 
     objects = C.query.bm25_flat(
@@ -901,8 +901,8 @@ def test_multi_references_grcp(client: weaviate.Client):
         ],
     )
     assert objects[0].properties["name"] == "first"
-    assert len(objects[0].properties["ref"]) == 1
-    assert objects[0].properties["ref"][0].properties["name"] == "A"
+    assert len(objects[0].properties["ref"].objects) == 1
+    assert objects[0].properties["ref"].objects[0].properties["name"] == "A"
 
     objects = C.query.bm25_flat(
         query="second",
@@ -919,8 +919,8 @@ def test_multi_references_grcp(client: weaviate.Client):
         ],
     )
     assert objects[0].properties["name"] == "second"
-    assert len(objects[0].properties["ref"]) == 1
-    assert objects[0].properties["ref"][0].properties["name"] == "B"
+    assert len(objects[0].properties["ref"].objects) == 1
+    assert objects[0].properties["ref"].objects[0].properties["name"] == "B"
 
     client.collection.delete("A")
     client.collection.delete("B")
@@ -1454,3 +1454,56 @@ def test_near_image_options(
     )
     assert len(objects) == 2
     assert objects[0].metadata.uuid == uuid1
+
+
+@pytest.mark.parametrize("which_case", [0, 1, 2, 3])
+def test_return_properties_with_typed_dict(client: weaviate.Client, which_case: int):
+    name = "TestReturnListWithModel"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        CollectionConfig(
+            name=name,
+            vectorizer=Vectorizer.NONE,
+            properties=[
+                Property(name="int_", data_type=DataType.INT),
+                Property(name="ints", data_type=DataType.INT_ARRAY),
+            ],
+        )
+    )
+    data = {
+        "int_": 1,
+        "ints": [1, 2, 3],
+    }
+    collection.data.insert(properties=data)
+    if which_case == 0:
+
+        class DataModel(TypedDict):
+            int_: int
+
+        objects = collection.query.get_flat(return_properties=DataModel)
+        assert len(objects) == 1
+        assert objects[0].properties == {"int_": 1}
+    elif which_case == 1:
+
+        class DataModel(TypedDict):
+            ints: List[int]
+
+        objects = collection.query.get_flat(return_properties=DataModel)
+        assert len(objects) == 1
+        assert objects[0].properties == {"ints": [1, 2, 3]}
+    elif which_case == 2:
+
+        class DataModel(TypedDict):
+            int_: int
+            ints: List[int]
+
+        objects = collection.query.get_flat(return_properties=DataModel)
+        assert len(objects) == 1
+        assert objects[0].properties == data
+    elif which_case == 3:
+
+        class DataModel(TypedDict):
+            non_existant: str
+
+        with pytest.raises(WeaviateGRPCException):
+            objects = collection.query.get_flat(return_properties=DataModel)
