@@ -12,6 +12,7 @@ from typing import (
     get_type_hints,
     get_origin,
 )
+from typing_extensions import is_typeddict
 
 import uuid as uuid_package
 from google.protobuf.struct_pb2 import Struct
@@ -36,7 +37,11 @@ from weaviate.collection.classes.types import Properties, TProperties
 from weaviate.collection.grpc_batch import _BatchGRPC
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.exceptions import UnexpectedStatusCodeException, ObjectAlreadyExistsException
+from weaviate.exceptions import (
+    InvalidDataModelException,
+    UnexpectedStatusCodeException,
+    ObjectAlreadyExistsException,
+)
 from weaviate.warnings import _Warnings
 from weaviate.weaviate_types import BEACON, UUID
 from weaviate_grpc import weaviate_pb2
@@ -324,27 +329,26 @@ class _Data:
         )
 
 
-class _DataCollection(Generic[TProperties], _Data):
+class _DataCollection(Generic[Properties], _Data):
     def __init__(
         self,
         connection: Connection,
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
-        type_: Optional[Type[TProperties]] = None,
+        type_: Optional[Type[Properties]] = None,
     ):
         super().__init__(connection, name, consistency_level, tenant)
         self.__type = type_
 
-    def with_data_model(self, data_model: Type[Properties]) -> "_DataCollection[Properties]":
-        if data_model is not None and get_origin(data_model) is not dict:
-            try:
-                assert data_model.__bases__[0] == dict
-            except Exception as e:
-                raise TypeError(
-                    "data_model can only be a dict type, e.g. Dict[str, str], or a class that inherits from TypedDict"
-                ) from e
-        return _DataCollection[Properties](
+    def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]":
+        if (
+            data_model is not None
+            and get_origin(data_model) is not dict
+            and not is_typeddict(data_model)
+        ):
+            raise InvalidDataModelException()
+        return _DataCollection[TProperties](
             self._connection, self.name, self._consistency_level, self._tenant, data_model
         )
 

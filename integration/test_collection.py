@@ -1,7 +1,6 @@
 import datetime
 from dataclasses import dataclass
-from typing import Dict, TypedDict
-from typing import Union, List
+from typing import Dict, List, TypedDict, Union
 
 import pytest as pytest
 import uuid
@@ -10,6 +9,8 @@ from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 import weaviate
 from weaviate import Config
+from weaviate.collection.collection import CollectionObject
+from weaviate.collection.data import _DataCollection
 from weaviate.collection.classes.config import (
     BM25ConfigUpdate,
     CollectionConfig,
@@ -40,6 +41,7 @@ from weaviate.collection.classes.grpc import NearTextOptions, ReturnValues
 from weaviate.collection.classes.internal import Reference
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery, Move
+from weaviate.exceptions import InvalidDataModelException
 from weaviate.weaviate_types import UUID
 
 BEACON_START = "weaviate://localhost"
@@ -64,24 +66,29 @@ def test_create_get_and_delete(client: weaviate.Client):
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer=Vectorizer.NONE,
     )
-    client.collection.create(collection_config)
-    client.collection.get(name)
+    col = client.collection.create(collection_config)
     assert client.collection.exists(name)
+    assert isinstance(col, CollectionObject)
+
+    col = client.collection.get(name)
+    assert isinstance(col, CollectionObject)
+
     client.collection.delete(name)
     assert not client.collection.exists(name)
 
 
-def test_data_with_data_model_with_dict_generic(client: weaviate.Client):
+@pytest.mark.parametrize("use_typed_dict", [True, False])
+def test_data_with_data_model_with_dict_generic(client: weaviate.Client, use_typed_dict: bool):
     name = "TestDataWithDictGeneric"
-    client.collection.get(name).data.with_data_model(Dict[str, str])
+    if use_typed_dict:
 
+        class Right(TypedDict):
+            name: str
 
-def test_create_get_and_delete_with_typed_dict_generic(client: weaviate.Client):
-    class Right(TypedDict):
-        name: str
-
-    name = "TestDataWithDictGeneric"
-    client.collection.get(name).data.with_data_model(Right)
+        data = client.collection.get(name).data.with_data_model(Right)
+    else:
+        data = client.collection.get(name).data.with_data_model(Dict[str, str])
+    assert isinstance(data, _DataCollection)
 
 
 WRONG_GENERIC_ERROR_MSG = "data_model can only be a dict type, e.g. Dict[str, str], or a class that inherits from TypedDict"
@@ -91,7 +98,7 @@ def test_get_with_empty_class_generic(client: weaviate.Client):
     class Wrong:
         name: str
 
-    with pytest.raises(TypeError) as error:
+    with pytest.raises(InvalidDataModelException) as error:
         client.collection.get("NotImportant").data.with_data_model(Wrong)
     assert error.value.args[0] == WRONG_GENERIC_ERROR_MSG
 
@@ -101,7 +108,7 @@ def test_get_with_dataclass_generic(client: weaviate.Client):
     class Wrong:
         name: str
 
-    with pytest.raises(TypeError) as error:
+    with pytest.raises(InvalidDataModelException) as error:
         client.collection.get("NotImportant").data.with_data_model(Wrong)
     assert error.value.args[0] == WRONG_GENERIC_ERROR_MSG
 
@@ -113,7 +120,7 @@ def test_get_with_initialisable_class_generic(client: weaviate.Client):
         def __init__(self, name: str):
             self.name = name
 
-    with pytest.raises(TypeError) as error:
+    with pytest.raises(InvalidDataModelException) as error:
         client.collection.get("NotImportant").data.with_data_model(Wrong)
     assert error.value.args[0] == WRONG_GENERIC_ERROR_MSG
 
@@ -122,7 +129,7 @@ def test_get_with_pydantic_class_generic(client: weaviate.Client):
     class Wrong(BaseModel):
         name: str
 
-    with pytest.raises(TypeError) as error:
+    with pytest.raises(InvalidDataModelException) as error:
         client.collection.get("NotImportant").data.with_data_model(Wrong)
     assert error.value.args[0] == WRONG_GENERIC_ERROR_MSG
 
@@ -132,7 +139,7 @@ def test_get_with_pydantic_dataclass_generic(client: weaviate.Client):
     class Wrong:
         name: str
 
-    with pytest.raises(TypeError) as error:
+    with pytest.raises(InvalidDataModelException) as error:
         client.collection.get("NotImportant").data.with_data_model(Wrong)
     assert error.value.args[0] == WRONG_GENERIC_ERROR_MSG
 

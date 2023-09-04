@@ -130,9 +130,8 @@ PROPERTIES = Union[List[Union[str, LinkTo]], str]
 
 @dataclass
 class ReturnValues:
-    properties: Union[PROPERTIES, Type[Properties], None] = None
+    properties: Optional[Union[PROPERTIES, Type[Properties]]] = None
     metadata: Optional[MetadataQuery] = None
-    properties: Optional[PROPERTIES] = None
 
 
 @dataclass
