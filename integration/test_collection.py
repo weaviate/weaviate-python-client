@@ -593,10 +593,10 @@ def test_search_after(client: weaviate.Client):
     client.collection.delete("TestOffset")
 
 
-def test_limit_groups(client: weaviate.Client):
+def test_auto_limit(client: weaviate.Client):
     collection = client.collection.create(
         CollectionConfig(
-            name="TestLimitGroups",
+            name="TestAutoLimit",
             properties=[Property(name="Name", data_type=DataType.TEXT)],
             vectorizer_config=VectorizerFactory.none(),
         )
@@ -609,22 +609,22 @@ def test_limit_groups(client: weaviate.Client):
         collection.data.insert({"Name": ""})
 
     # match all objects with rain
-    objects = collection.query.bm25_flat(query="rain", limit_groups=0)
+    objects = collection.query.bm25_flat(query="rain", auto_limit=0)
     assert len(objects) == 2 * 4
     objects = collection.query.hybrid_flat(
-        query="rain", limit_groups=0, alpha=0, fusion_type=HybridFusion.RELATIVE_SCORE
+        query="rain", auto_limit=0, alpha=0, fusion_type=HybridFusion.RELATIVE_SCORE
     )
     assert len(objects) == 2 * 4
 
     # match only objects with two rains
-    objects = collection.query.bm25_flat(query="rain", limit_groups=1)
+    objects = collection.query.bm25_flat(query="rain", auto_limit=1)
     assert len(objects) == 1 * 4
     objects = collection.query.hybrid_flat(
-        query="rain", limit_groups=1, alpha=0, fusion_type=HybridFusion.RELATIVE_SCORE
+        query="rain", auto_limit=1, alpha=0, fusion_type=HybridFusion.RELATIVE_SCORE
     )
     assert len(objects) == 1 * 4
 
-    client.collection.delete("TestLimitGroups")
+    client.collection.delete("TestAutoLimit")
 
 
 def test_query_properties(client: weaviate.Client):
