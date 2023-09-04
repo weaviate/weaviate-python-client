@@ -627,6 +627,40 @@ def test_limit_groups(client: weaviate.Client):
     client.collection.delete("TestLimitGroups")
 
 
+def test_query_properties(client: weaviate.Client):
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestQueryProperties",
+            properties=[
+                Property(name="Name", data_type=DataType.TEXT),
+                Property(name="Age", data_type=DataType.INT),
+            ],
+            vectorizer_config=VectorizerFactory.none(),
+        )
+    )
+    collection.data.insert({"Name": "rain", "Age": 1})
+    collection.data.insert({"Name": "sun", "Age": 2})
+    collection.data.insert({"Name": "cloud", "Age": 3})
+    collection.data.insert({"Name": "snow", "Age": 4})
+    collection.data.insert({"Name": "hail", "Age": 5})
+
+    objects = collection.query.bm25_flat(query="rain", query_properties=["name"])
+    assert len(objects) == 1
+    assert objects[0].properties["age"] == 1
+
+    objects = collection.query.bm25_flat(query="sleet", query_properties=["name"])
+    assert len(objects) == 0
+
+    objects = collection.query.hybrid_flat(query="cloud", query_properties=["name"], alpha=0)
+    assert len(objects) == 1
+    assert objects[0].properties["age"] == 3
+
+    objects = collection.query.hybrid_flat(query="sleet", query_properties=["name"], alpha=0)
+    assert len(objects) == 0
+
+    client.collection.delete("TestQueryProperties")
+
+
 def test_near_vector(client: weaviate.Client):
     collection = client.collection.create(
         CollectionConfig(
