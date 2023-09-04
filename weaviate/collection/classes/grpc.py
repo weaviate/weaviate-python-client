@@ -4,7 +4,7 @@ from typing import Dict, Generic, List, Optional, Type, Union
 from pydantic import BaseModel
 
 from weaviate.collection.classes.filters import _Filters
-from weaviate.collection.classes.types import Properties
+from weaviate.collection.classes.types import P
 from weaviate.util import BaseEnum
 from weaviate.weaviate_types import UUID
 
@@ -149,8 +149,8 @@ PROPERTIES = Union[List[Union[str, LinkTo]], str]
 
 
 @dataclass
-class ReturnValues(Generic[Properties]):
-    properties: Optional[Union[PROPERTIES, Type[Properties]]] = None
+class ReturnValues(Generic[P]):
+    properties: Optional[Union[PROPERTIES, Type[P]]] = None
     metadata: Optional[MetadataQuery] = None
 
 

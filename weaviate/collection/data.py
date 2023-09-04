@@ -525,11 +525,11 @@ class _DataCollectionModel(Generic[Model], _Data):
             self.__model.model_validate(obj)
 
         data_objects = [
-            DataObject(
-                properties=obj.props_to_dict(),
-                uuid=obj.uuid,
-                vector=obj.vector,
-            )
+            {
+                "properties": obj.props_to_dict(),
+                "uuid": obj.uuid,
+                "vector": obj.vector,
+            }
             for obj in objects
         ]
 

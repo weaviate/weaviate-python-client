@@ -27,6 +27,7 @@ from weaviate.collection.classes.config import (
     ReferencePropertyMultiTarget,
     DataType,
 )
+from weaviate.collection.classes.types import T
 from weaviate.util import _capitalize_first_letter, _to_beacons
 from weaviate.weaviate_types import PYTHON_TYPE_TO_DATATYPE, UUID
 
@@ -188,16 +189,16 @@ class BaseProperty(BaseModel):
         }
 
     @staticmethod
-    def remove_optional_type(python_type: type) -> type:
-        is_list = get_origin(python_type) == list
+    def remove_optional_type(python_type: T) -> Union[Any, List[Any], T]:
         args = get_args(python_type)
         if len(args) == 0:
             return python_type
 
         return_type = [t for t in args if t is not None][0]
 
+        is_list = get_origin(python_type) == list
         if is_list:
-            return List[return_type]
+            return List[Any]
         else:
             return return_type
 
