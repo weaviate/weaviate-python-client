@@ -71,6 +71,8 @@ jobs:
             optional_dependencies: true
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-tags: true
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.version }}
