@@ -412,7 +412,9 @@ class CollectionConfigCreateBase(ConfigCreateModel):
     shardingConfig: Optional[ShardingConfigCreate] = Field(None, alias="sharding_config")
     vectorIndexConfig: Optional[VectorIndexConfigCreate] = Field(None, alias="vector_index_config")
     vectorIndexType: VectorIndexType = Field(VectorIndexType.HNSW, alias="vector_index_type")
-    moduleConfig: VectorizerConfig = Field(..., alias="vectorizer_config")
+    moduleConfig: VectorizerConfig = Field(
+        default=VectorizerFactory.none(), alias="vectorizer_config"
+    )
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
