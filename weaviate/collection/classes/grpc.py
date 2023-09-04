@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Type, Union
+from typing import Dict, Generic, List, Optional, Type, Union
 
 from pydantic import BaseModel
 
@@ -149,7 +149,7 @@ PROPERTIES = Union[List[Union[str, LinkTo]], str]
 
 
 @dataclass
-class ReturnValues:
+class ReturnValues(Generic[Properties]):
     properties: Optional[Union[PROPERTIES, Type[Properties]]] = None
     metadata: Optional[MetadataQuery] = None
 

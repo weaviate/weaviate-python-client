@@ -53,6 +53,8 @@ class Reference(Generic[P]):
         return cls(None, target_collection, uuids)
 
     def _to_beacons(self) -> List[Dict[str, str]]:
+        if self.__uuids is None:
+            return []
         return _to_beacons(self.__uuids, self.__target_collection)
 
     @classmethod

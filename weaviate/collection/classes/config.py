@@ -7,7 +7,6 @@ from pydantic import (
     ConfigDict,
     Field,
     model_validator,
-    confloat,
 )
 
 from weaviate.warnings import _Warnings
@@ -254,7 +253,7 @@ class PropertyVectorizerConfig(ConfigCreateModel):
 
 class Text2VecContextionaryConfig(VectorizerConfig):
     vectorizer: Vectorizer = Field(Vectorizer.TEXT2VEC_CONTEXTIONARY, frozen=True, exclude=True)
-    vectorizeClassName: bool = Field(True, alias="vectorize_property_name")
+    vectorizeClassName: bool = Field(True, alias="vectorize_class_name")
 
 
 class Text2VecCohereConfig(VectorizerConfig):
@@ -340,8 +339,8 @@ class Img2VecNeuralConfig(VectorizerConfig):
 
 
 class Multi2VecClipConfigWeights(ConfigCreateModel):
-    imageFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="image_fields")
-    textFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="text_fields")
+    imageFields: Optional[List[float]] = Field(None, alias="image_fields", ge=0, le=1)
+    textFields: Optional[List[float]] = Field(None, alias="text_fields", ge=0, le=1)
 
 
 class Multi2VecClipConfig(VectorizerConfig):
@@ -353,13 +352,13 @@ class Multi2VecClipConfig(VectorizerConfig):
 
 
 class Multi2VecBindConfigWeights(ConfigCreateModel):
-    audioFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="audio_fields")
-    depthFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="depth_fields")
-    imageFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="image_fields")
-    IMUFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="imu_fields")
-    textFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="text_fields")
-    thermalFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="thermal_fields")
-    videoFields: Optional[List[confloat(ge=0, le=1)]] = Field(None, alias="video_fields")
+    audioFields: Optional[List[float]] = Field(None, alias="audio_fields", ge=0, le=1)
+    depthFields: Optional[List[float]] = Field(None, alias="depth_fields", ge=0, le=1)
+    imageFields: Optional[List[float]] = Field(None, alias="image_fields", ge=0, le=1)
+    IMUFields: Optional[List[float]] = Field(None, alias="imu_fields", ge=0, le=1)
+    textFields: Optional[List[float]] = Field(None, alias="text_fields", ge=0, le=1)
+    thermalFields: Optional[List[float]] = Field(None, alias="thermal_fields", ge=0, le=1)
+    videoFields: Optional[List[float]] = Field(None, alias="video_fields", ge=0, le=1)
 
 
 class Multi2VecBindConfig(VectorizerConfig):
@@ -388,7 +387,7 @@ class VectorizerFactory:
         return VectorizerConfig(vectorizer=Vectorizer.NONE)
 
     @classmethod
-    def auto(cls) -> "VectorizerConfig":
+    def auto(cls):
         """Returns a `VectorizerConfig` object with the `Vectorizer` auto-detected from the environment
         variables of the client or Weaviate itself"""
         # TODO: Can this be done?
