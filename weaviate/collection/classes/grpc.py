@@ -26,7 +26,7 @@ class HybridOptions(Options):
     properties: Optional[List[str]] = None
     fusion_type: Optional[HybridFusion] = None
     limit: Optional[int] = None
-    autocut: Optional[int] = None
+    auto_limit: Optional[int] = None
 
 
 @dataclass
@@ -40,14 +40,14 @@ class GetOptions(Options):
 class BM25Options(Options):
     properties: Optional[List[str]] = None
     limit: Optional[int] = None
-    autocut: Optional[int] = None
+    auto_limit: Optional[int] = None
 
 
 @dataclass
 class NearMediaOptions(Options):
     certainty: Optional[float] = None
     distance: Optional[float] = None
-    autocut: Optional[int] = None
+    auto_limit: Optional[int] = None
 
 
 @dataclass
