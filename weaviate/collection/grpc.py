@@ -672,12 +672,12 @@ class _GrpcCollection(_Grpc):
 
     def get_flat(
         self,
-        return_properties: Union[PROPERTIES, Type[Properties], None] = None,
-        return_metadata: Optional[MetadataQuery] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> List[_Object[Properties]]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
         return [
@@ -696,7 +696,6 @@ class _GrpcCollection(_Grpc):
         self,
         returns: ReturnValues,
         options: Optional[GetOptions],
-        filters: Optional[_Filters] = None,
     ) -> List[_Object[Properties]]:
         if options is None:
             options = GetOptions()
@@ -716,8 +715,6 @@ class _GrpcCollection(_Grpc):
     def hybrid_flat(
         self,
         query: str,
-        return_properties: Union[PROPERTIES, Type[Properties], None] = None,
-        return_metadata: Optional[MetadataQuery] = None,
         alpha: Optional[float] = None,
         vector: Optional[List[float]] = None,
         properties: Optional[List[str]] = None,
@@ -725,6 +722,8 @@ class _GrpcCollection(_Grpc):
         limit: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> List[_Object[Properties]]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
         return [
@@ -772,11 +771,11 @@ class _GrpcCollection(_Grpc):
         self,
         query: str,
         properties: Optional[List[str]] = None,
-        return_properties: Union[PROPERTIES, Type[Properties], None] = None,
-        return_metadata: Optional[MetadataQuery] = None,
         limit: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> List[_Object[Properties]]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
         return [
@@ -817,12 +816,12 @@ class _GrpcCollection(_Grpc):
     def near_vector_flat(
         self,
         vector: List[float],
-        return_properties: Union[PROPERTIES, Type[Properties], None] = None,
-        return_metadata: Optional[PROPERTIES] = None,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> List[_Object[Properties]]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
         return [
@@ -863,12 +862,12 @@ class _GrpcCollection(_Grpc):
     def near_object_flat(
         self,
         obj: UUID,
-        return_properties: Union[PROPERTIES, Type[Properties], None] = None,
-        return_metadata: Optional[MetadataQuery] = None,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> List[_Object[Properties]]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
         return [
@@ -909,14 +908,14 @@ class _GrpcCollection(_Grpc):
     def near_text_flat(
         self,
         query: Union[List[str], str],
-        return_properties: Optional[PROPERTIES] = None,
-        return_metadata: Optional[MetadataQuery] = None,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         move_to: Optional[Move] = None,
         move_away: Optional[Move] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> List[_Object[Properties]]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
         return [
@@ -961,12 +960,12 @@ class _GrpcCollection(_Grpc):
     def near_image_flat(
         self,
         image: str,
-        return_properties: Optional[PROPERTIES] = None,
-        return_metadata: Optional[MetadataQuery] = None,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> List[_Object[Properties]]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
         return [
@@ -1007,12 +1006,12 @@ class _GrpcCollection(_Grpc):
     def near_audio_flat(
         self,
         audio: str,
-        return_properties: Optional[PROPERTIES] = None,
-        return_metadata: Optional[MetadataQuery] = None,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> List[_Object[Properties]]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
         return [
@@ -1053,12 +1052,12 @@ class _GrpcCollection(_Grpc):
     def near_video_flat(
         self,
         video: str,
-        return_properties: Optional[PROPERTIES] = None,
-        return_metadata: Optional[MetadataQuery] = None,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> List[_Object[Properties]]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
         return [
