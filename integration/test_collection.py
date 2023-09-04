@@ -593,10 +593,10 @@ def test_search_after(client: weaviate.Client):
     client.collection.delete("TestOffset")
 
 
-def test_autocut(client: weaviate.Client):
+def test_auto_limit(client: weaviate.Client):
     collection = client.collection.create(
         CollectionConfig(
-            name="TestAutocut",
+            name="TestAutoLimit",
             properties=[Property(name="Name", data_type=DataType.TEXT)],
             vectorizer_config=VectorizerFactory.none(),
         )
@@ -609,22 +609,56 @@ def test_autocut(client: weaviate.Client):
         collection.data.insert({"Name": ""})
 
     # match all objects with rain
-    objects = collection.query.bm25_flat(query="rain", autocut=0)
+    objects = collection.query.bm25_flat(query="rain", auto_limit=0)
     assert len(objects) == 2 * 4
     objects = collection.query.hybrid_flat(
-        query="rain", autocut=0, alpha=0, fusion_type=HybridFusion.RELATIVE_SCORE
+        query="rain", auto_limit=0, alpha=0, fusion_type=HybridFusion.RELATIVE_SCORE
     )
     assert len(objects) == 2 * 4
 
     # match only objects with two rains
-    objects = collection.query.bm25_flat(query="rain", autocut=1)
+    objects = collection.query.bm25_flat(query="rain", auto_limit=1)
     assert len(objects) == 1 * 4
     objects = collection.query.hybrid_flat(
-        query="rain", autocut=1, alpha=0, fusion_type=HybridFusion.RELATIVE_SCORE
+        query="rain", auto_limit=1, alpha=0, fusion_type=HybridFusion.RELATIVE_SCORE
     )
     assert len(objects) == 1 * 4
 
-    client.collection.delete("TestAutocut")
+    client.collection.delete("TestAutoLimit")
+
+
+def test_query_properties(client: weaviate.Client):
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestQueryProperties",
+            properties=[
+                Property(name="Name", data_type=DataType.TEXT),
+                Property(name="Age", data_type=DataType.INT),
+            ],
+            vectorizer_config=VectorizerFactory.none(),
+        )
+    )
+    collection.data.insert({"Name": "rain", "Age": 1})
+    collection.data.insert({"Name": "sun", "Age": 2})
+    collection.data.insert({"Name": "cloud", "Age": 3})
+    collection.data.insert({"Name": "snow", "Age": 4})
+    collection.data.insert({"Name": "hail", "Age": 5})
+
+    objects = collection.query.bm25_flat(query="rain", query_properties=["name"])
+    assert len(objects) == 1
+    assert objects[0].properties["age"] == 1
+
+    objects = collection.query.bm25_flat(query="sleet", query_properties=["name"])
+    assert len(objects) == 0
+
+    objects = collection.query.hybrid_flat(query="cloud", query_properties=["name"], alpha=0)
+    assert len(objects) == 1
+    assert objects[0].properties["age"] == 3
+
+    objects = collection.query.hybrid_flat(query="sleet", query_properties=["name"], alpha=0)
+    assert len(objects) == 0
+
+    client.collection.delete("TestQueryProperties")
 
 
 def test_near_vector(client: weaviate.Client):
