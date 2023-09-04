@@ -11,8 +11,8 @@ from weaviate.collection.classes.config import (
     DataType,
     ReferenceProperty,
     ReferencePropertyMultiTarget,
-    Vectorizer,
     InvertedIndexConfigCreate,
+    VectorizerFactory,
 )
 from weaviate.collection.classes.filters import (
     Filter,
@@ -46,7 +46,7 @@ def test_filters_text(client: weaviate.Client, weaviate_filter: _FilterValue, re
     collection = client.collection.create(
         CollectionConfig(
             name="TestFilterText",
-            vectorizer=Vectorizer.NONE,
+            vectorizer_config=VectorizerFactory.none(),
             properties=[Property(name="name", data_type=DataType.TEXT)],
         )
     )
@@ -93,7 +93,7 @@ def test_filters_nested(
     collection = client.collection.create(
         CollectionConfig(
             name="TestFilterNested",
-            vectorizer=Vectorizer.NONE,
+            vectorizer_config=VectorizerFactory.none(),
             properties=[Property(name="num", data_type=DataType.NUMBER)],
             inverted_index_config=InvertedIndexConfigCreate(index_null_state=True),
         )
@@ -120,7 +120,7 @@ def test_length_filter(client: weaviate.Client):
     collection = client.collection.create(
         CollectionConfig(
             name="TestFilterNested",
-            vectorizer=Vectorizer.NONE,
+            vectorizer_config=VectorizerFactory.none(),
             properties=[Property(name="field", data_type=DataType.TEXT)],
             inverted_index_config=InvertedIndexConfigCreate(index_property_length=True),
         )
@@ -153,7 +153,7 @@ def test_filters_comparison(
     collection = client.collection.create(
         CollectionConfig(
             name="TestFilterNumber",
-            vectorizer=Vectorizer.NONE,
+            vectorizer_config=VectorizerFactory.none(),
             properties=[Property(name="number", data_type=DataType.INT)],
             inverted_index_config=InvertedIndexConfigCreate(index_null_state=True),
         )
@@ -209,7 +209,7 @@ def test_filters_contains(
     collection = client.collection.create(
         CollectionConfig(
             name="TestFilterContains",
-            vectorizer=Vectorizer.NONE,
+            vectorizer_config=VectorizerFactory.none(),
             properties=[
                 Property(name="text", data_type=DataType.TEXT),
                 Property(name="texts", data_type=DataType.TEXT_ARRAY),
@@ -289,7 +289,7 @@ def test_filters_contains_dates(client: weaviate.Client, test_number: int, resul
     collection = client.collection.create(
         CollectionConfig(
             name="TestFilterContainsDates",
-            vectorizer=Vectorizer.NONE,
+            vectorizer_config=VectorizerFactory.none(),
             properties=[Property(name="dates", data_type=DataType.DATE_ARRAY)],
         )
     )
@@ -333,7 +333,7 @@ def test_ref_filters(client: weaviate.Client, weaviate_filter: _FilterValue, res
     to_collection = client.collection.create(
         CollectionConfig(
             name="TestFilterRef2",
-            vectorizer=Vectorizer.NONE,
+            vectorizer_config=VectorizerFactory.none(),
             properties=[
                 Property(name="int", data_type=DataType.INT),
                 Property(name="text", data_type=DataType.TEXT),
@@ -352,7 +352,7 @@ def test_ref_filters(client: weaviate.Client, weaviate_filter: _FilterValue, res
                 ReferenceProperty(name="ref", target_collection="TestFilterRef2"),
                 Property(name="name", data_type=DataType.TEXT),
             ],
-            vectorizer=Vectorizer.NONE,
+            vectorizer_config=VectorizerFactory.none(),
         )
     )
 
@@ -378,7 +378,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
     to_collection = client.collection.create(
         CollectionConfig(
             name=target,
-            vectorizer=Vectorizer.NONE,
+            vectorizer_config=VectorizerFactory.none(),
             properties=[Property(name="int", data_type=DataType.INT)],
         )
     )
@@ -393,7 +393,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
                 ),
                 Property(name="name", data_type=DataType.TEXT),
             ],
-            vectorizer=Vectorizer.NONE,
+            vectorizer_config=VectorizerFactory.none(),
         )
     )
 

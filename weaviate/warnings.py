@@ -136,3 +136,13 @@ class _Warnings:
             category=UserWarning,
             stacklevel=1,
         )
+
+    @staticmethod
+    def text2vec_huggingface_endpoint_url_and_model_set_together():
+        warnings.warn(
+            message="""Con003: You are setting the endpoint_url alongside model or passageModel & queryModel in your Text2Vec-HuggingFace module configuration.
+            The model definitions will be ignored in favour of endpoint_url.
+            """,
+            category=UserWarning,
+            stacklevel=1,
+        )
