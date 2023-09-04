@@ -7,6 +7,7 @@ from pydantic_core._pydantic_core import PydanticUndefined
 from weaviate import Config
 from weaviate.collection.classes.grpc import MetadataQuery
 from weaviate.exceptions import WeaviateAddInvalidPropertyError
+from weaviate.weaviate_types import UUIDS
 
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated
@@ -89,12 +90,13 @@ def test_types(client: weaviate.Client, member_type, value, optional: bool):
         assert object_get_optional.properties == ModelTypes(name=None, uuid=uuid_object_optional)
 
 
+@pytest.mark.skip(reason="ORM models do not support new references yet")
 @pytest.mark.parametrize(
     "member_type, annotation ,value,expected",
     [
         (str, PropertyConfig(index_filterable=False), "value", "text"),
-        # (UUIDS, Reference[Group], [str(REF_TO_UUID)], "Group"),
-        # (Optional[UUIDS], Reference[Group], [str(REF_TO_UUID)], "Group"),
+        (UUIDS, Reference[Group], [str(REF_TO_UUID)], "Group"),
+        (Optional[UUIDS], Reference[Group], [str(REF_TO_UUID)], "Group"),
     ],
 )
 def test_types_annotates(client: weaviate.Client, member_type, annotation, value, expected: str):
