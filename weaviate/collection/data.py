@@ -12,6 +12,7 @@ from typing import (
     get_type_hints,
     get_origin,
 )
+from typing_extensions import is_typeddict
 
 import uuid as uuid_package
 from google.protobuf.struct_pb2 import Struct
@@ -21,22 +22,26 @@ from weaviate.collection.classes.data import (
     BatchReference,
     DataObject,
     Error,
-    ReferenceTo,
     GetObjectByIdMetadata,
     GetObjectsMetadata,
     IncludesModel,
-    ReferenceToMultiTarget,
     _BatchReturn,
+    ReferenceTo,
+    ReferenceToMultiTarget,
 )
-from weaviate.collection.classes.internal import _Object, _metadata_from_dict, Properties
+from weaviate.collection.classes.internal import _Object, _metadata_from_dict
 from weaviate.collection.classes.orm import (
     Model,
 )
-from weaviate.collection.config import _ConfigBase, _ConfigCollectionModel
+from weaviate.collection.classes.types import Properties, TProperties
 from weaviate.collection.grpc_batch import _BatchGRPC
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.exceptions import UnexpectedStatusCodeException, ObjectAlreadyExistsException
+from weaviate.exceptions import (
+    InvalidDataModelException,
+    UnexpectedStatusCodeException,
+    ObjectAlreadyExistsException,
+)
 from weaviate.warnings import _Warnings
 from weaviate.weaviate_types import BEACON, UUID
 from weaviate_grpc import weaviate_pb2
@@ -47,14 +52,12 @@ class _Data:
         self,
         connection: Connection,
         name: str,
-        config: _ConfigBase,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
     ) -> None:
         self._connection = connection
         self.name = name
-        self.__config = config
-        self.__consistency_level = consistency_level
+        self._consistency_level = consistency_level
         self._tenant = tenant
         self._batch = _BatchGRPC(connection)
 
@@ -204,8 +207,8 @@ class _Data:
 
     def _reference_add_many(self, refs: List[Dict[str, str]]) -> None:
         params: Dict[str, str] = {}
-        if self.__consistency_level is not None:
-            params["consistency_level"] = self.__consistency_level
+        if self._consistency_level is not None:
+            params["consistency_level"] = self._consistency_level
 
         if self._tenant is not None:
             for ref in refs:
@@ -252,8 +255,8 @@ class _Data:
     def __apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
         if self._tenant is not None:
             params["tenant"] = self._tenant
-        if self.__consistency_level is not None:
-            params["consistency_level"] = self.__consistency_level
+        if self._consistency_level is not None:
+            params["consistency_level"] = self._consistency_level
         return params
 
     def __apply_context_to_params_and_object(
@@ -261,8 +264,8 @@ class _Data:
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         if self._tenant is not None:
             obj["tenant"] = self._tenant
-        if self.__consistency_level is not None:
-            params["consistency_level"] = self.__consistency_level
+        if self._consistency_level is not None:
+            params["consistency_level"] = self._consistency_level
         return params, obj
 
     def _serialize_properties(self, data: Properties) -> Dict[str, Any]:
@@ -331,13 +334,23 @@ class _DataCollection(Generic[Properties], _Data):
         self,
         connection: Connection,
         name: str,
-        config: _ConfigBase,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
         type_: Optional[Type[Properties]] = None,
     ):
-        super().__init__(connection, name, config, consistency_level, tenant)
+        super().__init__(connection, name, consistency_level, tenant)
         self.__type = type_
+
+    def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]":
+        if (
+            data_model is not None
+            and get_origin(data_model) is not dict
+            and not is_typeddict(data_model)
+        ):
+            raise InvalidDataModelException()
+        return _DataCollection[TProperties](
+            self._connection, self.name, self._consistency_level, self._tenant, data_model
+        )
 
     def __deserialize_properties(self, data: Dict[str, Any]) -> Properties:
         hints = (
@@ -455,11 +468,10 @@ class _DataCollectionModel(Generic[Model], _Data):
         connection: Connection,
         name: str,
         model: Type[Model],
-        config: _ConfigCollectionModel,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
     ):
-        super().__init__(connection, name, config, consistency_level, tenant)
+        super().__init__(connection, name, consistency_level, tenant)
         self.__model = model
 
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Model]:
