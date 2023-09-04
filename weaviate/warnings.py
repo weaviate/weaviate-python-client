@@ -134,6 +134,7 @@ class _Warnings:
             datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=datetime.timezone(-datetime.timedelta(hours=2))).isoformat() = 2021-01-01T00:00:00-02:00
             """,
             category=UserWarning,
+            stacklevel=1,
         )
 
     @staticmethod
