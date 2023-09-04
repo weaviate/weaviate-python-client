@@ -827,7 +827,7 @@ class _GrpcCollection(_Grpc):
         return [
             self.__result_to_object(obj, ret_type)
             for obj in self._query().near_vector(
-                vector=near_vector,
+                near_vector=near_vector,
                 certainty=certainty,
                 distance=distance,
                 autocut=limit_groups,
@@ -849,7 +849,7 @@ class _GrpcCollection(_Grpc):
         return [
             self.__result_to_object(obj, ret_type)
             for obj in self._query().near_vector(
-                vector=near_vector,
+                near_vector=near_vector,
                 certainty=options.certainty,
                 distance=options.distance,
                 autocut=options.limit_groups,
