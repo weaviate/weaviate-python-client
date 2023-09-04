@@ -381,6 +381,27 @@ class Ref2VecCentroidConfig(VectorizerConfig):
     method: Literal["mean"] = "mean"
 
 
+class VectorizerFactory:
+    @classmethod
+    def none(cls) -> VectorizerConfig:
+        """Return a `VectorizerConfig` object with the vectorizer set to `Vectorizer.NONE`"""
+        return VectorizerConfig(vectorizer=Vectorizer.NONE)
+
+    @classmethod
+    def auto(cls) -> "VectorizerConfig":
+        """Returns a `VectorizerConfig` object with the `Vectorizer` auto-detected from the environment
+        variables of the client or Weaviate itself"""
+        # TODO: Can this be done?
+        pass
+
+    @classmethod
+    def text2vec_contextionary(
+        cls, vectorize_class_name: bool = True
+    ) -> "Text2VecContextionaryConfig":
+        """Returns a `Text2VecContextionaryConfig` object for use when vectorizing using the text2vec-contextionary model"""
+        return Text2VecContextionaryConfig(vectorize_class_name=vectorize_class_name)
+
+
 class CollectionConfigCreateBase(ConfigCreateModel):
     description: Optional[str] = None
     invertedIndexConfig: Optional[InvertedIndexConfigCreate] = Field(
@@ -391,7 +412,7 @@ class CollectionConfigCreateBase(ConfigCreateModel):
     shardingConfig: Optional[ShardingConfigCreate] = Field(None, alias="sharding_config")
     vectorIndexConfig: Optional[VectorIndexConfigCreate] = Field(None, alias="vector_index_config")
     vectorIndexType: VectorIndexType = Field(VectorIndexType.HNSW, alias="vector_index_type")
-    moduleConfig: Optional[VectorizerConfig] = Field(None, alias="vectorizer_config")
+    moduleConfig: VectorizerConfig = Field(..., alias="vectorizer_config")
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
@@ -407,7 +428,7 @@ class CollectionConfigCreateBase(ConfigCreateModel):
             elif isinstance(val, VectorizerConfig):
                 ret_dict["vectorizer"] = val.vectorizer.value
                 if val.vectorizer != Vectorizer.NONE:
-                    ret_dict[cls_field] = {val.vectorizer.value: val.to_dict()}
+                    ret_dict["moduleConfig"] = {val.vectorizer.value: val.to_dict()}
             else:
                 assert isinstance(val, ConfigCreateModel)
                 ret_dict[cls_field] = val.to_dict()
@@ -582,9 +603,9 @@ class Property(ConfigCreateModel):
     dataType: DataType = Field(..., alias="data_type")
     indexFilterable: Optional[bool] = Field(None, alias="index_filterable")
     indexSearchable: Optional[bool] = Field(None, alias="index_searchable")
-    description: Optional[str] = None
+    description: Optional[str] = Field(None)
     moduleConfig: Optional[PropertyVectorizerConfig] = Field(None, alias="vectorizer_config")
-    tokenization: Optional[Tokenization] = None
+    tokenization: Optional[Tokenization] = Field(None)
 
     def to_dict(self, vectorizer: Optional[Vectorizer] = None) -> Dict[str, Any]:
         ret_dict = super().to_dict()
@@ -650,7 +671,7 @@ class CollectionConfig(CollectionConfigCreateBase):
     """
 
     name: str
-    properties: Optional[List[Union[Property, ReferencePropertyBase]]] = None
+    properties: Optional[List[Union[Property, ReferencePropertyBase]]] = Field(None)
 
     def model_post_init(self, __context: Any) -> None:
         self.name = _capitalize_first_letter(self.name)
