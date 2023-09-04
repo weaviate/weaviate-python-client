@@ -35,9 +35,7 @@ class CollectionObjectModel(Generic[Model]):
         self.name = name
 
         self.config = config
-        self.data = _DataCollectionModel[Model](
-            connection, name, model, config, consistency_level, tenant
-        )
+        self.data = _DataCollectionModel[Model](connection, name, model, consistency_level, tenant)
         self.query = _GrpcCollectionModel[Model](connection, name, model, tenant)
         self.tenants = _Tenants(connection, name)
 
