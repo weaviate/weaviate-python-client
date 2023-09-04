@@ -6,7 +6,7 @@ Run the following to create a virtual environment, activate it and install depen
 ```shell
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-devel.txt
 ```
 
 The next time you open your shell, you can activate your virtual environment using `source .venv/bin/activate`

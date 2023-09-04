@@ -3,7 +3,7 @@ from importlib.metadata import version, PackageNotFoundError
 from typing import Optional
 
 try:
-    __version__ = version("weaviate")
+    __version__ = version("weaviate-client")
 except PackageNotFoundError:
     __version__ = "unknown version"
 
