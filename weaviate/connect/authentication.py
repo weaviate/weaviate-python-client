@@ -13,6 +13,7 @@ from weaviate.auth import (
     AuthClientCredentials,
 )
 from weaviate.exceptions import MissingScopeException, AuthenticationFailedException
+from ..util import _decode_json_response_dict
 from ..warnings import _Warnings
 
 if TYPE_CHECKING:
@@ -65,9 +66,10 @@ class _Auth:
 
     def _get_token_endpoint(self) -> str:
         response_auth = requests.get(self._open_id_config_url, proxies=self._connection.proxies)
-        response = response_auth.json()["token_endpoint"]
-        assert isinstance(response, str)
-        return response
+        response_auth_json = _decode_json_response_dict(response_auth, "Get token endpoint")
+        token_endpoint = response_auth_json["token_endpoint"]
+        assert isinstance(token_endpoint, str)
+        return token_endpoint
 
     def get_auth_session(self) -> OAuth2Session:
         if isinstance(self._credentials, AuthBearerToken):

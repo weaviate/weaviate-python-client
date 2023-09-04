@@ -6,10 +6,10 @@ from typing import List, Any, Dict, Optional
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
-from weaviate.exceptions import UnexpectedStatusCodeException
 from .aggregate import AggregateBuilder
 from .get import GetBuilder, PROPERTIES
 from .multi_get import MultiGetBuilder
+from ..util import _decode_json_response_dict
 
 
 class Query:
@@ -168,6 +168,5 @@ class Query:
             response = self._connection.post(path="/graphql", weaviate_object=json_query)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Query not executed.") from conn_err
-        if response.status_code == 200:
-            return response.json()  # Successfully queried
-        raise UnexpectedStatusCodeException("GQL query failed", response)
+
+        return _decode_json_response_dict(response, "GQL query failed")

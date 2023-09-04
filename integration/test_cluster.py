@@ -48,6 +48,7 @@ def test_get_nodes_status_without_data(client):
 def test_get_nodes_status_with_data(client):
     """get nodes status with data"""
     class_name1 = "ClassA"
+    uncap_class_name1 = "classA"
     client.schema.create(schema(class_name1))
     for i in range(NUM_OBJECT):
         client.data_object.create({"stringProp": f"object-{i}", "intProp": i}, class_name1)
@@ -74,6 +75,19 @@ def test_get_nodes_status_with_data(client):
     assert shards[1]["objectCount"] == NUM_OBJECT * 2
 
     resp = client.cluster.get_nodes_status(class_name1)
+    assert len(resp) == 1
+    assert resp[0]["gitHash"] == GIT_HASH
+    assert resp[0]["name"] == NODE_NAME
+    assert len(resp[0]["shards"]) == 1
+    assert resp[0]["stats"]["shardCount"] == 1
+    assert resp[0]["status"] == "HEALTHY"
+    assert resp[0]["version"] == SERVER_VERSION
+
+    assert shards[0]["class"] == class_name1
+    assert shards[0]["objectCount"] == NUM_OBJECT
+    assert resp[0]["stats"]["objectCount"] == NUM_OBJECT
+
+    resp = client.cluster.get_nodes_status(uncap_class_name1)
     assert len(resp) == 1
     assert resp[0]["gitHash"] == GIT_HASH
     assert resp[0]["name"] == NODE_NAME

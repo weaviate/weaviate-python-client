@@ -25,7 +25,6 @@ from weaviate.connect.authentication import _Auth
 from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import (
     AuthenticationFailedException,
-    UnexpectedStatusCodeException,
     WeaviateStartUpError,
 )
 from weaviate.util import (
@@ -34,6 +33,7 @@ from weaviate.util import (
     is_weaviate_too_old,
     is_weaviate_client_too_old,
     PYPI_PACKAGE_URL,
+    _decode_json_response_dict,
 )
 from weaviate.warnings import _Warnings
 from weaviate.weaviate_types import NUMBER
@@ -53,7 +53,7 @@ PYPI_TIMEOUT = 1
 MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC server
 
 
-class BaseConnection:
+class Connection:
     """
     Connection class used to communicate to a weaviate instance.
     """
@@ -171,6 +171,21 @@ class BaseConnection:
 
         self._create_session(auth_client_secret)
         self._add_adapter_to_session(connection_config)
+
+        self._server_version = self.get_meta()["version"]
+        if self._server_version < "1.14":
+            _Warnings.weaviate_server_older_than_1_14(self._server_version)
+        if is_weaviate_too_old(self._server_version):
+            _Warnings.weaviate_too_old_vs_latest(self._server_version)
+
+        try:
+            pkg_info = requests.get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
+            pkg_info = pkg_info.get("info", {})
+            latest_version = pkg_info.get("version", "unknown version")
+            if is_weaviate_client_too_old(client_version, latest_version):
+                _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
+        except (RequestsConnectionError, JSONDecodeError):
+            pass  # air-gaped environments
 
     def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
         """Creates a request session.
@@ -639,48 +654,6 @@ class BaseConnection:
                 f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
             ) from error
 
-
-class Connection(BaseConnection):
-    def __init__(
-        self,
-        url: str,
-        auth_client_secret: Optional[AuthCredentials],
-        timeout_config: TIMEOUT_TYPE_RETURN,
-        proxies: Union[dict, str, None],
-        trust_env: bool,
-        additional_headers: Optional[Dict[str, Any]],
-        startup_period: Optional[int],
-        connection_config: ConnectionConfig,
-        embedded_db: Optional[EmbeddedDB] = None,
-        grcp_port: Optional[int] = None,
-    ):
-        super().__init__(
-            url,
-            auth_client_secret,
-            timeout_config,
-            proxies,
-            trust_env,
-            additional_headers,
-            startup_period,
-            connection_config,
-            embedded_db,
-            grcp_port,
-        )
-        self._server_version = self.get_meta()["version"]
-        if self._server_version < "1.14":
-            _Warnings.weaviate_server_older_than_1_14(self._server_version)
-        if is_weaviate_too_old(self._server_version):
-            _Warnings.weaviate_too_old_vs_latest(self._server_version)
-
-        try:
-            pkg_info = requests.get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
-            pkg_info = pkg_info.get("info", {})
-            latest_version = pkg_info.get("version", "unknown version")
-            if is_weaviate_client_too_old(client_version, latest_version):
-                _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
-        except RequestsConnectionError:
-            pass  # air-gaped environments
-
     @property
     def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
         return self._grpc_stub
@@ -697,9 +670,7 @@ class Connection(BaseConnection):
         Returns the meta endpoint.
         """
         response = self.get(path="/meta")
-        if response.status_code == 200:
-            return response.json()
-        raise UnexpectedStatusCodeException("Meta endpoint", response)
+        return _decode_json_response_dict(response, "Meta endpoint")
 
 
 def _get_epoch_time() -> int:

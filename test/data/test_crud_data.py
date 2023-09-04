@@ -455,11 +455,13 @@ class TestDataObject(unittest.TestCase):
 
         mock_get = Mock(return_value="Test")
         data_object.get = mock_get
-        data_object.get_by_id(uuid="UUID", additional_properties=["Test", "list"], with_vector=True)
+        data_object.get_by_id(
+            uuid="UUID", additional_properties=["Test", "Array"], with_vector=True
+        )
         mock_get.assert_called_with(
             uuid="UUID",
             class_name=None,
-            additional_properties=["Test", "list"],
+            additional_properties=["Test", "Array"],
             with_vector=True,
             node_name=None,
             consistency_level=None,

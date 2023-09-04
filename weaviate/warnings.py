@@ -4,7 +4,7 @@ from importlib.metadata import version, PackageNotFoundError
 from typing import Optional
 
 try:
-    __version__ = version("weaviate")
+    __version__ = version("weaviate-client")
 except PackageNotFoundError:
     __version__ = "unknown version"
 
@@ -134,5 +134,14 @@ class _Warnings:
             datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=datetime.timezone(-datetime.timedelta(hours=2))).isoformat() = 2021-01-01T00:00:00-02:00
             """,
             category=UserWarning,
+        )
+
+    @staticmethod
+    def use_of_client_batch_will_be_removed_in_next_major_release():
+        warnings.warn(
+            message="""Dep006: You are using the `client.batch()` method, which will be removed in the next major release.
+            Please instead use the `client.batch.configure()` method to configure your batch and `client.batch` to enter the context manager.
+            See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
+            category=DeprecationWarning,
             stacklevel=1,
         )

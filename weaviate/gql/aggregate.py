@@ -5,14 +5,24 @@ import json
 from typing import List, Optional
 
 from weaviate.connect import Connection
-from weaviate.util import _capitalize_first_letter
+from weaviate.util import (
+    _capitalize_first_letter,
+    file_encoder_b64,
+)
 from .filter import (
     Where,
     GraphQL,
     Filter,
+    NearAudio,
+    NearDepth,
+    NearImage,
+    NearIMU,
     NearObject,
     NearText,
+    NearThermal,
     NearVector,
+    NearVideo,
+    MediaType,
 )
 
 
@@ -413,6 +423,688 @@ class AggregateBuilder(GraphQL):
         if self._near is not None:
             raise AttributeError("Cannot use multiple 'near' filters.")
         self._near = NearObject(content, is_server_version_14)
+        self._uses_filter = True
+        return self
+
+    def with_near_image(self, content: dict, encode: bool = True) -> "AggregateBuilder":
+        """
+        Set `nearImage` filter.
+
+        Parameters
+        ----------
+        content : dict
+            The content of the `nearImage` filter to set. See examples below.
+        encode : bool, optional
+            Whether to encode the `content["image"]` to base64 and convert to string. If True, the
+            `content["image"]` can be an image path or a file opened in binary read mode. If False,
+            the `content["image"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
+            string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
+            By default True.
+
+        Examples
+        --------
+        Content prototype:
+
+        >>> content = {
+        ...     'image': <str or binary read file>,
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ... }
+
+        >>> {
+        ...     'image': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf",
+        ...     'certainty': 0.7 # or 'distance'
+        ... }
+
+        With `encoded` True:
+
+        >>> content = {
+        ...     'image': "my_image_path.png",
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Image')\\
+                .with_fields('description')\\
+        ...     .with_near_image(content, encode=True) # <- encode MUST be set to True
+
+        OR
+
+        >>> my_image_file = open("my_image_path.png", "br")
+        >>> content = {
+        ...     'image': my_image_file,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Image')\\
+                .with_fields('description')\\
+        ...     .with_near_image(content, encode=True) # <- encode MUST be set to True
+        >>> my_image_file.close()
+
+        With `encoded` False:
+
+        >>> from weaviate.util import image_encoder_b64, image_decoder_b64
+        >>> encoded_image = image_encoder_b64("my_image_path.png")
+        >>> content = {
+        ...     'image': encoded_image,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Image')\\
+                .with_fields('description')\\
+        ...     .with_near_image(content, encode=False) # <- encode MUST be set to False
+
+        OR
+
+        >>> from weaviate.util import image_encoder_b64, image_decoder_b64
+        >>> with open("my_image_path.png", "br") as my_image_file:
+        ...     encoded_image = image_encoder_b64(my_image_file)
+        >>> content = {
+        ...     'image': encoded_image,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Image')\\
+                .with_fields('description')\\
+        ...     .with_near_image(content, encode=False) # <- encode MUST be set to False
+
+        Encode Image yourself:
+
+        >>> import base64
+        >>> with open("my_image_path.png", "br") as my_image_file:
+        ...     encoded_image = base64.b64encode(my_image_file.read()).decode("utf-8")
+        >>> content = {
+        ...     'image': encoded_image,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Image')\\
+                .with_fields('description')\\
+        ...     .with_near_image(content, encode=False) # <- encode MUST be set to False
+
+        Returns
+        -------
+        weaviate.gql.aggregate.AggregateBuilder
+            The updated AggregateBuilder.
+
+        Raises
+        ------
+        AttributeError
+            If another 'near' filter was already set.
+        """
+        self._media_type = MediaType.IMAGE
+        if self._near is not None:
+            raise AttributeError(
+                "Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!"
+            )
+        if encode:
+            content["image"] = file_encoder_b64(content["image"])
+        self._near = NearImage(content)
+        self._uses_filter = True
+        return self
+
+    def with_near_audio(self, content: dict, encode: bool = True) -> "AggregateBuilder":
+        """
+        Set `nearAudio` filter.
+
+        Parameters
+        ----------
+        content : dict
+            The content of the `nearAudio` filter to set. See examples below.
+        encode : bool, optional
+            Whether to encode the `content["audio"]` to base64 and convert to string. If True, the
+            `content["audio"]` can be an audio path or a file opened in binary read mode. If False,
+            the `content["audio"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
+            string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
+            By default True.
+
+        Examples
+        --------
+        Content prototype:
+
+        >>> content = {
+        ...     'audio': <str or binary read file>,
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ... }
+
+        >>> {
+        ...     'audio': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf",
+        ...     'certainty': 0.7 # or 'distance'
+        ... }
+
+        With `encoded` True:
+
+        >>> content = {
+        ...     'audio': "my_audio_path.wav",
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Audio')\\
+                .with_fields('description')\\
+        ...     .with_near_audio(content, encode=True) # <- encode MUST be set to True
+
+        OR
+
+        >>> my_audio_file = open("my_audio_path.wav", "br")
+        >>> content = {
+        ...     'audio': my_audio_file,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Audio')\\
+                .with_fields('description')\\
+        ...     .with_near_audio(content, encode=True) # <- encode MUST be set to True
+        >>> my_audio_file.close()
+
+        With `encoded` False:
+
+        >>> from weaviate.util import file_encoder_b64
+        >>> encoded_audio = file_encoder_b64("my_audio_path.wav")
+        >>> content = {
+        ...     'audio': encoded_audio,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Audio')\\
+                .with_fields('description')\\
+        ...     .with_near_audio(content, encode=False) # <- encode MUST be set to False
+
+        OR
+
+        >>> from weaviate.util import file_encoder_b64
+        >>> with open("my_audio_path.wav", "br") as my_audio_file:
+        ...     encoded_audio = file_encoder_b64(my_audio_file)
+        >>> content = {
+        ...     'audio': encoded_audio,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Audio')\\
+                .with_fields('description')\\
+        ...     .with_near_audio(content, encode=False) # <- encode MUST be set to False
+
+        Encode Audio yourself:
+
+        >>> import base64
+        >>> with open("my_audio_path.wav", "br") as my_audio_file:
+        ...     encoded_audio = base64.b64encode(my_audio_file.read()).decode("utf-8")
+        >>> content = {
+        ...     'audio': encoded_audio,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Audio')\\
+                .with_fields('description')\\
+        ...     .with_near_audio(content, encode=False) # <- encode MUST be set to False
+
+        Returns
+        -------
+        weaviate.gql.aggregate.AggregateBuilder
+            The updated AggregateBuilder.
+
+        Raises
+        ------
+        AttributeError
+            If another 'near' filter was already set.
+        """
+
+        self._media_type = MediaType.AUDIO
+        if self._near is not None:
+            raise AttributeError(
+                "Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!"
+            )
+        if encode:
+            content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
+        self._near = NearAudio(content)
+        self._uses_filter = True
+        return self
+
+    def with_near_video(self, content: dict, encode: bool = True) -> "AggregateBuilder":
+        """
+        Set `nearVideo` filter.
+
+        Parameters
+        ----------
+        content : dict
+            The content of the `nearVideo` filter to set. See examples below.
+        encode : bool, optional
+            Whether to encode the `content["video"]` to base64 and convert to string. If True, the
+            `content["video"]` can be an video path or a file opened in binary read mode. If False,
+            the `content["video"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
+            string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
+            By default True.
+
+        Examples
+        --------
+        Content prototype:
+
+        >>> content = {
+        ...     'video': <str or binary read file>,
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ... }
+
+        >>> {
+        ...     'video': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf",
+        ...     'certainty': 0.7 # or 'distance'
+        ... }
+
+        With `encoded` True:
+
+        >>> content = {
+        ...     'video': "my_video_path.avi",
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Video')\\
+                .with_fields('description')\\
+        ...     .with_near_video(content, encode=True) # <- encode MUST be set to True
+
+        OR
+
+        >>> my_video_file = open("my_video_path.avi", "br")
+        >>> content = {
+        ...     'video': my_video_file,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Video')\\
+                .with_fields('description')\\
+        ...     .with_near_video(content, encode=True) # <- encode MUST be set to True
+        >>> my_video_file.close()
+
+        With `encoded` False:
+
+        >>> from weaviate.util import file_encoder_b64
+        >>> encoded_video = file_encoder_b64("my_video_path.avi")
+        >>> content = {
+        ...     'video': encoded_video,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Video')\\
+                .with_fields('description')\\
+        ...     .with_near_video(content, encode=False) # <- encode MUST be set to False
+
+        OR
+
+        >>> from weaviate.util import file_encoder_b64, video_decoder_b64
+        >>> with open("my_video_path.avi", "br") as my_video_file:
+        ...     encoded_video = file_encoder_b64(my_video_file)
+        >>> content = {
+        ...     'video': encoded_video,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Video')\\
+                .with_fields('description')\\
+        ...     .with_near_video(content, encode=False) # <- encode MUST be set to False
+
+        Encode Video yourself:
+
+        >>> import base64
+        >>> with open("my_video_path.avi", "br") as my_video_file:
+        ...     encoded_video = base64.b64encode(my_video_file.read()).decode("utf-8")
+        >>> content = {
+        ...     'video': encoded_video,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Video')\\
+                .with_fields('description')\\
+        ...     .with_near_video(content, encode=False) # <- encode MUST be set to False
+
+        Returns
+        -------
+        weaviate.gql.aggregate.AggregateBuilder
+            The updated AggregateBuilder.
+
+        Raises
+        ------
+        AttributeError
+            If another 'near' filter was already set.
+        """
+
+        self._media_type = MediaType.VIDEO
+        if self._near is not None:
+            raise AttributeError(
+                "Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!"
+            )
+        if encode:
+            content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
+        self._near = NearVideo(content)
+        self._uses_filter = True
+        return self
+
+    def with_near_depth(self, content: dict, encode: bool = True) -> "AggregateBuilder":
+        """
+        Set `nearDepth` filter.
+
+        Parameters
+        ----------
+        content : dict
+            The content of the `nearDepth` filter to set. See examples below.
+        encode : bool, optional
+            Whether to encode the `content["depth"]` to base64 and convert to string. If True, the
+            `content["depth"]` can be an depth path or a file opened in binary read mode. If False,
+            the `content["depth"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
+            string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
+            By default True.
+
+        Examples
+        --------
+        Content prototype:
+
+        >>> content = {
+        ...     'depth': <str or binary read file>,
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ... }
+
+        >>> {
+        ...     'depth': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf",
+        ...     'certainty': 0.7 # or 'distance'
+        ... }
+
+        With `encoded` True:
+
+        >>> content = {
+        ...     'depth': "my_depth_path.png",
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Depth')\\
+                .with_fields('description')\\
+        ...     .with_near_depth(content, encode=True) # <- encode MUST be set to True
+
+        OR
+
+        >>> my_depth_file = open("my_depth_path.png", "br")
+        >>> content = {
+        ...     'depth': my_depth_file,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Depth')\\
+                .with_fields('description')\\
+        ...     .with_near_depth(content, encode=True) # <- encode MUST be set to True
+        >>> my_depth_file.close()
+
+        With `encoded` False:
+
+        >>> from weaviate.util import file_encoder_b64
+        >>> encoded_depth = file_encoder_b64("my_depth_path.png")
+        >>> content = {
+        ...     'depth': encoded_depth,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Depth')\\
+                .with_fields('description')\\
+        ...     .with_near_depth(content, encode=False) # <- encode MUST be set to False
+
+        OR
+
+        >>> from weaviate.util import file_encoder_b64
+        >>> with open("my_depth_path.png", "br") as my_depth_file:
+        ...     encoded_depth = file_encoder_b64(my_depth_file)
+        >>> content = {
+        ...     'depth': encoded_depth,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Depth')\\
+                .with_fields('description')\\
+        ...     .with_near_depth(content, encode=False) # <- encode MUST be set to False
+
+        Encode Depth yourself:
+
+        >>> import base64
+        >>> with open("my_depth_path.png", "br") as my_depth_file:
+        ...     encoded_depth = base64.b64encode(my_depth_file.read()).decode("utf-8")
+        >>> content = {
+        ...     'depth': encoded_depth,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Depth')\\
+                .with_fields('description')\\
+        ...     .with_near_depth(content, encode=False) # <- encode MUST be set to False
+
+        Returns
+        -------
+        weaviate.gql.aggregate.AggregateBuilder
+            The updated AggregateBuilder.
+
+        Raises
+        ------
+        AttributeError
+            If another 'near' filter was already set.
+        """
+
+        self._media_type = MediaType.DEPTH
+        if self._near is not None:
+            raise AttributeError(
+                "Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!"
+            )
+        if encode:
+            content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
+        self._near = NearDepth(content)
+        self._uses_filter = True
+        return self
+
+    def with_near_thermal(self, content: dict, encode: bool = True) -> "AggregateBuilder":
+        """
+        Set `nearThermal` filter.
+
+        Parameters
+        ----------
+        content : dict
+            The content of the `nearThermal` filter to set. See examples below.
+        encode : bool, optional
+            Whether to encode the `content["thermal"]` to base64 and convert to string. If True, the
+            `content["thermal"]` can be an thermal path or a file opened in binary read mode. If False,
+            the `content["thermal"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
+            string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
+            By default True.
+
+        Examples
+        --------
+        Content prototype:
+
+        >>> content = {
+        ...     'thermal': <str or binary read file>,
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ... }
+
+        >>> {
+        ...     'thermal': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf",
+        ...     'certainty': 0.7 # or 'distance'
+        ... }
+
+        With `encoded` True:
+
+        >>> content = {
+        ...     'thermal': "my_thermal_path.png",
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Thermal', 'description')\\
+        ...     .with_near_thermal(content, encode=True) # <- encode MUST be set to True
+
+        OR
+
+        >>> my_thermal_file = open("my_thermal_path.png", "br")
+        >>> content = {
+        ...     'thermal': my_thermal_file,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Thermal')\\
+        ...     .with_fields('description')\\
+        ...     .with_near_thermal(content, encode=True) # <- encode MUST be set to True
+        >>> my_thermal_file.close()
+
+        With `encoded` False:
+
+        >>> from weaviate.util import file_encoder_b64
+        >>> encoded_thermal = file_encoder_b64("my_thermal_path.png")
+        >>> content = {
+        ...     'thermal': encoded_thermal,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Thermal')\\
+        ...     .with_fields('description')\\
+        ...     .with_near_thermal(content, encode=False) # <- encode MUST be set to False
+
+        OR
+
+        >>> from weaviate.util import file_encoder_b64
+        >>> with open("my_thermal_path.png", "br") as my_thermal_file:
+        ...     encoded_thermal = file_encoder_b64(my_thermal_file)
+        >>> content = {
+        ...     'thermal': encoded_thermal,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Thermal')\\
+        ...     .with_fields('description')\\
+        ...     .with_near_thermal(content, encode=False) # <- encode MUST be set to False
+
+        Encode Thermal yourself:
+
+        >>> import base64
+        >>> with open("my_thermal_path.png", "br") as my_thermal_file:
+        ...     encoded_thermal = base64.b64encode(my_thermal_file.read()).decode("utf-8")
+        >>> content = {
+        ...     'thermal': encoded_thermal,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('Thermal')\\
+        ...     .with_fields('description')\\
+        ...     .with_near_thermal(content, encode=False) # <- encode MUST be set to False
+
+        Returns
+        -------
+        weaviate.gql.aggregate.AggregateBuilder
+            The updated AggregateBuilder.
+
+        Raises
+        ------
+        AttributeError
+            If another 'near' filter was already set.
+        """
+
+        self._media_type = MediaType.THERMAL
+        if self._near is not None:
+            raise AttributeError(
+                "Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!"
+            )
+        if encode:
+            content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
+        self._near = NearThermal(content)
+        self._uses_filter = True
+        return self
+
+    def with_near_imu(self, content: dict, encode: bool = True) -> "AggregateBuilder":
+        """
+        Set `nearIMU` filter.
+
+        Parameters
+        ----------
+        content : dict
+            The content of the `nearIMU` filter to set. See examples below.
+        encode : bool, optional
+            Whether to encode the `content["thermal"]` to base64 and convert to string. If True, the
+            `content["thermal"]` can be an thermal path or a file opened in binary read mode. If False,
+            the `content["thermal"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
+            string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
+            By default True.
+
+        Examples
+        --------
+        Content prototype:
+
+        >>> content = {
+        ...     'thermal': <str or binary read file>,
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ... }
+
+        >>> {
+        ...     'thermal': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf",
+        ...     'certainty': 0.7 # or 'distance'
+        ... }
+
+        With `encoded` True:
+
+        >>> content = {
+        ...     'thermal': "my_thermal_path.png",
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('IMU')\\
+        ...     .with_fields('description')\\
+        ...     .with_near_thermal(content, encode=True) # <- encode MUST be set to True
+
+        OR
+
+        >>> my_thermal_file = open("my_thermal_path.png", "br")
+        >>> content = {
+        ...     'thermal': my_thermal_file,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('IMU')\\
+        ...     .with_fields('description')\\
+        ...     .with_near_thermal(content, encode=True) # <- encode MUST be set to True
+        >>> my_thermal_file.close()
+
+        With `encoded` False:
+
+        >>> from weaviate.util import file_encoder_b64
+        >>> encoded_thermal = file_encoder_b64("my_thermal_path.png")
+        >>> content = {
+        ...     'thermal': encoded_thermal,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('IMU')\\
+        ...     .with_fields('description')\\
+        ...     .with_near_thermal(content, encode=False) # <- encode MUST be set to False
+
+        OR
+
+        >>> from weaviate.util import file_encoder_b64
+        >>> with open("my_thermal_path.png", "br") as my_thermal_file:
+        ...     encoded_thermal = file_encoder_b64(my_thermal_file)
+        >>> content = {
+        ...     'thermal': encoded_thermal,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('IMU')\\
+        ...     .with_fields('description')\\
+        ...     .with_near_thermal(content, encode=False) # <- encode MUST be set to False
+
+        Encode IMU yourself:
+
+        >>> import base64
+        >>> with open("my_thermal_path.png", "br") as my_thermal_file:
+        ...     encoded_thermal = base64.b64encode(my_thermal_file.read()).decode("utf-8")
+        >>> content = {
+        ...     'thermal': encoded_thermal,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.aggregate('IMU')\\
+        ...     .with_fields('description')\\
+        ...     .with_near_thermal(content, encode=False) # <- encode MUST be set to False
+
+        Returns
+        -------
+        weaviate.gql.aggregate.AggregateBuilder
+            The updated AggregateBuilder.
+
+        Raises
+        ------
+        AttributeError
+            If another 'near' filter was already set.
+        """
+
+        self._media_type = MediaType.IMU
+        if self._near is not None:
+            raise AttributeError(
+                "Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!"
+            )
+        if encode:
+            content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
+        self._near = NearIMU(content)
         self._uses_filter = True
         return self
 

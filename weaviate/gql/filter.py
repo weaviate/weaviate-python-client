@@ -5,6 +5,7 @@ GraphQL abstract class for GraphQL commands to inherit from.
 import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from enum import Enum
 from json import dumps
 from typing import Any, Union
 
@@ -12,8 +13,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.error_msgs import FILTER_BEACON_V14_CLS_NS_W
-from weaviate.exceptions import UnexpectedStatusCodeException
-from weaviate.util import get_vector, _sanitize_str
+from weaviate.util import get_vector, _sanitize_str, _decode_json_response_dict
 
 VALUE_LIST_TYPES = {
     "valueStringList",
@@ -21,7 +21,14 @@ VALUE_LIST_TYPES = {
     "valueIntList",
     "valueNumberList",
     "valueBooleanList",
-    "valueDateList",
+}
+
+VALUE_ARRAY_TYPES = {
+    "valueStringArray",
+    "valueTextArray",
+    "valueIntArray",
+    "valueNumberArray",
+    "valueBooleanArray",
 }
 
 VALUE_PRIMITIVE_TYPES = {
@@ -34,7 +41,8 @@ VALUE_PRIMITIVE_TYPES = {
     "valueGeoRange",
 }
 
-VALUE_TYPES = VALUE_LIST_TYPES.union(VALUE_PRIMITIVE_TYPES)
+ALL_VALUE_TYPES = VALUE_LIST_TYPES.union(VALUE_ARRAY_TYPES).union(VALUE_PRIMITIVE_TYPES)
+VALUE_TYPES = VALUE_ARRAY_TYPES.union(VALUE_PRIMITIVE_TYPES)
 
 WHERE_OPERATORS = [
     "And",
@@ -51,6 +59,15 @@ WHERE_OPERATORS = [
     "Or",
     "WithinGeoRange",
 ]
+
+
+class MediaType(Enum):
+    IMAGE = "image"
+    AUDIO = "audio"
+    VIDEO = "video"
+    THERMAL = "thermal"
+    DEPTH = "depth"
+    IMU = "imu"
 
 
 class GraphQL(ABC):
@@ -103,9 +120,8 @@ class GraphQL(ABC):
             response = self._connection.post(path="/graphql", weaviate_object={"query": query})
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Query was not successful.") from conn_err
-        if response.status_code == 200:
-            return response.json()  # success
-        raise UnexpectedStatusCodeException("Query was not successful", response)
+
+        return _decode_json_response_dict(response, "Query was not successful")
 
 
 class Filter(ABC):
@@ -398,9 +414,67 @@ class Ask(Filter):
         return ask + "} "
 
 
-class NearImage(Filter):
+class NearMedia(Filter):
+    def __init__(
+        self,
+        content: dict,
+        media_type: MediaType,
+    ):
+        """
+        Initialize a NearMedia class instance.
+
+        Parameters
+        ----------
+        content : list
+            The content of the `near<Media>` clause.
+
+        Raises
+        ------
+        TypeError
+            If 'content' is not of type dict.
+        TypeError
+            If 'content["<media>"]' is not of type str.
+        ValueError
+            If 'content'  has key "certainty"/"distance" but the value is not float.
+        """
+
+        super().__init__(content)
+
+        self._media_type = media_type
+
+        if self._media_type.value not in self._content:
+            raise ValueError(f'"content" is missing the mandatory key "{self._media_type.value}"!')
+
+        _check_type(
+            var_name=self._media_type.value, value=self._content[self._media_type.value], dtype=str
+        )
+        if "certainty" in self._content:
+            if "distance" in self._content:
+                raise ValueError(
+                    "Cannot have both 'certainty' and 'distance' at the same time. "
+                    "Only one is accepted."
+                )
+            _check_type(var_name="certainty", value=self._content["certainty"], dtype=float)
+        if "distance" in self._content:
+            _check_type(var_name="distance", value=self._content["distance"], dtype=float)
+
+    def __str__(self):
+        media = self._media_type.value.capitalize()
+        if self._media_type == MediaType.IMU:
+            media = self._media_type.value.upper()
+        near_media = (
+            f'near{media}: {{{self._media_type.value}: "{self._content[self._media_type.value]}"'
+        )
+        if "certainty" in self._content:
+            near_media += f' certainty: {self._content["certainty"]}'
+        if "distance" in self._content:
+            near_media += f' distance: {self._content["distance"]}'
+        return near_media + "} "
+
+
+class NearImage(NearMedia):
     """
-    NearObject class used to filter weaviate objects.
+    NearImage class used to filter weaviate objects.
     """
 
     def __init__(
@@ -424,30 +498,152 @@ class NearImage(Filter):
         ValueError
             If 'content'  has key "certainty"/"distance" but the value is not float.
         """
+        super().__init__(content, MediaType.IMAGE)
 
-        super().__init__(content)
 
-        if "image" not in self._content:
-            raise ValueError('"content" is missing the mandatory key "image"!')
+class NearVideo(NearMedia):
+    """
+    NearVideo class used to filter weaviate objects.
+    """
 
-        _check_type(var_name="image", value=self._content["image"], dtype=str)
-        if "certainty" in self._content:
-            if "distance" in self._content:
-                raise ValueError(
-                    "Cannot have both 'certainty' and 'distance' at the same time. "
-                    "Only one is accepted."
-                )
-            _check_type(var_name="certainty", value=self._content["certainty"], dtype=float)
-        if "distance" in self._content:
-            _check_type(var_name="distance", value=self._content["distance"], dtype=float)
+    def __init__(
+        self,
+        content: dict,
+    ):
+        """
+        Initialize a NearVideo class instance.
 
-    def __str__(self):
-        near_image = f'nearImage: {{image: "{self._content["image"]}"'
-        if "certainty" in self._content:
-            near_image += f' certainty: {self._content["certainty"]}'
-        if "distance" in self._content:
-            near_image += f' distance: {self._content["distance"]}'
-        return near_image + "} "
+        Parameters
+        ----------
+        content : list
+            The content of the `nearVideo` clause.
+
+        Raises
+        ------
+        TypeError
+            If 'content' is not of type dict.
+        TypeError
+            If 'content["video"]' is not of type str.
+        ValueError
+            If 'content'  has key "certainty"/"distance" but the value is not float.
+        """
+        super().__init__(content, MediaType.VIDEO)
+
+
+class NearAudio(NearMedia):
+    """
+    NearAudio class used to filter weaviate objects.
+    """
+
+    def __init__(
+        self,
+        content: dict,
+    ):
+        """
+        Initialize a NearAudio class instance.
+
+        Parameters
+        ----------
+        content : list
+            The content of the `nearAudio` clause.
+
+        Raises
+        ------
+        TypeError
+            If 'content' is not of type dict.
+        TypeError
+            If 'content["audio"]' is not of type str.
+        ValueError
+            If 'content'  has key "certainty"/"distance" but the value is not float.
+        """
+        super().__init__(content, MediaType.AUDIO)
+
+
+class NearDepth(NearMedia):
+    """
+    NearDepth class used to filter weaviate objects.
+    """
+
+    def __init__(
+        self,
+        content: dict,
+    ):
+        """
+        Initialize a NearDepth class instance.
+
+        Parameters
+        ----------
+        content : list
+            The content of the `nearDepth` clause.
+
+        Raises
+        ------
+        TypeError
+            If 'content' is not of type dict.
+        TypeError
+            If 'content["depth"]' is not of type str.
+        ValueError
+            If 'content'  has key "certainty"/"distance" but the value is not float.
+        """
+        super().__init__(content, MediaType.DEPTH)
+
+
+class NearThermal(NearMedia):
+    """
+    NearThermal class used to filter weaviate objects.
+    """
+
+    def __init__(
+        self,
+        content: dict,
+    ):
+        """
+        Initialize a NearThermal class instance.
+
+        Parameters
+        ----------
+        content : list
+            The content of the `nearThermal` clause.
+
+        Raises
+        ------
+        TypeError
+            If 'content' is not of type dict.
+        TypeError
+            If 'content["thermal"]' is not of type str.
+        ValueError
+            If 'content'  has key "certainty"/"distance" but the value is not float.
+        """
+        super().__init__(content, MediaType.THERMAL)
+
+
+class NearIMU(NearMedia):
+    """
+    NearIMU class used to filter weaviate objects.
+    """
+
+    def __init__(
+        self,
+        content: dict,
+    ):
+        """
+        Initialize a NearIMU class instance.
+
+        Parameters
+        ----------
+        content : list
+            The content of the `nearIMU` clause.
+
+        Raises
+        ------
+        TypeError
+            If 'content' is not of type dict.
+        TypeError
+            If 'content["imu"]' is not of type str.
+        ValueError
+            If 'content'  has key "certainty"/"distance" but the value is not float.
+        """
+        super().__init__(content, MediaType.IMU)
 
 
 class Sort(Filter):
@@ -600,15 +796,6 @@ class Where(Filter):
         self.value_type = _find_value_type(content)
         self.value = content[self.value_type]
 
-        if (
-            self.operator in ["ContainsAny", "ContainsAll"]
-            and self.value_type not in VALUE_LIST_TYPES
-        ):
-            raise ValueError(
-                f"Operator {self.operator} requires a value of type {self.value_type}List. "
-                f"Given value type: {self.value_type}"
-            )
-
         if self.operator == "WithinGeoRange" and self.value_type != "valueGeoRange":
             raise ValueError(
                 f"Operator {self.operator} requires a value of type valueGeoRange. "
@@ -646,33 +833,53 @@ class Where(Filter):
     def __str__(self):
         if self.is_filter:
             gql = f"where: {{path: {self.path} operator: {self.operator} {_convert_value_type(self.value_type)}: "
-            if self.value_type in ["valueInt", "valueNumber"]:
-                _check_is_not_list(self.value, self.value_type)
+            if self.value_type in [
+                "valueInt",
+                "valueNumber",
+                "valueIntArray",
+                "valueNumberArray",
+                "valueIntList",
+                "valueNumberList",
+            ]:
+                if self.value_type in [
+                    "valueIntList",
+                    "valueNumberList",
+                    "valueIntList",
+                    "valueNumberList",
+                ]:
+                    _check_is_list(self.value, self.value_type)
                 gql += f"{self.value}}}"
-            elif self.value_type in ["valueIntList", "valueNumberList"]:
-                _check_is_list(self.value, self.value_type)
-                gql += f"{self.value}}}"
-            elif self.value_type in ["valueText", "valueString"]:
-                _check_is_not_list(self.value, self.value_type)
-                gql += f"{_sanitize_str(self.value)}}}"
-            elif self.value_type in ["valueTextList", "valueStringList"]:
-                _check_is_list(self.value, self.value_type)
-                val = [_sanitize_str(v) for v in self.value]
-                gql += f"{_render_list(val)}}}"
-            elif self.value_type == "valueBoolean":
-                _check_is_not_list(self.value, self.value_type)
-                gql += f"{_bool_to_str(self.value)}}}"
-            elif self.value_type == "valueBooleanList":
-                _check_is_list(self.value, self.value_type)
-                gql += f"{_render_list(self.value)}}}"
-            elif self.value_type == "valueDateList":
-                _check_is_list(self.value, self.value_type)
-                gql += f"{_render_list(self.value)}}}"
+            elif self.value_type in [
+                "valueText",
+                "valueString",
+                "valueTextList",
+                "valueStringList",
+                "valueTextArray",
+                "valueStringArray",
+            ]:
+                if self.value_type in [
+                    "valueTextList",
+                    "valueStringList",
+                    "valueTextArray",
+                    "valueStringArray",
+                ]:
+                    _check_is_list(self.value, self.value_type)
+                if isinstance(self.value, list):
+                    val = [_sanitize_str(v) for v in self.value]
+                    gql += f"{_render_list(val)}}}"
+                else:
+                    gql += f"{_sanitize_str(self.value)}}}"
+            elif self.value_type in ["valueBoolean", "valueBooleanArray", "valueBooleanList"]:
+                if self.value_type in ["valueBooleanArray", "valueBooleanList"]:
+                    _check_is_list(self.value, self.value_type)
+                if isinstance(self.value, list):
+                    gql += f"{_render_list(self.value)}}}"
+                else:
+                    gql += f"{_bool_to_str(self.value)}}}"
             elif self.value_type == "valueGeoRange":
                 _check_is_not_list(self.value, self.value_type)
                 gql += f"{_geo_range_to_str(self.value)}}}"
             else:
-                _check_is_not_list(self.value, self.value_type)
                 gql += f'"{self.value}"}}'
             return gql + " "
 
@@ -685,29 +892,31 @@ class Where(Filter):
 
 
 def _convert_value_type(_type: str) -> str:
-    """Convert the value type to match `json` formatting required by Weaviate.
+    """Convert the value type to match `json` formatting required by the Weaviate-defined
+    GraphQL endpoints. NOTE: This is crucially different to the Batch REST endpoints wherein
+    the where filter is also used.
 
     Parameters
     ----------
     _type : str
-        The type to be converted.
+        The Python-defined type to be converted.
 
     Returns
     -------
     str
-        The string interpretation of the type in `json` format.
+        The string interpretation of the type in Weaviate-defined `json` format.
     """
-    if _type == "valueTextList":
+    if _type == "valueTextArray" or _type == "valueTextList":
         return "valueText"
-    elif _type == "valueStringList":
+    elif _type == "valueStringArray" or _type == "valueStringList":
         return "valueString"
-    elif _type == "valueIntList":
+    elif _type == "valueIntArray" or _type == "valueIntList":
         return "valueInt"
-    elif _type == "valueNumberList":
+    elif _type == "valueNumberArray" or _type == "valueNumberList":
         return "valueNumber"
-    elif _type == "valueBooleanList":
+    elif _type == "valueBooleanArray" or _type == "valueBooleanList":
         return "valueBoolean"
-    elif _type == "valueDateList":
+    elif _type == "valueDateArray" or _type == "valueDateList":
         return "valueDate"
     else:
         return _type
@@ -949,11 +1158,11 @@ def _find_value_type(content: dict) -> str:
         If missing required fields.
     """
 
-    value_type = VALUE_TYPES & set(content.keys())
+    value_type = ALL_VALUE_TYPES & set(content.keys())
 
     if len(value_type) == 0:
         raise ValueError(
-            f"Filter is missing required field 'value<TYPE>': {content}. Valid values are: {VALUE_TYPES}."
+            f"'value<TYPE>' field is either missing or incorrect: {content}. Valid values are: {VALUE_TYPES}."
         )
     if len(value_type) != 1:
         raise ValueError(f"Multiple fields 'value<TYPE>' are not supported: {content}")
