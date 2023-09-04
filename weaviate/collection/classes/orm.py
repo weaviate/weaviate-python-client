@@ -198,7 +198,7 @@ class BaseProperty(BaseModel):
 
         is_list = get_origin(python_type) == list
         if is_list:
-            return List[Any]
+            return List[return_type]  # type: ignore
         else:
             return return_type
 

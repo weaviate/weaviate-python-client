@@ -347,8 +347,8 @@ class Img2VecNeuralConfig(VectorizerConfig):
 
 
 class Multi2VecClipConfigWeights(ConfigCreateModel):
-    imageFields: Optional[List[float]] = Field(None, alias="image_fields", ge=0, le=1)
-    textFields: Optional[List[float]] = Field(None, alias="text_fields", ge=0, le=1)
+    imageFields: Optional[List[float]] = Field(None, alias="image_fields")
+    textFields: Optional[List[float]] = Field(None, alias="text_fields")
 
 
 class Multi2VecClipConfig(VectorizerConfig):
@@ -360,13 +360,13 @@ class Multi2VecClipConfig(VectorizerConfig):
 
 
 class Multi2VecBindConfigWeights(ConfigCreateModel):
-    audioFields: Optional[List[float]] = Field(None, alias="audio_fields", ge=0, le=1)
-    depthFields: Optional[List[float]] = Field(None, alias="depth_fields", ge=0, le=1)
-    imageFields: Optional[List[float]] = Field(None, alias="image_fields", ge=0, le=1)
-    IMUFields: Optional[List[float]] = Field(None, alias="imu_fields", ge=0, le=1)
-    textFields: Optional[List[float]] = Field(None, alias="text_fields", ge=0, le=1)
-    thermalFields: Optional[List[float]] = Field(None, alias="thermal_fields", ge=0, le=1)
-    videoFields: Optional[List[float]] = Field(None, alias="video_fields", ge=0, le=1)
+    audioFields: Optional[List[float]] = Field(None, alias="audio_fields")
+    depthFields: Optional[List[float]] = Field(None, alias="depth_fields")
+    imageFields: Optional[List[float]] = Field(None, alias="image_fields")
+    IMUFields: Optional[List[float]] = Field(None, alias="imu_fields")
+    textFields: Optional[List[float]] = Field(None, alias="text_fields")
+    thermalFields: Optional[List[float]] = Field(None, alias="thermal_fields")
+    videoFields: Optional[List[float]] = Field(None, alias="video_fields")
 
 
 class Multi2VecBindConfig(VectorizerConfig):
