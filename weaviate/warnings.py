@@ -125,7 +125,7 @@ class _Warnings:
             category=DeprecationWarning,
             stacklevel=1,
         )
-    
+
     @staticmethod
     def use_of_client_batch_will_be_removed_in_next_major_release():
         warnings.warn(
