@@ -125,6 +125,16 @@ class _Warnings:
             category=DeprecationWarning,
             stacklevel=1,
         )
+    
+    @staticmethod
+    def use_of_client_batch_will_be_removed_in_next_major_release():
+        warnings.warn(
+            message="""Dep006: You are using the `client.batch()` method, which will be removed in the next major release.
+            Please instead use the `client.batch.configure()` method to configure your batch and `client.batch` to enter the context manager.
+            See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
 
     @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime):
@@ -138,11 +148,11 @@ class _Warnings:
         )
 
     @staticmethod
-    def use_of_client_batch_will_be_removed_in_next_major_release():
+    def text2vec_huggingface_endpoint_url_and_model_set_together():
         warnings.warn(
-            message="""Dep006: You are using the `client.batch()` method, which will be removed in the next major release.
-            Please instead use the `client.batch.configure()` method to configure your batch and `client.batch` to enter the context manager.
-            See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
-            category=DeprecationWarning,
+            message="""Con003: You are setting the endpoint_url alongside model or passageModel & queryModel in your Text2Vec-HuggingFace module configuration.
+            The model definitions will be ignored in favour of endpoint_url.
+            """,
+            category=UserWarning,
             stacklevel=1,
         )
