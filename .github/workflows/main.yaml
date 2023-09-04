@@ -26,7 +26,7 @@ jobs:
         with:
           python-version: "3.10"
           cache: 'pip' # caching pip dependencies
-      - run: pip install -r requirements.txt
+      - run: pip install -r requirements-devel.txt
       - name: "Flake 8"
         run: flake8 weaviate test mock_tests integration
       - name: "Check release for pypi"
@@ -48,7 +48,7 @@ jobs:
       with:
         python-version: ${{ matrix.version }}
         cache: 'pip' # caching pip dependencies
-    - run: pip install -r requirements.txt
+    - run: pip install -r requirements-devel.txt
     - name: Run unittests
       run: pytest --cov -v --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-${{ matrix.folder }}.xml ${{ matrix.folder }}
     - name: Archive code coverage results
@@ -71,16 +71,16 @@ jobs:
             optional_dependencies: true
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          fetch-tags: true
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.version }}
           cache: 'pip' # caching pip dependencies
       - run: |
-          pip install -r requirements.txt
+          pip install -r requirements-devel.txt
           pip install .
-      - name: Optional dependencies
-        if: matrix.optional_dependencies
-        run: pip install -r requirements_optional.txt
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh
       - name: Run integration tests with auth secrets
@@ -142,8 +142,7 @@ jobs:
           python-version: "3.10"
           cache: 'pip' # caching pip dependencies
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements-devel.txt
       - name: Build a binary wheel
         run: python -m build
       - name: Create Wheel Artifacts
@@ -199,8 +198,7 @@ jobs:
           python-version: "3.10"
           cache: 'pip' # caching pip dependencies
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements-devel.txt
       - name: Build a binary wheel
         run: python -m build
       - name: Publish distribution 📦 to PyPI on new tags

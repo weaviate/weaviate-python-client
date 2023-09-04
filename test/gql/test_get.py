@@ -1,5 +1,5 @@
 import unittest
-from typing import List, Optional
+from typing import List, Optional, Callable, Tuple
 from unittest.mock import patch, Mock
 
 import pytest
@@ -445,7 +445,7 @@ class TestGetBuilder(unittest.TestCase):
         check_error_message(self, error, near_error_msg)
 
     @patch("weaviate.gql.get.image_encoder_b64", side_effect=lambda x: "test_call")
-    def test_build_near_image(self, mock_image_encoder_b64):
+    def test_build_near_image(self, mock_image_encoder_b64: Mock):
         """
         Test the `with_near_object` method.
         """
@@ -479,6 +479,83 @@ class TestGetBuilder(unittest.TestCase):
         with self.assertRaises(AttributeError) as error:
             GetBuilder("Person", "name", None).with_near_text(near_text).with_near_image(near_image)
         check_error_message(self, error, near_error_msg)
+
+    test_build_near_media_param_list: List[
+        Tuple[str, str, str, Callable[[GetBuilder, str, str, bool], GetBuilder]]
+    ] = [
+        (
+            "audio",
+            "test_audio",
+            "nearAudio",
+            lambda b, k, v, e: b.with_near_audio({k: v, "certainty": 0.55}, encode=e),
+        ),
+        (
+            "video",
+            "test_video",
+            "nearVideo",
+            lambda b, k, v, e: b.with_near_video({k: v, "certainty": 0.55}, encode=e),
+        ),
+        (
+            "depth",
+            "test_depth",
+            "nearDepth",
+            lambda b, k, v, e: b.with_near_depth({k: v, "certainty": 0.55}, encode=e),
+        ),
+        (
+            "thermal",
+            "test_thermal",
+            "nearThermal",
+            lambda b, k, v, e: b.with_near_thermal({k: v, "certainty": 0.55}, encode=e),
+        ),
+        (
+            "imu",
+            "test_imu",
+            "nearIMU",
+            lambda b, k, v, e: b.with_near_imu({k: v, "certainty": 0.55}, encode=e),
+        ),
+    ]
+
+    def test_build_near_media(self):
+        """
+        Test the `with_near_<media>` method.
+        """
+        for key, value, type_, fn in self.test_build_near_media_param_list:
+            with self.subTest(key=key, value=value):
+                with patch(
+                    "weaviate.gql.get.file_encoder_b64", side_effect=lambda x: "test_call"
+                ) as mocked:
+                    # valid calls
+                    ## encode False
+                    query = fn(GetBuilder("Person", "name", None), key, value, False).build()
+                    self.assertEqual(
+                        f'{{Get{{Person({type_}: {{{key}: "{value}" certainty: 0.55}} ){{name}}}}}}',
+                        query,
+                    )
+                    mocked.assert_not_called()
+
+                    ## encode True
+                    query = fn(GetBuilder("Person", "name", None), key, value, True).build()
+                    self.assertEqual(
+                        f'{{Get{{Person({type_}: {{{key}: "test_call" certainty: 0.55}} ){{name}}}}}}',
+                        query,
+                    )
+                    mocked.assert_called()
+
+                    # invalid calls
+                    near_error_msg = "Cannot use multiple 'near' filters, or a 'near' filter along with a 'ask' filter!"
+
+                    near_text = {
+                        "concepts": "computer",
+                        "moveTo": {"concepts": ["science"], "force": 0.5},
+                    }
+                    with self.assertRaises(AttributeError) as error:
+                        fn(
+                            GetBuilder("Person", "name", None).with_near_text(near_text),
+                            key,
+                            value,
+                            True,
+                        )
+                    check_error_message(self, error, near_error_msg)
 
     def test_build_ask(self):
         """

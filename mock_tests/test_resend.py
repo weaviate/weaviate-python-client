@@ -1,9 +1,9 @@
 import json
 import re
 import time
-import uuid
 
 import pytest
+import uuid
 from requests import ReadTimeout
 from werkzeug.wrappers import Request, Response
 
@@ -24,7 +24,7 @@ def test_no_retry_on_timeout(weaviate_no_auth_mock):
 
     n = 10
     with pytest.raises(ReadTimeout):
-        with client.batch(batch_size=n, timeout_retries=0) as batch:
+        with client.batch(batch_size=n, timeout_retries=0, dynamic=False) as batch:
             for _ in range(n):
                 batch.add_data_object({"name": "test"}, "test", uuid.uuid4())
 
@@ -54,7 +54,7 @@ def test_retry_on_timeout(weaviate_no_auth_mock):
             # 75% of objects have to be resent
             assert len(request.json["objects"]) == n / 4 * 3
 
-        return Response(json.dumps({}))
+        return Response(json.dumps([]))
 
     weaviate_no_auth_mock.expect_request("/v1/batch/objects").respond_with_handler(
         handler_batch_objects
@@ -85,7 +85,7 @@ def test_retry_on_timeout(weaviate_no_auth_mock):
     ).respond_with_handler(handler_get_object)
 
     client = weaviate.Client(url=MOCK_SERVER_URL, timeout_config=(1, 1))
-    with client.batch(batch_size=n, timeout_retries=1) as batch:
+    with client.batch(batch_size=n, timeout_retries=1, dynamic=False) as batch:
         for _ in range(n):
             added_uuids.append(str(uuid.uuid4()))
             batch.add_data_object({"name": "test"}, "test", added_uuids[-1])
@@ -101,7 +101,7 @@ def test_retry_on_timeout_all_succesfull(weaviate_no_auth_mock):
         nonlocal n
         assert len(request.json["objects"]) == n  # all objects are send the first time
         time.sleep(1)  # cause timeout
-        return Response(json.dumps({}))
+        return Response(json.dumps([]))
 
     weaviate_no_auth_mock.expect_oneshot_request("/v1/batch/objects").respond_with_handler(
         handler_batch_objects
@@ -116,7 +116,7 @@ def test_retry_on_timeout_all_succesfull(weaviate_no_auth_mock):
     ).respond_with_json({"properties": {"name": "test"}})
 
     client = weaviate.Client(url=MOCK_SERVER_URL, timeout_config=(1, 1))
-    with client.batch(batch_size=n, timeout_retries=1) as batch:
+    with client.batch(batch_size=n, timeout_retries=1, dynamic=False) as batch:
         for _ in range(n):
             batch.add_data_object({"name": "test"}, "test", uuid.uuid4())
     weaviate_no_auth_mock.check_assertions()

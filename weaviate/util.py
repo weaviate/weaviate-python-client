@@ -5,15 +5,20 @@ import base64
 import json
 import os
 import re
-import uuid as uuid_lib
 from enum import Enum, EnumMeta
 from io import BufferedReader
 from typing import Union, Sequence, Any, Optional, List, Dict, Tuple
 
 import requests
+import uuid as uuid_lib
 import validators
+from requests.exceptions import JSONDecodeError
 
-from weaviate.exceptions import SchemaValidationException
+from weaviate.exceptions import (
+    SchemaValidationException,
+    UnexpectedStatusCodeException,
+    ResponseCannotBeDecodedException,
+)
 from weaviate.weaviate_types import NUMBER, UUIDS
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"
@@ -79,6 +84,44 @@ def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
     return base64.b64encode(content).decode("utf-8")
 
 
+def file_encoder_b64(file_or_file_path: Union[str, BufferedReader]) -> str:
+    """
+    Encode a file in a Weaviate understandable format from a binary read file or by providing
+    the file path.
+
+    Parameters
+    ----------
+    file_or_file_path : str, io.BufferedReader
+        The binary read file or the path to the file.
+
+    Returns
+    -------
+    str
+        Encoded file.
+
+    Raises
+    ------
+    ValueError
+        If the argument is str and does not point to an existing file.
+    TypeError
+        If the argument is of a wrong data type.
+    """
+
+    if isinstance(file_or_file_path, str):
+        if not os.path.isfile(file_or_file_path):
+            raise ValueError("No file found at location " + file_or_file_path)
+        with open(file_or_file_path, "br") as file:
+            content = file.read()
+
+    elif isinstance(file_or_file_path, BufferedReader):
+        content = file_or_file_path.read()
+    else:
+        raise TypeError(
+            '"file_or_file_path" should be a file path or a binary read file' " (io.BufferedReader)"
+        )
+    return base64.b64encode(content).decode("utf-8")
+
+
 def image_decoder_b64(encoded_image: str) -> bytes:
     """
     Decode image from a Weaviate format image.
@@ -95,6 +138,26 @@ def image_decoder_b64(encoded_image: str) -> bytes:
     """
 
     return base64.b64decode(encoded_image.encode("utf-8"))
+
+
+def file_decoder_b64(encoded_file: str) -> bytes:
+    """
+    Decode file from a Weaviate format image.
+
+    Parameters
+    ----------
+    encoded_file : str
+        The encoded file.
+
+    Returns
+    -------
+    bytes
+        Decoded file as a binary string. Use this in your file
+        handling code to convert it into a specific file type of choice.
+        E.g., PIL for images.
+    """
+
+    return base64.b64decode(encoded_file.encode("utf-8"))
 
 
 def generate_local_beacon(
@@ -137,7 +200,7 @@ def generate_local_beacon(
 
     if class_name is None:
         return {"beacon": f"weaviate://localhost/{uuid}"}
-    return {"beacon": f"weaviate://localhost/{class_name}/{uuid}"}
+    return {"beacon": f"weaviate://localhost/{_capitalize_first_letter(class_name)}/{uuid}"}
 
 
 def _get_dict_from_object(object_: Union[str, dict]) -> dict:
@@ -726,3 +789,34 @@ def _to_beacons(uuids: UUIDS, to_class: str = "") -> List[Dict[str, str]]:
         to_class = to_class + "/"
 
     return [{"beacon": f"weaviate://localhost/{to_class}{uuid_to}"} for uuid_to in uuids]
+
+
+def _decode_json_response_dict(
+    response: requests.Response, location: str
+) -> Optional[Dict[str, Any]]:
+    if response is None:
+        return None
+
+    if 200 <= response.status_code < 300:
+        try:
+            json_response = response.json()
+            return json_response
+        except JSONDecodeError:
+            raise ResponseCannotBeDecodedException(location, response)
+
+    raise UnexpectedStatusCodeException(location, response)
+
+
+def _decode_json_response_list(
+    response: requests.Response, location: str
+) -> Optional[List[Dict[str, Any]]]:
+    if response is None:
+        return None
+
+    if 200 <= response.status_code < 300:
+        try:
+            json_response = response.json()
+            return json_response
+        except JSONDecodeError:
+            raise ResponseCannotBeDecodedException(location, response)
+    raise UnexpectedStatusCodeException(location, response)

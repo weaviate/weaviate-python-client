@@ -5,6 +5,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.util import _decode_json_response_dict
 
 
 class Contextionary:
@@ -151,6 +152,4 @@ class Contextionary:
                 "text2vec-contextionary vector was not retrieved."
             ) from conn_err
         else:
-            if response.status_code == 200:
-                return response.json()
-            raise UnexpectedStatusCodeException("text2vec-contextionary vector", response)
+            return _decode_json_response_dict(response, "text2vec-contextionary vector")

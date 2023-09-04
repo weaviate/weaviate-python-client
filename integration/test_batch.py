@@ -6,6 +6,7 @@ import pytest
 
 import weaviate
 from weaviate import Tenant
+from weaviate.gql.filter import VALUE_ARRAY_TYPES, WHERE_OPERATORS
 
 UUID = Union[str, uuid.UUID]
 
@@ -54,7 +55,10 @@ def client():
     client.schema.create_class(
         {
             "class": "Test",
-            "properties": [{"name": "test", "dataType": ["Test"]}],
+            "properties": [
+                {"name": "test", "dataType": ["Test"]},
+                {"name": "name", "dataType": ["string"]},
+            ],
             "vectorizer": "none",
         }
     )
@@ -77,6 +81,100 @@ def test_add_data_object(client: weaviate.Client, uuid: Optional[UUID], vector: 
     )
     response = client.batch.create_objects()
     assert has_batch_errors(response) is False, str(response)
+
+
+def test_delete_objects(client: weaviate.Client):
+    with client.batch as batch:
+        batch.add_data_object(data_object={"name": "one"}, class_name="Test")
+        batch.add_data_object(data_object={"name": "two"}, class_name="test")
+        batch.add_data_object(data_object={"name": "three"}, class_name="Test")
+        batch.add_data_object(data_object={"name": "four"}, class_name="test")
+        batch.add_data_object(data_object={"name": "five"}, class_name="Test")
+
+    with client.batch as batch:
+        batch.delete_objects(
+            "Test",
+            where={
+                "path": ["name"],
+                "operator": "Equal",
+                "valueText": "one",
+            },
+        )
+    res = client.data_object.get()
+    names = [obj["properties"]["name"] for obj in res["objects"]]
+    assert "one" not in names
+
+    with client.batch as batch:
+        batch.delete_objects(
+            "test",
+            where={
+                "path": ["name"],
+                "operator": "ContainsAny",
+                "valueTextArray": ["two", "three"],
+            },
+        )
+    res = client.data_object.get()
+    names = [obj["properties"]["name"] for obj in res["objects"]]
+    assert "two" not in names
+    assert "three" not in names
+
+    with client.batch as batch:
+        batch.delete_objects(
+            "Test",
+            where={
+                "path": ["name"],
+                "operator": "ContainsAll",
+                "valueTextArray": ["four", "five"],
+            },
+        )
+    res = client.data_object.get()
+    names = [obj["properties"]["name"] for obj in res["objects"]]
+    assert "four" in names
+    assert "five" in names
+
+    with pytest.raises(ValueError) as error:
+        with client.batch as batch:
+            batch.delete_objects(
+                "test",
+                where={
+                    "path": ["name"],
+                    "operator": "ContainsAny",
+                    "valueText": ["four"],
+                },
+            )
+    assert (
+        error.value.args[0]
+        == f"Operator 'ContainsAny' is not supported for value type 'valueText'. Supported value types are: {VALUE_ARRAY_TYPES}"
+    )
+
+    where = {
+        "path": ["name"],
+        "valueTextArray": ["four"],
+    }
+    with pytest.raises(ValueError) as error:
+        with client.batch as batch:
+            batch.delete_objects(
+                "Test",
+                where=where,
+            )
+    assert (
+        error.value.args[0] == f"Where filter is missing required field `operator`. Given: {where}"
+    )
+
+    with pytest.raises(ValueError) as error:
+        with client.batch as batch:
+            batch.delete_objects(
+                "Test",
+                where={
+                    "path": ["name"],
+                    "operator": "Wrong",
+                    "valueText": ["four"],
+                },
+            )
+    assert (
+        error.value.args[0]
+        == f"Operator Wrong is not allowed. Allowed operators are: {WHERE_OPERATORS}"
+    )
 
 
 @pytest.mark.parametrize("from_object_uuid", [uuid.uuid4(), str(uuid.uuid4()), uuid.uuid4().hex])
