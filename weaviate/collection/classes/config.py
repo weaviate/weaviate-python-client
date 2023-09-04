@@ -136,55 +136,55 @@ class PQEncoderConfigUpdate(ConfigUpdateModel):
 
 
 class PQConfigCreate(ConfigCreateModel):
-    bitCompression: bool = Field(False, alias="bit_compression")
+    bitCompression: bool = Field(default=False, alias="bit_compression")
     centroids: int = 256
     enabled: bool = False
     segments: int = 0
-    trainingLimit: int = Field(10000, alias="training_limit")
+    trainingLimit: int = Field(default=10000, alias="training_limit")
     encoder: PQEncoderConfigCreate = PQEncoderConfigCreate()
 
 
 class PQConfigUpdate(ConfigUpdateModel):
-    bitCompression: Optional[bool] = Field(None, alias="bit_compression")
+    bitCompression: Optional[bool] = Field(default=None, alias="bit_compression")
     centroids: Optional[int] = None
     enabled: Optional[bool] = None
     segments: Optional[int] = None
-    trainingLimit: Optional[int] = Field(None, alias="training_limit")
+    trainingLimit: Optional[int] = Field(default=None, alias="training_limit")
     encoder: Optional[PQEncoderConfigUpdate] = None
 
 
 class VectorIndexConfigCreate(ConfigCreateModel):
-    cleanupIntervalSeconds: int = Field(300, alias="cleanup_interval_seconds")
+    cleanupIntervalSeconds: int = Field(default=300, alias="cleanup_interval_seconds")
     distance: VectorDistance = VectorDistance.COSINE
-    dynamicEfMin: int = Field(100, alias="dynamic_ef_min")
-    dynamicEfMax: int = Field(500, alias="dynamic_ef_max")
-    dynamicEfFactor: int = Field(8, alias="dynamic_ef_factor")
-    efConstruction: int = Field(128, alias="ef_construction")
+    dynamicEfMin: int = Field(default=100, alias="dynamic_ef_min")
+    dynamicEfMax: int = Field(default=500, alias="dynamic_ef_max")
+    dynamicEfFactor: int = Field(default=8, alias="dynamic_ef_factor")
+    efConstruction: int = Field(default=128, alias="ef_construction")
     ef: int = -1
-    flatSearchCutoff: int = Field(40000, alias="flat_search_cutoff")
-    maxConnections: int = Field(64, alias="max_connections")
+    flatSearchCutoff: int = Field(default=40000, alias="flat_search_cutoff")
+    maxConnections: int = Field(default=64, alias="max_connections")
     pq: PQConfigCreate = PQConfigCreate(bit_compression=False, training_limit=10000)
     skip: bool = False
-    vectorCacheMaxObjects: int = Field(1000000000000, alias="vector_cache_max_objects")
+    vectorCacheMaxObjects: int = Field(default=1000000000000, alias="vector_cache_max_objects")
 
 
 class VectorIndexConfigUpdate(ConfigUpdateModel):
-    dynamicEfFactor: Optional[int] = Field(None, alias="dynamic_ef_factor")
-    dynamicEfMin: Optional[int] = Field(None, alias="dynamic_ef_min")
-    dynamicEfMax: Optional[int] = Field(None, alias="dynamic_ef_max")
+    dynamicEfFactor: Optional[int] = Field(default=None, alias="dynamic_ef_factor")
+    dynamicEfMin: Optional[int] = Field(default=None, alias="dynamic_ef_min")
+    dynamicEfMax: Optional[int] = Field(default=None, alias="dynamic_ef_max")
     ef: Optional[int] = None
-    flatSearchCutoff: Optional[int] = Field(None, alias="flat_search_cutoff")
+    flatSearchCutoff: Optional[int] = Field(default=None, alias="flat_search_cutoff")
     skip: Optional[bool] = None
-    vectorCacheMaxObjects: Optional[int] = Field(None, alias="vector_cache_max_objects")
+    vectorCacheMaxObjects: Optional[int] = Field(default=None, alias="vector_cache_max_objects")
     pq: Optional[PQConfigUpdate] = None
 
 
 class ShardingConfigCreate(ConfigCreateModel):
-    virtualPerPhysical: int = Field(128, alias="virtual_per_physical")
-    desiredCount: int = Field(1, alias="desired_count")
-    actualCount: int = Field(1, alias="actual_count")
-    desiredVirtualCount: int = Field(128, alias="desired_virtual_count")
-    actualVirtualCount: int = Field(128, alias="actual_virtual_count")
+    virtualPerPhysical: int = Field(default=128, alias="virtual_per_physical")
+    desiredCount: int = Field(default=1, alias="desired_count")
+    actualCount: int = Field(default=1, alias="actual_count")
+    desiredVirtualCount: int = Field(default=128, alias="desired_virtual_count")
+    actualVirtualCount: int = Field(default=128, alias="actual_virtual_count")
     key: str = "_id"
     strategy: str = "hash"
     function: str = "murmur3"
@@ -209,33 +209,33 @@ class BM25ConfigUpdate(ConfigUpdateModel):
 
 
 class StopwordsCreate(ConfigCreateModel):
-    preset: StopwordsPreset = StopwordsPreset.EN
-    additions: Optional[List[str]] = None
-    removals: Optional[List[str]] = None
+    preset: StopwordsPreset = Field(default=StopwordsPreset.EN)
+    additions: Optional[List[str]] = Field(default=None)
+    removals: Optional[List[str]] = Field(default=None)
 
 
 class StopwordsUpdate(ConfigUpdateModel):
-    preset: Optional[StopwordsPreset] = None
+    preset: Optional[StopwordsPreset] = Field(default=None)
     additions: Optional[List[str]] = None
     removals: Optional[List[str]] = None
 
 
 class InvertedIndexConfigCreate(ConfigCreateModel):
     bm25: BM25ConfigCreate = BM25ConfigCreate()
-    cleanupIntervalSeconds: int = Field(60, alias="cleanup_interval_seconds")
-    indexTimestamps: bool = Field(False, alias="index_timestamps")
-    indexPropertyLength: bool = Field(False, alias="index_property_length")
-    indexNullState: bool = Field(False, alias="index_null_state")
+    cleanupIntervalSeconds: int = Field(default=60, alias="cleanup_interval_seconds")
+    indexTimestamps: bool = Field(default=False, alias="index_timestamps")
+    indexPropertyLength: bool = Field(default=False, alias="index_property_length")
+    indexNullState: bool = Field(default=False, alias="index_null_state")
     stopwords: StopwordsCreate = StopwordsCreate()
 
 
 class InvertedIndexConfigUpdate(ConfigUpdateModel):
-    bm25: Optional[BM25ConfigUpdate] = None
-    cleanupIntervalSeconds: Optional[int] = Field(None, alias="cleanup_interval_seconds")
-    indexTimestamps: Optional[bool] = Field(None, alias="index_timestamps")
-    indexPropertyLength: Optional[bool] = Field(None, alias="index_property_length")
-    indexNullState: Optional[bool] = Field(None, alias="index_null_state")
-    stopwords: Optional[StopwordsUpdate] = None
+    bm25: Optional[BM25ConfigUpdate] = Field(default=None)
+    cleanupIntervalSeconds: Optional[int] = Field(default=None, alias="cleanup_interval_seconds")
+    indexTimestamps: Optional[bool] = Field(default=None, alias="index_timestamps")
+    indexPropertyLength: Optional[bool] = Field(default=None, alias="index_property_length")
+    indexNullState: Optional[bool] = Field(default=None, alias="index_null_state")
+    stopwords: Optional[StopwordsUpdate] = Field(default=None)
 
 
 class MultiTenancyConfig(ConfigCreateModel):
@@ -248,33 +248,37 @@ class VectorizerConfig(ConfigCreateModel):
 
 class PropertyVectorizerConfig(ConfigCreateModel):
     skip: bool = False
-    vectorizePropertyName: bool = Field(True, alias="vectorize_property_name")
+    vectorizePropertyName: bool = Field(default=True, alias="vectorize_property_name")
 
 
 class Text2VecContextionaryConfig(VectorizerConfig):
-    vectorizer: Vectorizer = Field(Vectorizer.TEXT2VEC_CONTEXTIONARY, frozen=True, exclude=True)
-    vectorizeClassName: bool = Field(True, alias="vectorize_class_name")
+    vectorizer: Vectorizer = Field(
+        default=Vectorizer.TEXT2VEC_CONTEXTIONARY, frozen=True, exclude=True
+    )
+    vectorizeClassName: bool = Field(default=True, alias="vectorize_class_name")
 
 
 class Text2VecCohereConfig(VectorizerConfig):
-    vectorizer: Vectorizer = Field(Vectorizer.TEXT2VEC_COHERE, frozen=True, exclude=True)
-    model: Literal["embed_multilingual_v2.0"] = "embed_multilingual_v2.0"
-    truncate: Literal["RIGHT", "NONE"] = "RIGHT"
+    vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_COHERE, frozen=True, exclude=True)
+    model: Literal["embed_multilingual_v2.0"] = Field(default="embed_multilingual_v2.0")
+    truncate: Literal["RIGHT", "NONE"] = Field(default="RIGHT")
 
 
 class Text2VecHuggingFaceConfigOptions(ConfigCreateModel):
     waitForModel: Optional[bool] = Field(None, alias="wait_for_model")
-    useGPU: Optional[bool] = Field(None, alias="use_gpu")
-    useCache: Optional[bool] = Field(None, alias="use_cache")
+    useGPU: Optional[bool] = Field(default=None, alias="use_gpu")
+    useCache: Optional[bool] = Field(default=None, alias="use_cache")
 
 
 class Text2VecHuggingFaceConfig(VectorizerConfig):
-    vectorizer: Vectorizer = Field(Vectorizer.TEXT2VEC_HUGGINGFACE, frozen=True, exclude=True)
-    model: Optional[str] = Field(None)
-    passageModel: Optional[str] = Field(None, alias="passage_model")
-    queryModel: Optional[str] = Field(None, alias="query_model")
-    endpointURL: Optional[str] = Field(None, alias="endpoint_url")
-    options: Optional[Text2VecHuggingFaceConfigOptions] = None
+    vectorizer: Vectorizer = Field(
+        default=Vectorizer.TEXT2VEC_HUGGINGFACE, frozen=True, exclude=True
+    )
+    model: Optional[str] = Field(default=None)
+    passageModel: Optional[str] = Field(default=None, alias="passage_model")
+    queryModel: Optional[str] = Field(default=None, alias="query_model")
+    endpointURL: Optional[str] = Field(default=None, alias="endpoint_url")
+    options: Optional[Text2VecHuggingFaceConfigOptions] = Field(default=None)
 
     @model_validator(mode="before")
     def validate_mutually_exclusive_fields(cls, values: Dict[str, Any]) -> Dict[str, Any]:
@@ -293,11 +297,11 @@ class Text2VecHuggingFaceConfig(VectorizerConfig):
 
 
 class Text2VecOpenAIConfig(VectorizerConfig):
-    vectorizer: Vectorizer = Field(Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
+    vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
     model: Optional[Literal["ada", "babbage", "curie", "davinci"]] = None
-    modelVersion: Optional[str] = Field(None, alias="model_version")
+    modelVersion: Optional[str] = Field(default=None, alias="model_version")
     type_: Optional[Literal["text", "code"]] = None
-    vectorizeClassName: bool = Field(True, alias="vectorize_class_name")
+    vectorizeClassName: bool = Field(default=True, alias="vectorize_class_name")
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
@@ -309,33 +313,37 @@ class Text2VecOpenAIConfig(VectorizerConfig):
 
 
 class Text2VecAzureOpenAIConfig(VectorizerConfig):
-    vectorizer: Vectorizer = Field(Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
-    resourceName: str = Field(..., alias="resource_name")
-    deploymentId: str = Field(..., alias="deployment_id")
+    vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
+    resourceName: str = Field(default=..., alias="resource_name")
+    deploymentId: str = Field(default=..., alias="deployment_id")
 
 
 class Text2VecPalmConfig(VectorizerConfig):
-    vectorizer: Vectorizer = Field(Vectorizer.TEXT2VEC_PALM, frozen=True, exclude=True)
-    projectId: str = Field(..., alias="project_id")
-    apiEndpoint: Optional[str] = Field(None, alias="api_endpoint")
-    modelId: Optional[str] = Field(None, alias="model_id")
-    vectorizeClassName: bool = Field(True, alias="vectorize_class_name")
+    vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_PALM, frozen=True, exclude=True)
+    projectId: str = Field(default=..., alias="project_id")
+    apiEndpoint: Optional[str] = Field(default=None, alias="api_endpoint")
+    modelId: Optional[str] = Field(default=None, alias="model_id")
+    vectorizeClassName: bool = Field(default=True, alias="vectorize_class_name")
 
 
 class Text2VecTransformersConfig(VectorizerConfig):
-    vectorizer: Vectorizer = Field(Vectorizer.TEXT2VEC_TRANSFORMERS, frozen=True, exclude=True)
-    poolingStrategy: Literal["masked_mean", "cls"] = Field("masked_mean", alias="pooling_strategy")
-    vectorizeClassName: bool = Field(True, alias="vectorize_class_name")
+    vectorizer: Vectorizer = Field(
+        default=Vectorizer.TEXT2VEC_TRANSFORMERS, frozen=True, exclude=True
+    )
+    poolingStrategy: Literal["masked_mean", "cls"] = Field(
+        default="masked_mean", alias="pooling_strategy"
+    )
+    vectorizeClassName: bool = Field(default=True, alias="vectorize_class_name")
 
 
 class Text2VecGPT4AllConfig(VectorizerConfig):
-    vectorizer: Vectorizer = Field(Vectorizer.TEXT2VEC_GPT4ALL, frozen=True, exclude=True)
-    vectorizeClassName: bool = Field(True, alias="vectorize_class_name")
+    vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_GPT4ALL, frozen=True, exclude=True)
+    vectorizeClassName: bool = Field(default=True, alias="vectorize_class_name")
 
 
 class Img2VecNeuralConfig(VectorizerConfig):
-    vectorizer: Vectorizer = Field(Vectorizer.IMG2VEC_NEURAL, frozen=True, exclude=True)
-    imageFields: List[str] = Field(..., alias="image_fields")
+    vectorizer: Vectorizer = Field(default=Vectorizer.IMG2VEC_NEURAL, frozen=True, exclude=True)
+    imageFields: List[str] = Field(default=..., alias="image_fields")
 
 
 class Multi2VecClipConfigWeights(ConfigCreateModel):
@@ -387,7 +395,7 @@ class VectorizerFactory:
         return VectorizerConfig(vectorizer=Vectorizer.NONE)
 
     @classmethod
-    def auto(cls):
+    def auto(cls) -> None:
         """Returns a `VectorizerConfig` object with the `Vectorizer` auto-detected from the environment
         variables of the client or Weaviate itself"""
         # TODO: Can this be done?

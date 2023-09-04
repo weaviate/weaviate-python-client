@@ -286,7 +286,7 @@ class _GRPC:
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[GrpcResult]:
+    ) -> List[SearchResult]:
         if isinstance(near_text, str):
             near_text = [near_text]
         self._near_text = near_text
@@ -319,7 +319,7 @@ class _GRPC:
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[GrpcResult]:
+    ) -> List[SearchResult]:
         self._near_image = image
         self._near_certainty = certainty
         self._near_distance = distance
@@ -341,7 +341,7 @@ class _GRPC:
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[GrpcResult]:
+    ) -> List[SearchResult]:
         self._near_video = video
         self._near_certainty = certainty
         self._near_distance = distance
@@ -363,7 +363,7 @@ class _GRPC:
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[GrpcResult]:
+    ) -> List[SearchResult]:
         self._near_audio = audio
         self._near_certainty = certainty
         self._near_distance = distance
@@ -376,7 +376,7 @@ class _GRPC:
 
         return self.__call()
 
-    def __call(self) -> List[GrpcResult]:
+    def __call(self) -> List[SearchResult]:
         metadata: Optional[Tuple[Tuple[str, str]]] = None
         access_token = self._connection.get_current_bearer_token()
         if len(access_token) > 0:
@@ -461,12 +461,13 @@ class _GRPC:
                 metadata=metadata,
             )
 
+            assert isinstance(res, SearchResponse)
             return res.results
 
         except grpc.RpcError as e:
             raise WeaviateGRPCException(e.details())
 
-    def __extract_filters(self, weav_filter: _Filters) -> Optional[weaviate_pb2.Filters]:
+    def __extract_filters(self, weav_filter: Optional[_Filters]) -> Optional[weaviate_pb2.Filters]:
         if weav_filter is None:
             return None
         from google.protobuf.timestamp_pb2 import Timestamp
@@ -484,16 +485,20 @@ class _GRPC:
                 value_boolean=weav_filter.value if isinstance(weav_filter.value, bool) else None,
                 value_date=timestamp if isinstance(weav_filter.value, datetime.date) else None,
                 value_number=weav_filter.value if isinstance(weav_filter.value, float) else None,
-                value_int_array=weaviate_pb2.IntArray(vals=weav_filter.value)
+                value_int_array=weaviate_pb2.IntArray(vals=cast(List[int], weav_filter.value))
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], int)
                 else None,
-                value_number_array=weaviate_pb2.NumberArray(vals=weav_filter.value)
+                value_number_array=weaviate_pb2.NumberArray(
+                    vals=cast(List[float], weav_filter.value)
+                )
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], float)
                 else None,
-                value_text_array=weaviate_pb2.TextArray(vals=weav_filter.value)
+                value_text_array=weaviate_pb2.TextArray(vals=cast(List[str], weav_filter.value))
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], str)
                 else None,
-                value_boolean_array=weaviate_pb2.BooleanArray(vals=weav_filter.value)
+                value_boolean_array=weaviate_pb2.BooleanArray(
+                    vals=cast(List[bool], weav_filter.value)
+                )
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], bool)
                 else None,
                 on=weav_filter.path if isinstance(weav_filter.path, list) else [weav_filter.path],
