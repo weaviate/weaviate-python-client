@@ -14,7 +14,12 @@ class HybridFusion(str, BaseEnum):
 
 
 @dataclass
-class HybridOptions:
+class Options:
+    filters: Optional[_Filters] = None
+
+
+@dataclass
+class HybridOptions(Options):
     alpha: Optional[float] = None
     vector: Optional[List[float]] = None
     properties: Optional[List[str]] = None
@@ -24,21 +29,21 @@ class HybridOptions:
 
 
 @dataclass
-class GetOptions:
+class GetOptions(Options):
     limit: Optional[int] = None
     offset: Optional[int] = None
     after: Optional[UUID] = None
 
 
 @dataclass
-class BM25Options:
+class BM25Options(Options):
     properties: Optional[List[str]] = None
     limit: Optional[int] = None
     autocut: Optional[int] = None
 
 
 @dataclass
-class NearMediaOptions:
+class NearMediaOptions(Options):
     certainty: Optional[float] = None
     distance: Optional[float] = None
     autocut: Optional[int] = None
