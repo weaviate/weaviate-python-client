@@ -1812,21 +1812,30 @@ def _clean_delete_objects_where(where: dict) -> dict:
     dict
         The Weaviate-defined where filter.
     """
-    py_value_type = _find_value_type(where)
-    weaviate_value_type = _convert_value_type(py_value_type)
-    if "operator" not in where:
-        raise ValueError("Where filter is missing required field `operator`." f" Given: {where}")
-    if where["operator"] not in WHERE_OPERATORS:
+    if "path" in where:
+        py_value_type = _find_value_type(where)
+        weaviate_value_type = _convert_value_type(py_value_type)
+        if "operator" not in where:
+            raise ValueError(
+                "Where filter is missing required field `operator`." f" Given: {where}"
+            )
+        if where["operator"] not in WHERE_OPERATORS:
+            raise ValueError(
+                f"Operator {where['operator']} is not allowed. "
+                f"Allowed operators are: {WHERE_OPERATORS}"
+            )
+        operator = where["operator"]
+        if "Contains" in operator and "Array" not in weaviate_value_type:
+            raise ValueError(
+                f"Operator '{operator}' is not supported for value type '{weaviate_value_type}'. Supported value types are: {VALUE_ARRAY_TYPES}"
+            )
+        where[weaviate_value_type] = where.pop(py_value_type)
+    elif "operands" in where:
+        where["operands"] = [_clean_delete_objects_where(operand) for operand in where["operands"]]
+    else:
         raise ValueError(
-            f"Operator {where['operator']} is not allowed. "
-            f"Allowed operators are: {WHERE_OPERATORS}"
+            "Where is missing required fields `path` or `operands`." f" Given: {where}"
         )
-    operator = where["operator"]
-    if "Contains" in operator and "Array" not in weaviate_value_type:
-        raise ValueError(
-            f"Operator '{operator}' is not supported for value type '{weaviate_value_type}'. Supported value types are: {VALUE_ARRAY_TYPES}"
-        )
-    where[weaviate_value_type] = where.pop(py_value_type)
     return where
 
 
