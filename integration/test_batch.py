@@ -181,7 +181,7 @@ def test_delete_objects_successes(client: weaviate.Client, objs: List[dict], whe
             batch.add_data_object(data_object=obj, class_name="Test")
 
     with client.batch as batch:
-        res = batch.delete_objects(
+        batch.delete_objects(
             "Test",
             where=where,
         )
