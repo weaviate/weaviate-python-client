@@ -1,8 +1,7 @@
 import sys
+import uuid as uuid_package
 from dataclasses import dataclass
 from typing import Any, Dict, Generic, List, Optional, Union
-
-import uuid as uuid_package
 
 from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate_grpc import weaviate_pb2
@@ -171,7 +170,7 @@ def _extract_properties_from_data_model(type_: Properties) -> PROPERTIES:
     ]
 
 
-def _get_consistency_level(consistency_level) -> Optional[weaviate_pb2.ConsistencyLevel]:
+def _get_consistency_level(consistency_level) -> Optional["weaviate_pb2.ConsistencyLevel"]:
     if consistency_level is None:
         return None
 
