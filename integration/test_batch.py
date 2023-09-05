@@ -185,9 +185,7 @@ def test_delete_objects_successes(client: weaviate.Client, objs: List[dict], whe
             "Test",
             where=where,
         )
-
     res = client.data_object.get()
-
     names = [obj["properties"]["name"] for obj in res["objects"]]
     for obj in objs:
         assert obj.get("name") not in names
