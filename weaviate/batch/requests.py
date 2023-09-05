@@ -65,7 +65,7 @@ class BatchRequest(ABC):
         return self._items.pop(index)
 
     @abstractmethod
-    def add(self, *args, **kwargs):
+    def add(self, *args, **kwargs):  # type: ignore
         """Add objects to BatchRequest."""
 
     @abstractmethod

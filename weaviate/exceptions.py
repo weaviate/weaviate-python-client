@@ -84,7 +84,7 @@ class ResponseCannotBeDecodedException(WeaviateBaseError):
         response: requests.Response
             The request response of which the status code was unexpected.
         """
-        msg = f"Cannot decode response from weaviate {response} with content {response.content} for request from {location}"
+        msg = f"Cannot decode response from weaviate {response} with content {response.text} for request from {location}"
         super().__init__(msg)
         self._status_code: int = response.status_code
 

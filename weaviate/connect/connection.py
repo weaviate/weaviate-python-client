@@ -8,7 +8,7 @@ import os
 import socket
 import time
 from threading import Thread, Event
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 from urllib.parse import urlparse
 
 import requests
@@ -46,7 +46,7 @@ try:
 except ImportError:
     has_grpc = False
 
-
+JSONPayload = Union[dict, list]
 Session = Union[requests.sessions.Session, OAuth2Session]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBERS, NUMBERS]
 PYPI_TIMEOUT = 1
@@ -255,11 +255,11 @@ class Connection:
         if "authorization" in self._headers:
             return self._headers["authorization"]
         elif isinstance(self._session, OAuth2Session):
-            return "Bearer " + self._session.token["access_token"]
+            return f"Bearer {self._session.token['access_token']}"
 
         return ""
 
-    def _add_adapter_to_session(self, connection_config: ConnectionConfig):
+    def _add_adapter_to_session(self, connection_config: ConnectionConfig) -> None:
         adapter = HTTPAdapter(
             pool_connections=connection_config.session_pool_connections,
             pool_maxsize=connection_config.session_pool_maxsize,
@@ -267,12 +267,13 @@ class Connection:
         self._session.mount("http://", adapter)
         self._session.mount("https://", adapter)
 
-    def _create_background_token_refresh(self, _auth: Optional[_Auth] = None):
+    def _create_background_token_refresh(self, _auth: Optional[_Auth] = None) -> None:
         """Create a background thread that periodically refreshes access and refresh tokens.
 
         While the underlying library refreshes tokens, it does not have an internal cronjob that checks every
         X-seconds if a token has expired. If there is no activity for longer than the refresh tokens lifetime, it will
         expire. Therefore, refresh manually shortly before expiration time is up."""
+        assert isinstance(self._session, OAuth2Session)
         if "refresh_token" not in self._session.token and _auth is None:
             return
 
@@ -281,9 +282,12 @@ class Connection:
         )  # use 1minute as token lifetime if not supplied
         self._shutdown_background_event = Event()
 
-        def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]):
+        def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]) -> None:
             time.sleep(max(refresh_time - 30, 1))
-            while not self._shutdown_background_event.is_set():
+            while (
+                self._shutdown_background_event is not None
+                and not self._shutdown_background_event.is_set()
+            ):
                 # use refresh token when available
                 try:
                     if "refresh_token" in self._session.token:
@@ -313,7 +317,7 @@ class Connection:
         )
         demon.start()
 
-    def close(self):
+    def close(self) -> None:
         """Shutdown connection class gracefully."""
         # in case an exception happens before definition of these members
         if (
@@ -338,7 +342,7 @@ class Connection:
     def delete(
         self,
         path: str,
-        weaviate_object: dict = None,
+        weaviate_object: Optional[JSONPayload] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """
@@ -380,7 +384,7 @@ class Connection:
     def patch(
         self,
         path: str,
-        weaviate_object: dict,
+        weaviate_object: JSONPayload,
         params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """
@@ -421,7 +425,7 @@ class Connection:
     def post(
         self,
         path: str,
-        weaviate_object: Union[List[dict], dict],
+        weaviate_object: JSONPayload,
         params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """
@@ -464,7 +468,7 @@ class Connection:
     def put(
         self,
         path: str,
-        weaviate_object: dict,
+        weaviate_object: JSONPayload,
         params: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """
@@ -605,7 +609,7 @@ class Connection:
         return self._timeout_config
 
     @timeout_config.setter
-    def timeout_config(self, timeout_config: TIMEOUT_TYPE_RETURN):
+    def timeout_config(self, timeout_config: TIMEOUT_TYPE_RETURN) -> None:
         """
         Setter for `timeout_config`. (docstring should be only in the Getter)
         """
@@ -616,7 +620,7 @@ class Connection:
     def proxies(self) -> dict:
         return self._proxies
 
-    def wait_for_weaviate(self, startup_period: Optional[int]):
+    def wait_for_weaviate(self, startup_period: Optional[int]) -> None:
         """
         Waits until weaviate is ready or the timelimit given in 'startup_period' has passed.
 
@@ -632,7 +636,7 @@ class Connection:
         """
 
         ready_url = self.url + self._api_version_path + "/.well-known/ready"
-        for _i in range(startup_period):
+        for _i in range(startup_period or 30):
             try:
                 requests.get(ready_url, headers=self._get_request_header()).raise_for_status()
                 return
@@ -663,7 +667,9 @@ class Connection:
         Returns the meta endpoint.
         """
         response = self.get(path="/meta")
-        return _decode_json_response_dict(response, "Meta endpoint")
+        res = _decode_json_response_dict(response, "Meta endpoint")
+        assert res is not None
+        return res
 
 
 def _get_epoch_time() -> int:

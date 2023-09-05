@@ -2,7 +2,7 @@
 ConfigBuilder class definition.
 """
 import time
-from typing import Dict, Any, cast
+from typing import Dict, Any, cast, TYPE_CHECKING
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -10,13 +10,16 @@ from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 
+if TYPE_CHECKING:
+    from .classification import Classification
+
 
 class ConfigBuilder:
     """
     ConfigBuild class that is used to configure a classification process.
     """
 
-    def __init__(self, connection: Connection, classification: "Classification"):  # type: ignore # noqa
+    def __init__(self, connection: Connection, classification: "Classification"):
         """
         Initialize a ConfigBuilder class instance.
 
