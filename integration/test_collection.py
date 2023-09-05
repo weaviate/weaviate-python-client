@@ -1,11 +1,10 @@
 import datetime
 import sys
+from dataclasses import dataclass
+from typing import Dict, List, Optional, TypedDict, Union
 
 import pytest as pytest
 import uuid
-
-from dataclasses import dataclass
-from typing import Dict, List, Optional, TypedDict, Union
 
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated
@@ -18,8 +17,6 @@ from pydantic.dataclasses import dataclass as pydantic_dataclass
 import weaviate
 from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_ENCODED
 from weaviate import Config
-from weaviate.collection.collection import CollectionObject
-from weaviate.collection.data import _DataCollection
 from weaviate.collection.classes.config import (
     BM25ConfigUpdate,
     CollectionConfig,
@@ -50,6 +47,8 @@ from weaviate.collection.classes.grpc import NearImageOptions, NearTextOptions, 
 from weaviate.collection.classes.internal import Reference
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.exceptions import WeaviateGRPCException
+from weaviate.collection.collection import CollectionObject
+from weaviate.collection.data import _DataCollection
 from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery, Move
 from weaviate.exceptions import InvalidDataModelException
 from weaviate.weaviate_types import UUID
@@ -1497,7 +1496,7 @@ def test_return_properties_with_typed_dict(client: weaviate.Client, which_case: 
     collection = client.collection.create(
         CollectionConfig(
             name=name,
-            vectorizer=Vectorizer.NONE,
+            vectorizer_config=VectorizerFactory.none(),
             properties=[
                 Property(name="int_", data_type=DataType.INT),
                 Property(name="ints", data_type=DataType.INT_ARRAY),
@@ -1540,4 +1539,4 @@ def test_return_properties_with_typed_dict(client: weaviate.Client, which_case: 
             non_existant: str
 
         with pytest.raises(WeaviateGRPCException):
-            objects = collection.query.get_flat(return_properties=DataModel)
+            collection.query.get_flat(return_properties=DataModel)

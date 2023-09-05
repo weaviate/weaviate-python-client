@@ -3,6 +3,7 @@ from typing import Type, Optional, Any, Dict, Generic, Tuple
 from pydantic import create_model
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
+from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.classes.orm import (
     BaseProperty,
     CollectionModelConfig,
@@ -15,7 +16,6 @@ from weaviate.collection.data import _DataCollectionModel
 from weaviate.collection.grpc import _GrpcCollectionModel
 from weaviate.collection.tenants import _Tenants
 from weaviate.connect import Connection
-from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _capitalize_first_letter
 from weaviate.weaviate_types import PYTHON_TYPE_TO_DATATYPE
@@ -36,7 +36,7 @@ class CollectionObjectModel(Generic[Model]):
 
         self.config = config
         self.data = _DataCollectionModel[Model](connection, name, model, consistency_level, tenant)
-        self.query = _GrpcCollectionModel[Model](connection, name, model, tenant)
+        self.query = _GrpcCollectionModel[Model](connection, name, model, tenant, consistency_level)
         self.tenants = _Tenants(connection, name)
 
         self.__consistency_level = consistency_level

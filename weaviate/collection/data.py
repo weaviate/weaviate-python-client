@@ -12,11 +12,11 @@ from typing import (
     get_type_hints,
     get_origin,
 )
-from typing_extensions import is_typeddict
 
 import uuid as uuid_package
 from google.protobuf.struct_pb2 import Struct
 from requests.exceptions import ConnectionError as RequestsConnectionError
+from typing_extensions import is_typeddict
 
 from weaviate.collection.classes.data import (
     BatchReference,
@@ -57,7 +57,7 @@ class _Data:
         self.name = name
         self._consistency_level = consistency_level
         self._tenant = tenant
-        self._batch = _BatchGRPC(connection)
+        self._batch = _BatchGRPC(connection, consistency_level)
 
     def _insert(self, weaviate_obj: Dict[str, Any]) -> uuid_package.UUID:
         path = "/objects"

@@ -8,11 +8,24 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
+class ConsistencyLevel(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = []
+    CONSISTENCY_LEVEL_UNSPECIFIED: _ClassVar[ConsistencyLevel]
+    CONSISTENCY_LEVEL_ONE: _ClassVar[ConsistencyLevel]
+    CONSISTENCY_LEVEL_QUORUM: _ClassVar[ConsistencyLevel]
+    CONSISTENCY_LEVEL_ALL: _ClassVar[ConsistencyLevel]
+CONSISTENCY_LEVEL_UNSPECIFIED: ConsistencyLevel
+CONSISTENCY_LEVEL_ONE: ConsistencyLevel
+CONSISTENCY_LEVEL_QUORUM: ConsistencyLevel
+CONSISTENCY_LEVEL_ALL: ConsistencyLevel
+
 class BatchObjectsRequest(_message.Message):
-    __slots__ = ["objects"]
+    __slots__ = ["objects", "consistency_level"]
     OBJECTS_FIELD_NUMBER: _ClassVar[int]
+    CONSISTENCY_LEVEL_FIELD_NUMBER: _ClassVar[int]
     objects: _containers.RepeatedCompositeFieldContainer[BatchObject]
-    def __init__(self, objects: _Optional[_Iterable[_Union[BatchObject, _Mapping]]] = ...) -> None: ...
+    consistency_level: ConsistencyLevel
+    def __init__(self, objects: _Optional[_Iterable[_Union[BatchObject, _Mapping]]] = ..., consistency_level: _Optional[_Union[ConsistencyLevel, str]] = ...) -> None: ...
 
 class BatchObject(_message.Message):
     __slots__ = ["uuid", "vector", "properties", "class_name", "tenant"]
@@ -69,7 +82,7 @@ class BatchObjectsReply(_message.Message):
     def __init__(self, results: _Optional[_Iterable[_Union[BatchObjectsReply.BatchResults, _Mapping]]] = ..., took: _Optional[float] = ...) -> None: ...
 
 class SearchRequest(_message.Message):
-    __slots__ = ["class_name", "limit", "additional_properties", "near_vector", "near_object", "properties", "hybrid_search", "bm25_search", "offset", "autocut", "after", "tenant", "filters", "near_text", "near_image", "near_audio", "near_video"]
+    __slots__ = ["class_name", "limit", "additional_properties", "near_vector", "near_object", "properties", "hybrid_search", "bm25_search", "offset", "autocut", "after", "tenant", "filters", "near_text", "near_image", "near_audio", "near_video", "consistency_level"]
     CLASS_NAME_FIELD_NUMBER: _ClassVar[int]
     LIMIT_FIELD_NUMBER: _ClassVar[int]
     ADDITIONAL_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
@@ -87,6 +100,7 @@ class SearchRequest(_message.Message):
     NEAR_IMAGE_FIELD_NUMBER: _ClassVar[int]
     NEAR_AUDIO_FIELD_NUMBER: _ClassVar[int]
     NEAR_VIDEO_FIELD_NUMBER: _ClassVar[int]
+    CONSISTENCY_LEVEL_FIELD_NUMBER: _ClassVar[int]
     class_name: str
     limit: int
     additional_properties: AdditionalProperties
@@ -104,7 +118,8 @@ class SearchRequest(_message.Message):
     near_image: NearImageSearchParams
     near_audio: NearAudioSearchParams
     near_video: NearVideoSearchParams
-    def __init__(self, class_name: _Optional[str] = ..., limit: _Optional[int] = ..., additional_properties: _Optional[_Union[AdditionalProperties, _Mapping]] = ..., near_vector: _Optional[_Union[NearVectorParams, _Mapping]] = ..., near_object: _Optional[_Union[NearObjectParams, _Mapping]] = ..., properties: _Optional[_Union[Properties, _Mapping]] = ..., hybrid_search: _Optional[_Union[HybridSearchParams, _Mapping]] = ..., bm25_search: _Optional[_Union[BM25SearchParams, _Mapping]] = ..., offset: _Optional[int] = ..., autocut: _Optional[int] = ..., after: _Optional[str] = ..., tenant: _Optional[str] = ..., filters: _Optional[_Union[Filters, _Mapping]] = ..., near_text: _Optional[_Union[NearTextSearchParams, _Mapping]] = ..., near_image: _Optional[_Union[NearImageSearchParams, _Mapping]] = ..., near_audio: _Optional[_Union[NearAudioSearchParams, _Mapping]] = ..., near_video: _Optional[_Union[NearVideoSearchParams, _Mapping]] = ...) -> None: ...
+    consistency_level: ConsistencyLevel
+    def __init__(self, class_name: _Optional[str] = ..., limit: _Optional[int] = ..., additional_properties: _Optional[_Union[AdditionalProperties, _Mapping]] = ..., near_vector: _Optional[_Union[NearVectorParams, _Mapping]] = ..., near_object: _Optional[_Union[NearObjectParams, _Mapping]] = ..., properties: _Optional[_Union[Properties, _Mapping]] = ..., hybrid_search: _Optional[_Union[HybridSearchParams, _Mapping]] = ..., bm25_search: _Optional[_Union[BM25SearchParams, _Mapping]] = ..., offset: _Optional[int] = ..., autocut: _Optional[int] = ..., after: _Optional[str] = ..., tenant: _Optional[str] = ..., filters: _Optional[_Union[Filters, _Mapping]] = ..., near_text: _Optional[_Union[NearTextSearchParams, _Mapping]] = ..., near_image: _Optional[_Union[NearImageSearchParams, _Mapping]] = ..., near_audio: _Optional[_Union[NearAudioSearchParams, _Mapping]] = ..., near_video: _Optional[_Union[NearVideoSearchParams, _Mapping]] = ..., consistency_level: _Optional[_Union[ConsistencyLevel, str]] = ...) -> None: ...
 
 class TextArray(_message.Message):
     __slots__ = ["vals"]
@@ -117,57 +132,6 @@ class IntArray(_message.Message):
     VALS_FIELD_NUMBER: _ClassVar[int]
     vals: _containers.RepeatedScalarFieldContainer[int]
     def __init__(self, vals: _Optional[_Iterable[int]] = ...) -> None: ...
-
-class IntArrayProperties(_message.Message):
-    __slots__ = ["key", "vals"]
-    KEY_FIELD_NUMBER: _ClassVar[int]
-    VALS_FIELD_NUMBER: _ClassVar[int]
-    key: str
-    vals: _containers.RepeatedScalarFieldContainer[int]
-    def __init__(self, key: _Optional[str] = ..., vals: _Optional[_Iterable[int]] = ...) -> None: ...
-
-class NearObjectParams(_message.Message):
-    __slots__ = ["certainty", "distance", "id"]
-    CERTAINTY_FIELD_NUMBER: _ClassVar[int]
-    DISTANCE_FIELD_NUMBER: _ClassVar[int]
-    ID_FIELD_NUMBER: _ClassVar[int]
-    certainty: float
-    distance: float
-    id: str
-    def __init__(self, id: _Optional[str] = ..., certainty: _Optional[float] = ..., distance: _Optional[float] = ...) -> None: ...
-
-class NearTextSearchParams(_message.Message):
-    __slots__ = ["certainty", "distance", "move_away", "move_to", "query"]
-    class Move(_message.Message):
-        __slots__ = ["concepts", "force", "uuids"]
-        CONCEPTS_FIELD_NUMBER: _ClassVar[int]
-        FORCE_FIELD_NUMBER: _ClassVar[int]
-        UUIDS_FIELD_NUMBER: _ClassVar[int]
-        concepts: _containers.RepeatedScalarFieldContainer[str]
-        force: float
-        uuids: _containers.RepeatedScalarFieldContainer[str]
-        def __init__(self, force: _Optional[float] = ..., concepts: _Optional[_Iterable[str]] = ..., uuids: _Optional[_Iterable[str]] = ...) -> None: ...
-    CERTAINTY_FIELD_NUMBER: _ClassVar[int]
-    DISTANCE_FIELD_NUMBER: _ClassVar[int]
-    MOVE_AWAY_FIELD_NUMBER: _ClassVar[int]
-    MOVE_TO_FIELD_NUMBER: _ClassVar[int]
-    QUERY_FIELD_NUMBER: _ClassVar[int]
-    certainty: float
-    distance: float
-    move_away: NearTextSearchParams.Move
-    move_to: NearTextSearchParams.Move
-    query: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, query: _Optional[_Iterable[str]] = ..., certainty: _Optional[float] = ..., distance: _Optional[float] = ..., move_to: _Optional[_Union[NearTextSearchParams.Move, _Mapping]] = ..., move_away: _Optional[_Union[NearTextSearchParams.Move, _Mapping]] = ...) -> None: ...
-
-class NearVectorParams(_message.Message):
-    __slots__ = ["certainty", "distance", "vector"]
-    CERTAINTY_FIELD_NUMBER: _ClassVar[int]
-    DISTANCE_FIELD_NUMBER: _ClassVar[int]
-    VECTOR_FIELD_NUMBER: _ClassVar[int]
-    certainty: float
-    distance: float
-    vector: _containers.RepeatedScalarFieldContainer[float]
-    def __init__(self, vector: _Optional[_Iterable[float]] = ..., certainty: _Optional[float] = ..., distance: _Optional[float] = ...) -> None: ...
 
 class NumberArray(_message.Message):
     __slots__ = ["vals"]
@@ -248,7 +212,7 @@ class Filters(_message.Message):
     def __init__(self, operator: _Optional[_Union[Filters.Operator, str]] = ..., on: _Optional[_Iterable[str]] = ..., filters: _Optional[_Iterable[_Union[Filters, _Mapping]]] = ..., value_text: _Optional[str] = ..., value_int: _Optional[int] = ..., value_boolean: bool = ..., value_number: _Optional[float] = ..., value_date: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., value_text_array: _Optional[_Union[TextArray, _Mapping]] = ..., value_int_array: _Optional[_Union[IntArray, _Mapping]] = ..., value_boolean_array: _Optional[_Union[BooleanArray, _Mapping]] = ..., value_number_array: _Optional[_Union[NumberArray, _Mapping]] = ..., value_date_array: _Optional[_Union[DateArray, _Mapping]] = ...) -> None: ...
 
 class AdditionalProperties(_message.Message):
-    __slots__ = ["uuid", "vector", "creationTimeUnix", "lastUpdateTimeUnix", "distance", "certainty", "score", "explainScore"]
+    __slots__ = ["uuid", "vector", "creationTimeUnix", "lastUpdateTimeUnix", "distance", "certainty", "score", "explainScore", "is_consistent"]
     UUID_FIELD_NUMBER: _ClassVar[int]
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     CREATIONTIMEUNIX_FIELD_NUMBER: _ClassVar[int]
@@ -257,6 +221,7 @@ class AdditionalProperties(_message.Message):
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     SCORE_FIELD_NUMBER: _ClassVar[int]
     EXPLAINSCORE_FIELD_NUMBER: _ClassVar[int]
+    IS_CONSISTENT_FIELD_NUMBER: _ClassVar[int]
     uuid: bool
     vector: bool
     creationTimeUnix: bool
@@ -265,7 +230,8 @@ class AdditionalProperties(_message.Message):
     certainty: bool
     score: bool
     explainScore: bool
-    def __init__(self, uuid: bool = ..., vector: bool = ..., creationTimeUnix: bool = ..., lastUpdateTimeUnix: bool = ..., distance: bool = ..., certainty: bool = ..., score: bool = ..., explainScore: bool = ...) -> None: ...
+    is_consistent: bool
+    def __init__(self, uuid: bool = ..., vector: bool = ..., creationTimeUnix: bool = ..., lastUpdateTimeUnix: bool = ..., distance: bool = ..., certainty: bool = ..., score: bool = ..., explainScore: bool = ..., is_consistent: bool = ...) -> None: ...
 
 class Properties(_message.Message):
     __slots__ = ["non_ref_properties", "ref_properties"]
@@ -398,38 +364,6 @@ class SearchReply(_message.Message):
     took: float
     def __init__(self, results: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ..., took: _Optional[float] = ...) -> None: ...
 
-class SearchRequest(_message.Message):
-    __slots__ = ["additional_properties", "after", "autocut", "bm25_search", "class_name", "filters", "hybrid_search", "limit", "near_object", "near_text", "near_vector", "offset", "properties", "tenant"]
-    ADDITIONAL_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
-    AFTER_FIELD_NUMBER: _ClassVar[int]
-    AUTOCUT_FIELD_NUMBER: _ClassVar[int]
-    BM25_SEARCH_FIELD_NUMBER: _ClassVar[int]
-    CLASS_NAME_FIELD_NUMBER: _ClassVar[int]
-    FILTERS_FIELD_NUMBER: _ClassVar[int]
-    HYBRID_SEARCH_FIELD_NUMBER: _ClassVar[int]
-    LIMIT_FIELD_NUMBER: _ClassVar[int]
-    NEAR_OBJECT_FIELD_NUMBER: _ClassVar[int]
-    NEAR_TEXT_FIELD_NUMBER: _ClassVar[int]
-    NEAR_VECTOR_FIELD_NUMBER: _ClassVar[int]
-    OFFSET_FIELD_NUMBER: _ClassVar[int]
-    PROPERTIES_FIELD_NUMBER: _ClassVar[int]
-    TENANT_FIELD_NUMBER: _ClassVar[int]
-    additional_properties: AdditionalProperties
-    after: str
-    autocut: int
-    bm25_search: BM25SearchParams
-    class_name: str
-    filters: Filters
-    hybrid_search: HybridSearchParams
-    limit: int
-    near_object: NearObjectParams
-    near_text: NearTextSearchParams
-    near_vector: NearVectorParams
-    offset: int
-    properties: Properties
-    tenant: str
-    def __init__(self, class_name: _Optional[str] = ..., limit: _Optional[int] = ..., additional_properties: _Optional[_Union[AdditionalProperties, _Mapping]] = ..., near_vector: _Optional[_Union[NearVectorParams, _Mapping]] = ..., near_object: _Optional[_Union[NearObjectParams, _Mapping]] = ..., properties: _Optional[_Union[Properties, _Mapping]] = ..., hybrid_search: _Optional[_Union[HybridSearchParams, _Mapping]] = ..., bm25_search: _Optional[_Union[BM25SearchParams, _Mapping]] = ..., offset: _Optional[int] = ..., autocut: _Optional[int] = ..., after: _Optional[str] = ..., tenant: _Optional[str] = ..., filters: _Optional[_Union[Filters, _Mapping]] = ..., near_text: _Optional[_Union[NearTextSearchParams, _Mapping]] = ...) -> None: ...
-
 class SearchResult(_message.Message):
     __slots__ = ["properties", "additional_properties"]
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
@@ -439,7 +373,7 @@ class SearchResult(_message.Message):
     def __init__(self, properties: _Optional[_Union[ResultProperties, _Mapping]] = ..., additional_properties: _Optional[_Union[ResultAdditionalProps, _Mapping]] = ...) -> None: ...
 
 class ResultAdditionalProps(_message.Message):
-    __slots__ = ["id", "vector", "creation_time_unix", "creation_time_unix_present", "last_update_time_unix", "last_update_time_unix_present", "distance", "distance_present", "certainty", "certainty_present", "score", "score_present", "explain_score", "explain_score_present"]
+    __slots__ = ["id", "vector", "creation_time_unix", "creation_time_unix_present", "last_update_time_unix", "last_update_time_unix_present", "distance", "distance_present", "certainty", "certainty_present", "score", "score_present", "explain_score", "explain_score_present", "is_consistent"]
     ID_FIELD_NUMBER: _ClassVar[int]
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     CREATION_TIME_UNIX_FIELD_NUMBER: _ClassVar[int]
@@ -454,6 +388,7 @@ class ResultAdditionalProps(_message.Message):
     SCORE_PRESENT_FIELD_NUMBER: _ClassVar[int]
     EXPLAIN_SCORE_FIELD_NUMBER: _ClassVar[int]
     EXPLAIN_SCORE_PRESENT_FIELD_NUMBER: _ClassVar[int]
+    IS_CONSISTENT_FIELD_NUMBER: _ClassVar[int]
     id: str
     vector: _containers.RepeatedScalarFieldContainer[float]
     creation_time_unix: int
@@ -468,7 +403,8 @@ class ResultAdditionalProps(_message.Message):
     score_present: bool
     explain_score: str
     explain_score_present: bool
-    def __init__(self, id: _Optional[str] = ..., vector: _Optional[_Iterable[float]] = ..., creation_time_unix: _Optional[int] = ..., creation_time_unix_present: bool = ..., last_update_time_unix: _Optional[int] = ..., last_update_time_unix_present: bool = ..., distance: _Optional[float] = ..., distance_present: bool = ..., certainty: _Optional[float] = ..., certainty_present: bool = ..., score: _Optional[float] = ..., score_present: bool = ..., explain_score: _Optional[str] = ..., explain_score_present: bool = ...) -> None: ...
+    is_consistent: bool
+    def __init__(self, id: _Optional[str] = ..., vector: _Optional[_Iterable[float]] = ..., creation_time_unix: _Optional[int] = ..., creation_time_unix_present: bool = ..., last_update_time_unix: _Optional[int] = ..., last_update_time_unix_present: bool = ..., distance: _Optional[float] = ..., distance_present: bool = ..., certainty: _Optional[float] = ..., certainty_present: bool = ..., score: _Optional[float] = ..., score_present: bool = ..., explain_score: _Optional[str] = ..., explain_score_present: bool = ..., is_consistent: bool = ...) -> None: ...
 
 class NumberArrayProperties(_message.Message):
     __slots__ = ["key", "vals"]

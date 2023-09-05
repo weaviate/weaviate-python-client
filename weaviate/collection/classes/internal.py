@@ -3,6 +3,9 @@ import uuid as uuid_package
 from dataclasses import dataclass
 from typing import Any, Dict, Generic, List, Optional, Tuple, Type, Union, cast
 
+from weaviate.collection.classes.config import ConsistencyLevel
+from weaviate_grpc import weaviate_pb2
+
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated, get_type_hints, get_origin
 else:
@@ -180,3 +183,16 @@ def _extract_properties_from_data_model(type_: Type[Properties]) -> PROPERTIES:
         )
         for key, value in get_type_hints(type_, include_extras=True).items()
     ]
+
+
+def _get_consistency_level(consistency_level) -> Optional["weaviate_pb2.ConsistencyLevel"]:
+    if consistency_level is None:
+        return None
+
+    if consistency_level == ConsistencyLevel.ONE:
+        return weaviate_pb2.ConsistencyLevel.CONSISTENCY_LEVEL_ONE
+    elif consistency_level == ConsistencyLevel.QUORUM:
+        return weaviate_pb2.ConsistencyLevel.CONSISTENCY_LEVEL_QUORUM
+    else:
+        assert consistency_level == ConsistencyLevel.ALL
+        return weaviate_pb2.ConsistencyLevel.CONSISTENCY_LEVEL_ALL

@@ -9,8 +9,14 @@ from pydantic import (
     model_validator,
 )
 
-from weaviate.warnings import _Warnings
 from weaviate.util import _capitalize_first_letter
+from weaviate.warnings import _Warnings
+
+
+class ConsistencyLevel(str, Enum):
+    ALL = "ALL"
+    ONE = "ONE"
+    QUORUM = "QUORUM"
 
 
 class DataType(str, Enum):
