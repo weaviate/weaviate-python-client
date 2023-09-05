@@ -132,6 +132,28 @@ def test_delete_objects(client: weaviate.Client):
     assert "four" in names
     assert "five" in names
 
+    with client.batch as batch:
+        batch.delete_objects(
+            "Test",
+            where={
+                "operator": "Or",
+                "operands": [
+                    {
+                        "path": ["name"],
+                        "operator": "Equal",
+                        "valueText": "four",
+                    },
+                    {
+                        "path": ["name"],
+                        "operator": "Equal",
+                        "valueText": "five",
+                    },
+                ],
+            },
+        )
+    res = client.data_object.get()
+    assert len(res["objects"]) == 0
+
     with pytest.raises(ValueError) as error:
         with client.batch as batch:
             batch.delete_objects(
