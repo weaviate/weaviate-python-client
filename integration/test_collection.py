@@ -1,10 +1,10 @@
 import datetime
 import sys
+import uuid
 from dataclasses import dataclass
 from typing import Dict, List, Optional, TypedDict, Union
 
 import pytest as pytest
-import uuid
 
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated
@@ -844,7 +844,7 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
             vectorizer_config=VectorizerFactory.none(),
         ),
     ).data.with_data_model(CProps)
-    C.insert(properties=CProps(name="find me", age=10, ref=Reference[BProps].to(uuids=uuid_B)))
+    C.insert(properties=CProps(name="find me", ref=Reference[BProps].to(uuids=uuid_B)))
 
     objects = client.collection.get("CTypedDicts").query.bm25_flat(
         query="find",
