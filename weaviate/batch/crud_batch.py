@@ -7,10 +7,24 @@ import threading
 import time
 import warnings
 from collections import deque
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, Future
 from dataclasses import dataclass
 from numbers import Real
-from typing import Tuple, Callable, Optional, Sequence, Union, List
+from typing import (
+    Any,
+    Callable,
+    Deque,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 
 from requests import ReadTimeout, Response
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -257,17 +271,17 @@ class Batch:
         self._objects_batch = ObjectsBatchRequest()
         self._reference_batch = ReferenceBatchRequest()
         # do not keep too many past values, so it is a better estimation of the throughput is computed for 1 second
-        self._objects_throughput_frame = deque(maxlen=5)
-        self._references_throughput_frame = deque(maxlen=5)
-        self._future_pool = []
-        self._reference_batch_queue = []
+        self._objects_throughput_frame: Deque[float] = deque(maxlen=5)
+        self._references_throughput_frame: Deque[float] = deque(maxlen=5)
+        self._future_pool: List[Future[Tuple[Response | None, int]]] = []
+        self._reference_batch_queue: List[ReferenceBatchRequest] = []
         self._callback_lock = threading.Lock()
 
         # user configurable, need to be public should implement a setter/getter
         self._callback: Optional[Callable[[BatchResponse], None]] = check_batch_result
         self._weaviate_error_retry: Optional[WeaviateErrorRetryConf] = None
         self._batch_size: Optional[int] = 50
-        self._creation_time = min(self._connection.timeout_config[1] / 10, 2)
+        self._creation_time = cast(Real, min(self._connection.timeout_config[1] / 10, 2))
         self._timeout_retries = 3
         self._connection_error_retries = 3
         self._batching_type: Optional[str] = "dynamic"
@@ -275,11 +289,11 @@ class Batch:
         self._recommended_num_references = self._batch_size
 
         self._num_workers = 1
-        self._consistency_level = None
+        self._consistency_level: Optional[Literal["ALL", "ONE", "QUORUM"]] = None
         # thread pool executor
         self._executor: Optional[BatchExecutor] = None
 
-    def __call__(self, **kwargs) -> "Batch":
+    def __call__(self, **kwargs: Any) -> "Batch":
         """
         WARNING: This method will be deprecated in the next major release. Use `configure` instead.
 
@@ -334,7 +348,7 @@ class Batch:
         timeout_retries: int = 3,
         connection_error_retries: int = 3,
         weaviate_error_retries: Optional[WeaviateErrorRetryConf] = None,
-        callback: Optional[Callable[[dict], None]] = check_batch_result,
+        callback: Optional[Callable[[List[dict]], None]] = check_batch_result,
         dynamic: bool = True,
         num_workers: int = 1,
         consistency_level: Optional[ConsistencyLevel] = None,
@@ -393,7 +407,7 @@ class Batch:
             _check_positive_num(creation_time, "creation_time", Real)
             self._creation_time = creation_time
         else:
-            self._creation_time = min(self._connection.timeout_config[1] / 10, 2)
+            self._creation_time = cast(Real, min(self._connection.timeout_config[1] / 10, 2))
 
         _check_non_negative(timeout_retries, "timeout_retries", int)
         _check_non_negative(connection_error_retries, "connection_error_retries", int)
@@ -433,13 +447,16 @@ class Batch:
         self._auto_create()
         return self
 
-    def _update_recommended_batch_size(self):
+    def _update_recommended_batch_size(self) -> None:
         """Create a background thread that periodically checks how congested the batch queue is."""
         self._shutdown_background_event = threading.Event()
 
-        def periodic_check():
+        def periodic_check() -> None:
             cluster = Cluster(self._connection)
-            while not self._shutdown_background_event.is_set():
+            while (
+                self._shutdown_background_event is not None
+                and not self._shutdown_background_event.is_set()
+            ):
                 try:
                     status = cluster.get_nodes_status()
                     if "stats" not in status[0] or "ratePerSecond" not in status[0]["stats"]:
@@ -468,7 +485,7 @@ class Batch:
                         else:  # way too high, stop sending new batches
                             self._recommended_num_objects = 0
 
-                    refresh_time = 2
+                    refresh_time: Union[float, int] = 2
                 except (RequestsHTTPError, ReadTimeout):
                     refresh_time = 0.1
 
@@ -652,7 +669,7 @@ class Batch:
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
-        params = {}
+        params: Dict[str, str] = {}
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level
 
@@ -691,6 +708,7 @@ class Batch:
                     connection_count += 1
                 else:
                     response_json = _decode_json_response_list(response, "batch response")
+                    assert response_json is not None
                     if (
                         self._weaviate_error_retry is not None
                         and batch_error_count < self._weaviate_error_retry.number_retries
@@ -721,7 +739,7 @@ class Batch:
             return response
         raise UnexpectedStatusCodeException(f"Create {data_type} in batch", response)
 
-    def _run_callback(self, response: BatchResponse):
+    def _run_callback(self, response: BatchResponse) -> None:
         if self._callback is None:
             return
         # We don't know if user-supplied functions are threadsafe
@@ -748,8 +766,10 @@ class Batch:
         """
 
         if data_type == "objects":
+            assert isinstance(batch_request, ObjectsBatchRequest)
             return self._readd_objects_after_timeout(batch_request)
         else:
+            assert isinstance(batch_request, ReferenceBatchRequest)
             return self._readd_references_after_timeout(batch_request)
 
     def _readd_objects_after_timeout(
@@ -792,6 +812,7 @@ class Batch:
             )
 
             obj_weav = _decode_json_response_dict(response, "Re-add objects")
+            assert obj_weav is not None
             if obj_weav["properties"] != obj["properties"] or obj.get(
                 "vector", None
             ) != obj_weav.get("vector", None):
@@ -935,7 +956,9 @@ class Batch:
 
             self._recommended_num_objects = max(round(obj_per_second * self._creation_time), 1)
 
-            return _decode_json_response_list(response, "batch add objects")
+            res = _decode_json_response_list(response, "batch add objects")
+            assert res is not None
+            return res
         return []
 
     def create_references(self) -> list:
@@ -1030,7 +1053,9 @@ class Batch:
 
             self._recommended_num_references = round(ref_per_sec * self._creation_time)
 
-            return _decode_json_response_list(response, "Create references")
+            res = _decode_json_response_list(response, "Create references")
+            assert res is not None
+            return res
         return []
 
     def _flush_in_thread(
@@ -1092,6 +1117,7 @@ class Batch:
             )
             self.start()
 
+        assert self._executor is not None
         future = self._executor.submit(
             self._flush_in_thread,
             data_type="objects",
@@ -1188,6 +1214,7 @@ class Batch:
 
         # greater or equal in case the self._batch_size is changed manually
         if self._batching_type == "fixed":
+            assert self._batch_size is not None
             if sum(self.shape) >= self._batch_size:
                 self._send_batch_requests(force_wait=False)
             return
@@ -1302,7 +1329,7 @@ class Batch:
         if not isinstance(dry_run, bool):
             raise TypeError(f"'dry_run' must be of type bool. Given type: {type(dry_run)}.")
 
-        params = {}
+        params: Dict[str, str] = {}
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level
         if tenant is not None:
@@ -1325,7 +1352,9 @@ class Batch:
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Batch delete was not successful.") from conn_err
-        return _decode_json_response_dict(response, "Delete in batch")
+        res = _decode_json_response_dict(response, "Delete in batch")
+        assert res is not None
+        return res
 
     def num_objects(self) -> int:
         """
@@ -1534,11 +1563,11 @@ class Batch:
         self._auto_create()
 
     @property
-    def consistency_level(self, value: Optional[Union[ConsistencyLevel, None]]) -> Union[str, None]:
+    def consistency_level(self) -> Union[str, None]:
         return self._consistency_level
 
     @consistency_level.setter
-    def consistency_level(self, x: Optional[Union[ConsistencyLevel, None]]) -> None:
+    def consistency_level(self, x: Optional[ConsistencyLevel]) -> None:
         self._consistency_level = ConsistencyLevel(x).value if x else None
 
     @property
@@ -1600,7 +1629,7 @@ class Batch:
     def __enter__(self) -> "Batch":
         return self.start()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.flush()
         self.shutdown()
 
@@ -1710,9 +1739,10 @@ class Batch:
         self, response: BatchResponse, data_type: str
     ) -> Tuple[BatchRequestType, BatchResponse]:
         if data_type == "objects":
-            new_batch = ObjectsBatchRequest()
+            new_batch: Union[ObjectsBatchRequest, ReferenceBatchRequest] = ObjectsBatchRequest()
         else:
             new_batch = ReferenceBatchRequest()
+        assert self._weaviate_error_retry is not None
         successful_responses = new_batch.add_failed_objects_from_response(
             response,
             self._weaviate_error_retry.errors_to_exclude,
@@ -1721,17 +1751,20 @@ class Batch:
         return new_batch, successful_responses
 
 
-def _check_non_negative(value: Real, arg_name: str, data_type: type) -> None:
+N = TypeVar("N", bound=Union[int, float, Real])
+
+
+def _check_non_negative(value: N, arg_name: str, data_type: Type[N]) -> None:
     """
     Check if the `value` of the `arg_name` is a non-negative number.
 
     Parameters
     ----------
-    value : Union[int, float]
+    value : N (int, float, Real)
         The value to check.
     arg_name : str
         The name of the variable from the original function call. Used for error message.
-    data_type : type
+    data_type : Type[N]
         The data type to check for.
 
     Raises

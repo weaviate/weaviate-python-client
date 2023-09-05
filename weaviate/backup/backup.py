@@ -118,6 +118,7 @@ class Backup:
             ) from conn_err
 
         create_status = _decode_json_response_dict(response, "Backup creation")
+        assert create_status is not None
         if wait_for_completion:
             while True:
                 status: dict = self.get_create_status(
@@ -246,7 +247,7 @@ class Backup:
                 "Backup restore failed due to connection error."
             ) from conn_err
         restore_status = _decode_json_response_dict(response, "Backup restore")
-
+        assert restore_status is not None
         if wait_for_completion:
             while True:
                 status: dict = self.get_restore_status(

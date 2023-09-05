@@ -7,7 +7,7 @@ import os
 import re
 from enum import Enum, EnumMeta
 from io import BufferedReader
-from typing import Union, Sequence, Any, Optional, List, Dict, Tuple
+from typing import Union, Sequence, Any, Optional, List, Dict, Tuple, TypeVar
 
 import requests
 import uuid as uuid_lib
@@ -582,9 +582,10 @@ def check_batch_result(
                 print(result["result"]["errors"])
 
 
-def _check_positive_num(
-    value: NUMBERS, arg_name: str, data_type: type, include_zero: bool = False
-) -> None:
+N = TypeVar("N")
+
+
+def _check_positive_num(value: N, arg_name: str, data_type: N, include_zero: bool = False) -> None:
     """
     Check if the `value` of the `arg_name` is a positive number.
 
