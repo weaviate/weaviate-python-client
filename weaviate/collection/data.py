@@ -1,4 +1,5 @@
 import datetime
+import uuid as uuid_package
 from typing import (
     Dict,
     Any,
@@ -13,7 +14,6 @@ from typing import (
     get_origin,
 )
 
-import uuid as uuid_package
 from google.protobuf.struct_pb2 import Struct
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from typing_extensions import is_typeddict
@@ -278,13 +278,17 @@ class _Data:
         if isinstance(value, uuid_package.UUID):
             return str(value)
         if isinstance(value, datetime.datetime):
-            if value.tzinfo is None:
-                _Warnings.datetime_insertion_with_no_specified_timezone(value)
-                value = value.replace(tzinfo=datetime.timezone.utc)
-            return value.isoformat(sep="T", timespec="microseconds")
+            return self.__datetime_to_string(value)
         if isinstance(value, list):
             return [self.__serialize_primitive(val) for val in value]
         return value
+
+    @staticmethod
+    def __datetime_to_string(value: datetime.datetime) -> str:
+        if value.tzinfo is None:
+            _Warnings.datetime_insertion_with_no_specified_timezone(value)
+            value = value.replace(tzinfo=datetime.timezone.utc)
+        return value.isoformat(sep="T", timespec="microseconds")
 
     def _deserialize_primitive(self, value: Any, type_value: Optional[Any]) -> Any:
         if type_value is None:
@@ -299,11 +303,14 @@ class _Data:
             ]
         return value
 
-    @staticmethod
-    def __parse_properties_grpc(data: Dict[str, Any]) -> weaviate_pb2.BatchObject.Properties:
+    def __parse_properties_grpc(self, data: Dict[str, Any]) -> weaviate_pb2.BatchObject.Properties:
         multi_target: List[weaviate_pb2.BatchObject.RefPropertiesMultiTarget] = []
         single_target: List[weaviate_pb2.BatchObject.RefPropertiesSingleTarget] = []
         non_ref_properties: Struct = Struct()
+        bool_arrays: List[weaviate_pb2.BooleanArrayProperties] = []
+        text_arrays: List[weaviate_pb2.TextArrayProperties] = []
+        int_arrays: List[weaviate_pb2.IntArrayProperties] = []
+        float_arrays: List[weaviate_pb2.NumberArrayProperties] = []
         for key, val in data.items():
             if isinstance(val, Reference):
                 if val.is_multi_target:
@@ -320,6 +327,24 @@ class _Data:
                             uuids=val.uuids_str, prop_name=key
                         )
                     )
+            elif isinstance(val, list) and isinstance(val[0], bool):
+                bool_arrays.append(weaviate_pb2.BooleanArrayProperties(key=key, vals=val))
+            elif isinstance(val, list) and isinstance(val[0], str):
+                text_arrays.append(weaviate_pb2.TextArrayProperties(key=key, vals=val))
+            elif isinstance(val, list) and isinstance(val[0], datetime.datetime):
+                text_arrays.append(
+                    weaviate_pb2.TextArrayProperties(
+                        key=key, vals=[self.__datetime_to_string(x) for x in val]
+                    )
+                )
+            elif isinstance(val, list) and isinstance(val[0], uuid_package.UUID):
+                text_arrays.append(
+                    weaviate_pb2.TextArrayProperties(key=key, vals=[str(x) for x in val])
+                )
+            elif isinstance(val, list) and isinstance(val[0], int):
+                int_arrays.append(weaviate_pb2.IntArrayProperties(key=key, vals=val))
+            elif isinstance(val, list) and isinstance(val[0], float):
+                float_arrays.append(weaviate_pb2.NumberArrayProperties(key=key, vals=val))
             else:
                 non_ref_properties.update({key: val})
 
@@ -327,6 +352,10 @@ class _Data:
             non_ref_properties=non_ref_properties,
             ref_props_multi=multi_target,
             ref_props_single=single_target,
+            text_array_properties=text_arrays,
+            number_array_properties=float_arrays,
+            int_array_properties=int_arrays,
+            boolean_array_properties=bool_arrays,
         )
 
 

@@ -56,6 +56,12 @@ from weaviate.weaviate_types import UUID
 BEACON_START = "weaviate://localhost"
 
 UUID1 = uuid.uuid4()
+UUID2 = uuid.uuid4()
+UUID3 = uuid.uuid4()
+
+DATE1 = datetime.datetime.strptime("2012-02-09", "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc)
+DATE2 = datetime.datetime.strptime("2013-02-10", "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc)
+DATE3 = datetime.datetime.strptime("2019-06-10", "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc)
 
 
 @pytest.fixture(scope="module")
@@ -1540,3 +1546,63 @@ def test_return_properties_with_typed_dict(client: weaviate.Client, which_case: 
 
         with pytest.raises(WeaviateGRPCException):
             collection.query.get_flat(return_properties=DataModel)
+
+
+def test_batch_with_arrays(client: weaviate.Client):
+    client.collection.delete("TestBatchArrays")
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestBatchArrays",
+            vectorizer_config=VectorizerFactory.none(),
+            properties=[
+                Property(name="texts", data_type=DataType.TEXT_ARRAY),
+                Property(name="ints", data_type=DataType.INT_ARRAY),
+                Property(name="floats", data_type=DataType.NUMBER_ARRAY),
+                Property(name="bools", data_type=DataType.BOOL_ARRAY),
+                Property(name="uuids", data_type=DataType.UUID_ARRAY),
+                Property(name="dates", data_type=DataType.DATE_ARRAY),
+            ],
+        )
+    )
+
+    objects_in: List[DataObject] = [
+        DataObject(
+            {
+                "texts": ["first", "second"],
+                "ints": [1, 2],
+                "floats": [1, 2],  # send floats as int
+                "bools": [True, True, False],
+                "dates": [DATE1, DATE3],
+                "uuids": [UUID1, UUID3],
+            }
+        ),
+        DataObject(
+            {
+                "texts": ["third", "fourth"],
+                "ints": [3, 4, 5],
+                "floats": [1.2, 2],
+                "bools": [False, False],
+                "dates": [DATE2, DATE3, DATE1],
+                "uuids": [UUID2, UUID1],
+            }
+        ),
+    ]
+
+    ret = collection.data.insert_many(objects_in)
+
+    assert not ret.has_errors
+
+    for i, obj_id in enumerate(ret.uuids.values()):
+        obj_out = collection.data.get_by_id(obj_id)
+
+        for prop, val in objects_in[i].properties.items():
+            if prop == "dates":
+                dates_from_weaviate = [
+                    datetime.datetime.fromisoformat(date) for date in obj_out.properties[prop]
+                ]
+                assert val == dates_from_weaviate
+            elif prop == "uuids":
+                uuids_from_weaviate = [uuid.UUID(prop) for prop in obj_out.properties[prop]]
+                assert val == uuids_from_weaviate
+            else:
+                assert obj_out.properties[prop] == val
