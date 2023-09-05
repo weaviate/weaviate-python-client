@@ -24,7 +24,7 @@ class CollectionObject:
 
         self.config = _ConfigCollection(self._connection, name)
         self.data = _DataCollection(connection, name, consistency_level, tenant)  # type: ignore
-        self.query = _GrpcCollection(connection, name, tenant, consistency_level)
+        self.query = _GrpcCollection(connection, name, consistency_level, tenant)
         self.tenants = _Tenants(connection, name)
 
         self.__tenant = tenant

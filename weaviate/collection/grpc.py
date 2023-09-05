@@ -561,8 +561,8 @@ class _Grpc:
         self,
         connection: Connection,
         name: str,
-        tenant: Optional[str],
         consistency_level: Optional[ConsistencyLevel],
+        tenant: Optional[str],
     ):
         self.__connection = connection
         self.__name = name
@@ -1129,7 +1129,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
         tenant: Optional[str] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
     ):
-        super().__init__(connection, name, tenant, consistency_level)
+        super().__init__(connection, name, consistency_level, tenant)
         self.model = model
 
     def __parse_result(
