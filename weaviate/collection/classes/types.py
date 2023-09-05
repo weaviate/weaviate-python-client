@@ -15,5 +15,8 @@ To be clear: `_DataCollection[Properties]().with_data_model(TProperties) -> _Dat
 """
 
 P = TypeVar("P")
-"""`P` is a completely general type that is used wherever generic objects are defined that can be used
+"""`P` is a completely general type that is used wherever generic properties objects are defined that can be used
 within the non-ORM and ORM APIs interchangeably"""
+
+T = TypeVar("T")
+"""`T` is a completely general type that is used in any kind of generic"""

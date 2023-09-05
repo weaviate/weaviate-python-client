@@ -1,7 +1,7 @@
 import sys
 import uuid as uuid_package
 from dataclasses import dataclass
-from typing import Any, Dict, Generic, List, Optional, Union
+from typing import Any, Dict, Generic, List, Optional, Tuple, Type, Union, cast
 
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated, get_type_hints, get_origin
@@ -40,7 +40,7 @@ class Reference(Generic[P]):
         target_collection: Optional[str],
         uuids: Optional[UUIDS],
     ):
-        self.objects = objects
+        self.__objects = objects
         self.__target_collection = target_collection if target_collection else ""
         self.__uuids = uuids
 
@@ -53,6 +53,8 @@ class Reference(Generic[P]):
         return cls(None, target_collection, uuids)
 
     def _to_beacons(self) -> List[Dict[str, str]]:
+        if self.__uuids is None:
+            return []
         return _to_beacons(self.__uuids, self.__target_collection)
 
     @classmethod
@@ -74,6 +76,10 @@ class Reference(Generic[P]):
     def target_collection(self) -> str:
         return self.__target_collection
 
+    @property
+    def objects(self) -> List[_Object[P]]:
+        return self.__objects or []
+
 
 def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
     return _MetadataReturn(
@@ -89,24 +95,27 @@ def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
     )
 
 
-def _extract_property_type_from_reference(type_: Reference[P]) -> Optional[P]:
+def _extract_property_type_from_reference(type_: Reference[P]) -> Type[P]:
     """Extract inner type from Reference[Properties]"""
     if getattr(type_, "__origin__", None) == Reference:
-        return type_.__args__[0]
-    return None
+        args = cast(List[Type[P]], getattr(type_, "__args__", None))
+        return args[0]
+    raise ValueError("Type is not Reference[Properties]")
 
 
 def _extract_property_type_from_annotated_reference(
     type_: Union[
         Annotated[Reference[P], MetadataQuery], Annotated[Reference[P], MetadataQuery, str]
     ]
-) -> Optional[P]:
+) -> Type[P]:
     """Extract inner type from Annotated[Reference[Properties]]"""
     if get_origin(type_) is Annotated:
-        inner_type = type_.__args__[0]
+        args = cast(List[Reference[Type[P]]], getattr(type_, "__args__", None))
+        inner_type = args[0]
         if get_origin(inner_type) is Reference:
-            return inner_type.__args__[0]
-    return None
+            inner_args = cast(List[Type[P]], getattr(inner_type, "__args__", None))
+            return inner_args[0]
+    raise ValueError("Type is not Annotated[Reference[Properties]]")
 
 
 def __create_link_to_from_annotated_reference(
@@ -118,11 +127,17 @@ def __create_link_to_from_annotated_reference(
 ) -> Union[LinkTo, LinkToMultiTarget]:
     """Create LinkTo or LinkToMultiTarget from Annotated[Reference[Properties]]"""
     assert get_origin(value) is Annotated
-    inner_type = value.__args__[0]
+    args = cast(List[Reference[Properties]], getattr(value, "__args__", None))
+    inner_type = args[0]
     assert get_origin(inner_type) is Reference
-    metadata = value.__metadata__[0]
-    try:
-        target_collection = value.__metadata__[1]
+    inner_type_metadata = cast(
+        Union[Tuple[MetadataQuery], Tuple[MetadataQuery, str]], getattr(value, "__metadata__", None)
+    )
+    metadata = inner_type_metadata[0]
+    if len(inner_type_metadata) == 2:
+        target_collection = cast(Tuple[MetadataQuery, str], inner_type_metadata)[
+            1
+        ]  # https://github.com/python/mypy/issues/1178
         return LinkToMultiTarget(
             link_on=link_on,
             metadata=metadata,
@@ -131,7 +146,7 @@ def __create_link_to_from_annotated_reference(
             ),
             target_collection=target_collection,
         )
-    except IndexError:
+    else:
         return LinkTo(
             link_on=link_on,
             metadata=metadata,
@@ -144,7 +159,7 @@ def __create_link_to_from_annotated_reference(
 def __create_link_to_from_reference(
     link_on: str,
     value: Reference[Properties],
-) -> Union[LinkTo, None]:
+) -> LinkTo:
     """Create LinkTo from Reference[Properties]"""
     return LinkTo(
         link_on=link_on,
@@ -155,7 +170,7 @@ def __create_link_to_from_reference(
     )
 
 
-def _extract_properties_from_data_model(type_: Properties) -> PROPERTIES:
+def _extract_properties_from_data_model(type_: Type[Properties]) -> PROPERTIES:
     """Extract properties of Properties recursively from Properties"""
     return [
         __create_link_to_from_annotated_reference(key, value)

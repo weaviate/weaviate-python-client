@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Optional, Type, Tuple
+from typing import Dict, Any, List, Optional, Type, Tuple, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -39,7 +39,7 @@ class _ConfigBase:
             ) from conn_err
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Get collection configuration", response)
-        return response.json()
+        return cast(Dict[str, Any], response.json())
 
     def get(self) -> _CollectionConfig:
         """Get the configuration for this collection from Weaviate.
