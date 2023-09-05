@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-near-image-audio-and-video-to-grpc-622603a
+    image: semitechnologies/weaviate:preview-add-consistency-to-grpc-8c0cddc
     ports:
       - 8082:8082
     restart: on-failure:0

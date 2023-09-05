@@ -13,7 +13,10 @@ from typing import (
     Generic,
     cast,
 )
+
 from typing_extensions import TypeAlias
+
+from weaviate.collection.classes.config import ConsistencyLevel
 
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated, get_type_hints, get_origin
@@ -56,6 +59,7 @@ from weaviate.collection.classes.internal import (
     _extract_property_type_from_annotated_reference,
     _extract_property_type_from_reference,
     _extract_properties_from_data_model,
+    _get_consistency_level,
 )
 from weaviate.collection.classes.orm import Model
 from weaviate.connect import Connection
@@ -122,11 +126,13 @@ class _GRPC:
         connection: Connection,
         name: str,
         tenant: Optional[str],
+        consistency_level: Optional[ConsistencyLevel],
         default_properties: Optional[PROPERTIES] = None,
     ):
         self._connection: Connection = connection
         self._name: str = name
         self._tenant = tenant
+        self._consistency_level = consistency_level
 
         if default_properties is not None:
             self._default_props: Set[Union[str, LinkTo]] = set(default_properties)
@@ -376,7 +382,7 @@ class _GRPC:
 
         return self.__call()
 
-    def __call(self) -> List[GrpcResult]:
+    def __call(self) -> List[SearchResult]:
         metadata: Optional[Tuple[Tuple[str, str]]] = None
         access_token = self._connection.get_current_bearer_token()
         if len(access_token) > 0:
@@ -457,6 +463,7 @@ class _GRPC:
                     )
                     if self._near_audio is not None
                     else None,
+                    consistency_level=_get_consistency_level(self._consistency_level),
                 ),
                 metadata=metadata,
             )
@@ -518,6 +525,7 @@ class _GRPC:
             certainty=metadata.certainty,
             explainScore=metadata.explain_score,
             score=metadata.score,
+            is_consistent=metadata.is_consistent,
         )
 
     def _convert_references_to_grpc(
@@ -541,13 +549,20 @@ class _GRPC:
 
 
 class _Grpc:
-    def __init__(self, connection: Connection, name: str, tenant: Optional[str]):
+    def __init__(
+        self,
+        connection: Connection,
+        name: str,
+        tenant: Optional[str],
+        consistency_level: Optional[ConsistencyLevel],
+    ):
         self.__connection = connection
         self.__name = name
         self.__tenant = tenant
+        self.__consistency_level = consistency_level
 
     def _query(self) -> _GRPC:
-        return _GRPC(self.__connection, self.__name, self.__tenant)
+        return _GRPC(self.__connection, self.__name, self.__tenant, self.__consistency_level)
 
     def _struct_value_to_py_value(self, value: _StructValue) -> _PyValue:
         if isinstance(value, struct_pb2.Struct):
@@ -579,6 +594,7 @@ class _Grpc:
             else None,
             score=add_props.score if add_props.score_present else None,
             explain_score=add_props.explain_score if add_props.explain_score_present else None,
+            is_consistent=add_props.is_consistent,
         )
 
     def _deserialize_primitive(self, value: Any, type_value: Any) -> Any:
@@ -1098,9 +1114,14 @@ class _GrpcCollection(_Grpc):
 
 class _GrpcCollectionModel(Generic[Model], _Grpc):
     def __init__(
-        self, connection: Connection, name: str, model: Type[Model], tenant: Optional[str] = None
+        self,
+        connection: Connection,
+        name: str,
+        model: Type[Model],
+        tenant: Optional[str] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
     ):
-        super().__init__(connection, name, tenant)
+        super().__init__(connection, name, tenant, consistency_level)
         self.model = model
 
     def __parse_result(

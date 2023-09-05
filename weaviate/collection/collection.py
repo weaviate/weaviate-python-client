@@ -1,6 +1,7 @@
 from typing import Optional
 
 from weaviate.collection.classes.config import CollectionConfig
+from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.classes.internal import Properties
 from weaviate.collection.collection_base import CollectionBase
 from weaviate.collection.config import _ConfigCollection
@@ -8,7 +9,6 @@ from weaviate.collection.data import _DataCollection
 from weaviate.collection.grpc import _GrpcCollection
 from weaviate.collection.tenants import _Tenants
 from weaviate.connect import Connection
-from weaviate.data.replication import ConsistencyLevel
 from weaviate.util import _capitalize_first_letter
 
 
@@ -25,7 +25,7 @@ class CollectionObject:
 
         self.config = _ConfigCollection(self._connection, name)
         self.data = _DataCollection(connection, name, consistency_level, tenant)
-        self.query = _GrpcCollection(connection, name, tenant)
+        self.query = _GrpcCollection(connection, name, tenant, consistency_level)
         self.tenants = _Tenants(connection, name)
 
         self.__tenant = tenant

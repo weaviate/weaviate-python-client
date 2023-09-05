@@ -130,6 +130,7 @@ class MetadataQuery:
     certainty: bool = False
     score: bool = False
     explain_score: bool = False
+    is_consistent: bool = False
 
 
 class LinkTo(BaseModel):
