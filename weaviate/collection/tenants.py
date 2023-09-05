@@ -102,7 +102,7 @@ class _Tenants:
         tenant_resp: List[Dict[str, Any]] = response.json()
         return {tenant["name"]: Tenant(**tenant) for tenant in tenant_resp}
 
-    def update(self, tenants: List[Tenant]):
+    def update(self, tenants: List[Tenant]) -> None:
         loaded_tenants = [tenant.model_dump() for tenant in tenants]
 
         path = "/schema/" + self.__name + "/tenants"
