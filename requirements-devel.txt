@@ -3,8 +3,7 @@ validators>=0.21.2,<1.0.0
 authlib>=1.2.1,<2.0.0
 grpcio>=1.57.0,<2.0.0
 grpcio-tools>=1.57.0,<2.0.0
-pydantic>=2.1.1
-typing_extensions
+pydantic>=2.1.1<3.0.0
 
 build
 twine
@@ -25,6 +24,7 @@ pytest-httpserver>=1.0.8
 mypy>=1.5.1<2.0.0
 mypy-extensions==1.0.0
 tomli>=2.0.1<3.0.0
+types-protobuf>=4.24.0.1<5.0.0
 types-requests>=2.31.0.2<3.0.0
 types-urllib3>=1.26.25.14<2.0.0
 typing_extensions>=4.7.1<5.0.0
