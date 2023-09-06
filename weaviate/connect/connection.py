@@ -8,7 +8,7 @@ import os
 import socket
 import time
 from threading import Thread, Event
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union, cast
 from urllib.parse import urlparse
 
 import requests
@@ -290,7 +290,7 @@ class Connection:
             ):
                 # use refresh token when available
                 try:
-                    if "refresh_token" in self._session.token:
+                    if "refresh_token" in cast(OAuth2Session, self._session).token:
                         assert isinstance(self._session, OAuth2Session)
                         self._session.token = self._session.refresh_token(
                             self._session.metadata["token_endpoint"]
@@ -301,7 +301,7 @@ class Connection:
                         # saved credentials
                         assert _auth is not None
                         new_session = _auth.get_auth_session()
-                        self._session.token = new_session.fetch_token()
+                        self._session.token = new_session.fetch_token()  # type: ignore
                 except (RequestsHTTPError, ReadTimeout) as exc:
                     # retry again after one second, might be an unstable connection
                     refresh_time = 1
