@@ -1379,6 +1379,12 @@ def test_return_list_properties(client: weaviate.Client):
     dates = data.pop("dates")
     assert dates2 == dates
 
+    # remove uuids because weaviate returns them as strings
+    uuids_from_weaviate = objects[0].properties.pop("uuids")
+    uuids2 = [uuid.UUID(uuids) for uuids in uuids_from_weaviate]
+    uuids = data.pop("uuids")
+    assert uuids2 == uuids
+
     assert objects[0].properties == data
 
 

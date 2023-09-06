@@ -442,24 +442,8 @@ class BooleanArrayProperties(_message.Message):
     prop_name: str
     def __init__(self, values: _Optional[_Iterable[bool]] = ..., prop_name: _Optional[str] = ...) -> None: ...
 
-class DateArrayProperties(_message.Message):
-    __slots__ = ["values", "prop_name"]
-    VALUES_FIELD_NUMBER: _ClassVar[int]
-    PROP_NAME_FIELD_NUMBER: _ClassVar[int]
-    values: _containers.RepeatedCompositeFieldContainer[_timestamp_pb2.Timestamp]
-    prop_name: str
-    def __init__(self, values: _Optional[_Iterable[_Union[_timestamp_pb2.Timestamp, _Mapping]]] = ..., prop_name: _Optional[str] = ...) -> None: ...
-
-class UuidArrayProperties(_message.Message):
-    __slots__ = ["values", "prop_name"]
-    VALUES_FIELD_NUMBER: _ClassVar[int]
-    PROP_NAME_FIELD_NUMBER: _ClassVar[int]
-    values: _containers.RepeatedScalarFieldContainer[str]
-    prop_name: str
-    def __init__(self, values: _Optional[_Iterable[str]] = ..., prop_name: _Optional[str] = ...) -> None: ...
-
 class ResultProperties(_message.Message):
-    __slots__ = ["non_ref_properties", "ref_props", "class_name", "metadata", "number_array_properties", "int_array_properties", "text_array_properties", "boolean_array_properties", "uuid_array_properties"]
+    __slots__ = ["non_ref_properties", "ref_props", "class_name", "metadata", "number_array_properties", "int_array_properties", "text_array_properties", "boolean_array_properties"]
     NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     REF_PROPS_FIELD_NUMBER: _ClassVar[int]
     CLASS_NAME_FIELD_NUMBER: _ClassVar[int]
@@ -468,7 +452,6 @@ class ResultProperties(_message.Message):
     INT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     TEXT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     BOOLEAN_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
-    UUID_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     non_ref_properties: _struct_pb2.Struct
     ref_props: _containers.RepeatedCompositeFieldContainer[ReturnRefProperties]
     class_name: str
@@ -477,8 +460,7 @@ class ResultProperties(_message.Message):
     int_array_properties: _containers.RepeatedCompositeFieldContainer[IntArrayProperties]
     text_array_properties: _containers.RepeatedCompositeFieldContainer[TextArrayProperties]
     boolean_array_properties: _containers.RepeatedCompositeFieldContainer[BooleanArrayProperties]
-    uuid_array_properties: _containers.RepeatedCompositeFieldContainer[UuidArrayProperties]
-    def __init__(self, non_ref_properties: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., ref_props: _Optional[_Iterable[_Union[ReturnRefProperties, _Mapping]]] = ..., class_name: _Optional[str] = ..., metadata: _Optional[_Union[ResultAdditionalProps, _Mapping]] = ..., number_array_properties: _Optional[_Iterable[_Union[NumberArrayProperties, _Mapping]]] = ..., int_array_properties: _Optional[_Iterable[_Union[IntArrayProperties, _Mapping]]] = ..., text_array_properties: _Optional[_Iterable[_Union[TextArrayProperties, _Mapping]]] = ..., boolean_array_properties: _Optional[_Iterable[_Union[BooleanArrayProperties, _Mapping]]] = ..., uuid_array_properties: _Optional[_Iterable[_Union[UuidArrayProperties, _Mapping]]] = ...) -> None: ...
+    def __init__(self, non_ref_properties: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., ref_props: _Optional[_Iterable[_Union[ReturnRefProperties, _Mapping]]] = ..., class_name: _Optional[str] = ..., metadata: _Optional[_Union[ResultAdditionalProps, _Mapping]] = ..., number_array_properties: _Optional[_Iterable[_Union[NumberArrayProperties, _Mapping]]] = ..., int_array_properties: _Optional[_Iterable[_Union[IntArrayProperties, _Mapping]]] = ..., text_array_properties: _Optional[_Iterable[_Union[TextArrayProperties, _Mapping]]] = ..., boolean_array_properties: _Optional[_Iterable[_Union[BooleanArrayProperties, _Mapping]]] = ...) -> None: ...
 
 class ReturnRefProperties(_message.Message):
     __slots__ = ["properties", "prop_name"]

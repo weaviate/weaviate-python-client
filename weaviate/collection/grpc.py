@@ -590,19 +590,6 @@ class _Grpc:
     def _query(self) -> _GRPC:
         return _GRPC(self.__connection, self.__name, self.__tenant, self.__consistency_level)
 
-    def _struct_value_to_py_value(self, value: _StructValue) -> _PyValue:
-        if isinstance(value, struct_pb2.Struct):
-            return {key: self._struct_value_to_py_value(value) for key, value in value.items()}
-        elif isinstance(value, struct_pb2.ListValue):
-            return [
-                self._struct_value_to_py_value(cast(_StructValue, value)) for value in value.values
-            ]
-        elif isinstance(value, str) or isinstance(value, float) or isinstance(value, bool):
-            return value
-        else:
-            assert value is None
-            return None
-
     @staticmethod
     def _extract_metadata_for_object(
         add_props: "weaviate_pb2.ResultAdditionalProps",
@@ -659,11 +646,6 @@ class _GrpcCollection(_Grpc):
         for boolean_array_property in properties.boolean_array_properties:
             result[boolean_array_property.prop_name] = [
                 bool(val) for val in boolean_array_property.values
-            ]
-
-        for uuid_array_property in properties.uuid_array_properties:
-            result[uuid_array_property.prop_name] = [
-                uuid_lib.UUID(val) for val in uuid_array_property.values
             ]
 
         for ref_prop in properties.ref_props:
