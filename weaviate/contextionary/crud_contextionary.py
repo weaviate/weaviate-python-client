@@ -152,4 +152,6 @@ class Contextionary:
                 "text2vec-contextionary vector was not retrieved."
             ) from conn_err
         else:
-            return _decode_json_response_dict(response, "text2vec-contextionary vector")
+            res = _decode_json_response_dict(response, "text2vec-contextionary vector")
+            assert res is not None
+            return res

@@ -14,6 +14,7 @@ from typing import (
     get_args,
     get_origin,
     get_type_hints,
+    cast,
 )
 
 from pydantic import BaseModel, Field, field_validator
@@ -94,7 +95,7 @@ class BaseProperty(BaseModel):
             val = getattr(self, ref, None)
             if val is not None:
                 c[ref] = _to_beacons(val, self._reference_to_class[ref])
-        return c
+        return cast(dict, c)
 
     @field_validator("uuid")
     def create_valid_uuid(cls, input_uuid: UUID) -> uuid_package.UUID:

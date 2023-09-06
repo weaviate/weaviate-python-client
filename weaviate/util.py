@@ -7,7 +7,7 @@ import os
 import re
 from enum import Enum, EnumMeta
 from io import BufferedReader
-from typing import Union, Sequence, Any, Optional, List, Dict, Tuple
+from typing import Union, Sequence, Any, Optional, List, Dict, Tuple, cast
 
 import requests
 import uuid as uuid_lib
@@ -239,7 +239,7 @@ def _get_dict_from_object(object_: Union[str, dict]) -> dict:
             # Object is URL
             response = requests.get(object_)
             if response.status_code == 200:
-                return response.json()
+                return cast(dict, response.json())
             raise ValueError("Could not download file " + object_)
 
         if not os.path.isfile(object_):
@@ -247,7 +247,7 @@ def _get_dict_from_object(object_: Union[str, dict]) -> dict:
             raise ValueError("No file found at location " + object_)
         # Object is file
         with open(object_, "r") as file:
-            return json.load(file)
+            return cast(dict, json.load(file))
     raise TypeError(
         "Argument is not of the supported types. Supported types are "
         "url or file path as string or schema as dict."
@@ -583,7 +583,7 @@ def check_batch_result(
 
 
 def _check_positive_num(
-    value: NUMBER, arg_name: str, data_type: type, include_zero: bool = False
+    value: Any, arg_name: str, data_type: type, include_zero: bool = False
 ) -> None:
     """
     Check if the `value` of the `arg_name` is a positive number.
@@ -610,10 +610,10 @@ def _check_positive_num(
     if not isinstance(value, data_type) or isinstance(value, bool):
         raise TypeError(f"'{arg_name}' must be of type {data_type}.")
     if include_zero:
-        if value < 0:
+        if value < 0:  # type: ignore
             raise ValueError(f"'{arg_name}' must be positive, i.e. greater or equal to zero (>=0).")
     else:
-        if value <= 0:
+        if value <= 0:  # type: ignore
             raise ValueError(f"'{arg_name}' must be positive, i.e. greater that zero (>0).")
 
 
@@ -751,10 +751,13 @@ def _get_valid_timeout_config(
         If 'timeout_config' is/contains negative number/s.
     """
 
-    def check_number(num: NUMBER):
+    def check_number(num: Union[NUMBER, Tuple[NUMBER, NUMBER], None]) -> bool:
         return isinstance(num, float) or isinstance(num, int)
 
-    if check_number(timeout_config) and not isinstance(timeout_config, bool):
+    if (isinstance(timeout_config, float) or isinstance(timeout_config, int)) and not isinstance(
+        timeout_config, bool
+    ):
+        assert timeout_config is not None
         if timeout_config <= 0.0:
             raise ValueError("'timeout_config' cannot be non-positive number/s!")
         return timeout_config, timeout_config
@@ -799,7 +802,7 @@ def _decode_json_response_dict(
 
     if 200 <= response.status_code < 300:
         try:
-            json_response = response.json()
+            json_response = cast(dict, response.json())
             return json_response
         except JSONDecodeError:
             raise ResponseCannotBeDecodedException(location, response)
@@ -816,7 +819,7 @@ def _decode_json_response_list(
     if 200 <= response.status_code < 300:
         try:
             json_response = response.json()
-            return json_response
+            return cast(list, json_response)
         except JSONDecodeError:
             raise ResponseCannotBeDecodedException(location, response)
     raise UnexpectedStatusCodeException(location, response)

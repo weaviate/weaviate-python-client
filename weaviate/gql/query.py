@@ -169,4 +169,6 @@ class Query:
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Query not executed.") from conn_err
 
-        return _decode_json_response_dict(response, "GQL query failed")
+        res = _decode_json_response_dict(response, "GQL query failed")
+        assert res is not None
+        return res

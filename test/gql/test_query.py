@@ -35,7 +35,7 @@ class TestQuery(unittest.TestCase):
         """
 
         # valid calls
-        connection_mock = mock_connection_func("post")
+        connection_mock = mock_connection_func("post", return_json={})
         query = Query(connection_mock)
 
         gql_query = "{Get {Group {name Members {... on Person {name}}}}}"

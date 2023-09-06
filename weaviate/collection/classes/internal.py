@@ -185,14 +185,16 @@ def _extract_properties_from_data_model(type_: Type[Properties]) -> PROPERTIES:
     ]
 
 
-def _get_consistency_level(consistency_level) -> Optional["weaviate_pb2.ConsistencyLevel"]:
+def _get_consistency_level(
+    consistency_level: Optional[ConsistencyLevel],
+) -> Optional["weaviate_pb2.ConsistencyLevel"]:
     if consistency_level is None:
         return None
 
-    if consistency_level == ConsistencyLevel.ONE:
+    if consistency_level.value == ConsistencyLevel.ONE:
         return weaviate_pb2.ConsistencyLevel.CONSISTENCY_LEVEL_ONE
-    elif consistency_level == ConsistencyLevel.QUORUM:
+    elif consistency_level.value == ConsistencyLevel.QUORUM:
         return weaviate_pb2.ConsistencyLevel.CONSISTENCY_LEVEL_QUORUM
     else:
-        assert consistency_level == ConsistencyLevel.ALL
+        assert consistency_level.value == ConsistencyLevel.ALL
         return weaviate_pb2.ConsistencyLevel.CONSISTENCY_LEVEL_ALL

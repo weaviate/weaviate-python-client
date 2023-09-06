@@ -7,6 +7,7 @@ from typing import List, Sequence, Optional, Dict, Any, Union
 from uuid import uuid4
 
 from weaviate.util import get_valid_uuid, get_vector
+from weaviate.weaviate_types import UUID
 
 BatchResponse = List[Dict[str, Any]]
 
@@ -64,7 +65,7 @@ class BatchRequest(ABC):
         return self._items.pop(index)
 
     @abstractmethod
-    def add(self, *args, **kwargs):
+    def add(self, *args, **kwargs):  # type: ignore
         """Add objects to BatchRequest."""
 
     @abstractmethod
@@ -131,9 +132,9 @@ class ReferenceBatchRequest(BatchRequest):
     def add(
         self,
         from_object_class_name: str,
-        from_object_uuid: str,
+        from_object_uuid: UUID,
         from_property_name: str,
-        to_object_uuid: str,
+        to_object_uuid: UUID,
         to_object_class_name: Optional[str] = None,
         tenant: Optional[str] = None,
     ) -> None:
@@ -238,7 +239,7 @@ class ObjectsBatchRequest(BatchRequest):
         self,
         data_object: dict,
         class_name: str,
-        uuid: Optional[str] = None,
+        uuid: Optional[UUID] = None,
         vector: Optional[Sequence] = None,
         tenant: Optional[str] = None,
     ) -> str:

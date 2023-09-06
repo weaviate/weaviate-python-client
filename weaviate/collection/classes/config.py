@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union, cast
 
 from pydantic import (
     BaseModel,
@@ -90,7 +90,7 @@ class ConfigCreateModel(BaseModel):
     model_config = ConfigDict(strict=True)
 
     def to_dict(self) -> Dict[str, Any]:
-        return self.model_dump(exclude_none=True)
+        return cast(dict, self.model_dump(exclude_none=True))
 
 
 class ConfigUpdateModel(BaseModel):

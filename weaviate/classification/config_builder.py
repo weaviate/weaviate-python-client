@@ -2,13 +2,16 @@
 ConfigBuilder class definition.
 """
 import time
-from typing import Dict, Any
+from typing import Dict, Any, cast, TYPE_CHECKING
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
-from weaviate.util import _capitalize_first_letter
+from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
+
+if TYPE_CHECKING:
+    from .classification import Classification
 
 
 class ConfigBuilder:
@@ -16,7 +19,7 @@ class ConfigBuilder:
     ConfigBuild class that is used to configure a classification process.
     """
 
-    def __init__(self, connection: Connection, classification: "Classification"):  # noqa
+    def __init__(self, connection: Connection, classification: "Classification"):
         """
         Initialize a ConfigBuilder class instance.
 
@@ -270,7 +273,9 @@ class ConfigBuilder:
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Classification may not started.") from conn_err
         if response.status_code == 201:
-            return response.json()
+            res = _decode_json_response_dict(response, "Start classification")
+            assert res is not None
+            return res
         raise UnexpectedStatusCodeException("Start classification", response)
 
     def do(self) -> dict:
@@ -294,4 +299,4 @@ class ConfigBuilder:
         # print(classification_uuid)
         while self._classification.is_running(classification_uuid):
             time.sleep(2.0)
-        return self._classification.get(classification_uuid)
+        return cast(dict, self._classification.get(classification_uuid))

@@ -18,6 +18,7 @@ from google.protobuf.struct_pb2 import Struct
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from typing_extensions import is_typeddict
 
+from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.classes.data import (
     BatchReference,
     DataObject,
@@ -34,7 +35,6 @@ from weaviate.collection.classes.orm import (
 from weaviate.collection.classes.types import Properties, TProperties
 from weaviate.collection.grpc_batch import _BatchGRPC
 from weaviate.connect import Connection
-from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import (
     InvalidDataModelException,
     UnexpectedStatusCodeException,

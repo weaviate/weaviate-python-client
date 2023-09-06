@@ -127,7 +127,7 @@ class _Warnings:
         )
 
     @staticmethod
-    def use_of_client_batch_will_be_removed_in_next_major_release():
+    def use_of_client_batch_will_be_removed_in_next_major_release() -> None:
         warnings.warn(
             message="""Dep006: You are using the `client.batch()` method, which will be removed in the next major release.
             Please instead use the `client.batch.configure()` method to configure your batch and `client.batch` to enter the context manager.
@@ -137,7 +137,7 @@ class _Warnings:
         )
 
     @staticmethod
-    def datetime_insertion_with_no_specified_timezone(date: datetime):
+    def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.
             If you want to use a different timezone, please specify it in the datetime object. For example:
@@ -148,7 +148,7 @@ class _Warnings:
         )
 
     @staticmethod
-    def text2vec_huggingface_endpoint_url_and_model_set_together():
+    def text2vec_huggingface_endpoint_url_and_model_set_together() -> None:
         warnings.warn(
             message="""Con003: You are setting the endpoint_url alongside model or passageModel & queryModel in your Text2Vec-HuggingFace module configuration.
             The model definitions will be ignored in favour of endpoint_url.

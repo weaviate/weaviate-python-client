@@ -84,7 +84,7 @@ class ResponseCannotBeDecodedException(WeaviateBaseError):
         response: requests.Response
             The request response of which the status code was unexpected.
         """
-        msg = f"Cannot decode response from weaviate {response} with content {response.content} for request from {location}"
+        msg = f"Cannot decode response from weaviate {response} with content {response.text} for request from {location}"
         super().__init__(msg)
         self._status_code: int = response.status_code
 
@@ -144,7 +144,7 @@ class AdditionalPropertiesException(WeaviateBaseError):
 class InvalidDataModelException(WeaviateBaseError):
     """Is raised when the user provides a generic that is not supported"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         msg = """data_model can only be a dict type, e.g. Dict[str, str], or a class that inherits from TypedDict"""
         super().__init__(msg)
 
