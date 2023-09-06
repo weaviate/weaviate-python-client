@@ -328,23 +328,23 @@ class _Data:
                         )
                     )
             elif isinstance(val, list) and isinstance(val[0], bool):
-                bool_arrays.append(weaviate_pb2.BooleanArrayProperties(key=key, vals=val))
+                bool_arrays.append(weaviate_pb2.BooleanArrayProperties(prop_name=key, values=val))
             elif isinstance(val, list) and isinstance(val[0], str):
-                text_arrays.append(weaviate_pb2.TextArrayProperties(key=key, vals=val))
+                text_arrays.append(weaviate_pb2.TextArrayProperties(prop_name=key, values=val))
             elif isinstance(val, list) and isinstance(val[0], datetime.datetime):
                 text_arrays.append(
                     weaviate_pb2.TextArrayProperties(
-                        key=key, vals=[self.__datetime_to_string(x) for x in val]
+                        prop_name=key, values=[self.__datetime_to_string(x) for x in val]
                     )
                 )
             elif isinstance(val, list) and isinstance(val[0], uuid_package.UUID):
                 text_arrays.append(
-                    weaviate_pb2.TextArrayProperties(key=key, vals=[str(x) for x in val])
+                    weaviate_pb2.TextArrayProperties(prop_name=key, values=[str(x) for x in val])
                 )
             elif isinstance(val, list) and isinstance(val[0], int):
-                int_arrays.append(weaviate_pb2.IntArrayProperties(key=key, vals=val))
+                int_arrays.append(weaviate_pb2.IntArrayProperties(prop_name=key, values=val))
             elif isinstance(val, list) and isinstance(val[0], float):
-                float_arrays.append(weaviate_pb2.NumberArrayProperties(key=key, vals=val))
+                float_arrays.append(weaviate_pb2.NumberArrayProperties(prop_name=key, values=val))
             else:
                 non_ref_properties.update({key: val})
 

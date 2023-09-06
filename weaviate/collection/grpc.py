@@ -493,19 +493,19 @@ class _GRPC:
                 value_boolean=weav_filter.value if isinstance(weav_filter.value, bool) else None,  # type: ignore
                 value_date=timestamp if isinstance(weav_filter.value, datetime.date) else None,
                 value_number=weav_filter.value if isinstance(weav_filter.value, float) else None,
-                value_int_array=weaviate_pb2.IntArray(vals=cast(List[int], weav_filter.value))
+                value_int_array=weaviate_pb2.IntArray(values=cast(List[int], weav_filter.value))
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], int)
                 else None,
                 value_number_array=weaviate_pb2.NumberArray(
-                    vals=cast(List[float], weav_filter.value)
+                    values=cast(List[float], weav_filter.value)
                 )
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], float)
                 else None,
-                value_text_array=weaviate_pb2.TextArray(vals=cast(List[str], weav_filter.value))
+                value_text_array=weaviate_pb2.TextArray(values=cast(List[str], weav_filter.value))
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], str)
                 else None,
                 value_boolean_array=weaviate_pb2.BooleanArray(
-                    vals=cast(List[bool], weav_filter.value)
+                    values=cast(List[bool], weav_filter.value)
                 )
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], bool)
                 else None,
@@ -628,20 +628,24 @@ class _GrpcCollection(_Grpc):
             result[name] = self._deserialize_primitive(non_ref_prop, hints.get(name))
 
         for number_array_property in properties.number_array_properties:
-            result[number_array_property.key] = [float(val) for val in number_array_property.vals]
+            result[number_array_property.prop_name] = [
+                float(val) for val in number_array_property.values
+            ]
 
         for int_array_property in properties.int_array_properties:
-            result[int_array_property.key] = [int(val) for val in int_array_property.vals]
+            result[int_array_property.prop_name] = [int(val) for val in int_array_property.values]
 
         for text_array_property in properties.text_array_properties:
-            result[text_array_property.key] = [str(val) for val in text_array_property.vals]
+            result[text_array_property.prop_name] = [str(val) for val in text_array_property.values]
 
         for boolean_array_property in properties.boolean_array_properties:
-            result[boolean_array_property.key] = [bool(val) for val in boolean_array_property.vals]
+            result[boolean_array_property.prop_name] = [
+                bool(val) for val in boolean_array_property.values
+            ]
 
         for uuid_array_property in properties.uuid_array_properties:
-            result[uuid_array_property.key] = [
-                uuid_lib.UUID(val) for val in uuid_array_property.vals
+            result[uuid_array_property.prop_name] = [
+                uuid_lib.UUID(val) for val in uuid_array_property.values
             ]
 
         for ref_prop in properties.ref_props:

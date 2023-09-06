@@ -130,34 +130,34 @@ class SearchRequest(_message.Message):
     def __init__(self, class_name: _Optional[str] = ..., limit: _Optional[int] = ..., additional_properties: _Optional[_Union[AdditionalProperties, _Mapping]] = ..., near_vector: _Optional[_Union[NearVectorParams, _Mapping]] = ..., near_object: _Optional[_Union[NearObjectParams, _Mapping]] = ..., properties: _Optional[_Union[Properties, _Mapping]] = ..., hybrid_search: _Optional[_Union[HybridSearchParams, _Mapping]] = ..., bm25_search: _Optional[_Union[BM25SearchParams, _Mapping]] = ..., offset: _Optional[int] = ..., autocut: _Optional[int] = ..., after: _Optional[str] = ..., tenant: _Optional[str] = ..., filters: _Optional[_Union[Filters, _Mapping]] = ..., near_text: _Optional[_Union[NearTextSearchParams, _Mapping]] = ..., near_image: _Optional[_Union[NearImageSearchParams, _Mapping]] = ..., near_audio: _Optional[_Union[NearAudioSearchParams, _Mapping]] = ..., near_video: _Optional[_Union[NearVideoSearchParams, _Mapping]] = ..., consistency_level: _Optional[_Union[ConsistencyLevel, str]] = ...) -> None: ...
 
 class TextArray(_message.Message):
-    __slots__ = ["vals"]
-    VALS_FIELD_NUMBER: _ClassVar[int]
-    vals: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, vals: _Optional[_Iterable[str]] = ...) -> None: ...
+    __slots__ = ["values"]
+    VALUES_FIELD_NUMBER: _ClassVar[int]
+    values: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, values: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class IntArray(_message.Message):
-    __slots__ = ["vals"]
-    VALS_FIELD_NUMBER: _ClassVar[int]
-    vals: _containers.RepeatedScalarFieldContainer[int]
-    def __init__(self, vals: _Optional[_Iterable[int]] = ...) -> None: ...
+    __slots__ = ["values"]
+    VALUES_FIELD_NUMBER: _ClassVar[int]
+    values: _containers.RepeatedScalarFieldContainer[int]
+    def __init__(self, values: _Optional[_Iterable[int]] = ...) -> None: ...
 
 class NumberArray(_message.Message):
-    __slots__ = ["vals"]
-    VALS_FIELD_NUMBER: _ClassVar[int]
-    vals: _containers.RepeatedScalarFieldContainer[float]
-    def __init__(self, vals: _Optional[_Iterable[float]] = ...) -> None: ...
+    __slots__ = ["values"]
+    VALUES_FIELD_NUMBER: _ClassVar[int]
+    values: _containers.RepeatedScalarFieldContainer[float]
+    def __init__(self, values: _Optional[_Iterable[float]] = ...) -> None: ...
 
 class BooleanArray(_message.Message):
-    __slots__ = ["vals"]
-    VALS_FIELD_NUMBER: _ClassVar[int]
-    vals: _containers.RepeatedScalarFieldContainer[bool]
-    def __init__(self, vals: _Optional[_Iterable[bool]] = ...) -> None: ...
+    __slots__ = ["values"]
+    VALUES_FIELD_NUMBER: _ClassVar[int]
+    values: _containers.RepeatedScalarFieldContainer[bool]
+    def __init__(self, values: _Optional[_Iterable[bool]] = ...) -> None: ...
 
 class DateArray(_message.Message):
-    __slots__ = ["vals"]
-    VALS_FIELD_NUMBER: _ClassVar[int]
-    vals: _containers.RepeatedCompositeFieldContainer[_timestamp_pb2.Timestamp]
-    def __init__(self, vals: _Optional[_Iterable[_Union[_timestamp_pb2.Timestamp, _Mapping]]] = ...) -> None: ...
+    __slots__ = ["values"]
+    VALUES_FIELD_NUMBER: _ClassVar[int]
+    values: _containers.RepeatedCompositeFieldContainer[_timestamp_pb2.Timestamp]
+    def __init__(self, values: _Optional[_Iterable[_Union[_timestamp_pb2.Timestamp, _Mapping]]] = ...) -> None: ...
 
 class Filters(_message.Message):
     __slots__ = ["operator", "on", "filters", "value_text", "value_int", "value_boolean", "value_number", "value_date", "value_text_array", "value_int_array", "value_boolean_array", "value_number_array", "value_date_array"]
@@ -415,52 +415,52 @@ class ResultAdditionalProps(_message.Message):
     def __init__(self, id: _Optional[str] = ..., vector: _Optional[_Iterable[float]] = ..., creation_time_unix: _Optional[int] = ..., creation_time_unix_present: bool = ..., last_update_time_unix: _Optional[int] = ..., last_update_time_unix_present: bool = ..., distance: _Optional[float] = ..., distance_present: bool = ..., certainty: _Optional[float] = ..., certainty_present: bool = ..., score: _Optional[float] = ..., score_present: bool = ..., explain_score: _Optional[str] = ..., explain_score_present: bool = ..., is_consistent: bool = ...) -> None: ...
 
 class NumberArrayProperties(_message.Message):
-    __slots__ = ["key", "vals"]
-    KEY_FIELD_NUMBER: _ClassVar[int]
-    VALS_FIELD_NUMBER: _ClassVar[int]
-    key: str
-    vals: _containers.RepeatedScalarFieldContainer[float]
-    def __init__(self, key: _Optional[str] = ..., vals: _Optional[_Iterable[float]] = ...) -> None: ...
+    __slots__ = ["values", "prop_name"]
+    VALUES_FIELD_NUMBER: _ClassVar[int]
+    PROP_NAME_FIELD_NUMBER: _ClassVar[int]
+    values: _containers.RepeatedScalarFieldContainer[float]
+    prop_name: str
+    def __init__(self, values: _Optional[_Iterable[float]] = ..., prop_name: _Optional[str] = ...) -> None: ...
 
 class IntArrayProperties(_message.Message):
-    __slots__ = ["key", "vals"]
-    KEY_FIELD_NUMBER: _ClassVar[int]
-    VALS_FIELD_NUMBER: _ClassVar[int]
-    key: str
-    vals: _containers.RepeatedScalarFieldContainer[int]
-    def __init__(self, key: _Optional[str] = ..., vals: _Optional[_Iterable[int]] = ...) -> None: ...
+    __slots__ = ["values", "prop_name"]
+    VALUES_FIELD_NUMBER: _ClassVar[int]
+    PROP_NAME_FIELD_NUMBER: _ClassVar[int]
+    values: _containers.RepeatedScalarFieldContainer[int]
+    prop_name: str
+    def __init__(self, values: _Optional[_Iterable[int]] = ..., prop_name: _Optional[str] = ...) -> None: ...
 
 class TextArrayProperties(_message.Message):
-    __slots__ = ["key", "vals"]
-    KEY_FIELD_NUMBER: _ClassVar[int]
-    VALS_FIELD_NUMBER: _ClassVar[int]
-    key: str
-    vals: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, key: _Optional[str] = ..., vals: _Optional[_Iterable[str]] = ...) -> None: ...
+    __slots__ = ["values", "prop_name"]
+    VALUES_FIELD_NUMBER: _ClassVar[int]
+    PROP_NAME_FIELD_NUMBER: _ClassVar[int]
+    values: _containers.RepeatedScalarFieldContainer[str]
+    prop_name: str
+    def __init__(self, values: _Optional[_Iterable[str]] = ..., prop_name: _Optional[str] = ...) -> None: ...
 
 class BooleanArrayProperties(_message.Message):
-    __slots__ = ["key", "vals"]
-    KEY_FIELD_NUMBER: _ClassVar[int]
-    VALS_FIELD_NUMBER: _ClassVar[int]
-    key: str
-    vals: _containers.RepeatedScalarFieldContainer[bool]
-    def __init__(self, key: _Optional[str] = ..., vals: _Optional[_Iterable[bool]] = ...) -> None: ...
+    __slots__ = ["values", "prop_name"]
+    VALUES_FIELD_NUMBER: _ClassVar[int]
+    PROP_NAME_FIELD_NUMBER: _ClassVar[int]
+    values: _containers.RepeatedScalarFieldContainer[bool]
+    prop_name: str
+    def __init__(self, values: _Optional[_Iterable[bool]] = ..., prop_name: _Optional[str] = ...) -> None: ...
 
 class DateArrayProperties(_message.Message):
-    __slots__ = ["key", "vals"]
-    KEY_FIELD_NUMBER: _ClassVar[int]
-    VALS_FIELD_NUMBER: _ClassVar[int]
-    key: str
-    vals: _containers.RepeatedCompositeFieldContainer[_timestamp_pb2.Timestamp]
-    def __init__(self, key: _Optional[str] = ..., vals: _Optional[_Iterable[_Union[_timestamp_pb2.Timestamp, _Mapping]]] = ...) -> None: ...
+    __slots__ = ["values", "prop_name"]
+    VALUES_FIELD_NUMBER: _ClassVar[int]
+    PROP_NAME_FIELD_NUMBER: _ClassVar[int]
+    values: _containers.RepeatedCompositeFieldContainer[_timestamp_pb2.Timestamp]
+    prop_name: str
+    def __init__(self, values: _Optional[_Iterable[_Union[_timestamp_pb2.Timestamp, _Mapping]]] = ..., prop_name: _Optional[str] = ...) -> None: ...
 
 class UuidArrayProperties(_message.Message):
-    __slots__ = ["key", "vals"]
-    KEY_FIELD_NUMBER: _ClassVar[int]
-    VALS_FIELD_NUMBER: _ClassVar[int]
-    key: str
-    vals: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, key: _Optional[str] = ..., vals: _Optional[_Iterable[str]] = ...) -> None: ...
+    __slots__ = ["values", "prop_name"]
+    VALUES_FIELD_NUMBER: _ClassVar[int]
+    PROP_NAME_FIELD_NUMBER: _ClassVar[int]
+    values: _containers.RepeatedScalarFieldContainer[str]
+    prop_name: str
+    def __init__(self, values: _Optional[_Iterable[str]] = ..., prop_name: _Optional[str] = ...) -> None: ...
 
 class ResultProperties(_message.Message):
     __slots__ = ["non_ref_properties", "ref_props", "class_name", "metadata", "number_array_properties", "int_array_properties", "text_array_properties", "boolean_array_properties", "uuid_array_properties"]
