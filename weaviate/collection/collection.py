@@ -1,29 +1,33 @@
-from typing import Optional
+from typing import Generic, Optional, Type, get_origin
+from typing_extensions import is_typeddict
 
 from weaviate.collection.classes.config import CollectionConfig
 from weaviate.collection.classes.config import ConsistencyLevel
+from weaviate.collection.classes.types import Properties
 from weaviate.collection.collection_base import CollectionBase
 from weaviate.collection.config import _ConfigCollection
 from weaviate.collection.data import _DataCollection
 from weaviate.collection.grpc import _GrpcCollection
 from weaviate.collection.tenants import _Tenants
 from weaviate.connect import Connection
+from weaviate.exceptions import InvalidDataModelException
 from weaviate.util import _capitalize_first_letter
 
 
-class CollectionObject:
+class CollectionObject(Generic[Properties]):
     def __init__(
         self,
         connection: Connection,
         name: str,
         consistency_level: Optional[ConsistencyLevel] = None,
         tenant: Optional[str] = None,
+        type_: Optional[Type[Properties]] = None,
     ) -> None:
         self._connection = connection
         self.name = name
 
         self.config = _ConfigCollection(self._connection, name)
-        self.data = _DataCollection(connection, name, consistency_level, tenant)  # type: ignore
+        self.data = _DataCollection[Properties](connection, name, consistency_level, tenant, type_)
         self.query = _GrpcCollection(connection, name, consistency_level, tenant)
         self.tenants = _Tenants(connection, name)
 
@@ -48,9 +52,17 @@ class Collection(CollectionBase):
             )
         return self.get(name)
 
-    def get(self, name: str) -> CollectionObject:
+    def get(
+        self, name: str, data_model: Optional[Type[Properties]] = None
+    ) -> CollectionObject[Properties]:
+        if (
+            data_model is not None
+            and get_origin(data_model) is not dict
+            and not is_typeddict(data_model)
+        ):
+            raise InvalidDataModelException()
         name = _capitalize_first_letter(name)
-        return CollectionObject(self._connection, name)
+        return CollectionObject[Properties](self._connection, name, type_=data_model)
 
     def delete(self, name: str) -> None:
         """Use this method to delete a collection from the Weaviate instance by its name.
