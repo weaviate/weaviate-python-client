@@ -16,7 +16,6 @@ from typing import (
     Deque,
     Dict,
     List,
-    Literal,
     Optional,
     Sequence,
     Tuple,
@@ -289,7 +288,7 @@ class Batch:
         self._recommended_num_references = self._batch_size
 
         self._num_workers = 1
-        self._consistency_level: Optional[Literal["ALL", "ONE", "QUORUM"]] = None
+        self._consistency_level: Optional[ConsistencyLevel] = None
         # thread pool executor
         self._executor: Optional[BatchExecutor] = None
 
@@ -485,7 +484,7 @@ class Batch:
                         else:  # way too high, stop sending new batches
                             self._recommended_num_objects = 0
 
-                    refresh_time: Union[float, int] = 2
+                    refresh_time: float = 2
                 except (RequestsHTTPError, ReadTimeout):
                     refresh_time = 0.1
 
@@ -671,7 +670,7 @@ class Batch:
         """
         params: Dict[str, str] = {}
         if self._consistency_level is not None:
-            params["consistency_level"] = self._consistency_level
+            params["consistency_level"] = self._consistency_level.value
 
         try:
             timeout_count = connection_count = batch_error_count = 0
@@ -1331,7 +1330,7 @@ class Batch:
 
         params: Dict[str, str] = {}
         if self._consistency_level is not None:
-            params["consistency_level"] = self._consistency_level
+            params["consistency_level"] = self._consistency_level.value
         if tenant is not None:
             params["tenant"] = tenant
 
@@ -1564,11 +1563,11 @@ class Batch:
 
     @property
     def consistency_level(self) -> Union[str, None]:
-        return self._consistency_level
+        return self._consistency_level.value if self._consistency_level is not None else None
 
     @consistency_level.setter
-    def consistency_level(self, x: Optional[ConsistencyLevel]) -> None:
-        self._consistency_level = ConsistencyLevel(x).value if x else None
+    def consistency_level(self, x: Optional[Union[ConsistencyLevel, str]]) -> None:
+        self._consistency_level = ConsistencyLevel(x)
 
     @property
     def recommended_num_objects(self) -> Optional[int]:
