@@ -42,13 +42,15 @@ class CollectionObject(Generic[Properties]):
 
 
 class Collection(CollectionBase):
-    def create(self, config: CollectionConfig) -> CollectionObject:
+    def create(
+        self, config: CollectionConfig, data_model: Optional[Type[Properties]] = None
+    ) -> CollectionObject[Properties]:
         name = super()._create(config)
         if config.name != name:
             raise ValueError(
                 f"Name of created collection ({name}) does not match given name ({config.name})"
             )
-        return self.get(name)
+        return self.get(name, data_model)
 
     def get(
         self, name: str, data_model: Optional[Type[Properties]] = None
