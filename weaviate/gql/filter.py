@@ -1123,9 +1123,9 @@ def _check_type(var_name: str, value: Any, dtype: Union[Tuple[type, type], type]
     ----------
     var_name : str
         The variable name for which to check the type (used for error message)!
-    value : T
+    value : Any
         The value for which to check the type.
-    dtype : T
+    dtype : Union[Tuple[type, type], type]
         The expected data type of the `value`.
 
     Raises
