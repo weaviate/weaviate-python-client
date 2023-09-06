@@ -14,7 +14,7 @@ on:
   pull_request:
 
 jobs:
-  lint-and_format:
+  lint-and-format:
     name: Run linter and formatter
     runs-on: ubuntu-latest
     steps:
@@ -34,6 +34,24 @@ jobs:
           python -m build
           python -m twine check dist/*
 
+  type-checking:
+    name: Run mypy static type checking
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["3.8", "3.9", "3.10", "3.11"]
+        folder: ["weaviate"]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.version }}
+          cache: 'pip' # caching pip dependencies
+      - run: pip install -r requirements-mypy.txt
+      - name: Run mypy
+        run: mypy ${{ matrix.folder }}
+
   unit-tests:
     name: Run Unit Tests
     runs-on: ubuntu-latest
@@ -43,20 +61,20 @@ jobs:
         version: ["3.8", "3.9", "3.10", "3.11"]
         folder: ["test", "mock_tests"]
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.version }}
-        cache: 'pip' # caching pip dependencies
-    - run: pip install -r requirements-devel.txt
-    - name: Run unittests
-      run: pytest --cov -v --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-${{ matrix.folder }}.xml ${{ matrix.folder }}
-    - name: Archive code coverage results
-      if: matrix.version == '3.10' && (github.ref_name != 'main')
-      uses: actions/upload-artifact@v3
-      with:
-        name: coverage-report-${{ matrix.folder }}
-        path: coverage-${{ matrix.folder }}.xml
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.version }}
+          cache: 'pip' # caching pip dependencies
+      - run: pip install -r requirements-devel.txt
+      - name: Run unittests
+        run: pytest --cov -v --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-${{ matrix.folder }}.xml ${{ matrix.folder }}
+      - name: Archive code coverage results
+        if: matrix.version == '3.10' && (github.ref_name != 'main')
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report-${{ matrix.folder }}
+          path: coverage-${{ matrix.folder }}.xml
 
   integration-tests:
     name: Run Integration Tests
