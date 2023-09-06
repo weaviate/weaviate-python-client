@@ -482,25 +482,35 @@ class _GRPC:
 
         if isinstance(weav_filter, _FilterValue):
 
-            def date_and_string_to_text(string_or_date: Union[str, TIME]) -> str:
+            def date_and_uuid_and_string_to_text(
+                string_or_date: Union[str, TIME, uuid_lib.UUID]
+            ) -> str:
                 if isinstance(string_or_date, str):
                     return string_or_date
+
+                if isinstance(string_or_date, uuid_lib.UUID):
+                    return str(string_or_date)
 
                 return _datetime_to_string(string_or_date)
 
             def date_and_string_list_to_text_array(
-                string_or_date: Union[List[str], List[TIME]]
+                string_or_date: Union[List[str], List[TIME], List[uuid_lib.UUID]]
             ) -> List[str]:
                 if isinstance(string_or_date[0], str):
                     return cast(List[str], string_or_date)
+
+                if isinstance(string_or_date[0], uuid_lib.UUID):
+                    return cast(List[str], [str(uid) for uid in string_or_date])
+
                 dates = cast(List[TIME], string_or_date)
                 return [_datetime_to_string(date) for date in dates]
 
             return weaviate_pb2.Filters(
                 operator=weav_filter.operator,
-                value_text=date_and_string_to_text(weav_filter.value)
+                value_text=date_and_uuid_and_string_to_text(weav_filter.value)
                 if isinstance(weav_filter.value, TIME.__args__)
                 or isinstance(weav_filter.value, str)
+                or isinstance(weav_filter.value, uuid_lib.UUID)
                 else None,
                 value_int=weav_filter.value if isinstance(weav_filter.value, int) else None,
                 value_boolean=weav_filter.value if isinstance(weav_filter.value, bool) else None,  # type: ignore
@@ -520,6 +530,7 @@ class _GRPC:
                 and (
                     isinstance(weav_filter.value[0], str)
                     or isinstance(weav_filter.value[0], TIME.__args__)
+                    or isinstance(weav_filter.value[0], uuid_lib.UUID)
                 )
                 else None,
                 value_boolean_array=weaviate_pb2.BooleanArray(

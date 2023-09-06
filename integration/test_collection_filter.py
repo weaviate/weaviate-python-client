@@ -213,6 +213,10 @@ def test_filters_comparison(
         (Filter(path="dates").contains_any([NOW]), [0, 1]),
         (Filter(path="date").equal(NOW), [0]),
         (Filter(path="date").greater_than(NOW), [1, 3]),
+        (Filter(path="uuids").contains_all([UUID2, UUID1]), [0, 3]),
+        (Filter(path="uuids").contains_any([UUID2, UUID1]), [0, 1, 3]),
+        (Filter(path="uuid").contains_any([UUID3]), []),
+        (Filter(path="uuid").contains_any([UUID1]), [0]),
     ],
 )
 def test_filters_contains(
@@ -234,6 +238,8 @@ def test_filters_contains(
                 Property(name="bools", data_type=DataType.BOOL_ARRAY),
                 Property(name="dates", data_type=DataType.DATE_ARRAY),
                 Property(name="date", data_type=DataType.DATE),
+                Property(name="uuids", data_type=DataType.UUID_ARRAY),
+                Property(name="uuid", data_type=DataType.UUID),
             ],
         )
     )
@@ -251,6 +257,8 @@ def test_filters_contains(
                 "bools": [True, False],
                 "dates": [NOW, LATER, MUCH_LATER],
                 "date": NOW,
+                "uuids": [UUID1, UUID3, UUID2],
+                "uuid": UUID1,
             }
         ),
         collection.data.insert(
@@ -265,6 +273,8 @@ def test_filters_contains(
                 "bools": [False, False],
                 "dates": [NOW, NOW, MUCH_LATER],
                 "date": LATER,
+                "uuids": [UUID2, UUID2],
+                "uuid": UUID2,
             }
         ),
         collection.data.insert(
@@ -277,6 +287,7 @@ def test_filters_contains(
                 "bool": False,
                 "bools": [],
                 "dates": [],
+                "uuids": [],
             }
         ),
         collection.data.insert(
@@ -291,6 +302,8 @@ def test_filters_contains(
                 "bools": [True],
                 "dates": [MUCH_LATER],
                 "date": MUCH_LATER,
+                "uuids": [UUID1, UUID2],
+                "uuid": UUID2,
             }
         ),
     ]

@@ -1,7 +1,8 @@
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
 from typing import List, Union
 
+from weaviate.weaviate_types import UUID
 from weaviate_grpc import weaviate_pb2
 
 
@@ -35,8 +36,8 @@ class _FilterOr(_Filters):
         return weaviate_pb2.Filters.OPERATOR_OR
 
 
-FilterValuesList = Union[List[str], List[bool], List[int], List[float], List[datetime]]
-FilterValues = Union[int, float, str, bool, datetime, None, FilterValuesList]
+FilterValuesList = Union[List[str], List[bool], List[int], List[float], List[datetime], List[UUID]]
+FilterValues = Union[int, float, str, bool, datetime, UUID, None, FilterValuesList]
 
 
 @dataclass
