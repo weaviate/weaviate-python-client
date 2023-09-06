@@ -272,7 +272,7 @@ class Batch:
         # do not keep too many past values, so it is a better estimation of the throughput is computed for 1 second
         self._objects_throughput_frame: Deque[float] = deque(maxlen=5)
         self._references_throughput_frame: Deque[float] = deque(maxlen=5)
-        self._future_pool: List[Future[Tuple[Response | None, int]]] = []
+        self._future_pool: List[Future[Tuple[Union[Response, None], int]]] = []
         self._reference_batch_queue: List[ReferenceBatchRequest] = []
         self._callback_lock = threading.Lock()
 
