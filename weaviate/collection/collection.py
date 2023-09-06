@@ -1,16 +1,14 @@
-from typing import Generic, Optional, Type, get_origin
-from typing_extensions import is_typeddict
+from typing import Generic, Optional, Type
 
 from weaviate.collection.classes.config import CollectionConfig
 from weaviate.collection.classes.config import ConsistencyLevel
-from weaviate.collection.classes.types import Properties
+from weaviate.collection.classes.types import Properties, _check_data_model
 from weaviate.collection.collection_base import CollectionBase
 from weaviate.collection.config import _ConfigCollection
 from weaviate.collection.data import _DataCollection
 from weaviate.collection.grpc import _GrpcCollection
 from weaviate.collection.tenants import _Tenants
 from weaviate.connect import Connection
-from weaviate.exceptions import InvalidDataModelException
 from weaviate.util import _capitalize_first_letter
 
 
@@ -55,12 +53,7 @@ class Collection(CollectionBase):
     def get(
         self, name: str, data_model: Optional[Type[Properties]] = None
     ) -> CollectionObject[Properties]:
-        if (
-            data_model is not None
-            and get_origin(data_model) is not dict
-            and not is_typeddict(data_model)
-        ):
-            raise InvalidDataModelException()
+        _check_data_model(data_model)
         name = _capitalize_first_letter(name)
         return CollectionObject[Properties](self._connection, name, type_=data_model)
 
