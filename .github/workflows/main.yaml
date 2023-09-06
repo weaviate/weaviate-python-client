@@ -15,7 +15,7 @@ on:
 
 jobs:
   lint-and-format:
-    name: Run linter and formatter
+    name: Run Linter and Formatter
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -35,7 +35,7 @@ jobs:
           python -m twine check dist/*
 
   type-checking:
-    name: Run mypy static type checking
+    name: Run Type Checking
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
