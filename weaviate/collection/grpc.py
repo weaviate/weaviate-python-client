@@ -508,7 +508,7 @@ class _GRPC:
             return weaviate_pb2.Filters(
                 operator=weav_filter.operator,
                 value_text=date_and_uuid_and_string_to_text(weav_filter.value)
-                if isinstance(weav_filter.value, TIME.__args__)
+                if isinstance(weav_filter.value, TIME)
                 or isinstance(weav_filter.value, str)
                 or isinstance(weav_filter.value, uuid_lib.UUID)
                 else None,
@@ -524,12 +524,14 @@ class _GRPC:
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], float)
                 else None,
                 value_text_array=weaviate_pb2.TextArray(
-                    values=date_and_string_list_to_text_array(weav_filter.value)
+                    values=date_and_string_list_to_text_array(
+                        cast(Union[List[str], List[TIME], List[uuid_lib.UUID]], weav_filter.value)
+                    )
                 )
                 if isinstance(weav_filter.value, list)
                 and (
                     isinstance(weav_filter.value[0], str)
-                    or isinstance(weav_filter.value[0], TIME.__args__)
+                    or isinstance(weav_filter.value[0], TIME)
                     or isinstance(weav_filter.value[0], uuid_lib.UUID)
                 )
                 else None,
