@@ -27,3 +27,23 @@ repos:
     - id: mypy
       entry: mypy ./weaviate
       pass_filenames: false
+      additional_dependencies: [
+        'Authlib==1.2.1',
+        'certifi==2023.7.22',
+        'cffi==1.15.1',
+        'charset-normalizer==3.2.0',
+        'cryptography==41.0.3',
+        'grpcio==1.57.0',
+        'grpcio-tools==1.57.0',
+        'idna==3.4',
+        'mypy-extensions==1.0.0',
+        'protobuf==4.24.2',
+        'pycparser==2.21',
+        'requests==2.31.0',
+        'tomli==2.0.1',
+        'types-requests==2.31.0.2',
+        'types-urllib3==1.26.25.14',
+        'typing_extensions==4.7.1',
+        'urllib3==2.0.4',
+        'validators==0.22.0',
+      ]
