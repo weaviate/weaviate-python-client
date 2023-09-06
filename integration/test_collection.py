@@ -106,7 +106,7 @@ def test_get_with_dict_generic(client: weaviate.Client, use_typed_dict: bool):
     assert isinstance(col, CollectionObject)
 
 
-def test_data_with_data_model_with_dict_generic(client: weaviate.Client, use_typed_dict: bool):
+def test_data_with_data_model_with_dict_generic(client: weaviate.Client):
     name = "TestDataWithDictGeneric"
 
     class Right(TypedDict):
