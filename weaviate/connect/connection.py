@@ -620,13 +620,13 @@ class Connection:
     def proxies(self) -> dict:
         return self._proxies
 
-    def wait_for_weaviate(self, startup_period: Optional[int]) -> None:
+    def wait_for_weaviate(self, startup_period: int) -> None:
         """
         Waits until weaviate is ready or the timelimit given in 'startup_period' has passed.
 
         Parameters
         ----------
-        startup_period : Optional[int]
+        startup_period : int
             Describes how long the client will wait for weaviate to start in seconds.
 
         Raises
@@ -636,7 +636,7 @@ class Connection:
         """
 
         ready_url = self.url + self._api_version_path + "/.well-known/ready"
-        for _i in range(startup_period or 30):
+        for _i in range(startup_period):
             try:
                 requests.get(ready_url, headers=self._get_request_header()).raise_for_status()
                 return
