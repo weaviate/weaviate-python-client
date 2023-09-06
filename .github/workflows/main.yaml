@@ -203,7 +203,7 @@ jobs:
 
   build-and-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
-    needs: [integration-tests, unit-tests, lint-and_format, test-package]
+    needs: [integration-tests, unit-tests, lint-and-format, test-package]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
