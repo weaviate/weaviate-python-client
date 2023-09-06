@@ -35,6 +35,10 @@ warn_unused_ignores = true
 exclude = ["weaviate_grpc", "docs", "mock_tests", "test", "integration"]
 
 [[tool.mypy.overrides]]
+module = "weaviate_grpc.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
 module = "grpc.*"
 ignore_missing_imports = true
 
