@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from enum import Enum
 from json import dumps
-from typing import Any, Union
+from typing import Any, Tuple, Union
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -121,7 +121,9 @@ class GraphQL(ABC):
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Query was not successful.") from conn_err
 
-        return _decode_json_response_dict(response, "Query was not successful")
+        res = _decode_json_response_dict(response, "Query was not successful")
+        assert res is not None
+        return res
 
 
 class Filter(ABC):
@@ -153,7 +155,7 @@ class Filter(ABC):
         """
 
     @property
-    def content(self):
+    def content(self) -> dict:
         return self._content
 
 
@@ -203,7 +205,7 @@ class NearText(Filter):
         if "autocorrect" in self._content:
             _check_type(var_name="autocorrect", value=self._content["autocorrect"], dtype=bool)
 
-    def __str__(self):
+    def __str__(self) -> str:
         near_text = f'nearText: {{concepts: {dumps(self._content["concepts"])}'
         if "certainty" in self._content:
             near_text += f' certainty: {self._content["certainty"]}'
@@ -276,7 +278,7 @@ class NearVector(Filter):
 
         self._content["vector"] = get_vector(self._content["vector"])
 
-    def __str__(self):
+    def __str__(self) -> str:
         near_vector = f'nearVector: {{vector: {dumps(self._content["vector"])}'
         if "certainty" in self._content:
             near_vector += f' certainty: {self._content["certainty"]}'
@@ -339,7 +341,7 @@ class NearObject(Filter):
         if "distance" in self._content:
             _check_type(var_name="distance", value=self._content["distance"], dtype=float)
 
-    def __str__(self):
+    def __str__(self) -> str:
         near_object = f'nearObject: {{{self.obj_id}: "{self._content[self.obj_id]}"'
         if "certainty" in self._content:
             near_object += f' certainty: {self._content["certainty"]}'
@@ -399,7 +401,7 @@ class Ask(Filter):
             if isinstance(self._content["properties"], str):
                 self._content["properties"] = [self._content["properties"]]
 
-    def __str__(self):
+    def __str__(self) -> str:
         ask = f'ask: {{question: {dumps(self._content["question"])}'
         if "certainty" in self._content:
             ask += f' certainty: {self._content["certainty"]}'
@@ -458,7 +460,7 @@ class NearMedia(Filter):
         if "distance" in self._content:
             _check_type(var_name="distance", value=self._content["distance"], dtype=float)
 
-    def __str__(self):
+    def __str__(self) -> str:
         media = self._media_type.value.capitalize()
         if self._media_type == MediaType.IMU:
             media = self._media_type.value.upper()
@@ -830,7 +832,7 @@ class Where(Filter):
         for operand in _content["operands"]:
             self.operands.append(Where(operand))
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.is_filter:
             gql = f"where: {{path: {self.path} operator: {self.operator} {_convert_value_type(self.value_type)}: "
             if self.value_type in [
@@ -938,7 +940,7 @@ def _render_list(value: list) -> str:
     return f'[{",".join(value)}]'
 
 
-def _check_is_list(value: Any, _type: str):
+def _check_is_list(value: Any, _type: str) -> None:
     """Checks whether the provided value is a list to match the given `value_type`.
 
     Parameters
@@ -959,7 +961,7 @@ def _check_is_list(value: Any, _type: str):
         )
 
 
-def _check_is_not_list(value: Any, _type: str):
+def _check_is_not_list(value: Any, _type: str) -> None:
     """Checks whether the provided value is a list to match the given `value_type`.
 
     Parameters
@@ -1020,7 +1022,7 @@ def _bool_to_str(value: bool) -> str:
     return "false"
 
 
-def _check_direction_clause(direction: dict) -> dict:
+def _check_direction_clause(direction: dict) -> None:
     """
     Validate the direction sub clause.
 
@@ -1113,7 +1115,7 @@ def _check_objects(content: dict) -> None:
             )
 
 
-def _check_type(var_name: str, value: Any, dtype: type) -> None:
+def _check_type(var_name: str, value: Any, dtype: Union[Tuple[type, type], type]) -> None:
     """
     Check key-value type.
 
@@ -1123,7 +1125,7 @@ def _check_type(var_name: str, value: Any, dtype: type) -> None:
         The variable name for which to check the type (used for error message)!
     value : Any
         The value for which to check the type.
-    dtype : type
+    dtype : Union[Tuple[type, type], type]
         The expected data type of the `value`.
 
     Raises

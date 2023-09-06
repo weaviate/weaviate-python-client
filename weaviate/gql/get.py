@@ -4,7 +4,7 @@ GraphQL `Get` command.
 from dataclasses import dataclass, Field, fields
 from enum import Enum
 from json import dumps
-from typing import List, Union, Optional, Dict, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 from weaviate import util
 from weaviate.connect import Connection
@@ -204,9 +204,9 @@ class GetBuilder(GraphQL):
         self._alias: Optional[str] = None
         self._tenant: Optional[str] = None
         self._autocut: Optional[int] = None
-        self._consistency_level: Optional[ConsistencyLevel] = None
+        self._consistency_level: Optional[str] = None
 
-    def with_autocut(self, autocut: int):
+    def with_autocut(self, autocut: int) -> "GetBuilder":
         """Cuts off irrelevant results based on "jumps" in scores."""
         if not isinstance(autocut, int):
             raise TypeError("autocut must be of type int")
@@ -215,7 +215,7 @@ class GetBuilder(GraphQL):
         self._contains_filter = True
         return self
 
-    def with_tenant(self, tenant: str):
+    def with_tenant(self, tenant: str) -> "GetBuilder":
         """Sets a tenant for the query."""
         if not isinstance(tenant, str):
             raise TypeError("tenant must be of type str")
@@ -224,12 +224,12 @@ class GetBuilder(GraphQL):
         self._contains_filter = True
         return self
 
-    def with_after(self, after_uuid: UUID):
+    def with_after(self, after_uuid: UUID) -> "GetBuilder":
         """Can be used to extract all elements by giving the last ID from the previous "page".
 
         Requires limit to be set but cannot be combined with any other filters or search. Part of the Cursor API.
         """
-        if not isinstance(after_uuid, UUID.__args__):  # __args__ is workaround for python 3.8
+        if not isinstance(after_uuid, UUID.__args__):  # type: ignore # __args__ is workaround for python 3.8
             raise TypeError("after_uuid must be of type UUID (str or uuid.UUID)")
 
         self._after = f'after: "{get_valid_uuid(after_uuid)}"'
@@ -1607,7 +1607,7 @@ class GetBuilder(GraphQL):
         vector: Optional[List[float]] = None,
         properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
-    ):
+    ) -> "GetBuilder":
         """Get objects using bm25 and vector, then combine the results using a reciprocal ranking algorithm.
 
         Parameters
@@ -1709,7 +1709,7 @@ class GetBuilder(GraphQL):
     def with_alias(
         self,
         alias: str,
-    ):
+    ) -> "GetBuilder":
         """Gives an alias for the query. Needs to be used if 'multi_get' requests the same 'class_name' twice.
 
         Parameters
@@ -1721,7 +1721,7 @@ class GetBuilder(GraphQL):
         self._alias = alias
         return self
 
-    def with_consistency_level(self, consistency_level: ConsistencyLevel):
+    def with_consistency_level(self, consistency_level: ConsistencyLevel) -> "GetBuilder":
         """Set the consistency level for the request."""
 
         self._consistency_level = f"consistencyLevel: {consistency_level.value} "
@@ -1831,13 +1831,13 @@ class GetBuilder(GraphQL):
             )  # no ref props as strings
         )
         if grpc_enabled:
-            metadata = ()
+            metadata: Union[Tuple, Tuple[Tuple[Literal["authorization"], str]]] = ()
             access_token = self._connection.get_current_bearer_token()
             if len(access_token) > 0:
                 metadata = (("authorization", access_token),)
 
             try:
-                res, _ = self._connection.grpc_stub.Search.with_call(
+                res, _ = self._connection.grpc_stub.Search.with_call(  # type: ignore
                     weaviate_pb2.SearchRequest(
                         class_name=self._class_name,
                         limit=self._limit,
@@ -1894,7 +1894,9 @@ class GetBuilder(GraphQL):
                         obj["_additional"] = additional
                     objects.append(obj)
 
-                results = {"data": {"Get": {self._class_name: objects}}}
+                results: Union[Dict[str, Dict[str, Dict[str, List]]], Dict[str, List]] = {
+                    "data": {"Get": {self._class_name: objects}}
+                }
 
             except grpc.RpcError as e:
                 results = {"errors": [e.details()]}
@@ -1905,7 +1907,7 @@ class GetBuilder(GraphQL):
     def _extract_additional_properties(
         self, props: "weaviate_pb2.ResultAdditionalProps"
     ) -> Dict[str, str]:
-        additional_props = {}
+        additional_props: Dict[str, Any] = {}
         if self._additional_dataclass is None:
             return additional_props
 
@@ -1938,7 +1940,7 @@ class GetBuilder(GraphQL):
     def _convert_references_to_grpc_result(
         self, properties: "weaviate_pb2.ResultProperties"
     ) -> Dict:
-        result = {}
+        result: Dict[str, Any] = {}
         for name, non_ref_prop in properties.non_ref_properties.items():
             result[name] = non_ref_prop
 

@@ -3,7 +3,7 @@ Schema class definition.
 """
 from dataclasses import dataclass
 from enum import Enum
-from typing import Union, Optional, List, Dict
+from typing import Union, Optional, List, Dict, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -84,7 +84,7 @@ class Tenant:
     def _from_weaviate_object(cls, weaviate_object: Dict[str, str]) -> "Tenant":
         return cls(
             name=weaviate_object["name"],
-            activity_status=weaviate_object.get("activityStatus", "HOT"),
+            activity_status=TenantActivityStatus(weaviate_object.get("activityStatus", "HOT")),
         )
 
 
@@ -449,7 +449,7 @@ class Schema:
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Update class schema configuration", response)
 
-    def get(self, class_name: str = None) -> dict:
+    def get(self, class_name: Optional[str] = None) -> dict:
         """
         Get the schema from Weaviate.
 
@@ -554,7 +554,9 @@ class Schema:
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Schema could not be retrieved.") from conn_err
 
-        return _decode_json_response_dict(response, "Get schema")
+        res = _decode_json_response_dict(response, "Get schema")
+        assert res is not None
+        return res
 
     def get_class_shards(self, class_name: str) -> list:
         """
@@ -598,7 +600,9 @@ class Schema:
                 "Class shards' status could not be retrieved due to connection error."
             ) from conn_err
 
-        return _decode_json_response_list(response, "Get shards' status")
+        res = _decode_json_response_list(response, "Get shards' status")
+        assert res is not None
+        return res
 
     def update_class_shard(
         self,
@@ -698,7 +702,7 @@ class Schema:
 
         if shard_name is None:
             return to_return
-        return to_return[0]
+        return cast(list, to_return[0])
 
     def _create_complex_properties_from_class(self, schema_class: dict) -> None:
         """
@@ -908,6 +912,7 @@ class Schema:
             raise RequestsConnectionError("Could not get class tenants.") from conn_err
 
         tenant_resp = _decode_json_response_list(response, "Get class tenants")
+        assert tenant_resp is not None
         return [Tenant._from_weaviate_object(tenant) for tenant in tenant_resp]
 
     def update_class_tenants(self, class_name: str, tenants: List[Tenant]) -> None:

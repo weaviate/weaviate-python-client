@@ -1,7 +1,7 @@
 """
 Cluster class definition.
 """
-from typing import Optional
+from typing import Optional, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -64,7 +64,8 @@ class Cluster:
             ) from conn_err
 
         response_typed = _decode_json_response_dict(response, "Nodes status")
+        assert response_typed is not None
         nodes = response_typed.get("nodes")
         if nodes is None or nodes == []:
             raise EmptyResponseException("Nodes status response returned empty")
-        return nodes
+        return cast(list, nodes)

@@ -74,7 +74,9 @@ class Classification:
                 "Classification status could not be retrieved."
             ) from conn_err
 
-        return _decode_json_response_dict(response, "Get classification status")
+        res = _decode_json_response_dict(response, "Get classification status")
+        assert res is not None
+        return res
 
     def is_complete(self, classification_uuid: str) -> bool:
         """
