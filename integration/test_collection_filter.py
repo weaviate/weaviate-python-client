@@ -209,6 +209,10 @@ def test_filters_comparison(
         (Filter(path="bools").contains_all([True, False]), [0]),
         (Filter(path="bool").contains_all([True, False]), []),
         (Filter(path="bool").contains_all([True]), [0, 1, 3]),
+        (Filter(path="dates").contains_any([NOW, MUCH_LATER]), [0, 1, 3]),
+        (Filter(path="dates").contains_any([NOW]), [0, 1]),
+        (Filter(path="date").equal(NOW), [0]),
+        (Filter(path="date").greater_than(NOW), [1, 3]),
     ],
 )
 def test_filters_contains(
@@ -228,6 +232,8 @@ def test_filters_contains(
                 Property(name="floats", data_type=DataType.NUMBER_ARRAY),
                 Property(name="bool", data_type=DataType.BOOL),
                 Property(name="bools", data_type=DataType.BOOL_ARRAY),
+                Property(name="dates", data_type=DataType.DATE_ARRAY),
+                Property(name="date", data_type=DataType.DATE),
             ],
         )
     )
@@ -243,6 +249,8 @@ def test_filters_contains(
                 "floats": [0.4, 0.9, 2],
                 "bool": True,
                 "bools": [True, False],
+                "dates": [NOW, LATER, MUCH_LATER],
+                "date": NOW,
             }
         ),
         collection.data.insert(
@@ -255,6 +263,8 @@ def test_filters_contains(
                 "floats": [0.1, 0.7, 2],
                 "bool": True,
                 "bools": [False, False],
+                "dates": [NOW, NOW, MUCH_LATER],
+                "date": LATER,
             }
         ),
         collection.data.insert(
@@ -266,6 +276,7 @@ def test_filters_contains(
                 "floats": [],
                 "bool": False,
                 "bools": [],
+                "dates": [],
             }
         ),
         collection.data.insert(
@@ -278,48 +289,10 @@ def test_filters_contains(
                 "floats": [0.7],
                 "bool": True,
                 "bools": [True],
+                "dates": [MUCH_LATER],
+                "date": MUCH_LATER,
             }
         ),
-    ]
-
-    objects = collection.query.get_flat(
-        filters=weaviate_filter, return_metadata=MetadataQuery(uuid=True)
-    )
-    assert len(objects) == len(results)
-
-    uuids = [uuids[result] for result in results]
-    assert all(obj.metadata.uuid in uuids for obj in objects)
-
-
-@pytest.mark.parametrize(
-    "weaviate_filter,results",
-    [
-        (Filter(path="dates").contains_any([NOW, MUCH_LATER]), [0, 1, 3]),
-        (Filter(path="dates").contains_any([NOW]), [0, 1]),
-        (Filter(path="date").equal(NOW), [0]),
-        (Filter(path="date").greater_than(NOW), [1, 3]),
-    ],
-)
-def test_filters_contains_dates(
-    client: weaviate.Client, weaviate_filter: _FilterValue, results: List[int]
-):
-    client.collection.delete("TestFilterContainsDates")
-    collection = client.collection.create(
-        CollectionConfig(
-            name="TestFilterContainsDates",
-            vectorizer_config=VectorizerFactory.none(),
-            properties=[
-                Property(name="dates", data_type=DataType.DATE_ARRAY),
-                Property(name="date", data_type=DataType.DATE),
-            ],
-        )
-    )
-
-    uuids = [
-        collection.data.insert({"dates": [NOW, LATER, MUCH_LATER], "date": NOW}),
-        collection.data.insert({"dates": [NOW, NOW, MUCH_LATER], "date": LATER}),
-        collection.data.insert({"dates": []}),
-        collection.data.insert({"dates": [MUCH_LATER], "date": MUCH_LATER}),
     ]
 
     objects = collection.query.get_flat(
