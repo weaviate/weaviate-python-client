@@ -40,7 +40,7 @@ from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     ObjectAlreadyExistsException,
 )
-from weaviate.warnings import _Warnings
+from weaviate.util import _datetime_to_string
 from weaviate.weaviate_types import BEACON, UUID
 from weaviate_grpc import weaviate_pb2
 
@@ -278,17 +278,10 @@ class _Data:
         if isinstance(value, uuid_package.UUID):
             return str(value)
         if isinstance(value, datetime.datetime):
-            return self.__datetime_to_string(value)
+            return _datetime_to_string(value)
         if isinstance(value, list):
             return [self.__serialize_primitive(val) for val in value]
         return value
-
-    @staticmethod
-    def __datetime_to_string(value: datetime.datetime) -> str:
-        if value.tzinfo is None:
-            _Warnings.datetime_insertion_with_no_specified_timezone(value)
-            value = value.replace(tzinfo=datetime.timezone.utc)
-        return value.isoformat(sep="T", timespec="microseconds")
 
     def _deserialize_primitive(self, value: Any, type_value: Optional[Any]) -> Any:
         if type_value is None:
@@ -334,7 +327,7 @@ class _Data:
             elif isinstance(val, list) and isinstance(val[0], datetime.datetime):
                 text_arrays.append(
                     weaviate_pb2.TextArrayProperties(
-                        prop_name=key, values=[self.__datetime_to_string(x) for x in val]
+                        prop_name=key, values=[_datetime_to_string(x) for x in val]
                     )
                 )
             elif isinstance(val, list) and isinstance(val[0], uuid_package.UUID):

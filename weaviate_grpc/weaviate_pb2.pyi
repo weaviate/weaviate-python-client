@@ -160,7 +160,7 @@ class DateArray(_message.Message):
     def __init__(self, values: _Optional[_Iterable[_Union[_timestamp_pb2.Timestamp, _Mapping]]] = ...) -> None: ...
 
 class Filters(_message.Message):
-    __slots__ = ["operator", "on", "filters", "value_text", "value_int", "value_boolean", "value_number", "value_date", "value_text_array", "value_int_array", "value_boolean_array", "value_number_array", "value_date_array"]
+    __slots__ = ["operator", "on", "filters", "value_text", "value_int", "value_boolean", "value_number", "value_text_array", "value_int_array", "value_boolean_array", "value_number_array"]
     class Operator(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
         __slots__ = []
         OPERATOR_UNSPECIFIED: _ClassVar[Filters.Operator]
@@ -198,12 +198,10 @@ class Filters(_message.Message):
     VALUE_INT_FIELD_NUMBER: _ClassVar[int]
     VALUE_BOOLEAN_FIELD_NUMBER: _ClassVar[int]
     VALUE_NUMBER_FIELD_NUMBER: _ClassVar[int]
-    VALUE_DATE_FIELD_NUMBER: _ClassVar[int]
     VALUE_TEXT_ARRAY_FIELD_NUMBER: _ClassVar[int]
     VALUE_INT_ARRAY_FIELD_NUMBER: _ClassVar[int]
     VALUE_BOOLEAN_ARRAY_FIELD_NUMBER: _ClassVar[int]
     VALUE_NUMBER_ARRAY_FIELD_NUMBER: _ClassVar[int]
-    VALUE_DATE_ARRAY_FIELD_NUMBER: _ClassVar[int]
     operator: Filters.Operator
     on: _containers.RepeatedScalarFieldContainer[str]
     filters: _containers.RepeatedCompositeFieldContainer[Filters]
@@ -211,13 +209,11 @@ class Filters(_message.Message):
     value_int: int
     value_boolean: bool
     value_number: float
-    value_date: _timestamp_pb2.Timestamp
     value_text_array: TextArray
     value_int_array: IntArray
     value_boolean_array: BooleanArray
     value_number_array: NumberArray
-    value_date_array: DateArray
-    def __init__(self, operator: _Optional[_Union[Filters.Operator, str]] = ..., on: _Optional[_Iterable[str]] = ..., filters: _Optional[_Iterable[_Union[Filters, _Mapping]]] = ..., value_text: _Optional[str] = ..., value_int: _Optional[int] = ..., value_boolean: bool = ..., value_number: _Optional[float] = ..., value_date: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., value_text_array: _Optional[_Union[TextArray, _Mapping]] = ..., value_int_array: _Optional[_Union[IntArray, _Mapping]] = ..., value_boolean_array: _Optional[_Union[BooleanArray, _Mapping]] = ..., value_number_array: _Optional[_Union[NumberArray, _Mapping]] = ..., value_date_array: _Optional[_Union[DateArray, _Mapping]] = ...) -> None: ...
+    def __init__(self, operator: _Optional[_Union[Filters.Operator, str]] = ..., on: _Optional[_Iterable[str]] = ..., filters: _Optional[_Iterable[_Union[Filters, _Mapping]]] = ..., value_text: _Optional[str] = ..., value_int: _Optional[int] = ..., value_boolean: bool = ..., value_number: _Optional[float] = ..., value_text_array: _Optional[_Union[TextArray, _Mapping]] = ..., value_int_array: _Optional[_Union[IntArray, _Mapping]] = ..., value_boolean_array: _Optional[_Union[BooleanArray, _Mapping]] = ..., value_number_array: _Optional[_Union[NumberArray, _Mapping]] = ...) -> None: ...
 
 class AdditionalProperties(_message.Message):
     __slots__ = ["uuid", "vector", "creationTimeUnix", "lastUpdateTimeUnix", "distance", "certainty", "score", "explainScore", "is_consistent"]

@@ -17,6 +17,7 @@ from typing import (
 from typing_extensions import TypeAlias
 
 from weaviate.collection.classes.config import ConsistencyLevel
+from weaviate.util import _datetime_to_string
 
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated, get_type_hints, get_origin
@@ -66,7 +67,7 @@ from weaviate.collection.classes.types import (
 )
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGRPCException
-from weaviate.weaviate_types import UUID
+from weaviate.weaviate_types import UUID, TIME
 from weaviate_grpc import weaviate_pb2
 
 # Can be found in the google.protobuf.internal.well_known_types.pyi stub file but is defined explicitly here for clarity.
@@ -478,20 +479,31 @@ class _GRPC:
     def __extract_filters(self, weav_filter: Optional[_Filters]) -> Optional[weaviate_pb2.Filters]:
         if weav_filter is None:
             return None
-        from google.protobuf.timestamp_pb2 import Timestamp
 
         if isinstance(weav_filter, _FilterValue):
-            timestamp = Timestamp()
 
-            if isinstance(weav_filter.value, datetime.date):
-                timestamp.FromDatetime(weav_filter.value)
+            def date_and_string_to_text(string_or_date: Union[str, TIME]) -> str:
+                if isinstance(string_or_date, str):
+                    return string_or_date
+
+                return _datetime_to_string(string_or_date)
+
+            def date_and_string_list_to_text_array(
+                string_or_date: Union[List[str], List[TIME]]
+            ) -> List[str]:
+                if isinstance(string_or_date[0], str):
+                    return cast(List[str], string_or_date)
+                dates = cast(List[TIME], string_or_date)
+                return [_datetime_to_string(date) for date in dates]
 
             return weaviate_pb2.Filters(
                 operator=weav_filter.operator,
-                value_text=weav_filter.value if isinstance(weav_filter.value, str) else None,
+                value_text=date_and_string_to_text(weav_filter.value)
+                if isinstance(weav_filter.value, TIME.__args__)
+                or isinstance(weav_filter.value, str)
+                else None,
                 value_int=weav_filter.value if isinstance(weav_filter.value, int) else None,
                 value_boolean=weav_filter.value if isinstance(weav_filter.value, bool) else None,  # type: ignore
-                value_date=timestamp if isinstance(weav_filter.value, datetime.date) else None,
                 value_number=weav_filter.value if isinstance(weav_filter.value, float) else None,
                 value_int_array=weaviate_pb2.IntArray(values=cast(List[int], weav_filter.value))
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], int)
@@ -501,8 +513,14 @@ class _GRPC:
                 )
                 if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], float)
                 else None,
-                value_text_array=weaviate_pb2.TextArray(values=cast(List[str], weav_filter.value))
-                if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], str)
+                value_text_array=weaviate_pb2.TextArray(
+                    values=date_and_string_list_to_text_array(weav_filter.value)
+                )
+                if isinstance(weav_filter.value, list)
+                and (
+                    isinstance(weav_filter.value[0], str)
+                    or isinstance(weav_filter.value[0], TIME.__args__)
+                )
                 else None,
                 value_boolean_array=weaviate_pb2.BooleanArray(
                     values=cast(List[bool], weav_filter.value)
