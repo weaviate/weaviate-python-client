@@ -1567,7 +1567,7 @@ class Batch:
 
     @consistency_level.setter
     def consistency_level(self, x: Optional[Union[ConsistencyLevel, str]]) -> None:
-        self._consistency_level = ConsistencyLevel(x)
+        self._consistency_level = ConsistencyLevel(x) if x is not None else None
 
     @property
     def recommended_num_objects(self) -> Optional[int]:
