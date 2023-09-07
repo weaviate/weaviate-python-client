@@ -266,7 +266,15 @@ class Text2VecContextionaryConfig(VectorizerConfig):
 
 class Text2VecCohereConfig(VectorizerConfig):
     vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_COHERE, frozen=True, exclude=True)
-    model: Literal["embed_multilingual_v2.0"] = Field(default="embed_multilingual_v2.0")
+    model: Literal[
+        "embed-multilingual-v2.0",
+        "small",
+        "medium",
+        "large",
+        "multilingual-22-12",
+        "embed-english-v2.0",
+        "embed-english-light-v2.0",
+    ] = Field(default="embed-multilingual-v2.0")
     truncate: Literal["RIGHT", "NONE"] = Field(default="RIGHT")
 
 
