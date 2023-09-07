@@ -97,9 +97,10 @@ def check_class(class_definition: dict) -> None:
         ]:
             _check_key_type(key, class_definition[key], dict)
         if key in ["properties"]:
-            _check_key_type(key, class_definition[key], list)
+            if (properties := class_definition[key]) is not None:
+                _check_key_type(key, properties, list)
 
-    if "properties" in class_definition:
+    if "properties" in class_definition and class_definition["properties"] is not None:
         for class_property in class_definition["properties"]:
             check_property(class_property)
 
