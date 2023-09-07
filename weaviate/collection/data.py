@@ -16,7 +16,6 @@ from typing import (
 
 from google.protobuf.struct_pb2 import Struct
 from requests.exceptions import ConnectionError as RequestsConnectionError
-from typing_extensions import is_typeddict
 
 from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.classes.data import (
@@ -32,11 +31,10 @@ from weaviate.collection.classes.internal import _Object, _metadata_from_dict, R
 from weaviate.collection.classes.orm import (
     Model,
 )
-from weaviate.collection.classes.types import Properties, TProperties
+from weaviate.collection.classes.types import Properties, TProperties, _check_data_model
 from weaviate.collection.grpc_batch import _BatchGRPC
 from weaviate.connect import Connection
 from weaviate.exceptions import (
-    InvalidDataModelException,
     UnexpectedStatusCodeException,
     ObjectAlreadyExistsException,
 )
@@ -372,12 +370,7 @@ class _DataCollection(Generic[Properties], _Data):
         self.__type = type_
 
     def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]":
-        if (
-            data_model is not None
-            and get_origin(data_model) is not dict
-            and not is_typeddict(data_model)
-        ):
-            raise InvalidDataModelException()
+        _check_data_model(data_model)
         return _DataCollection[TProperties](
             self._connection, self.name, self._consistency_level, self._tenant, data_model
         )

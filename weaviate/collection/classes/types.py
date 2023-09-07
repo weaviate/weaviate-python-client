@@ -1,5 +1,7 @@
-from typing import Any, Dict, Mapping
-from typing_extensions import TypeVar
+from typing import Any, Dict, Mapping, Optional, Type, get_origin
+from typing_extensions import TypeVar, is_typeddict
+
+from weaviate.exceptions import InvalidDataModelException
 
 Properties = TypeVar("Properties", bound=Mapping[str, Any], default=Dict[str, Any])
 """`Properties` is used wherever a single generic type is needed"""
@@ -20,3 +22,12 @@ within the non-ORM and ORM APIs interchangeably"""
 
 T = TypeVar("T")
 """`T` is a completely general type that is used in any kind of generic"""
+
+
+def _check_data_model(data_model: Optional[Type[Properties]]) -> None:
+    if (
+        data_model is not None
+        and get_origin(data_model) is not dict
+        and not is_typeddict(data_model)
+    ):
+        raise InvalidDataModelException()
