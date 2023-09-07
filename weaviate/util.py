@@ -2,15 +2,16 @@
 Helper functions!
 """
 import base64
+import datetime
 import json
 import os
 import re
+import uuid as uuid_lib
 from enum import Enum, EnumMeta
 from io import BufferedReader
 from typing import Union, Sequence, Any, Optional, List, Dict, Tuple, cast
 
 import requests
-import uuid as uuid_lib
 import validators
 from requests.exceptions import JSONDecodeError
 
@@ -19,7 +20,8 @@ from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     ResponseCannotBeDecodedException,
 )
-from weaviate.weaviate_types import NUMBER, UUIDS
+from weaviate.warnings import _Warnings
+from weaviate.weaviate_types import NUMBER, UUIDS, TIME
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"
 MAXIMUM_MINOR_VERSION_DELTA = 3  # The maximum delta between minor versions of Weaviate Client that will not trigger an upgrade warning.
@@ -823,3 +825,10 @@ def _decode_json_response_list(
         except JSONDecodeError:
             raise ResponseCannotBeDecodedException(location, response)
     raise UnexpectedStatusCodeException(location, response)
+
+
+def _datetime_to_string(value: TIME) -> str:
+    if value.tzinfo is None:
+        _Warnings.datetime_insertion_with_no_specified_timezone(value)
+        value = value.replace(tzinfo=datetime.timezone.utc)
+    return value.isoformat(sep="T", timespec="microseconds")

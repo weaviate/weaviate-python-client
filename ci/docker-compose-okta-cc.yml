@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-fix-adding-arrays-in-batch-bda0e9e
+    image: semitechnologies/weaviate:preview-fix-date-and-uuid-filtering-7416f0b
     ports:
       - 8082:8082
     restart: on-failure:0

@@ -23,3 +23,4 @@ DATATYPE_TO_PYTHON_TYPE = {
     "geoCoordinates": GEO_COORDINATES,
 }
 PYTHON_TYPE_TO_DATATYPE = {val: key for key, val in DATATYPE_TO_PYTHON_TYPE.items()}
+TIME = datetime.datetime  # add datetime.date later

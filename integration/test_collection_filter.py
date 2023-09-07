@@ -1,4 +1,5 @@
 import datetime
+import uuid
 from typing import List
 
 import pytest as pytest
@@ -21,6 +22,14 @@ from weaviate.collection.classes.filters import (
 )
 from weaviate.collection.classes.grpc import MetadataQuery
 from weaviate.collection.classes.internal import Reference
+
+NOW = datetime.datetime.now(datetime.timezone.utc)
+LATER = NOW + datetime.timedelta(hours=1)
+MUCH_LATER = NOW + datetime.timedelta(days=1)
+
+UUID1 = uuid.uuid4()
+UUID2 = uuid.uuid4()
+UUID3 = uuid.uuid4()
 
 
 @pytest.fixture(scope="module")
@@ -200,6 +209,14 @@ def test_filters_comparison(
         (Filter(path="bools").contains_all([True, False]), [0]),
         (Filter(path="bool").contains_all([True, False]), []),
         (Filter(path="bool").contains_all([True]), [0, 1, 3]),
+        (Filter(path="dates").contains_any([NOW, MUCH_LATER]), [0, 1, 3]),
+        (Filter(path="dates").contains_any([NOW]), [0, 1]),
+        (Filter(path="date").equal(NOW), [0]),
+        (Filter(path="date").greater_than(NOW), [1, 3]),
+        (Filter(path="uuids").contains_all([UUID2, UUID1]), [0, 3]),
+        (Filter(path="uuids").contains_any([UUID2, UUID1]), [0, 1, 3]),
+        (Filter(path="uuid").contains_any([UUID3]), []),
+        (Filter(path="uuid").contains_any([UUID1]), [0]),
     ],
 )
 def test_filters_contains(
@@ -219,6 +236,10 @@ def test_filters_contains(
                 Property(name="floats", data_type=DataType.NUMBER_ARRAY),
                 Property(name="bool", data_type=DataType.BOOL),
                 Property(name="bools", data_type=DataType.BOOL_ARRAY),
+                Property(name="dates", data_type=DataType.DATE_ARRAY),
+                Property(name="date", data_type=DataType.DATE),
+                Property(name="uuids", data_type=DataType.UUID_ARRAY),
+                Property(name="uuid", data_type=DataType.UUID),
             ],
         )
     )
@@ -234,6 +255,10 @@ def test_filters_contains(
                 "floats": [0.4, 0.9, 2],
                 "bool": True,
                 "bools": [True, False],
+                "dates": [NOW, LATER, MUCH_LATER],
+                "date": NOW,
+                "uuids": [UUID1, UUID3, UUID2],
+                "uuid": UUID1,
             }
         ),
         collection.data.insert(
@@ -246,6 +271,10 @@ def test_filters_contains(
                 "floats": [0.1, 0.7, 2],
                 "bool": True,
                 "bools": [False, False],
+                "dates": [NOW, NOW, MUCH_LATER],
+                "date": LATER,
+                "uuids": [UUID2, UUID2],
+                "uuid": UUID2,
             }
         ),
         collection.data.insert(
@@ -257,6 +286,8 @@ def test_filters_contains(
                 "floats": [],
                 "bool": False,
                 "bools": [],
+                "dates": [],
+                "uuids": [],
             }
         ),
         collection.data.insert(
@@ -269,50 +300,16 @@ def test_filters_contains(
                 "floats": [0.7],
                 "bool": True,
                 "bools": [True],
+                "dates": [MUCH_LATER],
+                "date": MUCH_LATER,
+                "uuids": [UUID1, UUID2],
+                "uuid": UUID2,
             }
         ),
     ]
 
     objects = collection.query.get_flat(
         filters=weaviate_filter, return_metadata=MetadataQuery(uuid=True)
-    )
-    assert len(objects) == len(results)
-
-    uuids = [uuids[result] for result in results]
-    assert all(obj.metadata.uuid in uuids for obj in objects)
-
-
-@pytest.mark.parametrize("test_number,results", [(0, [0, 1])])
-def test_filters_contains_dates(client: weaviate.Client, test_number: int, results: List[int]):
-    pytest.skip("Date arrays not yet supported")
-    client.collection.delete("TestFilterContainsDates")
-    collection = client.collection.create(
-        CollectionConfig(
-            name="TestFilterContainsDates",
-            vectorizer_config=VectorizerFactory.none(),
-            properties=[Property(name="dates", data_type=DataType.DATE_ARRAY)],
-        )
-    )
-    now = datetime.datetime.now(datetime.timezone.utc)
-    later = now + datetime.timedelta(hours=1)
-    much_later = now + datetime.timedelta(days=1)
-
-    uuids = [
-        collection.data.insert({"dates": [now, later, much_later]}),
-        collection.data.insert({"dates": [now, now, much_later]}),
-        collection.data.insert({"dates": []}),
-        collection.data.insert({"dates": [much_later]}),
-    ]
-
-    if test_number == 1:
-        contains = [now, later]
-    else:
-        contains = [now]
-
-    weav_filter = Filter(path="dates").contains_any(contains)
-
-    objects = collection.query.get_flat(
-        filters=weav_filter, return_metadata=MetadataQuery(uuid=True)
     )
     assert len(objects) == len(results)
 

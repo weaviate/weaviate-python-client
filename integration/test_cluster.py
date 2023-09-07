@@ -4,7 +4,7 @@ import pytest
 
 import weaviate
 
-GIT_HASH = "bda0e9e"
+GIT_HASH = "7416f0b"
 SERVER_VERSION = "1.21.2"
 NODE_NAME = "node1"
 NUM_OBJECT = 10
