@@ -156,3 +156,14 @@ class _Warnings:
             category=UserWarning,
             stacklevel=1,
         )
+
+    @staticmethod
+    def batch_executor_is_shutdown() -> None:
+        warnings.warn(
+            message="""Con004: The BatchExecutor was shutdown, most probably when it exited the `with` statement.
+                It will be initialized again. If you are not `batch` in the `with client.batch as batch`
+                please make sure to shut it down when done importing data: `client.batch.shutdown()`.
+                You can start it again using the `client.batch.start()` method.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
