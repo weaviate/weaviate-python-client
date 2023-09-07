@@ -66,11 +66,11 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
     ),
     (
         Text2VecCohereConfig(),
-        {"text2vec-cohere": {"model": "embed_multilingual_v2.0", "truncate": "RIGHT"}},
+        {"text2vec-cohere": {"model": "embed-multilingual-v2.0", "truncate": "RIGHT"}},
     ),
     (
-        Text2VecCohereConfig(model="embed_multilingual_v2.0", truncate="NONE"),
-        {"text2vec-cohere": {"model": "embed_multilingual_v2.0", "truncate": "NONE"}},
+        Text2VecCohereConfig(model="embed-multilingual-v2.0", truncate="NONE"),
+        {"text2vec-cohere": {"model": "embed-multilingual-v2.0", "truncate": "NONE"}},
     ),
     (
         Text2VecGPT4AllConfig(),
