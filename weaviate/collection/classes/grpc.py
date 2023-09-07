@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, Generic, List, Optional, Type, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from weaviate.collection.classes.filters import _Filters
 from weaviate.collection.classes.types import P
@@ -14,49 +14,60 @@ class HybridFusion(str, BaseEnum):
     RELATIVE_SCORE = "FUSION_TYPE_RELATIVE_SCORE"
 
 
-@dataclass
-class Options:
-    filters: Optional[_Filters] = None
+class Options(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    filters: Optional[_Filters] = Field(default=None)
+    limit: Optional[int] = Field(default=None)
 
 
-@dataclass
 class HybridOptions(Options):
-    alpha: Optional[float] = None
-    vector: Optional[List[float]] = None
-    properties: Optional[List[str]] = None
-    fusion_type: Optional[HybridFusion] = None
-    limit: Optional[int] = None
-    auto_limit: Optional[int] = None
+    alpha: Optional[float] = Field(default=None)
+    vector: Optional[List[float]] = Field(default=None)
+    properties: Optional[List[str]] = Field(default=None)
+    fusion_type: Optional[HybridFusion] = Field(default=None)
+    auto_limit: Optional[int] = Field(default=None)
 
 
-@dataclass
 class GetOptions(Options):
-    limit: Optional[int] = None
-    offset: Optional[int] = None
-    after: Optional[UUID] = None
+    offset: Optional[int] = Field(default=None)
+    after: Optional[UUID] = Field(default=None)
 
 
-@dataclass
 class BM25Options(Options):
-    properties: Optional[List[str]] = None
-    limit: Optional[int] = None
-    auto_limit: Optional[int] = None
+    properties: Optional[List[str]] = Field(default=None)
+    auto_limit: Optional[int] = Field(default=None)
 
 
-@dataclass
 class NearMediaOptions(Options):
-    certainty: Optional[float] = None
-    distance: Optional[float] = None
-    auto_limit: Optional[int] = None
+    certainty: Optional[float] = Field(default=None)
+    distance: Optional[float] = Field(default=None)
+    auto_limit: Optional[int] = Field(default=None)
 
 
-@dataclass
 class NearVectorOptions(NearMediaOptions):
     pass
 
 
-@dataclass
 class NearObjectOptions(NearMediaOptions):
+    pass
+
+
+class NearTextOptions(NearMediaOptions):
+    move_to: Optional["Move"] = Field(default=None)
+    move_away: Optional["Move"] = Field(default=None)
+    filters: Optional[_Filters] = Field(default=None)
+
+
+class NearImageOptions(NearMediaOptions):
+    pass
+
+
+class NearAudioOptions(NearMediaOptions):
+    pass
+
+
+class NearVideoOptions(NearMediaOptions):
     pass
 
 
@@ -96,28 +107,6 @@ class Move:
     @property
     def concepts_list(self) -> Optional[List[str]]:
         return self.__concepts
-
-
-@dataclass
-class NearTextOptions(NearMediaOptions):
-    move_to: Optional[Move] = None
-    move_away: Optional[Move] = None
-    filters: Optional[_Filters] = None
-
-
-@dataclass
-class NearImageOptions(NearMediaOptions):
-    pass
-
-
-@dataclass
-class NearAudioOptions(NearMediaOptions):
-    pass
-
-
-@dataclass
-class NearVideoOptions(NearMediaOptions):
-    pass
 
 
 @dataclass
