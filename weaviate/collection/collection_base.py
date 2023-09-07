@@ -2,6 +2,7 @@ from typing import Dict
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
+from weaviate.collection.batch import _Batch
 from weaviate.collection.classes.config import (
     CollectionConfigCreateBase,
     _CollectionConfig,
@@ -13,6 +14,7 @@ from weaviate.exceptions import UnexpectedStatusCodeException
 
 class CollectionBase:
     def __init__(self, connection: Connection):
+        self.batch = _Batch(connection)
         self._connection = connection
 
     def _create(

@@ -1,5 +1,6 @@
 import datetime
 import uuid as uuid_package
+import time
 from typing import Any, List, Dict, Optional, Tuple, Union, cast
 
 import grpc
@@ -47,7 +48,9 @@ class _BatchGRPC:
             for obj in objects
         ]
 
+        start = time.time()
         errors = self.__send_batch(weaviate_objs)
+        elapsed_time = time.time() - start
 
         all_responses: List[Union[uuid_package.UUID, Error]] = cast(
             List[Union[uuid_package.UUID, Error]], list(range(len(weaviate_objs)))
@@ -70,6 +73,7 @@ class _BatchGRPC:
             errors=return_errors,
             has_errors=len(errors) > 0,
             all_responses=all_responses,
+            elapsed_seconds=elapsed_time,
         )
 
     def references(self, references: List[_BatchReference]) -> Response:

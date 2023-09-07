@@ -167,3 +167,27 @@ class _Warnings:
             category=UserWarning,
             stacklevel=1,
         )
+
+    @staticmethod
+    def batch_no_to_class_name_in_reference() -> None:
+        warnings.warn(
+            message="""Con005: Weaviate Server version >= 1.14.x and < 1.21.x STRONGLY recommends using class namespaced
+                beacons, please specify the `to_object_class_name` argument for this. The
+                non-class namespaced beacons (None value for `to_object_class_name`) are going
+                to be removed in the future versions of the Weaviate Server and Weaviate Python
+                "Client.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def batch_unsupported_to_class_name_in_reference() -> None:
+        warnings.warn(
+            message="""Con006: "Weaviate Server version < 1.14.x does not support class namespaced APIs. The
+                non-class namespaced APIs calls are going to be made instead (None value for
+                `class_name`). The non-class namespaced APIs are going to be removed in
+                future versions of the Weaviate Server and Weaviate Python Client.
+                Please upgrade your Weaviate Server version.""",
+            category=UserWarning,
+            stacklevel=1,
+        )

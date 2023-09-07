@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 
 from pydantic import BaseModel, Field, field_validator
 
-from weaviate.util import get_valid_uuid, get_vector
+from weaviate.util import _capitalize_first_letter, get_valid_uuid, get_vector
 from weaviate.weaviate_types import BEACON, UUID, WeaviateField
 
 
@@ -67,7 +67,7 @@ class BatchObject(BaseModel):
     def _validate_class_name(cls, v: str) -> str:
         if len(v) == 0:
             raise ValueError("class_name must not be empty")
-        return v
+        return _capitalize_first_letter(v)
 
 
 class BatchReference(BaseModel):
@@ -104,13 +104,15 @@ class BatchReference(BaseModel):
     def _validate_from_object_class_name(cls, v: str) -> str:
         if len(v) == 0:
             raise ValueError("from_object_class_name must not be empty")
-        return v
+        return _capitalize_first_letter(v)
 
     @field_validator("to_object_class_name")
     def _validate_to_object_class_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
         if v is not None and len(v) == 0:
             raise ValueError("to_object_class_name must not be empty if provided")
-        return v
+        return _capitalize_first_letter(v)
 
     @field_validator("to_object_uuid", "from_object_uuid")
     def _validate_uuids(cls, v: UUID) -> str:
@@ -130,7 +132,7 @@ class BatchReference(BaseModel):
 @dataclass
 class BatchObjectRequestBody:
     fields: List[str]
-    objects: List[BatchObject]
+    objects: List[_BatchObject]
 
 
 @dataclass
@@ -156,4 +158,5 @@ class _BatchReturn:
     all_responses: List[Union[uuid_package.UUID, Error]]
     uuids: Dict[int, uuid_package.UUID]
     errors: Dict[int, Error]
+    elapsed_seconds: float
     has_errors: bool = False
