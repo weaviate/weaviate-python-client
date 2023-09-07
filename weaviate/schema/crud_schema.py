@@ -437,7 +437,6 @@ class Schema:
         class_name = _capitalize_first_letter(class_name)
         class_schema = self.get(class_name)
         new_class_schema = _update_nested_dict(class_schema, config)
-        check_class(new_class_schema)
 
         path = "/schema/" + class_name
         try:
