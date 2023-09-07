@@ -17,7 +17,7 @@ from typing import (
 from typing_extensions import TypeAlias
 
 from weaviate.collection.classes.config import ConsistencyLevel
-from weaviate.util import _datetime_to_string
+from weaviate.collection.extract_filters import FilterToGRPC
 
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated, get_type_hints, get_origin
@@ -29,10 +29,7 @@ import uuid as uuid_lib
 from google.protobuf import struct_pb2
 
 from weaviate.collection.classes.filters import (
-    _FilterValue,
     _Filters,
-    _FilterAnd,
-    _FilterOr,
 )
 from weaviate.collection.classes.grpc import (
     GetOptions,
@@ -67,7 +64,7 @@ from weaviate.collection.classes.types import (
 )
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGRPCException
-from weaviate.weaviate_types import UUID, TIME
+from weaviate.weaviate_types import UUID
 from weaviate_grpc import weaviate_pb2
 
 # Can be found in the google.protobuf.internal.well_known_types.pyi stub file but is defined explicitly here for clarity.
@@ -435,7 +432,7 @@ class _GRPC:
                     if self._hybrid_query is not None
                     else None,
                     tenant=self._tenant,
-                    filters=self.__extract_filters(self._filters),
+                    filters=FilterToGRPC.convert(self._filters),
                     near_text=weaviate_pb2.NearTextSearchParams(
                         query=self._near_text,
                         certainty=self._near_certainty,
@@ -475,84 +472,6 @@ class _GRPC:
 
         except grpc.RpcError as e:
             raise WeaviateGRPCException(e.details())
-
-    def __extract_filters(self, weav_filter: Optional[_Filters]) -> Optional[weaviate_pb2.Filters]:
-        if weav_filter is None:
-            return None
-
-        if isinstance(weav_filter, _FilterValue):
-
-            def date_and_uuid_and_string_to_text(
-                string_or_date: Union[str, TIME, uuid_lib.UUID]
-            ) -> str:
-                if isinstance(string_or_date, str):
-                    return string_or_date
-
-                if isinstance(string_or_date, uuid_lib.UUID):
-                    return str(string_or_date)
-
-                return _datetime_to_string(string_or_date)
-
-            def date_and_string_list_to_text_array(
-                string_or_date: Union[List[str], List[TIME], List[uuid_lib.UUID]]
-            ) -> List[str]:
-                if isinstance(string_or_date[0], str):
-                    return cast(List[str], string_or_date)
-
-                if isinstance(string_or_date[0], uuid_lib.UUID):
-                    return cast(List[str], [str(uid) for uid in string_or_date])
-
-                dates = cast(List[TIME], string_or_date)
-                return [_datetime_to_string(date) for date in dates]
-
-            return weaviate_pb2.Filters(
-                operator=weav_filter.operator,
-                value_text=date_and_uuid_and_string_to_text(weav_filter.value)
-                if isinstance(weav_filter.value, TIME)
-                or isinstance(weav_filter.value, str)
-                or isinstance(weav_filter.value, uuid_lib.UUID)
-                else None,
-                value_int=weav_filter.value if isinstance(weav_filter.value, int) else None,
-                value_boolean=weav_filter.value if isinstance(weav_filter.value, bool) else None,  # type: ignore
-                value_number=weav_filter.value if isinstance(weav_filter.value, float) else None,
-                value_int_array=weaviate_pb2.IntArray(values=cast(List[int], weav_filter.value))
-                if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], int)
-                else None,
-                value_number_array=weaviate_pb2.NumberArray(
-                    values=cast(List[float], weav_filter.value)
-                )
-                if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], float)
-                else None,
-                value_text_array=weaviate_pb2.TextArray(
-                    values=date_and_string_list_to_text_array(
-                        cast(Union[List[str], List[TIME], List[uuid_lib.UUID]], weav_filter.value)
-                    )
-                )
-                if isinstance(weav_filter.value, list)
-                and (
-                    isinstance(weav_filter.value[0], str)
-                    or isinstance(weav_filter.value[0], TIME)
-                    or isinstance(weav_filter.value[0], uuid_lib.UUID)
-                )
-                else None,
-                value_boolean_array=weaviate_pb2.BooleanArray(
-                    values=cast(List[bool], weav_filter.value)
-                )
-                if isinstance(weav_filter.value, list) and isinstance(weav_filter.value[0], bool)
-                else None,
-                on=weav_filter.path if isinstance(weav_filter.path, list) else [weav_filter.path],
-            )
-
-        else:
-            assert isinstance(weav_filter, _FilterAnd) or isinstance(weav_filter, _FilterOr)
-            return weaviate_pb2.Filters(
-                operator=weav_filter.operator,
-                filters=[
-                    filter_
-                    for single_filter in weav_filter.filters
-                    if (filter_ := self.__extract_filters(single_filter)) is not None
-                ],
-            )
 
     def _metadata_to_grpc(self, metadata: MetadataQuery) -> weaviate_pb2.AdditionalProperties:
         return weaviate_pb2.AdditionalProperties(
