@@ -162,7 +162,7 @@ class _Data:
         )
 
     def _get(
-        self, limit: int = 25, metadata: Optional[GetObjectsMetadata] = None
+        self, limit: int, metadata: Optional[GetObjectsMetadata] = None
     ) -> Optional[Dict[str, Any]]:
         path = "/objects"
         params: Dict[str, Any] = {"class": self.name, "limit": limit}
