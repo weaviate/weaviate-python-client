@@ -28,12 +28,19 @@ class _MetadataReturn:
     score: Optional[float] = None
     explain_score: Optional[str] = None
     is_consistent: Optional[bool] = None
+    generative: Optional[str] = None
 
 
 @dataclass
 class _Object(Generic[P]):
     properties: P
     metadata: _MetadataReturn
+
+
+@dataclass
+class _GenerativeReturn(Generic[P]):
+    objects: List[_Object[P]]
+    generative_combined_result: Optional[str] = None
 
 
 class Reference(Generic[P]):

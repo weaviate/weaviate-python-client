@@ -57,6 +57,7 @@ from weaviate.collection.classes.internal import (
     _extract_property_type_from_reference,
     _extract_properties_from_data_model,
     _get_consistency_level,
+    _GenerativeReturn,
 )
 from weaviate.collection.classes.orm import Model
 from weaviate.collection.classes.types import (
@@ -110,7 +111,9 @@ class SearchResult:
 
 @dataclass
 class SearchResponse:
+    # the name of these members must match the proto file
     results: List[SearchResult]
+    generative_grouped_result: str
 
 
 @dataclass
@@ -167,6 +170,10 @@ class _GRPC:
         self._near_video: Optional[str] = None
         self._near_audio: Optional[str] = None
 
+        self._generative_single: Optional[str] = None
+        self._generative_grouped: Optional[str] = None
+        self._generative_grouped_properties: Optional[List[str]] = None
+
         self._filters: Optional[_Filters] = None
 
     def get(
@@ -185,7 +192,7 @@ class _GRPC:
         self._metadata = return_metadata
         if return_properties is not None:
             self._default_props = self._default_props.union(return_properties)
-        return self.__call()
+        return cast(List[SearchResult], self.__call().results)
 
     def hybrid(
         self,
@@ -216,7 +223,7 @@ class _GRPC:
         if return_properties is not None:
             self._default_props = self._default_props.union(return_properties)
 
-        return self.__call()
+        return cast(List[SearchResult], self.__call().results)
 
     def bm25(
         self,
@@ -237,7 +244,7 @@ class _GRPC:
         if return_properties is not None:
             self._default_props = self._default_props.union(return_properties)
 
-        return self.__call()
+        return cast(List[SearchResult], self.__call().results)
 
     def near_vector(
         self,
@@ -258,7 +265,7 @@ class _GRPC:
         if return_properties is not None:
             self._default_props = self._default_props.union(return_properties)
 
-        return self.__call()
+        return cast(List[SearchResult], self.__call().results)
 
     def near_object(
         self,
@@ -279,7 +286,7 @@ class _GRPC:
         if return_properties is not None:
             self._default_props = self._default_props.union(return_properties)
 
-        return self.__call()
+        return cast(List[SearchResult], self.__call().results)
 
     def near_text(
         self,
@@ -314,7 +321,7 @@ class _GRPC:
         if return_properties is not None:
             self._default_props = self._default_props.union(return_properties)
 
-        return self.__call()
+        return cast(List[SearchResult], self.__call().results)
 
     def near_image(
         self,
@@ -336,7 +343,7 @@ class _GRPC:
         if return_properties is not None:
             self._default_props = self._default_props.union(return_properties)
 
-        return self.__call()
+        return cast(List[SearchResult], self.__call().results)
 
     def near_video(
         self,
@@ -358,7 +365,7 @@ class _GRPC:
         if return_properties is not None:
             self._default_props = self._default_props.union(return_properties)
 
-        return self.__call()
+        return cast(List[SearchResult], self.__call().results)
 
     def near_audio(
         self,
@@ -379,10 +386,36 @@ class _GRPC:
         self._metadata = return_metadata
         if return_properties is not None:
             self._default_props = self._default_props.union(return_properties)
+        return cast(List[SearchResult], self.__call().results)
+
+    def generative(
+        self,
+        single: Optional[str] = None,
+        grouped: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> SearchResponse:
+        if single is None and grouped is None:
+            raise ValueError(
+                "Either single_response or grouped response must be not None for generative search."
+            )
+
+        self._generative_single = single
+        self._generative_grouped = grouped
+        self._generative_grouped_properties = grouped_properties
+        self._autocut = auto_limit
+        self._filters = filters
+
+        self._metadata = return_metadata
+        if return_properties is not None:
+            self._default_props = self._default_props.union(return_properties)
 
         return self.__call()
 
-    def __call(self) -> List[SearchResult]:
+    def __call(self) -> SearchResponse:
         metadata: Optional[Tuple[Tuple[str, str]]] = None
         access_token = self._connection.get_current_bearer_token()
         if len(access_token) > 0:
@@ -464,11 +497,18 @@ class _GRPC:
                     if self._near_audio is not None
                     else None,
                     consistency_level=_get_consistency_level(self._consistency_level),
+                    generative=weaviate_pb2.GenerativeSearch(
+                        single_response_prompt=self._generative_single,
+                        grouped_response_task=self._generative_grouped,
+                        grouped_properties=self._generative_grouped_properties,
+                    )
+                    if self._generative_single is not None or self._generative_grouped is not None
+                    else None,
                 ),
                 metadata=metadata,
             )
 
-            return cast(List[SearchResult], res.results)
+            return res
 
         except grpc.RpcError as e:
             raise WeaviateGRPCException(e.details())
@@ -540,6 +580,7 @@ class _Grpc:
             score=add_props.score if add_props.score_present else None,
             explain_score=add_props.explain_score if add_props.explain_score_present else None,
             is_consistent=add_props.is_consistent,
+            generative=add_props.generative if add_props.generative_present else None,
         )
 
     def _deserialize_primitive(self, value: Any, type_value: Any) -> Any:
@@ -1054,6 +1095,34 @@ class _GrpcCollection(_Grpc):
                 return_properties=ret_properties,
             )
         ]
+
+    def generative(
+        self,
+        prompt_per_object: Optional[str] = None,
+        prompt_combined_results: Optional[str] = None,
+        combined_results_properties: Optional[List[str]] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+    ) -> _GenerativeReturn[Properties]:
+        ret_properties, ret_type = self.__determine_generic(return_properties)
+        ret = self._query().generative(
+            single=prompt_per_object,
+            grouped=prompt_combined_results,
+            grouped_properties=combined_results_properties,
+            filters=filters,
+            auto_limit=auto_limit,
+            return_metadata=return_metadata,
+            return_properties=ret_properties,
+        )
+        objects = [self.__result_to_object(obj, ret_type) for obj in ret.results]
+        grouped_results = (
+            ret.generative_grouped_result if ret.generative_grouped_result != "" else None
+        )
+        return _GenerativeReturn[Properties](
+            objects=objects, generative_combined_result=grouped_results
+        )
 
 
 class _GrpcCollectionModel(Generic[Model], _Grpc):
