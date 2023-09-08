@@ -161,9 +161,11 @@ class _Data:
             params=self.__apply_context({}), path=path, includes=metadata
         )
 
-    def _get(self, metadata: Optional[GetObjectsMetadata] = None) -> Optional[Dict[str, Any]]:
+    def _get(
+        self, limit: int = 25, metadata: Optional[GetObjectsMetadata] = None
+    ) -> Optional[Dict[str, Any]]:
         path = "/objects"
-        params: Dict[str, Any] = {"class": self.name}
+        params: Dict[str, Any] = {"class": self.name, "limit": limit}
 
         return self._get_from_weaviate(
             params=self.__apply_context(params), path=path, includes=metadata
@@ -447,8 +449,10 @@ class _DataCollection(Generic[Properties], _Data):
             return ret
         return self._json_to_object(ret)
 
-    def get(self, metadata: Optional[GetObjectsMetadata] = None) -> List[_Object[Properties]]:
-        ret = self._get(metadata=metadata)
+    def get(
+        self, limit: int = 25, metadata: Optional[GetObjectsMetadata] = None
+    ) -> List[_Object[Properties]]:
+        ret = self._get(limit=limit, metadata=metadata)
         if ret is None:
             return []
 
@@ -582,8 +586,10 @@ class _DataCollectionModel(Generic[Model], _Data):
             return None
         return self._json_to_object(ret)
 
-    def get(self, metadata: Optional[GetObjectsMetadata] = None) -> List[_Object[Model]]:
-        ret = self._get(metadata=metadata)
+    def get(
+        self, limit: int = 25, metadata: Optional[GetObjectsMetadata] = None
+    ) -> List[_Object[Model]]:
+        ret = self._get(limit=limit, metadata=metadata)
         if ret is None:
             return []
 
