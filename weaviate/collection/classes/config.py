@@ -63,6 +63,12 @@ class Vectorizer(str, Enum):
     REF2VEC_CENTROID = "ref2vec-centroid"
 
 
+class GenerativeSearches(str, Enum):
+    GENERATIVE_OPENAI = "generative-openai"
+    GENERATIVE_COHERE = "generative-cohere"
+    GENERATIVE_PALM = "generative-palm"
+
+
 class VectorDistance(str, Enum):
     COSINE = "cosine"
     DOT = "dot"
@@ -248,6 +254,10 @@ class MultiTenancyConfig(ConfigCreateModel):
     enabled: bool = False
 
 
+class GenerativeConfig(ConfigCreateModel):
+    generative: GenerativeSearches
+
+
 class VectorizerConfig(ConfigCreateModel):
     vectorizer: Vectorizer
 
@@ -255,6 +265,13 @@ class VectorizerConfig(ConfigCreateModel):
 class PropertyVectorizerConfig(ConfigCreateModel):
     skip: bool = False
     vectorizePropertyName: bool = Field(default=True, alias="vectorize_property_name")
+
+
+class GenerativeFactory:
+    @classmethod
+    def OpenAI(cls) -> GenerativeConfig:
+        """Return a `VectorizerConfig` object with the vectorizer set to `Vectorizer.NONE`"""
+        return GenerativeConfig(generative=GenerativeSearches.GENERATIVE_OPENAI)
 
 
 class Text2VecContextionaryConfig(VectorizerConfig):
@@ -428,6 +445,7 @@ class CollectionConfigCreateBase(ConfigCreateModel):
     moduleConfig: VectorizerConfig = Field(
         default=VectorizerFactory.none(), alias="vectorizer_config"
     )
+    generativeSearch: GenerativeConfig = Field(default=None, alias="generative_search")
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
@@ -440,16 +458,27 @@ class CollectionConfigCreateBase(ConfigCreateModel):
                 ret_dict[cls_field] = str(val.value)
             elif isinstance(val, (bool, float, str, int)):
                 ret_dict[cls_field] = str(val)
+            elif isinstance(val, GenerativeConfig):
+                self.__add_to_module_config(ret_dict, val.generative.value, {})
             elif isinstance(val, VectorizerConfig):
                 ret_dict["vectorizer"] = val.vectorizer.value
                 if val.vectorizer != Vectorizer.NONE:
-                    ret_dict["moduleConfig"] = {val.vectorizer.value: val.to_dict()}
+                    self.__add_to_module_config(ret_dict, val.vectorizer.value, val.to_dict())
             else:
                 assert isinstance(val, ConfigCreateModel)
                 ret_dict[cls_field] = val.to_dict()
         if self.moduleConfig is None:
             ret_dict["vectorizer"] = Vectorizer.NONE.value
         return ret_dict
+
+    @staticmethod
+    def __add_to_module_config(
+        return_dict: Dict[str, Any], addition_key: str, addition_val: Any
+    ) -> None:
+        if "moduleConfig" not in return_dict:
+            return_dict["moduleConfig"] = {addition_key: addition_val}
+        else:
+            return_dict["moduleConfig"][addition_key] = addition_val
 
 
 class CollectionConfigUpdate(ConfigUpdateModel):

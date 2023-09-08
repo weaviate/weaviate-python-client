@@ -532,7 +532,7 @@ def test_generative_openai(single: str, grouped: str):
         pytest.skip("No OpenAI API key found.")
 
     client = weaviate.Client(
-        "http://127.0.0.1:8086", additional_headers={"X-OpenAI-Api-Key": api_key}
+        "http://127.0.0.1:8080", additional_headers={"X-OpenAI-Api-Key": api_key}
     )
     client.schema.delete_all()
     wine_class = {

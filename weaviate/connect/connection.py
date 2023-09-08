@@ -184,7 +184,7 @@ class Connection:
             latest_version = pkg_info.get("version", "unknown version")
             if is_weaviate_client_too_old(client_version, latest_version):
                 _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
-        except (RequestsConnectionError, JSONDecodeError):
+        except (RequestsConnectionError, JSONDecodeError, ReadTimeout):
             pass  # air-gaped environments
 
     def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:

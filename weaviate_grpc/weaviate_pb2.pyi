@@ -1,5 +1,4 @@
 from google.protobuf import struct_pb2 as _struct_pb2
-from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -90,7 +89,7 @@ class BatchObjectsReply(_message.Message):
     def __init__(self, results: _Optional[_Iterable[_Union[BatchObjectsReply.BatchResults, _Mapping]]] = ..., took: _Optional[float] = ...) -> None: ...
 
 class SearchRequest(_message.Message):
-    __slots__ = ["class_name", "limit", "additional_properties", "near_vector", "near_object", "properties", "hybrid_search", "bm25_search", "offset", "autocut", "after", "tenant", "filters", "near_text", "near_image", "near_audio", "near_video", "consistency_level"]
+    __slots__ = ["class_name", "limit", "additional_properties", "near_vector", "near_object", "properties", "hybrid_search", "bm25_search", "offset", "autocut", "after", "tenant", "filters", "near_text", "near_image", "near_audio", "near_video", "consistency_level", "generative"]
     CLASS_NAME_FIELD_NUMBER: _ClassVar[int]
     LIMIT_FIELD_NUMBER: _ClassVar[int]
     ADDITIONAL_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
@@ -109,6 +108,7 @@ class SearchRequest(_message.Message):
     NEAR_AUDIO_FIELD_NUMBER: _ClassVar[int]
     NEAR_VIDEO_FIELD_NUMBER: _ClassVar[int]
     CONSISTENCY_LEVEL_FIELD_NUMBER: _ClassVar[int]
+    GENERATIVE_FIELD_NUMBER: _ClassVar[int]
     class_name: str
     limit: int
     additional_properties: AdditionalProperties
@@ -127,7 +127,18 @@ class SearchRequest(_message.Message):
     near_audio: NearAudioSearchParams
     near_video: NearVideoSearchParams
     consistency_level: ConsistencyLevel
-    def __init__(self, class_name: _Optional[str] = ..., limit: _Optional[int] = ..., additional_properties: _Optional[_Union[AdditionalProperties, _Mapping]] = ..., near_vector: _Optional[_Union[NearVectorParams, _Mapping]] = ..., near_object: _Optional[_Union[NearObjectParams, _Mapping]] = ..., properties: _Optional[_Union[Properties, _Mapping]] = ..., hybrid_search: _Optional[_Union[HybridSearchParams, _Mapping]] = ..., bm25_search: _Optional[_Union[BM25SearchParams, _Mapping]] = ..., offset: _Optional[int] = ..., autocut: _Optional[int] = ..., after: _Optional[str] = ..., tenant: _Optional[str] = ..., filters: _Optional[_Union[Filters, _Mapping]] = ..., near_text: _Optional[_Union[NearTextSearchParams, _Mapping]] = ..., near_image: _Optional[_Union[NearImageSearchParams, _Mapping]] = ..., near_audio: _Optional[_Union[NearAudioSearchParams, _Mapping]] = ..., near_video: _Optional[_Union[NearVideoSearchParams, _Mapping]] = ..., consistency_level: _Optional[_Union[ConsistencyLevel, str]] = ...) -> None: ...
+    generative: GenerativeSearch
+    def __init__(self, class_name: _Optional[str] = ..., limit: _Optional[int] = ..., additional_properties: _Optional[_Union[AdditionalProperties, _Mapping]] = ..., near_vector: _Optional[_Union[NearVectorParams, _Mapping]] = ..., near_object: _Optional[_Union[NearObjectParams, _Mapping]] = ..., properties: _Optional[_Union[Properties, _Mapping]] = ..., hybrid_search: _Optional[_Union[HybridSearchParams, _Mapping]] = ..., bm25_search: _Optional[_Union[BM25SearchParams, _Mapping]] = ..., offset: _Optional[int] = ..., autocut: _Optional[int] = ..., after: _Optional[str] = ..., tenant: _Optional[str] = ..., filters: _Optional[_Union[Filters, _Mapping]] = ..., near_text: _Optional[_Union[NearTextSearchParams, _Mapping]] = ..., near_image: _Optional[_Union[NearImageSearchParams, _Mapping]] = ..., near_audio: _Optional[_Union[NearAudioSearchParams, _Mapping]] = ..., near_video: _Optional[_Union[NearVideoSearchParams, _Mapping]] = ..., consistency_level: _Optional[_Union[ConsistencyLevel, str]] = ..., generative: _Optional[_Union[GenerativeSearch, _Mapping]] = ...) -> None: ...
+
+class GenerativeSearch(_message.Message):
+    __slots__ = ["single_response_prompt", "grouped_response_task", "grouped_properties"]
+    SINGLE_RESPONSE_PROMPT_FIELD_NUMBER: _ClassVar[int]
+    GROUPED_RESPONSE_TASK_FIELD_NUMBER: _ClassVar[int]
+    GROUPED_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    single_response_prompt: str
+    grouped_response_task: str
+    grouped_properties: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, single_response_prompt: _Optional[str] = ..., grouped_response_task: _Optional[str] = ..., grouped_properties: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class TextArray(_message.Message):
     __slots__ = ["values"]
@@ -152,12 +163,6 @@ class BooleanArray(_message.Message):
     VALUES_FIELD_NUMBER: _ClassVar[int]
     values: _containers.RepeatedScalarFieldContainer[bool]
     def __init__(self, values: _Optional[_Iterable[bool]] = ...) -> None: ...
-
-class DateArray(_message.Message):
-    __slots__ = ["values"]
-    VALUES_FIELD_NUMBER: _ClassVar[int]
-    values: _containers.RepeatedCompositeFieldContainer[_timestamp_pb2.Timestamp]
-    def __init__(self, values: _Optional[_Iterable[_Union[_timestamp_pb2.Timestamp, _Mapping]]] = ...) -> None: ...
 
 class Filters(_message.Message):
     __slots__ = ["operator", "on", "filters", "value_text", "value_int", "value_boolean", "value_number", "value_text_array", "value_int_array", "value_boolean_array", "value_number_array"]
@@ -361,12 +366,14 @@ class NearObjectParams(_message.Message):
     def __init__(self, id: _Optional[str] = ..., certainty: _Optional[float] = ..., distance: _Optional[float] = ...) -> None: ...
 
 class SearchReply(_message.Message):
-    __slots__ = ["results", "took"]
+    __slots__ = ["results", "took", "generative_grouped_result"]
     RESULTS_FIELD_NUMBER: _ClassVar[int]
     TOOK_FIELD_NUMBER: _ClassVar[int]
+    GENERATIVE_GROUPED_RESULT_FIELD_NUMBER: _ClassVar[int]
     results: _containers.RepeatedCompositeFieldContainer[SearchResult]
     took: float
-    def __init__(self, results: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ..., took: _Optional[float] = ...) -> None: ...
+    generative_grouped_result: str
+    def __init__(self, results: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ..., took: _Optional[float] = ..., generative_grouped_result: _Optional[str] = ...) -> None: ...
 
 class SearchResult(_message.Message):
     __slots__ = ["properties", "additional_properties"]
@@ -377,7 +384,7 @@ class SearchResult(_message.Message):
     def __init__(self, properties: _Optional[_Union[ResultProperties, _Mapping]] = ..., additional_properties: _Optional[_Union[ResultAdditionalProps, _Mapping]] = ...) -> None: ...
 
 class ResultAdditionalProps(_message.Message):
-    __slots__ = ["id", "vector", "creation_time_unix", "creation_time_unix_present", "last_update_time_unix", "last_update_time_unix_present", "distance", "distance_present", "certainty", "certainty_present", "score", "score_present", "explain_score", "explain_score_present", "is_consistent"]
+    __slots__ = ["id", "vector", "creation_time_unix", "creation_time_unix_present", "last_update_time_unix", "last_update_time_unix_present", "distance", "distance_present", "certainty", "certainty_present", "score", "score_present", "explain_score", "explain_score_present", "is_consistent", "generative", "generative_present"]
     ID_FIELD_NUMBER: _ClassVar[int]
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     CREATION_TIME_UNIX_FIELD_NUMBER: _ClassVar[int]
@@ -393,6 +400,8 @@ class ResultAdditionalProps(_message.Message):
     EXPLAIN_SCORE_FIELD_NUMBER: _ClassVar[int]
     EXPLAIN_SCORE_PRESENT_FIELD_NUMBER: _ClassVar[int]
     IS_CONSISTENT_FIELD_NUMBER: _ClassVar[int]
+    GENERATIVE_FIELD_NUMBER: _ClassVar[int]
+    GENERATIVE_PRESENT_FIELD_NUMBER: _ClassVar[int]
     id: str
     vector: _containers.RepeatedScalarFieldContainer[float]
     creation_time_unix: int
@@ -408,7 +417,9 @@ class ResultAdditionalProps(_message.Message):
     explain_score: str
     explain_score_present: bool
     is_consistent: bool
-    def __init__(self, id: _Optional[str] = ..., vector: _Optional[_Iterable[float]] = ..., creation_time_unix: _Optional[int] = ..., creation_time_unix_present: bool = ..., last_update_time_unix: _Optional[int] = ..., last_update_time_unix_present: bool = ..., distance: _Optional[float] = ..., distance_present: bool = ..., certainty: _Optional[float] = ..., certainty_present: bool = ..., score: _Optional[float] = ..., score_present: bool = ..., explain_score: _Optional[str] = ..., explain_score_present: bool = ..., is_consistent: bool = ...) -> None: ...
+    generative: str
+    generative_present: bool
+    def __init__(self, id: _Optional[str] = ..., vector: _Optional[_Iterable[float]] = ..., creation_time_unix: _Optional[int] = ..., creation_time_unix_present: bool = ..., last_update_time_unix: _Optional[int] = ..., last_update_time_unix_present: bool = ..., distance: _Optional[float] = ..., distance_present: bool = ..., certainty: _Optional[float] = ..., certainty_present: bool = ..., score: _Optional[float] = ..., score_present: bool = ..., explain_score: _Optional[str] = ..., explain_score_present: bool = ..., is_consistent: bool = ..., generative: _Optional[str] = ..., generative_present: bool = ...) -> None: ...
 
 class NumberArrayProperties(_message.Message):
     __slots__ = ["values", "prop_name"]
