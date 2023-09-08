@@ -52,7 +52,7 @@ def test_generative_search_single(client, parameter: str, answer: str):
     )
 
     res = collection.query.generative(
-        single=f"is this good or bad based on {{{parameter}}}? Just answer with yes or no without punctuation"
+        prompt_per_object=f"is this good or bad based on {{{parameter}}}? Just answer with yes or no without punctuation"
     )
     for obj in res.objects:
         assert obj.metadata.generative == answer
@@ -85,8 +85,8 @@ def test_generative_search_grouped(client, prop: str, answer: str):
     )
 
     res = collection.query.generative(
-        grouped="What is big and what is small? write the name of the big thing first and then the name of the small thing after a space.",
-        grouped_properties=prop,
+        prompt_combined_results="What is big and what is small? write the name of the big thing first and then the name of the small thing after a space.",
+        combined_results_properties=prop,
     )
     assert res.generative_group == answer
 
@@ -124,7 +124,7 @@ def test_generative_search_grouped_all_props(client):
     )
 
     res = collection.query.generative(
-        grouped="What is the biggest and what is the smallest? Only write the names separated by a space"
+        prompt_combined_results="What is the biggest and what is the smallest? Only write the names separated by a space"
     )
     assert res.generative_group == "Teddy cats"
 
@@ -162,8 +162,8 @@ def test_generative_with_everything(client):
     )
 
     res = collection.query.generative(
-        single="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
-        grouped="What is the biggest and what is the smallest? Only write the names separated by a space",
+        prompt_per_object="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+        prompt_combined_results="What is the biggest and what is the smallest? Only write the names separated by a space",
     )
     assert res.generative_group == "Teddy cats"
     for obj in res.objects:

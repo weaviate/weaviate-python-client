@@ -1098,9 +1098,9 @@ class _GrpcCollection(_Grpc):
 
     def generative(
         self,
-        single: Optional[str] = None,
-        grouped: Optional[str] = None,
-        grouped_properties: Optional[List[str]] = None,
+        prompt_per_object: Optional[str] = None,
+        prompt_combined_results: Optional[str] = None,
+        combined_results_properties: Optional[List[str]] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
@@ -1108,9 +1108,9 @@ class _GrpcCollection(_Grpc):
     ) -> _GenerativeReturn[Properties]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
         ret = self._query().generative(
-            single=single,
-            grouped=grouped,
-            grouped_properties=grouped_properties,
+            single=prompt_per_object,
+            grouped=prompt_combined_results,
+            grouped_properties=combined_results_properties,
             filters=filters,
             auto_limit=auto_limit,
             return_metadata=return_metadata,
