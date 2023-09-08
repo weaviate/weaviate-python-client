@@ -56,7 +56,7 @@ def test_generative_search_single(client, parameter: str, answer: str):
     )
     for obj in res.objects:
         assert obj.metadata.generative == answer
-    assert res.generative_group is None
+    assert res.generative_combined_result is None
 
 
 @pytest.mark.parametrize(
@@ -88,7 +88,7 @@ def test_generative_search_grouped(client, prop: str, answer: str):
         prompt_combined_results="What is big and what is small? write the name of the big thing first and then the name of the small thing after a space.",
         combined_results_properties=prop,
     )
-    assert res.generative_group == answer
+    assert res.generative_combined_result == answer
 
 
 def test_generative_search_grouped_all_props(client):
@@ -126,7 +126,7 @@ def test_generative_search_grouped_all_props(client):
     res = collection.query.generative(
         prompt_combined_results="What is the biggest and what is the smallest? Only write the names separated by a space"
     )
-    assert res.generative_group == "Teddy cats"
+    assert res.generative_combined_result == "Teddy cats"
 
 
 def test_generative_with_everything(client):
@@ -165,6 +165,6 @@ def test_generative_with_everything(client):
         prompt_per_object="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
         prompt_combined_results="What is the biggest and what is the smallest? Only write the names separated by a space",
     )
-    assert res.generative_group == "Teddy cats"
+    assert res.generative_combined_result == "Teddy cats"
     for obj in res.objects:
         assert obj.metadata.generative == "Yes"

@@ -1120,7 +1120,9 @@ class _GrpcCollection(_Grpc):
         grouped_results = (
             ret.generative_grouped_result if ret.generative_grouped_result != "" else None
         )
-        return _GenerativeReturn[Properties](objects=objects, generative_group=grouped_results)
+        return _GenerativeReturn[Properties](
+            objects=objects, generative_combined_result=grouped_results
+        )
 
 
 class _GrpcCollectionModel(Generic[Model], _Grpc):

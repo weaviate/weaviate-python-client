@@ -40,7 +40,7 @@ class _Object(Generic[P]):
 @dataclass
 class _GenerativeReturn(Generic[P]):
     objects: List[_Object[P]]
-    generative_group: Optional[str] = None
+    generative_combined_result: Optional[str] = None
 
 
 class Reference(Generic[P]):
