@@ -153,7 +153,7 @@ class _Data:
         raise UnexpectedStatusCodeException("Update object", response)
 
     def _get_by_id(
-        self, uuid: UUID, metadata: Optional[GetObjectByIdMetadata] = None
+        self, uuid: UUID, metadata: Optional[GetObjectByIdMetadata]
     ) -> Optional[Dict[str, Any]]:
         path = f"/objects/{self.name}/{uuid}"
 
@@ -161,16 +161,20 @@ class _Data:
             params=self.__apply_context({}), path=path, includes=metadata
         )
 
-    def _get(self, metadata: Optional[GetObjectsMetadata] = None) -> Optional[Dict[str, Any]]:
+    def _get(
+        self, limit: Optional[int], metadata: Optional[GetObjectsMetadata]
+    ) -> Optional[Dict[str, Any]]:
         path = "/objects"
         params: Dict[str, Any] = {"class": self.name}
+        if limit is not None:
+            params["limit"] = limit
 
         return self._get_from_weaviate(
             params=self.__apply_context(params), path=path, includes=metadata
         )
 
     def _get_from_weaviate(
-        self, params: Dict[str, Any], path: str, includes: Optional[IncludesModel] = None
+        self, params: Dict[str, Any], path: str, includes: Optional[IncludesModel]
     ) -> Optional[Dict[str, Any]]:
         if includes is not None:
             params["include"] = includes.to_include()
@@ -447,8 +451,10 @@ class _DataCollection(Generic[Properties], _Data):
             return ret
         return self._json_to_object(ret)
 
-    def get(self, metadata: Optional[GetObjectsMetadata] = None) -> List[_Object[Properties]]:
-        ret = self._get(metadata=metadata)
+    def get(
+        self, limit: Optional[int] = None, metadata: Optional[GetObjectsMetadata] = None
+    ) -> List[_Object[Properties]]:
+        ret = self._get(limit=limit, metadata=metadata)
         if ret is None:
             return []
 
@@ -582,8 +588,10 @@ class _DataCollectionModel(Generic[Model], _Data):
             return None
         return self._json_to_object(ret)
 
-    def get(self, metadata: Optional[GetObjectsMetadata] = None) -> List[_Object[Model]]:
-        ret = self._get(metadata=metadata)
+    def get(
+        self, limit: Optional[int] = None, metadata: Optional[GetObjectsMetadata] = None
+    ) -> List[_Object[Model]]:
+        ret = self._get(limit=limit, metadata=metadata)
         if ret is None:
             return []
 
