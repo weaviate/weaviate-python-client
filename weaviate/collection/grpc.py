@@ -416,10 +416,21 @@ class _GRPC:
         return self.__call()
 
     def __call(self) -> SearchResponse:
-        metadata: Optional[Tuple[Tuple[str, str]]] = None
+        metadata: Optional[Tuple[Tuple[str, str], ...]] = None
         access_token = self._connection.get_current_bearer_token()
+
+        metadata_list: List[Tuple[str, str]] = []
         if len(access_token) > 0:
-            metadata = (("authorization", access_token),)
+            metadata_list.append(("authorization", access_token))
+
+        if len(self._connection.additional_headers):
+            for key, val in self._connection.additional_headers.items():
+                if val is not None:
+                    metadata_list.append((key.lower(), val))
+
+        if len(metadata_list) > 0:
+            metadata = tuple(metadata_list)
+
         try:
             assert self._connection.grpc_stub is not None
             res: SearchResponse  # According to PEP-0526

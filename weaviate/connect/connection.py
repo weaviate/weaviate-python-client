@@ -147,6 +147,7 @@ class Connection:
                 raise TypeError(
                     f"'additional_headers' must be of type dict or None. Given type: {type(additional_headers)}."
                 )
+            self.__additional_headers = additional_headers
             for key, value in additional_headers.items():
                 self._headers[key.lower()] = value
 
@@ -668,6 +669,10 @@ class Connection:
         Version of the weaviate instance.
         """
         return self._server_version
+
+    @property
+    def additional_headers(self) -> Dict[str, str]:
+        return self.__additional_headers
 
     def get_meta(self) -> Dict[str, str]:
         """

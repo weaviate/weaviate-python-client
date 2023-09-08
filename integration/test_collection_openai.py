@@ -11,6 +11,7 @@ from weaviate.collection.classes.config import (
     GenerativeFactory,
 )
 from weaviate.collection.classes.data import DataObject
+from weaviate.exceptions import WeaviateGRPCException
 
 
 @pytest.fixture(scope="module")
@@ -52,7 +53,7 @@ def test_generative_search_single(client, parameter: str, answer: str):
     )
 
     res = collection.query.generative(
-        prompt_per_object=f"is this good or bad based on {{{parameter}}}? Just answer with yes or no without punctuation"
+        prompt_per_object=f"is it good or bad based on {{{parameter}}}? Just answer with yes or no without punctuation"
     )
     for obj in res.objects:
         assert obj.metadata.generative == answer
@@ -168,3 +169,24 @@ def test_generative_with_everything(client):
     assert res.generative_combined_result == "Teddy cats"
     for obj in res.objects:
         assert obj.metadata.generative == "Yes"
+
+
+def test_openapi_invalid_key():
+    local_client = weaviate.Client(
+        "http://localhost:8080",
+        additional_config=Config(grpc_port_experimental=50051),
+        additional_headers={"X-OpenAI-Api-Key": "IamNotValid"},
+    )
+
+    name = "TestGenerativeSearchOpenAIError"
+    local_client.collection.delete(name)
+    collection = local_client.collection.create(
+        CollectionConfig(
+            name=name,
+            properties=[Property(name="text", data_type=DataType.TEXT)],
+            generative_search=GenerativeFactory.OpenAI(),
+        )
+    )
+    collection.data.insert(properties={"text": "test"})
+    with pytest.raises(WeaviateGRPCException):
+        collection.query.generative(prompt_per_object="tell a joke based on {text}")
