@@ -474,13 +474,13 @@ class Batch:
                         if (
                             2.1 > ratio > 1.9
                         ):  # ideal, send exactly as many objects as weaviate can process
-                            self._recommended_num_objects = rate_per_worker
+                            self._recommended_num_objects = rate_per_worker  # type: ignore
                         elif ratio <= 1.9:  # we can send more
                             self._recommended_num_objects = min(
-                                self._recommended_num_objects * 1.5, rate_per_worker * 2 / ratio
+                                self._recommended_num_objects * 1.5, rate_per_worker * 2 / ratio  # type: ignore
                             )
                         elif ratio < 10:  # too high, scale down
-                            self._recommended_num_objects = rate_per_worker * 2 / ratio
+                            self._recommended_num_objects = rate_per_worker * 2 / ratio  # type: ignore
                         else:  # way too high, stop sending new batches
                             self._recommended_num_objects = 0
 

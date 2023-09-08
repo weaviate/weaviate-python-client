@@ -184,3 +184,12 @@ class WeaviateAddInvalidPropertyError(WeaviateBaseError):
         value are valid"""
         super().__init__(msg)
         self.message = message
+
+
+class WeaviateBatchValidationError(WeaviateBaseError):
+    """Is raised when a batch validation error occurs."""
+
+    def __init__(self, message: str):
+        msg = f"""Batch validation error: {message}"""
+        super().__init__(msg)
+        self.message = message

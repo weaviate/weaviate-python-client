@@ -15,7 +15,12 @@ from typing import (
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.collection.classes.batch import _BatchObject, _BatchReference, _BatchReturn
+from weaviate.collection.classes.batch import (
+    _BatchObject,
+    _BatchObjectReturn,
+    _BatchReference,
+    _BatchReferenceReturn,
+)
 from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.classes.data import (
     DataObject,
@@ -291,7 +296,7 @@ class _DataCollection(Generic[Properties], _Data):
 
         return self._insert(weaviate_obj)
 
-    def insert_many(self, objects: List[DataObject[Properties]]) -> _BatchReturn:
+    def insert_many(self, objects: List[DataObject[Properties]]) -> _BatchObjectReturn:
         data_objects = [
             _BatchObject(
                 class_name=self.name,
@@ -350,7 +355,7 @@ class _DataCollection(Generic[Properties], _Data):
             ref=ref,
         )
 
-    def reference_batch(self, references: List[DataReference]) -> None:
+    def reference_batch(self, references: List[DataReference]) -> _BatchReferenceReturn:
         refs = [
             _BatchReference(
                 from_=BEACON + f"{self.name}/{ref.from_uuid}/{ref.from_property}",
@@ -359,7 +364,7 @@ class _DataCollection(Generic[Properties], _Data):
             )
             for ref in references
         ]
-        self._batch.references(refs)
+        return self._batch.references(refs)
 
     def reference_delete(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
         self._reference_delete(from_uuid=from_uuid, from_property=from_property, ref=ref)
@@ -425,7 +430,7 @@ class _DataCollectionModel(Generic[Model], _Data):
         self._insert(weaviate_obj)
         return uuid_package.UUID(str(obj.uuid))
 
-    def insert_many(self, objects: List[Model]) -> _BatchReturn:
+    def insert_many(self, objects: List[Model]) -> _BatchObjectReturn:
         for obj in objects:
             self.__model.model_validate(obj)
 
@@ -490,12 +495,7 @@ class _DataCollectionModel(Generic[Model], _Data):
     def reference_replace(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
         self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_add_many(self, from_property: str, refs: List[DataReference]) -> None:
-        refs_dict = [
-            {
-                "from": BEACON + f"{self.name}/{ref.from_uuid}/{from_property}",
-                "to": BEACON + str(ref.to_uuid),
-            }
-            for ref in refs
-        ]
-        self._batch.references(refs_dict)  # type: ignore
+    def reference_add_many(
+        self, from_property: str, refs: List[_BatchReference]
+    ) -> _BatchReferenceReturn:
+        return self._batch.references(refs)

@@ -1,6 +1,6 @@
 import uuid as uuid_package
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Union, cast
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -28,38 +28,29 @@ class BatchObject(BaseModel):
     """
     A Weaviate object to be added to the database.
 
-    Attributes
-    ---
-    class_name : str
-        The name of the class this object belongs to.
-    data_object : dict
-        Object to be added as a dict datatype.
-    uuid : str or None, optional
-        UUID of the object as a string, by default None
-    vector: Sequence or None, optional
-        The embedding of the object that should be validated.
-        Can be used when:
-        - a class does not have a vectorization module.
-        - The given vector was generated using the _identical_ vectorization module that is configured for the
-            class. In this case this vector takes precedence.
-        Supported types are `list`, `numpy.ndarray`, `torch.Tensor` and `tf.Tensor`,
-        by default None.
-    tenant: str, optional
-        Tenant of the object
+    Performs validation on the class name and UUID, and automatically generates a UUID if one is not provided.
+    Also converts the vector to a list of floats if it is provided as a numpy array.
     """
 
-    data_object: Dict[str, Any]
     class_name: str
-    uuid: UUID = Field(default_factory=lambda: uuid_package.uuid4())
+    properties: Dict[str, Any]
+    uuid: Optional[UUID] = Field(default=None)
     vector: Optional[Sequence] = Field(default=None)
     tenant: Optional[str] = Field(default=None)
+
+    def __init__(self, **data: Any) -> None:
+        data["vector"] = get_vector(v) if (v := data.get("vector")) is not None else None
+        data["uuid"] = (
+            get_valid_uuid(u) if (u := data.get("uuid")) is not None else uuid_package.uuid4()
+        )
+        super().__init__(**data)
 
     def _to_internal(self) -> _BatchObject:
         return _BatchObject(
             class_name=self.class_name,
-            vector=get_vector(self.vector) if self.vector is not None else None,
-            uuid=get_valid_uuid(self.uuid),
-            properties=self.data_object,
+            vector=cast(list, self.vector),
+            uuid=self.uuid,
+            properties=self.properties,
             tenant=self.tenant,
         )
 
@@ -74,23 +65,9 @@ class BatchReference(BaseModel):
     """
     A reference between two objects in Weaviate.
 
-    Attributes
-    ---
-    from_object_class_name : str
-        The name of the class that should reference another object.
-    from_object_uuid : str
-        The UUID or URL of the object that should reference another object.
-    from_property_name : str
-        The name of the property that contains the reference.
-    to_object_uuid : str
-        The UUID or URL of the object that is actually referenced.
-    to_object_class_name : Optional[str], optional
-        The referenced object class name to which to add the reference (with UUID
-        `to_object_uuid`), it is included in Weaviate 1.14.0, where all objects are namespaced
-        by class name.
-        STRONGLY recommended to set it with Weaviate >= 1.14.0. It will be required in future
-        versions of Weaviate Server and Clients. Use None value ONLY for Weaviate < v1.14.0,
-        by default None
+    Performs validation on the class names and UUIDs, and automatically generates a UUID if one is not provided.
+
+    Converts provided data to an internal object containing beacons for insertion into Weaviate.
     """
 
     from_object_class_name: str
@@ -119,9 +96,10 @@ class BatchReference(BaseModel):
         return get_valid_uuid(v)
 
     def _to_internal(self) -> _BatchReference:
-        if self.to_object_class_name is not None:
+        if self.to_object_class_name is None:
+            self.to_object_class_name = ""
+        else:
             self.to_object_class_name = self.to_object_class_name + "/"
-
         return _BatchReference(
             from_=f"{BEACON}{self.from_object_class_name}/{self.from_object_uuid}/{self.from_property_name}",
             to=f"{BEACON}{self.to_object_class_name}{str(self.to_object_uuid)}",
@@ -136,14 +114,22 @@ class BatchObjectRequestBody:
 
 
 @dataclass
-class Error:
+class ErrorObject:
     message: str
+    object_: _BatchObject
     code: Optional[int] = None
     original_uuid: Optional[UUID] = None
 
 
 @dataclass
-class _BatchReturn:
+class ErrorReference:
+    message: str
+    reference: _BatchReference
+    code: Optional[int] = None
+
+
+@dataclass
+class _BatchObjectReturn:
     """This class contains the results of a batch `insert_many` operation.
 
     Since the individual objects within the batch can error for differing reasons, the data is split up within this class for ease use when performing error checking, handling, and data revalidation.
@@ -155,8 +141,23 @@ class _BatchReturn:
         has_errors: A boolean indicating whether or not any of the objects in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry.
     """
 
-    all_responses: List[Union[uuid_package.UUID, Error]]
+    all_responses: List[Union[uuid_package.UUID, ErrorObject]]
     uuids: Dict[int, uuid_package.UUID]
-    errors: Dict[int, Error]
+    errors: Dict[int, ErrorObject]
     elapsed_seconds: float
+    has_errors: bool = False
+
+
+@dataclass
+class _BatchReferenceReturn:
+    """This class contains the results of a batch `insert_many_references` operation.
+
+    Since the individual references within the batch can error for differing reasons, the data is split up within this class for ease use when performing error checking, handling, and data revalidation.
+
+    Attributes:
+
+    """
+
+    elapsed_seconds: float
+    errors: Dict[int, ErrorReference]
     has_errors: bool = False

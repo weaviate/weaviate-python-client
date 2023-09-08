@@ -160,7 +160,7 @@ class _Warnings:
     @staticmethod
     def batch_executor_is_shutdown() -> None:
         warnings.warn(
-            message="""Con004: The BatchExecutor was shutdown, most probably when it exited the `with` statement.
+            message="""Bat001: The BatchExecutor was shutdown, most probably when it exited the `with` statement.
                 It will be initialized again. If you are not `batch` in the `with client.batch as batch`
                 please make sure to shut it down when done importing data: `client.batch.shutdown()`.
                 You can start it again using the `client.batch.start()` method.""",
@@ -169,25 +169,9 @@ class _Warnings:
         )
 
     @staticmethod
-    def batch_no_to_class_name_in_reference() -> None:
+    def batch_weaviate_overloaded_sleeping(sleep: int) -> None:
         warnings.warn(
-            message="""Con005: Weaviate Server version >= 1.14.x and < 1.21.x STRONGLY recommends using class namespaced
-                beacons, please specify the `to_object_class_name` argument for this. The
-                non-class namespaced beacons (None value for `to_object_class_name`) are going
-                to be removed in the future versions of the Weaviate Server and Weaviate Python
-                "Client.""",
-            category=UserWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def batch_unsupported_to_class_name_in_reference() -> None:
-        warnings.warn(
-            message="""Con006: "Weaviate Server version < 1.14.x does not support class namespaced APIs. The
-                non-class namespaced APIs calls are going to be made instead (None value for
-                `class_name`). The non-class namespaced APIs are going to be removed in
-                future versions of the Weaviate Server and Weaviate Python Client.
-                Please upgrade your Weaviate Server version.""",
+            message=f"""Bat002: Weaviate is currently overloaded. Sleeping for {sleep} seconds.""",
             category=UserWarning,
             stacklevel=1,
         )

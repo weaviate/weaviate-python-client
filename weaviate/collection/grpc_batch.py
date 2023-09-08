@@ -5,9 +5,15 @@ from typing import Any, List, Dict, Optional, Tuple, Union, cast
 
 import grpc
 from google.protobuf.struct_pb2 import Struct
-from requests import Response
 
-from weaviate.collection.classes.batch import Error, _BatchObject, _BatchReference, _BatchReturn
+from weaviate.collection.classes.batch import (
+    ErrorObject,
+    ErrorReference,
+    _BatchObject,
+    _BatchObjectReturn,
+    _BatchReference,
+    _BatchReferenceReturn,
+)
 from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.classes.internal import _get_consistency_level, Reference
 from weaviate.connect import Connection
@@ -27,7 +33,7 @@ class _BatchGRPC:
         self.__connection = connection
         self.__consistency_level = consistency_level
 
-    def objects(self, objects: List[_BatchObject]) -> _BatchReturn:
+    def objects(self, objects: List[_BatchObject]) -> _BatchObjectReturn:
         """Insert multiple objects into Weaviate through the gRPC API.
 
         Parameters:
@@ -52,15 +58,15 @@ class _BatchGRPC:
         errors = self.__send_batch(weaviate_objs)
         elapsed_time = time.time() - start
 
-        all_responses: List[Union[uuid_package.UUID, Error]] = cast(
-            List[Union[uuid_package.UUID, Error]], list(range(len(weaviate_objs)))
+        all_responses: List[Union[uuid_package.UUID, ErrorObject]] = cast(
+            List[Union[uuid_package.UUID, ErrorObject]], list(range(len(weaviate_objs)))
         )
         return_success: Dict[int, uuid_package.UUID] = {}
-        return_errors: Dict[int, Error] = {}
+        return_errors: Dict[int, ErrorObject] = {}
 
         for idx, obj in enumerate(weaviate_objs):
             if idx in errors:
-                error = Error(errors[idx], original_uuid=objects[idx].uuid)
+                error = ErrorObject(errors[idx], objects[idx], original_uuid=objects[idx].uuid)
                 return_errors[idx] = error
                 all_responses[idx] = error
             else:
@@ -68,7 +74,7 @@ class _BatchGRPC:
                 return_success[idx] = success
                 all_responses[idx] = success
 
-        return _BatchReturn(
+        return _BatchObjectReturn(
             uuids=return_success,
             errors=return_errors,
             has_errors=len(errors) > 0,
@@ -76,7 +82,7 @@ class _BatchGRPC:
             elapsed_seconds=elapsed_time,
         )
 
-    def references(self, references: List[_BatchReference]) -> Response:
+    def references(self, references: List[_BatchReference]) -> _BatchReferenceReturn:
         params: Dict[str, str] = {}
         if self.__consistency_level is not None:
             params["consistency_level"] = self.__consistency_level
@@ -92,7 +98,20 @@ class _BatchGRPC:
             path="/batch/references", weaviate_object=refs, params=params
         )
         if response.status_code == 200:
-            return response
+            payload = response.json()
+            errors = {
+                idx: ErrorReference(
+                    message=entry["result"]["errors"]["error"][0]["message"],
+                    reference=references[idx],
+                )
+                for idx, entry in enumerate(payload)
+                if entry["result"]["status"] == "FAILED"
+            }
+            return _BatchReferenceReturn(
+                elapsed_seconds=response.elapsed.total_seconds(),
+                errors=errors,
+                has_errors=len(errors) > 0,
+            )
         raise UnexpectedStatusCodeException("Send ref batch", response)
 
     def __send_batch(self, batch: List[weaviate_pb2.BatchObject]) -> Dict[int, str]:

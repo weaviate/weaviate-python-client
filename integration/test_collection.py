@@ -17,6 +17,7 @@ from pydantic.dataclasses import dataclass as pydantic_dataclass
 import weaviate
 from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_ENCODED
 from weaviate import Config
+from weaviate.collection.classes.batch import ErrorObject
 from weaviate.collection.classes.config import (
     BM25ConfigUpdate,
     CollectionConfig,
@@ -40,7 +41,6 @@ from weaviate.collection.classes.config import (
 )
 from weaviate.collection.classes.data import (
     DataObject,
-    Error,
     GetObjectsMetadata,
 )
 from weaviate.collection.classes.grpc import NearImageOptions, NearTextOptions, ReturnValues
@@ -336,7 +336,9 @@ def test_insert_many_error(client: weaviate.Client):
     assert len(ret.errors) == 2
     assert 0 in ret.errors and 2 in ret.errors
 
-    assert isinstance(ret.all_responses[0], Error) and isinstance(ret.all_responses[2], Error)
+    assert isinstance(ret.all_responses[0], ErrorObject) and isinstance(
+        ret.all_responses[2], ErrorObject
+    )
     assert isinstance(ret.all_responses[1], uuid.UUID)
 
     client.collection.delete(name)
