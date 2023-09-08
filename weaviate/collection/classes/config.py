@@ -64,9 +64,9 @@ class Vectorizer(str, Enum):
 
 
 class GenerativeSearches(str, Enum):
-    GENERATIVE_OPENAI = "generative-openai"
-    GENERATIVE_COHERE = "generative-cohere"
-    GENERATIVE_PALM = "generative-palm"
+    OPENAI = "generative-openai"
+    COHERE = "generative-cohere"
+    PALM = "generative-palm"
 
 
 class VectorDistance(str, Enum):
@@ -271,7 +271,7 @@ class GenerativeFactory:
     @classmethod
     def OpenAI(cls) -> GenerativeConfig:
         """Return a `VectorizerConfig` object with the vectorizer set to `Vectorizer.NONE`"""
-        return GenerativeConfig(generative=GenerativeSearches.GENERATIVE_OPENAI)
+        return GenerativeConfig(generative=GenerativeSearches.OPENAI)
 
 
 class Text2VecContextionaryConfig(VectorizerConfig):
@@ -473,7 +473,7 @@ class CollectionConfigCreateBase(ConfigCreateModel):
 
     @staticmethod
     def __add_to_module_config(
-        return_dict: Dict[str, Any], addition_key: str, addition_val: Any
+        return_dict: Dict[str, Any], addition_key: str, addition_val: Dict[str, Any]
     ) -> None:
         if "moduleConfig" not in return_dict:
             return_dict["moduleConfig"] = {addition_key: addition_val}
