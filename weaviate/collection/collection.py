@@ -1,6 +1,6 @@
 from typing import Generic, Optional, Type
 
-from weaviate.collection.classes.config import CollectionConfig
+from weaviate.collection.classes.config import CollectionConfigCreate
 from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.classes.types import Properties, _check_data_model
 from weaviate.collection.collection_base import CollectionBase
@@ -43,7 +43,7 @@ class CollectionObject(Generic[Properties]):
 
 class Collection(CollectionBase):
     def create(
-        self, config: CollectionConfig, data_model: Optional[Type[Properties]] = None
+        self, config: CollectionConfigCreate, data_model: Optional[Type[Properties]] = None
     ) -> CollectionObject[Properties]:
         name = super()._create(config)
         if config.name != name:

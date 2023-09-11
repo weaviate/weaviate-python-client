@@ -31,7 +31,7 @@ def test_consistency_on_multinode(client: weaviate.Client, level: ConsistencyLev
     name = "TestConsistency"
     client.collection.delete(name)
     collection = client.collection.create(
-        CollectionConfig(
+        CollectionConfig.create(
             name=name,
             vectorizer_config=VectorizerFactory.none(),
             properties=[

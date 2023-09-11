@@ -53,7 +53,7 @@ def client():
 def test_filters_text(client: weaviate.Client, weaviate_filter: _FilterValue, results: List[int]):
     client.collection.delete("TestFilterText")
     collection = client.collection.create(
-        CollectionConfig(
+        CollectionConfig.create(
             name="TestFilterText",
             vectorizer_config=VectorizerFactory.none(),
             properties=[Property(name="name", data_type=DataType.TEXT)],
@@ -100,7 +100,7 @@ def test_filters_nested(
 ):
     client.collection.delete("TestFilterNested")
     collection = client.collection.create(
-        CollectionConfig(
+        CollectionConfig.create(
             name="TestFilterNested",
             vectorizer_config=VectorizerFactory.none(),
             properties=[Property(name="num", data_type=DataType.NUMBER)],
@@ -127,7 +127,7 @@ def test_filters_nested(
 def test_length_filter(client: weaviate.Client):
     client.collection.delete("TestFilterNested")
     collection = client.collection.create(
-        CollectionConfig(
+        CollectionConfig.create(
             name="TestFilterNested",
             vectorizer_config=VectorizerFactory.none(),
             properties=[Property(name="field", data_type=DataType.TEXT)],
@@ -160,7 +160,7 @@ def test_filters_comparison(
 ):
     client.collection.delete("TestFilterNumber")
     collection = client.collection.create(
-        CollectionConfig(
+        CollectionConfig.create(
             name="TestFilterNumber",
             vectorizer_config=VectorizerFactory.none(),
             properties=[Property(name="number", data_type=DataType.INT)],
@@ -224,7 +224,7 @@ def test_filters_contains(
 ):
     client.collection.delete("TestFilterContains")
     collection = client.collection.create(
-        CollectionConfig(
+        CollectionConfig.create(
             name="TestFilterContains",
             vectorizer_config=VectorizerFactory.none(),
             properties=[
@@ -328,7 +328,7 @@ def test_ref_filters(client: weaviate.Client, weaviate_filter: _FilterValue, res
     client.collection.delete("TestFilterRef")
     client.collection.delete("TestFilterRef2")
     to_collection = client.collection.create(
-        CollectionConfig(
+        CollectionConfig.create(
             name="TestFilterRef2",
             vectorizer_config=VectorizerFactory.none(),
             properties=[
@@ -343,7 +343,7 @@ def test_ref_filters(client: weaviate.Client, weaviate_filter: _FilterValue, res
         to_collection.data.insert(properties={"int": 15, "text": "second"}),
     ]
     from_collection = client.collection.create(
-        CollectionConfig(
+        CollectionConfig.create(
             name="TestFilterRef",
             properties=[
                 ReferenceProperty(name="ref", target_collection="TestFilterRef2"),
@@ -373,7 +373,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
     client.collection.delete(source)
     client.collection.delete(target)
     to_collection = client.collection.create(
-        CollectionConfig(
+        CollectionConfig.create(
             name=target,
             vectorizer_config=VectorizerFactory.none(),
             properties=[Property(name="int", data_type=DataType.INT)],
@@ -382,7 +382,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
     uuid_to = to_collection.data.insert(properties={"int": 0})
     uuid_to2 = to_collection.data.insert(properties={"int": 5})
     from_collection = client.collection.create(
-        CollectionConfig(
+        CollectionConfig.create(
             name=source,
             properties=[
                 ReferencePropertyMultiTarget(

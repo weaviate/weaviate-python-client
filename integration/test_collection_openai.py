@@ -34,7 +34,7 @@ def test_generative_search_single(client, parameter: str, answer: str):
     name = "TestGenerativeSearchOpenAISingle"
     client.collection.delete(name)
     collection = client.collection.create(
-        CollectionConfig(
+        CollectionConfig.create(
             name=name,
             properties=[
                 Property(name="text", data_type=DataType.TEXT),
@@ -66,7 +66,7 @@ def test_generative_search_grouped(client, prop: str, answer: str):
     name = "TestGenerativeSearchOpenAIGroup"
     client.collection.delete(name)
     collection = client.collection.create(
-        CollectionConfig(
+        CollectionConfig.create(
             name=name,
             properties=[
                 Property(name="text", data_type=DataType.TEXT),
@@ -95,7 +95,7 @@ def test_generative_search_grouped_all_props(client):
     name = "TestGenerativeSearchOpenAIGroupWithProp"
     client.collection.delete(name)
     collection = client.collection.create(
-        CollectionConfig(
+        CollectionConfig.create(
             name=name,
             properties=[
                 Property(name="text", data_type=DataType.TEXT),
@@ -133,7 +133,7 @@ def test_generative_with_everything(client):
     name = "TestGenerativeSearchOpenAI"
     client.collection.delete(name)
     collection = client.collection.create(
-        CollectionConfig(
+        CollectionConfig.create(
             name=name,
             properties=[
                 Property(name="text", data_type=DataType.TEXT),
