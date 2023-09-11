@@ -235,8 +235,6 @@ class VectorIndexConfig:
                     type_=pq_encoder_type,
                     distribution=pq_encoder_distribution,
                 ),
-                encoder_distribution=pq_encoder_distribution,
-                encoder_type=pq_encoder_type,
                 segments=pq_segments,
                 trainingLimit=pq_training_limit,
             ),
@@ -278,8 +276,6 @@ class VectorIndexConfig:
                     type_=pq_encoder_type,
                     distribution=pq_encoder_distribution,
                 ),
-                encoder_distribution=pq_encoder_distribution,
-                encoder_type=pq_encoder_type,
                 segments=pq_segments,
                 trainingLimit=pq_training_limit,
             ),
@@ -375,7 +371,7 @@ class BM25ConfigUpdate(ConfigUpdateModel):
 
 
 class StopwordsCreate(ConfigCreateModel):
-    preset: StopwordsPreset = Field(default=StopwordsPreset.EN)
+    preset: Optional[StopwordsPreset] = Field(default=None)
     additions: Optional[List[str]] = Field(default=None)
     removals: Optional[List[str]] = Field(default=None)
 
@@ -412,8 +408,8 @@ class InvertedIndexConfig:
         bm25_k1: float = 1.2,
         cleanup_interval_seconds: int = 60,
         index_timestamps: bool = False,
-        index_property_length: Optional[bool] = None,
-        index_null_state: Optional[bool] = None,
+        index_property_length: bool = False,
+        index_null_state: bool = False,
         stopwords_preset: Optional[StopwordsPreset] = None,
         stopwords_additions: Optional[List[str]] = None,
         stopwords_removals: Optional[List[str]] = None,
