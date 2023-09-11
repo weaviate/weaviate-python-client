@@ -63,6 +63,12 @@ class MetadataQuery:
     is_consistent: bool = False
 
 
+@dataclass
+class Sort:
+    prop: str
+    ascending: bool = True
+
+
 class LinkTo(BaseModel):
     link_on: str
     properties: "PROPERTIES"

@@ -6,6 +6,8 @@ from typing import Dict, List, Optional, TypedDict, Union
 
 import pytest as pytest
 
+from weaviate.collection.classes.grpc import Sort
+
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated
 else:
@@ -1441,3 +1443,39 @@ def test_batch_with_arrays(client: weaviate.Client):
                 assert val == uuids_from_weaviate
             else:
                 assert obj_out.properties[prop] == val
+
+
+@pytest.mark.parametrize(
+    "sort,expected",
+    [
+        (Sort(prop="name", ascending=True), [0, 1, 2]),
+        (Sort(prop="name", ascending=False), [2, 1, 0]),
+        ([Sort(prop="age", ascending=False), Sort(prop="name", ascending=True)], [1, 2, 0]),
+    ],
+)
+def test_sort(client: weaviate.Client, sort: Union[Sort, List[Sort]], expected: List[int]):
+    name = "TestSort"
+    client.collection.delete(name)
+
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestSort",
+            vectorizer_config=VectorizerFactory.none(),
+            properties=[
+                Property(name="age", data_type=DataType.INT),
+                Property(name="name", data_type=DataType.TEXT),
+            ],
+        )
+    )
+    uuids_from = [
+        collection.data.insert(properties={"name": "A", "age": 20}),
+        collection.data.insert(properties={"name": "B", "age": 22}),
+        collection.data.insert(properties={"name": "C", "age": 22}),
+    ]
+
+    objects = collection.query.get(sort=sort)
+    assert len(objects) == len(expected)
+
+    expected_uuids = [uuids_from[result] for result in expected]
+    object_uuids = [obj.metadata.uuid for obj in objects]
+    assert object_uuids == expected_uuids

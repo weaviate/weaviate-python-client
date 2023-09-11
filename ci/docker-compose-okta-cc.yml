@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-error-without-module-c10476a
+    image: semitechnologies/weaviate:preview-add-sorting-to-grpc-66ee983
     ports:
       - 8082:8082
     restart: on-failure:0
