@@ -175,3 +175,11 @@ class _Warnings:
             category=UserWarning,
             stacklevel=1,
         )
+
+    @staticmethod
+    def batch_refresh_failed(err: str) -> None:
+        warnings.warn(
+            message=f"""Bat003: The dynamic batch-size could not be refreshed successfully. Algorithm backing off by 10 seconds. {err}""",
+            category=UserWarning,
+            stacklevel=1,
+        )

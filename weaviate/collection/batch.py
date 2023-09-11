@@ -44,29 +44,32 @@ class BatchExecutor(ThreadPoolExecutor):
 class _Batch:
     def __init__(self, connection: Connection):
         self.__batch_objects = ObjectsBatchRequest()
-        self.__batch_references = ReferenceBatchRequest()
-        self.__batch_size: Optional[int] = 50
+        self.__batch_references = ReferencesBatchRequest()
+        self.__batch_size: int = 50
         self.__connection = connection
         self.__consistency_level: Optional[ConsistencyLevel] = None
         self.__creation_time = min(self.__connection.timeout_config[1] / 10, 2)
         self.__batch = _BatchGRPC(connection, self.__consistency_level)
         self.__executor: Optional[BatchExecutor] = None
-        self.__future_pool_objects: List[Future[Tuple[_BatchObjectReturn, int, bool]]] = []
-        self.__future_pool_references: List[Future[Tuple[_BatchReferenceReturn, int, bool]]] = []
+        self.__future_pool_objects: Deque[Future[Tuple[_BatchObjectReturn, int, bool]]] = deque([])
+        self.__future_pool_references: Deque[
+            Future[Tuple[_BatchReferenceReturn, int, bool]]
+        ] = deque([])
         self.__new_dynamic_batching = True
         self.__num_workers: int = 1
         self.__objects_throughput_frame: Deque[float] = deque(maxlen=5)
         self.__recommended_num_objects = self.__batch_size
         self.__recommended_num_references = self.__batch_size
-        self.__reference_batch_queue: List[List[_BatchReference]] = []
+        self.__reference_batch_queue: Deque[Deque[_BatchReference]] = deque([])
         self.__references_throughput_frame: Deque[float] = deque(maxlen=5)
         self.__retry_failed_objects: bool = False
         self.__retry_failed_references: bool = False
-        self.__shutdown_background_event: Optional[Event] = None
+        self.__shut_background_thread_down: Optional[Event] = None
 
     def configure(
         self,
         batch_size: Optional[int] = None,
+        consistency_level: Optional[ConsistencyLevel] = None,
         num_workers: Optional[int] = None,
     ) -> None:
         """
@@ -78,10 +81,13 @@ class _Batch:
         ----------
         batch_size : Optional[int]
             The number of objects and references to be sent in one batch. If not provided, the default value is 50.
+        consistency_level : Optional[ConsistencyLevel]
+            The consistency level to be used to send the batch. If not provided, the default value is None.
         num_workers : Optional[int]
             The number of workers to be used to send the batch. If not provided, the default value is 1.
         """
         self.__batch_size = batch_size or self.__batch_size
+        self.__consistency_level = consistency_level or self.__consistency_level
         self.__num_workers = num_workers or self.__num_workers
 
     def num_objects(self) -> int:
@@ -116,7 +122,10 @@ class _Batch:
         if self.__executor is None or self.__executor.is_shutdown():
             self.__executor = BatchExecutor(max_workers=self.__num_workers)
 
-        if self.__shutdown_background_event is None or self.__shutdown_background_event.is_set():
+        if (
+            self.__shut_background_thread_down is None
+            or self.__shut_background_thread_down.is_set()
+        ):
             self.__update_recommended_batch_size()
 
         return self
@@ -128,8 +137,8 @@ class _Batch:
         if not (self.__executor is None or self.__executor.is_shutdown()):
             self.__executor.shutdown()
 
-        if self.__shutdown_background_event is not None:
-            self.__shutdown_background_event.set()
+        if self.__shut_background_thread_down is not None:
+            self.__shut_background_thread_down.set()
 
     def flush(self) -> None:
         """
@@ -177,7 +186,7 @@ class _Batch:
                 by default None.
 
         Returns
-            `str` The UUID of the added object. If one was not provided a UUIDv4 will be generated.
+            `str` The UUID of the added object. If one was not provided a UUIDv4 will be auto-generated.
 
         Raises
             `WeaviateBatchValidationError` If the provided options are in the format required by Weaviate.
@@ -192,9 +201,10 @@ class _Batch:
             )
         except ValidationError as e:
             raise WeaviateBatchValidationError(repr(e))
-        uuid = self.__batch_objects.add(batch_object._to_internal())
+        self.__batch_objects.add(batch_object._to_internal())
         self.__auto_create()
-        return uuid
+        assert batch_object.uuid is not None
+        return batch_object.uuid
 
     def add_reference(
         self,
@@ -259,6 +269,7 @@ class _Batch:
             )
             return return_, len(batch), False
         except Exception as e:
+            print(repr(e), batch)
             errors = {
                 idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(batch)
             }
@@ -311,11 +322,11 @@ class _Batch:
             self.__future_pool_objects.append(
                 self.__executor.submit(
                     self.__flush_objects,
-                    batch=self.__batch_objects._items,
+                    batch=list(self.__batch_objects.items),
                 )
             )
         if len(self.__batch_references) > 0:
-            self.__reference_batch_queue.append(self.__batch_references._items)
+            self.__reference_batch_queue.append(self.__batch_references.items)
 
         self.__batch_objects.clear()
         self.__batch_references.clear()
@@ -339,7 +350,7 @@ class _Batch:
             self.__future_pool_references.append(
                 self.__executor.submit(
                     self.__flush_references,
-                    batch=ref_batch_items,
+                    batch=list(ref_batch_items),
                 )
             )
 
@@ -351,9 +362,9 @@ class _Batch:
                 self.__batch_references._add_failed_objects_from_response(ret_refs)
                 self.__backoff_recommended_reference_batch_size(True)
 
-        self.__future_pool_objects = []
-        self.__future_pool_references = []
-        self.__reference_batch_queue = []
+        self.__future_pool_objects.clear()
+        self.__future_pool_references.clear()
+        self.__reference_batch_queue.clear()
 
     def __backoff_recommended_object_batch_size(self, exception_occurred: bool) -> None:
         if exception_occurred and self.__recommended_num_objects is not None:
@@ -391,13 +402,13 @@ class _Batch:
 
     def __update_recommended_batch_size(self) -> None:
         """Create a background process that periodically checks how congested the batch queue is."""
-        self.__shutdown_background_event = Event()
+        self.__shut_background_thread_down = Event()
 
         def periodic_check() -> None:
             cluster = Cluster(self.__connection)
             while (
-                self.__shutdown_background_event is not None
-                and not self.__shutdown_background_event.is_set()
+                self.__shut_background_thread_down is not None
+                and not self.__shut_background_thread_down.is_set()
             ):
                 try:
                     status = cluster.get_nodes_status()
@@ -433,10 +444,13 @@ class _Batch:
                     refresh_time: float = 2
                 except (RequestsHTTPError, ReadTimeout):
                     refresh_time = 0.1
+                except Exception as e:
+                    _Warnings.batch_refresh_failed(repr(e))
+                    refresh_time = 10
 
                 time.sleep(refresh_time)
             self.__recommended_num_objects = 10  # in case some batch needs to be send afterwards
-            self.__shutdown_background_event = None
+            self.__shut_background_thread_down = None
 
         demon = Thread(
             target=periodic_check,
@@ -459,10 +473,10 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
     """
 
     def __init__(self) -> None:
-        self._items: List[TBatchInput] = []
+        self.__items: Deque[TBatchInput] = deque([])
 
     def __len__(self) -> int:
-        return len(self._items)
+        return len(self.__items)
 
     def is_empty(self) -> bool:
         """
@@ -472,18 +486,28 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
             `bool` Whether the `BatchRequest` is empty.
         """
 
-        return len(self._items) == 0
+        return len(self.__items) == 0
 
     def clear(self) -> None:
         """
         Remove all the items from the BatchRequest.
         """
 
-        self._items = []
+        self.__items.clear()
 
-    @abstractmethod
-    def add(self, *args, **kwargs):  # type: ignore
-        """Add objects to BatchRequest."""
+    def add(self, item: TBatchInput) -> None:
+        self.__items.append(item)
+
+    @property
+    def items(self) -> Deque[TBatchInput]:
+        """
+        Get all items from the BatchRequest.
+
+        Returns
+            `Deque[TBatchInput]` All items from the BatchRequest.
+        """
+
+        return self.__items
 
     @abstractmethod
     def get_request_body(self) -> Union[List[TBatchInput], BatchObjectRequestBody]:
@@ -540,21 +564,11 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
         return False
 
 
-class ReferenceBatchRequest(BatchRequest[_BatchReference, _BatchReferenceReturn]):
+class ReferencesBatchRequest(BatchRequest[_BatchReference, _BatchReferenceReturn]):
     """
     Collect Weaviate-object references to add them in one request to Weaviate.
     Caution this request will miss some validations to be faster.
     """
-
-    def add(self, reference: _BatchReference) -> None:
-        """
-        Add one Weaviate-object reference to this batch. Does NOT validate the consistency of the
-        reference against the class schema. Checks the arguments' type and UUIDs' format.
-
-        Parameters
-            reference: `BatchReference`; A dataclass model for passing data to batching methods with type safety.
-        """
-        self._items.append(reference)
 
     def get_request_body(self) -> List[_BatchReference]:
         """
@@ -565,7 +579,7 @@ class ReferenceBatchRequest(BatchRequest[_BatchReference, _BatchReferenceReturn]
             `List[BatchReference]` A list of Weaviate-objects references as dictionaries.
         """
 
-        return self._items
+        return list(self.items)
 
     def _add_failed_objects_from_response(
         self,
@@ -579,7 +593,7 @@ class ReferenceBatchRequest(BatchRequest[_BatchReference, _BatchReferenceReturn]
             # if self._skip_objects_retry(ref, errors_to_exclude, errors_to_include):
             #     successful_responses.append(ref)
             #     continue
-            self._items.append(err.reference)
+            self.add(err.reference)
         # return successful_responses
 
 
@@ -589,21 +603,6 @@ class ObjectsBatchRequest(BatchRequest[_BatchObject, _BatchObjectReturn]):
     Caution this batch will not be validated through weaviate.
     """
 
-    def add(self, object_: _BatchObject) -> UUID:
-        """
-        Add one object to this batch. Does NOT validate the consistency of the object against
-        the client's schema.
-
-        Parameters
-            object: `_BatchObject`; An internal dataclass model for passing data to batching methods with type safety.
-
-        Returns
-            `UUID` The UUID of the added object.
-        """
-        self._items.append(object_)
-        assert object_.uuid is not None
-        return object_.uuid
-
     def get_request_body(self) -> BatchObjectRequestBody:
         """
         Get the request body as it is needed for the Weaviate server.
@@ -612,7 +611,7 @@ class ObjectsBatchRequest(BatchRequest[_BatchObject, _BatchObjectReturn]):
             `BatchObjectRequestBody` The request body as a dataclass.
         """
 
-        return BatchObjectRequestBody(fields=["ALL"], objects=self._items)
+        return BatchObjectRequestBody(fields=["ALL"], objects=list(self.items))
 
     def _add_failed_objects_from_response(
         self,

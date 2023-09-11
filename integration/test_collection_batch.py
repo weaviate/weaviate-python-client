@@ -1,11 +1,15 @@
 import uuid
 from dataclasses import dataclass
-from typing import Union, Sequence, Optional
+from typing import List, Union, Sequence, Optional
 
 import pytest
 
 import weaviate
 from weaviate import Config
+from weaviate.collection.batch import (
+    ObjectsBatchRequest,
+)
+from weaviate.collection.classes.batch import _BatchObjectReturn
 from weaviate.collection.classes.config import (
     CollectionConfig,
     DataType,
@@ -62,15 +66,15 @@ def client():
         "http://localhost:8080", additional_config=Config(grpc_port_experimental=50051)
     )
     client.schema.delete_all()
-    client.schema.create_class(
-        {
-            "class": "Test",
-            "properties": [
-                {"name": "test", "dataType": ["Test"]},
-                {"name": "name", "dataType": ["string"]},
+    client.collection.create(
+        CollectionConfig(
+            name="Test",
+            properties=[
+                ReferenceProperty(name="test", target_collection="Test"),
+                Property(name="name", data_type=DataType.TEXT),
+                Property(name="age", data_type=DataType.INT),
             ],
-            "vectorizer": "none",
-        }
+        )
     )
     yield client
     client.schema.delete_all()
@@ -370,15 +374,45 @@ def test_add_ref_batch_with_tenant():
         client.collection.delete(name)
 
 
-def test_add_one_million_data_objects(client: weaviate.Client):
+def test_add_ten_thousand_data_objects(client: weaviate.Client):
     """Test adding one million data objects"""
-    nr_objects = 1000
-    client.collection.batch.configure(num_workers=32)
+    nr_objects = 10000
+    client.collection.batch.configure(num_workers=4)
     with client.collection.batch as batch:
         for i in range(nr_objects):
             batch.add_object(
                 class_name="Test",
                 properties={"name": "test" + str(i)},
             )
-    # objs = client.collection.get("Test").data.get(limit=nr_objects)
-    # assert len(objs) == nr_objects
+    objs = client.collection.get("Test").data.get(limit=nr_objects)
+    assert len(objs) == nr_objects
+    client.collection.delete("Test")
+
+
+def test_add_bad_prop(client: weaviate.Client):
+    """Test adding a data object with a bad property"""
+
+    class WrappedObjectsBatchRequest(ObjectsBatchRequest):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.returns = []
+
+        def _add_failed_objects_from_response(
+            self,
+            return_: _BatchObjectReturn,
+            errors_to_exclude: List[str] | None = None,
+            errors_to_include: List[str] | None = None,
+        ) -> None:
+            self.returns.append(return_)
+            return super()._add_failed_objects_from_response(
+                return_, errors_to_exclude, errors_to_include
+            )
+
+    wrapper = WrappedObjectsBatchRequest()
+    with client.collection.batch as batch:
+        batch.__batch_objects = wrapper
+        batch.add_object(
+            class_name="Test",
+            properties={"bad": "test"},
+        )
+    assert len(wrapper.returns) == 1
