@@ -340,11 +340,15 @@ class Text2VecHuggingFaceConfig(VectorizerConfig):
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
-        ret_dict["options"] = {
-            "waitForModel": ret_dict.pop("waitForModel"),
-            "useGPU": ret_dict.pop("useGPU"),
-            "useCache": ret_dict.pop("useCache"),
-        }
+        options = {}
+        if self.waitForModel is not None:
+            options["waitForModel"] = ret_dict.pop("waitForModel")
+        if self.useGPU is not None:
+            options["useGPU"] = ret_dict.pop("useGPU")
+        if self.useCache is not None:
+            options["useCache"] = ret_dict.pop("useCache")
+        if len(options) > 0:
+            ret_dict["options"] = options
         return ret_dict
 
 
@@ -361,10 +365,8 @@ class Text2VecOpenAIConfig(VectorizerConfig):
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
-        try:
+        if self.type_ is not None:
             ret_dict["type"] = ret_dict.pop("type_")
-        except KeyError:
-            pass
         return ret_dict
 
 
@@ -380,6 +382,12 @@ class Text2VecPalmConfig(VectorizerConfig):
     apiEndpoint: Optional[AnyHttpUrl]
     modelId: Optional[str]
     vectorizeClassName: bool
+
+    def to_dict(self) -> Dict[str, Any]:
+        ret_dict = super().to_dict()
+        if self.apiEndpoint is not None:
+            ret_dict["apiEndpoint"] = str(self.apiEndpoint)
+        return ret_dict
 
 
 class Text2VecTransformersConfig(VectorizerConfig):
@@ -405,39 +413,9 @@ class Multi2VecField(BaseModel):
     weight: Optional[float] = Field(default=None, exclude=True)
 
 
-class Multi2VecClipConfig(VectorizerConfig):
-    vectorizer: Vectorizer = Field(Vectorizer.MULTI2VEC_CLIP, frozen=True, exclude=True)
+class Multi2VecBase(VectorizerConfig):
     imageFields: Optional[List[Multi2VecField]]
     textFields: Optional[List[Multi2VecField]]
-    vectorizeClassName: bool
-
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
-        ret_dict["weights"] = {}
-        if self.imageFields is not None:
-            ret_dict["weights"] = {
-                "imageFields": [
-                    field.weight for field in self.imageFields if field.weight is not None
-                ],
-            }
-        if self.textFields is not None:
-            ret_dict["weights"] = {
-                "textFields": [
-                    field.weight for field in self.textFields if field.weight is not None
-                ],
-            }
-        return ret_dict
-
-
-class Multi2VecBindConfig(VectorizerConfig):
-    vectorizer: Vectorizer = Field(Vectorizer.MULTI2VEC_BIND, frozen=True, exclude=True)
-    audioFields: Optional[List[Multi2VecField]]
-    depthFields: Optional[List[Multi2VecField]]
-    imageFields: Optional[List[Multi2VecField]]
-    IMUFields: Optional[List[Multi2VecField]]
-    textFields: Optional[List[Multi2VecField]]
-    thermalFields: Optional[List[Multi2VecField]]
-    videoFields: Optional[List[Multi2VecField]]
     vectorizeClassName: bool
 
     def to_dict(self) -> Dict[str, Any]:
@@ -447,10 +425,26 @@ class Multi2VecBindConfig(VectorizerConfig):
             val = getattr(self, cls_field)
             if "Fields" in cls_field and val is not None:
                 val = cast(List[Multi2VecField], val)
-                ret_dict["weights"][cls_field] = [
-                    field.weight for field in val if field.weight is not None
-                ]
+                ret_dict[cls_field] = [field.name for field in val]
+                weights = [field.weight for field in val if field.weight is not None]
+                if len(weights) > 0:
+                    ret_dict["weights"][cls_field] = weights
+        if len(ret_dict["weights"]) == 0:
+            del ret_dict["weights"]
         return ret_dict
+
+
+class Multi2VecClipConfig(Multi2VecBase):
+    vectorizer: Vectorizer = Field(Vectorizer.MULTI2VEC_CLIP, frozen=True, exclude=True)
+
+
+class Multi2VecBindConfig(Multi2VecBase):
+    vectorizer: Vectorizer = Field(Vectorizer.MULTI2VEC_BIND, frozen=True, exclude=True)
+    audioFields: Optional[List[Multi2VecField]]
+    depthFields: Optional[List[Multi2VecField]]
+    IMUFields: Optional[List[Multi2VecField]]
+    thermalFields: Optional[List[Multi2VecField]]
+    videoFields: Optional[List[Multi2VecField]]
 
 
 class Ref2VecCentroidConfig(VectorizerConfig):

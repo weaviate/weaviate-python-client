@@ -53,7 +53,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
     ),
     (
         VectorizerFactory.text2vec_cohere(),
-        {"text2vec-cohere": {"model": "embed-multilingual-v2.0", "truncate": "RIGHT"}},
+        {"text2vec-cohere": {}},
     ),
     (
         VectorizerFactory.text2vec_cohere(model="embed-multilingual-v2.0", truncate="NONE"),
@@ -167,7 +167,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         {
             "text2vec-palm": {
                 "projectId": "project",
-                "apiEndpoint": "https://weaviate.io",
+                "apiEndpoint": "https://weaviate.io/",
                 "modelId": "model",
                 "vectorizeClassName": False,
             }
