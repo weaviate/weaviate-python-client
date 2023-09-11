@@ -116,6 +116,7 @@ class Connection:
         self.embedded_db = embedded_db
 
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
+        self.__additional_headers: Dict[str, str] = {}
 
         # create GRPC channel. If weaviate does not support GRPC, fallback to GraphQL is used.
         if has_grpc and grcp_port is not None:
