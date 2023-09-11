@@ -5,7 +5,6 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
-from weaviate.schema.validate_schema import check_property
 from weaviate.util import _get_dict_from_object, _capitalize_first_letter
 
 
@@ -65,9 +64,6 @@ class Property:
             raise TypeError(f"Class name must be of type str but is {type(schema_class_name)}")
 
         loaded_schema_property = _get_dict_from_object(schema_property)
-
-        # check if valid property
-        check_property(loaded_schema_property)
 
         schema_class_name = _capitalize_first_letter(schema_class_name)
 
