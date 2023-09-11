@@ -43,7 +43,6 @@ from weaviate.collection.classes.data import (
     Error,
     GetObjectsMetadata,
 )
-from weaviate.collection.classes.grpc import NearImageOptions, NearTextOptions, ReturnValues
 from weaviate.collection.classes.internal import Reference
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.exceptions import WeaviateGRPCException
@@ -548,7 +547,7 @@ def test_search_hybrid(client: weaviate.Client, fusion_type):
     )
     collection.data.insert({"Name": "some name"}, uuid.uuid4())
     collection.data.insert({"Name": "other word"}, uuid.uuid4())
-    res = collection.query.hybrid_flat(alpha=0, query="name", fusion_type=fusion_type)
+    res = collection.query.hybrid(alpha=0, query="name", fusion_type=fusion_type)
     assert len(res) == 1
     client.collection.delete("Testing")
 
@@ -565,7 +564,7 @@ def test_search_limit(client: weaviate.Client, limit):
     for i in range(5):
         collection.data.insert({"Name": str(i)})
 
-    assert len(collection.query.get_flat(limit=limit)) == limit
+    assert len(collection.query.get(limit=limit)) == limit
 
     client.collection.delete("TestLimit")
 
@@ -584,7 +583,7 @@ def test_search_offset(client: weaviate.Client, offset):
     for i in range(nr_objects):
         collection.data.insert({"Name": str(i)})
 
-    objects = collection.query.get_flat(offset=offset)
+    objects = collection.query.get(offset=offset)
     assert len(objects) == nr_objects - offset
 
     client.collection.delete("TestOffset")
@@ -603,9 +602,9 @@ def test_search_after(client: weaviate.Client):
     for i in range(nr_objects):
         collection.data.insert({"Name": str(i)})
 
-    objects = collection.query.get_flat(return_metadata=MetadataQuery(uuid=True))
+    objects = collection.query.get(return_metadata=MetadataQuery(uuid=True))
     for i, obj in enumerate(objects):
-        objects_after = collection.query.get_flat(after=obj.metadata.uuid)
+        objects_after = collection.query.get(after=obj.metadata.uuid)
         assert len(objects_after) == nr_objects - 1 - i
 
     client.collection.delete("TestOffset")
@@ -627,17 +626,17 @@ def test_auto_limit(client: weaviate.Client):
         collection.data.insert({"Name": ""})
 
     # match all objects with rain
-    objects = collection.query.bm25_flat(query="rain", auto_limit=0)
+    objects = collection.query.bm25(query="rain", auto_limit=0)
     assert len(objects) == 2 * 4
-    objects = collection.query.hybrid_flat(
+    objects = collection.query.hybrid(
         query="rain", auto_limit=0, alpha=0, fusion_type=HybridFusion.RELATIVE_SCORE
     )
     assert len(objects) == 2 * 4
 
     # match only objects with two rains
-    objects = collection.query.bm25_flat(query="rain", auto_limit=1)
+    objects = collection.query.bm25(query="rain", auto_limit=1)
     assert len(objects) == 1 * 4
-    objects = collection.query.hybrid_flat(
+    objects = collection.query.hybrid(
         query="rain", auto_limit=1, alpha=0, fusion_type=HybridFusion.RELATIVE_SCORE
     )
     assert len(objects) == 1 * 4
@@ -662,18 +661,18 @@ def test_query_properties(client: weaviate.Client):
     collection.data.insert({"Name": "snow", "Age": 4})
     collection.data.insert({"Name": "hail", "Age": 5})
 
-    objects = collection.query.bm25_flat(query="rain", query_properties=["name"])
+    objects = collection.query.bm25(query="rain", query_properties=["name"])
     assert len(objects) == 1
     assert objects[0].properties["age"] == 1
 
-    objects = collection.query.bm25_flat(query="sleet", query_properties=["name"])
+    objects = collection.query.bm25(query="sleet", query_properties=["name"])
     assert len(objects) == 0
 
-    objects = collection.query.hybrid_flat(query="cloud", query_properties=["name"], alpha=0)
+    objects = collection.query.hybrid(query="cloud", query_properties=["name"], alpha=0)
     assert len(objects) == 1
     assert objects[0].properties["age"] == 3
 
-    objects = collection.query.hybrid_flat(query="sleet", query_properties=["name"], alpha=0)
+    objects = collection.query.hybrid(query="sleet", query_properties=["name"], alpha=0)
     assert len(objects) == 0
 
     client.collection.delete("TestQueryProperties")
@@ -694,17 +693,17 @@ def test_near_vector(client: weaviate.Client):
 
     banana = collection.data.get_by_id(uuid_banana, metadata=GetObjectsMetadata(vector=True))
 
-    full_objects = collection.query.near_vector_flat(
+    full_objects = collection.query.near_vector(
         banana.metadata.vector, return_metadata=MetadataQuery(distance=True, certainty=True)
     )
     assert len(full_objects) == 4
 
-    objects_distance = collection.query.near_vector_flat(
+    objects_distance = collection.query.near_vector(
         banana.metadata.vector, distance=full_objects[2].metadata.distance
     )
     assert len(objects_distance) == 3
 
-    objects_distance = collection.query.near_vector_flat(
+    objects_distance = collection.query.near_vector(
         banana.metadata.vector, certainty=full_objects[2].metadata.certainty
     )
     assert len(objects_distance) == 3
@@ -725,17 +724,17 @@ def test_near_object(client: weaviate.Client):
     collection.data.insert({"Name": "car"})
     collection.data.insert({"Name": "Mountain"})
 
-    full_objects = collection.query.near_object_flat(
+    full_objects = collection.query.near_object(
         uuid_banana, return_metadata=MetadataQuery(distance=True, certainty=True)
     )
     assert len(full_objects) == 4
 
-    objects_distance = collection.query.near_object_flat(
+    objects_distance = collection.query.near_object(
         uuid_banana, distance=full_objects[2].metadata.distance
     )
     assert len(objects_distance) == 3
 
-    objects_distance = collection.query.near_object_flat(
+    objects_distance = collection.query.near_object(
         uuid_banana, certainty=full_objects[2].metadata.certainty
     )
     assert len(objects_distance) == 3
@@ -781,7 +780,7 @@ def test_mono_references_grcp(client: weaviate.Client):
     )
     C.data.insert({"Name": "find me", "ref": Reference.to(uuids=uuid_B)})
 
-    objects = C.query.bm25_flat(
+    objects = C.query.bm25(
         query="find",
         return_properties=[
             "name",
@@ -870,7 +869,7 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
     C = client.collection.get("CTypedDicts", CProps)
     C.data.insert(properties=CProps(name="find me", ref=Reference[BProps].to(uuids=uuid_B)))
 
-    objects = client.collection.get("CTypedDicts").query.bm25_flat(
+    objects = client.collection.get("CTypedDicts").query.bm25(
         query="find",
         return_properties=CProps,
     )
@@ -945,7 +944,7 @@ def test_multi_references_grcp(client: weaviate.Client):
         {"Name": "second", "ref": Reference.to_multi_target(uuids=uuid_B, target_collection="B")}
     )
 
-    objects = C.query.bm25_flat(
+    objects = C.query.bm25(
         query="first",
         return_properties=[
             "name",
@@ -961,7 +960,7 @@ def test_multi_references_grcp(client: weaviate.Client):
     assert len(objects[0].properties["ref"].objects) == 1
     assert objects[0].properties["ref"].objects[0].properties["name"] == "A"
 
-    objects = C.query.bm25_flat(
+    objects = C.query.bm25(
         query="second",
         return_properties=[
             "name",
@@ -1022,7 +1021,7 @@ def test_multi_searches(client: weaviate.Client):
     collection.data.insert(properties={"name": "word"})
     collection.data.insert(properties={"name": "other"})
 
-    objects = collection.query.bm25_flat(
+    objects = collection.query.bm25(
         query="word",
         return_properties=["name"],
         return_metadata=MetadataQuery(last_update_time_unix=True),
@@ -1030,7 +1029,7 @@ def test_multi_searches(client: weaviate.Client):
     assert "name" in objects[0].properties
     assert objects[0].metadata.last_update_time_unix is not None
 
-    objects = collection.query.bm25_flat(query="other", return_metadata=MetadataQuery(uuid=True))
+    objects = collection.query.bm25(query="other", return_metadata=MetadataQuery(uuid=True))
     assert "name" not in objects[0].properties
     assert objects[0].metadata.uuid is not None
     assert objects[0].metadata.last_update_time_unix is None
@@ -1052,11 +1051,11 @@ def test_search_with_tenant(client: weaviate.Client):
     tenant1 = collection.with_tenant("Tenant1")
     tenant2 = collection.with_tenant("Tenant2")
     uuid1 = tenant1.data.insert({"name": "some name"})
-    objects1 = tenant1.query.bm25_flat(query="some", return_metadata=MetadataQuery(uuid=True))
+    objects1 = tenant1.query.bm25(query="some", return_metadata=MetadataQuery(uuid=True))
     assert len(objects1) == 1
     assert objects1[0].metadata.uuid == uuid1
 
-    objects2 = tenant2.query.bm25_flat(query="some", return_metadata=MetadataQuery(uuid=True))
+    objects2 = tenant2.query.bm25(query="some", return_metadata=MetadataQuery(uuid=True))
     assert len(objects2) == 0
 
     client.collection.delete("TestTenantSearch")
@@ -1271,7 +1270,7 @@ def test_empty_search_returns_everything(client: weaviate.Client):
 
     collection.data.insert(properties={"name": "word"})
 
-    objects = collection.query.bm25_flat(query="word")
+    objects = collection.query.bm25(query="word")
     assert "name" in objects[0].properties
     assert objects[0].properties["name"] == "word"
     assert objects[0].metadata.uuid is not None
@@ -1406,7 +1405,7 @@ def test_return_list_properties(client: weaviate.Client):
         "uuids": [uuid.uuid4(), uuid.uuid4()],
     }
     collection.data.insert(properties=data)
-    objects = collection.query.get_flat()
+    objects = collection.query.get()
     assert len(objects) == 1
 
     # remove dates because of problems comparing dates
@@ -1452,24 +1451,16 @@ def test_near_text(
         ]
     )
 
-    objs1 = collection.query.near_text_flat(
+    objs = collection.query.near_text(
         query=query,
         move_to=Move(force=1.0, objects=objects),
         move_away=Move(force=0.5, concepts=concepts),
         return_metadata=MetadataQuery(uuid=True),
         return_properties=["value"],
     )
-    objs2 = collection.query.near_text_options(
-        query=query,
-        options=NearTextOptions(
-            move_to=Move(force=1.0, objects=objects), move_away=Move(force=0.5, concepts=concepts)
-        ),
-        returns=ReturnValues(metadata=MetadataQuery(uuid=True), properties=["value"]),
-    )
 
-    assert objs1 == objs2
-    assert objs1[0].metadata.uuid == batch_return.uuids[2]
-    assert objs1[0].properties["value"] == "apple cake"
+    assert objs[0].metadata.uuid == batch_return.uuids[2]
+    assert objs[0].properties["value"] == "apple cake"
 
 
 def test_near_text_error(client: weaviate.Client):
@@ -1480,13 +1471,11 @@ def test_near_text_error(client: weaviate.Client):
     )
 
     with pytest.raises(ValueError):
-        collection.query.near_text_flat(query="test", move_to=Move(force=1.0))
+        collection.query.near_text(query="test", move_to=Move(force=1.0))
 
 
 @pytest.mark.parametrize("distance,certainty", [(None, None), (10, None), (None, 0.1)])
-def test_near_image_flat(
-    client: weaviate.Client, distance: Optional[float], certainty: Optional[float]
-):
+def test_near_image(client: weaviate.Client, distance: Optional[float], certainty: Optional[float]):
     name = "TestNearImage"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -1502,36 +1491,8 @@ def test_near_image_flat(
     uuid1 = collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_OLD_ENCODED})
     collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_NEW_ENCODED})
 
-    objects = collection.query.near_image_flat(
+    objects = collection.query.near_image(
         WEAVIATE_LOGO_OLD_ENCODED, distance=distance, certainty=certainty
-    )
-    assert len(objects) == 2
-    assert objects[0].metadata.uuid == uuid1
-
-
-@pytest.mark.parametrize("distance,certainty", [(None, None), (10, None), (None, 0.1)])
-def test_near_image_options(
-    client: weaviate.Client, distance: Optional[float], certainty: Optional[float]
-):
-    name = "TestNearImage"
-    client.collection.delete(name)
-    collection = client.collection.create(
-        CollectionConfig(
-            name=name,
-            vectorizer_config=Img2VecNeuralConfig(image_fields=["imageProp"]),
-            properties=[
-                Property(name="imageProp", data_type=DataType.BLOB),
-            ],
-        )
-    )
-
-    uuid1 = collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_OLD_ENCODED})
-    collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_NEW_ENCODED})
-
-    objects = collection.query.near_image_options(
-        WEAVIATE_LOGO_OLD_ENCODED,
-        returns=ReturnValues(),
-        options=NearImageOptions(distance=distance, certainty=certainty),
     )
     assert len(objects) == 2
     assert objects[0].metadata.uuid == uuid1
@@ -1561,7 +1522,7 @@ def test_return_properties_with_typed_dict(client: weaviate.Client, which_case: 
         class DataModel(TypedDict):
             int_: int
 
-        objects = collection.query.get_flat(return_properties=DataModel)
+        objects = collection.query.get(return_properties=DataModel)
         assert len(objects) == 1
         assert objects[0].properties == {"int_": 1}
     elif which_case == 1:
@@ -1569,7 +1530,7 @@ def test_return_properties_with_typed_dict(client: weaviate.Client, which_case: 
         class DataModel(TypedDict):
             ints: List[int]
 
-        objects = collection.query.get_flat(return_properties=DataModel)
+        objects = collection.query.get(return_properties=DataModel)
         assert len(objects) == 1
         assert objects[0].properties == {"ints": [1, 2, 3]}
     elif which_case == 2:
@@ -1578,7 +1539,7 @@ def test_return_properties_with_typed_dict(client: weaviate.Client, which_case: 
             int_: int
             ints: List[int]
 
-        objects = collection.query.get_flat(return_properties=DataModel)
+        objects = collection.query.get(return_properties=DataModel)
         assert len(objects) == 1
         assert objects[0].properties == data
     elif which_case == 3:
@@ -1587,7 +1548,7 @@ def test_return_properties_with_typed_dict(client: weaviate.Client, which_case: 
             non_existant: str
 
         with pytest.raises(WeaviateGRPCException):
-            collection.query.get_flat(return_properties=DataModel)
+            collection.query.get(return_properties=DataModel)
 
 
 def test_batch_with_arrays(client: weaviate.Client):
