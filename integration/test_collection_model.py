@@ -151,7 +151,7 @@ def test_search(client: weaviate.Client):
     collection.data.insert(SearchTest(name="test name"))
     collection.data.insert(SearchTest(name="other words"))
 
-    objects = collection.query.bm25_flat(query="test", return_properties=["name"])
+    objects = collection.query.bm25(query="test", return_properties=["name"])
     assert type(objects[0].properties) is SearchTest
     assert objects[0].properties.name == "test name"
 
@@ -242,7 +242,7 @@ def test_multi_searches(client: weaviate.Client):
     collection.data.insert(TestMultiSearches(name="some word"))
     collection.data.insert(TestMultiSearches(name="other"))
 
-    objects = collection.query.bm25_flat(
+    objects = collection.query.bm25(
         query="word",
         return_properties=["name"],
         return_metadata=MetadataQuery(last_update_time_unix=True),
@@ -250,7 +250,7 @@ def test_multi_searches(client: weaviate.Client):
     assert objects[0].properties.name == "some word"
     assert objects[0].metadata.last_update_time_unix is not None
 
-    objects = collection.query.bm25_flat(
+    objects = collection.query.bm25(
         query="other", return_properties=["name"], return_metadata=MetadataQuery(uuid=True)
     )
     assert objects[0].properties.name == "other"
@@ -278,7 +278,7 @@ def test_multi_searches_with_references(client: weaviate.Client):
         TestMultiSearchesWithReferences(name="other", group=Reference[Group].to(REF_TO_UUID))
     )
 
-    objects = collection.query.bm25_flat(
+    objects = collection.query.bm25(
         query="word",
         return_properties=["name", "group"],
         return_metadata=MetadataQuery(last_update_time_unix=True),
@@ -287,7 +287,7 @@ def test_multi_searches_with_references(client: weaviate.Client):
     assert objects[0].properties.group.objects == []
     assert objects[0].metadata.last_update_time_unix is not None
 
-    objects = collection.query.bm25_flat(
+    objects = collection.query.bm25(
         query="other",
         return_metadata=MetadataQuery(uuid=True),
     )
@@ -314,13 +314,13 @@ def test_search_with_tenant(client: weaviate.Client):
     tenant1 = collection.with_tenant("Tenant1")
     tenant2 = collection.with_tenant("Tenant2")
     uuid1 = tenant1.data.insert(TestTenantSearch(name="some"))
-    objects1 = tenant1.query.bm25_flat(
+    objects1 = tenant1.query.bm25(
         query="some", return_properties=["name"], return_metadata=MetadataQuery(uuid=True)
     )
     assert len(objects1) == 1
     assert objects1[0].metadata.uuid == uuid1
 
-    objects2 = tenant2.query.bm25_flat(query="some", return_metadata=MetadataQuery(uuid=True))
+    objects2 = tenant2.query.bm25(query="some", return_metadata=MetadataQuery(uuid=True))
     assert len(objects2) == 0
 
 
@@ -416,7 +416,7 @@ def test_empty_search_returns_everything(client: weaviate.Client):
     )
     collection.data.insert(TestReturnEverythingORM(name="word"))
 
-    objects = collection.query.bm25_flat(query="word")
+    objects = collection.query.bm25(query="word")
     assert objects[0].properties.name is not None
     assert objects[0].properties.name == "word"
     assert objects[0].metadata.uuid is not None
@@ -439,7 +439,7 @@ def test_empty_return_properties(client: weaviate.Client):
     )
     collection.data.insert(TestEmptyProperties(name="word"))
 
-    objects = collection.query.bm25_flat(query="word", return_metadata=MetadataQuery(uuid=True))
+    objects = collection.query.bm25(query="word", return_metadata=MetadataQuery(uuid=True))
     assert objects[0].properties.name is None
 
 
