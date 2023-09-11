@@ -32,22 +32,12 @@ from weaviate.collection.classes.filters import (
     _Filters,
 )
 from weaviate.collection.classes.grpc import (
-    GetOptions,
-    HybridOptions,
-    BM25Options,
-    NearVectorOptions,
-    NearObjectOptions,
     MetadataQuery,
     HybridFusion,
     PROPERTIES,
     LinkTo,
     LinkToMultiTarget,
-    ReturnValues,
-    NearImageOptions,
-    NearAudioOptions,
-    NearVideoOptions,
     Move,
-    NearTextOptions,
 )
 from weaviate.collection.classes.internal import (
     _MetadataReturn,
@@ -671,7 +661,7 @@ class _GrpcCollection(_Grpc):
             ret_type = type_
         return ret_properties, ret_type
 
-    def get_flat(
+    def get(
         self,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
@@ -693,27 +683,7 @@ class _GrpcCollection(_Grpc):
             )
         ]
 
-    def get_options(
-        self,
-        returns: ReturnValues,
-        options: Optional[GetOptions],
-    ) -> List[_Object[Properties]]:
-        if options is None:
-            options = GetOptions()
-        ret_properties, ret_type = self.__determine_generic(returns.properties)
-        return [
-            self.__result_to_object(obj, ret_type)
-            for obj in self._query().get(
-                limit=options.limit,
-                offset=options.offset,
-                after=options.after,
-                filters=options.filters,
-                return_metadata=returns.metadata,
-                return_properties=ret_properties,
-            )
-        ]
-
-    def hybrid_flat(
+    def hybrid(
         self,
         query: str,
         alpha: Optional[float] = None,
@@ -743,32 +713,7 @@ class _GrpcCollection(_Grpc):
             )
         ]
 
-    def hybrid_options(
-        self,
-        query: str,
-        returns: ReturnValues,
-        options: Optional[HybridOptions] = None,
-    ) -> List[_Object[Properties]]:
-        if options is None:
-            options = HybridOptions()
-        ret_properties, ret_type = self.__determine_generic(returns.properties)
-        return [
-            self.__result_to_object(obj, ret_type)
-            for obj in self._query().hybrid(
-                query=query,
-                alpha=options.alpha,
-                vector=options.vector,
-                properties=options.properties,
-                fusion_type=options.fusion_type,
-                limit=options.limit,
-                autocut=options.auto_limit,
-                filters=options.filters,
-                return_metadata=returns.metadata,
-                return_properties=ret_properties,
-            )
-        ]
-
-    def bm25_flat(
+    def bm25(
         self,
         query: str,
         query_properties: Optional[List[str]] = None,
@@ -792,29 +737,7 @@ class _GrpcCollection(_Grpc):
             )
         ]
 
-    def bm25_options(
-        self,
-        query: str,
-        returns: ReturnValues,
-        options: Optional[BM25Options] = None,
-    ) -> List[_Object[Properties]]:
-        if options is None:
-            options = BM25Options()
-        ret_properties, ret_type = self.__determine_generic(returns.properties)
-        return [
-            self.__result_to_object(obj, ret_type)
-            for obj in self._query().bm25(
-                query=query,
-                properties=options.properties,
-                limit=options.limit,
-                autocut=options.auto_limit,
-                filters=options.filters,
-                return_metadata=returns.metadata,
-                return_properties=ret_properties,
-            )
-        ]
-
-    def near_vector_flat(
+    def near_vector(
         self,
         near_vector: List[float],
         certainty: Optional[float] = None,
@@ -838,29 +761,7 @@ class _GrpcCollection(_Grpc):
             )
         ]
 
-    def near_vector_options(
-        self,
-        near_vector: List[float],
-        returns: ReturnValues,
-        options: Optional[NearVectorOptions] = None,
-    ) -> List[_Object[Properties]]:
-        if options is None:
-            options = NearVectorOptions()
-        ret_properties, ret_type = self.__determine_generic(returns.properties)
-        return [
-            self.__result_to_object(obj, ret_type)
-            for obj in self._query().near_vector(
-                near_vector=near_vector,
-                certainty=options.certainty,
-                distance=options.distance,
-                autocut=options.auto_limit,
-                filters=options.filters,
-                return_metadata=returns.metadata,
-                return_properties=ret_properties,
-            )
-        ]
-
-    def near_object_flat(
+    def near_object(
         self,
         near_object: UUID,
         certainty: Optional[float] = None,
@@ -884,29 +785,7 @@ class _GrpcCollection(_Grpc):
             )
         ]
 
-    def near_object_options(
-        self,
-        near_object: UUID,
-        returns: ReturnValues,
-        options: Optional[NearObjectOptions] = None,
-    ) -> List[_Object[Properties]]:
-        if options is None:
-            options = NearObjectOptions()
-        ret_properties, ret_type = self.__determine_generic(returns.properties)
-        return [
-            self.__result_to_object(obj, ret_type)
-            for obj in self._query().near_object(
-                near_object=near_object,
-                certainty=options.certainty,
-                distance=options.distance,
-                autocut=options.auto_limit,
-                filters=options.filters,
-                return_metadata=returns.metadata,
-                return_properties=ret_properties,
-            )
-        ]
-
-    def near_text_flat(
+    def near_text(
         self,
         query: Union[List[str], str],
         certainty: Optional[float] = None,
@@ -934,33 +813,9 @@ class _GrpcCollection(_Grpc):
             )
         ]
 
-    def near_text_options(
+    def near_image(
         self,
-        query: Union[List[str], str],
-        returns: ReturnValues[Properties],
-        options: Optional[NearTextOptions] = None,
-    ) -> List[_Object[Properties]]:
-        if options is None:
-            options = NearTextOptions()
-        ret_properties, ret_type = self.__determine_generic(returns.properties)
-        return [
-            self.__result_to_object(obj, ret_type)
-            for obj in self._query().near_text(
-                near_text=query,
-                certainty=options.certainty if options is not None else None,
-                distance=options.distance if options is not None else None,
-                move_to=options.move_to if options is not None else None,
-                move_away=options.move_away if options is not None else None,
-                autocut=options.auto_limit if options is not None else None,
-                filters=options.filters if options is not None else None,
-                return_metadata=returns.metadata,
-                return_properties=ret_properties,
-            )
-        ]
-
-    def near_image_flat(
-        self,
-        image: str,
+        near_image: str,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         auto_limit: Optional[int] = None,
@@ -972,7 +827,7 @@ class _GrpcCollection(_Grpc):
         return [
             self.__result_to_object(obj, ret_type)
             for obj in self._query().near_image(
-                image=image,
+                image=near_image,
                 certainty=certainty,
                 distance=distance,
                 filters=filters,
@@ -982,31 +837,9 @@ class _GrpcCollection(_Grpc):
             )
         ]
 
-    def near_image_options(
+    def near_audio(
         self,
-        image: str,
-        returns: ReturnValues[Properties],
-        options: Optional[NearImageOptions] = None,
-    ) -> List[_Object[Properties]]:
-        if options is None:
-            options = NearImageOptions()
-        ret_properties, ret_type = self.__determine_generic(returns.properties)
-        return [
-            self.__result_to_object(obj, ret_type)
-            for obj in self._query().near_image(
-                image=image,
-                certainty=options.certainty if options is not None else None,
-                distance=options.distance if options is not None else None,
-                filters=options.filters if options is not None else None,
-                autocut=options.auto_limit if options is not None else None,
-                return_metadata=returns.metadata,
-                return_properties=ret_properties,
-            )
-        ]
-
-    def near_audio_flat(
-        self,
-        audio: str,
+        near_audio: str,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         auto_limit: Optional[int] = None,
@@ -1018,7 +851,7 @@ class _GrpcCollection(_Grpc):
         return [
             self.__result_to_object(obj, ret_type)
             for obj in self._query().near_audio(
-                audio=audio,
+                audio=near_audio,
                 certainty=certainty,
                 distance=distance,
                 filters=filters,
@@ -1028,31 +861,9 @@ class _GrpcCollection(_Grpc):
             )
         ]
 
-    def near_audio_options(
+    def near_video(
         self,
-        audio: str,
-        returns: ReturnValues[Properties],
-        options: Optional[NearAudioOptions] = None,
-    ) -> List[_Object[Properties]]:
-        if options is None:
-            options = NearAudioOptions()
-        ret_properties, ret_type = self.__determine_generic(returns.properties)
-        return [
-            self.__result_to_object(obj, ret_type)
-            for obj in self._query().near_image(
-                image=audio,
-                certainty=options.certainty if options is not None else None,
-                distance=options.distance if options is not None else None,
-                filters=options.filters if options is not None else None,
-                autocut=options.auto_limit if options is not None else None,
-                return_metadata=returns.metadata,
-                return_properties=ret_properties,
-            )
-        ]
-
-    def near_video_flat(
-        self,
-        video: str,
+        near_video: str,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         auto_limit: Optional[int] = None,
@@ -1064,34 +875,12 @@ class _GrpcCollection(_Grpc):
         return [
             self.__result_to_object(obj, ret_type)
             for obj in self._query().near_video(
-                video=video,
+                video=near_video,
                 certainty=certainty,
                 distance=distance,
                 filters=filters,
                 autocut=auto_limit,
                 return_metadata=return_metadata,
-                return_properties=ret_properties,
-            )
-        ]
-
-    def near_video_options(
-        self,
-        video: str,
-        returns: ReturnValues[Properties],
-        options: Optional[NearVideoOptions] = None,
-    ) -> List[_Object[Properties]]:
-        if options is None:
-            options = NearVideoOptions()
-        ret_properties, ret_type = self.__determine_generic(returns.properties)
-        return [
-            self.__result_to_object(obj, ret_type)
-            for obj in self._query().near_video(
-                video=video,
-                certainty=options.certainty if options is not None else None,
-                distance=options.distance if options is not None else None,
-                filters=options.filters if options is not None else None,
-                autocut=options.auto_limit if options is not None else None,
-                return_metadata=returns.metadata,
                 return_properties=ret_properties,
             )
         ]
@@ -1174,7 +963,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
         metadata = self._extract_metadata_for_object(res.additional_properties)
         return _Object[Model](properties=properties, metadata=metadata)
 
-    def get_flat(
+    def get(
         self,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
@@ -1195,26 +984,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
             )
         ]
 
-    def get_options(
-        self,
-        returns: ReturnValues[Model],
-        options: Optional[GetOptions],
-    ) -> List[_Object[Model]]:
-        if options is None:
-            options = GetOptions()
-        return [
-            self.__result_to_object(obj)
-            for obj in self._query().get(
-                limit=options.limit if options is not None else None,
-                offset=options.offset if options is not None else None,
-                after=options.after if options is not None else None,
-                filters=options.filters if options is not None else None,
-                return_metadata=returns.metadata,
-                return_properties=cast(Optional[PROPERTIES], returns.properties),
-            )
-        ]
-
-    def hybrid_flat(
+    def hybrid(
         self,
         query: str,
         alpha: Optional[float] = None,
@@ -1243,31 +1013,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
             )
         ]
 
-    def hybrid_options(
-        self,
-        query: str,
-        returns: ReturnValues[Model],
-        options: Optional[HybridOptions] = None,
-    ) -> List[_Object[Model]]:
-        if options is None:
-            options = HybridOptions()
-        return [
-            self.__result_to_object(obj)
-            for obj in self._query().hybrid(
-                query=query,
-                alpha=options.alpha if options is not None else None,
-                vector=options.vector if options is not None else None,
-                properties=options.properties if options is not None else None,
-                fusion_type=options.fusion_type if options is not None else None,
-                limit=options.limit if options is not None else None,
-                autocut=options.auto_limit if options is not None else None,
-                filters=options.filters if options is not None else None,
-                return_metadata=returns.metadata,
-                return_properties=cast(Optional[PROPERTIES], returns.properties),
-            )
-        ]
-
-    def bm25_flat(
+    def bm25(
         self,
         query: str,
         query_properties: Optional[List[str]] = None,
@@ -1290,28 +1036,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
             )
         ]
 
-    def bm25_options(
-        self,
-        query: str,
-        returns: ReturnValues[Model],
-        options: Optional[BM25Options] = None,
-    ) -> List[_Object[Model]]:
-        if options is None:
-            options = BM25Options()
-        return [
-            self.__result_to_object(obj)
-            for obj in self._query().bm25(
-                query=query,
-                properties=options.properties if options is not None else None,
-                limit=options.limit if options is not None else None,
-                autocut=options.auto_limit if options is not None else None,
-                filters=options.filters if options is not None else None,
-                return_metadata=returns.metadata,
-                return_properties=cast(Optional[PROPERTIES], returns.properties),
-            )
-        ]
-
-    def near_vector_flat(
+    def near_vector(
         self,
         near_vector: List[float],
         certainty: Optional[float] = None,
@@ -1334,28 +1059,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
             )
         ]
 
-    def near_vector_options(
-        self,
-        near_vector: List[float],
-        returns: ReturnValues[Model],
-        options: Optional[NearVectorOptions] = None,
-    ) -> List[_Object[Model]]:
-        if options is None:
-            options = NearVectorOptions()
-        return [
-            self.__result_to_object(obj)
-            for obj in self._query().near_vector(
-                near_vector=near_vector,
-                certainty=options.certainty if options is not None else None,
-                distance=options.distance if options is not None else None,
-                autocut=options.auto_limit if options is not None else None,
-                filters=options.filters if options is not None else None,
-                return_metadata=returns.metadata,
-                return_properties=cast(Optional[PROPERTIES], returns.properties),
-            )
-        ]
-
-    def near_object_flat(
+    def near_object(
         self,
         near_object: UUID,
         certainty: Optional[float] = None,
@@ -1378,28 +1082,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
             )
         ]
 
-    def near_object_options(
-        self,
-        near_object: UUID,
-        returns: ReturnValues[Model],
-        options: Optional[NearObjectOptions] = None,
-    ) -> List[_Object[Model]]:
-        if options is None:
-            options = NearObjectOptions()
-        return [
-            self.__result_to_object(obj)
-            for obj in self._query().near_object(
-                near_object=near_object,
-                certainty=options.certainty if options is not None else None,
-                distance=options.distance if options is not None else None,
-                autocut=options.auto_limit if options is not None else None,
-                filters=options.filters if options is not None else None,
-                return_metadata=returns.metadata,
-                return_properties=cast(Optional[PROPERTIES], returns.properties),
-            )
-        ]
-
-    def near_text_flat(
+    def near_text(
         self,
         query: Union[List[str], str],
         certainty: Optional[float] = None,
@@ -1426,33 +1109,9 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
             )
         ]
 
-    def near_text_options(
+    def near_image(
         self,
-        query: Union[List[str], str],
-        returns: ReturnValues[Model],
-        options: Optional[NearTextOptions] = None,
-    ) -> List[_Object[Model]]:
-        if options is None:
-            options = NearTextOptions()
-
-        return [
-            self.__result_to_object(obj)
-            for obj in self._query().near_text(
-                near_text=query,
-                certainty=options.certainty if options is not None else None,
-                distance=options.distance if options is not None else None,
-                move_to=options.move_to if options is not None else None,
-                move_away=options.move_away if options is not None else None,
-                autocut=options.auto_limit if options is not None else None,
-                filters=options.filters if options is not None else None,
-                return_metadata=returns.metadata,
-                return_properties=cast(Optional[PROPERTIES], returns.properties),
-            )
-        ]
-
-    def near_image_flat(
-        self,
-        image: str,
+        near_image: str,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         auto_limit: Optional[int] = None,
@@ -1460,11 +1119,10 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object[Model]]:
-
         return [
             self.__result_to_object(obj)
             for obj in self._query().near_image(
-                image=image,
+                image=near_image,
                 certainty=certainty,
                 distance=distance,
                 filters=filters,
@@ -1474,31 +1132,9 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
             )
         ]
 
-    def near_image_options(
+    def near_audio(
         self,
-        image: str,
-        returns: ReturnValues[Model],
-        options: Optional[NearImageOptions] = None,
-    ) -> List[_Object[Model]]:
-        if options is None:
-            options = NearImageOptions()
-
-        return [
-            self.__result_to_object(obj)
-            for obj in self._query().near_image(
-                image=image,
-                certainty=options.certainty if options is not None else None,
-                distance=options.distance if options is not None else None,
-                filters=options.filters if options is not None else None,
-                autocut=options.auto_limit if options is not None else None,
-                return_metadata=returns.metadata,
-                return_properties=cast(Optional[PROPERTIES], returns.properties),
-            )
-        ]
-
-    def near_audio_flat(
-        self,
-        audio: str,
+        near_audio: str,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         auto_limit: Optional[int] = None,
@@ -1506,11 +1142,10 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object[Model]]:
-
         return [
             self.__result_to_object(obj)
             for obj in self._query().near_audio(
-                audio=audio,
+                audio=near_audio,
                 certainty=certainty,
                 distance=distance,
                 filters=filters,
@@ -1520,31 +1155,9 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
             )
         ]
 
-    def near_audio_options(
+    def near_video(
         self,
-        audio: str,
-        returns: ReturnValues[Model],
-        options: Optional[NearAudioOptions] = None,
-    ) -> List[_Object[Model]]:
-        if options is None:
-            options = NearAudioOptions()
-
-        return [
-            self.__result_to_object(obj)
-            for obj in self._query().near_image(
-                image=audio,
-                certainty=options.certainty if options is not None else None,
-                distance=options.distance if options is not None else None,
-                filters=options.filters if options is not None else None,
-                autocut=options.auto_limit if options is not None else None,
-                return_metadata=returns.metadata,
-                return_properties=cast(Optional[PROPERTIES], returns.properties),
-            )
-        ]
-
-    def near_video_flat(
-        self,
-        video: str,
+        near_video: str,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         auto_limit: Optional[int] = None,
@@ -1552,38 +1165,15 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object[Model]]:
-
         return [
             self.__result_to_object(obj)
             for obj in self._query().near_video(
-                video=video,
+                video=near_video,
                 certainty=certainty,
                 distance=distance,
                 filters=filters,
                 autocut=auto_limit,
                 return_metadata=return_metadata,
                 return_properties=return_properties,
-            )
-        ]
-
-    def near_video_options(
-        self,
-        video: str,
-        returns: ReturnValues[Model],
-        options: Optional[NearVideoOptions] = None,
-    ) -> List[_Object[Model]]:
-        if options is None:
-            options = NearVideoOptions()
-
-        return [
-            self.__result_to_object(obj)
-            for obj in self._query().near_video(
-                video=video,
-                certainty=options.certainty if options is not None else None,
-                distance=options.distance if options is not None else None,
-                filters=options.filters if options is not None else None,
-                autocut=options.auto_limit if options is not None else None,
-                return_metadata=returns.metadata,
-                return_properties=cast(Optional[PROPERTIES], returns.properties),
             )
         ]

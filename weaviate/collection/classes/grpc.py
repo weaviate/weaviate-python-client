@@ -1,10 +1,8 @@
 from dataclasses import dataclass
-from typing import Dict, Generic, List, Optional, Type, Union
+from typing import Dict, List, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel
 
-from weaviate.collection.classes.filters import _Filters
-from weaviate.collection.classes.types import P
 from weaviate.util import BaseEnum
 from weaviate.weaviate_types import UUID
 
@@ -12,63 +10,6 @@ from weaviate.weaviate_types import UUID
 class HybridFusion(str, BaseEnum):
     RANKED = "FUSION_TYPE_RANKED"
     RELATIVE_SCORE = "FUSION_TYPE_RELATIVE_SCORE"
-
-
-class Options(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    filters: Optional[_Filters] = Field(default=None)
-    limit: Optional[int] = Field(default=None)
-
-
-class HybridOptions(Options):
-    alpha: Optional[float] = Field(default=None)
-    vector: Optional[List[float]] = Field(default=None)
-    properties: Optional[List[str]] = Field(default=None)
-    fusion_type: Optional[HybridFusion] = Field(default=None)
-    auto_limit: Optional[int] = Field(default=None)
-
-
-class GetOptions(Options):
-    offset: Optional[int] = Field(default=None)
-    after: Optional[UUID] = Field(default=None)
-
-
-class BM25Options(Options):
-    properties: Optional[List[str]] = Field(default=None)
-    auto_limit: Optional[int] = Field(default=None)
-
-
-class NearMediaOptions(Options):
-    certainty: Optional[float] = Field(default=None)
-    distance: Optional[float] = Field(default=None)
-    auto_limit: Optional[int] = Field(default=None)
-
-
-class NearVectorOptions(NearMediaOptions):
-    pass
-
-
-class NearObjectOptions(NearMediaOptions):
-    pass
-
-
-class NearTextOptions(NearMediaOptions):
-    move_to: Optional["Move"] = Field(default=None)
-    move_away: Optional["Move"] = Field(default=None)
-    filters: Optional[_Filters] = Field(default=None)
-
-
-class NearImageOptions(NearMediaOptions):
-    pass
-
-
-class NearAudioOptions(NearMediaOptions):
-    pass
-
-
-class NearVideoOptions(NearMediaOptions):
-    pass
 
 
 class Move:
@@ -136,12 +77,6 @@ class LinkToMultiTarget(LinkTo):
 
 
 PROPERTIES = Union[List[Union[str, LinkTo]], str]
-
-
-@dataclass
-class ReturnValues(Generic[P]):
-    properties: Optional[Union[PROPERTIES, Type[P]]] = None
-    metadata: Optional[MetadataQuery] = None
 
 
 @dataclass

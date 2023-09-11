@@ -38,16 +38,10 @@ from weaviate.collection.classes.data import (
     ReferenceToMultiTarget,
 )
 from weaviate.collection.classes.grpc import (
-    BM25Options,
-    GetOptions,
     HybridFusion,
-    HybridOptions,
     LinkTo,
     LinkToMultiTarget,
     MetadataQuery,
-    NearObjectOptions,
-    NearVectorOptions,
-    ReturnValues,
 )
 from weaviate.collection.classes.internal import Reference
 from weaviate.collection.classes.orm import (
@@ -58,14 +52,11 @@ from weaviate.collection.classes.tenants import Tenant
 
 __all__ = [
     "BaseProperty",
-    "BM25Options",
     "CollectionConfig",
     "CollectionModelConfig",
     "DataObject",
     "DataType",
-    "GetOptions",
     "HybridFusion",
-    "HybridOptions",
     "GetObjectByIdMetadata",
     "GetObjectsMetadata",
     "InvertedIndexConfigCreate",
@@ -77,8 +68,6 @@ __all__ = [
     "Multi2VecBindConfigWeights",
     "Multi2VecClipConfig",
     "Multi2VecClipConfigWeights",
-    "NearObjectOptions",
-    "NearVectorOptions",
     "ReferenceProperty",
     "ReferencePropertyMultiTarget",
     "Property",
@@ -86,7 +75,6 @@ __all__ = [
     "Reference",
     "ReferenceTo",
     "ReferenceToMultiTarget",
-    "ReturnValues",
     "ShardingConfigCreate",
     "StopwordsCreate",
     "StopwordsUpdate",
