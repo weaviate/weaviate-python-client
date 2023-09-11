@@ -10,10 +10,6 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.schema.properties import Property
-from weaviate.schema.validate_schema import (
-    CLASS_KEYS,
-    PROPERTY_KEYS,
-)
 from weaviate.util import (
     _get_dict_from_object,
     _is_sub_schema,
@@ -21,6 +17,31 @@ from weaviate.util import (
     _decode_json_response_dict,
     _decode_json_response_list,
 )
+
+CLASS_KEYS = {
+    "class",
+    "vectorIndexType",
+    "vectorIndexConfig",
+    "moduleConfig",
+    "description",
+    "vectorizer",
+    "properties",
+    "invertedIndexConfig",
+    "shardingConfig",
+    "replicationConfig",
+    "multiTenancyConfig",
+}
+
+PROPERTY_KEYS = {
+    "dataType",
+    "name",
+    "moduleConfig",
+    "description",
+    "indexInverted",
+    "tokenization",
+    "indexFilterable",
+    "indexSearchable",
+}
 
 _PRIMITIVE_WEAVIATE_TYPES_SET = {
     "string",
