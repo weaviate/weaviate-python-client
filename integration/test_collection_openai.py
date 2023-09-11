@@ -173,8 +173,8 @@ def test_generative_with_everything(client):
 
 def test_openapi_invalid_key():
     local_client = weaviate.Client(
-        "http://localhost:8080",
-        additional_config=Config(grpc_port_experimental=50051),
+        "http://localhost:8086",
+        additional_config=Config(grpc_port_experimental=50057),
         additional_headers={"X-OpenAI-Api-Key": "IamNotValid"},
     )
 
