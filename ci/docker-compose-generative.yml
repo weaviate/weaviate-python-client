@@ -12,6 +12,7 @@ services:
     image: semitechnologies/weaviate:preview-add-generative-search-to-grpc-71b2972
     ports:
       - 8086:8086
+      - "50057:50051"
     restart: on-failure:0
     environment:
       QUERY_DEFAULTS_LIMIT: 25

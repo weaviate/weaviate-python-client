@@ -21,8 +21,8 @@ def client():
         pytest.skip("No OpenAI API key found.")
 
     client = weaviate.Client(
-        "http://localhost:8080",
-        additional_config=Config(grpc_port_experimental=50051),
+        "http://localhost:8086",
+        additional_config=Config(grpc_port_experimental=50057),  # ports with generative module
         additional_headers={"X-OpenAI-Api-Key": api_key},
     )
     client.schema.delete_all()
