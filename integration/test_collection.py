@@ -1095,6 +1095,24 @@ def test_get_by_id_with_tenant(client: weaviate.Client):
     client.collection.delete("TestTenantGet")
 
 
+def test_get_with_limit(client: weaviate.Client):
+    collection = client.collection.create(
+        CollectionConfig(
+            name="TestLimit",
+            vectorizer_config=VectorizerFactory.none(),
+            properties=[Property(name="name", data_type=DataType.TEXT)],
+        )
+    )
+
+    for i in range(10):
+        collection.data.insert({"name": str(i)})
+
+    objects = collection.data.get(limit=5)
+    assert len(objects) == 5
+
+    client.collection.delete("TestLimit")
+
+
 def test_get_with_tenant(client: weaviate.Client):
     collection = client.collection.create(
         CollectionConfig(
