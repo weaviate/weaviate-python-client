@@ -311,9 +311,7 @@ class Text2VecHuggingFaceConfig(VectorizerConfig):
     useGPU: Optional[bool]
     useCache: Optional[bool]
 
-    # @model_validator(mode="before")
     def validate_mutually_exclusive_fields(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        print(values)
         if "passageModel" in values and "queryModel" not in values:
             raise ValueError("Must specify query_model when specifying passage_model")
         if "queryModel" in values and "passageModel" not in values:
