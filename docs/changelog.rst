@@ -1,6 +1,10 @@
 Changelog
 =========
 
+Version 3.24.1
+--------------
+This patch version updates the ``changelog.rst`` that became stale over the last few releases
+
 Version 3.24.0
 --------------
 This minor version includes:
