@@ -190,3 +190,24 @@ def test_openapi_invalid_key():
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):
         collection.query.generative(prompt_per_object="tell a joke based on {text}")
+
+
+def test_openapi_no_module():
+    local_client = weaviate.Client(
+        "http://localhost:8080",  # main version that does not have a generative module
+        additional_config=Config(grpc_port_experimental=50051),
+        additional_headers={"X-OpenAI-Api-Key": "doesnt matter"},
+    )
+
+    name = "TestGenerativeSearchNoModule"
+    local_client.collection.delete(name)
+    collection = local_client.collection.create(
+        CollectionConfig(
+            name=name,
+            properties=[Property(name="text", data_type=DataType.TEXT)],
+            generative_search=GenerativeFactory.OpenAI(),
+        )
+    )
+    collection.data.insert(properties={"text": "test"})
+    with pytest.raises(WeaviateGRPCException):
+        collection.query.generative(prompt_per_object="tell a joke based on {text}")

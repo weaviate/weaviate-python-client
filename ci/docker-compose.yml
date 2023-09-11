@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-add-support-for-vectorizer-auth-via-grpc-0c4ec66
+    image: semitechnologies/weaviate:preview-error-without-module-c10476a
     ports:
       - "8080:8080"
       - "50051:50051"
