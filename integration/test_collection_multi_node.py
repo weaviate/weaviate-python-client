@@ -6,7 +6,7 @@ from weaviate.collection.classes.config import (
     CollectionConfig,
     VectorizerFactory,
     Property,
-    ReplicationConfigCreate,
+    ReplicationConfig,
     ConsistencyLevel,
     DataType,
 )
@@ -37,7 +37,7 @@ def test_consistency_on_multinode(client: weaviate.Client, level: ConsistencyLev
             properties=[
                 Property(name="name", data_type=DataType.TEXT),
             ],
-            replication_config=ReplicationConfigCreate(factor=2),
+            replication_config=ReplicationConfig.create(factor=2),
         )
     ).with_consistency_level(level)
 
