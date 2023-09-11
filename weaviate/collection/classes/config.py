@@ -435,11 +435,11 @@ class Multi2VecBase(VectorizerConfig):
 
 
 class Multi2VecClipConfig(Multi2VecBase):
-    vectorizer: Vectorizer = Field(Vectorizer.MULTI2VEC_CLIP, frozen=True, exclude=True)
+    vectorizer: Vectorizer = Field(default=Vectorizer.MULTI2VEC_CLIP, frozen=True, exclude=True)
 
 
 class Multi2VecBindConfig(Multi2VecBase):
-    vectorizer: Vectorizer = Field(Vectorizer.MULTI2VEC_BIND, frozen=True, exclude=True)
+    vectorizer: Vectorizer = Field(default=Vectorizer.MULTI2VEC_BIND, frozen=True, exclude=True)
     audioFields: Optional[List[Multi2VecField]]
     depthFields: Optional[List[Multi2VecField]]
     IMUFields: Optional[List[Multi2VecField]]
@@ -448,7 +448,7 @@ class Multi2VecBindConfig(Multi2VecBase):
 
 
 class Ref2VecCentroidConfig(VectorizerConfig):
-    vectorizer: Vectorizer = Field(Vectorizer.REF2VEC_CENTROID, frozen=True, exclude=True)
+    vectorizer: Vectorizer = Field(default=Vectorizer.REF2VEC_CENTROID, frozen=True, exclude=True)
     referenceProperties: List[str]
     method: Literal["mean"]
 
@@ -750,7 +750,7 @@ class VectorizerFactory:
     def text2vec_palm(
         cls,
         project_id: str,
-        api_endpoint: Optional[str] = None,
+        api_endpoint: Optional[AnyHttpUrl] = None,
         model_id: Optional[str] = None,
         vectorize_class_name: bool = True,
     ) -> Text2VecPalmConfig:
