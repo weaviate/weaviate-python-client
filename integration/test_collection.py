@@ -343,7 +343,7 @@ def test_insert_many_with_tenant(client: weaviate.Client):
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.none(),
-        multi_tenancy_config=MultiTenancyConfig.create.create(enabled=True),
+        multi_tenancy_config=MultiTenancyConfig.create(enabled=True),
     )
     collection = client.collection.create(collection_config)
 

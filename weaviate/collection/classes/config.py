@@ -518,16 +518,20 @@ class VectorizerConfig(ConfigCreateModel):
 
 
 class PropertyVectorizerConfigCreate(ConfigCreateModel):
-    skip: bool = False
-    vectorizePropertyName: bool = Field(default=True, alias="vectorize_property_name")
+    skip: bool
+    vectorizePropertyName: bool
 
 
 class PropertyVectorizerConfig:
     """This class has no `.update()` method because you cannot update the property vectorizer configuration of Weaviate dynamically"""
 
     @classmethod
-    def create(cls, skip: bool = False) -> PropertyVectorizerConfigCreate:
-        return PropertyVectorizerConfigCreate(skip=skip)
+    def create(
+        cls, skip: bool = False, vectorize_property_name: bool = True
+    ) -> PropertyVectorizerConfigCreate:
+        return PropertyVectorizerConfigCreate(
+            skip=skip, vectorizePropertyName=vectorize_property_name
+        )
 
 
 class GenerativeFactory:
@@ -921,7 +925,7 @@ class Property(ConfigCreateModel):
     indexFilterable: Optional[bool] = Field(None, alias="index_filterable")
     indexSearchable: Optional[bool] = Field(None, alias="index_searchable")
     description: Optional[str] = Field(None)
-    moduleConfig: Optional[PropertyVectorizerConfig] = Field(None, alias="vectorizer_config")
+    moduleConfig: Optional[PropertyVectorizerConfigCreate] = Field(None, alias="vectorizer_config")
     tokenization: Optional[Tokenization] = Field(None)
 
     def to_dict(self, vectorizer: Optional[Vectorizer] = None) -> Dict[str, Any]:

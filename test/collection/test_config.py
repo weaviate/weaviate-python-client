@@ -339,7 +339,7 @@ TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
             Property(
                 name="text",
                 data_type=DataType.TEXT,
-                vectorizer_config=PropertyVectorizerConfig(
+                vectorizer_config=PropertyVectorizerConfig.create(
                     skip=False, vectorize_property_name=False
                 ),
             )
