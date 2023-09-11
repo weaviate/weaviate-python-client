@@ -3,10 +3,10 @@ from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, cast
 
 from pydantic import (
+    AnyHttpUrl,
     BaseModel,
     ConfigDict,
     Field,
-    model_validator,
 )
 
 from weaviate.util import _capitalize_first_letter
@@ -278,61 +278,88 @@ class Text2VecContextionaryConfig(VectorizerConfig):
     vectorizer: Vectorizer = Field(
         default=Vectorizer.TEXT2VEC_CONTEXTIONARY, frozen=True, exclude=True
     )
-    vectorizeClassName: bool = Field(default=True, alias="vectorize_class_name")
+    vectorizeClassName: bool
+
+
+CohereModel = Literal[
+    "embed-multilingual-v2.0",
+    "small",
+    "medium",
+    "large",
+    "multilingual-22-12",
+    "embed-english-v2.0",
+    "embed-english-light-v2.0",
+]
+CohereTruncation = Literal["RIGHT", "NONE"]
 
 
 class Text2VecCohereConfig(VectorizerConfig):
     vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_COHERE, frozen=True, exclude=True)
-    model: Literal[
-        "embed-multilingual-v2.0",
-        "small",
-        "medium",
-        "large",
-        "multilingual-22-12",
-        "embed-english-v2.0",
-        "embed-english-light-v2.0",
-    ] = Field(default="embed-multilingual-v2.0")
-    truncate: Literal["RIGHT", "NONE"] = Field(default="RIGHT")
-
-
-class Text2VecHuggingFaceConfigOptions(ConfigCreateModel):
-    waitForModel: Optional[bool] = Field(None, alias="wait_for_model")
-    useGPU: Optional[bool] = Field(default=None, alias="use_gpu")
-    useCache: Optional[bool] = Field(default=None, alias="use_cache")
+    model: Optional[CohereModel]
+    truncate: Optional[CohereTruncation]
 
 
 class Text2VecHuggingFaceConfig(VectorizerConfig):
     vectorizer: Vectorizer = Field(
         default=Vectorizer.TEXT2VEC_HUGGINGFACE, frozen=True, exclude=True
     )
-    model: Optional[str] = Field(default=None)
-    passageModel: Optional[str] = Field(default=None, alias="passage_model")
-    queryModel: Optional[str] = Field(default=None, alias="query_model")
-    endpointURL: Optional[str] = Field(default=None, alias="endpoint_url")
-    options: Optional[Text2VecHuggingFaceConfigOptions] = Field(default=None)
+    model: Optional[str]
+    passageModel: Optional[str]
+    queryModel: Optional[str]
+    endpointURL: Optional[str]
+    waitForModel: Optional[bool]
+    useGPU: Optional[bool]
+    useCache: Optional[bool]
 
-    @model_validator(mode="before")
+    # @model_validator(mode="before")
     def validate_mutually_exclusive_fields(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        print(values)
         if "passageModel" in values and "queryModel" not in values:
-            raise ValueError("Must specify queryModel when specifying passageModel")
+            raise ValueError("Must specify query_model when specifying passage_model")
         if "queryModel" in values and "passageModel" not in values:
-            raise ValueError("Must specify passageModel when specifying queryModel")
+            raise ValueError("Must specify passage_model when specifying query_model")
         if "model" in values and any(["passageModel" in values, "queryModel" in values]):
-            raise ValueError("Can only specify model alone or passageModel and queryModel together")
+            raise ValueError(
+                "Can only specify model alone or passage_model and query_model together"
+            )
         if (
             any(["passageModel" in values, "queryModel" in values, "model" in values])
             and "endpointURL" in values
         ):
             _Warnings.text2vec_huggingface_endpoint_url_and_model_set_together()
+        if all(
+            [
+                "passageModel" not in values,
+                "queryModel" not in values,
+                "model" not in values,
+                "endpointURL" not in values,
+            ]
+        ):
+            raise ValueError(
+                "Must specify at least one of model, passage_model & query_model, or endpoint_url"
+            )
         return values
+
+    def to_dict(self) -> Dict[str, Any]:
+        ret_dict = super().to_dict()
+        ret_dict["options"] = {
+            "waitForModel": ret_dict.pop("waitForModel"),
+            "useGPU": ret_dict.pop("useGPU"),
+            "useCache": ret_dict.pop("useCache"),
+        }
+        return ret_dict
+
+
+OpenAIModel = Literal["ada", "babbage", "curie", "davinci"]
+OpenAIType = Literal["text", "code"]
 
 
 class Text2VecOpenAIConfig(VectorizerConfig):
     vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
-    model: Optional[Literal["ada", "babbage", "curie", "davinci"]] = None
-    modelVersion: Optional[str] = Field(default=None, alias="model_version")
-    type_: Optional[Literal["text", "code"]] = None
-    vectorizeClassName: bool = Field(default=True, alias="vectorize_class_name")
+    model: Optional[OpenAIModel]
+    modelVersion: Optional[str]
+    type_: Optional[OpenAIType]
+    vectorizeClassName: bool
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
@@ -345,81 +372,104 @@ class Text2VecOpenAIConfig(VectorizerConfig):
 
 class Text2VecAzureOpenAIConfig(VectorizerConfig):
     vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
-    resourceName: str = Field(default=..., alias="resource_name")
-    deploymentId: str = Field(default=..., alias="deployment_id")
+    resourceName: str
+    deploymentId: str
 
 
 class Text2VecPalmConfig(VectorizerConfig):
     vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_PALM, frozen=True, exclude=True)
-    projectId: str = Field(default=..., alias="project_id")
-    apiEndpoint: Optional[str] = Field(default=None, alias="api_endpoint")
-    modelId: Optional[str] = Field(default=None, alias="model_id")
-    vectorizeClassName: bool = Field(default=True, alias="vectorize_class_name")
+    projectId: str
+    apiEndpoint: Optional[AnyHttpUrl]
+    modelId: Optional[str]
+    vectorizeClassName: bool
 
 
 class Text2VecTransformersConfig(VectorizerConfig):
     vectorizer: Vectorizer = Field(
         default=Vectorizer.TEXT2VEC_TRANSFORMERS, frozen=True, exclude=True
     )
-    poolingStrategy: Literal["masked_mean", "cls"] = Field(
-        default="masked_mean", alias="pooling_strategy"
-    )
-    vectorizeClassName: bool = Field(default=True, alias="vectorize_class_name")
+    poolingStrategy: Literal["masked_mean", "cls"]
+    vectorizeClassName: bool
 
 
 class Text2VecGPT4AllConfig(VectorizerConfig):
     vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_GPT4ALL, frozen=True, exclude=True)
-    vectorizeClassName: bool = Field(default=True, alias="vectorize_class_name")
+    vectorizeClassName: bool
 
 
 class Img2VecNeuralConfig(VectorizerConfig):
     vectorizer: Vectorizer = Field(default=Vectorizer.IMG2VEC_NEURAL, frozen=True, exclude=True)
-    imageFields: List[str] = Field(default=..., alias="image_fields")
+    imageFields: List[str]
 
 
-class Multi2VecClipConfigWeights(ConfigCreateModel):
-    imageFields: Optional[List[float]] = Field(None, alias="image_fields")
-    textFields: Optional[List[float]] = Field(None, alias="text_fields")
+class Multi2VecField(BaseModel):
+    name: str
+    weight: Optional[float] = Field(default=None, exclude=True)
 
 
 class Multi2VecClipConfig(VectorizerConfig):
     vectorizer: Vectorizer = Field(Vectorizer.MULTI2VEC_CLIP, frozen=True, exclude=True)
-    imageFields: Optional[List[str]] = Field(None, alias="image_fields")
-    textFields: Optional[List[str]] = Field(None, alias="text_fields")
-    vectorizeClassName: bool = Field(True, alias="vectorize_class_name")
-    weights: Optional[Multi2VecClipConfigWeights] = None
+    imageFields: Optional[List[Multi2VecField]]
+    textFields: Optional[List[Multi2VecField]]
+    vectorizeClassName: bool
 
-
-class Multi2VecBindConfigWeights(ConfigCreateModel):
-    audioFields: Optional[List[float]] = Field(None, alias="audio_fields")
-    depthFields: Optional[List[float]] = Field(None, alias="depth_fields")
-    imageFields: Optional[List[float]] = Field(None, alias="image_fields")
-    IMUFields: Optional[List[float]] = Field(None, alias="imu_fields")
-    textFields: Optional[List[float]] = Field(None, alias="text_fields")
-    thermalFields: Optional[List[float]] = Field(None, alias="thermal_fields")
-    videoFields: Optional[List[float]] = Field(None, alias="video_fields")
+    def to_dict(self) -> Dict[str, Any]:
+        ret_dict = super().to_dict()
+        ret_dict["weights"] = {}
+        if self.imageFields is not None:
+            ret_dict["weights"] = {
+                "imageFields": [
+                    field.weight for field in self.imageFields if field.weight is not None
+                ],
+            }
+        if self.textFields is not None:
+            ret_dict["weights"] = {
+                "textFields": [
+                    field.weight for field in self.textFields if field.weight is not None
+                ],
+            }
+        return ret_dict
 
 
 class Multi2VecBindConfig(VectorizerConfig):
     vectorizer: Vectorizer = Field(Vectorizer.MULTI2VEC_BIND, frozen=True, exclude=True)
-    audioFields: Optional[List[str]] = Field(None, alias="audio_fields")
-    depthFields: Optional[List[str]] = Field(None, alias="depth_fields")
-    imageFields: Optional[List[str]] = Field(None, alias="image_fields")
-    IMUFields: Optional[List[str]] = Field(None, alias="imu_fields")
-    textFields: Optional[List[str]] = Field(None, alias="text_fields")
-    thermalFields: Optional[List[str]] = Field(None, alias="thermal_fields")
-    videoFields: Optional[List[str]] = Field(None, alias="video_fields")
-    vectorizeClassName: bool = Field(True, alias="vectorize_class_name")
-    weights: Optional[Multi2VecBindConfigWeights] = None
+    audioFields: Optional[List[Multi2VecField]]
+    depthFields: Optional[List[Multi2VecField]]
+    imageFields: Optional[List[Multi2VecField]]
+    IMUFields: Optional[List[Multi2VecField]]
+    textFields: Optional[List[Multi2VecField]]
+    thermalFields: Optional[List[Multi2VecField]]
+    videoFields: Optional[List[Multi2VecField]]
+    vectorizeClassName: bool
+
+    def to_dict(self) -> Dict[str, Any]:
+        ret_dict = super().to_dict()
+        ret_dict["weights"] = {}
+        for cls_field in self.model_fields:
+            val = getattr(self, cls_field)
+            if "Fields" in cls_field and val is not None:
+                val = cast(List[Multi2VecField], val)
+                ret_dict["weights"][cls_field] = [
+                    field.weight for field in val if field.weight is not None
+                ]
+        return ret_dict
 
 
 class Ref2VecCentroidConfig(VectorizerConfig):
     vectorizer: Vectorizer = Field(Vectorizer.REF2VEC_CENTROID, frozen=True, exclude=True)
-    referenceProperties: List[str] = Field(..., alias="reference_properties")
-    method: Literal["mean"] = "mean"
+    referenceProperties: List[str]
+    method: Literal["mean"]
 
 
 class VectorizerFactory:
+    """Use this factory class to generate the correct `VectorizerConfig` object for use in the `CollectionConfig` object.
+
+    Each classmethod provides options specific to the named vectorizer in the function's name. Pydantic data validation steps
+    will ensure that any mis-specifications will be caught before the request is sent to Weaviate.
+
+    For custom vectorizers, use the `VectorizerConfig` class directly.
+    """
+
     @classmethod
     def none(cls) -> VectorizerConfig:
         """Return a `VectorizerConfig` object with the vectorizer set to `Vectorizer.NONE`"""
@@ -433,11 +483,332 @@ class VectorizerFactory:
         pass
 
     @classmethod
+    def img2vec_neural(
+        cls,
+        image_fields: List[str],
+    ) -> Img2VecNeuralConfig:
+        """Returns a `Img2VecNeuralConfig` object for use when vectorizing using the `img2vec-neural` model
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/img2vec-neural)
+        for detailed usage.
+
+        Args:
+            `image_fields`: The image fields to use. This is a required field and must match the property fields
+            of the collection that are defined as `DataType.BLOB`.
+
+        Returns:
+            A `Img2VecNeuralConfig` object.
+
+        Raises:
+            `pydantic.ValidationError` if `image_fields` is not a `list`.
+        """
+        return Img2VecNeuralConfig(imageFields=image_fields)
+
+    @classmethod
+    def multi2vec_clip(
+        cls,
+        image_fields: Optional[List[Multi2VecField]] = None,
+        text_fields: Optional[List[Multi2VecField]] = None,
+        vectorize_class_name: bool = True,
+    ) -> Multi2VecClipConfig:
+        """Returns a `Multi2VecClipConfig` object for use when vectorizing using the `multi2vec-clip` model
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-clip)
+        for detailed usage.
+
+        Args:
+            `image_fields`: The image fields to use in vectorization.
+            `text_fields`: The text fields to use in vectorization.
+            `vectorize_class_name`: Whether to vectorize the class name. Defaults to `True`.
+
+        Returns:
+            A `Multi2VecClipConfig` object.
+
+        Raises:
+            `pydantic.ValidationError` if `image_fields` or `text_fields` are not `None` or a `list`.
+        """
+        return Multi2VecClipConfig(
+            imageFields=image_fields,
+            textFields=text_fields,
+            vectorizeClassName=vectorize_class_name,
+        )
+
+    @classmethod
+    def multi2vec_bind(
+        cls,
+        audio_fields: Optional[List[Multi2VecField]] = None,
+        depth_fields: Optional[List[Multi2VecField]] = None,
+        image_fields: Optional[List[Multi2VecField]] = None,
+        imu_fields: Optional[List[Multi2VecField]] = None,
+        text_fields: Optional[List[Multi2VecField]] = None,
+        thermal_fields: Optional[List[Multi2VecField]] = None,
+        video_fields: Optional[List[Multi2VecField]] = None,
+        vectorize_class_name: bool = True,
+    ) -> Multi2VecBindConfig:
+        """Returns a `Multi2VecClipConfig` object for use when vectorizing using the `multi2vec-clip` model
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind)
+        for detailed usage.
+
+        Args:
+            `audio_fields`: The audio fields to use in vectorization.
+            `depth_fields`: The depth fields to use in vectorization.
+            `image_fields`: The image fields to use in vectorization.
+            `imu_fields`: The IMU fields to use in vectorization.
+            `text_fields`: The text fields to use in vectorization.
+            `thermal_fields`: The thermal fields to use in vectorization.
+            `video_fields`: The video fields to use in vectorization.
+            `vectorize_class_name`: Whether to vectorize the class name. Defaults to `True`.
+
+        Returns:
+            A `Multi2VecClipConfig` object.
+
+        Raises:
+            `pydantic.ValidationError` if any of the `*_fields` are not `None` or a `list`.
+        """
+        return Multi2VecBindConfig(
+            audioFields=audio_fields,
+            depthFields=depth_fields,
+            imageFields=image_fields,
+            IMUFields=imu_fields,
+            textFields=text_fields,
+            thermalFields=thermal_fields,
+            videoFields=video_fields,
+            vectorizeClassName=vectorize_class_name,
+        )
+
+    @classmethod
+    def ref2vec_centroid(
+        cls,
+        reference_properties: List[str],
+        method: Literal["mean"] = "mean",
+    ) -> Ref2VecCentroidConfig:
+        """Returns a `Ref2VecCentroidConfig` object for use when vectorizing using the `ref2vec-centroid` model.
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/ref2vec-centroid)
+        for detailed usage.
+
+        Args:
+            `reference_properties`: The reference properties to use in vectorization.
+            `method`: The method to use in vectorization. Defaults to `mean`.
+
+        Returns:
+            A `Ref2VecCentroidConfig` object.
+
+        Raises:
+            `pydantic.ValidationError` if `reference_properties` is not a `list`.
+        """
+        return Ref2VecCentroidConfig(
+            referenceProperties=reference_properties,
+            method=method,
+        )
+
+    @classmethod
+    def text2vec_azure_openai(
+        cls, resource_name: str, deployment_id: str
+    ) -> Text2VecAzureOpenAIConfig:
+        """Returns a `Text2VecAzureOpenAIConfig` object for use when vectorizing using the `text2vec-azure-openai` model
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-azure-openai)
+        for detailed usage.
+
+        Args:
+            `resource_name`: The resource name to use.
+            `deployment_id`: The deployment ID to use.
+            `vectorize_class_name`: Whether to vectorize the class name. Defaults to `True`.
+
+        Returns:
+            A `Text2VecAzureOpenAIConfig` object.
+
+        Raises:
+            `pydantic.ValidationError` if `resource_name` or `deployment_id` are not `str`.
+        """
+        return Text2VecAzureOpenAIConfig(resourceName=resource_name, deploymentId=deployment_id)
+
+    @classmethod
     def text2vec_contextionary(
         cls, vectorize_class_name: bool = True
-    ) -> "Text2VecContextionaryConfig":
-        """Returns a `Text2VecContextionaryConfig` object for use when vectorizing using the text2vec-contextionary model"""
-        return Text2VecContextionaryConfig(vectorize_class_name=vectorize_class_name)
+    ) -> Text2VecContextionaryConfig:
+        """Returns a `Text2VecContextionaryConfig` object for use when vectorizing using the `text2vec-contextionary` model
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-contextionary)
+        for detailed usage.
+
+        Args:
+            `vectorize_class_name`: Whether to vectorize the class name. Defaults to `True`.
+
+        Returns:
+            A `Text2VecContextionaryConfig` object.
+
+        Raises:
+            `pydantic.ValidationError` if `vectorize_class_name` is not a `bool`.
+        """
+        return Text2VecContextionaryConfig(vectorizeClassName=vectorize_class_name)
+
+    @classmethod
+    def text2vec_cohere(
+        cls,
+        model: Optional[CohereModel] = None,
+        truncate: Optional[CohereTruncation] = None,
+    ) -> Text2VecCohereConfig:
+        """Returns a `Text2VecCohereConfig` object for use when vectorizing using the `text2vec-cohere` model
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-cohere)
+        for detailed usage.
+
+        Args:
+            `model`: The model to use. Defaults to `None`. If `None`, the default model is used.
+            `truncate`: The truncation strategy to use. Defaults to `None`. If `None`, the default truncation strategy is used.
+
+        Returns:
+            A `Text2VecCohereConfig` object.
+
+        Raises:
+            `pydantic.ValidationError` if `model` or `truncate` are not valid values from the `CohereModel` and `CohereTruncate` types.
+        """
+        return Text2VecCohereConfig(model=model, truncate=truncate)
+
+    @classmethod
+    def text2vec_gpt4all(
+        cls,
+        vectorize_class_name: bool = True,
+    ) -> Text2VecGPT4AllConfig:
+        """Returns a `Text2VecGPT4AllConfig` object for use when vectorizing using the `text2vec-gpt4all` model
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-gpt4all)
+        for detailed usage.
+
+        Args:
+            `vectorize_class_name`: Whether to vectorize the class name. Defaults to `True`.
+
+        Returns:
+            A `Text2VecGPT4AllConfig` object.
+
+        Raises:
+            `pydantic.ValidationError` if `vectorize_class_name` is not a `bool`.
+        """
+        return Text2VecGPT4AllConfig(vectorizeClassName=vectorize_class_name)
+
+    @classmethod
+    def text2vec_huggingface(
+        cls,
+        model: Optional[str] = None,
+        passage_model: Optional[str] = None,
+        query_model: Optional[str] = None,
+        endpoint_url: Optional[str] = None,
+        wait_for_model: Optional[bool] = None,
+        use_gpu: Optional[bool] = None,
+        use_cache: Optional[bool] = None,
+    ) -> Text2VecHuggingFaceConfig:
+        """Returns a `Text2VecHuggingFaceConfig` object for use when vectorizing using the `text2vec-huggingface` model
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-huggingface)
+        for detailed usage.
+
+        Args:
+            `model`: The model to use. Defaults to `None`.
+            `passage_model`: The passage model to use. Defaults to `None`.
+            `query_model`: The query model to use. Defaults to `None`.
+            `endpoint_url`: The endpoint URL to use. Defaults to `None`.
+            `wait_for_model`: Whether to wait for the model to be loaded. Defaults to `None`.
+            `use_gpu`: Whether to use the GPU. Defaults to `None`.
+            `use_cache`: Whether to use the cache. Defaults to `None`.
+
+        Returns:
+            A `Text2VecHuggingFaceConfig` object.
+
+        Raises:
+            `pydantic.ValidationError` if the arguments passed to the function are invalid. It is important to note that some of these variables
+            are mutually exclusive. See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-huggingface)
+            for more details.
+        """
+        return Text2VecHuggingFaceConfig(
+            model=model,
+            passageModel=passage_model,
+            queryModel=query_model,
+            endpointURL=endpoint_url,
+            waitForModel=wait_for_model,
+            useGPU=use_gpu,
+            useCache=use_cache,
+        )
+
+    @classmethod
+    def text2vec_openai(
+        cls,
+        model: Optional[OpenAIModel] = None,
+        model_version: Optional[str] = None,
+        type_: Optional[OpenAIType] = None,
+        vectorize_class_name: bool = True,
+    ) -> Text2VecOpenAIConfig:
+        """Returns a `Text2VecOpenAIConfig` object for use when vectorizing using the `text2vec-openai` model
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-openai)
+        for detailed usage.
+
+        Args:
+            `model`: The model to use. Defaults to `None`. If `None`, the default model is used.
+            `model_version`: The model version to use. Defaults to `None`.
+            `type_`: The type of model to use. Defaults to `None`. If `None`, the default type is used.
+            `vectorize_class_name`: Whether to vectorize the class name. Defaults to `True`.
+
+        Returns:
+            A `Text2VecOpenAIConfig` object.
+
+        Raises:
+            `pydantic.ValidationError` if `model` or `type_` are not valid values from the `OpenAIModel` and `OpenAIType` types.
+        """
+        return Text2VecOpenAIConfig(
+            model=model,
+            modelVersion=model_version,
+            type_=type_,
+            vectorizeClassName=vectorize_class_name,
+        )
+
+    @classmethod
+    def text2vec_palm(
+        cls,
+        project_id: str,
+        api_endpoint: Optional[str] = None,
+        model_id: Optional[str] = None,
+        vectorize_class_name: bool = True,
+    ) -> Text2VecPalmConfig:
+        """Returns a `Text2VecPalmConfig` object for use when vectorizing using the `text2vec-palm` model
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-palm)
+        for detailed usage.
+
+        Args:
+            `project_id`: The project ID to use.
+            `api_endpoint`: The API endpoint to use. Defaults to `None`.
+            `model_id`: The model ID to use. Defaults to `None`.
+            `vectorize_class_name`: Whether to vectorize the class name. Defaults to `True`.
+
+        Returns:
+            A `Text2VecPalmConfig` object.
+
+        Raises:
+            `pydantic.ValidationError` if `api_endpoint` is not a valid URL.
+        """
+        return Text2VecPalmConfig(
+            projectId=project_id,
+            apiEndpoint=api_endpoint,
+            modelId=model_id,
+            vectorizeClassName=vectorize_class_name,
+        )
+
+    @classmethod
+    def text2vec_transformers(
+        cls,
+        pooling_strategy: Literal["masked_mean", "cls"] = "masked_mean",
+        vectorize_class_name: bool = True,
+    ) -> Text2VecTransformersConfig:
+        """Returns a `Text2VecTransformersConfig` object for use when vectorizing using the `text2vec-transformers` model
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-transformers)
+        for detailed usage.
+
+        Args:
+            `pooling_strategy`: The pooling strategy to use. Defaults to `masked_mean`.
+            `vectorize_class_name`: Whether to vectorize the class name. Defaults to `True`.
+
+        Returns:
+            A `Text2VecTransformersConfig` object.
+
+        Raises:
+            `pydantic.ValidationError` if `pooling_strategy` is not a valid value from the `PoolingStrategy` type.
+        """
+        return Text2VecTransformersConfig(
+            poolingStrategy=pooling_strategy,
+            vectorizeClassName=vectorize_class_name,
+        )
 
 
 class CollectionConfigCreateBase(ConfigCreateModel):
