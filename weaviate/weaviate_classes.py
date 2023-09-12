@@ -2,7 +2,6 @@ from weaviate.collection.classes.config import (
     CollectionConfig,
     ConfigFactory,
     DataType,
-    InvertedIndexConfig,
     Multi2VecBindConfig,
     Multi2VecBindConfigWeights,
     Multi2VecClipConfig,
@@ -11,7 +10,6 @@ from weaviate.collection.classes.config import (
     Ref2VecCentroidConfig,
     ReferenceProperty,
     ReferencePropertyMultiTarget,
-    ShardingConfig,
     Text2VecAzureOpenAIConfig,
     Text2VecCohereConfig,
     Text2VecGPT4AllConfig,
@@ -25,7 +23,6 @@ from weaviate.collection.classes.config import (
     VectorizerConfig,
     VectorizerFactory,
     VectorDistance,
-    VectorIndexConfig,
     VectorIndexType,
 )
 from weaviate.collection.classes.data import (
@@ -58,7 +55,6 @@ __all__ = [
     "HybridFusion",
     "GetObjectByIdMetadata",
     "GetObjectsMetadata",
-    "InvertedIndexConfig",
     "LinkTo",
     "LinkToMultiTarget",
     "MetadataQuery",
@@ -73,7 +69,6 @@ __all__ = [
     "Reference",
     "ReferenceTo",
     "ReferenceToMultiTarget",
-    "ShardingConfig",
     "Tenant",
     "Text2VecAzureOpenAIConfig",
     "Text2VecCohereConfig",
@@ -88,6 +83,5 @@ __all__ = [
     "VectorizerConfig",
     "VectorizerFactory",
     "VectorDistance",
-    "VectorIndexConfig",
     "VectorIndexType",
 ]

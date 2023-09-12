@@ -194,94 +194,6 @@ class VectorIndexConfigUpdate(ConfigUpdateModel):
     pq: Optional[PQConfigUpdate]
 
 
-class VectorIndexConfig:
-    @classmethod
-    def create(
-        cls,
-        cleanup_interval_seconds: int = 300,
-        distance_metric: VectorDistance = VectorDistance.COSINE,
-        dynamic_ef_min: int = 100,
-        dynamic_ef_max: int = 500,
-        dynamic_ef_factor: int = 8,
-        ef_construction: int = 128,
-        ef: int = -1,
-        flat_search_cutoff: int = 40000,
-        max_connections: int = 64,
-        pq_bit_compression: bool = False,
-        pq_centroids: int = 256,
-        pq_enabled: bool = False,
-        pq_encoder_distribution: PQEncoderDistribution = PQEncoderDistribution.LOG_NORMAL,
-        pq_encoder_type: PQEncoderType = PQEncoderType.KMEANS,
-        pq_segments: int = 0,
-        pq_training_limit: int = 10000,
-        skip: bool = False,
-        vector_cache_max_objects: int = 1000000000000,
-    ) -> VectorIndexConfigCreate:
-        return VectorIndexConfigCreate(
-            cleanupIntervalSeconds=cleanup_interval_seconds,
-            distance=distance_metric,
-            dynamicEfMin=dynamic_ef_min,
-            dynamicEfMax=dynamic_ef_max,
-            dynamicEfFactor=dynamic_ef_factor,
-            efConstruction=ef_construction,
-            ef=ef,
-            flatSearchCutoff=flat_search_cutoff,
-            maxConnections=max_connections,
-            pq=PQConfigCreate(
-                bitCompression=pq_bit_compression,
-                centroids=pq_centroids,
-                enabled=pq_enabled,
-                encoder=PQEncoderConfigCreate(
-                    type_=pq_encoder_type,
-                    distribution=pq_encoder_distribution,
-                ),
-                segments=pq_segments,
-                trainingLimit=pq_training_limit,
-            ),
-            skip=skip,
-            vectorCacheMaxObjects=vector_cache_max_objects,
-        )
-
-    @classmethod
-    def update(
-        cls,
-        dynamic_ef_factor: Optional[int] = None,
-        dynamic_ef_min: Optional[int] = None,
-        dynamic_ef_max: Optional[int] = None,
-        ef: Optional[int] = None,
-        flat_search_cutoff: Optional[int] = None,
-        skip: Optional[bool] = None,
-        vector_cache_max_objects: Optional[int] = None,
-        pq_bit_compression: Optional[bool] = None,
-        pq_centroids: Optional[int] = None,
-        pq_enabled: Optional[bool] = None,
-        pq_encoder_distribution: Optional[PQEncoderDistribution] = None,
-        pq_encoder_type: Optional[PQEncoderType] = None,
-        pq_segments: Optional[int] = None,
-        pq_training_limit: Optional[int] = None,
-    ) -> VectorIndexConfigUpdate:
-        return VectorIndexConfigUpdate(
-            dynamicEfFactor=dynamic_ef_factor,
-            dynamicEfMin=dynamic_ef_min,
-            dynamicEfMax=dynamic_ef_max,
-            ef=ef,
-            flatSearchCutoff=flat_search_cutoff,
-            skip=skip,
-            vectorCacheMaxObjects=vector_cache_max_objects,
-            pq=PQConfigUpdate(
-                bitCompression=pq_bit_compression,
-                centroids=pq_centroids,
-                enabled=pq_enabled,
-                encoder=PQEncoderConfigUpdate(
-                    type_=pq_encoder_type,
-                    distribution=pq_encoder_distribution,
-                ),
-                segments=pq_segments,
-                trainingLimit=pq_training_limit,
-            ),
-        )
-
-
 class ShardingConfigCreate(ConfigCreateModel):
     virtualPerPhysical: int
     desiredCount: int
@@ -293,71 +205,12 @@ class ShardingConfigCreate(ConfigCreateModel):
     function: str = "murmur3"
 
 
-class ShardingConfig:
-    """This class has no `.update()` method because you cannot update the sharding configuration of Weaviate dynamically"""
-
-    @classmethod
-    def create(
-        cls,
-        virtual_per_physical: int = 128,
-        desired_count: int = 1,
-        actual_count: int = 1,
-        desired_virtual_count: int = 128,
-        actual_virtual_count: int = 128,
-    ) -> ShardingConfigCreate:
-        """Create a `ShardingConfigCreate` object to be used when defining the sharding configuration of Weaviate.
-
-        Args:
-            `virtual_per_physical`: The number of virtual shards per physical shard. Defaults to `128`.
-            `desired_count`: The desired number of physical shards. Defaults to `1`.
-            `actual_count`: The actual number of physical shards. Defaults to `1`.
-            `desired_virtual_count`: The desired number of virtual shards. Defaults to `128`.
-            `actual_virtual_count`: The actual number of virtual shards. Defaults to `128`.
-
-        Returns:
-            A `ShardingConfigCreate` object.
-        """
-        return ShardingConfigCreate(
-            virtualPerPhysical=virtual_per_physical,
-            desiredCount=desired_count,
-            actualCount=actual_count,
-            desiredVirtualCount=desired_virtual_count,
-            actualVirtualCount=actual_virtual_count,
-        )
-
-
 class ReplicationConfigCreate(ConfigCreateModel):
     factor: int
 
 
 class ReplicationConfigUpdate(ConfigUpdateModel):
     factor: Optional[int]
-
-
-class ReplicationConfig:
-    @classmethod
-    def create(cls, factor: int = 1) -> ReplicationConfigCreate:
-        """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
-
-        Args:
-            `factor`: The replication factor. Defaults to `1`.
-
-        Returns:
-            A `ReplicationConfigCreate` object.
-        """
-        return ReplicationConfigCreate(factor=factor)
-
-    @classmethod
-    def update(cls, factor: int = 1) -> ReplicationConfigUpdate:
-        """Create a `ReplicationConfigUpdate` object.
-
-        Args:
-            `factor`: The replication factor. Defaults to `1`.
-
-        Returns:
-            A `ReplicationConfigUpdate` object.
-        """
-        return ReplicationConfigUpdate(factor=factor)
 
 
 class BM25ConfigCreate(ConfigCreateModel):
@@ -400,113 +253,12 @@ class InvertedIndexConfigUpdate(ConfigUpdateModel):
     stopwords: Optional[StopwordsUpdate]
 
 
-class InvertedIndexConfig:
-    @classmethod
-    def create(
-        cls,
-        bm25_b: float = 0.75,
-        bm25_k1: float = 1.2,
-        cleanup_interval_seconds: int = 60,
-        index_timestamps: bool = False,
-        index_property_length: bool = False,
-        index_null_state: bool = False,
-        stopwords_preset: Optional[StopwordsPreset] = None,
-        stopwords_additions: Optional[List[str]] = None,
-        stopwords_removals: Optional[List[str]] = None,
-    ) -> InvertedIndexConfigCreate:
-        """Create an `InvertedIndexConfigCreate` object to be used when defining the configuration of the keyword searching algorithm of Weaviate.
-
-        Define the free parameters of the BM25 ranking algorithm through `bm25_b` and `bm25_k1`. The default values are
-        `bm25_b=0.75` and `bm25_k1=1.2`. See the [documentation](https://weaviate.io/developers/weaviate/search/bm25) for detail on the
-        BM25 implementation and the [Wikipedia article](https://en.wikipedia.org/wiki/Okapi_BM25) for details on the theory, especially
-        in relation to the `bm25_b` and `bm25_k1` parameters.
-
-        Args:
-            `bm25_b`: The `b` parameter of the BM25 ranking algorithm. Defaults to `0.75`.
-            `bm25_k1`: The `k1` parameter of the BM25 ranking algorithm. Defaults to `1.2`.
-            `cleanup_interval_seconds`: The interval in seconds at which the inverted index is cleaned up. Defaults to `60`.
-            `index_timestamps`: Whether to index timestamps. Defaults to `False`.
-            `index_property_length`: Whether to index property length. Defaults to `None`.
-            `index_null_state`: Whether to index the null state. Defaults to `None`.
-            `stopwords_preset`: The preset to use for stopwords. Defaults to `None`.
-            `stopwords_additions`: The stopwords to add. Defaults to `None`.
-            `stopwords_removals`: The stopwords to remove. Defaults to `None`.
-
-        Returns:
-            An `InvertedIndexConfigCreate` object.
-        """
-        return InvertedIndexConfigCreate(
-            bm25=BM25ConfigCreate(b=bm25_b, k1=bm25_k1),
-            cleanupIntervalSeconds=cleanup_interval_seconds,
-            indexTimestamps=index_timestamps,
-            indexPropertyLength=index_property_length,
-            indexNullState=index_null_state,
-            stopwords=StopwordsCreate(
-                preset=stopwords_preset,
-                additions=stopwords_additions,
-                removals=stopwords_removals,
-            ),
-        )
-
-    @classmethod
-    def update(
-        cls,
-        bm25_b: Optional[float] = None,
-        bm25_k1: Optional[float] = None,
-        cleanup_interval_seconds: Optional[int] = None,
-        index_timestamps: Optional[bool] = None,
-        index_property_length: Optional[bool] = None,
-        index_null_state: Optional[bool] = None,
-        stopwords_preset: Optional[StopwordsPreset] = None,
-        stopwords_additions: Optional[List[str]] = None,
-        stopwords_removals: Optional[List[str]] = None,
-    ) -> InvertedIndexConfigUpdate:
-        """Create an `InvertedIndexConfigUpdate` object.
-
-        Args:
-            `bm25_b`: The `b` parameter of the BM25 ranking algorithm. Defaults to `None`.
-            `bm25_k1`: The `k1` parameter of the BM25 ranking algorithm. Defaults to `None`.
-            `cleanup_interval_seconds`: The interval in seconds at which the inverted index is cleaned up. Defaults to `None`.
-            `index_timestamps`: Whether to index timestamps. Defaults to `None`.
-            `index_property_length`: Whether to index property length. Defaults to `None`.
-            `index_null_state`: Whether to index the null state. Defaults to `None`.
-            `stopwords_preset`: The preset to use for stopwords. Defaults to `None`.
-            `stopwords_additions`: The stopwords to add. Defaults to `None`.
-            `stopwords_removals`: The stopwords to remove. Defaults to `None`.
-
-        Returns:
-            An `InvertedIndexConfigUpdate` object.
-        """
-        return InvertedIndexConfigUpdate(
-            bm25=BM25ConfigUpdate(b=bm25_b, k1=bm25_k1),
-            cleanupIntervalSeconds=cleanup_interval_seconds,
-            indexTimestamps=index_timestamps,
-            indexPropertyLength=index_property_length,
-            indexNullState=index_null_state,
-            stopwords=StopwordsUpdate(
-                preset=stopwords_preset,
-                additions=stopwords_additions,
-                removals=stopwords_removals,
-            ),
-        )
-
-
 class MultiTenancyConfigCreate(ConfigCreateModel):
     enabled: bool = False
 
 
 class MultiTenancyConfigUpdate(ConfigUpdateModel):
     enabled: Optional[bool] = None
-
-
-class MultiTenancyConfig:
-    @classmethod
-    def create(cls, enabled: bool = False) -> MultiTenancyConfigCreate:
-        return MultiTenancyConfigCreate(enabled=enabled)
-
-    @classmethod
-    def update(cls, enabled: bool = False) -> MultiTenancyConfigUpdate:
-        return MultiTenancyConfigUpdate(enabled=enabled)
 
 
 class GenerativeConfig(ConfigCreateModel):
@@ -1001,8 +753,240 @@ class CollectionConfig(CollectionConfigCreateBase):
 
 
 class ConfigFactory:
-    InvertedIndex = InvertedIndexConfig
-    MultiTenancy = MultiTenancyConfig
-    Replication = ReplicationConfig
-    Sharding = ShardingConfig
-    VectorIndex = VectorIndexConfig
+    @classmethod
+    def inverted_index(
+        cls,
+        bm25_b: float = 0.75,
+        bm25_k1: float = 1.2,
+        cleanup_interval_seconds: int = 60,
+        index_timestamps: bool = False,
+        index_property_length: bool = False,
+        index_null_state: bool = False,
+        stopwords_preset: Optional[StopwordsPreset] = None,
+        stopwords_additions: Optional[List[str]] = None,
+        stopwords_removals: Optional[List[str]] = None,
+    ) -> InvertedIndexConfigCreate:
+        """Create an `InvertedIndexConfigCreate` object to be used when defining the configuration of the keyword searching algorithm of Weaviate.
+
+        Define the free parameters of the BM25 ranking algorithm through `bm25_b` and `bm25_k1`. The default values are
+        `bm25_b=0.75` and `bm25_k1=1.2`. See the [documentation](https://weaviate.io/developers/weaviate/search/bm25) for detail on the
+        BM25 implementation and the [Wikipedia article](https://en.wikipedia.org/wiki/Okapi_BM25) for details on the theory, especially
+        in relation to the `bm25_b` and `bm25_k1` parameters.
+
+        Args:
+            `bm25_b`: The `b` parameter of the BM25 ranking algorithm. Defaults to `0.75`.
+            `bm25_k1`: The `k1` parameter of the BM25 ranking algorithm. Defaults to `1.2`.
+            `cleanup_interval_seconds`: The interval in seconds at which the inverted index is cleaned up. Defaults to `60`.
+            `index_timestamps`: Whether to index timestamps. Defaults to `False`.
+            `index_property_length`: Whether to index property length. Defaults to `None`.
+            `index_null_state`: Whether to index the null state. Defaults to `None`.
+            `stopwords_preset`: The preset to use for stopwords. Defaults to `None`.
+            `stopwords_additions`: The stopwords to add. Defaults to `None`.
+            `stopwords_removals`: The stopwords to remove. Defaults to `None`.
+
+        Returns:
+            An `InvertedIndexConfigCreate` object.
+        """
+        return InvertedIndexConfigCreate(
+            bm25=BM25ConfigCreate(b=bm25_b, k1=bm25_k1),
+            cleanupIntervalSeconds=cleanup_interval_seconds,
+            indexTimestamps=index_timestamps,
+            indexPropertyLength=index_property_length,
+            indexNullState=index_null_state,
+            stopwords=StopwordsCreate(
+                preset=stopwords_preset,
+                additions=stopwords_additions,
+                removals=stopwords_removals,
+            ),
+        )
+
+    @classmethod
+    def multi_tenancy(cls, enabled: bool = False) -> MultiTenancyConfigCreate:
+        return MultiTenancyConfigCreate(enabled=enabled)
+
+    @classmethod
+    def replication(cls, factor: int = 1) -> ReplicationConfigCreate:
+        """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
+
+        Args:
+            `factor`: The replication factor. Defaults to `1`.
+
+        Returns:
+            A `ReplicationConfigCreate` object.
+        """
+        return ReplicationConfigCreate(factor=factor)
+
+    @classmethod
+    def sharding(
+        cls,
+        virtual_per_physical: int = 128,
+        desired_count: int = 1,
+        actual_count: int = 1,
+        desired_virtual_count: int = 128,
+        actual_virtual_count: int = 128,
+    ) -> ShardingConfigCreate:
+        """Create a `ShardingConfigCreate` object to be used when defining the sharding configuration of Weaviate.
+
+        Args:
+            `virtual_per_physical`: The number of virtual shards per physical shard. Defaults to `128`.
+            `desired_count`: The desired number of physical shards. Defaults to `1`.
+            `actual_count`: The actual number of physical shards. Defaults to `1`.
+            `desired_virtual_count`: The desired number of virtual shards. Defaults to `128`.
+            `actual_virtual_count`: The actual number of virtual shards. Defaults to `128`.
+
+        Returns:
+            A `ShardingConfigCreate` object.
+        """
+        return ShardingConfigCreate(
+            virtualPerPhysical=virtual_per_physical,
+            desiredCount=desired_count,
+            actualCount=actual_count,
+            desiredVirtualCount=desired_virtual_count,
+            actualVirtualCount=actual_virtual_count,
+        )
+
+    @classmethod
+    def vector_index(
+        cls,
+        cleanup_interval_seconds: int = 300,
+        distance_metric: VectorDistance = VectorDistance.COSINE,
+        dynamic_ef_min: int = 100,
+        dynamic_ef_max: int = 500,
+        dynamic_ef_factor: int = 8,
+        ef_construction: int = 128,
+        ef: int = -1,
+        flat_search_cutoff: int = 40000,
+        max_connections: int = 64,
+        pq_bit_compression: bool = False,
+        pq_centroids: int = 256,
+        pq_enabled: bool = False,
+        pq_encoder_distribution: PQEncoderDistribution = PQEncoderDistribution.LOG_NORMAL,
+        pq_encoder_type: PQEncoderType = PQEncoderType.KMEANS,
+        pq_segments: int = 0,
+        pq_training_limit: int = 10000,
+        skip: bool = False,
+        vector_cache_max_objects: int = 1000000000000,
+    ) -> VectorIndexConfigCreate:
+        return VectorIndexConfigCreate(
+            cleanupIntervalSeconds=cleanup_interval_seconds,
+            distance=distance_metric,
+            dynamicEfMin=dynamic_ef_min,
+            dynamicEfMax=dynamic_ef_max,
+            dynamicEfFactor=dynamic_ef_factor,
+            efConstruction=ef_construction,
+            ef=ef,
+            flatSearchCutoff=flat_search_cutoff,
+            maxConnections=max_connections,
+            pq=PQConfigCreate(
+                bitCompression=pq_bit_compression,
+                centroids=pq_centroids,
+                enabled=pq_enabled,
+                encoder=PQEncoderConfigCreate(
+                    type_=pq_encoder_type,
+                    distribution=pq_encoder_distribution,
+                ),
+                segments=pq_segments,
+                trainingLimit=pq_training_limit,
+            ),
+            skip=skip,
+            vectorCacheMaxObjects=vector_cache_max_objects,
+        )
+
+
+class ConfigUpdateFactory:
+    @classmethod
+    def inverted_index(
+        cls,
+        bm25_b: Optional[float] = None,
+        bm25_k1: Optional[float] = None,
+        cleanup_interval_seconds: Optional[int] = None,
+        index_timestamps: Optional[bool] = None,
+        index_property_length: Optional[bool] = None,
+        index_null_state: Optional[bool] = None,
+        stopwords_preset: Optional[StopwordsPreset] = None,
+        stopwords_additions: Optional[List[str]] = None,
+        stopwords_removals: Optional[List[str]] = None,
+    ) -> InvertedIndexConfigUpdate:
+        """Create an `InvertedIndexConfigUpdate` object.
+
+        Args:
+            `bm25_b`: The `b` parameter of the BM25 ranking algorithm. Defaults to `None`.
+            `bm25_k1`: The `k1` parameter of the BM25 ranking algorithm. Defaults to `None`.
+            `cleanup_interval_seconds`: The interval in seconds at which the inverted index is cleaned up. Defaults to `None`.
+            `index_timestamps`: Whether to index timestamps. Defaults to `None`.
+            `index_property_length`: Whether to index property length. Defaults to `None`.
+            `index_null_state`: Whether to index the null state. Defaults to `None`.
+            `stopwords_preset`: The preset to use for stopwords. Defaults to `None`.
+            `stopwords_additions`: The stopwords to add. Defaults to `None`.
+            `stopwords_removals`: The stopwords to remove. Defaults to `None`.
+
+        Returns:
+            An `InvertedIndexConfigUpdate` object.
+        """
+        return InvertedIndexConfigUpdate(
+            bm25=BM25ConfigUpdate(b=bm25_b, k1=bm25_k1),
+            cleanupIntervalSeconds=cleanup_interval_seconds,
+            indexTimestamps=index_timestamps,
+            indexPropertyLength=index_property_length,
+            indexNullState=index_null_state,
+            stopwords=StopwordsUpdate(
+                preset=stopwords_preset,
+                additions=stopwords_additions,
+                removals=stopwords_removals,
+            ),
+        )
+
+    @classmethod
+    def multi_tenancy(cls, enabled: bool = False) -> MultiTenancyConfigUpdate:
+        return MultiTenancyConfigUpdate(enabled=enabled)
+
+    @classmethod
+    def replication(cls, factor: int = 1) -> ReplicationConfigUpdate:
+        """Create a `ReplicationConfigUpdate` object.
+
+        Args:
+            `factor`: The replication factor. Defaults to `1`.
+
+        Returns:
+            A `ReplicationConfigUpdate` object.
+        """
+        return ReplicationConfigUpdate(factor=factor)
+
+    @classmethod
+    def vector_index(
+        cls,
+        dynamic_ef_factor: Optional[int] = None,
+        dynamic_ef_min: Optional[int] = None,
+        dynamic_ef_max: Optional[int] = None,
+        ef: Optional[int] = None,
+        flat_search_cutoff: Optional[int] = None,
+        skip: Optional[bool] = None,
+        vector_cache_max_objects: Optional[int] = None,
+        pq_bit_compression: Optional[bool] = None,
+        pq_centroids: Optional[int] = None,
+        pq_enabled: Optional[bool] = None,
+        pq_encoder_distribution: Optional[PQEncoderDistribution] = None,
+        pq_encoder_type: Optional[PQEncoderType] = None,
+        pq_segments: Optional[int] = None,
+        pq_training_limit: Optional[int] = None,
+    ) -> VectorIndexConfigUpdate:
+        return VectorIndexConfigUpdate(
+            dynamicEfFactor=dynamic_ef_factor,
+            dynamicEfMin=dynamic_ef_min,
+            dynamicEfMax=dynamic_ef_max,
+            ef=ef,
+            flatSearchCutoff=flat_search_cutoff,
+            skip=skip,
+            vectorCacheMaxObjects=vector_cache_max_objects,
+            pq=PQConfigUpdate(
+                bitCompression=pq_bit_compression,
+                centroids=pq_centroids,
+                enabled=pq_enabled,
+                encoder=PQEncoderConfigUpdate(
+                    type_=pq_encoder_type,
+                    distribution=pq_encoder_distribution,
+                ),
+                segments=pq_segments,
+                trainingLimit=pq_training_limit,
+            ),
+        )

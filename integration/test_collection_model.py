@@ -18,7 +18,7 @@ import uuid
 
 import weaviate
 from weaviate.collection.classes.config import (
-    MultiTenancyConfig,
+    ConfigFactory,
     PropertyConfig,
     VectorizerFactory,
 )
@@ -164,7 +164,7 @@ def test_tenants(client: weaviate.Client):
     collection = client.collection_model.create(
         CollectionModelConfig[TenantsTest](
             vectorizer_config=VectorizerFactory.none(),
-            multi_tenancy_config=MultiTenancyConfig.create(enabled=True),
+            multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
             model=TenantsTest,
         )
     )
@@ -190,7 +190,7 @@ def test_tenants_activity(client: weaviate.Client):
     collection = client.collection_model.create(
         CollectionModelConfig[TenantsUpdateTest](
             vectorizer_config=VectorizerFactory.none(),
-            multi_tenancy_config=MultiTenancyConfig.create(enabled=True),
+            multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
             model=TenantsUpdateTest,
         )
     )
@@ -215,7 +215,7 @@ def test_tenants_update(client: weaviate.Client):
     collection = client.collection_model.create(
         CollectionModelConfig[TenantsUpdateTest](
             vectorizer_config=VectorizerFactory.none(),
-            multi_tenancy_config=MultiTenancyConfig.create(enabled=True),
+            multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
             model=TenantsUpdateTest,
         )
     )
@@ -306,7 +306,7 @@ def test_search_with_tenant(client: weaviate.Client):
         CollectionModelConfig[TestTenantSearch](
             model=TestTenantSearch,
             vectorizer_config=VectorizerFactory.none(),
-            multi_tenancy_config=MultiTenancyConfig.create(enabled=True),
+            multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
         )
     )
 
