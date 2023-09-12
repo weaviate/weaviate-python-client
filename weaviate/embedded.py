@@ -180,7 +180,7 @@ class EmbeddedDB:
         if platform.system() in ["Windows"]:
             raise WeaviateStartUpError(
                 f"{platform.system()} is not supported with EmbeddedDB. Please upvote the feature request if "
-                f"you want this: https://github.com/weaviate/weaviate-python-client/issues/239"
+                f"you want this: https://github.com/weaviate/weaviate-python-client/issues/506"
             )
 
     def start(self) -> None:
