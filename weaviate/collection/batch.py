@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections import deque
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from threading import Event, Thread
-from typing import Any, Deque, Dict, Generic, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import Any, Deque, Dict, Generic, List, Optional, Sequence, Tuple, TypeVar
 
 from pydantic import ValidationError
 
@@ -15,7 +15,6 @@ from weaviate.cluster import Cluster
 from weaviate.collection.classes.batch import (
     BatchObject,
     BatchReference,
-    BatchObjectRequestBody,
     ErrorObject,
     ErrorReference,
     _BatchObject,
@@ -41,16 +40,168 @@ class BatchExecutor(ThreadPoolExecutor):
         return self._shutdown
 
 
+BatchResponse = List[Dict[str, Any]]
+
+
+TBatchInput = TypeVar("TBatchInput")
+TBatchReturn = TypeVar("TBatchReturn")
+
+
+class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
+    """
+    `BatchRequest` abstract class used as a interface for batch requests.
+    """
+
+    def __init__(self) -> None:
+        self.__items: Deque[TBatchInput] = deque([])
+
+    def __len__(self) -> int:
+        return len(self.__items)
+
+    def is_empty(self) -> bool:
+        """
+        Check if `BatchRequest` is empty.
+
+        Returns
+            `bool` Whether the `BatchRequest` is empty.
+        """
+
+        return len(self.__items) == 0
+
+    def clear(self) -> None:
+        """
+        Remove all the items from the BatchRequest.
+        """
+
+        self.__items.clear()
+
+    def add(self, item: TBatchInput) -> None:
+        self.__items.append(item)
+
+    @property
+    def items(self) -> Deque[TBatchInput]:
+        """
+        Get all items from the BatchRequest.
+
+        Returns
+            `Deque[TBatchInput]` All items from the BatchRequest.
+        """
+
+        return self.__items
+
+    @abstractmethod
+    def _add_failed_objects_from_response(
+        self,
+        response_item: TBatchReturn,
+        errors_to_exclude: Optional[List[str]] = None,
+        errors_to_include: Optional[List[str]] = None,
+    ) -> None:
+        """Add failed items from a weaviate response.
+
+        Parameters
+        ----------
+        response_item : BatchResponse
+            Weaviate response that contains the status for all objects.
+        errors_to_exclude : Optional[List[str]]
+            Which errors should NOT be retried.
+        errors_to_include : Optional[List[str]]
+            Which errors should be retried.
+
+        Returns
+        ------
+        BatchResponse: Contains responses form all successful object, eg. those that have not been added to this batch.
+        """
+
+    @staticmethod
+    def _skip_objects_retry(
+        entry: Dict[str, Any],
+        errors_to_exclude: Optional[List[str]],
+        errors_to_include: Optional[List[str]],
+    ) -> bool:
+        if (
+            len(entry["result"]) == 0
+            or "errors" not in entry["result"]
+            or "error" not in entry["result"]["errors"]
+            or len(entry["result"]["errors"]["error"]) == 0
+        ):
+            return True
+
+        # skip based on error messages
+        if errors_to_exclude is not None:
+            for err in entry["result"]["errors"]["error"]:
+                if any(excl in err["message"] for excl in errors_to_exclude):
+                    return True
+            return False
+        elif errors_to_include is not None:
+            for err in entry["result"]["errors"]["error"]:
+                if any(incl in err["message"] for incl in errors_to_include):
+                    return False
+            return True
+        return False
+
+
+class ReferencesBatchRequest(BatchRequest[_BatchReference, _BatchReferenceReturn]):
+    """
+    Collect Weaviate-object references to add them in one request to Weaviate.
+    Caution this request will miss some validations to be faster.
+    """
+
+    def _add_failed_objects_from_response(
+        self,
+        return_: _BatchReferenceReturn,
+        errors_to_exclude: Optional[List[str]] = None,
+        errors_to_include: Optional[List[str]] = None,
+    ) -> None:
+        # successful_responses = []
+
+        for err in return_.errors.values():
+            # if self._skip_objects_retry(ref, errors_to_exclude, errors_to_include):
+            #     successful_responses.append(ref)
+            #     continue
+            self.add(err.reference)
+        # return successful_responses
+
+
+class ObjectsBatchRequest(BatchRequest[_BatchObject, _BatchObjectReturn]):
+    """
+    Collect objects for one batch request to weaviate.
+    Caution this batch will not be validated through weaviate.
+    """
+
+    def _add_failed_objects_from_response(
+        self,
+        return_: _BatchObjectReturn,
+        errors_to_exclude: Optional[List[str]] = None,
+        errors_to_include: Optional[List[str]] = None,
+    ) -> None:
+        # successful_responses = []
+
+        if return_.has_errors:
+            for err in return_.errors.values():
+                # if self._skip_objects_retry(obj, errors_to_exclude, errors_to_include):
+                #     successful_responses.append(obj)
+                #     continue
+                self.add(err.object_)
+        # return successful_responses
+
+
 class _Batch:
-    def __init__(self, connection: Connection):
-        self.__batch_objects = ObjectsBatchRequest()
-        self.__batch_references = ReferencesBatchRequest()
+    def __init__(
+        self,
+        connection: Connection,
+        objects_: Optional[ObjectsBatchRequest] = None,
+        references: Optional[ReferencesBatchRequest] = None,
+    ) -> None:
+        self.__batch_objects = objects_ or ObjectsBatchRequest()
+        self.__batch_references = references or ReferencesBatchRequest()
         self.__batch_size: int = 50
         self.__connection = connection
         self.__consistency_level: Optional[ConsistencyLevel] = None
         self.__creation_time = min(self.__connection.timeout_config[1] / 10, 2)
         self.__batch = _BatchGRPC(connection, self.__consistency_level)
         self.__executor: Optional[BatchExecutor] = None
+        self.failed_objects: List[_BatchObject] = []
+        self.failed_references: List[_BatchReference] = []
         self.__future_pool_objects: Deque[Future[Tuple[_BatchObjectReturn, int, bool]]] = deque([])
         self.__future_pool_references: Deque[
             Future[Tuple[_BatchReferenceReturn, int, bool]]
@@ -60,7 +211,7 @@ class _Batch:
         self.__objects_throughput_frame: Deque[float] = deque(maxlen=5)
         self.__recommended_num_objects = self.__batch_size
         self.__recommended_num_references = self.__batch_size
-        self.__reference_batch_queue: Deque[Deque[_BatchReference]] = deque([])
+        self.__reference_batch_queue: Deque[List[_BatchReference]] = deque([])
         self.__references_throughput_frame: Deque[float] = deque(maxlen=5)
         self.__retry_failed_objects: bool = False
         self.__retry_failed_references: bool = False
@@ -309,7 +460,7 @@ class _Batch:
                 True,
             )
 
-    def __send_batch_requests(self, force_wait: bool) -> None:
+    def __send_batch_requests(self, force_wait: bool, how_many_recursions: int = 0) -> None:
         if self.__executor is None:
             self.start()
         elif self.__executor.is_shutdown():
@@ -326,7 +477,8 @@ class _Batch:
                 )
             )
         if len(self.__batch_references) > 0:
-            self.__reference_batch_queue.append(self.__batch_references.items)
+            # convert deque to list to ensure data is copied before being clearer below
+            self.__reference_batch_queue.append(list(self.__batch_references.items))
 
         self.__batch_objects.clear()
         self.__batch_references.clear()
@@ -340,11 +492,11 @@ class _Batch:
 
         for done_obj_future in as_completed(self.__future_pool_objects):
             ret_objs, nr_objs, exception_raised = done_obj_future.result()
-            if not exception_raised:
-                self.__objects_throughput_frame.append(nr_objs / ret_objs.elapsed_seconds)
-            else:
+            if exception_raised or ret_objs.has_errors:
                 self.__batch_objects._add_failed_objects_from_response(ret_objs)
                 self.__backoff_recommended_object_batch_size(True)
+            else:
+                self.__objects_throughput_frame.append(nr_objs / ret_objs.elapsed_seconds)
 
         for ref_batch_items in self.__reference_batch_queue:
             self.__future_pool_references.append(
@@ -356,11 +508,21 @@ class _Batch:
 
         for done_ref_future in as_completed(self.__future_pool_references):
             ret_refs, nr_refs, exception_raised = done_ref_future.result()
-            if not exception_raised:
-                self.__references_throughput_frame.append(nr_refs / ret_refs.elapsed_seconds)
-            else:
+            if exception_raised or ret_refs.has_errors:
                 self.__batch_references._add_failed_objects_from_response(ret_refs)
                 self.__backoff_recommended_reference_batch_size(True)
+            else:
+                self.__references_throughput_frame.append(nr_refs / ret_refs.elapsed_seconds)
+
+        if len(self.__batch_objects) > 0 or len(self.__batch_references) > 0:
+            if how_many_recursions > 5:
+                _Warnings.batch_retrying_failed_batches_hit_hard_limit(5)
+                self.failed_objects = list(self.__batch_objects.items)
+                self.failed_references = list(self.__batch_references.items)
+            else:
+                self.__send_batch_requests(
+                    force_wait=True, how_many_recursions=how_many_recursions + 1
+                )
 
         self.__future_pool_objects.clear()
         self.__future_pool_references.clear()
@@ -458,173 +620,3 @@ class _Batch:
             name="batchSizeRefresh",
         )
         demon.start()
-
-
-BatchResponse = List[Dict[str, Any]]
-
-
-TBatchInput = TypeVar("TBatchInput")
-TBatchReturn = TypeVar("TBatchReturn")
-
-
-class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
-    """
-    `BatchRequest` abstract class used as a interface for batch requests.
-    """
-
-    def __init__(self) -> None:
-        self.__items: Deque[TBatchInput] = deque([])
-
-    def __len__(self) -> int:
-        return len(self.__items)
-
-    def is_empty(self) -> bool:
-        """
-        Check if `BatchRequest` is empty.
-
-        Returns
-            `bool` Whether the `BatchRequest` is empty.
-        """
-
-        return len(self.__items) == 0
-
-    def clear(self) -> None:
-        """
-        Remove all the items from the BatchRequest.
-        """
-
-        self.__items.clear()
-
-    def add(self, item: TBatchInput) -> None:
-        self.__items.append(item)
-
-    @property
-    def items(self) -> Deque[TBatchInput]:
-        """
-        Get all items from the BatchRequest.
-
-        Returns
-            `Deque[TBatchInput]` All items from the BatchRequest.
-        """
-
-        return self.__items
-
-    @abstractmethod
-    def get_request_body(self) -> Union[List[TBatchInput], BatchObjectRequestBody]:
-        """Return the request body to be digested by weaviate that contains all batch items."""
-
-    @abstractmethod
-    def _add_failed_objects_from_response(
-        self,
-        response_item: TBatchReturn,
-        errors_to_exclude: Optional[List[str]] = None,
-        errors_to_include: Optional[List[str]] = None,
-    ) -> None:
-        """Add failed items from a weaviate response.
-
-        Parameters
-        ----------
-        response_item : BatchResponse
-            Weaviate response that contains the status for all objects.
-        errors_to_exclude : Optional[List[str]]
-            Which errors should NOT be retried.
-        errors_to_include : Optional[List[str]]
-            Which errors should be retried.
-
-        Returns
-        ------
-        BatchResponse: Contains responses form all successful object, eg. those that have not been added to this batch.
-        """
-
-    @staticmethod
-    def _skip_objects_retry(
-        entry: Dict[str, Any],
-        errors_to_exclude: Optional[List[str]],
-        errors_to_include: Optional[List[str]],
-    ) -> bool:
-        if (
-            len(entry["result"]) == 0
-            or "errors" not in entry["result"]
-            or "error" not in entry["result"]["errors"]
-            or len(entry["result"]["errors"]["error"]) == 0
-        ):
-            return True
-
-        # skip based on error messages
-        if errors_to_exclude is not None:
-            for err in entry["result"]["errors"]["error"]:
-                if any(excl in err["message"] for excl in errors_to_exclude):
-                    return True
-            return False
-        elif errors_to_include is not None:
-            for err in entry["result"]["errors"]["error"]:
-                if any(incl in err["message"] for incl in errors_to_include):
-                    return False
-            return True
-        return False
-
-
-class ReferencesBatchRequest(BatchRequest[_BatchReference, _BatchReferenceReturn]):
-    """
-    Collect Weaviate-object references to add them in one request to Weaviate.
-    Caution this request will miss some validations to be faster.
-    """
-
-    def get_request_body(self) -> List[_BatchReference]:
-        """
-        Get request body as a list of dictionaries, where each dictionary
-        is a Weaviate-object reference.
-
-        Returns
-            `List[BatchReference]` A list of Weaviate-objects references as dictionaries.
-        """
-
-        return list(self.items)
-
-    def _add_failed_objects_from_response(
-        self,
-        return_: _BatchReferenceReturn,
-        errors_to_exclude: Optional[List[str]] = None,
-        errors_to_include: Optional[List[str]] = None,
-    ) -> None:
-        # successful_responses = []
-
-        for err in return_.errors.values():
-            # if self._skip_objects_retry(ref, errors_to_exclude, errors_to_include):
-            #     successful_responses.append(ref)
-            #     continue
-            self.add(err.reference)
-        # return successful_responses
-
-
-class ObjectsBatchRequest(BatchRequest[_BatchObject, _BatchObjectReturn]):
-    """
-    Collect objects for one batch request to weaviate.
-    Caution this batch will not be validated through weaviate.
-    """
-
-    def get_request_body(self) -> BatchObjectRequestBody:
-        """
-        Get the request body as it is needed for the Weaviate server.
-
-        Returns
-            `BatchObjectRequestBody` The request body as a dataclass.
-        """
-
-        return BatchObjectRequestBody(fields=["ALL"], objects=list(self.items))
-
-    def _add_failed_objects_from_response(
-        self,
-        return_: _BatchObjectReturn,
-        errors_to_exclude: Optional[List[str]] = None,
-        errors_to_include: Optional[List[str]] = None,
-    ) -> None:
-        # successful_responses = []
-
-        if return_.has_errors:
-            for err in return_.errors.values():
-                # if self._skip_objects_retry(obj, errors_to_exclude, errors_to_include):
-                #     successful_responses.append(obj)
-                #     continue
-                self.add(err.object_)
-        # return successful_responses

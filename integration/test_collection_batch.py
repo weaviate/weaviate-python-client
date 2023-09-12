@@ -1,15 +1,19 @@
 import uuid
 from dataclasses import dataclass
-from typing import List, Union, Sequence, Optional
+from typing import List, Optional, Sequence, Union
 
 import pytest
 
 import weaviate
 from weaviate import Config
 from weaviate.collection.batch import (
+    _Batch,
     ObjectsBatchRequest,
 )
-from weaviate.collection.classes.batch import _BatchObjectReturn
+from weaviate.collection.classes.batch import (
+    _BatchObjectReturn,
+    _BatchReferenceReturn,
+)
 from weaviate.collection.classes.config import (
     CollectionConfig,
     DataType,
@@ -21,24 +25,6 @@ from weaviate.collection.classes.tenants import Tenant
 from weaviate.gql.filter import VALUE_ARRAY_TYPES, WHERE_OPERATORS
 
 UUID = Union[str, uuid.UUID]
-
-
-def has_batch_errors(results: dict) -> bool:
-    """
-    Check batch results for errors.
-
-    Parameters
-    ----------
-    results : dict
-        The Weaviate batch creation return value.
-    """
-
-    if results is not None:
-        for result in results:
-            if "result" in result and "errors" in result["result"]:
-                if "error" in result["result"]["errors"]:
-                    return True
-    return False
 
 
 @dataclass
@@ -60,8 +46,49 @@ class MockTensorFlow:
         return MockNumpyTorch(self.array)
 
 
+class WrappedObjectsBatchRequest(ObjectsBatchRequest):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.returns: List[_BatchObjectReturn] = []
+
+    def _add_failed_objects_from_response(
+        self,
+        return_: _BatchObjectReturn,
+        errors_to_exclude: List[str] | None = None,
+        errors_to_include: List[str] | None = None,
+    ) -> None:
+        self.returns.append(return_)
+        return super()._add_failed_objects_from_response(
+            return_, errors_to_exclude, errors_to_include
+        )
+
+
+class WrappedReferencesBatchRequest(ObjectsBatchRequest):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.returns: List[_BatchReferenceReturn] = []
+
+    def _add_failed_objects_from_response(
+        self,
+        return_: _BatchReferenceReturn,
+        errors_to_exclude: List[str] | None = None,
+        errors_to_include: List[str] | None = None,
+    ) -> None:
+        self.returns.append(return_)
+        return super()._add_failed_objects_from_response(
+            return_, errors_to_exclude, errors_to_include
+        )
+
+
+@dataclass
+class WrappedClient:
+    client: weaviate.Client
+    objects_: WrappedObjectsBatchRequest
+    references: WrappedReferencesBatchRequest
+
+
 @pytest.fixture(scope="function")
-def client():
+def client() -> weaviate.Client:
     client = weaviate.Client(
         "http://localhost:8080", additional_config=Config(grpc_port_experimental=50051)
     )
@@ -80,6 +107,29 @@ def client():
     client.schema.delete_all()
 
 
+@pytest.fixture(scope="function")
+def wrapped_client() -> WrappedClient:
+    client = weaviate.Client(
+        "http://localhost:8080", additional_config=Config(grpc_port_experimental=50051)
+    )
+    client.schema.delete_all()
+    client.collection.create(
+        CollectionConfig(
+            name="Test",
+            properties=[
+                ReferenceProperty(name="test", target_collection="Test"),
+                Property(name="name", data_type=DataType.TEXT),
+                Property(name="age", data_type=DataType.INT),
+            ],
+        )
+    )
+    objects_ = WrappedObjectsBatchRequest()
+    references = WrappedReferencesBatchRequest()
+    client.collection.batch = _Batch(client._connection, objects_, references)
+    yield WrappedClient(client=client, objects_=objects_, references=references)
+    client.schema.delete_all()
+
+
 @pytest.mark.parametrize(
     "vector",
     [None, [1, 2, 3], MockNumpyTorch([1, 2, 3]), MockTensorFlow([1, 2, 3])],
@@ -94,6 +144,8 @@ def test_add_data_object(client: weaviate.Client, uuid: Optional[UUID], vector: 
             uuid=uuid,
             vector=vector,
         )
+        assert batch.num_objects() == 1
+        assert batch.num_references() == 0
     objs = client.collection.get("Test").data.get()
     assert len(objs) == 1
 
@@ -210,11 +262,13 @@ def test_add_reference(
             class_name="Test",
             uuid=from_object_uuid,
         )
+        assert batch.num_objects() == 1
         batch.add_object(
             properties={},
             class_name="Test",
             uuid=to_object_uuid,
         )
+        assert batch.num_objects() == 2
         batch.add_reference(
             from_object_uuid=from_object_uuid,
             from_object_class_name="Test",
@@ -222,9 +276,11 @@ def test_add_reference(
             to_object_uuid=to_object_uuid,
             to_object_class_name=to_object_class_name,
         )
+        assert batch.num_references() == 1
     objs = client.collection.get("Test").data.get()
     obj = client.collection.get("Test").data.get_by_id(from_object_uuid)
     assert len(objs) == 2
+    print(obj.properties)
     assert isinstance(obj.properties["test"][0]["beacon"], str)
 
 
@@ -389,30 +445,12 @@ def test_add_ten_thousand_data_objects(client: weaviate.Client):
     client.collection.delete("Test")
 
 
-def test_add_bad_prop(client: weaviate.Client):
+def test_add_bad_prop(wrapped_client: WrappedClient):
     """Test adding a data object with a bad property"""
-
-    class WrappedObjectsBatchRequest(ObjectsBatchRequest):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.returns = []
-
-        def _add_failed_objects_from_response(
-            self,
-            return_: _BatchObjectReturn,
-            errors_to_exclude: List[str] | None = None,
-            errors_to_include: List[str] | None = None,
-        ) -> None:
-            self.returns.append(return_)
-            return super()._add_failed_objects_from_response(
-                return_, errors_to_exclude, errors_to_include
-            )
-
-    wrapper = WrappedObjectsBatchRequest()
-    with client.collection.batch as batch:
-        batch.__batch_objects = wrapper
+    with wrapped_client.client.collection.batch as batch:
         batch.add_object(
             class_name="Test",
             properties={"bad": "test"},
         )
-    assert len(wrapper.returns) == 1
+    assert len(wrapped_client.objects_.returns) == 5
+    assert len(wrapped_client.client.collection.batch.failed_objects) == 1
