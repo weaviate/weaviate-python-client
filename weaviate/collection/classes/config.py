@@ -479,10 +479,8 @@ class Ref2VecCentroidConfig(VectorizerConfig):
 class VectorizerFactory:
     """Use this factory class to generate the correct `VectorizerConfig` object for use in the `CollectionConfig` object.
 
-    Each classmethod provides options specific to the named vectorizer in the function's name. Pydantic data validation steps
+    Each classmethod provides options specific to the named vectorizer in the function's name. Under-the-hood data validation steps
     will ensure that any mis-specifications will be caught before the request is sent to Weaviate.
-
-    For custom vectorizers, use the `VectorizerConfig` class directly.
     """
 
     @classmethod
@@ -1123,6 +1121,14 @@ class CollectionConfig(CollectionConfigCreateBase):
 
 
 class ConfigFactory:
+    """Use this factory class to generate the correct `xxxConfig` object for use in the `CollectionConfig` object for each type of
+    Weaviate configuration that you'd like to specify. E.g., `.multi_tenancy()` will return a `MultiTenancyConfigCreate` object
+    to be used in the `multi_tenancy_config` attribute of `CollectionConfig`.
+
+    Each classmethod provides options specific to the named configuration type in the function's name. Under-the-hood data validation steps
+    will ensure that any mis-specifications are caught before the request is sent to Weaviate.
+    """
+
     @classmethod
     def inverted_index(
         cls,
