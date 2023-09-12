@@ -267,7 +267,7 @@ class _VectorizerConfig(_ConfigCreateModel):
 
 
 class PropertyVectorizerConfig(_ConfigCreateModel):
-    skip: bool = Field(default=True)
+    skip: bool = Field(default=False)
     vectorizePropertyName: bool = Field(default=True, alias="vectorize_property_name")
 
 
