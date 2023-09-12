@@ -361,25 +361,25 @@ class ReplicationConfig:
 
 
 class BM25ConfigCreate(ConfigCreateModel):
-    b: float = 0.75
-    k1: float = 1.2
+    b: float
+    k1: float
 
 
 class BM25ConfigUpdate(ConfigUpdateModel):
-    b: Optional[float] = None
-    k1: Optional[float] = None
+    b: Optional[float]
+    k1: Optional[float]
 
 
 class StopwordsCreate(ConfigCreateModel):
-    preset: Optional[StopwordsPreset] = Field(default=None)
-    additions: Optional[List[str]] = Field(default=None)
-    removals: Optional[List[str]] = Field(default=None)
+    preset: Optional[StopwordsPreset]
+    additions: Optional[List[str]]
+    removals: Optional[List[str]]
 
 
 class StopwordsUpdate(ConfigUpdateModel):
-    preset: Optional[StopwordsPreset] = Field(default=None)
-    additions: Optional[List[str]] = None
-    removals: Optional[List[str]] = None
+    preset: Optional[StopwordsPreset]
+    additions: Optional[List[str]]
+    removals: Optional[List[str]]
 
 
 class InvertedIndexConfigCreate(ConfigCreateModel):
@@ -708,21 +708,27 @@ class VectorizerFactory:
 
 
 class CollectionConfigCreateBase(ConfigCreateModel):
-    description: Optional[str] = None
+    description: Optional[str] = Field(default=None)
     invertedIndexConfig: Optional[InvertedIndexConfigCreate] = Field(
-        None, alias="inverted_index_config"
+        default=None, alias="inverted_index_config"
     )
     multiTenancyConfig: Optional[MultiTenancyConfigCreate] = Field(
-        None, alias="multi_tenancy_config"
+        default=None, alias="multi_tenancy_config"
     )
-    replicationConfig: Optional[ReplicationConfigCreate] = Field(None, alias="replication_config")
-    shardingConfig: Optional[ShardingConfigCreate] = Field(None, alias="sharding_config")
-    vectorIndexConfig: Optional[VectorIndexConfigCreate] = Field(None, alias="vector_index_config")
-    vectorIndexType: VectorIndexType = Field(VectorIndexType.HNSW, alias="vector_index_type")
+    replicationConfig: Optional[ReplicationConfigCreate] = Field(
+        default=None, alias="replication_config"
+    )
+    shardingConfig: Optional[ShardingConfigCreate] = Field(default=None, alias="sharding_config")
+    vectorIndexConfig: Optional[VectorIndexConfigCreate] = Field(
+        default=None, alias="vector_index_config"
+    )
+    vectorIndexType: VectorIndexType = Field(
+        default=VectorIndexType.HNSW, alias="vector_index_type"
+    )
     moduleConfig: VectorizerConfig = Field(
         default=VectorizerFactory.none(), alias="vectorizer_config"
     )
-    generativeSearch: GenerativeConfig = Field(default=None, alias="generative_search")
+    generativeSearch: Optional[GenerativeConfig] = Field(default=None, alias="generative_search")
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
@@ -759,12 +765,16 @@ class CollectionConfigCreateBase(ConfigCreateModel):
 
 
 class CollectionConfigUpdate(ConfigUpdateModel):
-    description: Optional[str] = None
+    description: Optional[str] = Field(default=None)
     invertedIndexConfig: Optional[InvertedIndexConfigUpdate] = Field(
-        None, alias="inverted_index_config"
+        default=None, alias="inverted_index_config"
     )
-    replicationConfig: Optional[ReplicationConfigUpdate] = Field(None, alias="replication_config")
-    vectorIndexConfig: Optional[VectorIndexConfigUpdate] = Field(None, alias="vector_index_config")
+    replicationConfig: Optional[ReplicationConfigUpdate] = Field(
+        default=None, alias="replication_config"
+    )
+    vectorIndexConfig: Optional[VectorIndexConfigUpdate] = Field(
+        default=None, alias="vector_index_config"
+    )
 
 
 @dataclass
@@ -921,12 +931,14 @@ class PropertyConfig:
 
 class Property(ConfigCreateModel):
     name: str
-    dataType: DataType = Field(..., alias="data_type")
-    indexFilterable: Optional[bool] = Field(None, alias="index_filterable")
-    indexSearchable: Optional[bool] = Field(None, alias="index_searchable")
-    description: Optional[str] = Field(None)
-    moduleConfig: Optional[PropertyVectorizerConfigCreate] = Field(None, alias="vectorizer_config")
-    tokenization: Optional[Tokenization] = Field(None)
+    dataType: DataType = Field(default=..., alias="data_type")
+    indexFilterable: Optional[bool] = Field(default=None, alias="index_filterable")
+    indexSearchable: Optional[bool] = Field(default=None, alias="index_searchable")
+    description: Optional[str] = Field(default=None)
+    moduleConfig: Optional[PropertyVectorizerConfigCreate] = Field(
+        default=None, alias="vectorizer_config"
+    )
+    tokenization: Optional[Tokenization] = Field(default=None)
 
     def to_dict(self, vectorizer: Optional[Vectorizer] = None) -> Dict[str, Any]:
         ret_dict = super().to_dict()
@@ -967,7 +979,7 @@ PropertyType = Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]
 
 class CollectionConfig(CollectionConfigCreateBase):
     name: str
-    properties: Optional[List[Union[Property, ReferencePropertyBase]]] = Field(None)
+    properties: Optional[List[Union[Property, ReferencePropertyBase]]] = Field(default=None)
 
     def model_post_init(self, __context: Any) -> None:
         self.name = _capitalize_first_letter(self.name)

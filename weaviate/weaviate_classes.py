@@ -23,6 +23,7 @@ from weaviate.collection.classes.config import (
     Vectorizer,
     VectorizerConfig,
     VectorizerFactory,
+    VectorDistance,
     VectorIndexConfig,
     VectorIndexType,
 )
@@ -84,6 +85,7 @@ __all__ = [
     "Vectorizer",
     "VectorizerConfig",
     "VectorizerFactory",
+    "VectorDistance",
     "VectorIndexConfig",
     "VectorIndexType",
 ]
