@@ -453,7 +453,7 @@ class CollectionConfigCreateBase(ConfigCreateModel):
     moduleConfig: VectorizerConfig = Field(
         default=VectorizerFactory.none(), alias="vectorizer_config"
     )
-    generativeSearch: GenerativeConfig = Field(default=None, alias="generative_search")
+    generativeSearch: Optional[GenerativeConfig] = Field(default=None, alias="generative_search")
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
@@ -717,75 +717,3 @@ class CollectionConfigCreate(CollectionConfigCreateBase):
             ]
 
         return ret_dict
-
-
-class CollectionConfig:
-    @classmethod
-    def create(
-        cls,
-        name: str,
-        description: Optional[str] = None,
-        properties: Optional[List[Union[Property, ReferencePropertyBase]]] = None,
-        inverted_index_config: Optional[InvertedIndexConfigCreate] = None,
-        multi_tenancy_config: Optional[MultiTenancyConfig] = None,
-        replication_config: Optional[ReplicationConfigCreate] = None,
-        sharding_config: Optional[ShardingConfigCreate] = None,
-        vector_index_config: Optional[VectorIndexConfigCreate] = None,
-        vector_index_type: VectorIndexType = VectorIndexType.HNSW,
-        vectorizer_config: Optional[VectorizerConfig] = None,
-    ) -> CollectionConfigCreate:
-        """Use this classmethod when specifying all the configuration options relevant to your collection when using
-        the non-ORM collections API. This class is a superset of the `CollectionConfigCreateBase` class, and
-        includes all the options available to the `CollectionConfigCreateBase` class.
-
-        When using this non-ORM API, you must specify the name and properties of the collection explicitly here.
-
-        Example:
-            ```python
-            from weaviate.weaviate_classes as wvc
-
-            config = wvc.CollectionConfig.create(
-                name = "MyCollection",
-                properties = [
-                    wvc.Property(
-                        name="myProperty",
-                        data_type=wvc.DataType.STRING,
-                        index_searchable=True,
-                        index_filterable=True,
-                        description="A string property"
-                    )
-                ]
-            )
-            ```
-        """
-        return CollectionConfigCreate(
-            description=description,
-            inverted_index_config=inverted_index_config,
-            vectorizer_config=vectorizer_config or VectorizerFactory.none(),
-            multi_tenancy_config=multi_tenancy_config,
-            name=name,
-            properties=properties,
-            replication_config=replication_config,
-            sharding_config=sharding_config,
-            vector_index_config=vector_index_config,
-            vector_index_type=vector_index_type,
-        )
-
-    @classmethod
-    def update(
-        cls,
-        description: Optional[str] = None,
-        inverted_index_config: Optional[InvertedIndexConfigUpdate] = None,
-        replication_config: Optional[ReplicationConfigUpdate] = None,
-        vector_index_config: Optional[VectorIndexConfigUpdate] = None,
-    ) -> CollectionConfigUpdate:
-        """Use this classmethod when updating the configuration of your collection when using
-        the non-ORM collections API. This class is a superset of the `CollectionConfigUpdate` class, and
-        includes all the options available to the `CollectionConfigUpdate` class.
-        """
-        return CollectionConfigUpdate(
-            description=description,
-            inverted_index_config=inverted_index_config,
-            replication_config=replication_config,
-            vector_index_config=vector_index_config,
-        )

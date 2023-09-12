@@ -4,7 +4,10 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.classes.config import (
     CollectionConfigUpdate,
+    InvertedIndexConfigUpdate,
+    ReplicationConfigUpdate,
     PropertyType,
+    VectorIndexConfigUpdate,
     _CollectionConfig,
     _Property,
 )
@@ -53,7 +56,13 @@ class _ConfigBase:
         schema = self.__get()
         return _collection_config_from_json(schema)
 
-    def update(self, config: CollectionConfigUpdate) -> None:
+    def update(
+        self,
+        description: Optional[str] = None,
+        inverted_index_config: Optional[InvertedIndexConfigUpdate] = None,
+        replication_config: Optional[ReplicationConfigUpdate] = None,
+        vector_index_config: Optional[VectorIndexConfigUpdate] = None,
+    ) -> None:
         """Update the configuration for this collection in Weaviate.
 
         Parameters:
@@ -72,6 +81,12 @@ class _ConfigBase:
         desired options.
         - This is not the case of adding properties, which can be done with `collection.config.add_property()`.
         """
+        config = CollectionConfigUpdate(
+            description=description,
+            inverted_index_config=inverted_index_config,
+            replication_config=replication_config,
+            vector_index_config=vector_index_config,
+        )
         schema = self.__get()
         schema = config.merge_with_existing(schema)
         try:
