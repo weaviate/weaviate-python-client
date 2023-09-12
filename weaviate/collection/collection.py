@@ -1,7 +1,20 @@
-from typing import Generic, Optional, Type
+from typing import Generic, List, Optional, Type, Union
 
-from weaviate.collection.classes.config import CollectionConfig
-from weaviate.collection.classes.config import ConsistencyLevel
+from weaviate.collection.classes.config import (
+    _CollectionConfigCreate,
+    ConsistencyLevel,
+    _GenerativeConfig,
+    _InvertedIndexConfigCreate,
+    _MultiTenancyConfigCreate,
+    Property,
+    _ShardingConfigCreate,
+    ReferencePropertyBase,
+    _ReplicationConfigCreate,
+    _VectorizerConfig,
+    VectorizerFactory,
+    _VectorIndexConfigCreate,
+    VectorIndexType,
+)
 from weaviate.collection.classes.types import Properties, _check_data_model
 from weaviate.collection.collection_base import CollectionBase
 from weaviate.collection.config import _ConfigCollection
@@ -43,8 +56,33 @@ class CollectionObject(Generic[Properties]):
 
 class Collection(CollectionBase):
     def create(
-        self, config: CollectionConfig, data_model: Optional[Type[Properties]] = None
+        self,
+        name: str,
+        data_model: Optional[Type[Properties]] = None,
+        description: Optional[str] = None,
+        generative_search: Optional[_GenerativeConfig] = None,
+        inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
+        multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
+        properties: Optional[List[Union[Property, ReferencePropertyBase]]] = None,
+        replication_config: Optional[_ReplicationConfigCreate] = None,
+        sharding_config: Optional[_ShardingConfigCreate] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vector_index_type: VectorIndexType = VectorIndexType.HNSW,
+        vectorizer_config: Optional[_VectorizerConfig] = None,
     ) -> CollectionObject[Properties]:
+        config = _CollectionConfigCreate(
+            description=description,
+            generative_search=generative_search,
+            inverted_index_config=inverted_index_config,
+            multi_tenancy_config=multi_tenancy_config,
+            name=name,
+            properties=properties,
+            replication_config=replication_config,
+            sharding_config=sharding_config,
+            vectorizer_config=vectorizer_config or VectorizerFactory.none(),
+            vector_index_config=vector_index_config,
+            vector_index_type=vector_index_type,
+        )
         name = super()._create(config)
         if config.name != name:
             raise ValueError(

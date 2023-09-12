@@ -3,7 +3,7 @@ from typing import Dict
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.classes.config import (
-    CollectionConfigCreateBase,
+    _CollectionConfigCreateBase,
     _CollectionConfig,
 )
 from weaviate.collection.classes.config_methods import _collection_configs_from_json
@@ -17,7 +17,7 @@ class CollectionBase:
 
     def _create(
         self,
-        config: CollectionConfigCreateBase,
+        config: _CollectionConfigCreateBase,
     ) -> str:
         weaviate_object = config.to_dict()
 

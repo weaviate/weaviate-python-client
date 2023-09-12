@@ -5,7 +5,6 @@ import pytest
 import weaviate
 from weaviate import Config
 from weaviate.collection.classes.config import (
-    CollectionConfig,
     DataType,
     Property,
     GenerativeFactory,
@@ -31,18 +30,16 @@ def client():
 
 
 @pytest.mark.parametrize("parameter,answer", [("text", "Yes"), ("content", "No")])
-def test_generative_search_single(client, parameter: str, answer: str):
+def test_generative_search_single(client: weaviate.Client, parameter: str, answer: str):
     name = "TestGenerativeSearchOpenAISingle"
     client.collection.delete(name)
     collection = client.collection.create(
-        CollectionConfig(
-            name=name,
-            properties=[
-                Property(name="text", data_type=DataType.TEXT),
-                Property(name="content", data_type=DataType.TEXT),
-            ],
-            generative_search=GenerativeFactory.OpenAI(),
-        )
+        name=name,
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+            Property(name="content", data_type=DataType.TEXT),
+        ],
+        generative_search=GenerativeFactory.OpenAI(),
     )
 
     collection.data.insert_many(
@@ -63,19 +60,17 @@ def test_generative_search_single(client, parameter: str, answer: str):
 @pytest.mark.parametrize(
     "prop,answer", [(["text"], "apples bananas"), (["content"], "bananas apples")]
 )
-def test_generative_search_grouped(client, prop: str, answer: str):
+def test_generative_search_grouped(client: weaviate.Client, prop: str, answer: str):
     name = "TestGenerativeSearchOpenAIGroup"
     client.collection.delete(name)
     collection = client.collection.create(
-        CollectionConfig(
-            name=name,
-            properties=[
-                Property(name="text", data_type=DataType.TEXT),
-                Property(name="content", data_type=DataType.TEXT),
-                Property(name="extra", data_type=DataType.TEXT),
-            ],
-            generative_search=GenerativeFactory.OpenAI(),
-        )
+        name=name,
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+            Property(name="content", data_type=DataType.TEXT),
+            Property(name="extra", data_type=DataType.TEXT),
+        ],
+        generative_search=GenerativeFactory.OpenAI(),
     )
 
     collection.data.insert_many(
@@ -92,19 +87,17 @@ def test_generative_search_grouped(client, prop: str, answer: str):
     assert res.generative_combined_result == answer
 
 
-def test_generative_search_grouped_all_props(client):
+def test_generative_search_grouped_all_props(client: weaviate.Client):
     name = "TestGenerativeSearchOpenAIGroupWithProp"
     client.collection.delete(name)
     collection = client.collection.create(
-        CollectionConfig(
-            name=name,
-            properties=[
-                Property(name="text", data_type=DataType.TEXT),
-                Property(name="content", data_type=DataType.TEXT),
-                Property(name="extra", data_type=DataType.TEXT),
-            ],
-            generative_search=GenerativeFactory.OpenAI(),
-        )
+        name=name,
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+            Property(name="content", data_type=DataType.TEXT),
+            Property(name="extra", data_type=DataType.TEXT),
+        ],
+        generative_search=GenerativeFactory.OpenAI(),
     )
 
     collection.data.insert_many(
@@ -130,19 +123,17 @@ def test_generative_search_grouped_all_props(client):
     assert res.generative_combined_result == "Teddy cats"
 
 
-def test_generative_with_everything(client):
+def test_generative_with_everything(client: weaviate.Client):
     name = "TestGenerativeSearchOpenAI"
     client.collection.delete(name)
     collection = client.collection.create(
-        CollectionConfig(
-            name=name,
-            properties=[
-                Property(name="text", data_type=DataType.TEXT),
-                Property(name="content", data_type=DataType.TEXT),
-                Property(name="extra", data_type=DataType.TEXT),
-            ],
-            generative_search=GenerativeFactory.OpenAI(),
-        )
+        name=name,
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+            Property(name="content", data_type=DataType.TEXT),
+            Property(name="extra", data_type=DataType.TEXT),
+        ],
+        generative_search=GenerativeFactory.OpenAI(),
     )
 
     collection.data.insert_many(
@@ -181,11 +172,9 @@ def test_openapi_invalid_key():
     name = "TestGenerativeSearchOpenAIError"
     local_client.collection.delete(name)
     collection = local_client.collection.create(
-        CollectionConfig(
-            name=name,
-            properties=[Property(name="text", data_type=DataType.TEXT)],
-            generative_search=GenerativeFactory.OpenAI(),
-        )
+        name=name,
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        generative_search=GenerativeFactory.OpenAI(),
     )
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):
@@ -202,11 +191,9 @@ def test_openapi_no_module():
     name = "TestGenerativeSearchNoModule"
     local_client.collection.delete(name)
     collection = local_client.collection.create(
-        CollectionConfig(
-            name=name,
-            properties=[Property(name="text", data_type=DataType.TEXT)],
-            generative_search=GenerativeFactory.OpenAI(),
-        )
+        name=name,
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        generative_search=GenerativeFactory.OpenAI(),
     )
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):

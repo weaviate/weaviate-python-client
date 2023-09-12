@@ -1,7 +1,7 @@
 import pytest
 from typing import List
 from weaviate.collection.classes.config import (
-    CollectionConfig,
+    _CollectionConfigCreate,
     DataType,
     Multi2VecField,
     _VectorizerConfig,
@@ -18,7 +18,7 @@ DEFAULTS = {
 
 
 def test_basic_config():
-    config = CollectionConfig(
+    config = _CollectionConfigCreate(
         name="test",
         description="test",
     )
@@ -294,7 +294,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
 
 @pytest.mark.parametrize("vectorizer_config,expected", TEST_CONFIG_WITH_MODULE_PARAMETERS)
 def test_config_with_module(vectorizer_config: _VectorizerConfig, expected: dict):
-    config = CollectionConfig(name="test", vectorizer_config=vectorizer_config)
+    config = _CollectionConfigCreate(name="test", vectorizer_config=vectorizer_config)
     assert config.to_dict() == {
         **DEFAULTS,
         "vectorizer": vectorizer_config.vectorizer.value,
@@ -347,7 +347,7 @@ def test_config_with_module_and_properties(
     expected_mc: dict,
     expected_props: dict,
 ):
-    config = CollectionConfig(
+    config = _CollectionConfigCreate(
         name="test", properties=properties, vectorizer_config=vectorizer_config
     )
     assert config.to_dict() == {
@@ -360,7 +360,7 @@ def test_config_with_module_and_properties(
 
 
 def test_config_with_properties():
-    config = CollectionConfig(
+    config = _CollectionConfigCreate(
         name="test",
         description="test",
         vectorizer_config=VectorizerFactory.none(),

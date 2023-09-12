@@ -812,7 +812,7 @@ class VectorizerFactory:
         )
 
 
-class CollectionConfigCreateBase(_ConfigCreateModel):
+class _CollectionConfigCreateBase(_ConfigCreateModel):
     description: Optional[str] = Field(default=None)
     invertedIndexConfig: Optional[_InvertedIndexConfigCreate] = Field(
         default=None, alias="inverted_index_config"
@@ -869,7 +869,7 @@ class CollectionConfigCreateBase(_ConfigCreateModel):
             return_dict["moduleConfig"][addition_key] = addition_val
 
 
-class CollectionConfigUpdate(_ConfigUpdateModel):
+class _CollectionConfigUpdate(_ConfigUpdateModel):
     description: Optional[str] = Field(default=None)
     invertedIndexConfig: Optional[_InvertedIndexConfigUpdate] = Field(
         default=None, alias="inverted_index_config"
@@ -1085,7 +1085,7 @@ class ReferencePropertyMultiTarget(ReferencePropertyBase):
 PropertyType = Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]
 
 
-class CollectionConfig(CollectionConfigCreateBase):
+class _CollectionConfigCreate(_CollectionConfigCreateBase):
     name: str
     properties: Optional[List[Union[Property, ReferencePropertyBase]]] = Field(default=None)
 
