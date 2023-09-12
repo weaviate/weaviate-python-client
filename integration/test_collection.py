@@ -21,7 +21,6 @@ from weaviate.collection.classes.config import (
     BM25ConfigUpdate,
     Property,
     DataType,
-    Img2VecNeuralConfig,
     InvertedIndexConfigUpdate,
     PQConfigUpdate,
     PQEncoderConfigUpdate,
@@ -1398,7 +1397,7 @@ def test_near_image(client: weaviate.Client, distance: Optional[float], certaint
     client.collection.delete(name)
     collection = client.collection.create(
         name=name,
-        vectorizer_config=Img2VecNeuralConfig(image_fields=["imageProp"]),
+        vectorizer_config=VectorizerFactory.img2vec_neural(image_fields=["imageProp"]),
         properties=[
             Property(name="imageProp", data_type=DataType.BLOB),
         ],

@@ -3,22 +3,9 @@ from typing import List
 from weaviate.collection.classes.config import (
     CollectionConfigCreate,
     DataType,
-    Img2VecNeuralConfig,
+    Multi2VecField,
     VectorizerConfig,
-    Multi2VecClipConfig,
-    Multi2VecClipConfigWeights,
-    Multi2VecBindConfig,
-    Multi2VecBindConfigWeights,
-    Text2VecAzureOpenAIConfig,
-    Text2VecCohereConfig,
-    Text2VecContextionaryConfig,
-    Text2VecGPT4AllConfig,
-    Text2VecHuggingFaceConfig,
-    Text2VecHuggingFaceConfigOptions,
-    Text2VecOpenAIConfig,
-    Text2VecPalmConfig,
-    Text2VecTransformersConfig,
-    Ref2VecCentroidConfig,
+    VectorizerFactory,
     Property,
     PropertyVectorizerConfig,
     Vectorizer,
@@ -45,7 +32,7 @@ def test_basic_config():
 
 TEST_CONFIG_WITH_MODULE_PARAMETERS = [
     (
-        Text2VecContextionaryConfig(),
+        VectorizerFactory.text2vec_contextionary(),
         {
             "text2vec-contextionary": {
                 "vectorizeClassName": True,
@@ -53,7 +40,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Text2VecAzureOpenAIConfig(
+        VectorizerFactory.text2vec_azure_openai(
             resource_name="resource",
             deployment_id="deployment",
         ),
@@ -65,15 +52,15 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Text2VecCohereConfig(),
-        {"text2vec-cohere": {"model": "embed-multilingual-v2.0", "truncate": "RIGHT"}},
+        VectorizerFactory.text2vec_cohere(),
+        {"text2vec-cohere": {}},
     ),
     (
-        Text2VecCohereConfig(model="embed-multilingual-v2.0", truncate="NONE"),
+        VectorizerFactory.text2vec_cohere(model="embed-multilingual-v2.0", truncate="NONE"),
         {"text2vec-cohere": {"model": "embed-multilingual-v2.0", "truncate": "NONE"}},
     ),
     (
-        Text2VecGPT4AllConfig(),
+        VectorizerFactory.text2vec_gpt4all(),
         {
             "text2vec-gpt4all": {
                 "vectorizeClassName": True,
@@ -81,7 +68,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Text2VecGPT4AllConfig(
+        VectorizerFactory.text2vec_gpt4all(
             vectorize_class_name=False,
         ),
         {
@@ -91,11 +78,8 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Text2VecHuggingFaceConfig(
-            model="model",
-            options=Text2VecHuggingFaceConfigOptions(
-                wait_for_model=False, use_gpu=False, use_cache=False
-            ),
+        VectorizerFactory.text2vec_huggingface(
+            model="model", wait_for_model=False, use_gpu=False, use_cache=False
         ),
         {
             "text2vec-huggingface": {
@@ -109,12 +93,12 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Text2VecHuggingFaceConfig(
+        VectorizerFactory.text2vec_huggingface(
             passage_model="passageModel",
             query_model="queryModel",
-            options=Text2VecHuggingFaceConfigOptions(
-                wait_for_model=True, use_gpu=True, use_cache=True
-            ),
+            wait_for_model=True,
+            use_gpu=True,
+            use_cache=True,
         ),
         {
             "text2vec-huggingface": {
@@ -129,7 +113,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Text2VecHuggingFaceConfig(
+        VectorizerFactory.text2vec_huggingface(
             endpoint_url="endpoint",
         ),
         {
@@ -139,7 +123,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Text2VecOpenAIConfig(),
+        VectorizerFactory.text2vec_openai(),
         {
             "text2vec-openai": {
                 "vectorizeClassName": True,
@@ -147,7 +131,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Text2VecOpenAIConfig(
+        VectorizerFactory.text2vec_openai(
             vectorize_class_name=False,
             model="ada",
             model_version="002",
@@ -163,7 +147,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Text2VecPalmConfig(
+        VectorizerFactory.text2vec_palm(
             project_id="project",
         ),
         {
@@ -174,23 +158,23 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Text2VecPalmConfig(
+        VectorizerFactory.text2vec_palm(
             project_id="project",
-            api_endpoint="endpoint",
+            api_endpoint="https://weaviate.io",
             model_id="model",
             vectorize_class_name=False,
         ),
         {
             "text2vec-palm": {
                 "projectId": "project",
-                "apiEndpoint": "endpoint",
+                "apiEndpoint": "https://weaviate.io/",
                 "modelId": "model",
                 "vectorizeClassName": False,
             }
         },
     ),
     (
-        Text2VecTransformersConfig(),
+        VectorizerFactory.text2vec_transformers(),
         {
             "text2vec-transformers": {
                 "vectorizeClassName": True,
@@ -199,7 +183,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Text2VecTransformersConfig(
+        VectorizerFactory.text2vec_transformers(
             pooling_strategy="cls",
             vectorize_class_name=False,
         ),
@@ -211,7 +195,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Img2VecNeuralConfig(
+        VectorizerFactory.img2vec_neural(
             image_fields=["test"],
         ),
         {
@@ -221,9 +205,9 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Multi2VecClipConfig(
-            image_fields=["image"],
-            text_fields=["text"],
+        VectorizerFactory.multi2vec_clip(
+            image_fields=[Multi2VecField(name="image")],
+            text_fields=[Multi2VecField(name="text")],
         ),
         {
             "multi2vec-clip": {
@@ -234,14 +218,10 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Multi2VecClipConfig(
-            image_fields=["image"],
-            text_fields=["text"],
+        VectorizerFactory.multi2vec_clip(
+            image_fields=[Multi2VecField(name="image", weight=0.5)],
+            text_fields=[Multi2VecField(name="text", weight=0.5)],
             vectorize_class_name=False,
-            weights=Multi2VecClipConfigWeights(
-                image_fields=[0.5],
-                text_fields=[0.5],
-            ),
         ),
         {
             "multi2vec-clip": {
@@ -256,13 +236,13 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Multi2VecBindConfig(
-            audio_fields=["audio"],
-            depth_fields=["depth"],
-            image_fields=["image"],
-            imu_fields=["imu"],
-            text_fields=["text"],
-            thermal_fields=["thermal"],
+        VectorizerFactory.multi2vec_bind(
+            audio_fields=[Multi2VecField(name="audio")],
+            depth_fields=[Multi2VecField(name="depth")],
+            image_fields=[Multi2VecField(name="image")],
+            imu_fields=[Multi2VecField(name="imu")],
+            text_fields=[Multi2VecField(name="text")],
+            thermal_fields=[Multi2VecField(name="thermal")],
         ),
         {
             "multi2vec-bind": {
@@ -277,22 +257,14 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Multi2VecBindConfig(
-            audio_fields=["audio"],
-            depth_fields=["depth"],
-            image_fields=["image"],
-            imu_fields=["imu"],
-            text_fields=["text"],
-            thermal_fields=["thermal"],
+        VectorizerFactory.multi2vec_bind(
+            audio_fields=[Multi2VecField(name="audio", weight=0.5)],
+            depth_fields=[Multi2VecField(name="depth", weight=0.5)],
+            image_fields=[Multi2VecField(name="image", weight=0.5)],
+            imu_fields=[Multi2VecField(name="imu", weight=0.5)],
+            text_fields=[Multi2VecField(name="text", weight=0.5)],
+            thermal_fields=[Multi2VecField(name="thermal", weight=0.5)],
             vectorize_class_name=False,
-            weights=Multi2VecBindConfigWeights(
-                audio_fields=[0.5],
-                depth_fields=[0.5],
-                image_fields=[0.5],
-                imu_fields=[0.5],
-                text_fields=[0.5],
-                thermal_fields=[0.5],
-            ),
         ),
         {
             "multi2vec-bind": {
@@ -315,7 +287,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        Ref2VecCentroidConfig(reference_properties=["prop"]),
+        VectorizerFactory.ref2vec_centroid(reference_properties=["prop"]),
         {"ref2vec-centroid": {"referenceProperties": ["prop"], "method": "mean"}},
     ),
 ]
@@ -334,7 +306,7 @@ def test_config_with_module(vectorizer_config: VectorizerConfig, expected: dict)
 
 TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
     (
-        Text2VecTransformersConfig(),
+        VectorizerFactory.text2vec_transformers(),
         [
             Property(
                 name="text",
