@@ -1,5 +1,4 @@
 from weaviate.collection.classes.config import (
-    CollectionConfig,
     DataType,
     InvertedIndexConfigCreate,
     InvertedIndexConfigUpdate,
@@ -37,7 +36,6 @@ from weaviate.collection.classes.tenants import Tenant
 
 __all__ = [
     "BaseProperty",
-    "CollectionConfig",
     "CollectionModelConfig",
     "DataObject",
     "DataType",

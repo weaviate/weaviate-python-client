@@ -810,7 +810,7 @@ class VectorizerFactory:
         )
 
 
-class CollectionConfigCreateBase(ConfigCreateModel):
+class _CollectionConfigCreateBase(ConfigCreateModel):
     description: Optional[str] = None
     invertedIndexConfig: Optional[InvertedIndexConfigCreate] = Field(
         None, alias="inverted_index_config"
@@ -823,7 +823,7 @@ class CollectionConfigCreateBase(ConfigCreateModel):
     moduleConfig: VectorizerConfig = Field(
         default=VectorizerFactory.none(), alias="vectorizer_config"
     )
-    generativeSearch: GenerativeConfig = Field(default=None, alias="generative_search")
+    generativeSearch: Optional[GenerativeConfig] = Field(default=None, alias="generative_search")
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
@@ -859,7 +859,7 @@ class CollectionConfigCreateBase(ConfigCreateModel):
             return_dict["moduleConfig"][addition_key] = addition_val
 
 
-class CollectionConfigUpdate(ConfigUpdateModel):
+class _CollectionConfigUpdate(ConfigUpdateModel):
     description: Optional[str] = None
     invertedIndexConfig: Optional[InvertedIndexConfigUpdate] = Field(
         None, alias="inverted_index_config"
@@ -1066,32 +1066,7 @@ class ReferencePropertyMultiTarget(ReferencePropertyBase):
 PropertyType = Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]
 
 
-class CollectionConfig(CollectionConfigCreateBase):
-    """Use this class when specifying all the configuration options relevant to your collection when using
-    the non-ORM collections API. This class is a superset of the `CollectionConfigCreateBase` class, and
-    includes all the options available to the `CollectionConfigCreateBase` class.
-
-    When using this non-ORM API, you must specify the name and properties of the collection explicitly here.
-
-    Example:
-        ```python
-        from weaviate.weaviate_classes as wvc
-
-        config = wvc.CollectionConfig(
-            name = "MyCollection",
-            properties = [
-                wvc.Property(
-                    name="myProperty",
-                    data_type=wvc.DataType.STRING,
-                    index_searchable=True,
-                    index_filterable=True,
-                    description="A string property"
-                )
-            ]
-        )
-        ```
-    """
-
+class _CollectionConfigCreate(_CollectionConfigCreateBase):
     name: str
     properties: Optional[List[Union[Property, ReferencePropertyBase]]] = Field(None)
 

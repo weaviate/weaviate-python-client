@@ -7,7 +7,6 @@ import pytest as pytest
 import weaviate
 from weaviate import Config
 from weaviate.collection.classes.config import (
-    CollectionConfig,
     Property,
     DataType,
     ReferenceProperty,
@@ -53,11 +52,9 @@ def client():
 def test_filters_text(client: weaviate.Client, weaviate_filter: _FilterValue, results: List[int]):
     client.collection.delete("TestFilterText")
     collection = client.collection.create(
-        CollectionConfig(
-            name="TestFilterText",
-            vectorizer_config=VectorizerFactory.none(),
-            properties=[Property(name="name", data_type=DataType.TEXT)],
-        )
+        name="TestFilterText",
+        vectorizer_config=VectorizerFactory.none(),
+        properties=[Property(name="name", data_type=DataType.TEXT)],
     )
 
     uuids = [
@@ -100,12 +97,10 @@ def test_filters_nested(
 ):
     client.collection.delete("TestFilterNested")
     collection = client.collection.create(
-        CollectionConfig(
-            name="TestFilterNested",
-            vectorizer_config=VectorizerFactory.none(),
-            properties=[Property(name="num", data_type=DataType.NUMBER)],
-            inverted_index_config=InvertedIndexConfigCreate(index_null_state=True),
-        )
+        name="TestFilterNested",
+        vectorizer_config=VectorizerFactory.none(),
+        properties=[Property(name="num", data_type=DataType.NUMBER)],
+        inverted_index_config=InvertedIndexConfigCreate(index_null_state=True),
     )
 
     uuids = [
@@ -127,12 +122,10 @@ def test_filters_nested(
 def test_length_filter(client: weaviate.Client):
     client.collection.delete("TestFilterNested")
     collection = client.collection.create(
-        CollectionConfig(
-            name="TestFilterNested",
-            vectorizer_config=VectorizerFactory.none(),
-            properties=[Property(name="field", data_type=DataType.TEXT)],
-            inverted_index_config=InvertedIndexConfigCreate(index_property_length=True),
-        )
+        name="TestFilterNested",
+        vectorizer_config=VectorizerFactory.none(),
+        properties=[Property(name="field", data_type=DataType.TEXT)],
+        inverted_index_config=InvertedIndexConfigCreate(index_property_length=True),
     )
     uuids = [
         collection.data.insert({"field": "one"}),
@@ -160,12 +153,10 @@ def test_filters_comparison(
 ):
     client.collection.delete("TestFilterNumber")
     collection = client.collection.create(
-        CollectionConfig(
-            name="TestFilterNumber",
-            vectorizer_config=VectorizerFactory.none(),
-            properties=[Property(name="number", data_type=DataType.INT)],
-            inverted_index_config=InvertedIndexConfigCreate(index_null_state=True),
-        )
+        name="TestFilterNumber",
+        vectorizer_config=VectorizerFactory.none(),
+        properties=[Property(name="number", data_type=DataType.INT)],
+        inverted_index_config=InvertedIndexConfigCreate(index_null_state=True),
     )
 
     uuids = [
@@ -224,24 +215,22 @@ def test_filters_contains(
 ):
     client.collection.delete("TestFilterContains")
     collection = client.collection.create(
-        CollectionConfig(
-            name="TestFilterContains",
-            vectorizer_config=VectorizerFactory.none(),
-            properties=[
-                Property(name="text", data_type=DataType.TEXT),
-                Property(name="texts", data_type=DataType.TEXT_ARRAY),
-                Property(name="num", data_type=DataType.INT),
-                Property(name="nums", data_type=DataType.INT_ARRAY),
-                Property(name="float", data_type=DataType.NUMBER),
-                Property(name="floats", data_type=DataType.NUMBER_ARRAY),
-                Property(name="bool", data_type=DataType.BOOL),
-                Property(name="bools", data_type=DataType.BOOL_ARRAY),
-                Property(name="dates", data_type=DataType.DATE_ARRAY),
-                Property(name="date", data_type=DataType.DATE),
-                Property(name="uuids", data_type=DataType.UUID_ARRAY),
-                Property(name="uuid", data_type=DataType.UUID),
-            ],
-        )
+        name="TestFilterContains",
+        vectorizer_config=VectorizerFactory.none(),
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+            Property(name="texts", data_type=DataType.TEXT_ARRAY),
+            Property(name="num", data_type=DataType.INT),
+            Property(name="nums", data_type=DataType.INT_ARRAY),
+            Property(name="float", data_type=DataType.NUMBER),
+            Property(name="floats", data_type=DataType.NUMBER_ARRAY),
+            Property(name="bool", data_type=DataType.BOOL),
+            Property(name="bools", data_type=DataType.BOOL_ARRAY),
+            Property(name="dates", data_type=DataType.DATE_ARRAY),
+            Property(name="date", data_type=DataType.DATE),
+            Property(name="uuids", data_type=DataType.UUID_ARRAY),
+            Property(name="uuid", data_type=DataType.UUID),
+        ],
     )
 
     uuids = [
@@ -328,29 +317,25 @@ def test_ref_filters(client: weaviate.Client, weaviate_filter: _FilterValue, res
     client.collection.delete("TestFilterRef")
     client.collection.delete("TestFilterRef2")
     to_collection = client.collection.create(
-        CollectionConfig(
-            name="TestFilterRef2",
-            vectorizer_config=VectorizerFactory.none(),
-            properties=[
-                Property(name="int", data_type=DataType.INT),
-                Property(name="text", data_type=DataType.TEXT),
-            ],
-            inverted_index_config=InvertedIndexConfigCreate(index_property_length=True),
-        )
+        name="TestFilterRef2",
+        vectorizer_config=VectorizerFactory.none(),
+        properties=[
+            Property(name="int", data_type=DataType.INT),
+            Property(name="text", data_type=DataType.TEXT),
+        ],
+        inverted_index_config=InvertedIndexConfigCreate(index_property_length=True),
     )
     uuids_to = [
         to_collection.data.insert(properties={"int": 0, "text": "first"}),
         to_collection.data.insert(properties={"int": 15, "text": "second"}),
     ]
     from_collection = client.collection.create(
-        CollectionConfig(
-            name="TestFilterRef",
-            properties=[
-                ReferenceProperty(name="ref", target_collection="TestFilterRef2"),
-                Property(name="name", data_type=DataType.TEXT),
-            ],
-            vectorizer_config=VectorizerFactory.none(),
-        )
+        name="TestFilterRef",
+        properties=[
+            ReferenceProperty(name="ref", target_collection="TestFilterRef2"),
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=VectorizerFactory.none(),
     )
 
     uuids_from = [
@@ -373,25 +358,21 @@ def test_ref_filters_multi_target(client: weaviate.Client):
     client.collection.delete(source)
     client.collection.delete(target)
     to_collection = client.collection.create(
-        CollectionConfig(
-            name=target,
-            vectorizer_config=VectorizerFactory.none(),
-            properties=[Property(name="int", data_type=DataType.INT)],
-        )
+        name=target,
+        vectorizer_config=VectorizerFactory.none(),
+        properties=[Property(name="int", data_type=DataType.INT)],
     )
     uuid_to = to_collection.data.insert(properties={"int": 0})
     uuid_to2 = to_collection.data.insert(properties={"int": 5})
     from_collection = client.collection.create(
-        CollectionConfig(
-            name=source,
-            properties=[
-                ReferencePropertyMultiTarget(
-                    name="ref", target_collections=[target, "TestFilterRefMulti"]
-                ),
-                Property(name="name", data_type=DataType.TEXT),
-            ],
-            vectorizer_config=VectorizerFactory.none(),
-        )
+        name=source,
+        properties=[
+            ReferencePropertyMultiTarget(
+                name="ref", target_collections=[target, "TestFilterRefMulti"]
+            ),
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=VectorizerFactory.none(),
     )
 
     uuid_from_to_target1 = from_collection.data.insert(
