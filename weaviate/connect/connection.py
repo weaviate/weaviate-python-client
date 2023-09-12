@@ -116,6 +116,7 @@ class Connection:
         self.embedded_db = embedded_db
 
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
+        self.__additional_headers: Dict[str, str] = {}
 
         # create GRPC channel. If weaviate does not support GRPC, fallback to GraphQL is used.
         if has_grpc and grcp_port is not None:
@@ -147,6 +148,7 @@ class Connection:
                 raise TypeError(
                     f"'additional_headers' must be of type dict or None. Given type: {type(additional_headers)}."
                 )
+            self.__additional_headers = additional_headers
             for key, value in additional_headers.items():
                 self._headers[key.lower()] = value
 
@@ -668,6 +670,10 @@ class Connection:
         Version of the weaviate instance.
         """
         return self._server_version
+
+    @property
+    def additional_headers(self) -> Dict[str, str]:
+        return self.__additional_headers
 
     def get_meta(self) -> Dict[str, str]:
         """

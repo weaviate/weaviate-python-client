@@ -270,8 +270,15 @@ class PropertyVectorizerConfig(ConfigCreateModel):
 class GenerativeFactory:
     @classmethod
     def OpenAI(cls) -> GenerativeConfig:
-        """Return a `VectorizerConfig` object with the vectorizer set to `Vectorizer.NONE`"""
         return GenerativeConfig(generative=GenerativeSearches.OPENAI)
+
+    @classmethod
+    def Cohere(cls) -> GenerativeConfig:
+        return GenerativeConfig(generative=GenerativeSearches.COHERE)
+
+    @classmethod
+    def Palm(cls) -> GenerativeConfig:
+        return GenerativeConfig(generative=GenerativeSearches.PALM)
 
 
 class Text2VecContextionaryConfig(VectorizerConfig):
