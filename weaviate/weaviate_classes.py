@@ -1,5 +1,6 @@
 from weaviate.collection.classes.config import (
     CollectionConfig,
+    ConfigFactory,
     DataType,
     InvertedIndexConfig,
     Multi2VecBindConfig,
@@ -51,6 +52,7 @@ __all__ = [
     "BaseProperty",
     "CollectionConfig",
     "CollectionModelConfig",
+    "ConfigFactory",
     "DataObject",
     "DataType",
     "HybridFusion",

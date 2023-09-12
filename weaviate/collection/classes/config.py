@@ -998,3 +998,11 @@ class CollectionConfig(CollectionConfigCreateBase):
             ]
 
         return ret_dict
+
+
+class ConfigFactory:
+    InvertedIndex = InvertedIndexConfig
+    MultiTenancy = MultiTenancyConfig
+    Replication = ReplicationConfig
+    Sharding = ShardingConfig
+    VectorIndex = VectorIndexConfig
