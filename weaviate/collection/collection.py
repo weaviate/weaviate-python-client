@@ -1,7 +1,7 @@
 from typing import Generic, List, Optional, Type, Union
 
 from weaviate.collection.classes.config import (
-    CollectionConfigCreate,
+    _CollectionConfigCreate,
     ConsistencyLevel,
     GenerativeConfig,
     InvertedIndexConfigCreate,
@@ -70,7 +70,7 @@ class Collection(CollectionBase):
         vector_index_type: VectorIndexType = VectorIndexType.HNSW,
         vectorizer_config: Optional[VectorizerConfig] = None,
     ) -> CollectionObject[Properties]:
-        config = CollectionConfigCreate(
+        config = _CollectionConfigCreate(
             description=description,
             generative_search=generative_search,
             inverted_index_config=inverted_index_config,

@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field, field_validator
 from pydantic_core import PydanticUndefined
 
 from weaviate.collection.classes.config import (
-    CollectionConfigCreateBase,
+    _CollectionConfigCreateBase,
     PropertyConfig,
     Property,
     ReferenceProperty,
@@ -217,7 +217,7 @@ class RefToObjectModel(BaseModel, Generic[Model]):
 UserModelType = Type[BaseProperty]
 
 
-class CollectionModelConfig(CollectionConfigCreateBase, Generic[Model]):
+class CollectionModelConfig(_CollectionConfigCreateBase, Generic[Model]):
     model: Type[Model]
 
     def to_dict(self) -> Dict[str, Any]:

@@ -3,7 +3,7 @@ from typing import Dict, Any, List, Optional, Type, Tuple, cast
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.classes.config import (
-    CollectionConfigUpdate,
+    _CollectionConfigUpdate,
     InvertedIndexConfigUpdate,
     ReplicationConfigUpdate,
     PropertyType,
@@ -81,7 +81,7 @@ class _ConfigBase:
         desired options.
         - This is not the case of adding properties, which can be done with `collection.config.add_property()`.
         """
-        config = CollectionConfigUpdate(
+        config = _CollectionConfigUpdate(
             description=description,
             inverted_index_config=inverted_index_config,
             replication_config=replication_config,
