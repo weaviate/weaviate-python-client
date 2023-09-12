@@ -1,6 +1,7 @@
 from weaviate.collection.classes.config import (
     ConfigFactory,
     DataType,
+    GenerativeFactory,
     Multi2VecField,
     Property,
     PropertyVectorizerConfig,
@@ -38,6 +39,7 @@ __all__ = [
     "DataObject",
     "DataType",
     "HybridFusion",
+    "GenerativeFactory",
     "GetObjectByIdMetadata",
     "GetObjectsMetadata",
     "LinkTo",
