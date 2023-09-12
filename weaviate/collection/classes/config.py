@@ -268,7 +268,7 @@ class _VectorizerConfig(_ConfigCreateModel):
 
 class PropertyVectorizerConfig(_ConfigCreateModel):
     skip: bool = Field(default=True)
-    vectorizePropertyName: bool = Field(default=True, alias="vectorizePropertyName")
+    vectorizePropertyName: bool = Field(default=True, alias="vectorize_property_name")
 
 
 class GenerativeFactory:
