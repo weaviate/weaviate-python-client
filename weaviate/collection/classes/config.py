@@ -148,7 +148,7 @@ class PQConfigCreate(ConfigCreateModel):
     enabled: bool
     encoder: PQEncoderConfigCreate
     segments: int
-    trainingLimit: int
+    trainingLimit: int = Field(..., ge=1000000)
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
@@ -247,9 +247,6 @@ class InvertedIndexConfigCreate(ConfigCreateModel):
 class InvertedIndexConfigUpdate(ConfigUpdateModel):
     bm25: Optional[BM25ConfigUpdate]
     cleanupIntervalSeconds: Optional[int]
-    indexTimestamps: Optional[bool]
-    indexPropertyLength: Optional[bool]
-    indexNullState: Optional[bool]
     stopwords: Optional[StopwordsUpdate]
 
 
@@ -546,6 +543,9 @@ class _StopwordsConfig:
 class _InvertedIndexConfig:
     bm25: _BM25Config
     cleanup_interval_seconds: int
+    index_null_state: bool
+    index_property_length: bool
+    index_timestamps: bool
     stopwords: _StopwordsConfig
 
 
@@ -591,7 +591,7 @@ class _Property:
 
 
 @dataclass
-class _ReplicationFactor:
+class _ReplicationConfig:
     factor: int
 
 
@@ -626,7 +626,7 @@ class _PQConfig:
 @dataclass
 class _VectorIndexConfig:
     cleanup_interval_seconds: int
-    distance: VectorDistance
+    distance_metric: VectorDistance
     dynamic_ef_min: int
     dynamic_ef_max: int
     dynamic_ef_factor: int
@@ -646,7 +646,7 @@ class _CollectionConfig:
     inverted_index_config: _InvertedIndexConfig
     multi_tenancy_config: _MultiTenancyConfig
     properties: List[_Property]
-    replication_factor: _ReplicationFactor
+    replication_config: _ReplicationConfig
     sharding_config: _ShardingConfig
     vector_index_config: _VectorIndexConfig
     vector_index_type: VectorIndexType
@@ -850,11 +850,11 @@ class ConfigFactory:
         cls,
         cleanup_interval_seconds: int = 300,
         distance_metric: VectorDistance = VectorDistance.COSINE,
-        dynamic_ef_min: int = 100,
-        dynamic_ef_max: int = 500,
         dynamic_ef_factor: int = 8,
-        ef_construction: int = 128,
+        dynamic_ef_max: int = 500,
+        dynamic_ef_min: int = 100,
         ef: int = -1,
+        ef_construction: int = 128,
         flat_search_cutoff: int = 40000,
         max_connections: int = 64,
         pq_bit_compression: bool = False,
@@ -863,7 +863,7 @@ class ConfigFactory:
         pq_encoder_distribution: PQEncoderDistribution = PQEncoderDistribution.LOG_NORMAL,
         pq_encoder_type: PQEncoderType = PQEncoderType.KMEANS,
         pq_segments: int = 0,
-        pq_training_limit: int = 10000,
+        pq_training_limit: int = 100000,
         skip: bool = False,
         vector_cache_max_objects: int = 1000000000000,
     ) -> VectorIndexConfigCreate:
@@ -900,11 +900,8 @@ class ConfigUpdateFactory:
         bm25_b: Optional[float] = None,
         bm25_k1: Optional[float] = None,
         cleanup_interval_seconds: Optional[int] = None,
-        index_timestamps: Optional[bool] = None,
-        index_property_length: Optional[bool] = None,
-        index_null_state: Optional[bool] = None,
-        stopwords_preset: Optional[StopwordsPreset] = None,
         stopwords_additions: Optional[List[str]] = None,
+        stopwords_preset: Optional[StopwordsPreset] = None,
         stopwords_removals: Optional[List[str]] = None,
     ) -> InvertedIndexConfigUpdate:
         """Create an `InvertedIndexConfigUpdate` object.
@@ -926,19 +923,12 @@ class ConfigUpdateFactory:
         return InvertedIndexConfigUpdate(
             bm25=BM25ConfigUpdate(b=bm25_b, k1=bm25_k1),
             cleanupIntervalSeconds=cleanup_interval_seconds,
-            indexTimestamps=index_timestamps,
-            indexPropertyLength=index_property_length,
-            indexNullState=index_null_state,
             stopwords=StopwordsUpdate(
                 preset=stopwords_preset,
                 additions=stopwords_additions,
                 removals=stopwords_removals,
             ),
         )
-
-    @classmethod
-    def multi_tenancy(cls, enabled: bool = False) -> MultiTenancyConfigUpdate:
-        return MultiTenancyConfigUpdate(enabled=enabled)
 
     @classmethod
     def replication(cls, factor: int = 1) -> ReplicationConfigUpdate:

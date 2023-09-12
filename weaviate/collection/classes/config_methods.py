@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, cast
 
 from weaviate.collection.classes.config import (
     _CollectionConfig,
@@ -11,7 +11,7 @@ from weaviate.collection.classes.config import (
     _Property,
     _ReferenceDataType,
     _ReferenceDataTypeMultiTarget,
-    _ReplicationFactor,
+    _ReplicationConfig,
     _ShardingConfig,
     _VectorIndexConfig,
     StopwordsPreset,
@@ -49,6 +49,14 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
                 k1=schema["invertedIndexConfig"]["bm25"]["k1"],
             ),
             cleanup_interval_seconds=schema["invertedIndexConfig"]["cleanupIntervalSeconds"],
+            index_null_state=cast(dict, schema["invertedIndexConfig"]).get("indexNullState")
+            is True,
+            index_property_length=cast(dict, schema["invertedIndexConfig"]).get(
+                "indexPropertyLength"
+            )
+            is True,
+            index_timestamps=cast(dict, schema["invertedIndexConfig"]).get("indexTimestamps")
+            is True,
             stopwords=_StopwordsConfig(
                 preset=StopwordsPreset(schema["invertedIndexConfig"]["stopwords"]["preset"]),
                 additions=schema["invertedIndexConfig"]["stopwords"]["additions"],
@@ -71,7 +79,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
         ]
         if schema.get("properties") is not None
         else [],
-        replication_factor=_ReplicationFactor(factor=schema["replicationConfig"]["factor"]),
+        replication_config=_ReplicationConfig(factor=schema["replicationConfig"]["factor"]),
         sharding_config=_ShardingConfig(
             virtual_per_physical=schema["shardingConfig"]["virtualPerPhysical"],
             desired_count=schema["shardingConfig"]["desiredCount"],
@@ -84,7 +92,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
         ),
         vector_index_config=_VectorIndexConfig(
             cleanup_interval_seconds=schema["vectorIndexConfig"]["cleanupIntervalSeconds"],
-            distance=VectorDistance(schema["vectorIndexConfig"]["distance"]),
+            distance_metric=VectorDistance(schema["vectorIndexConfig"]["distance"]),
             dynamic_ef_min=schema["vectorIndexConfig"]["dynamicEfMin"],
             dynamic_ef_max=schema["vectorIndexConfig"]["dynamicEfMax"],
             dynamic_ef_factor=schema["vectorIndexConfig"]["dynamicEfFactor"],

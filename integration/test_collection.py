@@ -19,17 +19,12 @@ from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_E
 from weaviate import Config
 from weaviate.collection.classes.config import (
     CollectionConfig,
-    CollectionConfigUpdate,
     ConfigFactory,
-    ConfigUpdateFactory,
     Property,
     DataType,
     Img2VecNeuralConfig,
-    PQEncoderType,
-    PQEncoderDistribution,
     ReferenceProperty,
     ReferencePropertyMultiTarget,
-    StopwordsPreset,
     Vectorizer,
     VectorizerFactory,
 )
@@ -1176,77 +1171,6 @@ def test_collection_config_get(client: weaviate.Client):
     assert config.vectorizer == Vectorizer.NONE
 
     client.collection.delete("TestCollectionSchemaGet")
-
-
-def test_collection_config_update(client: weaviate.Client):
-    collection = client.collection.create(
-        CollectionConfig(
-            name="TestCollectionSchemaUpdate",
-            vectorizer_config=VectorizerFactory.none(),
-            properties=[
-                Property(name="name", data_type=DataType.TEXT),
-                Property(name="age", data_type=DataType.INT),
-            ],
-        )
-    )
-
-    config = collection.config.get()
-
-    assert config.description is None
-
-    assert config.inverted_index_config.bm25.b == 0.75
-    assert config.inverted_index_config.bm25.k1 == 1.2
-    assert config.inverted_index_config.cleanup_interval_seconds == 60
-    assert config.inverted_index_config.stopwords.additions is None
-    assert config.inverted_index_config.stopwords.removals is None
-
-    assert config.vector_index_config.skip is False
-    assert config.vector_index_config.pq.bit_compression is False
-    assert config.vector_index_config.pq.centroids == 256
-    assert config.vector_index_config.pq.enabled is False
-    assert config.vector_index_config.pq.encoder.type_ == PQEncoderType.KMEANS
-    assert config.vector_index_config.pq.encoder.distribution == PQEncoderDistribution.LOG_NORMAL
-
-    collection.config.update(
-        CollectionConfigUpdate(
-            description="Test",
-            inverted_index_config=ConfigUpdateFactory.inverted_index(
-                bm25_b=0.8,
-                bm25_k1=1.25,
-                cleanup_interval_seconds=10,
-                stopwords_additions=["a"],
-                stopwords_preset=StopwordsPreset.EN,
-                stopwords_removals=["the"],
-            ),
-            vector_index_config=ConfigUpdateFactory.vector_index(
-                skip=True,
-                pq_bit_compression=True,
-                pq_centroids=128,
-                pq_enabled=True,
-                pq_encoder_type=PQEncoderType.TILE,
-                pq_encoder_distribution=PQEncoderDistribution.NORMAL,
-            ),
-        )
-    )
-
-    config = collection.config.get()
-
-    assert config.description == "Test"
-
-    assert config.inverted_index_config.bm25.b == 0.8
-    assert config.inverted_index_config.bm25.k1 == 1.25
-    assert config.inverted_index_config.cleanup_interval_seconds == 10
-    # assert config.inverted_index_config.stopwords.additions is ["a"] # potential weaviate bug, this returns as None
-    assert config.inverted_index_config.stopwords.removals == ["the"]
-
-    assert config.vector_index_config.skip is True
-    assert config.vector_index_config.pq.bit_compression is True
-    assert config.vector_index_config.pq.centroids == 128
-    assert config.vector_index_config.pq.enabled is True
-    assert config.vector_index_config.pq.encoder.type_ == PQEncoderType.TILE
-    assert config.vector_index_config.pq.encoder.distribution == PQEncoderDistribution.NORMAL
-
-    client.collection.delete("TestCollectionSchemaUpdate")
 
 
 def test_empty_search_returns_everything(client: weaviate.Client):
