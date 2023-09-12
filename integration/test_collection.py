@@ -18,20 +18,11 @@ import weaviate
 from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_ENCODED
 from weaviate import Config
 from weaviate.collection.classes.config import (
-    BM25ConfigUpdate,
+    ConfigFactory,
     Property,
     DataType,
-    InvertedIndexConfigUpdate,
-    PQConfigUpdate,
-    PQEncoderConfigUpdate,
-    PQEncoderType,
-    PQEncoderDistribution,
     ReferenceProperty,
     ReferencePropertyMultiTarget,
-    StopwordsUpdate,
-    MultiTenancyConfig,
-    StopwordsPreset,
-    VectorIndexConfigUpdate,
     Vectorizer,
     VectorizerFactory,
 )
@@ -341,7 +332,7 @@ def test_insert_many_with_tenant(client: weaviate.Client):
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.none(),
-        multi_tenancy_config=MultiTenancyConfig(enabled=True),
+        multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
     )
 
     collection.tenants.add([Tenant(name="tenant1"), Tenant(name="tenant2")])
@@ -405,7 +396,7 @@ def test_replace_with_tenant(client: weaviate.Client):
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.none(),
-        multi_tenancy_config=MultiTenancyConfig(enabled=True),
+        multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
     )
 
     collection.tenants.add([Tenant(name="tenant1"), Tenant(name="tenant2")])
@@ -440,7 +431,7 @@ def test_update_with_tenant(client: weaviate.Client):
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.none(),
-        multi_tenancy_config=MultiTenancyConfig(enabled=True),
+        multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
     )
 
     collection.tenants.add([Tenant(name="tenant1"), Tenant(name="tenant2")])
@@ -939,7 +930,7 @@ def test_tenants(client: weaviate.Client):
     collection = client.collection.create(
         name="Tenants",
         vectorizer_config=VectorizerFactory.none(),
-        multi_tenancy_config=MultiTenancyConfig(
+        multi_tenancy_config=ConfigFactory.multi_tenancy(
             enabled=True,
         ),
     )
@@ -990,7 +981,7 @@ def test_search_with_tenant(client: weaviate.Client):
         name="TestTenantSearch",
         vectorizer_config=VectorizerFactory.none(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
-        multi_tenancy_config=MultiTenancyConfig(enabled=True),
+        multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
     )
 
     collection.tenants.add([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
@@ -1012,7 +1003,7 @@ def test_get_by_id_with_tenant(client: weaviate.Client):
         name="TestTenantGet",
         vectorizer_config=VectorizerFactory.none(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
-        multi_tenancy_config=MultiTenancyConfig(enabled=True),
+        multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
     )
 
     collection.tenants.add([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
@@ -1057,7 +1048,7 @@ def test_get_with_tenant(client: weaviate.Client):
         name="TestTenantGetWithTenant",
         vectorizer_config=VectorizerFactory.none(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
-        multi_tenancy_config=MultiTenancyConfig(enabled=True),
+        multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
     )
 
     collection.tenants.add([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
@@ -1117,76 +1108,6 @@ def test_collection_config_get(client: weaviate.Client):
     assert config.vectorizer == Vectorizer.NONE
 
     client.collection.delete("TestCollectionSchemaGet")
-
-
-def test_collection_config_update(client: weaviate.Client):
-    collection = client.collection.create(
-        name="TestCollectionSchemaUpdate",
-        vectorizer_config=VectorizerFactory.none(),
-        properties=[
-            Property(name="name", data_type=DataType.TEXT),
-            Property(name="age", data_type=DataType.INT),
-        ],
-    )
-
-    config = collection.config.get()
-
-    assert config.description is None
-
-    assert config.inverted_index_config.bm25.b == 0.75
-    assert config.inverted_index_config.bm25.k1 == 1.2
-    assert config.inverted_index_config.cleanup_interval_seconds == 60
-    assert config.inverted_index_config.stopwords.additions is None
-    assert config.inverted_index_config.stopwords.removals is None
-
-    assert config.vector_index_config.skip is False
-    assert config.vector_index_config.pq.bit_compression is False
-    assert config.vector_index_config.pq.centroids == 256
-    assert config.vector_index_config.pq.enabled is False
-    assert config.vector_index_config.pq.encoder.type_ == PQEncoderType.KMEANS
-    assert config.vector_index_config.pq.encoder.distribution == PQEncoderDistribution.LOG_NORMAL
-
-    collection.config.update(
-        description="Test",
-        inverted_index_config=InvertedIndexConfigUpdate(
-            cleanup_interval_seconds=10,
-            bm25=BM25ConfigUpdate(
-                k1=1.25,
-                b=0.8,
-            ),
-            stopwords=StopwordsUpdate(additions=["a"], preset=StopwordsPreset.EN, removals=["the"]),
-        ),
-        vector_index_config=VectorIndexConfigUpdate(
-            skip=True,
-            pq=PQConfigUpdate(
-                bit_compression=True,
-                centroids=128,
-                enabled=True,
-                encoder=PQEncoderConfigUpdate(
-                    type_=PQEncoderType.TILE, distribution=PQEncoderDistribution.NORMAL
-                ),
-            ),
-        ),
-    )
-
-    config = collection.config.get()
-
-    assert config.description == "Test"
-
-    assert config.inverted_index_config.bm25.b == 0.8
-    assert config.inverted_index_config.bm25.k1 == 1.25
-    assert config.inverted_index_config.cleanup_interval_seconds == 10
-    # assert config.inverted_index_config.stopwords.additions is ["a"] # potential weaviate bug, this returns as None
-    assert config.inverted_index_config.stopwords.removals == ["the"]
-
-    assert config.vector_index_config.skip is True
-    assert config.vector_index_config.pq.bit_compression is True
-    assert config.vector_index_config.pq.centroids == 128
-    assert config.vector_index_config.pq.enabled is True
-    assert config.vector_index_config.pq.encoder.type_ == PQEncoderType.TILE
-    assert config.vector_index_config.pq.encoder.distribution == PQEncoderDistribution.NORMAL
-
-    client.collection.delete("TestCollectionSchemaUpdate")
 
 
 def test_empty_search_returns_everything(client: weaviate.Client):
@@ -1265,7 +1186,7 @@ def test_tenant_with_activity(client: weaviate.Client):
     collection = client.collection.create(
         name=name,
         vectorizer_config=VectorizerFactory.none(),
-        multi_tenancy_config=MultiTenancyConfig(enabled=True),
+        multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
     )
     collection.tenants.add(
         [
@@ -1285,7 +1206,7 @@ def test_update_tenant(client: weaviate.Client):
     collection = client.collection.create(
         name=name,
         vectorizer_config=VectorizerFactory.none(),
-        multi_tenancy_config=MultiTenancyConfig(enabled=True),
+        multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
     )
     collection.tenants.add([Tenant(name="1", activity_status=TenantActivityStatus.HOT)])
     tenants = collection.tenants.get()

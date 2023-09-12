@@ -4,11 +4,10 @@ from weaviate.collection.classes.config import (
     _CollectionConfigCreate,
     DataType,
     Multi2VecField,
-    VectorizerConfig,
+    _VectorizerConfig,
     VectorizerFactory,
     Property,
     PropertyVectorizerConfig,
-    Vectorizer,
 )
 
 
@@ -294,7 +293,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
 
 
 @pytest.mark.parametrize("vectorizer_config,expected", TEST_CONFIG_WITH_MODULE_PARAMETERS)
-def test_config_with_module(vectorizer_config: VectorizerConfig, expected: dict):
+def test_config_with_module(vectorizer_config: _VectorizerConfig, expected: dict):
     config = _CollectionConfigCreate(name="test", vectorizer_config=vectorizer_config)
     assert config.to_dict() == {
         **DEFAULTS,
@@ -343,7 +342,7 @@ TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
     TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS,
 )
 def test_config_with_module_and_properties(
-    vectorizer_config: VectorizerConfig,
+    vectorizer_config: _VectorizerConfig,
     properties: List[Property],
     expected_mc: dict,
     expected_props: dict,
@@ -364,7 +363,7 @@ def test_config_with_properties():
     config = _CollectionConfigCreate(
         name="test",
         description="test",
-        vectorizer_config=VectorizerConfig(vectorizer=Vectorizer.NONE),
+        vectorizer_config=VectorizerFactory.none(),
         properties=[
             Property(
                 name="text",

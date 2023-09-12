@@ -7,11 +7,11 @@ import pytest as pytest
 import weaviate
 from weaviate import Config
 from weaviate.collection.classes.config import (
+    ConfigFactory,
     Property,
     DataType,
     ReferenceProperty,
     ReferencePropertyMultiTarget,
-    InvertedIndexConfigCreate,
     VectorizerFactory,
 )
 from weaviate.collection.classes.filters import (
@@ -100,7 +100,7 @@ def test_filters_nested(
         name="TestFilterNested",
         vectorizer_config=VectorizerFactory.none(),
         properties=[Property(name="num", data_type=DataType.NUMBER)],
-        inverted_index_config=InvertedIndexConfigCreate(index_null_state=True),
+        inverted_index_config=ConfigFactory.inverted_index(index_null_state=True),
     )
 
     uuids = [
@@ -125,7 +125,7 @@ def test_length_filter(client: weaviate.Client):
         name="TestFilterNested",
         vectorizer_config=VectorizerFactory.none(),
         properties=[Property(name="field", data_type=DataType.TEXT)],
-        inverted_index_config=InvertedIndexConfigCreate(index_property_length=True),
+        inverted_index_config=ConfigFactory.inverted_index(index_property_length=True),
     )
     uuids = [
         collection.data.insert({"field": "one"}),
@@ -156,7 +156,7 @@ def test_filters_comparison(
         name="TestFilterNumber",
         vectorizer_config=VectorizerFactory.none(),
         properties=[Property(name="number", data_type=DataType.INT)],
-        inverted_index_config=InvertedIndexConfigCreate(index_null_state=True),
+        inverted_index_config=ConfigFactory.inverted_index(index_null_state=True),
     )
 
     uuids = [
@@ -323,7 +323,7 @@ def test_ref_filters(client: weaviate.Client, weaviate_filter: _FilterValue, res
             Property(name="int", data_type=DataType.INT),
             Property(name="text", data_type=DataType.TEXT),
         ],
-        inverted_index_config=InvertedIndexConfigCreate(index_property_length=True),
+        inverted_index_config=ConfigFactory.inverted_index(index_property_length=True),
     )
     uuids_to = [
         to_collection.data.insert(properties={"int": 0, "text": "first"}),

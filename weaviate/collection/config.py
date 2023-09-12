@@ -4,10 +4,10 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.classes.config import (
     _CollectionConfigUpdate,
-    InvertedIndexConfigUpdate,
-    ReplicationConfigUpdate,
+    _InvertedIndexConfigUpdate,
+    _ReplicationConfigUpdate,
     PropertyType,
-    VectorIndexConfigUpdate,
+    _VectorIndexConfigUpdate,
     _CollectionConfig,
     _Property,
 )
@@ -59,9 +59,9 @@ class _ConfigBase:
     def update(
         self,
         description: Optional[str] = None,
-        inverted_index_config: Optional[InvertedIndexConfigUpdate] = None,
-        replication_config: Optional[ReplicationConfigUpdate] = None,
-        vector_index_config: Optional[VectorIndexConfigUpdate] = None,
+        inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
+        replication_config: Optional[_ReplicationConfigUpdate] = None,
+        vector_index_config: Optional[_VectorIndexConfigUpdate] = None,
     ) -> None:
         """Update the configuration for this collection in Weaviate.
 
