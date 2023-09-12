@@ -172,11 +172,9 @@ def test_openapi_invalid_key():
     name = "TestGenerativeSearchOpenAIError"
     local_client.collection.delete(name)
     collection = local_client.collection.create(
-        CollectionConfig(
-            name=name,
-            properties=[Property(name="text", data_type=DataType.TEXT)],
-            generative_search=GenerativeFactory.OpenAI(),
-        )
+        name=name,
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        generative_search=GenerativeFactory.OpenAI(),
     )
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):
@@ -193,11 +191,9 @@ def test_openapi_no_module():
     name = "TestGenerativeSearchNoModule"
     local_client.collection.delete(name)
     collection = local_client.collection.create(
-        CollectionConfig(
-            name=name,
-            properties=[Property(name="text", data_type=DataType.TEXT)],
-            generative_search=GenerativeFactory.OpenAI(),
-        )
+        name=name,
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        generative_search=GenerativeFactory.OpenAI(),
     )
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):
