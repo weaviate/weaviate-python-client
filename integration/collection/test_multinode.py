@@ -1,7 +1,6 @@
 import pytest
 
-import weaviate
-from weaviate import Config
+from weaviate.collection import Collection
 from weaviate.collection.classes.config import (
     ConfigFactory,
     VectorizerFactory,
@@ -13,23 +12,13 @@ from weaviate.collection.classes.data import DataObject
 from weaviate.collection.classes.grpc import MetadataQuery
 
 
-@pytest.fixture(scope="module")
-def client():
-    client = weaviate.Client(
-        "http://localhost:8087", additional_config=Config(grpc_port_experimental=50058)
-    )
-    client.schema.delete_all()
-    yield client
-    client.schema.delete_all()
-
-
 @pytest.mark.parametrize(
     "level", [ConsistencyLevel.ONE, ConsistencyLevel.ALL, ConsistencyLevel.QUORUM]
 )
-def test_consistency_on_multinode(client: weaviate.Client, level: ConsistencyLevel):
+def test_consistency_on_multinode(collection_multinode: Collection, level: ConsistencyLevel):
     name = "TestConsistency"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    collection_multinode.delete(name)
+    collection = collection_multinode.create(
         name=name,
         vectorizer_config=VectorizerFactory.none(),
         properties=[

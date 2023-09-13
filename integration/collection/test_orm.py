@@ -37,7 +37,7 @@ class Group(BaseProperty):
 @pytest.fixture(scope="module")
 def client():
     client = weaviate.Client(
-        "http://localhost:8080", additional_config=Config(grpc_port_experimental=50051)
+        "http://localhost:8087", additional_config=Config(grpc_port_experimental=50058)
     )
     client.collection_model.delete(Group)
     collection = client.collection_model.create(
@@ -257,6 +257,8 @@ def test_multi_searches(client: weaviate.Client):
     assert objects[0].metadata.uuid is not None
     assert objects[0].metadata.last_update_time_unix is None
 
+    client.collection_model.delete(TestMultiSearches)
+
 
 @pytest.mark.skip(reason="ORM models do not support references yet")
 def test_multi_searches_with_references(client: weaviate.Client):
@@ -324,6 +326,8 @@ def test_search_with_tenant(client: weaviate.Client):
 
     objects2 = tenant2.query.bm25(query="some", return_metadata=MetadataQuery(uuid=True))
     assert len(objects2) == 0
+
+    client.collection_model.delete(TestTenantSearch)
 
 
 def make_list() -> List[int]:

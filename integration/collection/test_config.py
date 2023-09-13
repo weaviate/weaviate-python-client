@@ -1,7 +1,4 @@
-import pytest as pytest
-
-import weaviate
-from weaviate import Config
+from weaviate.collection import Collection
 from weaviate.collection.classes.config import (
     ConfigFactory,
     ConfigUpdateFactory,
@@ -17,18 +14,27 @@ from weaviate.collection.classes.config import (
 )
 
 
-@pytest.fixture(scope="module")
-def client():
-    client = weaviate.Client(
-        "http://localhost:8087", additional_config=Config(grpc_port_experimental=50051)
+def test_collection_config_get(collection_basic: Collection):
+    collection = collection_basic.create(
+        name="TestCollectionSchemaGet",
+        vectorizer_config=VectorizerFactory.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+            Property(name="age", data_type=DataType.INT),
+        ],
     )
-    client.schema.delete_all()
-    yield client
-    client.schema.delete_all()
+    config = collection.config.get()
+    assert config.name == "TestCollectionSchemaGet"
+    assert len(config.properties) == 2
+    assert config.properties[0].name == "name"
+    assert config.properties[0].data_type == DataType.TEXT
+    assert config.properties[1].name == "age"
+    assert config.properties[1].data_type == DataType.INT
+    assert config.vectorizer == Vectorizer.NONE
 
 
-def test_collection_config_empty(client: weaviate.Client):
-    collection = client.collection.create(
+def test_collection_config_empty(collection_multinode: Collection):
+    collection = collection_multinode.create(
         name="TestCollectionConfigEmpty",
     )
     config = collection.config.get()
@@ -74,11 +80,9 @@ def test_collection_config_empty(client: weaviate.Client):
 
     assert config.vector_index_type == VectorIndexType.HNSW
 
-    client.collection.delete("TestCollectionConfigDefaults")
 
-
-def test_collection_config_defaults(client: weaviate.Client):
-    collection = client.collection.create(
+def test_collection_config_defaults(collection_multinode: Collection):
+    collection = collection_multinode.create(
         name="TestCollectionConfigDefaults",
         inverted_index_config=ConfigFactory.inverted_index(),
         multi_tenancy_config=ConfigFactory.multi_tenancy(),
@@ -130,8 +134,8 @@ def test_collection_config_defaults(client: weaviate.Client):
     assert config.vector_index_type == VectorIndexType.HNSW
 
 
-def test_collection_config_full(client: weaviate.Client):
-    collection = client.collection.create(
+def test_collection_config_full(collection_multinode: Collection):
+    collection = collection_multinode.create(
         name="TestCollectionConfigFull",
         description="Test",
         vectorizer_config=VectorizerFactory.none(),
@@ -249,11 +253,9 @@ def test_collection_config_full(client: weaviate.Client):
 
     assert config.vector_index_type == VectorIndexType.HNSW
 
-    client.collection.delete("TestCollectionConfigFull")
 
-
-def test_collection_config_update(client: weaviate.Client):
-    collection = client.collection.create(
+def test_collection_config_update(collection_multinode: Collection):
+    collection = collection_multinode.create(
         name="TestCollectionConfigUpdate",
         vectorizer_config=VectorizerFactory.none(),
         properties=[
@@ -321,5 +323,3 @@ def test_collection_config_update(client: weaviate.Client):
     assert config.vector_index_config.vector_cache_max_objects == 2000000
 
     assert config.vector_index_type == VectorIndexType.HNSW
-
-    client.collection.delete("TestCollectionSchemaUpdate")

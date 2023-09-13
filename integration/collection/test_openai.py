@@ -1,9 +1,6 @@
-import os
-
 import pytest
 
-import weaviate
-from weaviate import Config
+from weaviate.collection import Collection
 from weaviate.collection.classes.config import (
     DataType,
     Property,
@@ -14,27 +11,11 @@ from weaviate.collection.classes.data import DataObject
 from weaviate.exceptions import WeaviateGRPCException
 
 
-@pytest.fixture(scope="module")
-def client():
-    api_key = os.environ.get("OPENAI_APIKEY")
-    if api_key is None:
-        pytest.skip("No OpenAI API key found.")
-
-    client = weaviate.Client(
-        "http://localhost:8086",
-        additional_config=Config(grpc_port_experimental=50057),  # ports with generative module
-        additional_headers={"X-OpenAI-Api-Key": api_key},
-    )
-    client.schema.delete_all()
-    yield client
-    client.schema.delete_all()
-
-
 @pytest.mark.parametrize("parameter,answer", [("text", "Yes"), ("content", "No")])
-def test_generative_search_single(client: weaviate.Client, parameter: str, answer: str):
+def test_generative_search_single(collection_openai: Collection, parameter: str, answer: str):
     name = "TestGenerativeSearchOpenAISingle"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    collection_openai.delete(name)
+    collection = collection_openai.create(
         name=name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -61,10 +42,10 @@ def test_generative_search_single(client: weaviate.Client, parameter: str, answe
 @pytest.mark.parametrize(
     "prop,answer", [(["text"], "apples bananas"), (["content"], "bananas apples")]
 )
-def test_generative_search_grouped(client: weaviate.Client, prop: str, answer: str):
+def test_generative_search_grouped(collection_openai: Collection, prop: str, answer: str):
     name = "TestGenerativeSearchOpenAIGroup"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    collection_openai.delete(name)
+    collection = collection_openai.create(
         name=name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -88,10 +69,10 @@ def test_generative_search_grouped(client: weaviate.Client, prop: str, answer: s
     assert res.generative_combined_result == answer
 
 
-def test_generative_search_grouped_all_props(client: weaviate.Client):
+def test_generative_search_grouped_all_props(collection_openai: Collection):
     name = "TestGenerativeSearchOpenAIGroupWithProp"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    collection_openai.delete(name)
+    collection = collection_openai.create(
         name=name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -124,10 +105,10 @@ def test_generative_search_grouped_all_props(client: weaviate.Client):
     assert res.generative_combined_result == "Teddy cats"
 
 
-def test_generative_with_everything(client: weaviate.Client):
+def test_generative_with_everything(collection_openai: Collection):
     name = "TestGenerativeSearchOpenAI"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    collection_openai.delete(name)
+    collection = collection_openai.create(
         name=name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -163,16 +144,10 @@ def test_generative_with_everything(client: weaviate.Client):
         assert obj.metadata.generative == "Yes"
 
 
-def test_openapi_invalid_key():
-    local_client = weaviate.Client(
-        "http://localhost:8086",
-        additional_config=Config(grpc_port_experimental=50057),
-        additional_headers={"X-OpenAI-Api-Key": "IamNotValid"},
-    )
-
+def test_openapi_invalid_key(collection_openai_invalid_key: Collection):
     name = "TestGenerativeSearchOpenAIError"
-    local_client.collection.delete(name)
-    collection = local_client.collection.create(
+    collection_openai_invalid_key.delete(name)
+    collection = collection_openai_invalid_key.create(
         name=name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
         generative_search=GenerativeFactory.OpenAI(),
@@ -182,16 +157,10 @@ def test_openapi_invalid_key():
         collection.query.generative(prompt_per_object="tell a joke based on {text}")
 
 
-def test_openapi_no_module():
-    local_client = weaviate.Client(
-        "http://localhost:8080",  # main version that does not have a generative module
-        additional_config=Config(grpc_port_experimental=50051),
-        additional_headers={"X-OpenAI-Api-Key": "doesnt matter"},
-    )
-
+def test_openapi_no_module(collection_openai_no_module: Collection):
     name = "TestGenerativeSearchNoModule"
-    local_client.collection.delete(name)
-    collection = local_client.collection.create(
+    collection_openai_no_module.delete(name)
+    collection = collection_openai_no_module.create(
         name=name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
         generative_search=GenerativeFactory.OpenAI(),
@@ -201,10 +170,10 @@ def test_openapi_no_module():
         collection.query.generative(prompt_per_object="tell a joke based on {text}")
 
 
-def test_openai_batch_upload(client: weaviate.Client):
+def test_openai_batch_upload(collection_openai: Collection):
     name = "TestGenerativeSearchOpenAI"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    collection_openai.delete(name)
+    collection = collection_openai.create(
         name=name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
