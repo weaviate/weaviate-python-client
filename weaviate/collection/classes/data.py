@@ -2,30 +2,9 @@ import uuid as uuid_package
 from dataclasses import dataclass
 from typing import List, Optional, Dict, Union, Generic
 
-from pydantic import BaseModel, Field
 from weaviate.collection.classes.internal import Properties
 from weaviate.util import _to_beacons
 from weaviate.weaviate_types import UUID, UUIDS
-
-
-class _IncludesModel(BaseModel):
-    def to_include(self) -> str:
-        include: List[str] = []
-        for field, value in self:
-            if value:
-                include.append(field)
-        return ",".join(include)
-
-
-class _GetObjectByIdMetadata(_IncludesModel):
-    classification: bool = Field(default=False)
-    vector: bool = Field(default=False)
-
-
-class _GetObjectsMetadata(_IncludesModel):
-    classification: bool = Field(default=False)
-    featureProjection: bool = Field(default=False, alias="feature_projection")
-    vector: bool = Field(default=False)
 
 
 @dataclass
