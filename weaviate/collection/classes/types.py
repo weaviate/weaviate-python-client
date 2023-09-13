@@ -1,6 +1,8 @@
 from typing import Any, Dict, Mapping, Optional, Type, get_origin
 from typing_extensions import TypeVar, is_typeddict
 
+from pydantic import BaseModel, ConfigDict
+
 from weaviate.exceptions import InvalidDataModelException
 
 Properties = TypeVar("Properties", bound=Mapping[str, Any], default=Dict[str, Any])
@@ -31,3 +33,7 @@ def _check_data_model(data_model: Optional[Type[Properties]]) -> None:
         and not is_typeddict(data_model)
     ):
         raise InvalidDataModelException()
+
+
+class WeaviateInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
