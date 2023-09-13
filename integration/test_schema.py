@@ -1,6 +1,7 @@
 from typing import Optional
 
 import pytest
+import requests
 
 import weaviate
 from weaviate import Tenant, TenantActivityStatus
@@ -118,6 +119,19 @@ def test_class_tenants(client: weaviate.Client):
     client.schema.remove_class_tenants(uncap_class_name, ["Tenant1"])
     tenants_get = client.schema.get_class_tenants(uncap_class_name)
     assert len(tenants_get) == 1
+
+
+def test_update_schema_with_no_properties(client: weaviate.Client):
+    single_class = {"class": "NoProperties"}
+
+    requests.post("http://localhost:8080/v1/schema", json=single_class)
+    assert client.schema.exists("NoProperties")
+
+    client.schema.update_config("NoProperties", {"vectorIndexConfig": {"ef": 64}})
+    assert client.schema.exists("NoProperties")
+
+    client.schema.delete_class("NoProperties")
+    assert client.schema.exists("NoProperties") is False
 
 
 def test_class_tenants_activate_deactivate(client: weaviate.Client):
