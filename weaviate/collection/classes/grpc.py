@@ -50,8 +50,7 @@ class Move:
         return self.__concepts
 
 
-@dataclass
-class MetadataQuery:
+class MetadataQuery(BaseModel):
     uuid: bool = False
     vector: bool = False
     creation_time_unix: bool = False
@@ -63,8 +62,7 @@ class MetadataQuery:
     is_consistent: bool = False
 
 
-@dataclass
-class Sort:
+class Sort(BaseModel):
     prop: str
     ascending: bool = True
 
