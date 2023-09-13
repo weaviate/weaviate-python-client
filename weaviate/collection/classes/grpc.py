@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union
 
-from pydantic import BaseModel
+from pydantic import Field
 
+from weaviate.collection.classes.types import WeaviateInput
 from weaviate.util import BaseEnum
 from weaviate.weaviate_types import UUID
 
@@ -50,7 +51,7 @@ class Move:
         return self.__concepts
 
 
-class MetadataQuery(BaseModel):
+class MetadataQuery(WeaviateInput):
     uuid: bool = False
     vector: bool = False
     creation_time_unix: bool = False
@@ -62,15 +63,15 @@ class MetadataQuery(BaseModel):
     is_consistent: bool = False
 
 
-class Sort(BaseModel):
+class Sort(WeaviateInput):
     prop: str
     ascending: bool = True
 
 
-class LinkTo(BaseModel):
+class LinkTo(WeaviateInput):
     link_on: str
-    properties: "PROPERTIES"
-    metadata: MetadataQuery
+    return_properties: "PROPERTIES" = Field(default=[])
+    return_metadata: MetadataQuery = Field(default=MetadataQuery())
 
     def __hash__(self) -> int:  # for set
         return hash(str(self))
@@ -80,7 +81,8 @@ class LinkToMultiTarget(LinkTo):
     target_collection: str
 
 
-PROPERTIES = Union[List[Union[str, LinkTo]], str]
+PROPERTY = Union[str, LinkTo]
+PROPERTIES = Union[List[PROPERTY], PROPERTY]
 
 
 @dataclass

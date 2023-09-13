@@ -704,7 +704,7 @@ def test_near_object(client: weaviate.Client):
     client.collection.delete("TestNearObject")
 
 
-def test_mono_references_grcp(client: weaviate.Client):
+def test_mono_references_grpc(client: weaviate.Client):
     A = client.collection.create(
         name="A",
         vectorizer_config=VectorizerFactory.none(),
@@ -714,6 +714,9 @@ def test_mono_references_grcp(client: weaviate.Client):
     )
     uuid_A1 = A.data.insert(properties={"Name": "A1"})
     uuid_A2 = A.data.insert(properties={"Name": "A2"})
+
+    objects = A.query.bm25(query="A1", return_properties="name")
+    assert objects[0].properties["name"] == "A1"
 
     B = client.collection.create(
         name="B",
@@ -725,6 +728,31 @@ def test_mono_references_grcp(client: weaviate.Client):
     )
     uuid_B = B.data.insert({"Name": "B", "ref": Reference.to(uuids=uuid_A1)})
     B.data.reference_add(from_uuid=uuid_B, from_property="ref", ref=Reference.to(uuids=uuid_A2))
+
+    objects = B.query.bm25(
+        query="B",
+        return_properties=LinkTo(
+            link_on="ref",
+            return_properties=["name"],
+        ),
+    )
+    assert objects[0].properties["ref"].objects[0].properties["name"] == "A1"
+    assert objects[0].properties["ref"].objects[1].properties["name"] == "A2"
+
+    objects = B.query.bm25(
+        query="B",
+        return_properties=[
+            LinkTo(
+                link_on="ref",
+                return_properties=["name"],
+                return_metadata=MetadataQuery(uuid=True),
+            )
+        ],
+    )
+    assert objects[0].properties["ref"].objects[0].properties["name"] == "A1"
+    assert objects[0].properties["ref"].objects[0].metadata.uuid == uuid_A1
+    assert objects[0].properties["ref"].objects[1].properties["name"] == "A2"
+    assert objects[0].properties["ref"].objects[1].metadata.uuid == uuid_A2
 
     C = client.collection.create(
         name="C",
@@ -742,15 +770,15 @@ def test_mono_references_grcp(client: weaviate.Client):
             "name",
             LinkTo(
                 link_on="ref",
-                properties=[
+                return_properties=[
                     "name",
                     LinkTo(
                         link_on="ref",
-                        properties=["name"],
-                        metadata=MetadataQuery(uuid=True),
+                        return_properties=["name"],
+                        return_metadata=MetadataQuery(uuid=True),
                     ),
                 ],
-                metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
+                return_metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
             ),
         ],
     )
@@ -766,7 +794,7 @@ def test_mono_references_grcp(client: weaviate.Client):
     )
 
 
-def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
+def test_mono_references_grpc_typed_dicts(client: weaviate.Client):
     client.collection.delete("ATypedDicts")
     client.collection.delete("BTypedDicts")
     client.collection.delete("CTypedDicts")
@@ -850,7 +878,7 @@ def test_mono_references_grcp_typed_dicts(client: weaviate.Client):
     )
 
 
-def test_multi_references_grcp(client: weaviate.Client):
+def test_multi_references_grpc(client: weaviate.Client):
     client.collection.delete("A")
     client.collection.delete("B")
     client.collection.delete("C")
@@ -895,8 +923,8 @@ def test_multi_references_grcp(client: weaviate.Client):
             LinkToMultiTarget(
                 link_on="ref",
                 target_collection="A",
-                properties=["name"],
-                metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
+                return_properties=["name"],
+                return_metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
             ),
         ],
     )
@@ -911,10 +939,10 @@ def test_multi_references_grcp(client: weaviate.Client):
             LinkToMultiTarget(
                 link_on="ref",
                 target_collection="B",
-                properties=[
+                return_properties=[
                     "name",
                 ],
-                metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
+                return_metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
             ),
         ],
     )
