@@ -11,6 +11,7 @@ from weaviate.collection.classes.config import (
     PQEncoderDistribution,
     StopwordsPreset,
     VectorDistance,
+    VectorIndexType,
     Vectorizer,
     VectorizerFactory,
 )
@@ -26,9 +27,64 @@ def client():
     client.schema.delete_all()
 
 
+def test_collection_config_empty(client: weaviate.Client):
+    collection = client.collection.create(
+        name="TestCollectionConfigEmpty",
+    )
+    config = collection.config.get()
+
+    assert config.name == "TestCollectionConfigEmpty"
+    assert config.description is None
+    assert config.vectorizer == Vectorizer.NONE
+
+    assert config.properties == []
+
+    assert config.inverted_index_config.bm25.b == 0.75
+    assert config.inverted_index_config.bm25.k1 == 1.2
+    assert config.inverted_index_config.cleanup_interval_seconds == 60
+    assert config.inverted_index_config.index_timestamps is False
+    assert config.inverted_index_config.index_property_length is False
+    assert config.inverted_index_config.index_null_state is False
+    assert config.inverted_index_config.stopwords.additions is None
+    assert config.inverted_index_config.stopwords.preset == StopwordsPreset.EN
+    assert config.inverted_index_config.stopwords.removals is None
+
+    assert config.multi_tenancy_config.enabled is False
+
+    assert config.replication_config.factor == 1
+
+    assert config.vector_index_config.cleanup_interval_seconds == 300
+    assert config.vector_index_config.distance_metric == VectorDistance.COSINE
+    assert config.vector_index_config.dynamic_ef_factor == 8
+    assert config.vector_index_config.dynamic_ef_max == 500
+    assert config.vector_index_config.dynamic_ef_min == 100
+    assert config.vector_index_config.ef == -1
+    assert config.vector_index_config.ef_construction == 128
+    assert config.vector_index_config.flat_search_cutoff == 40000
+    assert config.vector_index_config.max_connections == 64
+    assert config.vector_index_config.pq.bit_compression is False
+    assert config.vector_index_config.pq.centroids == 256
+    assert config.vector_index_config.pq.enabled is False
+    assert config.vector_index_config.pq.encoder.distribution == PQEncoderDistribution.LOG_NORMAL
+    assert config.vector_index_config.pq.encoder.type_ == PQEncoderType.KMEANS
+    assert config.vector_index_config.pq.segments == 0
+    assert config.vector_index_config.pq.training_limit == 100000
+    assert config.vector_index_config.skip is False
+    assert config.vector_index_config.vector_cache_max_objects == 1000000000000
+
+    assert config.vector_index_type == VectorIndexType.HNSW
+
+    client.collection.delete("TestCollectionConfigDefaults")
+
+
 def test_collection_config_defaults(client: weaviate.Client):
     collection = client.collection.create(
         name="TestCollectionConfigDefaults",
+        inverted_index_config=ConfigFactory.inverted_index(),
+        multi_tenancy_config=ConfigFactory.multi_tenancy(),
+        replication_config=ConfigFactory.replication(),
+        vector_index_config=ConfigFactory.vector_index(),
+        vectorizer_config=VectorizerFactory.none(),
     )
     config = collection.config.get()
 
@@ -71,7 +127,7 @@ def test_collection_config_defaults(client: weaviate.Client):
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 1000000000000
 
-    client.collection.delete("TestCollectionConfigDefaults")
+    assert config.vector_index_type == VectorIndexType.HNSW
 
 
 def test_collection_config_full(client: weaviate.Client):
@@ -191,6 +247,8 @@ def test_collection_config_full(client: weaviate.Client):
     assert config.vector_index_config.skip is True
     assert config.vector_index_config.vector_cache_max_objects == 100000
 
+    assert config.vector_index_type == VectorIndexType.HNSW
+
     client.collection.delete("TestCollectionConfigFull")
 
 
@@ -261,5 +319,7 @@ def test_collection_config_update(client: weaviate.Client):
     assert config.vector_index_config.pq.training_limit == 100001
     assert config.vector_index_config.skip is True
     assert config.vector_index_config.vector_cache_max_objects == 2000000
+
+    assert config.vector_index_type == VectorIndexType.HNSW
 
     client.collection.delete("TestCollectionSchemaUpdate")

@@ -118,8 +118,8 @@ class _ConfigUpdateModel(BaseModel):
 
 
 class _PQEncoderConfigCreate(_ConfigCreateModel):
-    type_: PQEncoderType = Field(default=PQEncoderType.KMEANS)
-    distribution: PQEncoderDistribution = Field(default=PQEncoderDistribution.LOG_NORMAL)
+    type_: PQEncoderType
+    distribution: PQEncoderDistribution
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
@@ -128,8 +128,8 @@ class _PQEncoderConfigCreate(_ConfigCreateModel):
 
 
 class _PQEncoderConfigUpdate(_ConfigUpdateModel):
-    type_: Optional[PQEncoderType] = None
-    distribution: Optional[PQEncoderDistribution] = None
+    type_: Optional[PQEncoderType]
+    distribution: Optional[PQEncoderDistribution]
 
     def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
         """Must be done manually since Pydantic does not work well with type and type_.
@@ -148,7 +148,7 @@ class _PQConfigCreate(_ConfigCreateModel):
     enabled: bool
     encoder: _PQEncoderConfigCreate
     segments: int
-    trainingLimit: int = Field(..., ge=1000000)
+    trainingLimit: int = Field(..., ge=100000)
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
