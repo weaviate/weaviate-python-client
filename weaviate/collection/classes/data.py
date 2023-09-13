@@ -18,14 +18,14 @@ class _IncludesModel(BaseModel):
 
 
 class _GetObjectByIdMetadata(_IncludesModel):
-    classification: bool = False
-    vector: bool = False
+    classification: bool = Field(default=False)
+    vector: bool = Field(default=False)
 
 
 class _GetObjectsMetadata(_IncludesModel):
-    classification: bool = False
-    featureProjection: bool = Field(False, alias="feature_projection")
-    vector: bool = False
+    classification: bool = Field(default=False)
+    featureProjection: bool = Field(default=False, alias="feature_projection")
+    vector: bool = Field(default=False)
 
 
 @dataclass
