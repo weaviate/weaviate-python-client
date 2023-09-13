@@ -14,8 +14,6 @@ from weaviate.collection.classes.config import (
 )
 from weaviate.collection.classes.data import (
     DataObject,
-    GetObjectByIdMetadata,
-    GetObjectsMetadata,
 )
 from weaviate.collection.classes.filters import Filter
 from weaviate.collection.classes.grpc import (
@@ -34,8 +32,6 @@ __all__ = [
     "Filter",
     "HybridFusion",
     "GenerativeFactory",
-    "GetObjectByIdMetadata",
-    "GetObjectsMetadata",
     "LinkTo",
     "LinkToMultiTarget",
     "MetadataQuery",
