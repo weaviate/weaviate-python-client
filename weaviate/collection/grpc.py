@@ -45,7 +45,7 @@ from weaviate.collection.classes.grpc import (
 from weaviate.collection.classes.internal import (
     _MetadataReturn,
     _Object,
-    Reference,
+    ReferenceFactory,
     _extract_property_type_from_annotated_reference,
     _extract_property_type_from_reference,
     _extract_properties_from_data_model,
@@ -659,9 +659,9 @@ class _GrpcCollection(_Grpc):
                 if get_origin(hint) is Annotated:
                     referenced_property_type = _extract_property_type_from_annotated_reference(hint)
                 else:
-                    assert get_origin(hint) is Reference
+                    assert get_origin(hint) is ReferenceFactory
                     referenced_property_type = _extract_property_type_from_reference(hint)
-                result[ref_prop.prop_name] = Reference._from(
+                result[ref_prop.prop_name] = ReferenceFactory._from(
                     [
                         _Object(
                             properties=self.__parse_result(prop, referenced_property_type),
@@ -671,7 +671,7 @@ class _GrpcCollection(_Grpc):
                     ]
                 )
             else:
-                result[ref_prop.prop_name] = Reference[Dict[str, Any]]._from(
+                result[ref_prop.prop_name] = ReferenceFactory[Dict[str, Any]]._from(
                     [
                         _Object(
                             properties=self.__parse_result(prop, Dict[str, Any]),

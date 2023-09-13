@@ -22,7 +22,7 @@ from weaviate.collection.classes.config import (
     PropertyConfig,
     VectorizerFactory,
 )
-from weaviate.collection.classes.internal import Reference
+from weaviate.collection.classes.internal import ReferenceFactory
 from weaviate.collection.classes.orm import BaseProperty, CollectionModelConfig
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from pydantic import Field
@@ -97,8 +97,8 @@ def test_types(client: weaviate.Client, member_type, value, optional: bool):
     "member_type, annotation ,value,expected",
     [
         (str, PropertyConfig(index_filterable=False), "value", "text"),
-        (UUIDS, Reference[Group], [str(REF_TO_UUID)], "Group"),
-        (Optional[UUIDS], Reference[Group], [str(REF_TO_UUID)], "Group"),
+        (UUIDS, ReferenceFactory[Group], [str(REF_TO_UUID)], "Group"),
+        (Optional[UUIDS], ReferenceFactory[Group], [str(REF_TO_UUID)], "Group"),
     ],
 )
 def test_types_annotates(client: weaviate.Client, member_type, annotation, value, expected: str):
@@ -262,7 +262,7 @@ def test_multi_searches(client: weaviate.Client):
 def test_multi_searches_with_references(client: weaviate.Client):
     class TestMultiSearchesWithReferences(BaseProperty):
         name: Optional[str] = None
-        group: Optional[Reference[Group]] = None
+        group: Optional[ReferenceFactory[Group]] = None
 
     client.collection_model.delete(TestMultiSearchesWithReferences)
     collection = client.collection_model.create(
@@ -272,10 +272,12 @@ def test_multi_searches_with_references(client: weaviate.Client):
     )
 
     collection.data.insert(
-        TestMultiSearchesWithReferences(name="some word", group=Reference[Group].to(REF_TO_UUID))
+        TestMultiSearchesWithReferences(
+            name="some word", group=ReferenceFactory[Group].to(REF_TO_UUID)
+        )
     )
     collection.data.insert(
-        TestMultiSearchesWithReferences(name="other", group=Reference[Group].to(REF_TO_UUID))
+        TestMultiSearchesWithReferences(name="other", group=ReferenceFactory[Group].to(REF_TO_UUID))
     )
 
     objects = collection.query.bm25(
@@ -464,7 +466,7 @@ def test_update_reference_property(client: weaviate.Client):
 
     class TestRefPropUpdate(BaseProperty):
         name: str
-        group: Reference[Group]
+        group: ReferenceFactory[Group]
 
     create_original_collection()
     client.collection_model.update(TestRefPropUpdate)

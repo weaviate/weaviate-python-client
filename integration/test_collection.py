@@ -32,7 +32,7 @@ from weaviate.collection.classes.data import (
     DataObject,
     Error,
 )
-from weaviate.collection.classes.internal import Reference
+from weaviate.collection.classes.internal import ReferenceFactory
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.exceptions import WeaviateGRPCException
 from weaviate.collection.collection import CollectionObject
@@ -270,16 +270,18 @@ def test_insert_many_with_refs(client: weaviate.Client):
             DataObject(
                 properties={
                     "name": "some name",
-                    "ref_single": Reference.to(uuids=[uuid_to1, uuid_to2]),
-                    "ref_many": Reference.to_multi_target(uuids=uuid_from, target_collection=name),
+                    "ref_single": ReferenceFactory.to(uuids=[uuid_to1, uuid_to2]),
+                    "ref_many": ReferenceFactory.to_multi_target(
+                        uuids=uuid_from, target_collection=name
+                    ),
                 },
                 vector=[1, 2, 3],
             ),
             DataObject(
                 properties={
                     "name": "some other name",
-                    "ref_single": Reference.to(uuids=uuid_to2),
-                    "ref_many": Reference.to_multi_target(
+                    "ref_single": ReferenceFactory.to(uuids=uuid_to2),
+                    "ref_many": ReferenceFactory.to_multi_target(
                         uuids=uuid_to1, target_collection=name_target
                     ),
                 },
@@ -485,28 +487,28 @@ def test_reference_add_delete_replace(client: weaviate.Client):
     )
 
     uuid_from1 = collection.data.insert({}, uuid.uuid4())
-    uuid_from2 = collection.data.insert({"ref": Reference.to(uuids=uuid_to)}, uuid.uuid4())
+    uuid_from2 = collection.data.insert({"ref": ReferenceFactory.to(uuids=uuid_to)}, uuid.uuid4())
     collection.data.reference_add(
-        from_uuid=uuid_from1, from_property="ref", ref=Reference.to(uuids=uuid_to)
+        from_uuid=uuid_from1, from_property="ref", ref=ReferenceFactory.to(uuids=uuid_to)
     )
     objects = collection.data.get()
     for obj in objects:
         assert str(uuid_to) in "".join([ref["beacon"] for ref in obj.properties["ref"]])
 
     collection.data.reference_delete(
-        from_uuid=uuid_from1, from_property="ref", ref=Reference.to(uuids=uuid_to)
+        from_uuid=uuid_from1, from_property="ref", ref=ReferenceFactory.to(uuids=uuid_to)
     )
     assert len(collection.data.get_by_id(uuid_from1).properties["ref"]) == 0
 
     collection.data.reference_add(
-        from_uuid=uuid_from2, from_property="ref", ref=Reference.to(uuids=uuid_to)
+        from_uuid=uuid_from2, from_property="ref", ref=ReferenceFactory.to(uuids=uuid_to)
     )
     obj = collection.data.get_by_id(uuid_from2)
     assert len(obj.properties["ref"]) == 2
     assert str(uuid_to) in "".join([ref["beacon"] for ref in obj.properties["ref"]])
 
     collection.data.reference_replace(
-        from_uuid=uuid_from2, from_property="ref", ref=Reference.to(uuids=[])
+        from_uuid=uuid_from2, from_property="ref", ref=ReferenceFactory.to(uuids=[])
     )
     assert len(collection.data.get_by_id(uuid_from2).properties["ref"]) == 0
 
@@ -726,8 +728,10 @@ def test_mono_references_grpc(client: weaviate.Client):
         ],
         vectorizer_config=VectorizerFactory.none(),
     )
-    uuid_B = B.data.insert({"Name": "B", "ref": Reference.to(uuids=uuid_A1)})
-    B.data.reference_add(from_uuid=uuid_B, from_property="ref", ref=Reference.to(uuids=uuid_A2))
+    uuid_B = B.data.insert({"Name": "B", "ref": ReferenceFactory.to(uuids=uuid_A1)})
+    B.data.reference_add(
+        from_uuid=uuid_B, from_property="ref", ref=ReferenceFactory.to(uuids=uuid_A2)
+    )
 
     objects = B.query.bm25(
         query="B",
@@ -762,7 +766,7 @@ def test_mono_references_grpc(client: weaviate.Client):
         ],
         vectorizer_config=VectorizerFactory.none(),
     )
-    C.data.insert({"Name": "find me", "ref": Reference.to(uuids=uuid_B)})
+    C.data.insert({"Name": "find me", "ref": ReferenceFactory.to(uuids=uuid_B)})
 
     objects = C.query.bm25(
         query="find",
@@ -804,11 +808,11 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.Client):
 
     class BProps(TypedDict):
         name: str
-        ref: Annotated[Reference[AProps], MetadataQuery(uuid=True)]
+        ref: Annotated[ReferenceFactory[AProps], MetadataQuery(uuid=True)]
 
     class CProps(TypedDict):
         name: str
-        ref: Annotated[Reference[BProps], MetadataQuery(uuid=True)]
+        ref: Annotated[ReferenceFactory[BProps], MetadataQuery(uuid=True)]
 
     client.collection.create(
         name="ATypedDicts",
@@ -830,9 +834,11 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.Client):
         vectorizer_config=VectorizerFactory.none(),
     )
     B = client.collection.get("BTypedDicts", BProps)
-    uuid_B = B.data.insert(properties=BProps(name="B", ref=Reference[AProps].to(uuids=uuid_A1)))
+    uuid_B = B.data.insert(
+        properties=BProps(name="B", ref=ReferenceFactory[AProps].to(uuids=uuid_A1))
+    )
     B.data.reference_add(
-        from_uuid=uuid_B, from_property="ref", ref=Reference[AProps].to(uuids=uuid_A2)
+        from_uuid=uuid_B, from_property="ref", ref=ReferenceFactory[AProps].to(uuids=uuid_A2)
     )
 
     client.collection.create(
@@ -845,7 +851,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.Client):
         vectorizer_config=VectorizerFactory.none(),
     )
     C = client.collection.get("CTypedDicts", CProps)
-    C.data.insert(properties=CProps(name="find me", ref=Reference[BProps].to(uuids=uuid_B)))
+    C.data.insert(properties=CProps(name="find me", ref=ReferenceFactory[BProps].to(uuids=uuid_B)))
 
     objects = client.collection.get("CTypedDicts").query.bm25(
         query="find",
@@ -910,10 +916,16 @@ def test_multi_references_grpc(client: weaviate.Client):
         vectorizer_config=VectorizerFactory.none(),
     )
     C.data.insert(
-        {"Name": "first", "ref": Reference.to_multi_target(uuids=uuid_A, target_collection="A")}
+        {
+            "Name": "first",
+            "ref": ReferenceFactory.to_multi_target(uuids=uuid_A, target_collection="A"),
+        }
     )
     C.data.insert(
-        {"Name": "second", "ref": Reference.to_multi_target(uuids=uuid_B, target_collection="B")}
+        {
+            "Name": "second",
+            "ref": ReferenceFactory.to_multi_target(uuids=uuid_B, target_collection="B"),
+        }
     )
 
     objects = C.query.bm25(
@@ -1526,7 +1538,7 @@ def test_optional_ref_returns(client: weaviate.Client):
         ],
         vectorizer_config=VectorizerFactory.none(),
     )
-    collection.data.insert(properties={"ref": Reference.to(uuid_to1)})
+    collection.data.insert(properties={"ref": ReferenceFactory.to(uuid_to1)})
 
     objects = collection.query.get(return_properties=[LinkTo(link_on="ref")])
 
