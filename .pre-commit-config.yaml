@@ -21,14 +21,14 @@ repos:
         'flake8-builtins==2.0.1'
       ]
 
--   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.5.1"
+-   repo: local
     hooks:
     - id: mypy
-      entry: mypy ./weaviate
-      pass_filenames: false
-      additional_dependencies: [
-        'types-requests==2.31.0.2',
-        'types-urllib3==1.26.25.14',
-        'typing_extensions==4.7.1',
-      ]
+      name: mypy
+      entry: ./run-mypy.sh
+      language: python
+      # use require_serial so that script
+      # is only called once per commit
+      require_serial: true
+      # Print the number of files as a sanity-check
+      verbose: true
