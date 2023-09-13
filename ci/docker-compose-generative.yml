@@ -9,7 +9,7 @@ services:
       - '8086'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-add-sorting-to-grpc-66ee983
+    image: semitechnologies/weaviate:preview-automatically-return-all-props-metadata-for-refs-07fce6f
     ports:
       - 8086:8086
       - "50057:50051"

@@ -696,10 +696,10 @@ def test_near_object(client: weaviate.Client):
     )
     assert len(objects_distance) == 3
 
-    objects_distance = collection.query.near_object(
+    objects_certainty = collection.query.near_object(
         uuid_banana, certainty=full_objects[2].metadata.certainty
     )
-    assert len(objects_distance) == 3
+    assert len(objects_certainty) == 3
 
     client.collection.delete("TestNearObject")
 
@@ -1504,3 +1504,31 @@ def test_sort(client: weaviate.Client, sort: Union[Sort, List[Sort]], expected: 
     expected_uuids = [uuids_from[result] for result in expected]
     object_uuids = [obj.metadata.uuid for obj in objects]
     assert object_uuids == expected_uuids
+
+
+def test_optional_ref_returns(client: weaviate.Client):
+    name_target = "TestRefReturnEverything"
+    name = "TestInsertManyRefs"
+    client.collection.delete(name_target)
+    client.collection.delete(name)
+
+    ref_collection = client.collection.create(
+        name=name_target,
+        vectorizer_config=VectorizerFactory.none(),
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+    )
+    uuid_to1 = ref_collection.data.insert(properties={"text": "ref text"})
+
+    collection = client.collection.create(
+        name=name,
+        properties=[
+            ReferenceProperty(name="ref", target_collection=name_target),
+        ],
+        vectorizer_config=VectorizerFactory.none(),
+    )
+    collection.data.insert(properties={"ref": Reference.to(uuid_to1)})
+
+    objects = collection.query.get(return_properties=[LinkTo(link_on="ref")])
+
+    assert objects[0].properties["ref"].objects[0].properties["text"] == "ref text"
+    assert objects[0].properties["ref"].objects[0].metadata.uuid is not None

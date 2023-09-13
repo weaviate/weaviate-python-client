@@ -70,8 +70,8 @@ class Sort(WeaviateInput):
 
 class LinkTo(WeaviateInput):
     link_on: str
-    return_properties: "PROPERTIES" = Field(default=[])
-    return_metadata: MetadataQuery = Field(default=MetadataQuery())
+    return_properties: Optional["PROPERTIES"] = Field(default=None)
+    return_metadata: Optional[MetadataQuery] = Field(default=None)
 
     def __hash__(self) -> int:  # for set
         return hash(str(self))

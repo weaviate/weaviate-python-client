@@ -547,8 +547,12 @@ class _GRPC(_BaseGRPC):
                     reference_property=prop.link_on,
                     linked_properties=self._convert_references_to_grpc(
                         self.__convert_properties_to_set(prop.return_properties)
-                    ),
-                    metadata=self._metadata_to_grpc(prop.return_metadata),
+                    )
+                    if prop.return_properties is not None
+                    else None,
+                    metadata=self._metadata_to_grpc(prop.return_metadata)
+                    if prop.return_metadata is not None
+                    else None,
                     which_collection=prop.target_collection
                     if isinstance(prop, LinkToMultiTarget)
                     else None,
