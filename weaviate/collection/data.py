@@ -22,9 +22,9 @@ from weaviate.collection.classes.data import (
     BatchReference,
     DataObject,
     Error,
-    GetObjectByIdMetadata,
-    GetObjectsMetadata,
-    IncludesModel,
+    _GetObjectsMetadata,
+    _GetObjectByIdMetadata,
+    _IncludesModel,
     _BatchReturn,
 )
 from weaviate.collection.classes.internal import _Object, _metadata_from_dict, Reference
@@ -153,7 +153,7 @@ class _Data:
         raise UnexpectedStatusCodeException("Update object", response)
 
     def _get_by_id(
-        self, uuid: UUID, metadata: Optional[GetObjectByIdMetadata]
+        self, uuid: UUID, metadata: Optional[_GetObjectByIdMetadata]
     ) -> Optional[Dict[str, Any]]:
         path = f"/objects/{self.name}/{uuid}"
 
@@ -162,7 +162,7 @@ class _Data:
         )
 
     def _get(
-        self, limit: Optional[int], metadata: Optional[GetObjectsMetadata]
+        self, limit: Optional[int], metadata: Optional[_GetObjectsMetadata]
     ) -> Optional[Dict[str, Any]]:
         path = "/objects"
         params: Dict[str, Any] = {"class": self.name}
@@ -174,7 +174,7 @@ class _Data:
         )
 
     def _get_from_weaviate(
-        self, params: Dict[str, Any], path: str, includes: Optional[IncludesModel]
+        self, params: Dict[str, Any], path: str, includes: Optional[_IncludesModel]
     ) -> Optional[Dict[str, Any]]:
         if includes is not None:
             params["include"] = includes.to_include()
@@ -443,18 +443,16 @@ class _DataCollection(Generic[Properties], _Data):
 
         self._update(weaviate_obj, uuid=uuid)
 
-    def get_by_id(
-        self, uuid: UUID, metadata: Optional[GetObjectByIdMetadata] = None
-    ) -> Optional[_Object[Properties]]:
-        ret = self._get_by_id(uuid=uuid, metadata=metadata)
+    def get_by_id(self, uuid: UUID, include_vector: bool = False) -> Optional[_Object[Properties]]:
+        ret = self._get_by_id(uuid=uuid, metadata=_GetObjectByIdMetadata(vector=include_vector))
         if ret is None:
             return ret
         return self._json_to_object(ret)
 
     def get(
-        self, limit: Optional[int] = None, metadata: Optional[GetObjectsMetadata] = None
+        self, limit: Optional[int] = None, include_vector: bool = False
     ) -> List[_Object[Properties]]:
-        ret = self._get(limit=limit, metadata=metadata)
+        ret = self._get(limit=limit, metadata=_GetObjectsMetadata(vector=include_vector))
         if ret is None:
             return []
 
@@ -580,18 +578,16 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         self._update(weaviate_obj, uuid)
 
-    def get_by_id(
-        self, uuid: UUID, metadata: Optional[GetObjectByIdMetadata] = None
-    ) -> Optional[_Object[Model]]:
-        ret = self._get_by_id(uuid=uuid, metadata=metadata)
+    def get_by_id(self, uuid: UUID, include_vector: bool = False) -> Optional[_Object[Model]]:
+        ret = self._get_by_id(uuid=uuid, metadata=_GetObjectByIdMetadata(vector=include_vector))
         if ret is None:
             return None
         return self._json_to_object(ret)
 
     def get(
-        self, limit: Optional[int] = None, metadata: Optional[GetObjectsMetadata] = None
+        self, limit: Optional[int] = None, include_vector: bool = False
     ) -> List[_Object[Model]]:
-        ret = self._get(limit=limit, metadata=metadata)
+        ret = self._get(limit=limit, metadata=_GetObjectsMetadata(vector=include_vector))
         if ret is None:
             return []
 

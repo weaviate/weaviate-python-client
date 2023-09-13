@@ -14,8 +14,6 @@ from weaviate.collection.classes.config import (
 )
 from weaviate.collection.classes.data import (
     DataObject,
-    GetObjectByIdMetadata,
-    GetObjectsMetadata,
     ReferenceTo,
     ReferenceToMultiTarget,
 )
@@ -40,8 +38,6 @@ __all__ = [
     "DataType",
     "HybridFusion",
     "GenerativeFactory",
-    "GetObjectByIdMetadata",
-    "GetObjectsMetadata",
     "LinkTo",
     "LinkToMultiTarget",
     "MetadataQuery",

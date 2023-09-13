@@ -8,7 +8,7 @@ from weaviate.util import _to_beacons
 from weaviate.weaviate_types import UUID, UUIDS
 
 
-class IncludesModel(BaseModel):
+class _IncludesModel(BaseModel):
     def to_include(self) -> str:
         include: List[str] = []
         for field, value in self:
@@ -17,12 +17,12 @@ class IncludesModel(BaseModel):
         return ",".join(include)
 
 
-class GetObjectByIdMetadata(IncludesModel):
+class _GetObjectByIdMetadata(_IncludesModel):
     classification: bool = False
     vector: bool = False
 
 
-class GetObjectsMetadata(IncludesModel):
+class _GetObjectsMetadata(_IncludesModel):
     classification: bool = False
     featureProjection: bool = Field(False, alias="feature_projection")
     vector: bool = False
