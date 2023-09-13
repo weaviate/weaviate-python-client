@@ -697,10 +697,10 @@ def test_near_object(client: weaviate.Client):
     )
     assert len(objects_distance) == 3
 
-    objects_distance = collection.query.near_object(
+    objects_certainty = collection.query.near_object(
         uuid_banana, certainty=full_objects[2].metadata.certainty
     )
-    assert len(objects_distance) == 3
+    assert len(objects_certainty) == 3
 
     client.collection.delete("TestNearObject")
 
