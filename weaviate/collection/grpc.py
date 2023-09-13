@@ -555,8 +555,12 @@ class _GRPC(_BaseGRPC):
             ref_properties=[
                 weaviate_pb2.RefProperties(
                     reference_property=prop.link_on,
-                    linked_properties=self._convert_references_to_grpc(set(prop.properties)),
-                    metadata=self._metadata_to_grpc(prop.metadata),
+                    linked_properties=self._convert_references_to_grpc(set(prop.properties))
+                    if prop.properties is not None
+                    else None,
+                    metadata=self._metadata_to_grpc(prop.metadata)
+                    if prop.metadata is not None
+                    else None,
                     which_collection=prop.target_collection
                     if isinstance(prop, LinkToMultiTarget)
                     else None,

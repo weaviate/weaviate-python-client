@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-add-sorting-to-grpc-66ee983
+    image: semitechnologies/weaviate:preview-automatically-return-all-props-metadata-for-refs-6cefabc
     ports:
       - 8083:8083
     restart: on-failure:0

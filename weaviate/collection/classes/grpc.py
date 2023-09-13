@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from weaviate.util import BaseEnum
 from weaviate.weaviate_types import UUID
@@ -69,8 +69,8 @@ class Sort(BaseModel):
 
 class LinkTo(BaseModel):
     link_on: str
-    properties: "PROPERTIES"
-    metadata: MetadataQuery
+    properties: Optional["PROPERTIES"] = Field(default=None)
+    metadata: Optional[MetadataQuery] = Field(default=None)
 
     def __hash__(self) -> int:  # for set
         return hash(str(self))
