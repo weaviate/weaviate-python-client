@@ -22,7 +22,7 @@ from weaviate.collection.classes.grpc import (
     LinkToMultiTarget,
     MetadataQuery,
 )
-from weaviate.collection.classes.internal import Reference
+from weaviate.collection.classes.internal import ReferenceFactory
 from weaviate.collection.classes.tenants import Tenant
 
 __all__ = [
@@ -30,17 +30,17 @@ __all__ = [
     "DataObject",
     "DataType",
     "Filter",
-    "HybridFusion",
     "GenerativeFactory",
+    "HybridFusion",
     "LinkTo",
     "LinkToMultiTarget",
     "MetadataQuery",
     "Multi2VecField",
-    "ReferenceProperty",
-    "ReferencePropertyMultiTarget",
     "Property",
     "PropertyVectorizerConfig",
-    "Reference",
+    "ReferenceFactory",
+    "ReferenceProperty",
+    "ReferencePropertyMultiTarget",
     "Tenant",
     "Tokenization",
     "VectorizerFactory",

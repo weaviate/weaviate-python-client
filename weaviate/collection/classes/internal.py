@@ -41,7 +41,7 @@ class _GenerativeReturn(Generic[P]):
     generative_combined_result: Optional[str] = None
 
 
-class Reference(Generic[P]):
+class ReferenceFactory(Generic[P]):
     def __init__(
         self,
         objects: Optional[List[_Object[P]]],
@@ -53,11 +53,11 @@ class Reference(Generic[P]):
         self.__uuids = uuids
 
     @classmethod
-    def to(cls, uuids: UUIDS) -> "Reference[P]":
+    def to(cls, uuids: UUIDS) -> "ReferenceFactory[P]":
         return cls(None, None, uuids)
 
     @classmethod
-    def to_multi_target(cls, uuids: UUIDS, target_collection: str) -> "Reference[P]":
+    def to_multi_target(cls, uuids: UUIDS, target_collection: str) -> "ReferenceFactory[P]":
         return cls(None, target_collection, uuids)
 
     def _to_beacons(self) -> List[Dict[str, str]]:
@@ -66,7 +66,7 @@ class Reference(Generic[P]):
         return _to_beacons(self.__uuids, self.__target_collection)
 
     @classmethod
-    def _from(cls, objects: List[_Object[P]]) -> "Reference[P]":
+    def _from(cls, objects: List[_Object[P]]) -> "ReferenceFactory[P]":
         return cls(objects, None, None)
 
     @property
@@ -103,9 +103,9 @@ def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
     )
 
 
-def _extract_property_type_from_reference(type_: Reference[P]) -> Type[P]:
+def _extract_property_type_from_reference(type_: ReferenceFactory[P]) -> Type[P]:
     """Extract inner type from Reference[Properties]"""
-    if getattr(type_, "__origin__", None) == Reference:
+    if getattr(type_, "__origin__", None) == ReferenceFactory:
         args = cast(List[Type[P]], getattr(type_, "__args__", None))
         return args[0]
     raise ValueError("Type is not Reference[Properties]")
@@ -113,14 +113,15 @@ def _extract_property_type_from_reference(type_: Reference[P]) -> Type[P]:
 
 def _extract_property_type_from_annotated_reference(
     type_: Union[
-        Annotated[Reference[P], MetadataQuery], Annotated[Reference[P], MetadataQuery, str]
+        Annotated[ReferenceFactory[P], MetadataQuery],
+        Annotated[ReferenceFactory[P], MetadataQuery, str],
     ]
 ) -> Type[P]:
     """Extract inner type from Annotated[Reference[Properties]]"""
     if get_origin(type_) is Annotated:
-        args = cast(List[Reference[Type[P]]], getattr(type_, "__args__", None))
+        args = cast(List[ReferenceFactory[Type[P]]], getattr(type_, "__args__", None))
         inner_type = args[0]
-        if get_origin(inner_type) is Reference:
+        if get_origin(inner_type) is ReferenceFactory:
             inner_args = cast(List[Type[P]], getattr(inner_type, "__args__", None))
             return inner_args[0]
     raise ValueError("Type is not Annotated[Reference[Properties]]")
@@ -129,15 +130,15 @@ def _extract_property_type_from_annotated_reference(
 def __create_link_to_from_annotated_reference(
     link_on: str,
     value: Union[
-        Annotated[Reference[Properties], MetadataQuery],
-        Annotated[Reference[Properties], MetadataQuery, str],
+        Annotated[ReferenceFactory[Properties], MetadataQuery],
+        Annotated[ReferenceFactory[Properties], MetadataQuery, str],
     ],
 ) -> Union[LinkTo, LinkToMultiTarget]:
     """Create LinkTo or LinkToMultiTarget from Annotated[Reference[Properties]]"""
     assert get_origin(value) is Annotated
-    args = cast(List[Reference[Properties]], getattr(value, "__args__", None))
+    args = cast(List[ReferenceFactory[Properties]], getattr(value, "__args__", None))
     inner_type = args[0]
-    assert get_origin(inner_type) is Reference
+    assert get_origin(inner_type) is ReferenceFactory
     inner_type_metadata = cast(
         Union[Tuple[MetadataQuery], Tuple[MetadataQuery, str]], getattr(value, "__metadata__", None)
     )
@@ -166,7 +167,7 @@ def __create_link_to_from_annotated_reference(
 
 def __create_link_to_from_reference(
     link_on: str,
-    value: Reference[Properties],
+    value: ReferenceFactory[Properties],
 ) -> LinkTo:
     """Create LinkTo from Reference[Properties]"""
     return LinkTo(
@@ -184,7 +185,9 @@ def _extract_properties_from_data_model(type_: Type[Properties]) -> PROPERTIES:
         __create_link_to_from_annotated_reference(key, value)
         if get_origin(value) is Annotated
         else (
-            __create_link_to_from_reference(key, value) if get_origin(value) is Reference else key
+            __create_link_to_from_reference(key, value)
+            if get_origin(value) is ReferenceFactory
+            else key
         )
         for key, value in get_type_hints(type_, include_extras=True).items()
     ]
