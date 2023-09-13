@@ -1,10 +1,10 @@
 import datetime
 import sys
-import uuid
 from dataclasses import dataclass
 from typing import Dict, List, Optional, TypedDict, Union
 
 import pytest as pytest
+import uuid
 
 from weaviate.collection.classes.grpc import Sort
 
@@ -1458,14 +1458,12 @@ def test_sort(client: weaviate.Client, sort: Union[Sort, List[Sort]], expected: 
     client.collection.delete(name)
 
     collection = client.collection.create(
-        CollectionConfig(
-            name="TestSort",
-            vectorizer_config=VectorizerFactory.none(),
-            properties=[
-                Property(name="age", data_type=DataType.INT),
-                Property(name="name", data_type=DataType.TEXT),
-            ],
-        )
+        name="TestSort",
+        vectorizer_config=VectorizerFactory.none(),
+        properties=[
+            Property(name="age", data_type=DataType.INT),
+            Property(name="name", data_type=DataType.TEXT),
+        ],
     )
     uuids_from = [
         collection.data.insert(properties={"name": "A", "age": 20}),
