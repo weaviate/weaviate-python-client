@@ -8,6 +8,7 @@ from weaviate.collection.classes.config import (
     DataType,
     Property,
     GenerativeFactory,
+    VectorizerFactory,
 )
 from weaviate.collection.classes.data import DataObject
 from weaviate.exceptions import WeaviateGRPCException
@@ -198,3 +199,27 @@ def test_openapi_no_module():
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):
         collection.query.generative(prompt_per_object="tell a joke based on {text}")
+
+
+def test_openai_batch_upload(client: weaviate.Client):
+    name = "TestGenerativeSearchOpenAI"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        name=name,
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=VectorizerFactory.text2vec_openai(),
+    )
+
+    ret = collection.data.insert_many(
+        [
+            DataObject(properties={"text": "apples are big"}),
+            DataObject(properties={"text": "bananas are small"}),
+        ]
+    )
+    assert not ret.has_errors
+
+    objects = collection.query.get()
+    assert objects[0].metadata.vector is not None
+    assert len(objects[0].metadata.vector) > 0

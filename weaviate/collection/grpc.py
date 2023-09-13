@@ -18,6 +18,7 @@ from typing_extensions import TypeAlias
 
 from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.extract_filters import FilterToGRPC
+from weaviate.collection.grpc_shared import _BaseGRPC
 
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated, get_type_hints, get_origin
@@ -46,7 +47,6 @@ from weaviate.collection.classes.internal import (
     _extract_property_type_from_annotated_reference,
     _extract_property_type_from_reference,
     _extract_properties_from_data_model,
-    _get_consistency_level,
     _GenerativeReturn,
 )
 from weaviate.collection.classes.orm import Model
@@ -113,7 +113,7 @@ class _Move:
     objects: List[uuid_lib.UUID]
 
 
-class _GRPC:
+class _GRPC(_BaseGRPC):
     def __init__(
         self,
         connection: Connection,
@@ -122,10 +122,9 @@ class _GRPC:
         consistency_level: Optional[ConsistencyLevel],
         default_properties: Optional[PROPERTIES] = None,
     ):
-        self._connection: Connection = connection
+        super().__init__(connection, consistency_level)
         self._name: str = name
         self._tenant = tenant
-        self._consistency_level = consistency_level
 
         if default_properties is not None:
             self._default_props: Set[Union[str, LinkTo]] = set(default_properties)
@@ -497,7 +496,7 @@ class _GRPC:
                     )
                     if self._near_audio is not None
                     else None,
-                    consistency_level=_get_consistency_level(self._consistency_level),
+                    consistency_level=self._consistency_level,
                     generative=weaviate_pb2.GenerativeSearch(
                         single_response_prompt=self._generative_single,
                         grouped_response_task=self._generative_grouped,
