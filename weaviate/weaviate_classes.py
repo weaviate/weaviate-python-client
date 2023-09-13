@@ -16,9 +16,8 @@ from weaviate.collection.classes.data import (
     DataObject,
     GetObjectByIdMetadata,
     GetObjectsMetadata,
-    ReferenceTo,
-    ReferenceToMultiTarget,
 )
+from weaviate.collection.classes.filters import Filter
 from weaviate.collection.classes.grpc import (
     HybridFusion,
     LinkTo,
@@ -26,18 +25,13 @@ from weaviate.collection.classes.grpc import (
     MetadataQuery,
 )
 from weaviate.collection.classes.internal import Reference
-from weaviate.collection.classes.orm import (
-    BaseProperty,
-    CollectionModelConfig,
-)
 from weaviate.collection.classes.tenants import Tenant
 
 __all__ = [
-    "BaseProperty",
-    "CollectionModelConfig",
     "ConfigFactory",
     "DataObject",
     "DataType",
+    "Filter",
     "HybridFusion",
     "GenerativeFactory",
     "GetObjectByIdMetadata",
@@ -51,8 +45,6 @@ __all__ = [
     "Property",
     "PropertyVectorizerConfig",
     "Reference",
-    "ReferenceTo",
-    "ReferenceToMultiTarget",
     "Tenant",
     "Tokenization",
     "VectorizerFactory",

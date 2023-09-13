@@ -35,6 +35,7 @@ from weaviate.collection.classes.filters import (
 from weaviate.collection.classes.grpc import (
     MetadataQuery,
     HybridFusion,
+    PROPERTY,
     PROPERTIES,
     LinkTo,
     LinkToMultiTarget,
@@ -128,7 +129,9 @@ class _GRPC(_BaseGRPC):
         self._tenant = tenant
 
         if default_properties is not None:
-            self._default_props: Set[Union[str, LinkTo]] = set(default_properties)
+            self._default_props: Set[PROPERTY] = self.__convert_properties_to_set(
+                default_properties
+            )
         else:
             self._default_props = set()
         self._metadata: Optional[MetadataQuery] = None
@@ -168,12 +171,13 @@ class _GRPC(_BaseGRPC):
 
         self._filters: Optional[_Filters] = None
 
-    @staticmethod
-    def __sort_to_list(sort: Union[Sort, List[Sort]]) -> List[Sort]:
-        if isinstance(sort, Sort):
-            return [sort]
+    def __parse_sort(self, sort: Optional[Union[Sort, List[Sort]]]) -> None:
+        if sort is None:
+            self._sort = None
+        elif isinstance(sort, Sort):
+            self._sort = [sort]
         else:
-            return sort
+            self._sort = sort
 
     def get(
         self,
@@ -190,12 +194,8 @@ class _GRPC(_BaseGRPC):
         self._after = after
         self._filters = filters
         self._metadata = return_metadata
-
-        if sort is not None:
-            self._sort = self.__sort_to_list(sort)
-
-        if return_properties is not None:
-            self._default_props = self._default_props.union(return_properties)
+        self.__parse_sort(sort)
+        self.__merge_default_and_return_properties(return_properties)
         return cast(List[SearchResult], self.__call().results)
 
     def hybrid(
@@ -224,8 +224,7 @@ class _GRPC(_BaseGRPC):
         self._autocut = autocut
         self._filters = filters
         self._metadata = return_metadata
-        if return_properties is not None:
-            self._default_props = self._default_props.union(return_properties)
+        self.__merge_default_and_return_properties(return_properties)
 
         return cast(List[SearchResult], self.__call().results)
 
@@ -245,8 +244,7 @@ class _GRPC(_BaseGRPC):
         self._autocut = autocut
         self._filters = filters
         self._metadata = return_metadata
-        if return_properties is not None:
-            self._default_props = self._default_props.union(return_properties)
+        self.__merge_default_and_return_properties(return_properties)
 
         return cast(List[SearchResult], self.__call().results)
 
@@ -266,8 +264,7 @@ class _GRPC(_BaseGRPC):
         self._autocut = autocut
         self._filters = filters
         self._metadata = return_metadata
-        if return_properties is not None:
-            self._default_props = self._default_props.union(return_properties)
+        self.__merge_default_and_return_properties(return_properties)
 
         return cast(List[SearchResult], self.__call().results)
 
@@ -287,8 +284,7 @@ class _GRPC(_BaseGRPC):
         self._autocut = autocut
         self._filters = filters
         self._metadata = return_metadata
-        if return_properties is not None:
-            self._default_props = self._default_props.union(return_properties)
+        self.__merge_default_and_return_properties(return_properties)
 
         return cast(List[SearchResult], self.__call().results)
 
@@ -322,8 +318,7 @@ class _GRPC(_BaseGRPC):
                 force=move_to.force, concepts=move_to.concepts_list, uuids=move_to.objects_list
             )
         self._metadata = return_metadata
-        if return_properties is not None:
-            self._default_props = self._default_props.union(return_properties)
+        self.__merge_default_and_return_properties(return_properties)
 
         return cast(List[SearchResult], self.__call().results)
 
@@ -344,8 +339,7 @@ class _GRPC(_BaseGRPC):
         self._filters = filters
 
         self._metadata = return_metadata
-        if return_properties is not None:
-            self._default_props = self._default_props.union(return_properties)
+        self.__merge_default_and_return_properties(return_properties)
 
         return cast(List[SearchResult], self.__call().results)
 
@@ -366,8 +360,7 @@ class _GRPC(_BaseGRPC):
         self._filters = filters
 
         self._metadata = return_metadata
-        if return_properties is not None:
-            self._default_props = self._default_props.union(return_properties)
+        self.__merge_default_and_return_properties(return_properties)
 
         return cast(List[SearchResult], self.__call().results)
 
@@ -388,8 +381,8 @@ class _GRPC(_BaseGRPC):
         self._filters = filters
 
         self._metadata = return_metadata
-        if return_properties is not None:
-            self._default_props = self._default_props.union(return_properties)
+        self.__merge_default_and_return_properties(return_properties)
+
         return cast(List[SearchResult], self.__call().results)
 
     def generative(
@@ -414,8 +407,7 @@ class _GRPC(_BaseGRPC):
         self._filters = filters
 
         self._metadata = return_metadata
-        if return_properties is not None:
-            self._default_props = self._default_props.union(return_properties)
+        self.__merge_default_and_return_properties(return_properties)
 
         return self.__call()
 
@@ -547,16 +539,16 @@ class _GRPC(_BaseGRPC):
             is_consistent=metadata.is_consistent,
         )
 
-    def _convert_references_to_grpc(
-        self, properties: Set[Union[LinkTo, LinkToMultiTarget, str]]
-    ) -> "weaviate_pb2.Properties":
+    def _convert_references_to_grpc(self, properties: Set[PROPERTY]) -> weaviate_pb2.Properties:
         return weaviate_pb2.Properties(
             non_ref_properties=[prop for prop in properties if isinstance(prop, str)],
             ref_properties=[
                 weaviate_pb2.RefProperties(
                     reference_property=prop.link_on,
-                    linked_properties=self._convert_references_to_grpc(set(prop.properties)),
-                    metadata=self._metadata_to_grpc(prop.metadata),
+                    linked_properties=self._convert_references_to_grpc(
+                        self.__convert_properties_to_set(prop.return_properties)
+                    ),
+                    metadata=self._metadata_to_grpc(prop.return_metadata),
                     which_collection=prop.target_collection
                     if isinstance(prop, LinkToMultiTarget)
                     else None,
@@ -565,6 +557,21 @@ class _GRPC(_BaseGRPC):
                 if isinstance(prop, LinkTo)
             ],
         )
+
+    def __merge_default_and_return_properties(
+        self, return_properties: Optional[PROPERTIES]
+    ) -> None:
+        if return_properties is not None:
+            self._default_props = self._default_props.union(
+                self.__convert_properties_to_set(return_properties)
+            )
+
+    @staticmethod
+    def __convert_properties_to_set(properties: PROPERTIES) -> Set[PROPERTY]:
+        if isinstance(properties, list):
+            return set(properties)
+        else:
+            return {properties}
 
 
 class _Grpc:
@@ -682,7 +689,12 @@ class _GrpcCollection(_Grpc):
     def __determine_generic(
         self, type_: Union[PROPERTIES, Type[Properties], None]
     ) -> Tuple[Optional[PROPERTIES], Type[Properties]]:
-        if isinstance(type_, list) or isinstance(type_, str) or type_ is None:
+        if (
+            isinstance(type_, list)
+            or isinstance(type_, str)
+            or isinstance(type_, LinkTo)
+            or type_ is None
+        ):
             ret_properties = cast(Optional[PROPERTIES], type_)
             ret_type = cast(Type[Properties], Dict[str, Any])
         else:
