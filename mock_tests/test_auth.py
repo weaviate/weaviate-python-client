@@ -20,12 +20,11 @@ def test_user_password(weaviate_auth_mock):
 
     user = "AUsername"
     pw = "SomePassWord"
-    scopes = "offline_access"
 
     # note: order matters. If this handler is not called, check of the order of arguments changed
     weaviate_auth_mock.expect_request(
         "/auth",
-        data=f"grant_type=password&username={user}&password={pw}&scope={scopes}&client_id={CLIENT_ID}",
+        data=f"grant_type=password&username={user}&password={pw}&client_id={CLIENT_ID}",
     ).respond_with_json(
         {"access_token": ACCESS_TOKEN, "expires_in": 500, "refresh_token": REFRESH_TOKEN}
     )

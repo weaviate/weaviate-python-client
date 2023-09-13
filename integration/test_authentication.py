@@ -106,7 +106,6 @@ def test_authentication_client_credentials(
             "some_scope offline_access",
             False,
         ),
-        ("okta - default scope", "test@test.de", "OKTA_DUMMY_CI_PW", OKTA_PORT_USERS, None, False),
         (
             "okta - no refresh",
             "test@test.de",

@@ -1,6 +1,35 @@
 Changelog
 =========
 
+Version 3.24.1
+--------------
+This patch version updates the ``changelog.rst`` that became stale over the last few releases
+
+Version 3.24.0
+--------------
+This minor version includes:
+
+- Small fixes and improvements throughout the codebase:
+    - Catching and reraising of ``JsonDecodeException`` for users to catch
+    - Client-wide mypy error fixing and type hinting improvements
+    - Fix for where filter operands in ``batch.delete_objects``
+    - Removal of buggy client-side schema validation
+    - Package dependency updates
+
+Version 3.23.2
+--------------
+This patch version includes:
+
+- Enforcing class name capitalization throughout the client
+- Further fixes to where filtering with ``ContainsAny/All``
+
+Version 3.23.1
+--------------
+This patch version includes:
+
+- Enabling of ``rerank-cohere`` module in ``EmbeddedWeaviate``
+- Fixes for where filtering between ``query.get`` over GraphQL and ``batch.delete_objects`` over REST
+
 Version 3.23.0
 --------------
 This minor version updates the client to work with Weaviate's 1.21 version and includes:

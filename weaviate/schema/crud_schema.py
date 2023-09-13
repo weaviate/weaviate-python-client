@@ -10,12 +10,6 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.schema.properties import Property
-from weaviate.schema.validate_schema import (
-    validate_schema,
-    check_class,
-    CLASS_KEYS,
-    PROPERTY_KEYS,
-)
 from weaviate.util import (
     _get_dict_from_object,
     _is_sub_schema,
@@ -23,6 +17,31 @@ from weaviate.util import (
     _decode_json_response_dict,
     _decode_json_response_list,
 )
+
+CLASS_KEYS = {
+    "class",
+    "vectorIndexType",
+    "vectorIndexConfig",
+    "moduleConfig",
+    "description",
+    "vectorizer",
+    "properties",
+    "invertedIndexConfig",
+    "shardingConfig",
+    "replicationConfig",
+    "multiTenancyConfig",
+}
+
+PROPERTY_KEYS = {
+    "dataType",
+    "name",
+    "moduleConfig",
+    "description",
+    "indexInverted",
+    "tokenization",
+    "indexFilterable",
+    "indexSearchable",
+}
 
 _PRIMITIVE_WEAVIATE_TYPES_SET = {
     "string",
@@ -176,8 +195,6 @@ class Schema:
         """
 
         loaded_schema = _get_dict_from_object(schema)
-        # validate the schema before loading
-        validate_schema(loaded_schema)
         self._create_classes_with_primitives(loaded_schema["classes"])
         self._create_complex_properties_from_classes(loaded_schema["classes"])
 
@@ -230,8 +247,6 @@ class Schema:
         """
 
         loaded_schema_class = _get_dict_from_object(schema_class)
-        # validate the class before loading
-        check_class(loaded_schema_class)
         self._create_class_with_primitives(loaded_schema_class)
         self._create_complex_properties_from_class(loaded_schema_class)
 
@@ -437,7 +452,6 @@ class Schema:
         class_name = _capitalize_first_letter(class_name)
         class_schema = self.get(class_name)
         new_class_schema = _update_nested_dict(class_schema, config)
-        check_class(new_class_schema)
 
         path = "/schema/" + class_name
         try:
