@@ -51,8 +51,7 @@ class Move:
         return self.__concepts
 
 
-@dataclass
-class MetadataQuery:
+class MetadataQuery(WeaviateInput):
     uuid: bool = False
     vector: bool = False
     creation_time_unix: bool = False
@@ -62,6 +61,11 @@ class MetadataQuery:
     score: bool = False
     explain_score: bool = False
     is_consistent: bool = False
+
+
+class Sort(WeaviateInput):
+    prop: str
+    ascending: bool = True
 
 
 class LinkTo(WeaviateInput):

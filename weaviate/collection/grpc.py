@@ -18,6 +18,7 @@ from typing_extensions import TypeAlias
 
 from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.extract_filters import FilterToGRPC
+from weaviate.collection.grpc_shared import _BaseGRPC
 
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated, get_type_hints, get_origin
@@ -39,6 +40,7 @@ from weaviate.collection.classes.grpc import (
     LinkTo,
     LinkToMultiTarget,
     Move,
+    Sort,
 )
 from weaviate.collection.classes.internal import (
     _MetadataReturn,
@@ -47,7 +49,6 @@ from weaviate.collection.classes.internal import (
     _extract_property_type_from_annotated_reference,
     _extract_property_type_from_reference,
     _extract_properties_from_data_model,
-    _get_consistency_level,
     _GenerativeReturn,
 )
 from weaviate.collection.classes.orm import Model
@@ -114,7 +115,7 @@ class _Move:
     objects: List[uuid_lib.UUID]
 
 
-class _GRPC:
+class _GRPC(_BaseGRPC):
     def __init__(
         self,
         connection: Connection,
@@ -123,10 +124,9 @@ class _GRPC:
         consistency_level: Optional[ConsistencyLevel],
         default_properties: Optional[PROPERTIES] = None,
     ):
-        self._connection: Connection = connection
+        super().__init__(connection, consistency_level)
         self._name: str = name
         self._tenant = tenant
-        self._consistency_level = consistency_level
 
         if default_properties is not None:
             self._default_props: Set[PROPERTY] = self.__convert_properties_to_set(
@@ -167,7 +167,17 @@ class _GRPC:
         self._generative_grouped: Optional[str] = None
         self._generative_grouped_properties: Optional[List[str]] = None
 
+        self._sort: Optional[List[Sort]] = None
+
         self._filters: Optional[_Filters] = None
+
+    def __parse_sort(self, sort: Optional[Union[Sort, List[Sort]]]) -> None:
+        if sort is None:
+            self._sort = None
+        elif isinstance(sort, Sort):
+            self._sort = [sort]
+        else:
+            self._sort = sort
 
     def get(
         self,
@@ -175,6 +185,7 @@ class _GRPC:
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
+        sort: Optional[Union[Sort, List[Sort]]] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[SearchResult]:
@@ -183,6 +194,7 @@ class _GRPC:
         self._after = after
         self._filters = filters
         self._metadata = return_metadata
+        self.__parse_sort(sort)
         self.__merge_default_and_return_properties(return_properties)
         return cast(List[SearchResult], self.__call().results)
 
@@ -491,7 +503,13 @@ class _GRPC:
                     )
                     if self._near_audio is not None
                     else None,
-                    consistency_level=_get_consistency_level(self._consistency_level),
+                    consistency_level=self._consistency_level,
+                    sort_by=[
+                        weaviate_pb2.SortBy(ascending=sort.ascending, path=[sort.prop])
+                        for sort in self._sort
+                    ]
+                    if self._sort is not None
+                    else None,
                     generative=weaviate_pb2.GenerativeSearch(
                         single_response_prompt=self._generative_single,
                         grouped_response_task=self._generative_grouped,
@@ -692,6 +710,7 @@ class _GrpcCollection(_Grpc):
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
+        sort: Optional[Union[Sort, List[Sort]]] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> List[_Object[Properties]]:
@@ -703,6 +722,7 @@ class _GrpcCollection(_Grpc):
                 offset=offset,
                 after=after,
                 filters=filters,
+                sort=sort,
                 return_metadata=return_metadata,
                 return_properties=ret_properties,
             )
