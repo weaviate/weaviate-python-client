@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -o errexist
-
-pip install -r requirements-devel.txt
+pip install -r requirements-devel.txt >/dev/null 2>&1
 
 mypy --config-file ./pyproject.toml ./weaviate
