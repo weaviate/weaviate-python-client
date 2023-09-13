@@ -150,8 +150,8 @@ def __create_link_to_from_annotated_reference(
         ]  # https://github.com/python/mypy/issues/1178
         return LinkToMultiTarget(
             link_on=link_on,
-            metadata=metadata,
-            properties=_extract_properties_from_data_model(
+            return_metadata=metadata,
+            return_properties=_extract_properties_from_data_model(
                 _extract_property_type_from_annotated_reference(value)
             ),
             target_collection=target_collection,
@@ -159,8 +159,8 @@ def __create_link_to_from_annotated_reference(
     else:
         return LinkTo(
             link_on=link_on,
-            metadata=metadata,
-            properties=_extract_properties_from_data_model(
+            return_metadata=metadata,
+            return_properties=_extract_properties_from_data_model(
                 _extract_property_type_from_annotated_reference(value)
             ),
         )
@@ -173,8 +173,8 @@ def __create_link_to_from_reference(
     """Create LinkTo from Reference[Properties]"""
     return LinkTo(
         link_on=link_on,
-        metadata=MetadataQuery(),
-        properties=_extract_properties_from_data_model(
+        return_metadata=MetadataQuery(),
+        return_properties=_extract_properties_from_data_model(
             _extract_property_type_from_reference(value)
         ),
     )
