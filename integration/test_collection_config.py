@@ -39,11 +39,11 @@ def test_collection_list(client: weaviate.Client):
         ],
     )
 
-    collections = client.collection.list_()
+    collections = client.collection.list_all()
     assert list(collections.keys()) == ["TestCollectionList"]
     assert isinstance(collections["TestCollectionList"], _CollectionConfigSimple)
 
-    collection = client.collection.list_(False)
+    collection = client.collection.list_all(False)
     assert list(collection.keys()) == ["TestCollectionList"]
     assert isinstance(collection["TestCollectionList"], _CollectionConfig)
 

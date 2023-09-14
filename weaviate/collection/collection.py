@@ -115,14 +115,14 @@ class Collection(CollectionBase):
         return self._exists(_capitalize_first_letter(name))
 
     @overload
-    def list_(self, simple: Literal[False]) -> Dict[str, _CollectionConfig]:
+    def list_all(self, simple: Literal[False]) -> Dict[str, _CollectionConfig]:
         ...
 
     @overload
-    def list_(self, simple: Literal[True] = ...) -> Dict[str, _CollectionConfigSimple]:
+    def list_all(self, simple: Literal[True] = ...) -> Dict[str, _CollectionConfigSimple]:
         ...
 
-    def list_(
+    def list_all(
         self, simple: bool = True
     ) -> Union[Dict[str, _CollectionConfig], Dict[str, _CollectionConfigSimple]]:
         if simple:
