@@ -30,6 +30,7 @@ from weaviate.collection.classes.orm import (
 )
 from weaviate.collection.classes.types import Properties, TProperties, _check_data_model
 from weaviate.collection.grpc_batch import _BatchGRPC
+from weaviate.collection.rest_batch import _BatchREST
 from weaviate.connect import Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
@@ -52,7 +53,8 @@ class _Data:
         self.name = name
         self._consistency_level = consistency_level
         self._tenant = tenant
-        self._batch = _BatchGRPC(connection, consistency_level)
+        self._batch_grpc = _BatchGRPC(connection, consistency_level)
+        self._batch_rest = _BatchREST(connection, consistency_level)
 
     def _insert(self, weaviate_obj: Dict[str, Any]) -> uuid_package.UUID:
         path = "/objects"
@@ -83,7 +85,7 @@ class _Data:
             for obj in objects
         ]
 
-        errors = self._batch.batch(weaviate_objs)
+        errors = self._batch_grpc.batch(weaviate_objs)
 
         all_responses: List[Union[uuid_package.UUID, Error]] = cast(
             List[Union[uuid_package.UUID, Error]], list(range(len(weaviate_objs)))
@@ -108,7 +110,7 @@ class _Data:
             all_responses=all_responses,
         )
 
-    def delete(self, uuid: UUID) -> bool:
+    def delete_by_id(self, uuid: UUID) -> bool:
         path = f"/objects/{self.name}/{uuid}"
 
         try:
@@ -120,6 +122,10 @@ class _Data:
         elif response.status_code == 404:
             return False  # did not exist
         raise UnexpectedStatusCodeException("Delete object", response)
+
+    def delete(self) -> None:
+        pass
+        # return self._batch_rest.delete(self.name)
 
     def _replace(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
         path = f"/objects/{self.name}/{uuid}"
