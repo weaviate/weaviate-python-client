@@ -9,6 +9,7 @@ if sys.version_info < (3, 9):
 else:
     from typing import Annotated, get_type_hints, get_origin
 
+from weaviate.collection.collection_base import CollectionObjectBase
 from weaviate.collection.classes.grpc import LinkTo, LinkToMultiTarget, MetadataQuery, PROPERTIES
 from weaviate.collection.classes.types import Properties, P
 from weaviate.util import _to_beacons
@@ -57,8 +58,16 @@ class ReferenceFactory(Generic[P]):
         return cls(None, None, uuids)
 
     @classmethod
-    def to_multi_target(cls, uuids: UUIDS, target_collection: str) -> "ReferenceFactory[P]":
-        return cls(None, target_collection, uuids)
+    def to_multi_target(
+        cls, uuids: UUIDS, target_collection: Union[str, CollectionObjectBase]
+    ) -> "ReferenceFactory[P]":
+        return cls(
+            None,
+            target_collection.name
+            if isinstance(target_collection, CollectionObjectBase)
+            else target_collection,
+            uuids,
+        )
 
     def _to_beacons(self) -> List[Dict[str, str]]:
         if self.__uuids is None:
