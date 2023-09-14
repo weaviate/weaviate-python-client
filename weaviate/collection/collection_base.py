@@ -5,8 +5,12 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.collection.classes.config import (
     _CollectionConfigCreateBase,
     _CollectionConfig,
+    _CollectionConfigSimple,
 )
-from weaviate.collection.classes.config_methods import _collection_configs_from_json
+from weaviate.collection.classes.config_methods import (
+    _collection_configs_from_json,
+    _collection_configs_simple_from_json,
+)
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 
@@ -56,7 +60,7 @@ class CollectionBase:
 
         UnexpectedStatusCodeException("Delete collection", response)
 
-    def get_all_collection_configs(self) -> Dict[str, _CollectionConfig]:
+    def _get_all(self) -> Dict[str, _CollectionConfig]:
         try:
             response = self._connection.get(path="/schema")
         except RequestsConnectionError as conn_err:
@@ -64,6 +68,16 @@ class CollectionBase:
         if response.status_code == 200:
             res = response.json()
             return _collection_configs_from_json(res)
+        raise UnexpectedStatusCodeException("Get schema", response)
+
+    def _get_simple(self) -> Dict[str, _CollectionConfigSimple]:
+        try:
+            response = self._connection.get(path="/schema")
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Get schema.") from conn_err
+        if response.status_code == 200:
+            res = response.json()
+            return _collection_configs_simple_from_json(res)
         raise UnexpectedStatusCodeException("Get schema", response)
 
 

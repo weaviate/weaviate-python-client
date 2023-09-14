@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Union, cast
 
 from weaviate.collection.classes.config import (
     _CollectionConfig,
+    _CollectionConfigSimple,
     _PQConfig,
     DataType,
     _InvertedIndexConfig,
@@ -23,6 +24,43 @@ from weaviate.collection.classes.config import (
     Tokenization,
     _PQEncoderConfig,
 )
+
+
+def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionConfigSimple:
+    def _is_primitive(d_type: str) -> bool:
+        return d_type[0][0].lower() == d_type[0][0]
+
+    def _property_data_type_from_weaviate_data_type(
+        data_type: List[str],
+    ) -> Union[DataType, _ReferenceDataType, _ReferenceDataTypeMultiTarget]:
+        if len(data_type) == 1 and _is_primitive(data_type[0]):
+            return DataType(data_type[0])
+
+        if len(data_type) == 1:
+            return _ReferenceDataType(target_collection=data_type[0])
+
+        return _ReferenceDataTypeMultiTarget(target_collections=data_type)
+
+    return _CollectionConfigSimple(
+        name=schema["class"],
+        description=schema.get("description"),
+        properties=[
+            _Property(
+                data_type=_property_data_type_from_weaviate_data_type(prop["dataType"]),
+                description=prop.get("description"),
+                index_filterable=prop["indexFilterable"],
+                index_searchable=prop["indexSearchable"],
+                name=prop["name"],
+                tokenization=Tokenization(prop["tokenization"])
+                if prop.get("tokenization") is not None
+                else None,
+            )
+            for prop in schema["properties"]
+        ]
+        if schema.get("properties") is not None
+        else [],
+        vectorizer=Vectorizer(schema["vectorizer"]),
+    )
 
 
 def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
@@ -123,3 +161,11 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
 
 def _collection_configs_from_json(schema: Dict[str, Any]) -> Dict[str, _CollectionConfig]:
     return {schema["class"]: _collection_config_from_json(schema) for schema in schema["classes"]}
+
+
+def _collection_configs_simple_from_json(
+    schema: Dict[str, Any]
+) -> Dict[str, _CollectionConfigSimple]:
+    return {
+        schema["class"]: _collection_config_simple_from_json(schema) for schema in schema["classes"]
+    }

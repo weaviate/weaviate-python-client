@@ -1,7 +1,9 @@
-from typing import Generic, List, Optional, Type, Union
+from typing import Dict, Generic, List, Literal, Optional, Type, Union, overload
 
 from weaviate.collection.classes.config import (
     _CollectionConfigCreate,
+    _CollectionConfig,
+    _CollectionConfigSimple,
     ConsistencyLevel,
     _GenerativeConfig,
     _InvertedIndexConfigCreate,
@@ -111,3 +113,18 @@ class Collection(CollectionBase):
 
     def exists(self, name: str) -> bool:
         return self._exists(_capitalize_first_letter(name))
+
+    @overload
+    def list_all(self, simple: Literal[False]) -> Dict[str, _CollectionConfig]:
+        ...
+
+    @overload
+    def list_all(self, simple: Literal[True] = ...) -> Dict[str, _CollectionConfigSimple]:
+        ...
+
+    def list_all(
+        self, simple: bool = True
+    ) -> Union[Dict[str, _CollectionConfig], Dict[str, _CollectionConfigSimple]]:
+        if simple:
+            return self._get_simple()
+        return self._get_all()

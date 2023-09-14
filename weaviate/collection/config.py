@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Optional, Type, Tuple, cast
+from typing import Dict, Any, List, Literal, Optional, Type, Tuple, Union, cast, overload
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -9,9 +9,13 @@ from weaviate.collection.classes.config import (
     PropertyType,
     _VectorIndexConfigUpdate,
     _CollectionConfig,
+    _CollectionConfigSimple,
     _Property,
 )
-from weaviate.collection.classes.config_methods import _collection_config_from_json
+from weaviate.collection.classes.config_methods import (
+    _collection_config_from_json,
+    _collection_config_simple_from_json,
+)
 from weaviate.collection.classes.orm import Model
 from weaviate.connect import Connection
 from weaviate.exceptions import (
@@ -44,7 +48,15 @@ class _ConfigBase:
             raise UnexpectedStatusCodeException("Get collection configuration", response)
         return cast(Dict[str, Any], response.json())
 
-    def get(self) -> _CollectionConfig:
+    @overload
+    def get(self, simple: Literal[False] = ...) -> _CollectionConfig:
+        ...
+
+    @overload
+    def get(self, simple: Literal[True]) -> _CollectionConfigSimple:
+        ...
+
+    def get(self, simple: bool = False) -> Union[_CollectionConfig, _CollectionConfigSimple]:
         """Get the configuration for this collection from Weaviate.
 
         Raises:
@@ -54,6 +66,8 @@ class _ConfigBase:
             - If Weaviate reports a non-OK status.
         """
         schema = self.__get()
+        if simple:
+            return _collection_config_simple_from_json(schema)
         return _collection_config_from_json(schema)
 
     def update(
