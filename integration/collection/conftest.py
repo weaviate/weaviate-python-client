@@ -1,5 +1,5 @@
 import os
-from typing import Dict
+from typing import Any, Dict, List
 
 import pytest
 import requests
@@ -31,7 +31,11 @@ def _clear(rest: int) -> None:
     if res.status_code == 200:
         schema = res.json()
         for class_ in schema["classes"]:
-            requests.delete(f"http://localhost:{rest}/v1/schema/{class_['class']}")
+            res = requests.delete(f"http://localhost:{rest}/v1/schema/{class_['class']}")
+            if res.status_code < 200 or res.status_code >= 300:
+                raise Exception(f"Failed to delete the test data of {class_}: {res.text}")
+    else:
+        raise Exception(f"Failed retrieve the full schema: {res.text}")
 
 
 @pytest.fixture(scope="module")
@@ -79,3 +83,7 @@ def collection_openai_no_module():
         )  # main version that does not have a generative module
     finally:
         _clear(8080)
+
+
+def ids_from_data(data: List[Any]) -> List[int]:
+    return list(range(len(data)))
