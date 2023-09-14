@@ -18,7 +18,7 @@ from weaviate.collection.classes.config import (
     VectorIndexType,
 )
 from weaviate.collection.classes.types import Properties, _check_data_model
-from weaviate.collection.collection_base import CollectionBase
+from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.collection.config import _ConfigCollection
 from weaviate.collection.data import _DataCollection
 from weaviate.collection.grpc import _GrpcCollection
@@ -27,7 +27,7 @@ from weaviate.connect import Connection
 from weaviate.util import _capitalize_first_letter
 
 
-class CollectionObject(Generic[Properties]):
+class CollectionObject(CollectionObjectBase, Generic[Properties]):
     def __init__(
         self,
         connection: Connection,
@@ -36,8 +36,9 @@ class CollectionObject(Generic[Properties]):
         tenant: Optional[str] = None,
         type_: Optional[Type[Properties]] = None,
     ) -> None:
+        super().__init__(name)
+
         self._connection = connection
-        self.name = name
 
         self.config = _ConfigCollection(self._connection, name)
         self.data = _DataCollection[Properties](connection, name, consistency_level, tenant, type_)
