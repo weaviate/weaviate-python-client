@@ -39,15 +39,32 @@ def test_collection_list(client: weaviate.Client):
         ],
     )
 
-    collections = client.collection.list()
+    collections = client.collection.list_()
     assert list(collections.keys()) == ["TestCollectionList"]
     assert isinstance(collections["TestCollectionList"], _CollectionConfigSimple)
 
-    collection = client.collection.list(False)
+    collection = client.collection.list_(False)
     assert list(collection.keys()) == ["TestCollectionList"]
     assert isinstance(collection["TestCollectionList"], _CollectionConfig)
 
     client.collection.delete("TestCollectionList")
+
+
+def test_collection_get_simple(client: weaviate.Client):
+    client.collection.create(
+        name="TestCollectionGetSimple",
+        vectorizer_config=VectorizerFactory.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+            Property(name="age", data_type=DataType.INT),
+        ],
+    )
+
+    collection = client.collection.get("TestCollectionGetSimple")
+    config = collection.config.get(True)
+    assert isinstance(config, _CollectionConfigSimple)
+
+    client.collection.delete("TestCollectionGetSimple")
 
 
 def test_collection_config_empty(client: weaviate.Client):
