@@ -22,6 +22,8 @@ from weaviate.collection.classes.tenants import Tenant
 from weaviate.collection.collection import CollectionObject
 from weaviate.collection.data import _DataCollection
 
+from .conftest import CollectionObjectFactory
+
 BEACON_START = "weaviate://localhost"
 
 UUID1 = uuid.uuid4()
@@ -45,13 +47,9 @@ def test_data_with_data_model_with_dict_generic(collection_basic: Collection):
     assert isinstance(data, _DataCollection)
 
 
-@pytest.mark.parametrize(
-    "which_generic",
-    ["typed_dict", "dict", "none"],
-)
-def test_insert(collection_basic: Collection, which_generic: str):
-    name = "TestInsert"
-    collection_basic.delete(name)
+@pytest.mark.parametrize("which_generic", ["typed_dict", "dict", "none"], ids=[0, 1, 2])
+def test_insert(collection_basic: Collection, which_generic: str, request_id: str):
+    name = f"TestInsert{request_id}"
 
     create_args = {
         "name": name,
@@ -78,9 +76,11 @@ def test_insert(collection_basic: Collection, which_generic: str):
     assert name == insert_data["name"]
 
 
-def test_insert_many(collection_basic: Collection):
+def test_insert_many(collection_object_factory: CollectionObjectFactory):
     name = "TestInsertMany"
-    collection = collection_basic.create(
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.none(),
@@ -96,21 +96,21 @@ def test_insert_many(collection_basic: Collection):
     assert obj1.properties["name"] == "some name"
     assert obj2.properties["name"] == "some other name"
 
-    collection_basic.delete(name)
 
-
-def test_insert_many_with_typed_dict(collection_basic: Collection):
+def test_insert_many_with_typed_dict(collection_object_factory: CollectionObjectFactory):
     name = "TestInsertManyWithTypedDict"
 
     class TestInsertManyWithTypedDict(TypedDict):
         name: str
 
-    collection_basic.create(
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name=name,
+        data_model=TestInsertManyWithTypedDict,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.none(),
     )
-    collection = collection_basic.get(name, TestInsertManyWithTypedDict)
     ret = collection.data.insert_many(
         [
             DataObject(properties=TestInsertManyWithTypedDict(name="some name"), vector=[1, 2, 3]),
@@ -124,14 +124,13 @@ def test_insert_many_with_typed_dict(collection_basic: Collection):
     assert obj1.properties["name"] == "some name"
     assert obj2.properties["name"] == "some other name"
 
-    collection_basic.delete(name)
 
-
-def test_insert_many_with_refs(collection_basic: Collection):
+def test_insert_many_with_refs(collection_object_factory: CollectionObjectFactory):
     name_target = "RefClassBatchTarget"
-    collection_basic.delete(name_target)
 
-    ref_collection = collection_basic.create(
+    ref_collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name=name_target,
         vectorizer_config=VectorizerFactory.none(),
     )
@@ -139,9 +138,10 @@ def test_insert_many_with_refs(collection_basic: Collection):
     uuid_to2 = ref_collection.data.insert(properties={})
 
     name = "TestInsertManyRefs"
-    collection_basic.delete(name)
 
-    collection = collection_basic.create(
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name=name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
@@ -188,9 +188,11 @@ def test_insert_many_with_refs(collection_basic: Collection):
     assert obj1.properties["ref_many"][0]["beacon"] == BEACON_START + f"/{name_target}/{uuid_to1}"
 
 
-def test_insert_many_error(collection_basic: Collection):
+def test_insert_many_error(collection_object_factory: CollectionObjectFactory):
     name = "TestInsertManyWitHError"
-    collection = collection_basic.create(
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.none(),
@@ -213,12 +215,12 @@ def test_insert_many_error(collection_basic: Collection):
     assert isinstance(ret.all_responses[0], Error) and isinstance(ret.all_responses[2], Error)
     assert isinstance(ret.all_responses[1], uuid.UUID)
 
-    collection_basic.delete(name)
 
-
-def test_insert_many_with_tenant(collection_basic: Collection):
+def test_insert_many_with_tenant(collection_object_factory: CollectionObjectFactory):
     name = "TestInsertManyWithTenant"
-    collection = collection_basic.create(
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.none(),
@@ -243,12 +245,12 @@ def test_insert_many_with_tenant(collection_basic: Collection):
     assert tenant2.data.get_by_id(ret.uuids[0]) is None
     assert tenant2.data.get_by_id(ret.uuids[1]) is None
 
-    collection_basic.delete(name)
 
-
-def test_replace(collection_basic: Collection):
+def test_replace(collection_object_factory: CollectionObjectFactory):
     name = "TestReplace"
-    collection = collection_basic.create(
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.none(),
@@ -257,12 +259,12 @@ def test_replace(collection_basic: Collection):
     collection.data.replace(properties={"name": "other name"}, uuid=uuid)
     assert collection.data.get_by_id(uuid).properties["name"] == "other name"
 
-    collection_basic.delete(name)
 
-
-def test_replace_overwrites_vector(collection_basic: Collection):
+def test_replace_overwrites_vector(collection_object_factory: CollectionObjectFactory):
     name = "TestReplaceOverwritesVector"
-    collection = collection_basic.create(
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.none(),
@@ -277,12 +279,12 @@ def test_replace_overwrites_vector(collection_basic: Collection):
     assert obj.properties["name"] == "other name"
     assert obj.metadata.vector is None
 
-    collection_basic.delete(name)
 
-
-def test_replace_with_tenant(collection_basic: Collection):
+def test_replace_with_tenant(collection_object_factory: CollectionObjectFactory):
     name = "TestReplaceWithTenant"
-    collection = collection_basic.create(
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.none(),
@@ -298,12 +300,12 @@ def test_replace_with_tenant(collection_basic: Collection):
     assert tenant1.data.get_by_id(uuid).properties["name"] == "other name"
     assert tenant2.data.get_by_id(uuid) is None
 
-    collection_basic.delete(name)
 
-
-def test_update(collection_basic: Collection):
+def test_update(collection_object_factory: CollectionObjectFactory):
     name = "TestUpdate"
-    collection = collection_basic.create(
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.none(),
@@ -312,12 +314,12 @@ def test_update(collection_basic: Collection):
     collection.data.update(properties={"name": "other name"}, uuid=uuid)
     assert collection.data.get_by_id(uuid).properties["name"] == "other name"
 
-    collection_basic.delete(name)
 
-
-def test_update_with_tenant(collection_basic: Collection):
+def test_update_with_tenant(collection_object_factory: CollectionObjectFactory):
     name = "TestUpdateWithTenant"
-    collection = collection_basic.create(
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.none(),
@@ -333,8 +335,6 @@ def test_update_with_tenant(collection_basic: Collection):
     assert tenant1.data.get_by_id(uuid).properties["name"] == "other name"
     assert tenant2.data.get_by_id(uuid) is None
 
-    collection_basic.delete(name)
-
 
 @pytest.mark.parametrize(
     "data_type,value",
@@ -346,11 +346,16 @@ def test_update_with_tenant(collection_basic: Collection):
         (DataType.INT_ARRAY, [1, 2]),
         (DataType.NUMBER_ARRAY, [1.0, 2.1]),
     ],
+    ids=[0, 1, 2, 3, 4, 5],
 )
-def test_types(collection_basic: Collection, data_type: DataType, value):
+def test_types(
+    collection_object_factory: CollectionObjectFactory, data_type: DataType, value, request_id: str
+):
     name = "name"
-    collection = collection_basic.create(
-        name="Something",
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name=f"Something{request_id}",
         properties=[Property(name=name, data_type=data_type)],
         vectorizer_config=VectorizerFactory.none(),
     )
@@ -359,15 +364,18 @@ def test_types(collection_basic: Collection, data_type: DataType, value):
     object_get = collection.data.get_by_id(uuid_object)
     assert object_get.properties[name] == value
 
-    collection_basic.delete("Something")
 
-
-def test_reference_add_delete_replace(collection_basic: Collection):
-    ref_collection = collection_basic.create(
-        name="RefClass2", vectorizer_config=VectorizerFactory.none()
+def test_reference_add_delete_replace(collection_object_factory: CollectionObjectFactory):
+    ref_collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name="RefClass2",
+        vectorizer_config=VectorizerFactory.none(),
     )
     uuid_to = ref_collection.data.insert(properties={})
-    collection = collection_basic.create(
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="SomethingElse",
         properties=[ReferenceProperty(name="ref", target_collection="RefClass2")],
         vectorizer_config=VectorizerFactory.none(),
@@ -399,12 +407,11 @@ def test_reference_add_delete_replace(collection_basic: Collection):
     )
     assert len(collection.data.get_by_id(uuid_from2).properties["ref"]) == 0
 
-    collection_basic.delete("SomethingElse")
-    collection_basic.delete("RefClass2")
 
-
-def test_get_by_id_with_tenant(collection_basic: Collection):
-    collection = collection_basic.create(
+def test_get_by_id_with_tenant(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="TestTenantGet",
         vectorizer_config=VectorizerFactory.none(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
@@ -429,11 +436,11 @@ def test_get_by_id_with_tenant(collection_basic: Collection):
     obj4 = tenant1.data.get_by_id(uuid2)
     assert obj4 is None
 
-    collection_basic.delete("TestTenantGet")
 
-
-def test_get_with_limit(collection_basic: Collection):
-    collection = collection_basic.create(
+def test_get_with_limit(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="TestLimit",
         vectorizer_config=VectorizerFactory.none(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
@@ -445,11 +452,11 @@ def test_get_with_limit(collection_basic: Collection):
     objects = collection.data.get(limit=5)
     assert len(objects) == 5
 
-    collection_basic.delete("TestLimit")
 
-
-def test_get_with_tenant(collection_basic: Collection):
-    collection = collection_basic.create(
+def test_get_with_tenant(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="TestTenantGetWithTenant",
         vectorizer_config=VectorizerFactory.none(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
@@ -473,11 +480,11 @@ def test_get_with_tenant(collection_basic: Collection):
     assert len(objs) == 1
     assert objs[0].properties["name"] == "some other name"
 
-    collection_basic.delete("TestTenantGetWithTenant")
 
-
-def test_add_property(collection_basic: Collection):
-    collection = collection_basic.create(
+def test_add_property(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="TestAddProperty",
         vectorizer_config=VectorizerFactory.none(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
@@ -491,14 +498,21 @@ def test_add_property(collection_basic: Collection):
     assert "name" in obj2.properties
     assert "number" in obj2.properties
 
-    collection_basic.delete("TestAddProperty")
 
-
-@pytest.mark.parametrize("hours,minutes,sign", [(0, 0, 1), (1, 20, -1), (2, 0, 1), (3, 40, -1)])
-def test_insert_date_property(collection_basic: Collection, hours: int, minutes: int, sign: int):
-    collection_basic.delete("TestInsertDateProperty")
-    collection = collection_basic.create(
-        name="TestInsertDateProperty",
+@pytest.mark.parametrize(
+    "hours,minutes,sign", [(0, 0, 1), (1, 20, -1), (2, 0, 1), (3, 40, -1)], ids=[0, 1, 2, 3]
+)
+def test_insert_date_property(
+    collection_object_factory: CollectionObjectFactory,
+    hours: int,
+    minutes: int,
+    sign: int,
+    request_id: str,
+):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name=f"TestInsertDateProperty{request_id}",
         vectorizer_config=VectorizerFactory.none(),
         properties=[Property(name="date", data_type=DataType.DATE)],
     )
@@ -527,12 +541,11 @@ def test_insert_date_property(collection_basic: Collection, hours: int, minutes:
     # as such the above line is a workaround to parse the date returned by weaviate, which may prove useful
     # when parsing the date property in generics and the ORM in the future
 
-    collection_basic.delete("TestInsertDateProperty")
 
-
-def test_batch_with_arrays(collection_basic: Collection):
-    collection_basic.delete("TestBatchArrays")
-    collection = collection_basic.create(
+def test_batch_with_arrays(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="TestBatchArrays",
         vectorizer_config=VectorizerFactory.none(),
         properties=[

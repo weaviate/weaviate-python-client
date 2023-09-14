@@ -1,4 +1,3 @@
-from weaviate.collection import Collection
 from weaviate.collection.classes.config import (
     ConfigFactory,
     ConfigUpdateFactory,
@@ -13,9 +12,13 @@ from weaviate.collection.classes.config import (
     VectorizerFactory,
 )
 
+from .conftest import CollectionObjectFactory
 
-def test_collection_config_get(collection_basic: Collection):
-    collection = collection_basic.create(
+
+def test_collection_config_get(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="TestCollectionSchemaGet",
         vectorizer_config=VectorizerFactory.none(),
         properties=[
@@ -33,8 +36,10 @@ def test_collection_config_get(collection_basic: Collection):
     assert config.vectorizer == Vectorizer.NONE
 
 
-def test_collection_config_empty(collection_multinode: Collection):
-    collection = collection_multinode.create(
+def test_collection_config_empty(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8087,
+        grpc_port=50058,
         name="TestCollectionConfigEmpty",
     )
     config = collection.config.get()
@@ -81,8 +86,10 @@ def test_collection_config_empty(collection_multinode: Collection):
     assert config.vector_index_type == VectorIndexType.HNSW
 
 
-def test_collection_config_defaults(collection_multinode: Collection):
-    collection = collection_multinode.create(
+def test_collection_config_defaults(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8087,
+        grpc_port=50058,
         name="TestCollectionConfigDefaults",
         inverted_index_config=ConfigFactory.inverted_index(),
         multi_tenancy_config=ConfigFactory.multi_tenancy(),
@@ -134,8 +141,10 @@ def test_collection_config_defaults(collection_multinode: Collection):
     assert config.vector_index_type == VectorIndexType.HNSW
 
 
-def test_collection_config_full(collection_multinode: Collection):
-    collection = collection_multinode.create(
+def test_collection_config_full(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8087,
+        grpc_port=50058,
         name="TestCollectionConfigFull",
         description="Test",
         vectorizer_config=VectorizerFactory.none(),
@@ -254,8 +263,10 @@ def test_collection_config_full(collection_multinode: Collection):
     assert config.vector_index_type == VectorIndexType.HNSW
 
 
-def test_collection_config_update(collection_multinode: Collection):
-    collection = collection_multinode.create(
+def test_collection_config_update(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8087,
+        grpc_port=50058,
         name="TestCollectionConfigUpdate",
         vectorizer_config=VectorizerFactory.none(),
         properties=[

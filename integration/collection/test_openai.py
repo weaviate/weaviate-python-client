@@ -1,6 +1,8 @@
+import os
+from typing import Dict
+
 import pytest
 
-from weaviate.collection import Collection
 from weaviate.collection.classes.config import (
     DataType,
     Property,
@@ -10,13 +12,30 @@ from weaviate.collection.classes.config import (
 from weaviate.collection.classes.data import DataObject
 from weaviate.exceptions import WeaviateGRPCException
 
+from .conftest import CollectionObjectFactory
+
+
+@pytest.fixture(scope="module")
+def headers() -> Dict[str, str]:
+    api_key = os.environ.get("OPENAI_APIKEY")
+    if api_key is None:
+        pytest.skip("No OpenAI API key found.")
+    return {"X-OpenAI-Api-Key": api_key}
+
 
 @pytest.mark.parametrize("parameter,answer", [("text", "Yes"), ("content", "No")])
-def test_generative_search_single(collection_openai: Collection, parameter: str, answer: str):
-    name = "TestGenerativeSearchOpenAISingle"
-    collection_openai.delete(name)
-    collection = collection_openai.create(
-        name=name,
+def test_generative_search_single(
+    collection_object_factory: CollectionObjectFactory,
+    parameter: str,
+    answer: str,
+    headers: Dict[str, str],
+    request_id: str,
+):
+    collection = collection_object_factory(
+        rest_port=8086,
+        grpc_port=50057,
+        additional_headers=headers,
+        name=f"TestGenerativeSearchOpenAISingle{request_id}",
         properties=[
             Property(name="text", data_type=DataType.TEXT),
             Property(name="content", data_type=DataType.TEXT),
@@ -42,11 +61,18 @@ def test_generative_search_single(collection_openai: Collection, parameter: str,
 @pytest.mark.parametrize(
     "prop,answer", [(["text"], "apples bananas"), (["content"], "bananas apples")]
 )
-def test_generative_search_grouped(collection_openai: Collection, prop: str, answer: str):
-    name = "TestGenerativeSearchOpenAIGroup"
-    collection_openai.delete(name)
-    collection = collection_openai.create(
-        name=name,
+def test_generative_search_grouped(
+    collection_object_factory: CollectionObjectFactory,
+    prop: str,
+    answer: str,
+    headers: Dict[str, str],
+    request_id: str,
+):
+    collection = collection_object_factory(
+        rest_port=8086,
+        grpc_port=50057,
+        additional_headers=headers,
+        name=f"TestGenerativeSearchOpenAIGroup{request_id}",
         properties=[
             Property(name="text", data_type=DataType.TEXT),
             Property(name="content", data_type=DataType.TEXT),
@@ -69,11 +95,14 @@ def test_generative_search_grouped(collection_openai: Collection, prop: str, ans
     assert res.generative_combined_result == answer
 
 
-def test_generative_search_grouped_all_props(collection_openai: Collection):
-    name = "TestGenerativeSearchOpenAIGroupWithProp"
-    collection_openai.delete(name)
-    collection = collection_openai.create(
-        name=name,
+def test_generative_search_grouped_all_props(
+    collection_object_factory: CollectionObjectFactory, headers: Dict[str, str]
+):
+    collection = collection_object_factory(
+        rest_port=8086,
+        grpc_port=50057,
+        additional_headers=headers,
+        name="TestGenerativeSearchOpenAIGroupWithProp",
         properties=[
             Property(name="text", data_type=DataType.TEXT),
             Property(name="content", data_type=DataType.TEXT),
@@ -105,11 +134,14 @@ def test_generative_search_grouped_all_props(collection_openai: Collection):
     assert res.generative_combined_result == "Teddy cats"
 
 
-def test_generative_with_everything(collection_openai: Collection):
-    name = "TestGenerativeSearchOpenAI"
-    collection_openai.delete(name)
-    collection = collection_openai.create(
-        name=name,
+def test_generative_with_everything(
+    collection_object_factory: CollectionObjectFactory, headers: Dict[str, str]
+):
+    collection = collection_object_factory(
+        rest_port=8086,
+        grpc_port=50057,
+        additional_headers=headers,
+        name="TestGenerativeSearchOpenAI",
         properties=[
             Property(name="text", data_type=DataType.TEXT),
             Property(name="content", data_type=DataType.TEXT),
@@ -144,11 +176,12 @@ def test_generative_with_everything(collection_openai: Collection):
         assert obj.metadata.generative == "Yes"
 
 
-def test_openapi_invalid_key(collection_openai_invalid_key: Collection):
-    name = "TestGenerativeSearchOpenAIError"
-    collection_openai_invalid_key.delete(name)
-    collection = collection_openai_invalid_key.create(
-        name=name,
+def test_openapi_invalid_key(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8086,
+        grpc_port=50057,
+        additional_headers={"X-OpenAI-Api-Key": "invalid"},
+        name="TestGenerativeSearchOpenAIError",
         properties=[Property(name="text", data_type=DataType.TEXT)],
         generative_search=GenerativeFactory.OpenAI(),
     )
@@ -157,11 +190,12 @@ def test_openapi_invalid_key(collection_openai_invalid_key: Collection):
         collection.query.generative(prompt_per_object="tell a joke based on {text}")
 
 
-def test_openapi_no_module(collection_openai_no_module: Collection):
-    name = "TestGenerativeSearchNoModule"
-    collection_openai_no_module.delete(name)
-    collection = collection_openai_no_module.create(
-        name=name,
+def test_openapi_no_module(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        additional_headers={"X-OpenAI-Api-Key": "doesnt matter"},
+        name="TestGenerativeSearchNoModule",
         properties=[Property(name="text", data_type=DataType.TEXT)],
         generative_search=GenerativeFactory.OpenAI(),
     )
@@ -170,11 +204,12 @@ def test_openapi_no_module(collection_openai_no_module: Collection):
         collection.query.generative(prompt_per_object="tell a joke based on {text}")
 
 
-def test_openai_batch_upload(collection_openai: Collection):
-    name = "TestGenerativeSearchOpenAI"
-    collection_openai.delete(name)
-    collection = collection_openai.create(
-        name=name,
+def test_openai_batch_upload(collection_object_factory: CollectionObjectFactory, headers):
+    collection = collection_object_factory(
+        rest_port=8086,
+        grpc_port=50057,
+        additional_headers=headers,
+        name="TestGenerativeSearchOpenAI",
         properties=[
             Property(name="text", data_type=DataType.TEXT),
         ],

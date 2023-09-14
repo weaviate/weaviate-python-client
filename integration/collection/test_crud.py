@@ -34,8 +34,8 @@ def test_create_get_and_delete(collection_basic: Collection):
 
 
 @pytest.mark.parametrize("use_typed_dict", [True, False])
-def test_get_with_dict_generic(collection_basic: Collection, use_typed_dict: bool):
-    name = "TestGetWithDictGeneric"
+def test_get_with_dict_generic(collection_basic: Collection, use_typed_dict: bool, request_id: str):
+    name = f"TestGetWithDictGeneric{request_id}"
     if use_typed_dict:
 
         class Right(TypedDict):

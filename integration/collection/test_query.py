@@ -13,7 +13,6 @@ else:
     from typing import Annotated
 
 from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_ENCODED
-from weaviate.collection import Collection
 from weaviate.collection.classes.config import (
     ConfigFactory,
     Property,
@@ -31,13 +30,21 @@ from weaviate.exceptions import WeaviateGRPCException
 from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery, Move
 from weaviate.weaviate_types import UUID
 
+from .conftest import CollectionObjectFactory
+
 UUID1 = uuid.uuid4()
 
 
-@pytest.mark.parametrize("fusion_type", [HybridFusion.RANKED, HybridFusion.RELATIVE_SCORE])
-def test_search_hybrid(collection_basic: Collection, fusion_type):
-    collection = collection_basic.create(
-        name="Testing",
+@pytest.mark.parametrize(
+    "fusion_type", [HybridFusion.RANKED, HybridFusion.RELATIVE_SCORE], ids=[0, 1]
+)
+def test_search_hybrid(
+    collection_object_factory: CollectionObjectFactory, fusion_type, request_id: str
+):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name=f"Testing{request_id}",
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.text2vec_contextionary(),
     )
@@ -45,13 +52,14 @@ def test_search_hybrid(collection_basic: Collection, fusion_type):
     collection.data.insert({"Name": "other word"}, uuid.uuid4())
     res = collection.query.hybrid(alpha=0, query="name", fusion_type=fusion_type)
     assert len(res) == 1
-    collection_basic.delete("Testing")
 
 
-@pytest.mark.parametrize("limit", [1, 5])
-def test_search_limit(collection_basic: Collection, limit):
-    collection = collection_basic.create(
-        name="TestLimit",
+@pytest.mark.parametrize("limit", [1, 5], ids=[0, 1])
+def test_search_limit(collection_object_factory: CollectionObjectFactory, limit, request_id: str):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name=f"TestLimit{request_id}",
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.none(),
     )
@@ -60,13 +68,13 @@ def test_search_limit(collection_basic: Collection, limit):
 
     assert len(collection.query.get(limit=limit)) == limit
 
-    collection_basic.delete("TestLimit")
 
-
-@pytest.mark.parametrize("offset", [0, 1, 5])
-def test_search_offset(collection_basic: Collection, offset):
-    collection = collection_basic.create(
-        name="TestOffset",
+@pytest.mark.parametrize("offset", [0, 1, 5], ids=[0, 1, 2])
+def test_search_offset(collection_object_factory: CollectionObjectFactory, offset, request_id: str):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name=f"TestOffset{request_id}",
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.none(),
     )
@@ -78,11 +86,11 @@ def test_search_offset(collection_basic: Collection, offset):
     objects = collection.query.get(offset=offset)
     assert len(objects) == nr_objects - offset
 
-    collection_basic.delete("TestOffset")
 
-
-def test_search_after(collection_basic: Collection):
-    collection = collection_basic.create(
+def test_search_after(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="TestOffset",
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.none(),
@@ -97,11 +105,11 @@ def test_search_after(collection_basic: Collection):
         objects_after = collection.query.get(after=obj.metadata.uuid)
         assert len(objects_after) == nr_objects - 1 - i
 
-    collection_basic.delete("TestOffset")
 
-
-def test_auto_limit(collection_basic: Collection):
-    collection = collection_basic.create(
+def test_auto_limit(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="TestAutoLimit",
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.none(),
@@ -129,11 +137,11 @@ def test_auto_limit(collection_basic: Collection):
     )
     assert len(objects) == 1 * 4
 
-    collection_basic.delete("TestAutoLimit")
 
-
-def test_query_properties(collection_basic: Collection):
-    collection = collection_basic.create(
+def test_query_properties(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="TestQueryProperties",
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
@@ -161,11 +169,11 @@ def test_query_properties(collection_basic: Collection):
     objects = collection.query.hybrid(query="sleet", query_properties=["name"], alpha=0)
     assert len(objects) == 0
 
-    collection_basic.delete("TestQueryProperties")
 
-
-def test_near_vector(collection_basic: Collection):
-    collection = collection_basic.create(
+def test_near_vector(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="TestNearVector",
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.text2vec_contextionary(),
@@ -192,11 +200,11 @@ def test_near_vector(collection_basic: Collection):
     )
     assert len(objects_distance) == 3
 
-    collection_basic.delete("TestNearVector")
 
-
-def test_near_object(collection_basic: Collection):
-    collection = collection_basic.create(
+def test_near_object(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="TestNearObject",
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.text2vec_contextionary(),
@@ -221,11 +229,11 @@ def test_near_object(collection_basic: Collection):
     )
     assert len(objects_certainty) == 3
 
-    collection_basic.delete("TestNearObject")
 
-
-def test_mono_references_grpc(collection_basic: Collection):
-    A = collection_basic.create(
+def test_mono_references_grpc(collection_object_factory: CollectionObjectFactory):
+    A = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="A",
         vectorizer_config=VectorizerFactory.none(),
         properties=[
@@ -238,7 +246,9 @@ def test_mono_references_grpc(collection_basic: Collection):
     objects = A.query.bm25(query="A1", return_properties="name")
     assert objects[0].properties["name"] == "A1"
 
-    B = collection_basic.create(
+    B = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="B",
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
@@ -276,7 +286,9 @@ def test_mono_references_grpc(collection_basic: Collection):
     assert objects[0].properties["ref"].objects[1].properties["name"] == "A2"
     assert objects[0].properties["ref"].objects[1].metadata.uuid == uuid_A2
 
-    C = collection_basic.create(
+    C = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="C",
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
@@ -316,11 +328,7 @@ def test_mono_references_grpc(collection_basic: Collection):
     )
 
 
-def test_mono_references_grpc_typed_dicts(collection_basic: Collection):
-    collection_basic.delete("ATypedDicts")
-    collection_basic.delete("BTypedDicts")
-    collection_basic.delete("CTypedDicts")
-
+def test_mono_references_grpc_typed_dicts(collection_object_factory: CollectionObjectFactory):
     class AProps(TypedDict):
         name: str
 
@@ -332,26 +340,30 @@ def test_mono_references_grpc_typed_dicts(collection_basic: Collection):
         name: str
         ref: Annotated[ReferenceFactory[BProps], MetadataQuery(uuid=True)]
 
-    collection_basic.create(
+    A = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="ATypedDicts",
+        data_model=AProps,
         vectorizer_config=VectorizerFactory.none(),
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
     )
-    A = collection_basic.get("ATypedDicts", AProps)
     uuid_A1 = A.data.insert(AProps(name="A1"))
     uuid_A2 = A.data.insert(AProps(name="A2"))
 
-    B = collection_basic.create(
+    B = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="BTypedDicts",
+        data_model=BProps,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
             ReferenceProperty(name="ref", target_collection="ATypedDicts"),
         ],
         vectorizer_config=VectorizerFactory.none(),
     )
-    B = collection_basic.get("BTypedDicts", BProps)
     uuid_B = B.data.insert(
         properties=BProps(name="B", ref=ReferenceFactory[AProps].to(uuids=uuid_A1))
     )
@@ -359,8 +371,11 @@ def test_mono_references_grpc_typed_dicts(collection_basic: Collection):
         from_uuid=uuid_B, from_property="ref", ref=ReferenceFactory[AProps].to(uuids=uuid_A2)
     )
 
-    collection_basic.create(
+    C = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="CTypedDicts",
+        data_model=CProps,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
             Property(name="Age", data_type=DataType.INT),
@@ -368,10 +383,9 @@ def test_mono_references_grpc_typed_dicts(collection_basic: Collection):
         ],
         vectorizer_config=VectorizerFactory.none(),
     )
-    C = collection_basic.get("CTypedDicts", CProps)
     C.data.insert(properties=CProps(name="find me", ref=ReferenceFactory[BProps].to(uuids=uuid_B)))
 
-    objects = collection_basic.get("CTypedDicts").query.bm25(
+    objects = C.query.bm25(
         query="find",
         return_properties=CProps,
     )
@@ -402,13 +416,11 @@ def test_mono_references_grpc_typed_dicts(collection_basic: Collection):
     )
 
 
-def test_multi_references_grpc(collection_basic: Collection):
-    collection_basic.delete("A")
-    collection_basic.delete("B")
-    collection_basic.delete("C")
-
-    A = collection_basic.create(
-        name="A",
+def test_multi_references_grpc(collection_object_factory: CollectionObjectFactory):
+    A = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name="Amulti",
         vectorizer_config=VectorizerFactory.none(),
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
@@ -416,8 +428,10 @@ def test_multi_references_grpc(collection_basic: Collection):
     )
     uuid_A = A.data.insert(properties={"Name": "A"})
 
-    B = collection_basic.create(
-        name="B",
+    B = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name="Bmulti",
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
@@ -425,24 +439,26 @@ def test_multi_references_grpc(collection_basic: Collection):
     )
     uuid_B = B.data.insert({"Name": "B"})
 
-    C = collection_basic.create(
-        name="C",
+    C = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name="Cmulti",
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
-            ReferencePropertyMultiTarget(name="ref", target_collections=["A", "B"]),
+            ReferencePropertyMultiTarget(name="ref", target_collections=["Amulti", "Bmulti"]),
         ],
         vectorizer_config=VectorizerFactory.none(),
     )
     C.data.insert(
         {
             "Name": "first",
-            "ref": ReferenceFactory.to_multi_target(uuids=uuid_A, target_collection="A"),
+            "ref": ReferenceFactory.to_multi_target(uuids=uuid_A, target_collection="Amulti"),
         }
     )
     C.data.insert(
         {
             "Name": "second",
-            "ref": ReferenceFactory.to_multi_target(uuids=uuid_B, target_collection="B"),
+            "ref": ReferenceFactory.to_multi_target(uuids=uuid_B, target_collection="Bmulti"),
         }
     )
 
@@ -452,7 +468,7 @@ def test_multi_references_grpc(collection_basic: Collection):
             "name",
             LinkToMultiTarget(
                 link_on="ref",
-                target_collection="A",
+                target_collection="Amulti",
                 return_properties=["name"],
                 return_metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
             ),
@@ -468,7 +484,7 @@ def test_multi_references_grpc(collection_basic: Collection):
             "name",
             LinkToMultiTarget(
                 link_on="ref",
-                target_collection="B",
+                target_collection="Bmulti",
                 return_properties=[
                     "name",
                 ],
@@ -480,14 +496,11 @@ def test_multi_references_grpc(collection_basic: Collection):
     assert len(objects[0].properties["ref"].objects) == 1
     assert objects[0].properties["ref"].objects[0].properties["name"] == "B"
 
-    collection_basic.delete("A")
-    collection_basic.delete("B")
-    collection_basic.delete("C")
 
-
-def test_multi_searches(collection_basic: Collection):
-    collection_basic.delete("TestMultiSearches")
-    collection = collection_basic.create(
+def test_multi_searches(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="TestMultiSearches",
         properties=[Property(name="name", data_type=DataType.TEXT)],
         vectorizer_config=VectorizerFactory.none(),
@@ -510,9 +523,10 @@ def test_multi_searches(collection_basic: Collection):
     assert objects[0].metadata.last_update_time_unix is None
 
 
-def test_search_with_tenant(collection_basic: Collection):
-    collection_basic.delete("TestTenantSearch")
-    collection = collection_basic.create(
+def test_search_with_tenant(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="TestTenantSearch",
         vectorizer_config=VectorizerFactory.none(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
@@ -531,8 +545,10 @@ def test_search_with_tenant(collection_basic: Collection):
     assert len(objects2) == 0
 
 
-def test_empty_search_returns_everything(collection_basic: Collection):
-    collection = collection_basic.create(
+def test_empty_search_returns_everything(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="TestReturnEverything",
         vectorizer_config=VectorizerFactory.none(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
@@ -548,13 +564,12 @@ def test_empty_search_returns_everything(collection_basic: Collection):
     assert objects[0].metadata.last_update_time_unix is not None
     assert objects[0].metadata.creation_time_unix is not None
 
-    collection_basic.delete("TestReturnEverything")
 
-
-def test_return_list_properties(collection_basic: Collection):
-    name_small = "TestReturnList"
-    collection = collection_basic.create(
-        name=name_small,
+def test_return_list_properties(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name="TestReturnList",
         vectorizer_config=VectorizerFactory.none(),
         properties=[
             Property(name="ints", data_type=DataType.INT_ARRAY),
@@ -596,20 +611,25 @@ def test_return_list_properties(collection_basic: Collection):
     assert objects[0].properties == data
 
 
-@pytest.mark.parametrize("query", ["cake", ["cake"]])
-@pytest.mark.parametrize("objects", [UUID1, str(UUID1), [UUID1], [str(UUID1)]])
-@pytest.mark.parametrize("concepts", ["hiking", ["hiking"]])
+@pytest.mark.parametrize("query", ["cake", ["cake"]], ids=["query0", "query1"])
+@pytest.mark.parametrize(
+    "objects",
+    [UUID1, str(UUID1), [UUID1], [str(UUID1)]],
+    ids=["objects0", "objects1", "objects2", "objects3"],
+)
+@pytest.mark.parametrize("concepts", ["hiking", ["hiking"]], ids=["concepts0", "concepts1"])
 def test_near_text(
-    collection_basic: Collection,
+    collection_object_factory: CollectionObjectFactory,
     query: Union[str, List[str]],
     objects: Union[UUID, List[UUID]],
     concepts: Union[str, List[str]],
+    request_id: str,
 ):
-    name = "TestNearText"
-    collection_basic.delete(name)
-    collection = collection_basic.create(
-        name=name,
-        vectorizer_config=VectorizerFactory.text2vec_contextionary(),
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name=f"TestNearText{request_id}",
+        vectorizer_config=VectorizerFactory.text2vec_contextionary(vectorize_class_name=False),
         properties=[Property(name="value", data_type=DataType.TEXT)],
     )
 
@@ -634,11 +654,11 @@ def test_near_text(
     assert objs[0].properties["value"] == "apple cake"
 
 
-def test_near_text_error(collection_basic: Collection):
-    name = "TestNearTextError"
-    collection_basic.delete(name)
-    collection = collection_basic.create(
-        name=name,
+def test_near_text_error(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name="TestNearTextError",
         vectorizer_config=VectorizerFactory.none(),
     )
 
@@ -646,14 +666,19 @@ def test_near_text_error(collection_basic: Collection):
         collection.query.near_text(query="test", move_to=Move(force=1.0))
 
 
-@pytest.mark.parametrize("distance,certainty", [(None, None), (10, None), (None, 0.1)])
+@pytest.mark.parametrize(
+    "distance,certainty", [(None, None), (10, None), (None, 0.1)], ids=[0, 1, 2]
+)
 def test_near_image(
-    collection_basic: Collection, distance: Optional[float], certainty: Optional[float]
+    collection_object_factory: CollectionObjectFactory,
+    distance: Optional[float],
+    certainty: Optional[float],
+    request_id: str,
 ):
-    name = "TestNearImage"
-    collection_basic.delete(name)
-    collection = collection_basic.create(
-        name=name,
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name=f"TestNearImage{request_id}",
         vectorizer_config=VectorizerFactory.img2vec_neural(image_fields=["imageProp"]),
         properties=[
             Property(name="imageProp", data_type=DataType.BLOB),
@@ -670,12 +695,14 @@ def test_near_image(
     assert objects[0].metadata.uuid == uuid1
 
 
-@pytest.mark.parametrize("which_case", [0, 1, 2, 3])
-def test_return_properties_with_typed_dict(collection_basic: Collection, which_case: int):
-    name = "TestReturnListWithModel"
-    collection_basic.delete(name)
-    collection = collection_basic.create(
-        name=name,
+@pytest.mark.parametrize("which_case", [0, 1, 2, 3], ids=[0, 1, 2, 3])
+def test_return_properties_with_typed_dict(
+    collection_object_factory: CollectionObjectFactory, which_case: int, request_id: str
+):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name=f"TestReturnListWithModel{request_id}",
         vectorizer_config=VectorizerFactory.none(),
         properties=[
             Property(name="int_", data_type=DataType.INT),
@@ -728,13 +755,18 @@ def test_return_properties_with_typed_dict(collection_basic: Collection, which_c
         (Sort(prop="name", ascending=False), [2, 1, 0]),
         ([Sort(prop="age", ascending=False), Sort(prop="name", ascending=True)], [1, 2, 0]),
     ],
+    ids=[0, 1, 2],
 )
-def test_sort(collection_basic: Collection, sort: Union[Sort, List[Sort]], expected: List[int]):
-    name = "TestSort"
-    collection_basic.delete(name)
-
-    collection = collection_basic.create(
-        name="TestSort",
+def test_sort(
+    collection_object_factory: CollectionObjectFactory,
+    sort: Union[Sort, List[Sort]],
+    expected: List[int],
+    request_id: str,
+):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name=f"TestSort{request_id}",
         vectorizer_config=VectorizerFactory.none(),
         properties=[
             Property(name="age", data_type=DataType.INT),
@@ -755,20 +787,22 @@ def test_sort(collection_basic: Collection, sort: Union[Sort, List[Sort]], expec
     assert object_uuids == expected_uuids
 
 
-def test_optional_ref_returns(collection_basic: Collection):
+def test_optional_ref_returns(collection_object_factory: CollectionObjectFactory):
     name_target = "TestRefReturnEverything"
     name = "TestInsertManyRefs"
-    collection_basic.delete(name_target)
-    collection_basic.delete(name)
 
-    ref_collection = collection_basic.create(
+    ref_collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name=name_target,
         vectorizer_config=VectorizerFactory.none(),
         properties=[Property(name="text", data_type=DataType.TEXT)],
     )
     uuid_to1 = ref_collection.data.insert(properties={"text": "ref text"})
 
-    collection = collection_basic.create(
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name=name,
         properties=[
             ReferenceProperty(name="ref", target_collection=name_target),

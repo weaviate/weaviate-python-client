@@ -1,13 +1,16 @@
-from weaviate.collection import Collection
 from weaviate.collection.classes.config import (
     ConfigFactory,
     VectorizerFactory,
 )
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 
+from .conftest import CollectionObjectFactory
 
-def test_tenants(collection_basic: Collection):
-    collection = collection_basic.create(
+
+def test_tenants(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="Tenants",
         vectorizer_config=VectorizerFactory.none(),
         multi_tenancy_config=ConfigFactory.multi_tenancy(
@@ -27,13 +30,12 @@ def test_tenants(collection_basic: Collection):
     tenants = collection.tenants.get()
     assert len(tenants) == 0
 
-    collection_basic.delete("Tenants")
 
-
-def test_tenant_with_activity(collection_basic: Collection):
-    name = "TestTenantActivity"
-    collection = collection_basic.create(
-        name=name,
+def test_tenant_with_activity(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name="TestTenantActivity",
         vectorizer_config=VectorizerFactory.none(),
         multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
     )
@@ -50,10 +52,11 @@ def test_tenant_with_activity(collection_basic: Collection):
     assert tenants["3"].activity_status == TenantActivityStatus.HOT
 
 
-def test_update_tenant(collection_basic: Collection):
-    name = "TestUpdateTenant"
-    collection = collection_basic.create(
-        name=name,
+def test_update_tenant(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name="TestUpdateTenant",
         vectorizer_config=VectorizerFactory.none(),
         multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
     )

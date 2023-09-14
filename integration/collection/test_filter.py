@@ -4,7 +4,6 @@ from typing import List
 
 import pytest as pytest
 
-from weaviate.collection import Collection
 from weaviate.collection.classes.config import (
     ConfigFactory,
     Property,
@@ -20,6 +19,8 @@ from weaviate.collection.classes.filters import (
 )
 from weaviate.collection.classes.grpc import MetadataQuery
 from weaviate.collection.classes.internal import ReferenceFactory
+
+from .conftest import CollectionObjectFactory
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
 LATER = NOW + datetime.timedelta(hours=1)
@@ -37,13 +38,18 @@ UUID3 = uuid.uuid4()
         (Filter(path="name").not_equal("Banana"), [1, 2]),
         (Filter(path="name").like("*nana"), [0]),
     ],
+    ids=[0, 1, 2],
 )
 def test_filters_text(
-    collection_basic: Collection, weaviate_filter: _FilterValue, results: List[int]
+    collection_object_factory: CollectionObjectFactory,
+    weaviate_filter: _FilterValue,
+    results: List[int],
+    request_id: str,
 ):
-    collection_basic.delete("TestFilterText")
-    collection = collection_basic.create(
-        name="TestFilterText",
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name=f"TestFilterText{request_id}",
         vectorizer_config=VectorizerFactory.none(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
     )
@@ -80,15 +86,18 @@ def test_filters_text(
             [0, 2, 3],
         ),
     ],
+    ids=[0, 1, 2, 3],
 )
 def test_filters_nested(
-    collection_basic: Collection,
+    collection_object_factory: CollectionObjectFactory,
     weaviate_filter: _Filters,
     results: List[int],
+    request_id: str,
 ):
-    collection_basic.delete("TestFilterNested")
-    collection = collection_basic.create(
-        name="TestFilterNested",
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name=f"TestFilterNested{request_id}",
         vectorizer_config=VectorizerFactory.none(),
         properties=[Property(name="num", data_type=DataType.NUMBER)],
         inverted_index_config=ConfigFactory.inverted_index(index_null_state=True),
@@ -110,9 +119,10 @@ def test_filters_nested(
     assert all(obj.metadata.uuid in uuids for obj in objects)
 
 
-def test_length_filter(collection_basic: Collection):
-    collection_basic.delete("TestFilterNested")
-    collection = collection_basic.create(
+def test_length_filter(collection_object_factory: CollectionObjectFactory):
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name="TestFilterNested",
         vectorizer_config=VectorizerFactory.none(),
         properties=[Property(name="field", data_type=DataType.TEXT)],
@@ -138,13 +148,18 @@ def test_length_filter(collection_basic: Collection):
         (Filter(path="number").is_none(True), [3]),
         (Filter(path="number").is_none(False), [0, 1, 2]),
     ],
+    ids=[0, 1],
 )
 def test_filters_comparison(
-    collection_basic: Collection, weaviate_filter: _FilterValue, results: List[int]
+    collection_object_factory: CollectionObjectFactory,
+    weaviate_filter: _FilterValue,
+    results: List[int],
+    request_id: str,
 ):
-    collection_basic.delete("TestFilterNumber")
-    collection = collection_basic.create(
-        name="TestFilterNumber",
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name=f"TestFilterNumber{request_id}",
         vectorizer_config=VectorizerFactory.none(),
         properties=[Property(name="number", data_type=DataType.INT)],
         inverted_index_config=ConfigFactory.inverted_index(index_null_state=True),
@@ -200,13 +215,18 @@ def test_filters_comparison(
         (Filter(path="uuid").contains_any([UUID3]), []),
         (Filter(path="uuid").contains_any([UUID1]), [0]),
     ],
+    ids=list(range(32)),
 )
 def test_filters_contains(
-    collection_basic: Collection, weaviate_filter: _FilterValue, results: List[int]
+    collection_object_factory: CollectionObjectFactory,
+    weaviate_filter: _FilterValue,
+    results: List[int],
+    request_id: str,
 ):
-    collection_basic.delete("TestFilterContains")
-    collection = collection_basic.create(
-        name="TestFilterContains",
+    collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name=f"TestFilterContains{request_id}",
         vectorizer_config=VectorizerFactory.none(),
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -300,17 +320,22 @@ def test_filters_contains(
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
-        (Filter(path=["ref", "TestFilterRef2", "int"]).greater_than(3), [1]),
-        (Filter(path=["ref", "TestFilterRef2", "text"], length=True).less_than(6), [0]),
+        (Filter(path=["ref", "TestFilterRefTo0", "int"]).greater_than(3), [1]),
+        (Filter(path=["ref", "TestFilterRefTo1", "text"], length=True).less_than(6), [0]),
     ],
+    ids=[0, 1],
 )
 def test_ref_filters(
-    collection_basic: Collection, weaviate_filter: _FilterValue, results: List[int]
+    collection_object_factory: CollectionObjectFactory,
+    weaviate_filter: _FilterValue,
+    results: List[int],
+    request_id: str,
 ):
-    collection_basic.delete("TestFilterRef")
-    collection_basic.delete("TestFilterRef2")
-    to_collection = collection_basic.create(
-        name="TestFilterRef2",
+    to_name = f"TestFilterRefTo{request_id}"
+    to_collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name=to_name,
         vectorizer_config=VectorizerFactory.none(),
         properties=[
             Property(name="int", data_type=DataType.INT),
@@ -322,10 +347,12 @@ def test_ref_filters(
         to_collection.data.insert(properties={"int": 0, "text": "first"}),
         to_collection.data.insert(properties={"int": 15, "text": "second"}),
     ]
-    from_collection = collection_basic.create(
-        name="TestFilterRef",
+    from_collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
+        name=f"TestFilterRefFrom{request_id}",
         properties=[
-            ReferenceProperty(name="ref", target_collection="TestFilterRef2"),
+            ReferenceProperty(name="ref", target_collection=to_name),
             Property(name="name", data_type=DataType.TEXT),
         ],
         vectorizer_config=VectorizerFactory.none(),
@@ -345,19 +372,21 @@ def test_ref_filters(
     assert all(obj.metadata.uuid in uuids for obj in objects)
 
 
-def test_ref_filters_multi_target(collection_basic: Collection):
+def test_ref_filters_multi_target(collection_object_factory: CollectionObjectFactory):
     target = "TestFilterRefMulti2"
     source = "TestFilterRefMulti"
-    collection_basic.delete(source)
-    collection_basic.delete(target)
-    to_collection = collection_basic.create(
+    to_collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name=target,
         vectorizer_config=VectorizerFactory.none(),
         properties=[Property(name="int", data_type=DataType.INT)],
     )
     uuid_to = to_collection.data.insert(properties={"int": 0})
     uuid_to2 = to_collection.data.insert(properties={"int": 5})
-    from_collection = collection_basic.create(
+    from_collection = collection_object_factory(
+        rest_port=8080,
+        grpc_port=50051,
         name=source,
         properties=[
             ReferencePropertyMultiTarget(
