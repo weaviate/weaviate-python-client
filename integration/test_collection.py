@@ -272,7 +272,7 @@ def test_insert_many_with_refs(client: weaviate.Client):
                     "name": "some name",
                     "ref_single": ReferenceFactory.to(uuids=[uuid_to1, uuid_to2]),
                     "ref_many": ReferenceFactory.to_multi_target(
-                        uuids=uuid_from, target_collection=name
+                        uuids=uuid_from, target_collection=collection
                     ),
                 },
                 vector=[1, 2, 3],

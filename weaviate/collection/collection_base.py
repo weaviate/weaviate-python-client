@@ -65,3 +65,8 @@ class CollectionBase:
             res = response.json()
             return _collection_configs_from_json(res)
         raise UnexpectedStatusCodeException("Get schema", response)
+
+
+class CollectionObjectBase:
+    def __init__(self, name: str):
+        self.name = name
