@@ -59,7 +59,6 @@ class Collection(CollectionBase):
     def create(
         self,
         name: str,
-        data_model: Optional[Type[Properties]] = None,
         description: Optional[str] = None,
         generative_search: Optional[_GenerativeConfig] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
@@ -70,6 +69,7 @@ class Collection(CollectionBase):
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vector_index_type: VectorIndexType = VectorIndexType.HNSW,
         vectorizer_config: Optional[_VectorizerConfig] = None,
+        data_model: Optional[Type[Properties]] = None,
     ) -> CollectionObject[Properties]:
         config = _CollectionConfigCreate(
             description=description,
