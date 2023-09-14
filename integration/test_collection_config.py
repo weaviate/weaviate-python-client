@@ -3,6 +3,8 @@ import pytest as pytest
 import weaviate
 from weaviate import Config
 from weaviate.collection.classes.config import (
+    _CollectionConfig,
+    _CollectionConfigSimple,
     ConfigFactory,
     ConfigUpdateFactory,
     Property,
@@ -25,6 +27,27 @@ def client():
     client.schema.delete_all()
     yield client
     client.schema.delete_all()
+
+
+def test_collection_list(client: weaviate.Client):
+    client.collection.create(
+        name="TestCollectionList",
+        vectorizer_config=VectorizerFactory.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+            Property(name="age", data_type=DataType.INT),
+        ],
+    )
+
+    collections = client.collection.list()
+    assert list(collections.keys()) == ["TestCollectionList"]
+    assert isinstance(collections["TestCollectionList"], _CollectionConfigSimple)
+
+    collection = client.collection.list(False)
+    assert list(collection.keys()) == ["TestCollectionList"]
+    assert isinstance(collection["TestCollectionList"], _CollectionConfig)
+
+    client.collection.delete("TestCollectionList")
 
 
 def test_collection_config_empty(client: weaviate.Client):
