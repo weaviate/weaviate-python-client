@@ -29,6 +29,7 @@ from weaviate.collection.classes.orm import (
     Model,
 )
 from weaviate.collection.classes.types import Properties, TProperties, _check_data_model
+from weaviate.collection.classes.filters import _Filters
 from weaviate.collection.grpc_batch import _BatchGRPC
 from weaviate.collection.rest_batch import _BatchREST
 from weaviate.connect import Connection
@@ -54,7 +55,7 @@ class _Data:
         self._consistency_level = consistency_level
         self._tenant = tenant
         self._batch_grpc = _BatchGRPC(connection, consistency_level)
-        self._batch_rest = _BatchREST(connection, consistency_level)
+        self._batch_rest = _BatchREST(connection)
 
     def _insert(self, weaviate_obj: Dict[str, Any]) -> uuid_package.UUID:
         path = "/objects"
@@ -123,9 +124,12 @@ class _Data:
             return False  # did not exist
         raise UnexpectedStatusCodeException("Delete object", response)
 
-    def delete(self) -> None:
-        pass
-        # return self._batch_rest.delete(self.name)
+    def delete(
+        self, where: _Filters, verbose: bool = False, dry_run: bool = False
+    ) -> Dict[str, Any]:
+        return self._batch_rest.delete(
+            self.name, where, verbose, dry_run, self._consistency_level, self._tenant
+        )
 
     def _replace(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
         path = f"/objects/{self.name}/{uuid}"
