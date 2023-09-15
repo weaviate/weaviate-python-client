@@ -63,7 +63,7 @@ def test_filters_text(client: weaviate.Client, weaviate_filter: _FilterValue, re
         collection.data.insert({"name": "Mountain"}),
     ]
 
-    objects = collection.query.get(filters=weaviate_filter)
+    objects = collection.query.get(filters=weaviate_filter).objects
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
@@ -112,7 +112,7 @@ def test_filters_nested(
 
     objects = collection.query.get(
         filters=weaviate_filter, return_metadata=MetadataQuery(uuid=True)
-    )
+    ).objects
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
@@ -133,7 +133,7 @@ def test_length_filter(client: weaviate.Client):
         collection.data.insert({"field": "three"}),
         collection.data.insert({"field": "four"}),
     ]
-    objects = collection.query.get(filters=Filter(path="field", length=True).equal(3))
+    objects = collection.query.get(filters=Filter(path="field", length=True).equal(3)).objects
 
     results = [0, 1]
     assert len(objects) == len(results)
@@ -166,7 +166,7 @@ def test_filters_comparison(
         collection.data.insert({"number": None}),
     ]
 
-    objects = collection.query.get(filters=weaviate_filter)
+    objects = collection.query.get(filters=weaviate_filter).objects
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
@@ -299,7 +299,7 @@ def test_filters_contains(
 
     objects = collection.query.get(
         filters=weaviate_filter, return_metadata=MetadataQuery(uuid=True)
-    )
+    ).objects
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
@@ -345,7 +345,7 @@ def test_ref_filters(client: weaviate.Client, weaviate_filter: _FilterValue, res
 
     objects = from_collection.query.get(
         filters=weaviate_filter, return_metadata=MetadataQuery(uuid=True)
-    )
+    ).objects
     assert len(objects) == len(results)
 
     uuids = [uuids_from[result] for result in results]
@@ -404,10 +404,14 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         }
     )
 
-    objects = from_collection.query.get(filters=Filter(path=["ref", target, "int"]).greater_than(3))
+    objects = from_collection.query.get(
+        filters=Filter(path=["ref", target, "int"]).greater_than(3)
+    ).objects
     assert len(objects) == 1
     assert objects[0].properties["name"] == "second"
 
-    objects = from_collection.query.get(filters=Filter(path=["ref", source, "name"]).equal("first"))
+    objects = from_collection.query.get(
+        filters=Filter(path=["ref", source, "name"]).equal("first")
+    ).objects
     assert len(objects) == 1
     assert objects[0].properties["name"] == "third"

@@ -52,20 +52,26 @@ class Move:
 
 
 class MetadataQuery(WeaviateInput):
-    uuid: bool = False
-    vector: bool = False
-    creation_time_unix: bool = False
-    last_update_time_unix: bool = False
-    distance: bool = False
-    certainty: bool = False
-    score: bool = False
-    explain_score: bool = False
-    is_consistent: bool = False
+    uuid: bool = Field(default=False)
+    vector: bool = Field(default=False)
+    creation_time_unix: bool = Field(default=False)
+    last_update_time_unix: bool = Field(default=False)
+    distance: bool = Field(default=False)
+    certainty: bool = Field(default=False)
+    score: bool = Field(default=False)
+    explain_score: bool = Field(default=False)
+    is_consistent: bool = Field(default=False)
+
+
+class Generate(WeaviateInput):
+    single_prompt: Optional[str] = Field(default=None)
+    grouped_task: Optional[str] = Field(default=None)
+    grouped_properties: Optional[List[str]] = Field(default=None)
 
 
 class Sort(WeaviateInput):
     prop: str
-    ascending: bool = True
+    ascending: bool = Field(default=True)
 
 
 class LinkTo(WeaviateInput):

@@ -11,6 +11,7 @@ from weaviate.collection.classes.config import (
     VectorizerFactory,
 )
 from weaviate.collection.classes.data import DataObject
+from weaviate.collection.classes.grpc import Generate
 from weaviate.exceptions import WeaviateGRPCException
 
 
@@ -51,11 +52,13 @@ def test_generative_search_single(client: weaviate.Client, parameter: str, answe
     )
 
     res = collection.query.generative(
-        prompt_per_object=f"is it good or bad based on {{{parameter}}}? Just answer with yes or no without punctuation"
+        generate=Generate(
+            single_prompt=f"is it good or bad based on {{{parameter}}}? Just answer with yes or no without punctuation"
+        )
     )
     for obj in res.objects:
         assert obj.metadata.generative == answer
-    assert res.generative_combined_result is None
+    assert res.generated is None
 
 
 @pytest.mark.parametrize(
@@ -82,10 +85,12 @@ def test_generative_search_grouped(client: weaviate.Client, prop: str, answer: s
     )
 
     res = collection.query.generative(
-        prompt_combined_results="What is big and what is small? write the name of the big thing first and then the name of the small thing after a space.",
-        combined_results_properties=prop,
+        generate=Generate(
+            grouped_task="What is big and what is small? write the name of the big thing first and then the name of the small thing after a space.",
+            grouped_properties=prop,
+        )
     )
-    assert res.generative_combined_result == answer
+    assert res.generated == answer
 
 
 def test_generative_search_grouped_all_props(client: weaviate.Client):
@@ -119,9 +124,11 @@ def test_generative_search_grouped_all_props(client: weaviate.Client):
     )
 
     res = collection.query.generative(
-        prompt_combined_results="What is the biggest and what is the smallest? Only write the names separated by a space"
+        generate=Generate(
+            grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space"
+        )
     )
-    assert res.generative_combined_result == "Teddy cats"
+    assert res.generated == "Teddy cats"
 
 
 def test_generative_with_everything(client: weaviate.Client):
@@ -155,10 +162,12 @@ def test_generative_with_everything(client: weaviate.Client):
     )
 
     res = collection.query.generative(
-        prompt_per_object="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
-        prompt_combined_results="What is the biggest and what is the smallest? Only write the names separated by a space",
+        generate=Generate(
+            single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+            grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
+        )
     )
-    assert res.generative_combined_result == "Teddy cats"
+    assert res.generated == "Teddy cats"
     for obj in res.objects:
         assert obj.metadata.generative == "Yes"
 
@@ -179,7 +188,7 @@ def test_openapi_invalid_key():
     )
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):
-        collection.query.generative(prompt_per_object="tell a joke based on {text}")
+        collection.query.generative(Generate(single_prompt="tell a joke based on {text}"))
 
 
 def test_openapi_no_module():
@@ -198,7 +207,7 @@ def test_openapi_no_module():
     )
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):
-        collection.query.generative(prompt_per_object="tell a joke based on {text}")
+        collection.query.generative(Generate(single_prompt="tell a joke based on {text}"))
 
 
 def test_openai_batch_upload(client: weaviate.Client):
@@ -220,6 +229,6 @@ def test_openai_batch_upload(client: weaviate.Client):
     )
     assert not ret.has_errors
 
-    objects = collection.query.get()
+    objects = collection.query.get().objects
     assert objects[0].metadata.vector is not None
     assert len(objects[0].metadata.vector) > 0

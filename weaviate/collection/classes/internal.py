@@ -39,7 +39,12 @@ class _Object(Generic[P]):
 @dataclass
 class _GenerativeReturn(Generic[P]):
     objects: List[_Object[P]]
-    generative_combined_result: Optional[str] = None
+    generated: Optional[str] = None
+
+
+@dataclass
+class _QueryReturn(Generic[P]):
+    objects: List[_Object[P]]
 
 
 class ReferenceFactory(Generic[P]):
