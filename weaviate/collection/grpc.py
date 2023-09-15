@@ -97,7 +97,7 @@ class SearchResult:
 
 
 @dataclass
-class GroupByResults:
+class GroupByResult:
     name: str
     min_distance: float
     max_distance: float
@@ -110,7 +110,7 @@ class SearchResponse:
     # the name of these members must match the proto file
     results: List[SearchResult]
     generative_grouped_result: str
-    group_by_results: List[GroupByResults]
+    group_by_results: List[GroupByResult]
 
 
 @dataclass
@@ -711,11 +711,10 @@ class _GrpcCollection(_Grpc):
         return _Object[Properties](properties=properties, metadata=metadata)
 
     def __result_to_group(
-        self, res: GroupByResults, type_: Optional[Type[Properties]]
+        self, res: GroupByResult, type_: Optional[Type[Properties]]
     ) -> _GroupByResult[Properties]:
-        objects_in_group = [self.__result_to_object(obj, type_) for obj in res.objects]
         return _GroupByResult[Properties](
-            objects=objects_in_group,
+            objects=[self.__result_to_object(obj, type_) for obj in res.objects],
             name=res.name,
             number_of_objects=res.number_of_objects,
             min_distance=res.min_distance,
