@@ -1,7 +1,20 @@
 import datetime
 import sys
 from dataclasses import dataclass
-from typing import Any, Dict, Set, List, Optional, Union, Tuple, Type, Generic, cast
+from typing import (
+    Any,
+    Dict,
+    Set,
+    List,
+    Literal,
+    Optional,
+    Union,
+    Tuple,
+    Type,
+    Generic,
+    cast,
+    overload,
+)
 
 from typing_extensions import TypeAlias
 
@@ -179,7 +192,10 @@ class _GRPC(_BaseGRPC):
         sort: Optional[Union[Sort, List[Sort]]] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[SearchResult]:
+        generative_single: Optional[str] = None,
+        generative_grouped: Optional[str] = None,
+        generative_grouped_properties: Optional[List[str]] = None,
+    ) -> SearchResponse:
         self._limit = limit
         self._offset = offset
         self._after = after
@@ -187,7 +203,10 @@ class _GRPC(_BaseGRPC):
         self._metadata = return_metadata
         self.__parse_sort(sort)
         self.__merge_default_and_return_properties(return_properties)
-        return cast(List[SearchResult], self.__call().results)
+        self._generative_single = generative_single
+        self._generative_grouped = generative_grouped
+        self._generative_grouped_properties = generative_grouped_properties
+        return self.__call()
 
     def hybrid(
         self,
@@ -201,7 +220,10 @@ class _GRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[SearchResult]:
+        generative_single: Optional[str] = None,
+        generative_grouped: Optional[str] = None,
+        generative_grouped_properties: Optional[List[str]] = None,
+    ) -> SearchResponse:
         self._hybrid_query = query
         self._hybrid_alpha = alpha
         self._hybrid_vector = vector
@@ -217,7 +239,11 @@ class _GRPC(_BaseGRPC):
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
 
-        return cast(List[SearchResult], self.__call().results)
+        self._generative_single = generative_single
+        self._generative_grouped = generative_grouped
+        self._generative_grouped_properties = generative_grouped_properties
+
+        return self.__call()
 
     def bm25(
         self,
@@ -228,7 +254,10 @@ class _GRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[SearchResult]:
+        generative_single: Optional[str] = None,
+        generative_grouped: Optional[str] = None,
+        generative_grouped_properties: Optional[List[str]] = None,
+    ) -> SearchResponse:
         self._bm25_query = query
         self._bm25_properties = properties
         self._limit = limit
@@ -237,7 +266,11 @@ class _GRPC(_BaseGRPC):
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
 
-        return cast(List[SearchResult], self.__call().results)
+        self._generative_single = generative_single
+        self._generative_grouped = generative_grouped
+        self._generative_grouped_properties = generative_grouped_properties
+
+        return self.__call()
 
     def near_vector(
         self,
@@ -248,7 +281,7 @@ class _GRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[SearchResult]:
+    ) -> SearchResponse:
         self._near_vector_vec = near_vector
         self._near_certainty = certainty
         self._near_distance = distance
@@ -257,7 +290,7 @@ class _GRPC(_BaseGRPC):
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
 
-        return cast(List[SearchResult], self.__call().results)
+        return self.__call()
 
     def near_object(
         self,
@@ -268,7 +301,7 @@ class _GRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[SearchResult]:
+    ) -> SearchResponse:
         self._near_object_obj = near_object
         self._near_certainty = certainty
         self._near_distance = distance
@@ -277,7 +310,7 @@ class _GRPC(_BaseGRPC):
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
 
-        return cast(List[SearchResult], self.__call().results)
+        return self.__call()
 
     def near_text(
         self,
@@ -290,7 +323,7 @@ class _GRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[SearchResult]:
+    ) -> SearchResponse:
         if isinstance(near_text, str):
             near_text = [near_text]
         self._near_text = near_text
@@ -311,7 +344,7 @@ class _GRPC(_BaseGRPC):
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
 
-        return cast(List[SearchResult], self.__call().results)
+        return self.__call()
 
     def near_image(
         self,
@@ -322,7 +355,7 @@ class _GRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[SearchResult]:
+    ) -> SearchResponse:
         self._near_image = image
         self._near_certainty = certainty
         self._near_distance = distance
@@ -332,7 +365,7 @@ class _GRPC(_BaseGRPC):
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
 
-        return cast(List[SearchResult], self.__call().results)
+        return self.__call()
 
     def near_video(
         self,
@@ -343,7 +376,7 @@ class _GRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[SearchResult]:
+    ) -> SearchResponse:
         self._near_video = video
         self._near_certainty = certainty
         self._near_distance = distance
@@ -353,7 +386,7 @@ class _GRPC(_BaseGRPC):
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
 
-        return cast(List[SearchResult], self.__call().results)
+        return self.__call()
 
     def near_audio(
         self,
@@ -364,37 +397,11 @@ class _GRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[SearchResult]:
+    ) -> SearchResponse:
         self._near_audio = audio
         self._near_certainty = certainty
         self._near_distance = distance
         self._autocut = autocut
-        self._filters = filters
-
-        self._metadata = return_metadata
-        self.__merge_default_and_return_properties(return_properties)
-
-        return cast(List[SearchResult], self.__call().results)
-
-    def generative(
-        self,
-        single: Optional[str] = None,
-        grouped: Optional[str] = None,
-        grouped_properties: Optional[List[str]] = None,
-        auto_limit: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
-        return_properties: Optional[PROPERTIES] = None,
-    ) -> SearchResponse:
-        if single is None and grouped is None:
-            raise ValueError(
-                "Either single_response or grouped response must be not None for generative search."
-            )
-
-        self._generative_single = single
-        self._generative_grouped = grouped
-        self._generative_grouped_properties = grouped_properties
-        self._autocut = auto_limit
         self._filters = filters
 
         self._metadata = return_metadata
@@ -674,12 +681,26 @@ class _GrpcCollection(_Grpc):
 
         return cast(Properties, result)
 
-    def __result_to_object(
-        self, res: SearchResult, type_: Optional[Type[Properties]]
-    ) -> _Object[Properties]:
-        properties = self.__parse_result(res.properties, type_)
-        metadata = self._extract_metadata_for_object(res.additional_properties)
-        return _Object[Properties](properties=properties, metadata=metadata)
+    def __result_to_return(
+        self, res: SearchResponse, type_: Optional[Type[Properties]], is_generative: bool
+    ) -> Union[_GenerativeReturn[Properties], _QueryReturn[Properties]]:
+        objects = [
+            _Object[Properties](
+                properties=self.__parse_result(obj.properties, type_),
+                metadata=self._extract_metadata_for_object(obj.additional_properties),
+            )
+            for obj in res.results
+        ]
+        grouped_results = (
+            res.generative_grouped_result if res.generative_grouped_result != "" else None
+        )
+        if is_generative:
+            return _GenerativeReturn(
+                objects=objects,
+                generated=grouped_results,
+            )
+        else:
+            return _QueryReturn(objects=objects)
 
     def __determine_generic(
         self, type_: Union[PROPERTIES, Type[Properties], None]
@@ -699,6 +720,7 @@ class _GrpcCollection(_Grpc):
             ret_type = type_
         return ret_properties, ret_type
 
+    @overload
     def get(
         self,
         limit: Optional[int] = None,
@@ -708,22 +730,87 @@ class _GrpcCollection(_Grpc):
         sort: Optional[Union[Sort, List[Sort]]] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+        generate: Literal[None] = None,
     ) -> _QueryReturn[Properties]:
+        ...
+
+    @overload
+    def get(
+        self,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+        filters: Optional[_Filters] = None,
+        sort: Optional[Union[Sort, List[Sort]]] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+        *,
+        generate: Generate,
+    ) -> _GenerativeReturn[Properties]:
+        ...
+
+    def get(
+        self,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+        filters: Optional[_Filters] = None,
+        sort: Optional[Union[Sort, List[Sort]]] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+        generate: Optional[Generate] = None,
+    ) -> Union[_QueryReturn[Properties], _GenerativeReturn[Properties]]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
-        return _QueryReturn(
-            objects=[
-                self.__result_to_object(obj, ret_type)
-                for obj in self._query().get(
-                    limit=limit,
-                    offset=offset,
-                    after=after,
-                    filters=filters,
-                    sort=sort,
-                    return_metadata=return_metadata,
-                    return_properties=ret_properties,
-                )
-            ]
+        res = self._query().get(
+            limit=limit,
+            offset=offset,
+            after=after,
+            filters=filters,
+            sort=sort,
+            return_metadata=return_metadata,
+            return_properties=ret_properties,
+            generative_single=generate.single_prompt if generate is not None else None,
+            generative_grouped=generate.grouped_task if generate is not None else None,
+            generative_grouped_properties=generate.grouped_properties
+            if generate is not None
+            else None,
         )
+        return self.__result_to_return(res, ret_type, generate is not None)
+
+    @overload
+    def hybrid(
+        self,
+        query: str,
+        alpha: Optional[float] = None,
+        vector: Optional[List[float]] = None,
+        query_properties: Optional[List[str]] = None,
+        fusion_type: Optional[HybridFusion] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+        generate: Literal[None] = None,
+    ) -> _QueryReturn[Properties]:
+        ...
+
+    @overload
+    def hybrid(
+        self,
+        query: str,
+        alpha: Optional[float] = None,
+        vector: Optional[List[float]] = None,
+        query_properties: Optional[List[str]] = None,
+        fusion_type: Optional[HybridFusion] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+        *,
+        generate: Generate,
+    ) -> _GenerativeReturn[Properties]:
+        ...
 
     def hybrid(
         self,
@@ -737,25 +824,56 @@ class _GrpcCollection(_Grpc):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
-    ) -> _QueryReturn[Properties]:
+        generate: Optional[Generate] = None,
+    ) -> Union[_QueryReturn[Properties], _GenerativeReturn[Properties]]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
-        return _QueryReturn(
-            objects=[
-                self.__result_to_object(obj, ret_type)
-                for obj in self._query().hybrid(
-                    query=query,
-                    alpha=alpha,
-                    vector=vector,
-                    properties=query_properties,
-                    fusion_type=fusion_type,
-                    limit=limit,
-                    autocut=auto_limit,
-                    filters=filters,
-                    return_metadata=return_metadata,
-                    return_properties=ret_properties,
-                )
-            ]
+        res = self._query().hybrid(
+            query=query,
+            alpha=alpha,
+            vector=vector,
+            properties=query_properties,
+            fusion_type=fusion_type,
+            limit=limit,
+            autocut=auto_limit,
+            filters=filters,
+            return_metadata=return_metadata,
+            return_properties=ret_properties,
+            generative_single=generate.single_prompt if generate is not None else None,
+            generative_grouped=generate.grouped_task if generate is not None else None,
+            generative_grouped_properties=generate.grouped_properties
+            if generate is not None
+            else None,
         )
+        return self.__result_to_return(res, ret_type, generate is not None)
+
+    @overload
+    def bm25(
+        self,
+        query: str,
+        query_properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+        generate: Literal[None] = None,
+    ) -> _QueryReturn[Properties]:
+        ...
+
+    @overload
+    def bm25(
+        self,
+        query: str,
+        query_properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+        *,
+        generate: Generate,
+    ) -> _GenerativeReturn[Properties]:
+        ...
 
     def bm25(
         self,
@@ -766,22 +884,24 @@ class _GrpcCollection(_Grpc):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
-    ) -> _QueryReturn[Properties]:
+        generate: Optional[Generate] = None,
+    ) -> Union[_QueryReturn[Properties], _GenerativeReturn[Properties]]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
-        return _QueryReturn(
-            objects=[
-                self.__result_to_object(obj, ret_type)
-                for obj in self._query().bm25(
-                    query=query,
-                    properties=query_properties,
-                    limit=limit,
-                    autocut=auto_limit,
-                    filters=filters,
-                    return_metadata=return_metadata,
-                    return_properties=ret_properties,
-                )
-            ]
+        res = self._query().bm25(
+            query=query,
+            properties=query_properties,
+            limit=limit,
+            autocut=auto_limit,
+            filters=filters,
+            return_metadata=return_metadata,
+            return_properties=ret_properties,
+            generative_single=generate.single_prompt if generate is not None else None,
+            generative_grouped=generate.grouped_task if generate is not None else None,
+            generative_grouped_properties=generate.grouped_properties
+            if generate is not None
+            else None,
         )
+        return self.__result_to_return(res, ret_type, generate is not None)
 
     def near_vector(
         self,
@@ -794,20 +914,16 @@ class _GrpcCollection(_Grpc):
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _QueryReturn[Properties]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
-        return _QueryReturn(
-            objects=[
-                self.__result_to_object(obj, ret_type)
-                for obj in self._query().near_vector(
-                    near_vector=near_vector,
-                    certainty=certainty,
-                    distance=distance,
-                    autocut=auto_limit,
-                    filters=filters,
-                    return_metadata=return_metadata,
-                    return_properties=ret_properties,
-                )
-            ]
+        res = self._query().near_vector(
+            near_vector=near_vector,
+            certainty=certainty,
+            distance=distance,
+            autocut=auto_limit,
+            filters=filters,
+            return_metadata=return_metadata,
+            return_properties=ret_properties,
         )
+        return cast(_QueryReturn[Properties], self.__result_to_return(res, ret_type, False))
 
     def near_object(
         self,
@@ -820,20 +936,16 @@ class _GrpcCollection(_Grpc):
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _QueryReturn[Properties]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
-        return _QueryReturn(
-            objects=[
-                self.__result_to_object(obj, ret_type)
-                for obj in self._query().near_object(
-                    near_object=near_object,
-                    certainty=certainty,
-                    distance=distance,
-                    autocut=auto_limit,
-                    filters=filters,
-                    return_metadata=return_metadata,
-                    return_properties=ret_properties,
-                )
-            ]
+        res = self._query().near_object(
+            near_object=near_object,
+            certainty=certainty,
+            distance=distance,
+            autocut=auto_limit,
+            filters=filters,
+            return_metadata=return_metadata,
+            return_properties=ret_properties,
         )
+        return cast(_QueryReturn[Properties], self.__result_to_return(res, ret_type, False))
 
     def near_text(
         self,
@@ -848,22 +960,18 @@ class _GrpcCollection(_Grpc):
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _QueryReturn[Properties]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
-        return _QueryReturn(
-            objects=[
-                self.__result_to_object(obj, ret_type)
-                for obj in self._query().near_text(
-                    near_text=query,
-                    certainty=certainty,
-                    distance=distance,
-                    move_to=move_to,
-                    move_away=move_away,
-                    autocut=auto_limit,
-                    filters=filters,
-                    return_metadata=return_metadata,
-                    return_properties=ret_properties,
-                )
-            ]
+        res = self._query().near_text(
+            near_text=query,
+            certainty=certainty,
+            distance=distance,
+            move_to=move_to,
+            move_away=move_away,
+            autocut=auto_limit,
+            filters=filters,
+            return_metadata=return_metadata,
+            return_properties=ret_properties,
         )
+        return cast(_QueryReturn[Properties], self.__result_to_return(res, ret_type, False))
 
     def near_image(
         self,
@@ -876,20 +984,16 @@ class _GrpcCollection(_Grpc):
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _QueryReturn[Properties]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
-        return _QueryReturn(
-            objects=[
-                self.__result_to_object(obj, ret_type)
-                for obj in self._query().near_image(
-                    image=near_image,
-                    certainty=certainty,
-                    distance=distance,
-                    filters=filters,
-                    autocut=auto_limit,
-                    return_metadata=return_metadata,
-                    return_properties=ret_properties,
-                )
-            ]
+        res = self._query().near_image(
+            image=near_image,
+            certainty=certainty,
+            distance=distance,
+            filters=filters,
+            autocut=auto_limit,
+            return_metadata=return_metadata,
+            return_properties=ret_properties,
         )
+        return cast(_QueryReturn[Properties], self.__result_to_return(res, ret_type, False))
 
     def near_audio(
         self,
@@ -902,20 +1006,16 @@ class _GrpcCollection(_Grpc):
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _QueryReturn[Properties]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
-        return _QueryReturn(
-            objects=[
-                self.__result_to_object(obj, ret_type)
-                for obj in self._query().near_audio(
-                    audio=near_audio,
-                    certainty=certainty,
-                    distance=distance,
-                    filters=filters,
-                    autocut=auto_limit,
-                    return_metadata=return_metadata,
-                    return_properties=ret_properties,
-                )
-            ]
+        res = self._query().near_audio(
+            audio=near_audio,
+            certainty=certainty,
+            distance=distance,
+            filters=filters,
+            autocut=auto_limit,
+            return_metadata=return_metadata,
+            return_properties=ret_properties,
         )
+        return cast(_QueryReturn[Properties], self.__result_to_return(res, ret_type, False))
 
     def near_video(
         self,
@@ -928,44 +1028,16 @@ class _GrpcCollection(_Grpc):
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _QueryReturn[Properties]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
-        return _QueryReturn(
-            objects=[
-                self.__result_to_object(obj, ret_type)
-                for obj in self._query().near_video(
-                    video=near_video,
-                    certainty=certainty,
-                    distance=distance,
-                    filters=filters,
-                    autocut=auto_limit,
-                    return_metadata=return_metadata,
-                    return_properties=ret_properties,
-                )
-            ]
-        )
-
-    def generative(
-        self,
-        generate: Generate,
-        auto_limit: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
-        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
-    ) -> _GenerativeReturn[Properties]:
-        ret_properties, ret_type = self.__determine_generic(return_properties)
-        ret = self._query().generative(
-            single=generate.single_prompt,
-            grouped=generate.grouped_task,
-            grouped_properties=generate.grouped_properties,
+        res = self._query().near_video(
+            video=near_video,
+            certainty=certainty,
+            distance=distance,
             filters=filters,
-            auto_limit=auto_limit,
+            autocut=auto_limit,
             return_metadata=return_metadata,
             return_properties=ret_properties,
         )
-        objects = [self.__result_to_object(obj, ret_type) for obj in ret.results]
-        grouped_results = (
-            ret.generative_grouped_result if ret.generative_grouped_result != "" else None
-        )
-        return _GenerativeReturn[Properties](objects=objects, generated=grouped_results)
+        return cast(_QueryReturn[Properties], self.__result_to_return(res, ret_type, False))
 
 
 class _GrpcCollectionModel(Generic[Model], _Grpc):
@@ -1028,7 +1100,8 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
     ) -> List[_Object[Model]]:
         return [
             self.__result_to_object(obj)
-            for obj in self._query().get(
+            for obj in self._query()
+            .get(
                 limit=limit,
                 offset=offset,
                 after=after,
@@ -1036,6 +1109,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
                 return_metadata=return_metadata,
                 return_properties=return_properties,
             )
+            .results
         ]
 
     def hybrid(
@@ -1053,7 +1127,8 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
     ) -> List[_Object[Model]]:
         return [
             self.__result_to_object(obj)
-            for obj in self._query().hybrid(
+            for obj in self._query()
+            .hybrid(
                 query=query,
                 alpha=alpha,
                 vector=vector,
@@ -1065,6 +1140,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
                 return_metadata=return_metadata,
                 return_properties=return_properties,
             )
+            .results
         ]
 
     def bm25(
@@ -1079,7 +1155,8 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
     ) -> List[_Object[Model]]:
         return [
             self.__result_to_object(obj)
-            for obj in self._query().bm25(
+            for obj in self._query()
+            .bm25(
                 query=query,
                 properties=query_properties,
                 limit=limit,
@@ -1088,6 +1165,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
                 return_metadata=return_metadata,
                 return_properties=return_properties,
             )
+            .results
         ]
 
     def near_vector(
@@ -1102,7 +1180,8 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
     ) -> List[_Object[Model]]:
         return [
             self.__result_to_object(obj)
-            for obj in self._query().near_vector(
+            for obj in self._query()
+            .near_vector(
                 near_vector=near_vector,
                 certainty=certainty,
                 distance=distance,
@@ -1111,6 +1190,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
                 return_metadata=return_metadata,
                 return_properties=return_properties,
             )
+            .results
         ]
 
     def near_object(
@@ -1125,7 +1205,8 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
     ) -> List[_Object[Model]]:
         return [
             self.__result_to_object(obj)
-            for obj in self._query().near_object(
+            for obj in self._query()
+            .near_object(
                 near_object=near_object,
                 certainty=certainty,
                 distance=distance,
@@ -1134,6 +1215,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
                 return_metadata=return_metadata,
                 return_properties=return_properties,
             )
+            .results
         ]
 
     def near_text(
@@ -1150,7 +1232,8 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
     ) -> List[_Object[Model]]:
         return [
             self.__result_to_object(obj)
-            for obj in self._query().near_text(
+            for obj in self._query()
+            .near_text(
                 near_text=query,
                 certainty=certainty,
                 distance=distance,
@@ -1161,6 +1244,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
                 return_metadata=return_metadata,
                 return_properties=return_properties,
             )
+            .results
         ]
 
     def near_image(
@@ -1175,7 +1259,8 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
     ) -> List[_Object[Model]]:
         return [
             self.__result_to_object(obj)
-            for obj in self._query().near_image(
+            for obj in self._query()
+            .near_image(
                 image=near_image,
                 certainty=certainty,
                 distance=distance,
@@ -1184,6 +1269,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
                 return_metadata=return_metadata,
                 return_properties=return_properties,
             )
+            .results
         ]
 
     def near_audio(
@@ -1198,7 +1284,8 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
     ) -> List[_Object[Model]]:
         return [
             self.__result_to_object(obj)
-            for obj in self._query().near_audio(
+            for obj in self._query()
+            .near_audio(
                 audio=near_audio,
                 certainty=certainty,
                 distance=distance,
@@ -1207,6 +1294,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
                 return_metadata=return_metadata,
                 return_properties=return_properties,
             )
+            .results
         ]
 
     def near_video(
@@ -1221,7 +1309,8 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
     ) -> List[_Object[Model]]:
         return [
             self.__result_to_object(obj)
-            for obj in self._query().near_video(
+            for obj in self._query()
+            .near_video(
                 video=near_video,
                 certainty=certainty,
                 distance=distance,
@@ -1230,4 +1319,5 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
                 return_metadata=return_metadata,
                 return_properties=return_properties,
             )
+            .results
         ]

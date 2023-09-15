@@ -39,7 +39,7 @@ class _Object(Generic[P]):
 @dataclass
 class _GenerativeReturn(Generic[P]):
     objects: List[_Object[P]]
-    generated: Optional[str] = None
+    generated: Optional[str]
 
 
 @dataclass
