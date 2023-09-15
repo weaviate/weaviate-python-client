@@ -3,10 +3,9 @@ import sys
 from dataclasses import dataclass
 from typing import Dict, List, Optional, TypedDict, Union
 
-import pytest as pytest
 import uuid
 
-from weaviate.collection.classes.grpc import Sort
+from weaviate.collection.classes.grpc import Sort, GroupBy
 
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated
@@ -16,30 +15,32 @@ else:
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
-import weaviate
 from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_ENCODED
-from weaviate import Config
 from weaviate.collection.classes.config import (
     ConfigFactory,
-    Property,
-    DataType,
     ReferenceProperty,
     ReferencePropertyMultiTarget,
     Vectorizer,
-    VectorizerFactory,
 )
 from weaviate.collection.classes.data import (
     DataObject,
     Error,
 )
-from weaviate.collection.classes.internal import ReferenceFactory
+from weaviate.collection.classes.internal import _GroupByReturn, ReferenceFactory
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.exceptions import WeaviateGRPCException
-from weaviate.collection.collection import CollectionObject
 from weaviate.collection.data import _DataCollection
 from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery, Move
 from weaviate.exceptions import InvalidDataModelException
 from weaviate.weaviate_types import UUID
+
+
+import pytest
+
+import weaviate
+from weaviate.collection.classes.config import DataType, Property, VectorizerFactory
+from weaviate.collection.collection import CollectionObject
+from weaviate.config import Config
 
 BEACON_START = "weaviate://localhost"
 
@@ -1549,3 +1550,33 @@ def test_optional_ref_returns(client: weaviate.Client):
 
     assert objects[0].properties["ref"].objects[0].properties["text"] == "ref text"
     assert objects[0].properties["ref"].objects[0].metadata.uuid is not None
+
+
+def test_group_by(client: weaviate.Client):
+    name = "TestGrouping"
+    client.collection.delete(name)
+
+    collection = client.collection.create(
+        name="TestGrouping",
+        vectorizer_config=VectorizerFactory.text2vec_contextionary(),
+        properties=[
+            Property(name="description", data_type=DataType.TEXT),
+            Property(name="number", data_type=DataType.INT),
+        ],
+    )
+    collection.data.insert(properties={"description": "hiking", "number": 20}),
+    collection.data.insert(properties={"description": "climbing", "number": 20}),
+    collection.data.insert(properties={"description": "rope", "number": 20}),
+    collection.data.insert(properties={"description": "tennis", "number": 30}),
+    collection.data.insert(properties={"description": "swimming", "number": 30}),
+    collection.data.insert(properties={"description": "running", "number": 30}),
+    collection.data.insert(properties={"description": "apple cake", "number": 40}),
+    collection.data.insert(properties={"description": "banana cake", "number": 40}),
+
+    groups = collection.query.near_text(
+        "hiking", group_by=GroupBy(prop="number", number_of_groups=3, objects_per_group=3)
+    )
+
+    assert isinstance(groups, _GroupByReturn)
+
+    assert len(groups) == 3
