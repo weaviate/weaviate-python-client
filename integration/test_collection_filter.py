@@ -415,8 +415,8 @@ def test_ref_filters_multi_target(client: weaviate.Client):
     assert objects[0].properties["name"] == "third"
 
 
-def test_delete_many(client: weaviate.Client):
-    name = "TestDeleteMany"
+def test_delete_many_simple(client: weaviate.Client):
+    name = "TestDeleteManySimple"
     collection = client.collection.create(
         name=name,
         properties=[
@@ -459,3 +459,58 @@ def test_delete_many(client: weaviate.Client):
     collection.data.delete_many(where=Filter(path="description").equal("money"))
     objs = collection.data.get()
     assert len(objs) == 0
+
+
+def test_delete_many_and(client: weaviate.Client):
+    name = "TestDeleteManyAnd"
+    collection = client.collection.create(
+        name=name,
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+            Property(name="Age", data_type=DataType.INT),
+        ],
+        vectorizer_config=VectorizerFactory.none(),
+    )
+    collection.data.insert_many(
+        [
+            DataObject(properties={"age": 10, "name": "Timmy"}, uuid=uuid.uuid4()),
+            DataObject(properties={"age": 10, "name": "Tommy"}, uuid=uuid.uuid4()),
+        ]
+    )
+    objs = collection.data.get()
+    assert len(objs) == 2
+
+    collection.data.delete_many(
+        where=Filter(path="age").equal(10) & Filter(path="name").equal("Timmy")
+    )
+    objs = collection.data.get()
+    assert len(objs) == 1
+    assert objs[0].properties["age"] == 10
+    assert objs[0].properties["name"] == "Tommy"
+
+
+def test_delete_many_or(client: weaviate.Client):
+    name = "TestDeleteManyOr"
+    collection = client.collection.create(
+        name=name,
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+            Property(name="Age", data_type=DataType.INT),
+        ],
+        vectorizer_config=VectorizerFactory.none(),
+    )
+    collection.data.insert_many(
+        [
+            DataObject(properties={"age": 10, "name": "Timmy"}, uuid=uuid.uuid4()),
+            DataObject(properties={"age": 20, "name": "Tim"}, uuid=uuid.uuid4()),
+            DataObject(properties={"age": 30, "name": "Timothy"}, uuid=uuid.uuid4()),
+        ]
+    )
+    objs = collection.data.get()
+    assert len(objs) == 3
+
+    collection.data.delete_many(where=Filter(path="age").equal(10) | Filter(path="age").equal(30))
+    objs = collection.data.get()
+    assert len(objs) == 1
+    assert objs[0].properties["age"] == 20
+    assert objs[0].properties["name"] == "Tim"
