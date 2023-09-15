@@ -22,7 +22,32 @@ class _Operator(str, Enum):
     OR = "Or"
 
     def _to_grpc(self) -> weaviate_pb2.Filters.Operator:
-        return weaviate_pb2.Filters.Operator(self.value)
+        if self == _Operator.EQUAL:
+            return weaviate_pb2.Filters.OPERATOR_EQUAL
+        elif self == _Operator.NOT_EQUAL:
+            return weaviate_pb2.Filters.OPERATOR_NOT_EQUAL
+        elif self == _Operator.LESS_THAN:
+            return weaviate_pb2.Filters.OPERATOR_LESS_THAN
+        elif self == _Operator.LESS_THAN_EQUAL:
+            return weaviate_pb2.Filters.OPERATOR_LESS_THAN_EQUAL
+        elif self == _Operator.GREATER_THAN:
+            return weaviate_pb2.Filters.OPERATOR_GREATER_THAN
+        elif self == _Operator.GREATER_THAN_EQUAL:
+            return weaviate_pb2.Filters.OPERATOR_GREATER_THAN_EQUAL
+        elif self == _Operator.LIKE:
+            return weaviate_pb2.Filters.OPERATOR_LIKE
+        elif self == _Operator.IS_NULL:
+            return weaviate_pb2.Filters.OPERATOR_IS_NULL
+        elif self == _Operator.CONTAINS_ANY:
+            return weaviate_pb2.Filters.OPERATOR_CONTAINS_ANY
+        elif self == _Operator.CONTAINS_ALL:
+            return weaviate_pb2.Filters.OPERATOR_CONTAINS_ALL
+        elif self == _Operator.AND:
+            return weaviate_pb2.Filters.OPERATOR_AND
+        elif self == _Operator.OR:
+            return weaviate_pb2.Filters.OPERATOR_OR
+        else:
+            raise ValueError(f"Unknown operator {self}")
 
 
 class _Filters:

@@ -111,7 +111,7 @@ class _Data:
             all_responses=all_responses,
         )
 
-    def delete_by_id(self, uuid: UUID) -> bool:
+    def delete(self, uuid: UUID) -> bool:
         path = f"/objects/{self.name}/{uuid}"
 
         try:
@@ -124,7 +124,7 @@ class _Data:
             return False  # did not exist
         raise UnexpectedStatusCodeException("Delete object", response)
 
-    def delete(
+    def delete_many(
         self, where: _Filters, verbose: bool = False, dry_run: bool = False
     ) -> Dict[str, Any]:
         return self._batch_rest.delete(

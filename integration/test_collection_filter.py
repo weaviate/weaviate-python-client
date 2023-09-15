@@ -12,8 +12,10 @@ from weaviate.collection.classes.config import (
     DataType,
     ReferenceProperty,
     ReferencePropertyMultiTarget,
+    Tokenization,
     VectorizerFactory,
 )
+from weaviate.collection.classes.data import DataObject
 from weaviate.collection.classes.filters import (
     Filter,
     _Filters,
@@ -411,3 +413,49 @@ def test_ref_filters_multi_target(client: weaviate.Client):
     objects = from_collection.query.get(filters=Filter(path=["ref", source, "name"]).equal("first"))
     assert len(objects) == 1
     assert objects[0].properties["name"] == "third"
+
+
+def test_delete_many(client: weaviate.Client):
+    name = "TestDeleteMany"
+    collection = client.collection.create(
+        name=name,
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT, tokenization=Tokenization.FIELD),
+            Property(name="Description", data_type=DataType.TEXT),
+            Property(name="Age", data_type=DataType.INT),
+        ],
+        inverted_index_config=ConfigFactory.inverted_index(index_null_state=True),
+        vectorizer_config=VectorizerFactory.none(),
+    )
+    collection.data.insert_many(
+        [
+            DataObject(properties={"name": "some name"}, vector=[1, 2, 3]),
+            DataObject(properties={"name": "some other name"}, uuid=uuid.uuid4()),
+            DataObject(properties={"age": 10}, uuid=uuid.uuid4()),
+            DataObject(properties={"name": "I am ageless"}, uuid=uuid.uuid4()),
+            DataObject(properties={"description": "Loads of money", "age": 60}, uuid=uuid.uuid4()),
+            DataObject(properties={"description": "Lots of money", "age": 40}, uuid=uuid.uuid4()),
+        ]
+    )
+    objs = collection.data.get()
+    assert len(objs) == 6
+
+    collection.data.delete_many(where=Filter(path="name").equal("some name"), verbose=True)
+    objs = collection.data.get()
+    assert len(objs) == 5
+
+    collection.data.delete_many(where=Filter(path="name").equal("some other name"))
+    objs = collection.data.get()
+    assert len(objs) == 4
+
+    collection.data.delete_many(where=Filter(path="age").equal(10))
+    objs = collection.data.get()
+    assert len(objs) == 3
+
+    collection.data.delete_many(where=Filter(path="age").is_none(True))
+    objs = collection.data.get()
+    assert len(objs) == 2
+
+    collection.data.delete_many(where=Filter(path="description").equal("money"))
+    objs = collection.data.get()
+    assert len(objs) == 0

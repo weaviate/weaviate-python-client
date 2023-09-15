@@ -121,7 +121,7 @@ class FilterToREST:
     @staticmethod
     def __value_filter(weav_filter: _FilterValue) -> Dict[str, Any]:
         return {
-            "operator": weav_filter.operator,
+            "operator": weav_filter.operator.value,
             "path": weav_filter.path if isinstance(weav_filter.path, list) else [weav_filter.path],
             **FilterToREST.__parse_filter(weav_filter.value),
         }
@@ -159,7 +159,7 @@ class FilterToREST:
     def __and_or_filter(weav_filter: _Filters) -> Dict[str, Any]:
         assert isinstance(weav_filter, _FilterAnd) or isinstance(weav_filter, _FilterOr)
         return {
-            "operator": weav_filter.operator,
+            "operator": weav_filter.operator.value,
             "operands": [
                 filter_
                 for single_filter in weav_filter.filters
