@@ -31,8 +31,10 @@ from weaviate.collection.classes.grpc import (
     PROPERTY,
     PROPERTIES,
     Sort,
+    GroupBy,
 )
 from weaviate.collection.classes.internal import (
+    _GroupByObject,
     _MetadataReturn,
     _Object,
     ReferenceFactory,
@@ -41,6 +43,8 @@ from weaviate.collection.classes.internal import (
     _extract_properties_from_data_model,
     _GenerativeReturn,
     _QueryReturn,
+    _GroupByResult,
+    _GroupByReturn,
 )
 from weaviate.collection.classes.orm import Model
 from weaviate.collection.classes.types import (
@@ -93,10 +97,20 @@ class SearchResult:
 
 
 @dataclass
+class GroupByResults:
+    name: str
+    min_distance: float
+    max_distance: float
+    number_of_objects: int
+    objects: List[SearchResult]
+
+
+@dataclass
 class SearchResponse:
     # the name of these members must match the proto file
     results: List[SearchResult]
     generative_grouped_result: str
+    group_by_results: List[GroupByResults]
 
 
 @dataclass
@@ -159,6 +173,8 @@ class _GRPC(_BaseGRPC):
         self._generative_grouped_properties: Optional[List[str]] = None
 
         self._sort: Optional[List[Sort]] = None
+
+        self._group_by: Optional[GroupBy] = None
 
         self._filters: Optional[_Filters] = None
 
@@ -246,6 +262,7 @@ class _GRPC(_BaseGRPC):
         distance: Optional[float] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Optional[GroupBy] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[SearchResult]:
@@ -255,6 +272,7 @@ class _GRPC(_BaseGRPC):
         self._autocut = autocut
         self._filters = filters
         self._metadata = return_metadata
+        self._group_by = group_by
         self.__merge_default_and_return_properties(return_properties)
 
         return cast(List[SearchResult], self.__call().results)
@@ -266,6 +284,7 @@ class _GRPC(_BaseGRPC):
         distance: Optional[float] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Optional[GroupBy] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[SearchResult]:
@@ -288,9 +307,10 @@ class _GRPC(_BaseGRPC):
         move_away: Optional[Move] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Optional[GroupBy] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> List[SearchResult]:
+    ) -> SearchResponse:
         if isinstance(near_text, str):
             near_text = [near_text]
         self._near_text = near_text
@@ -308,10 +328,12 @@ class _GRPC(_BaseGRPC):
             self._near_text_move_to = weaviate_pb2.NearTextSearchParams.Move(
                 force=move_to.force, concepts=move_to.concepts_list, uuids=move_to.objects_list
             )
+
+        self._group_by = group_by
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
 
-        return cast(List[SearchResult], self.__call().results)
+        return self.__call()
 
     def near_image(
         self,
@@ -508,6 +530,13 @@ class _GRPC(_BaseGRPC):
                     )
                     if self._generative_single is not None or self._generative_grouped is not None
                     else None,
+                    group_by=weaviate_pb2.GroupBy(
+                        path=[self._group_by.prop],
+                        number_of_groups=self._group_by.number_of_groups,
+                        objects_per_group=self._group_by.objects_per_group,
+                    )
+                    if self._group_by is not None
+                    else None,
                 ),
                 metadata=metadata,
             )
@@ -681,6 +710,18 @@ class _GrpcCollection(_Grpc):
         metadata = self._extract_metadata_for_object(res.additional_properties)
         return _Object[Properties](properties=properties, metadata=metadata)
 
+    def __result_to_group(
+        self, res: GroupByResults, type_: Optional[Type[Properties]]
+    ) -> _GroupByResult[Properties]:
+        objects_in_group = [self.__result_to_object(obj, type_) for obj in res.objects]
+        return _GroupByResult[Properties](
+            objects=objects_in_group,
+            name=res.name,
+            number_of_objects=res.number_of_objects,
+            min_distance=res.min_distance,
+            max_distance=res.max_distance,
+        )
+
     def __determine_generic(
         self, type_: Union[PROPERTIES, Type[Properties], None]
     ) -> Tuple[Optional[PROPERTIES], Type[Properties]]:
@@ -790,6 +831,7 @@ class _GrpcCollection(_Grpc):
         distance: Optional[float] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Optional[GroupBy] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _QueryReturn[Properties]:
@@ -803,6 +845,7 @@ class _GrpcCollection(_Grpc):
                     distance=distance,
                     autocut=auto_limit,
                     filters=filters,
+                    group_by=group_by,
                     return_metadata=return_metadata,
                     return_properties=ret_properties,
                 )
@@ -816,6 +859,7 @@ class _GrpcCollection(_Grpc):
         distance: Optional[float] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Optional[GroupBy] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _QueryReturn[Properties]:
@@ -829,6 +873,7 @@ class _GrpcCollection(_Grpc):
                     distance=distance,
                     autocut=auto_limit,
                     filters=filters,
+                    group_by=group_by,
                     return_metadata=return_metadata,
                     return_properties=ret_properties,
                 )
@@ -844,26 +889,42 @@ class _GrpcCollection(_Grpc):
         move_away: Optional[Move] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Optional[GroupBy] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
-    ) -> _QueryReturn[Properties]:
+    ) -> Union[_QueryReturn[Properties], _GroupByReturn[Properties]]:
         ret_properties, ret_type = self.__determine_generic(return_properties)
-        return _QueryReturn(
-            objects=[
-                self.__result_to_object(obj, ret_type)
-                for obj in self._query().near_text(
-                    near_text=query,
-                    certainty=certainty,
-                    distance=distance,
-                    move_to=move_to,
-                    move_away=move_away,
-                    autocut=auto_limit,
-                    filters=filters,
-                    return_metadata=return_metadata,
-                    return_properties=ret_properties,
-                )
-            ]
+        results = self._query().near_text(
+            near_text=query,
+            certainty=certainty,
+            distance=distance,
+            move_to=move_to,
+            move_away=move_away,
+            autocut=auto_limit,
+            filters=filters,
+            group_by=group_by,
+            return_metadata=return_metadata,
+            return_properties=ret_properties,
         )
+
+        if group_by is None:
+            objects = [self.__result_to_object(obj, ret_type) for obj in results.results]
+            return _QueryReturn(objects=objects)
+
+        groups = {
+            group.name: self.__result_to_group(group, ret_type)
+            for group in results.group_by_results
+        }
+
+        objects_group_by = [
+            _GroupByObject(
+                properties=obj.properties, metadata=obj.metadata, belongs_to_group=group.name
+            )
+            for group in groups.values()
+            for obj in group.objects
+        ]
+
+        return _GroupByReturn(objects=objects_group_by, groups=groups)
 
     def near_image(
         self,
@@ -1150,7 +1211,8 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
     ) -> List[_Object[Model]]:
         return [
             self.__result_to_object(obj)
-            for obj in self._query().near_text(
+            for obj in self._query()
+            .near_text(
                 near_text=query,
                 certainty=certainty,
                 distance=distance,
@@ -1161,6 +1223,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
                 return_metadata=return_metadata,
                 return_properties=return_properties,
             )
+            .results
         ]
 
     def near_image(

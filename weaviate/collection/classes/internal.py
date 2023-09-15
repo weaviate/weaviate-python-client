@@ -37,6 +37,11 @@ class _Object(Generic[P]):
 
 
 @dataclass
+class _GroupByObject(Generic[P], _Object[P]):
+    belongs_to_group: str
+
+
+@dataclass
 class _GenerativeReturn(Generic[P]):
     objects: List[_Object[P]]
     generated: Optional[str] = None
@@ -45,6 +50,22 @@ class _GenerativeReturn(Generic[P]):
 @dataclass
 class _QueryReturn(Generic[P]):
     objects: List[_Object[P]]
+
+
+@dataclass
+class _GroupByResult(Generic[P]):
+    name: str
+    min_distance: float
+    max_distance: float
+    number_of_objects: int
+    objects: List[_Object[P]]
+
+
+@dataclass
+class _GroupByReturn(Generic[P]):
+    objects: List[_GroupByObject[P]]
+    groups: Dict[str, _GroupByResult]
+    generated: Optional[str] = None
 
 
 class ReferenceFactory(Generic[P]):
