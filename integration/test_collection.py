@@ -1579,4 +1579,4 @@ def test_group_by(client: weaviate.Client):
 
     assert isinstance(groups, _GroupByReturn)
 
-    assert len(groups) == 3
+    assert len(groups.groups) == 3
