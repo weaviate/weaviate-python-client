@@ -188,7 +188,7 @@ def test_openapi_invalid_key():
     )
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):
-        collection.query.generative(prompt_per_object="tell a joke based on {text}")
+        collection.query.generative(Generate(single_prompt="tell a joke based on {text}"))
 
 
 def test_openapi_no_module():
@@ -207,7 +207,7 @@ def test_openapi_no_module():
     )
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):
-        collection.query.generative(prompt_per_object="tell a joke based on {text}")
+        collection.query.generative(Generate(single_prompt="tell a joke based on {text}"))
 
 
 def test_openai_batch_upload(client: weaviate.Client):

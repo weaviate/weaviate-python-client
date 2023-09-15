@@ -64,9 +64,9 @@ class MetadataQuery(WeaviateInput):
 
 
 class Generate(WeaviateInput):
-    single_prompt: Optional[str]
-    grouped_task: Optional[str]
-    grouped_properties: Optional[List[str]]
+    single_prompt: Optional[str] = Field(default=None)
+    grouped_task: Optional[str] = Field(default=None)
+    grouped_properties: Optional[List[str]] = Field(default=None)
 
 
 class Sort(WeaviateInput):
