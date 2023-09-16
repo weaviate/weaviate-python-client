@@ -296,3 +296,34 @@ class Client:
         # in case an exception happens before definition of these members
         if hasattr(self, "_connection"):
             self._connection.close()
+
+    def set_apikey(self, openai_key: Optional[str] = None, cohere_key: Optional[str] = None, huggingface_key: Optional[str] = None, palm_key: Optional[str] = None):
+        """
+        Set the external API key.
+
+        Parameters
+        ----------
+        openai_key: str, optional
+            It is OpenAI API key.
+        cohere_key: str, optional
+            It is Cohere API key.
+        huggingface_key: str, optional
+            It is Hugging Face API key.
+        palm_key: str, optional
+            It is Palm API key.
+
+        Returns
+        -------
+        None    
+        """
+        if openai_key:
+            self._connection._headers["x-openai-api-key"] = openai_key
+
+        if cohere_key:
+            self._connection._headers["x-cohere-api-key"] = cohere_key
+
+        if huggingface_key:
+            self._connection._headers["x-huggingface-api-key"] = huggingface_key
+
+        if palm_key:
+            self._connection._headers["x-palm-api-key"] = palm_key
