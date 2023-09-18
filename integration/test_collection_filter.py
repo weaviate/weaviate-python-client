@@ -825,7 +825,6 @@ def test_delete_many_return(client: weaviate.Client):
     )
     ret = collection.data.delete_many(where=Filter(path="name").equal("delet me"))
     assert ret.failed == 0
-    assert ret.limit == 10000
     assert ret.matches == 1
     assert ret.objects is None
     assert ret.successful == 1

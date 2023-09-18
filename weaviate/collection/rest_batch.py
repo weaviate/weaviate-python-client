@@ -2,7 +2,7 @@ from typing import Any, Dict, Optional
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.collection.classes.batch import _DeleteBatchResult
+from weaviate.collection.classes.batch import _BatchDeleteResult
 from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.extract_filters import FilterToREST
 from weaviate.collection.classes.filters import _Filters
@@ -22,7 +22,7 @@ class _BatchREST:
         dry_run: bool,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
-    ) -> _DeleteBatchResult:
+    ) -> _BatchDeleteResult:
         payload: Dict[str, Any] = {
             "match": {
                 "class": class_name,
@@ -50,9 +50,8 @@ class _BatchREST:
             raise RequestsConnectionError("Batch delete was not successful.") from conn_err
         res = _decode_json_response_dict(response, "Delete in batch")
         assert res is not None
-        return _DeleteBatchResult(
+        return _BatchDeleteResult(
             failed=res["results"]["failed"],
-            limit=res["results"]["limit"],
             matches=res["results"]["matches"],
             objects=res["results"]["objects"],
             successful=res["results"]["successful"],
