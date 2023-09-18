@@ -444,6 +444,16 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
+                Property(name="text", data_type=DataType.TEXT),
+            ],
+            [
+                DataObject(properties={"text": "banana"}, uuid=uuid.uuid4()),
+            ],
+            Filter("text").like("ba*"),
+            0,
+        ),
+        (
+            [
                 Property(name="texts", data_type=DataType.TEXT_ARRAY),
             ],
             [
