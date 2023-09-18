@@ -79,6 +79,27 @@ def test_create_get_and_delete(client: weaviate.Client):
     assert not client.collection.exists(name)
 
 
+def test_delete_multiple(client: weaviate.Client):
+    name1 = "TestDeleteMultiple1"
+    name2 = "TestDeleteMultiple2"
+    client.collection.create(
+        name=name1,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=VectorizerFactory.none(),
+    )
+    client.collection.create(
+        name=name2,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=VectorizerFactory.none(),
+    )
+    assert client.collection.exists(name1)
+    assert client.collection.exists(name2)
+
+    client.collection.delete([name1, name2])
+    assert not client.collection.exists(name1)
+    assert not client.collection.exists(name2)
+
+
 @pytest.mark.parametrize("use_typed_dict", [True, False])
 def test_get_with_dict_generic(client: weaviate.Client, use_typed_dict: bool):
     name = "TestGetWithDictGeneric"
@@ -189,6 +210,22 @@ def test_insert(client: weaviate.Client, which_generic: str):
         uuid = collection.data.insert(properties=insert_data)
     name = collection.data.get_by_id(uuid).properties["name"]
     assert name == insert_data["name"]
+
+
+def test_delete_by_id(client: weaviate.Client):
+    name = "TestDeleteById"
+    collection = client.collection.create(
+        name=name,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=VectorizerFactory.none(),
+    )
+
+    uuid = collection.data.insert(properties={"name": "some name"})
+    assert collection.data.get_by_id(uuid) is not None
+    collection.data.delete_by_id(uuid)
+    assert collection.data.get_by_id(uuid) is None
+
+    client.collection.delete(name)
 
 
 def test_insert_many(client: weaviate.Client):
@@ -525,7 +562,7 @@ def test_search_hybrid(client: weaviate.Client, fusion_type):
     )
     collection.data.insert({"Name": "some name"}, uuid.uuid4())
     collection.data.insert({"Name": "other word"}, uuid.uuid4())
-    res = collection.query.hybrid(alpha=0, query="name", fusion_type=fusion_type)
+    res = collection.query.hybrid(alpha=0, query="name", fusion_type=fusion_type).objects
     assert len(res) == 1
     client.collection.delete("Testing")
 
@@ -540,7 +577,7 @@ def test_search_limit(client: weaviate.Client, limit):
     for i in range(5):
         collection.data.insert({"Name": str(i)})
 
-    assert len(collection.query.get(limit=limit)) == limit
+    assert len(collection.query.get(limit=limit).objects) == limit
 
     client.collection.delete("TestLimit")
 
@@ -557,7 +594,7 @@ def test_search_offset(client: weaviate.Client, offset):
     for i in range(nr_objects):
         collection.data.insert({"Name": str(i)})
 
-    objects = collection.query.get(offset=offset)
+    objects = collection.query.get(offset=offset).objects
     assert len(objects) == nr_objects - offset
 
     client.collection.delete("TestOffset")
@@ -574,9 +611,9 @@ def test_search_after(client: weaviate.Client):
     for i in range(nr_objects):
         collection.data.insert({"Name": str(i)})
 
-    objects = collection.query.get(return_metadata=MetadataQuery(uuid=True))
+    objects = collection.query.get(return_metadata=MetadataQuery(uuid=True)).objects
     for i, obj in enumerate(objects):
-        objects_after = collection.query.get(after=obj.metadata.uuid)
+        objects_after = collection.query.get(after=obj.metadata.uuid).objects
         assert len(objects_after) == nr_objects - 1 - i
 
     client.collection.delete("TestOffset")
@@ -596,19 +633,19 @@ def test_auto_limit(client: weaviate.Client):
         collection.data.insert({"Name": ""})
 
     # match all objects with rain
-    objects = collection.query.bm25(query="rain", auto_limit=0)
+    objects = collection.query.bm25(query="rain", auto_limit=0).objects
     assert len(objects) == 2 * 4
     objects = collection.query.hybrid(
         query="rain", auto_limit=0, alpha=0, fusion_type=HybridFusion.RELATIVE_SCORE
-    )
+    ).objects
     assert len(objects) == 2 * 4
 
     # match only objects with two rains
-    objects = collection.query.bm25(query="rain", auto_limit=1)
+    objects = collection.query.bm25(query="rain", auto_limit=1).objects
     assert len(objects) == 1 * 4
     objects = collection.query.hybrid(
         query="rain", auto_limit=1, alpha=0, fusion_type=HybridFusion.RELATIVE_SCORE
-    )
+    ).objects
     assert len(objects) == 1 * 4
 
     client.collection.delete("TestAutoLimit")
@@ -629,18 +666,18 @@ def test_query_properties(client: weaviate.Client):
     collection.data.insert({"Name": "snow", "Age": 4})
     collection.data.insert({"Name": "hail", "Age": 5})
 
-    objects = collection.query.bm25(query="rain", query_properties=["name"])
+    objects = collection.query.bm25(query="rain", query_properties=["name"]).objects
     assert len(objects) == 1
     assert objects[0].properties["age"] == 1
 
-    objects = collection.query.bm25(query="sleet", query_properties=["name"])
+    objects = collection.query.bm25(query="sleet", query_properties=["name"]).objects
     assert len(objects) == 0
 
-    objects = collection.query.hybrid(query="cloud", query_properties=["name"], alpha=0)
+    objects = collection.query.hybrid(query="cloud", query_properties=["name"], alpha=0).objects
     assert len(objects) == 1
     assert objects[0].properties["age"] == 3
 
-    objects = collection.query.hybrid(query="sleet", query_properties=["name"], alpha=0)
+    objects = collection.query.hybrid(query="sleet", query_properties=["name"], alpha=0).objects
     assert len(objects) == 0
 
     client.collection.delete("TestQueryProperties")
@@ -661,17 +698,17 @@ def test_near_vector(client: weaviate.Client):
 
     full_objects = collection.query.near_vector(
         banana.metadata.vector, return_metadata=MetadataQuery(distance=True, certainty=True)
-    )
+    ).objects
     assert len(full_objects) == 4
 
     objects_distance = collection.query.near_vector(
         banana.metadata.vector, distance=full_objects[2].metadata.distance
-    )
+    ).objects
     assert len(objects_distance) == 3
 
     objects_distance = collection.query.near_vector(
         banana.metadata.vector, certainty=full_objects[2].metadata.certainty
-    )
+    ).objects
     assert len(objects_distance) == 3
 
     client.collection.delete("TestNearVector")
@@ -690,17 +727,17 @@ def test_near_object(client: weaviate.Client):
 
     full_objects = collection.query.near_object(
         uuid_banana, return_metadata=MetadataQuery(distance=True, certainty=True)
-    )
+    ).objects
     assert len(full_objects) == 4
 
     objects_distance = collection.query.near_object(
         uuid_banana, distance=full_objects[2].metadata.distance
-    )
+    ).objects
     assert len(objects_distance) == 3
 
     objects_certainty = collection.query.near_object(
         uuid_banana, certainty=full_objects[2].metadata.certainty
-    )
+    ).objects
     assert len(objects_certainty) == 3
 
     client.collection.delete("TestNearObject")
@@ -717,7 +754,7 @@ def test_mono_references_grpc(client: weaviate.Client):
     uuid_A1 = A.data.insert(properties={"Name": "A1"})
     uuid_A2 = A.data.insert(properties={"Name": "A2"})
 
-    objects = A.query.bm25(query="A1", return_properties="name")
+    objects = A.query.bm25(query="A1", return_properties="name").objects
     assert objects[0].properties["name"] == "A1"
 
     B = client.collection.create(
@@ -739,7 +776,7 @@ def test_mono_references_grpc(client: weaviate.Client):
             link_on="ref",
             return_properties=["name"],
         ),
-    )
+    ).objects
     assert objects[0].properties["ref"].objects[0].properties["name"] == "A1"
     assert objects[0].properties["ref"].objects[1].properties["name"] == "A2"
 
@@ -752,7 +789,7 @@ def test_mono_references_grpc(client: weaviate.Client):
                 return_metadata=MetadataQuery(uuid=True),
             )
         ],
-    )
+    ).objects
     assert objects[0].properties["ref"].objects[0].properties["name"] == "A1"
     assert objects[0].properties["ref"].objects[0].metadata.uuid == uuid_A1
     assert objects[0].properties["ref"].objects[1].properties["name"] == "A2"
@@ -785,7 +822,7 @@ def test_mono_references_grpc(client: weaviate.Client):
                 return_metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
             ),
         ],
-    )
+    ).objects
     assert objects[0].properties["name"] == "find me"
     assert objects[0].properties["ref"].objects[0].properties["name"] == "B"
     assert (
@@ -853,9 +890,13 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.Client):
     C = client.collection.get("CTypedDicts", CProps)
     C.data.insert(properties=CProps(name="find me", ref=ReferenceFactory[BProps].to(uuids=uuid_B)))
 
-    objects = client.collection.get("CTypedDicts").query.bm25(
-        query="find",
-        return_properties=CProps,
+    objects = (
+        client.collection.get("CTypedDicts")
+        .query.bm25(
+            query="find",
+            return_properties=CProps,
+        )
+        .objects
     )
     assert (
         objects[0].properties["name"] == "find me"
@@ -939,7 +980,7 @@ def test_multi_references_grpc(client: weaviate.Client):
                 return_metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
             ),
         ],
-    )
+    ).objects
     assert objects[0].properties["name"] == "first"
     assert len(objects[0].properties["ref"].objects) == 1
     assert objects[0].properties["ref"].objects[0].properties["name"] == "A"
@@ -957,7 +998,7 @@ def test_multi_references_grpc(client: weaviate.Client):
                 return_metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
             ),
         ],
-    )
+    ).objects
     assert objects[0].properties["name"] == "second"
     assert len(objects[0].properties["ref"].objects) == 1
     assert objects[0].properties["ref"].objects[0].properties["name"] == "B"
@@ -1005,11 +1046,11 @@ def test_multi_searches(client: weaviate.Client):
         query="word",
         return_properties=["name"],
         return_metadata=MetadataQuery(last_update_time_unix=True),
-    )
+    ).objects
     assert "name" in objects[0].properties
     assert objects[0].metadata.last_update_time_unix is not None
 
-    objects = collection.query.bm25(query="other", return_metadata=MetadataQuery(uuid=True))
+    objects = collection.query.bm25(query="other", return_metadata=MetadataQuery(uuid=True)).objects
     assert "name" not in objects[0].properties
     assert objects[0].metadata.uuid is not None
     assert objects[0].metadata.last_update_time_unix is None
@@ -1029,11 +1070,11 @@ def test_search_with_tenant(client: weaviate.Client):
     tenant1 = collection.with_tenant("Tenant1")
     tenant2 = collection.with_tenant("Tenant2")
     uuid1 = tenant1.data.insert({"name": "some name"})
-    objects1 = tenant1.query.bm25(query="some", return_metadata=MetadataQuery(uuid=True))
+    objects1 = tenant1.query.bm25(query="some", return_metadata=MetadataQuery(uuid=True)).objects
     assert len(objects1) == 1
     assert objects1[0].metadata.uuid == uuid1
 
-    objects2 = tenant2.query.bm25(query="some", return_metadata=MetadataQuery(uuid=True))
+    objects2 = tenant2.query.bm25(query="some", return_metadata=MetadataQuery(uuid=True)).objects
     assert len(objects2) == 0
 
     client.collection.delete("TestTenantSearch")
@@ -1154,19 +1195,20 @@ def test_collection_config_get(client: weaviate.Client):
 def test_empty_search_returns_everything(client: weaviate.Client):
     collection = client.collection.create(
         name="TestReturnEverything",
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=VectorizerFactory.text2vec_contextionary(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
     )
 
     collection.data.insert(properties={"name": "word"})
 
-    objects = collection.query.bm25(query="word")
+    objects = collection.query.bm25(query="word").objects
     assert "name" in objects[0].properties
     assert objects[0].properties["name"] == "word"
     assert objects[0].metadata.uuid is not None
     assert objects[0].metadata.score is not None
     assert objects[0].metadata.last_update_time_unix is not None
     assert objects[0].metadata.creation_time_unix is not None
+    assert objects[0].metadata.vector is None
 
     client.collection.delete("TestReturnEverything")
 
@@ -1285,7 +1327,7 @@ def test_return_list_properties(client: weaviate.Client):
         "uuids": [uuid.uuid4(), uuid.uuid4()],
     }
     collection.data.insert(properties=data)
-    objects = collection.query.get()
+    objects = collection.query.get().objects
     assert len(objects) == 1
 
     # remove dates because of problems comparing dates
@@ -1335,7 +1377,7 @@ def test_near_text(
         move_away=Move(force=0.5, concepts=concepts),
         return_metadata=MetadataQuery(uuid=True),
         return_properties=["value"],
-    )
+    ).objects
 
     assert objs[0].metadata.uuid == batch_return.uuids[2]
     assert objs[0].properties["value"] == "apple cake"
@@ -1370,7 +1412,7 @@ def test_near_image(client: weaviate.Client, distance: Optional[float], certaint
 
     objects = collection.query.near_image(
         WEAVIATE_LOGO_OLD_ENCODED, distance=distance, certainty=certainty
-    )
+    ).objects
     assert len(objects) == 2
     assert objects[0].metadata.uuid == uuid1
 
@@ -1397,7 +1439,7 @@ def test_return_properties_with_typed_dict(client: weaviate.Client, which_case: 
         class DataModel(TypedDict):
             int_: int
 
-        objects = collection.query.get(return_properties=DataModel)
+        objects = collection.query.get(return_properties=DataModel).objects
         assert len(objects) == 1
         assert objects[0].properties == {"int_": 1}
     elif which_case == 1:
@@ -1405,7 +1447,7 @@ def test_return_properties_with_typed_dict(client: weaviate.Client, which_case: 
         class DataModel(TypedDict):
             ints: List[int]
 
-        objects = collection.query.get(return_properties=DataModel)
+        objects = collection.query.get(return_properties=DataModel).objects
         assert len(objects) == 1
         assert objects[0].properties == {"ints": [1, 2, 3]}
     elif which_case == 2:
@@ -1414,7 +1456,7 @@ def test_return_properties_with_typed_dict(client: weaviate.Client, which_case: 
             int_: int
             ints: List[int]
 
-        objects = collection.query.get(return_properties=DataModel)
+        objects = collection.query.get(return_properties=DataModel).objects
         assert len(objects) == 1
         assert objects[0].properties == data
     elif which_case == 3:
@@ -1510,7 +1552,7 @@ def test_sort(client: weaviate.Client, sort: Union[Sort, List[Sort]], expected: 
         collection.data.insert(properties={"name": "C", "age": 22}),
     ]
 
-    objects = collection.query.get(sort=sort)
+    objects = collection.query.get(sort=sort).objects
     assert len(objects) == len(expected)
 
     expected_uuids = [uuids_from[result] for result in expected]
@@ -1540,7 +1582,7 @@ def test_optional_ref_returns(client: weaviate.Client):
     )
     collection.data.insert(properties={"ref": ReferenceFactory.to(uuid_to1)})
 
-    objects = collection.query.get(return_properties=[LinkTo(link_on="ref")])
+    objects = collection.query.get(return_properties=[LinkTo(link_on="ref")]).objects
 
     assert objects[0].properties["ref"].objects[0].properties["text"] == "ref text"
     assert objects[0].properties["ref"].objects[0].metadata.uuid is not None

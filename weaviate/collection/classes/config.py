@@ -1009,6 +1009,14 @@ class _CollectionConfig:
     vectorizer: Vectorizer
 
 
+@dataclass
+class _CollectionConfigSimple:
+    name: str
+    description: Optional[str]
+    properties: List[_Property]
+    vectorizer: Vectorizer
+
+
 # class PropertyConfig(ConfigCreateModel):
 #     indexFilterable: Optional[bool] = Field(None, alias="index_filterable")
 #     indexSearchable: Optional[bool] = Field(None, alias="index_searchable")

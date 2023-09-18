@@ -125,7 +125,7 @@ class Filter:
     def less_than(self, val: FilterValues) -> _FilterValue:
         return _FilterValue(path=self.__internal_path, value=val, operator=_Operator.LESS_THAN)
 
-    def less_than_equal(self, val: FilterValues) -> _FilterValue:
+    def less_or_equal(self, val: FilterValues) -> _FilterValue:
         return _FilterValue(
             path=self.__internal_path,
             value=val,
@@ -139,7 +139,7 @@ class Filter:
             operator=_Operator.GREATER_THAN,
         )
 
-    def greater_than_equal(self, val: FilterValues) -> _FilterValue:
+    def greater_or_equal(self, val: FilterValues) -> _FilterValue:
         return _FilterValue(
             path=self.__internal_path,
             value=val,

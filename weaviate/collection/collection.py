@@ -1,7 +1,9 @@
-from typing import Generic, List, Optional, Type, Union
+from typing import Dict, Generic, List, Literal, Optional, Type, Union, overload
 
 from weaviate.collection.classes.config import (
     _CollectionConfigCreate,
+    _CollectionConfig,
+    _CollectionConfigSimple,
     ConsistencyLevel,
     _GenerativeConfig,
     _InvertedIndexConfigCreate,
@@ -59,7 +61,6 @@ class Collection(CollectionBase):
     def create(
         self,
         name: str,
-        data_model: Optional[Type[Properties]] = None,
         description: Optional[str] = None,
         generative_search: Optional[_GenerativeConfig] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
@@ -70,6 +71,7 @@ class Collection(CollectionBase):
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vector_index_type: VectorIndexType = VectorIndexType.HNSW,
         vectorizer_config: Optional[_VectorizerConfig] = None,
+        data_model: Optional[Type[Properties]] = None,
     ) -> CollectionObject[Properties]:
         config = _CollectionConfigCreate(
             description=description,
@@ -98,16 +100,35 @@ class Collection(CollectionBase):
         name = _capitalize_first_letter(name)
         return CollectionObject[Properties](self._connection, name, type_=data_model)
 
-    def delete(self, name: str) -> None:
-        """Use this method to delete a collection from the Weaviate instance by its name.
+    def delete(self, name: Union[str, List[str]]) -> None:
+        """Use this method to delete collection(s) from the Weaviate instance by its/their name(s).
 
         WARNING: If you have instances of client.collection.get() or client.collection.create()
-        for this collection within your code, they will cease to function correctly after this operation.
+        for these collections within your code, they will cease to function correctly after this operation.
 
         Parameters:
-        - name: The name of the collection to delete.
+        - name: The names of the collections to delete.
         """
-        self._delete(_capitalize_first_letter(name))
+        if isinstance(name, str):
+            self._delete(_capitalize_first_letter(name))
+        else:
+            for n in name:
+                self._delete(_capitalize_first_letter(n))
 
     def exists(self, name: str) -> bool:
         return self._exists(_capitalize_first_letter(name))
+
+    @overload
+    def list_all(self, simple: Literal[False]) -> Dict[str, _CollectionConfig]:
+        ...
+
+    @overload
+    def list_all(self, simple: Literal[True] = ...) -> Dict[str, _CollectionConfigSimple]:
+        ...
+
+    def list_all(
+        self, simple: bool = True
+    ) -> Union[Dict[str, _CollectionConfig], Dict[str, _CollectionConfigSimple]]:
+        if simple:
+            return self._get_simple()
+        return self._get_all()
