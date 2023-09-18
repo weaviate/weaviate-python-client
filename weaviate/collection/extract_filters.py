@@ -153,7 +153,7 @@ class FilterToREST:
                 return {"valueIntArray": value}
             if isinstance(value[0], float):
                 return {"valueNumberArray": value}
-        return {}
+        raise ValueError(f"Unknown filter value type: {type(value)}")
 
     @staticmethod
     def __and_or_filter(weav_filter: _Filters) -> Dict[str, Any]:
