@@ -79,6 +79,27 @@ def test_create_get_and_delete(client: weaviate.Client):
     assert not client.collection.exists(name)
 
 
+def test_delete_multiple(client: weaviate.Client):
+    name1 = "TestDeleteMultiple1"
+    name2 = "TestDeleteMultiple2"
+    client.collection.create(
+        name=name1,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=VectorizerFactory.none(),
+    )
+    client.collection.create(
+        name=name2,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=VectorizerFactory.none(),
+    )
+    assert client.collection.exists(name1)
+    assert client.collection.exists(name2)
+
+    client.collection.delete([name1, name2])
+    assert not client.collection.exists(name1)
+    assert not client.collection.exists(name2)
+
+
 @pytest.mark.parametrize("use_typed_dict", [True, False])
 def test_get_with_dict_generic(client: weaviate.Client, use_typed_dict: bool):
     name = "TestGetWithDictGeneric"
@@ -189,6 +210,22 @@ def test_insert(client: weaviate.Client, which_generic: str):
         uuid = collection.data.insert(properties=insert_data)
     name = collection.data.get_by_id(uuid).properties["name"]
     assert name == insert_data["name"]
+
+
+def test_delete_by_id(client: weaviate.Client):
+    name = "TestDeleteById"
+    collection = client.collection.create(
+        name=name,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=VectorizerFactory.none(),
+    )
+
+    uuid = collection.data.insert(properties={"name": "some name"})
+    assert collection.data.get_by_id(uuid) is not None
+    collection.data.delete_by_id(uuid)
+    assert collection.data.get_by_id(uuid) is None
+
+    client.collection.delete(name)
 
 
 def test_insert_many(client: weaviate.Client):

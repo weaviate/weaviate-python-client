@@ -108,7 +108,7 @@ class _Data:
             all_responses=all_responses,
         )
 
-    def delete(self, uuid: UUID) -> bool:
+    def delete_by_id(self, uuid: UUID) -> bool:
         path = f"/objects/{self.name}/{uuid}"
 
         try:
