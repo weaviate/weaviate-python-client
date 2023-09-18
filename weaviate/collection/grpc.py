@@ -52,8 +52,7 @@ from weaviate.collection.classes.internal import (
     _extract_property_type_from_annotated_reference,
     _extract_property_type_from_reference,
     _extract_properties_from_data_model,
-    _generative_input_from_generate,
-    _GenerativeInput,
+    _Generative,
     _GenerativeReturn,
     _QueryReturn,
 )
@@ -169,7 +168,7 @@ class _GRPC(_BaseGRPC):
         self._near_video: Optional[str] = None
         self._near_audio: Optional[str] = None
 
-        self._generative: Optional[_GenerativeInput] = None
+        self._generative: Optional[_Generative] = None
 
         self._sort: Optional[List[Sort]] = None
 
@@ -192,7 +191,7 @@ class _GRPC(_BaseGRPC):
         sort: Optional[Union[Sort, List[Sort]]] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-        generative: Optional[_GenerativeInput] = None,
+        generative: Optional[_Generative] = None,
     ) -> SearchResponse:
         self._limit = limit
         self._offset = offset
@@ -216,7 +215,7 @@ class _GRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-        generative: Optional[_GenerativeInput] = None,
+        generative: Optional[_Generative] = None,
     ) -> SearchResponse:
         self._hybrid_query = query
         self._hybrid_alpha = alpha
@@ -244,7 +243,7 @@ class _GRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-        generative: Optional[_GenerativeInput] = None,
+        generative: Optional[_Generative] = None,
     ) -> SearchResponse:
         self._bm25_query = query
         self._bm25_properties = properties
@@ -492,13 +491,7 @@ class _GRPC(_BaseGRPC):
                     ]
                     if self._sort is not None
                     else None,
-                    generative=weaviate_pb2.GenerativeSearch(
-                        single_response_prompt=self._generative.single,
-                        grouped_response_task=self._generative.grouped,
-                        grouped_properties=self._generative.grouped_properties,
-                    )
-                    if self._generative is not None
-                    else None,
+                    generative=self._generative.to_grpc() if self._generative is not None else None,
                 ),
                 metadata=metadata,
             )
@@ -753,7 +746,7 @@ class _GrpcCollection(_Grpc):
             sort=sort,
             return_metadata=return_metadata,
             return_properties=ret_properties,
-            generative=_generative_input_from_generate(generate),
+            generative=_Generative.from_input(generate),
         )
         return self.__result_to_return(res, ret_type, generate is not None)
 
@@ -818,7 +811,7 @@ class _GrpcCollection(_Grpc):
             filters=filters,
             return_metadata=return_metadata,
             return_properties=ret_properties,
-            generative=_generative_input_from_generate(generate),
+            generative=_Generative.from_input(generate),
         )
         return self.__result_to_return(res, ret_type, generate is not None)
 
@@ -871,7 +864,7 @@ class _GrpcCollection(_Grpc):
             filters=filters,
             return_metadata=return_metadata,
             return_properties=ret_properties,
-            generative=_generative_input_from_generate(generate),
+            generative=_Generative.from_input(generate),
         )
         return self.__result_to_return(res, ret_type, generate is not None)
 

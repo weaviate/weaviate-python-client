@@ -21,6 +21,8 @@ from weaviate.collection.classes.types import Properties, P
 from weaviate.util import _to_beacons
 from weaviate.weaviate_types import UUIDS
 
+from weaviate_grpc.weaviate_pb2 import GenerativeSearch
+
 
 @dataclass
 class _MetadataReturn:
@@ -53,23 +55,39 @@ class _QueryReturn(Generic[P]):
     objects: List[_Object[P]]
 
 
-@dataclass
-class _GenerativeInput:
+class _Generative:
     single: Optional[str]
     grouped: Optional[str]
     grouped_properties: Optional[List[str]]
 
+    def __init__(
+        self,
+        single: Optional[str],
+        grouped: Optional[str],
+        grouped_properties: Optional[List[str]],
+    ) -> None:
+        self.single = single
+        self.grouped = grouped
+        self.grouped_properties = grouped_properties
 
-def _generative_input_from_generate(generate: Optional[Generate]) -> Optional[_GenerativeInput]:
-    return (
-        _GenerativeInput(
-            single=generate.single_prompt,
-            grouped=generate.grouped_task,
-            grouped_properties=generate.grouped_properties,
+    def to_grpc(self) -> GenerativeSearch:
+        return GenerativeSearch(
+            single_response_prompt=self.single,
+            grouped_response_task=self.grouped,
+            grouped_properties=self.grouped_properties,
         )
-        if generate is not None
-        else None
-    )
+
+    @classmethod
+    def from_input(self, generate: Optional[Generate]) -> Optional["_Generative"]:
+        return (
+            _Generative(
+                single=generate.single_prompt,
+                grouped=generate.grouped_task,
+                grouped_properties=generate.grouped_properties,
+            )
+            if generate
+            else None
+        )
 
 
 class ReferenceFactory(Generic[P]):
