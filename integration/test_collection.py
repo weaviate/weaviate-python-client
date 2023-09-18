@@ -26,6 +26,7 @@ from weaviate.collection.classes.data import (
     DataObject,
     Error,
 )
+from weaviate.collection.classes.grpc import GroupBy
 from weaviate.collection.classes.internal import ReferenceFactory
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.exceptions import WeaviateGRPCException
@@ -1357,6 +1358,38 @@ def test_near_text_error(client: weaviate.Client):
 
     with pytest.raises(ValueError):
         collection.query.near_text(query="test", move_to=Move(force=1.0))
+
+
+def test_near_text_group_by(client: weaviate.Client):
+    name = "TestNearTextGroupBy"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        name=name,
+        vectorizer_config=VectorizerFactory.text2vec_contextionary(),
+        properties=[Property(name="value", data_type=DataType.TEXT)],
+    )
+
+    batch_return = collection.data.insert_many(
+        [
+            DataObject(properties={"value": "Apple"}, uuid=UUID1),
+            DataObject(properties={"value": "Mountain climbing"}),
+            DataObject(properties={"value": "apple cake"}),
+            DataObject(properties={"value": "cake"}),
+        ]
+    )
+
+    ret = collection.query.near_text(
+        query="cake",
+        group_by=GroupBy(prop="value", number_of_groups=2, objects_per_group=100),
+        return_metadata=MetadataQuery(uuid=True),
+        return_properties=["value"],
+    )
+
+    assert len(ret.objects) == 2
+    assert ret.objects[0].metadata.uuid == batch_return.uuids[2]
+    assert ret.objects[0].belongs_to_group == "apple cake"
+    assert ret.objects[1].metadata.uuid == batch_return.uuids[3]
+    assert ret.objects[1].belongs_to_group == "cake"
 
 
 @pytest.mark.parametrize("distance,certainty", [(None, None), (10, None), (None, 0.1)])

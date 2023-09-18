@@ -172,7 +172,7 @@ def test_get_generate_search_grouped_specified_prop(client: weaviate.Client):
 
 
 def test_get_generate_with_everything(client: weaviate.Client):
-    name = "TestGenerativeSearchOpenAI"
+    name = "TestGetGenerativeSearchOpenAI"
     client.collection.delete(name)
     collection = client.collection.create(
         name=name,
@@ -213,7 +213,7 @@ def test_get_generate_with_everything(client: weaviate.Client):
 
 
 def test_bm25_generate_with_everything(client: weaviate.Client):
-    name = "TestGenerativeSearchOpenAI"
+    name = "TestBM25GenerativeSearchOpenAI"
     client.collection.delete(name)
     collection = client.collection.create(
         name=name,
@@ -256,7 +256,7 @@ def test_bm25_generate_with_everything(client: weaviate.Client):
 
 
 def test_hybrid_generate_with_everything(client: weaviate.Client):
-    name = "TestGenerativeSearchOpenAI"
+    name = "TestHybridGenerativeSearchOpenAI"
     client.collection.delete(name)
     collection = client.collection.create(
         name=name,
@@ -288,6 +288,51 @@ def test_hybrid_generate_with_everything(client: weaviate.Client):
     res = collection.query.hybrid(
         query="cats",
         query_properties=["text"],
+        generate=Generate(
+            single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+            grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space from biggest to smallest",
+        ),
+    )
+    assert res.generated == "cats bananas"
+    for obj in res.objects:
+        assert obj.metadata.generative == "No"
+
+
+@pytest.mark.skip(
+    reason="Throws: weaviate.exceptions.WeaviateGRPCException: gRPC call failed with message panic occurred: ValidateParam was called without any known params present."
+)
+def test_near_text_generate_with_everything(client: weaviate.Client):
+    name = "TestNearTextGenerativeSearchOpenAI"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        name=name,
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+            Property(name="content", data_type=DataType.TEXT),
+            Property(name="extra", data_type=DataType.TEXT),
+        ],
+        generative_search=GenerativeFactory.OpenAI(),
+    )
+
+    collection.data.insert_many(
+        [
+            DataObject(
+                properties={
+                    "text": "apples are big",
+                    "content": "Teddy is the biggest and bigger than everything else",
+                }
+            ),
+            DataObject(
+                properties={
+                    "text": "cats are small",
+                    "content": "bananas are the smallest and smaller than everything else",
+                }
+            ),
+        ]
+    )
+
+    res = collection.query.near_text(
+        query="cats",
         generate=Generate(
             single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
             grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space from biggest to smallest",
