@@ -1195,7 +1195,7 @@ def test_collection_config_get(client: weaviate.Client):
 def test_empty_search_returns_everything(client: weaviate.Client):
     collection = client.collection.create(
         name="TestReturnEverything",
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=VectorizerFactory.text2vec_contextionary(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
     )
 
@@ -1208,6 +1208,7 @@ def test_empty_search_returns_everything(client: weaviate.Client):
     assert objects[0].metadata.score is not None
     assert objects[0].metadata.last_update_time_unix is not None
     assert objects[0].metadata.creation_time_unix is not None
+    assert objects[0].metadata.vector is None
 
     client.collection.delete("TestReturnEverything")
 
