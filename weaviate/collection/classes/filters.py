@@ -89,7 +89,7 @@ class Filter:
             path=self.__internal_path, value=val, operator=weaviate_pb2.Filters.OPERATOR_LESS_THAN
         )
 
-    def less_than_equal(self, val: FilterValues) -> _FilterValue:
+    def less_or_equal(self, val: FilterValues) -> _FilterValue:
         return _FilterValue(
             path=self.__internal_path,
             value=val,
@@ -103,7 +103,7 @@ class Filter:
             operator=weaviate_pb2.Filters.OPERATOR_GREATER_THAN,
         )
 
-    def greater_than_equal(self, val: FilterValues) -> _FilterValue:
+    def greater_or_equal(self, val: FilterValues) -> _FilterValue:
         return _FilterValue(
             path=self.__internal_path,
             value=val,
