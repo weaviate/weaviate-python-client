@@ -10,7 +10,13 @@ else:
     from typing import Annotated, get_type_hints, get_origin
 
 from weaviate.collection.collection_base import CollectionObjectBase
-from weaviate.collection.classes.grpc import LinkTo, LinkToMultiTarget, MetadataQuery, PROPERTIES
+from weaviate.collection.classes.grpc import (
+    LinkTo,
+    LinkToMultiTarget,
+    MetadataQuery,
+    PROPERTIES,
+    Generate,
+)
 from weaviate.collection.classes.types import Properties, P
 from weaviate.util import _to_beacons
 from weaviate.weaviate_types import UUIDS
@@ -45,6 +51,25 @@ class _GenerativeReturn(Generic[P]):
 @dataclass
 class _QueryReturn(Generic[P]):
     objects: List[_Object[P]]
+
+
+@dataclass
+class _GenerativeInput:
+    single: Optional[str]
+    grouped: Optional[str]
+    grouped_properties: Optional[List[str]]
+
+
+def _generative_input_from_generate(generate: Optional[Generate]) -> Optional[_GenerativeInput]:
+    return (
+        _GenerativeInput(
+            single=generate.single_prompt,
+            grouped=generate.grouped_task,
+            grouped_properties=generate.grouped_properties,
+        )
+        if generate is not None
+        else None
+    )
 
 
 class ReferenceFactory(Generic[P]):

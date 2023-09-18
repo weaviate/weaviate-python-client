@@ -52,6 +52,8 @@ from weaviate.collection.classes.internal import (
     _extract_property_type_from_annotated_reference,
     _extract_property_type_from_reference,
     _extract_properties_from_data_model,
+    _generative_input_from_generate,
+    _GenerativeInput,
     _GenerativeReturn,
     _QueryReturn,
 )
@@ -167,9 +169,7 @@ class _GRPC(_BaseGRPC):
         self._near_video: Optional[str] = None
         self._near_audio: Optional[str] = None
 
-        self._generative_single: Optional[str] = None
-        self._generative_grouped: Optional[str] = None
-        self._generative_grouped_properties: Optional[List[str]] = None
+        self._generative: Optional[_GenerativeInput] = None
 
         self._sort: Optional[List[Sort]] = None
 
@@ -192,9 +192,7 @@ class _GRPC(_BaseGRPC):
         sort: Optional[Union[Sort, List[Sort]]] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-        generative_single: Optional[str] = None,
-        generative_grouped: Optional[str] = None,
-        generative_grouped_properties: Optional[List[str]] = None,
+        generative: Optional[_GenerativeInput] = None,
     ) -> SearchResponse:
         self._limit = limit
         self._offset = offset
@@ -203,9 +201,7 @@ class _GRPC(_BaseGRPC):
         self._metadata = return_metadata
         self.__parse_sort(sort)
         self.__merge_default_and_return_properties(return_properties)
-        self._generative_single = generative_single
-        self._generative_grouped = generative_grouped
-        self._generative_grouped_properties = generative_grouped_properties
+        self._generative = generative
         return self.__call()
 
     def hybrid(
@@ -220,9 +216,7 @@ class _GRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-        generative_single: Optional[str] = None,
-        generative_grouped: Optional[str] = None,
-        generative_grouped_properties: Optional[List[str]] = None,
+        generative: Optional[_GenerativeInput] = None,
     ) -> SearchResponse:
         self._hybrid_query = query
         self._hybrid_alpha = alpha
@@ -238,11 +232,7 @@ class _GRPC(_BaseGRPC):
         self._filters = filters
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
-
-        self._generative_single = generative_single
-        self._generative_grouped = generative_grouped
-        self._generative_grouped_properties = generative_grouped_properties
-
+        self._generative = generative
         return self.__call()
 
     def bm25(
@@ -254,9 +244,7 @@ class _GRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-        generative_single: Optional[str] = None,
-        generative_grouped: Optional[str] = None,
-        generative_grouped_properties: Optional[List[str]] = None,
+        generative: Optional[_GenerativeInput] = None,
     ) -> SearchResponse:
         self._bm25_query = query
         self._bm25_properties = properties
@@ -265,11 +253,7 @@ class _GRPC(_BaseGRPC):
         self._filters = filters
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
-
-        self._generative_single = generative_single
-        self._generative_grouped = generative_grouped
-        self._generative_grouped_properties = generative_grouped_properties
-
+        self._generative = generative
         return self.__call()
 
     def near_vector(
@@ -509,11 +493,11 @@ class _GRPC(_BaseGRPC):
                     if self._sort is not None
                     else None,
                     generative=weaviate_pb2.GenerativeSearch(
-                        single_response_prompt=self._generative_single,
-                        grouped_response_task=self._generative_grouped,
-                        grouped_properties=self._generative_grouped_properties,
+                        single_response_prompt=self._generative.single,
+                        grouped_response_task=self._generative.grouped,
+                        grouped_properties=self._generative.grouped_properties,
                     )
-                    if self._generative_single is not None or self._generative_grouped is not None
+                    if self._generative is not None
                     else None,
                 ),
                 metadata=metadata,
@@ -769,11 +753,7 @@ class _GrpcCollection(_Grpc):
             sort=sort,
             return_metadata=return_metadata,
             return_properties=ret_properties,
-            generative_single=generate.single_prompt if generate is not None else None,
-            generative_grouped=generate.grouped_task if generate is not None else None,
-            generative_grouped_properties=generate.grouped_properties
-            if generate is not None
-            else None,
+            generative=_generative_input_from_generate(generate),
         )
         return self.__result_to_return(res, ret_type, generate is not None)
 
@@ -838,11 +818,7 @@ class _GrpcCollection(_Grpc):
             filters=filters,
             return_metadata=return_metadata,
             return_properties=ret_properties,
-            generative_single=generate.single_prompt if generate is not None else None,
-            generative_grouped=generate.grouped_task if generate is not None else None,
-            generative_grouped_properties=generate.grouped_properties
-            if generate is not None
-            else None,
+            generative=_generative_input_from_generate(generate),
         )
         return self.__result_to_return(res, ret_type, generate is not None)
 
@@ -895,11 +871,7 @@ class _GrpcCollection(_Grpc):
             filters=filters,
             return_metadata=return_metadata,
             return_properties=ret_properties,
-            generative_single=generate.single_prompt if generate is not None else None,
-            generative_grouped=generate.grouped_task if generate is not None else None,
-            generative_grouped_properties=generate.grouped_properties
-            if generate is not None
-            else None,
+            generative=_generative_input_from_generate(generate),
         )
         return self.__result_to_return(res, ret_type, generate is not None)
 
