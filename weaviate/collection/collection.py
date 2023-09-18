@@ -42,7 +42,7 @@ class CollectionObject(CollectionObjectBase, Generic[Properties]):
 
         self.config = _ConfigCollection(self._connection, name)
         self.data = _DataCollection[Properties](connection, name, consistency_level, tenant, type_)
-        self.query = _GrpcCollection(connection, name, consistency_level, tenant)
+        self.query = _GrpcCollection(connection, name, self.data, consistency_level, tenant)
         self.tenants = _Tenants(connection, name)
 
         self.__tenant = tenant

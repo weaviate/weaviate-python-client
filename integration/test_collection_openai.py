@@ -337,7 +337,7 @@ def test_openapi_no_module():
 
 
 def test_openai_batch_upload(client: weaviate.Client):
-    name = "TestGenerativeSearchOpenAI"
+    name = "TestGenerativeSearchOpenAIBatch"
     client.collection.delete(name)
     collection = client.collection.create(
         name=name,
@@ -355,7 +355,6 @@ def test_openai_batch_upload(client: weaviate.Client):
     )
     assert not ret.has_errors
 
-    objects = collection.query.get(return_metadata=MetadataQuery(vector=True)).objects
-    print(objects[0])
+    objects = collection.query.fetch_objects(return_metadata=MetadataQuery(vector=True)).objects
     assert objects[0].metadata.vector is not None
     assert len(objects[0].metadata.vector) > 0
