@@ -75,16 +75,16 @@ def test_filters_text(client: weaviate.Client, weaviate_filter: _FilterValue, re
     [
         (Filter(path="num").greater_than(1) & Filter(path="num").less_than(3), [1]),
         (
-            (Filter(path="num").less_than_equal(1)) | Filter(path="num").greater_than_equal(3),
+            (Filter(path="num").less_or_equal(1)) | Filter(path="num").greater_or_equal(3),
             [0, 2],
         ),
         (
-            Filter(path="num").less_than_equal(1) | Filter(path="num").greater_than_equal(3),
+            Filter(path="num").less_or_equal(1) | Filter(path="num").greater_or_equal(3),
             [0, 2],
         ),
         (
-            (Filter(path="num").less_than_equal(1) & Filter(path="num").greater_than_equal(1))
-            | Filter(path="num").greater_than_equal(3)
+            (Filter(path="num").less_or_equal(1) & Filter(path="num").greater_or_equal(1))
+            | Filter(path="num").greater_or_equal(3)
             | Filter(path="num").is_none(True),
             [0, 2, 3],
         ),
