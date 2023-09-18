@@ -100,21 +100,8 @@ class Collection(CollectionBase):
         name = _capitalize_first_letter(name)
         return CollectionObject[Properties](self._connection, name, type_=data_model)
 
-    @overload
-    def delete(self, name: str) -> None:
-        """Use this method to delete a collection from the Weaviate instance by its name.
-
-        WARNING: If you have instances of client.collection.get() or client.collection.create()
-        for this collection within your code, they will cease to function correctly after this operation.
-
-        Parameters:
-        - name: The name of the collection to delete.
-        """
-        ...
-
-    @overload
-    def delete(self, name: List[str]) -> None:
-        """Use this method to delete collections from the Weaviate instance by their names.
+    def delete(self, name: Union[str, List[str]]) -> None:
+        """Use this method to delete collection(s) from the Weaviate instance by its/their name(s).
 
         WARNING: If you have instances of client.collection.get() or client.collection.create()
         for these collections within your code, they will cease to function correctly after this operation.
@@ -122,9 +109,6 @@ class Collection(CollectionBase):
         Parameters:
         - name: The names of the collections to delete.
         """
-        ...
-
-    def delete(self, name: Union[str, List[str]]) -> None:
         if isinstance(name, str):
             self._delete(_capitalize_first_letter(name))
         else:
