@@ -65,7 +65,6 @@ class _GroupByResult(Generic[P]):
 class _GroupByReturn(Generic[P]):
     objects: List[_GroupByObject[P]]
     groups: Dict[str, _GroupByResult]
-    generated: Optional[str] = None
 
 
 class ReferenceFactory(Generic[P]):
