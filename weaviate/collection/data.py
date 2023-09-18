@@ -17,6 +17,7 @@ from typing import (
 from google.protobuf.struct_pb2 import Struct
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
+from weaviate.collection.classes.batch import _DeleteBatchResult
 from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.classes.data import (
     BatchReference,
@@ -126,7 +127,7 @@ class _Data:
 
     def delete_many(
         self, where: _Filters, verbose: bool = False, dry_run: bool = False
-    ) -> Dict[str, Any]:
+    ) -> _DeleteBatchResult:
         return self._batch_rest.delete(
             self.name, where, verbose, dry_run, self._consistency_level, self._tenant
         )

@@ -765,6 +765,7 @@ def test_delete_many_and(client: weaviate.Client):
     collection.data.delete_many(
         where=Filter(path="age").equal(10) & Filter(path="name").equal("Timmy")
     )
+
     objs = collection.data.get()
     assert len(objs) == 1
     assert objs[0].properties["age"] == 10
@@ -796,3 +797,25 @@ def test_delete_many_or(client: weaviate.Client):
     assert len(objs) == 1
     assert objs[0].properties["age"] == 20
     assert objs[0].properties["name"] == "Tim"
+
+
+def test_delete_many_return(client: weaviate.Client):
+    name = "TestDeleteManyReturn"
+    collection = client.collection.create(
+        name=name,
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=VectorizerFactory.none(),
+    )
+    collection.data.insert_many(
+        [
+            DataObject(properties={"name": "delet me"}, uuid=uuid.uuid4()),
+        ]
+    )
+    ret = collection.data.delete_many(where=Filter(path="name").equal("delet me"))
+    assert ret.failed == 0
+    assert ret.limit == 10000
+    assert ret.matches == 1
+    assert ret.objects is None
+    assert ret.successful == 1
