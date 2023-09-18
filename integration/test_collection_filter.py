@@ -748,11 +748,11 @@ def test_delete_many_simple(
         vectorizer_config=VectorizerFactory.none(),
     )
     collection.data.insert_many(objects)
-    assert len(collection.data.get()) == len(objects)
+    assert len(collection.query.fetch_objects().objects) == len(objects)
 
     collection.data.delete_many(where=where)
-    objs = collection.data.get()
-    assert len(objs) == expected_len
+    ret = collection.query.fetch_objects()
+    assert len(ret.objects) == expected_len
 
 
 def test_delete_many_and(client: weaviate.Client):
@@ -771,17 +771,17 @@ def test_delete_many_and(client: weaviate.Client):
             DataObject(properties={"age": 10, "name": "Tommy"}, uuid=uuid.uuid4()),
         ]
     )
-    objs = collection.data.get()
-    assert len(objs) == 2
+    ret = collection.query.fetch_objects()
+    assert len(ret.objects) == 2
 
     collection.data.delete_many(
         where=Filter(path="age").equal(10) & Filter(path="name").equal("Timmy")
     )
 
-    objs = collection.data.get()
-    assert len(objs) == 1
-    assert objs[0].properties["age"] == 10
-    assert objs[0].properties["name"] == "Tommy"
+    ret = collection.query.fetch_objects()
+    assert len(ret.objects) == 1
+    assert ret.objects[0].properties["age"] == 10
+    assert ret.objects[0].properties["name"] == "Tommy"
 
 
 def test_delete_many_or(client: weaviate.Client):
@@ -801,14 +801,14 @@ def test_delete_many_or(client: weaviate.Client):
             DataObject(properties={"age": 30, "name": "Timothy"}, uuid=uuid.uuid4()),
         ]
     )
-    objs = collection.data.get()
-    assert len(objs) == 3
+    ret = collection.query.fetch_objects()
+    assert len(ret.objects) == 3
 
     collection.data.delete_many(where=Filter(path="age").equal(10) | Filter(path="age").equal(30))
-    objs = collection.data.get()
-    assert len(objs) == 1
-    assert objs[0].properties["age"] == 20
-    assert objs[0].properties["name"] == "Tim"
+    ret = collection.query.fetch_objects()
+    assert len(ret.objects) == 1
+    assert ret.objects[0].properties["age"] == 20
+    assert ret.objects[0].properties["name"] == "Tim"
 
 
 def test_delete_many_return(client: weaviate.Client):
