@@ -26,12 +26,18 @@ from weaviate.collection.classes.data import (
     DataObject,
     Error,
 )
-from weaviate.collection.classes.grpc import GroupBy
+from weaviate.collection.classes.grpc import (
+    GroupBy,
+    HybridFusion,
+    LinkTo,
+    LinkToMultiTarget,
+    MetadataQuery,
+    Move,
+)
 from weaviate.collection.classes.internal import ReferenceFactory
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.exceptions import WeaviateGRPCException
 from weaviate.collection.data import _DataCollection
-from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery, Move
 from weaviate.exceptions import InvalidDataModelException
 from weaviate.weaviate_types import UUID
 

@@ -29,7 +29,7 @@ from weaviate.collection.classes.orm import (
     Model,
 )
 from weaviate.collection.classes.types import Properties, TProperties, _check_data_model
-from weaviate.collection.grpc_batch import _BatchGRPC
+from weaviate.collection.grpc import _BatchGRPC
 from weaviate.connect import Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,

@@ -2,7 +2,7 @@ from typing import List, Dict
 
 import grpc
 
-from weaviate.collection.grpc_shared import _BaseGRPC
+from weaviate.collection.grpc.base.shared import _BaseGRPC
 from weaviate.exceptions import WeaviateGRPCException
 from weaviate_grpc import weaviate_pb2
 
