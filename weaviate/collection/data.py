@@ -341,7 +341,7 @@ class _Data:
             elif isinstance(val, list) and isinstance(val[0], float):
                 float_arrays.append(weaviate_pb2.NumberArrayProperties(prop_name=key, values=val))
             else:
-                non_ref_properties.update({key: val})
+                non_ref_properties.update({key: self.__serialize_primitive(val)})
 
         return weaviate_pb2.BatchObject.Properties(
             non_ref_properties=non_ref_properties,
