@@ -1,4 +1,6 @@
 import datetime
+import io
+import pathlib
 from dataclasses import dataclass
 from typing import Dict, List, Optional, TypedDict, Union
 
@@ -1183,8 +1185,21 @@ def test_near_text_group_by(client: weaviate.Client):
     assert ret.objects[1].belongs_to_group == "cake"
 
 
-@pytest.mark.parametrize("distance,certainty", [(None, None), (10, None), (None, 0.1)])
-def test_near_image(client: weaviate.Client, distance: Optional[float], certainty: Optional[float]):
+@pytest.mark.parametrize(
+    "image,distance,certainty",
+    [
+        (WEAVIATE_LOGO_OLD_ENCODED, None, None),
+        (pathlib.Path("./integration/weaviate-logo.png"), 10, None),
+        (pathlib.Path("./integration/weaviate-logo.png").open("rb"), None, 0.1),
+    ],
+    ids=["base64", "path", "file"],
+)
+def test_near_image(
+    client: weaviate.Client,
+    image: Union[str, pathlib.Path, io.BufferedReader],
+    distance: Optional[float],
+    certainty: Optional[float],
+):
     name = "TestNearImage"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -1198,9 +1213,11 @@ def test_near_image(client: weaviate.Client, distance: Optional[float], certaint
     uuid1 = collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_OLD_ENCODED})
     collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_NEW_ENCODED})
 
-    objects = collection.query.near_image(
-        WEAVIATE_LOGO_OLD_ENCODED, distance=distance, certainty=certainty
-    ).objects
+    objects = collection.query.near_image(image, distance=distance, certainty=certainty).objects
+
+    if isinstance(image, io.BufferedReader):
+        image.close()
+
     assert len(objects) == 2
     assert objects[0].metadata.uuid == uuid1
 

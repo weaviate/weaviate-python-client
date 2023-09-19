@@ -3,13 +3,14 @@ Helper functions!
 """
 import base64
 import datetime
+import io
 import json
 import os
 import re
 import uuid as uuid_lib
 from enum import Enum, EnumMeta
-from io import BufferedReader
-from typing import Union, Sequence, Any, Optional, List, Dict, Tuple, cast
+from pathlib import Path
+from typing import Union, Sequence, Any, Optional, List, Dict, Generator, Tuple, cast
 
 import requests
 import validators
@@ -47,7 +48,7 @@ class BaseEnum(Enum, metaclass=MetaEnum):
     pass
 
 
-def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
+def image_encoder_b64(image_or_image_path: Union[str, io.BufferedReader]) -> str:
     """
     Encode a image in a Weaviate understandable format from a binary read file or by providing
     the image path.
@@ -76,7 +77,7 @@ def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
         with open(image_or_image_path, "br") as file:
             content = file.read()
 
-    elif isinstance(image_or_image_path, BufferedReader):
+    elif isinstance(image_or_image_path, io.BufferedReader):
         content = image_or_image_path.read()
     else:
         raise TypeError(
@@ -86,14 +87,18 @@ def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
     return base64.b64encode(content).decode("utf-8")
 
 
-def file_encoder_b64(file_or_file_path: Union[str, BufferedReader]) -> str:
+def file_encoder_b64(
+    file_or_file_path: Union[str, Path, io.BufferedReader], use_buffering: bool = False
+) -> str:
     """
-    Encode a file in a Weaviate understandable format from a binary read file or by providing
-    the file path.
+    Encode a file in a Weaviate understandable format from an io.BufferedReader binary read file or by providing
+    the file path as either a string of a pathlib.Path object
+
+    If you pass an io.BufferedReader object, it is your responsibility to close it after encoding.
 
     Parameters
     ----------
-    file_or_file_path : str, io.BufferedReader
+    file_or_file_path : str, pathlib.Path io.BufferedReader
         The binary read file or the path to the file.
 
     Returns
@@ -109,19 +114,42 @@ def file_encoder_b64(file_or_file_path: Union[str, BufferedReader]) -> str:
         If the argument is of a wrong data type.
     """
 
+    def _chunks(buffer: io.BufferedReader, chunk_size: int) -> Generator[bytes, Any, Any]:
+        while True:
+            data = buffer.read(chunk_size)
+            if not data:
+                break
+            yield data
+
+    should_close_file = False
+
     if isinstance(file_or_file_path, str):
         if not os.path.isfile(file_or_file_path):
             raise ValueError("No file found at location " + file_or_file_path)
-        with open(file_or_file_path, "br") as file:
-            content = file.read()
-
-    elif isinstance(file_or_file_path, BufferedReader):
-        content = file_or_file_path.read()
+        file = open(file_or_file_path, "br")
+        should_close_file = True
+    elif isinstance(file_or_file_path, Path):
+        if not file_or_file_path.is_file():
+            raise ValueError("No file found at location " + str(file_or_file_path))
+        file = file_or_file_path.open("br")
+        should_close_file = True
+    elif isinstance(file_or_file_path, io.BufferedReader):
+        file = file_or_file_path
     else:
         raise TypeError(
             '"file_or_file_path" should be a file path or a binary read file' " (io.BufferedReader)"
         )
-    return base64.b64encode(content).decode("utf-8")
+
+    if use_buffering:
+        encoded: str = ""
+        for chunk in _chunks(file, 65535):
+            encoded += base64.b64encode(chunk).decode("utf-8")
+    else:
+        encoded = base64.b64encode(file.read()).decode("utf-8")
+
+    if should_close_file:
+        file.close()
+    return encoded
 
 
 def image_decoder_b64(encoded_image: str) -> bytes:

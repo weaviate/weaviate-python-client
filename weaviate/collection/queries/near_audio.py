@@ -87,7 +87,7 @@ class _NearAudio(_Grpc):
 
         ret_properties, ret_type = self._determine_generic(return_properties)
         res = self._query().near_audio(
-            audio=near_audio,
+            audio=self._parse_media(near_audio),
             certainty=certainty,
             distance=distance,
             filters=filters,

@@ -1,4 +1,6 @@
 import datetime
+import io
+import pathlib
 import sys
 from typing import (
     Any,
@@ -40,6 +42,7 @@ from weaviate.collection.classes.types import (
 )
 from weaviate.collection.grpc_query import _QueryGRPC, GroupByResult, SearchResponse, SearchResult
 from weaviate.connect import Connection
+from weaviate.util import file_encoder_b64
 from weaviate_grpc import weaviate_pb2
 
 
@@ -222,3 +225,10 @@ class _Grpc:
             ret_properties = _extract_properties_from_data_model(type_)
             ret_type = type_
         return ret_properties, ret_type
+
+    @staticmethod
+    def _parse_media(media: Union[str, pathlib.Path, io.BufferedReader]) -> str:
+        if isinstance(media, str):  # if already encoded by user
+            return media
+        else:
+            return file_encoder_b64(media, True)

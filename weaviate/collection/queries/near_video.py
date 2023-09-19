@@ -93,7 +93,7 @@ class _NearVideo(_Grpc):
 
         ret_properties, ret_type = self._determine_generic(return_properties)
         res = self._query().near_video(
-            video=near_video,
+            video=self._parse_media(near_video),
             certainty=certainty,
             distance=distance,
             autocut=auto_limit,
