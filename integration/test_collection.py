@@ -1085,7 +1085,7 @@ def test_search_with_tenant(client: weaviate.Client):
     client.collection.delete("TestTenantSearch")
 
 
-def test_get_by_id_with_tenant(client: weaviate.Client):
+def test_fetch_object_by_id_with_tenant(client: weaviate.Client):
     collection = client.collection.create(
         name="TestTenantGet",
         vectorizer_config=VectorizerFactory.none(),
@@ -1114,7 +1114,7 @@ def test_get_by_id_with_tenant(client: weaviate.Client):
     client.collection.delete("TestTenantGet")
 
 
-def test_get_with_limit(client: weaviate.Client):
+def test_fetch_objects_with_limit(client: weaviate.Client):
     collection = client.collection.create(
         name="TestLimit",
         vectorizer_config=VectorizerFactory.none(),
@@ -1130,7 +1130,7 @@ def test_get_with_limit(client: weaviate.Client):
     client.collection.delete("TestLimit")
 
 
-def test_get_with_tenant(client: weaviate.Client):
+def test_fetch_objects_with_tenant(client: weaviate.Client):
     collection = client.collection.create(
         name="TestTenantGetWithTenant",
         vectorizer_config=VectorizerFactory.none(),
