@@ -1135,6 +1135,8 @@ def test_near_text(
         return_properties=["value"],
     ).objects
 
+    assert len(objs) == 4
+
     assert objs[0].metadata.uuid == batch_return.uuids[2]
     assert objs[0].properties["value"] == "apple cake"
 
@@ -1181,6 +1183,38 @@ def test_near_text_group_by(client: weaviate.Client):
     assert ret.objects[0].belongs_to_group == "apple cake"
     assert ret.objects[1].metadata.uuid == batch_return.uuids[3]
     assert ret.objects[1].belongs_to_group == "cake"
+
+
+def test_near_text_limit(client: weaviate.Client):
+    name = "TestNearTextLimit"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        name=name,
+        vectorizer_config=VectorizerFactory.text2vec_contextionary(),
+        properties=[Property(name="value", data_type=DataType.TEXT)],
+    )
+
+    batch_return = collection.data.insert_many(
+        [
+            DataObject(properties={"value": "Apple"}, uuid=UUID1),
+            DataObject(properties={"value": "Mountain climbing"}),
+            DataObject(properties={"value": "apple cake"}),
+            DataObject(properties={"value": "cake"}),
+        ]
+    )
+
+    ret = collection.query.near_text(
+        query="cake",
+        limit=2,
+        return_metadata=MetadataQuery(uuid=True),
+        return_properties=["value"],
+    )
+
+    assert len(ret.objects) == 2
+    assert ret.objects[0].metadata.uuid == batch_return.uuids[2]
+    assert ret.objects[0].properties["value"] == "apple cake"
+    assert ret.objects[1].metadata.uuid == batch_return.uuids[3]
+    assert ret.objects[1].properties["value"] == "cake"
 
 
 @pytest.mark.parametrize("distance,certainty", [(None, None), (10, None), (None, 0.1)])
