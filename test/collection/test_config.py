@@ -6,7 +6,8 @@ from weaviate.collection.classes.config import (
     Multi2VecField,
     _VectorizerConfig,
     VectorizerFactory,
-    Property,
+    PropertyFactory,
+    _PropertyConfig,
     PropertyVectorizerConfig,
 )
 
@@ -307,7 +308,7 @@ TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
     (
         VectorizerFactory.text2vec_transformers(),
         [
-            Property(
+            PropertyFactory.basic(
                 name="text",
                 data_type=DataType.TEXT,
                 vectorizer_config=PropertyVectorizerConfig(
@@ -343,7 +344,7 @@ TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
 )
 def test_config_with_module_and_properties(
     vectorizer_config: _VectorizerConfig,
-    properties: List[Property],
+    properties: List[_PropertyConfig],
     expected_mc: dict,
     expected_props: dict,
 ):
@@ -365,63 +366,63 @@ def test_config_with_properties():
         description="test",
         vectorizer_config=VectorizerFactory.none(),
         properties=[
-            Property(
+            PropertyFactory.basic(
                 name="text",
                 data_type=DataType.TEXT,
             ),
-            Property(
+            PropertyFactory.basic(
                 name="text_array",
                 data_type=DataType.TEXT_ARRAY,
             ),
-            Property(
+            PropertyFactory.basic(
                 name="int",
                 data_type=DataType.INT,
             ),
-            Property(
+            PropertyFactory.basic(
                 name="int_array",
                 data_type=DataType.INT_ARRAY,
             ),
-            Property(
+            PropertyFactory.basic(
                 name="number",
                 data_type=DataType.NUMBER,
             ),
-            Property(
+            PropertyFactory.basic(
                 name="number_array",
                 data_type=DataType.NUMBER_ARRAY,
             ),
-            Property(
+            PropertyFactory.basic(
                 name="bool",
                 data_type=DataType.BOOL,
             ),
-            Property(
+            PropertyFactory.basic(
                 name="bool_array",
                 data_type=DataType.BOOL_ARRAY,
             ),
-            Property(
+            PropertyFactory.basic(
                 name="date",
                 data_type=DataType.DATE,
             ),
-            Property(
+            PropertyFactory.basic(
                 name="date_array",
                 data_type=DataType.DATE_ARRAY,
             ),
-            Property(
+            PropertyFactory.basic(
                 name="uuid",
                 data_type=DataType.UUID,
             ),
-            Property(
+            PropertyFactory.basic(
                 name="uuid_array",
                 data_type=DataType.UUID_ARRAY,
             ),
-            Property(
+            PropertyFactory.basic(
                 name="geo",
                 data_type=DataType.GEO_COORDINATES,
             ),
-            Property(
+            PropertyFactory.basic(
                 name="blob",
                 data_type=DataType.BLOB,
             ),
-            Property(
+            PropertyFactory.basic(
                 name="phone_number",
                 data_type=DataType.PHONE_NUMBER,
             ),

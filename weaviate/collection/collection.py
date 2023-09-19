@@ -8,14 +8,13 @@ from weaviate.collection.classes.config import (
     _GenerativeConfig,
     _InvertedIndexConfigCreate,
     _MultiTenancyConfigCreate,
-    Property,
     _ShardingConfigCreate,
-    ReferencePropertyBase,
     _ReplicationConfigCreate,
     _VectorizerConfig,
     VectorizerFactory,
     _VectorIndexConfigCreate,
     VectorIndexType,
+    PropertyType,
 )
 from weaviate.collection.classes.types import Properties, _check_data_model
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
@@ -67,7 +66,7 @@ class Collection(CollectionBase):
         generative_search: Optional[_GenerativeConfig] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
-        properties: Optional[List[Union[Property, ReferencePropertyBase]]] = None,
+        properties: Optional[List[PropertyType]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
         sharding_config: Optional[_ShardingConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,

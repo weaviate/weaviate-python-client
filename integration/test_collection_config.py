@@ -7,7 +7,7 @@ from weaviate.collection.classes.config import (
     _CollectionConfigSimple,
     ConfigFactory,
     ConfigUpdateFactory,
-    Property,
+    PropertyFactory,
     DataType,
     PQEncoderType,
     PQEncoderDistribution,
@@ -34,8 +34,8 @@ def test_collection_list(client: weaviate.Client):
         name="TestCollectionList",
         vectorizer_config=VectorizerFactory.none(),
         properties=[
-            Property(name="name", data_type=DataType.TEXT),
-            Property(name="age", data_type=DataType.INT),
+            PropertyFactory.basic(name="name", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="age", data_type=DataType.INT),
         ],
     )
 
@@ -55,8 +55,8 @@ def test_collection_get_simple(client: weaviate.Client):
         name="TestCollectionGetSimple",
         vectorizer_config=VectorizerFactory.none(),
         properties=[
-            Property(name="name", data_type=DataType.TEXT),
-            Property(name="age", data_type=DataType.INT),
+            PropertyFactory.basic(name="name", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="age", data_type=DataType.INT),
         ],
     )
 
@@ -176,18 +176,18 @@ def test_collection_config_full(client: weaviate.Client):
         description="Test",
         vectorizer_config=VectorizerFactory.none(),
         properties=[
-            Property(name="text", data_type=DataType.TEXT),
-            Property(name="texts", data_type=DataType.TEXT_ARRAY),
-            Property(name="number", data_type=DataType.NUMBER),
-            Property(name="numbers", data_type=DataType.NUMBER_ARRAY),
-            Property(name="int", data_type=DataType.INT),
-            Property(name="ints", data_type=DataType.INT_ARRAY),
-            Property(name="date", data_type=DataType.DATE),
-            Property(name="dates", data_type=DataType.DATE_ARRAY),
-            Property(name="boolean", data_type=DataType.BOOL),
-            Property(name="booleans", data_type=DataType.BOOL_ARRAY),
-            Property(name="geo", data_type=DataType.GEO_COORDINATES),
-            Property(name="phone", data_type=DataType.PHONE_NUMBER),
+            PropertyFactory.basic(name="text", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="texts", data_type=DataType.TEXT_ARRAY),
+            PropertyFactory.basic(name="number", data_type=DataType.NUMBER),
+            PropertyFactory.basic(name="numbers", data_type=DataType.NUMBER_ARRAY),
+            PropertyFactory.basic(name="int", data_type=DataType.INT),
+            PropertyFactory.basic(name="ints", data_type=DataType.INT_ARRAY),
+            PropertyFactory.basic(name="date", data_type=DataType.DATE),
+            PropertyFactory.basic(name="dates", data_type=DataType.DATE_ARRAY),
+            PropertyFactory.basic(name="boolean", data_type=DataType.BOOL),
+            PropertyFactory.basic(name="booleans", data_type=DataType.BOOL_ARRAY),
+            PropertyFactory.basic(name="geo", data_type=DataType.GEO_COORDINATES),
+            PropertyFactory.basic(name="phone", data_type=DataType.PHONE_NUMBER),
         ],
         inverted_index_config=ConfigFactory.inverted_index(
             bm25_b=0.8,
@@ -297,8 +297,8 @@ def test_collection_config_update(client: weaviate.Client):
         name="TestCollectionConfigUpdate",
         vectorizer_config=VectorizerFactory.none(),
         properties=[
-            Property(name="name", data_type=DataType.TEXT),
-            Property(name="age", data_type=DataType.INT),
+            PropertyFactory.basic(name="name", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="age", data_type=DataType.INT),
         ],
     )
     config = collection.config.get()

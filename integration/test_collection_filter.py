@@ -8,10 +8,9 @@ import weaviate
 from weaviate import Config
 from weaviate.collection.classes.config import (
     ConfigFactory,
-    Property,
+    PropertyFactory,
+    _PropertyConfig,
     DataType,
-    ReferenceProperty,
-    ReferencePropertyMultiTarget,
     Tokenization,
     VectorizerFactory,
 )
@@ -56,7 +55,7 @@ def test_filters_text(client: weaviate.Client, weaviate_filter: _FilterValue, re
     collection = client.collection.create(
         name="TestFilterText",
         vectorizer_config=VectorizerFactory.none(),
-        properties=[Property(name="name", data_type=DataType.TEXT)],
+        properties=[PropertyFactory.basic(name="name", data_type=DataType.TEXT)],
     )
 
     uuids = [
@@ -101,7 +100,7 @@ def test_filters_nested(
     collection = client.collection.create(
         name="TestFilterNested",
         vectorizer_config=VectorizerFactory.none(),
-        properties=[Property(name="num", data_type=DataType.NUMBER)],
+        properties=[PropertyFactory.basic(name="num", data_type=DataType.NUMBER)],
         inverted_index_config=ConfigFactory.inverted_index(index_null_state=True),
     )
 
@@ -126,7 +125,7 @@ def test_length_filter(client: weaviate.Client):
     collection = client.collection.create(
         name="TestFilterNested",
         vectorizer_config=VectorizerFactory.none(),
-        properties=[Property(name="field", data_type=DataType.TEXT)],
+        properties=[PropertyFactory.basic(name="field", data_type=DataType.TEXT)],
         inverted_index_config=ConfigFactory.inverted_index(index_property_length=True),
     )
     uuids = [
@@ -159,7 +158,7 @@ def test_filters_comparison(
     collection = client.collection.create(
         name="TestFilterNumber",
         vectorizer_config=VectorizerFactory.none(),
-        properties=[Property(name="number", data_type=DataType.INT)],
+        properties=[PropertyFactory.basic(name="number", data_type=DataType.INT)],
         inverted_index_config=ConfigFactory.inverted_index(index_null_state=True),
     )
 
@@ -222,18 +221,18 @@ def test_filters_contains(
         name="TestFilterContains",
         vectorizer_config=VectorizerFactory.none(),
         properties=[
-            Property(name="text", data_type=DataType.TEXT),
-            Property(name="texts", data_type=DataType.TEXT_ARRAY),
-            Property(name="num", data_type=DataType.INT),
-            Property(name="nums", data_type=DataType.INT_ARRAY),
-            Property(name="float", data_type=DataType.NUMBER),
-            Property(name="floats", data_type=DataType.NUMBER_ARRAY),
-            Property(name="bool", data_type=DataType.BOOL),
-            Property(name="bools", data_type=DataType.BOOL_ARRAY),
-            Property(name="dates", data_type=DataType.DATE_ARRAY),
-            Property(name="date", data_type=DataType.DATE),
-            Property(name="uuids", data_type=DataType.UUID_ARRAY),
-            Property(name="uuid", data_type=DataType.UUID),
+            PropertyFactory.basic(name="text", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="texts", data_type=DataType.TEXT_ARRAY),
+            PropertyFactory.basic(name="num", data_type=DataType.INT),
+            PropertyFactory.basic(name="nums", data_type=DataType.INT_ARRAY),
+            PropertyFactory.basic(name="float", data_type=DataType.NUMBER),
+            PropertyFactory.basic(name="floats", data_type=DataType.NUMBER_ARRAY),
+            PropertyFactory.basic(name="bool", data_type=DataType.BOOL),
+            PropertyFactory.basic(name="bools", data_type=DataType.BOOL_ARRAY),
+            PropertyFactory.basic(name="dates", data_type=DataType.DATE_ARRAY),
+            PropertyFactory.basic(name="date", data_type=DataType.DATE),
+            PropertyFactory.basic(name="uuids", data_type=DataType.UUID_ARRAY),
+            PropertyFactory.basic(name="uuid", data_type=DataType.UUID),
         ],
     )
 
@@ -324,8 +323,8 @@ def test_ref_filters(client: weaviate.Client, weaviate_filter: _FilterValue, res
         name="TestFilterRef2",
         vectorizer_config=VectorizerFactory.none(),
         properties=[
-            Property(name="int", data_type=DataType.INT),
-            Property(name="text", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="int", data_type=DataType.INT),
+            PropertyFactory.basic(name="text", data_type=DataType.TEXT),
         ],
         inverted_index_config=ConfigFactory.inverted_index(index_property_length=True),
     )
@@ -336,8 +335,8 @@ def test_ref_filters(client: weaviate.Client, weaviate_filter: _FilterValue, res
     from_collection = client.collection.create(
         name="TestFilterRef",
         properties=[
-            ReferenceProperty(name="ref", target_collection="TestFilterRef2"),
-            Property(name="name", data_type=DataType.TEXT),
+            PropertyFactory.cross_reference(name="ref", target_collection="TestFilterRef2"),
+            PropertyFactory.basic(name="name", data_type=DataType.TEXT),
         ],
         vectorizer_config=VectorizerFactory.none(),
     )
@@ -364,17 +363,17 @@ def test_ref_filters_multi_target(client: weaviate.Client):
     to_collection = client.collection.create(
         name=target,
         vectorizer_config=VectorizerFactory.none(),
-        properties=[Property(name="int", data_type=DataType.INT)],
+        properties=[PropertyFactory.basic(name="int", data_type=DataType.INT)],
     )
     uuid_to = to_collection.data.insert(properties={"int": 0})
     uuid_to2 = to_collection.data.insert(properties={"int": 5})
     from_collection = client.collection.create(
         name=source,
         properties=[
-            ReferencePropertyMultiTarget(
+            PropertyFactory.cross_reference_multi_target(
                 name="ref", target_collections=[target, "TestFilterRefMulti"]
             ),
-            Property(name="name", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="name", data_type=DataType.TEXT),
         ],
         vectorizer_config=VectorizerFactory.none(),
     )
@@ -426,7 +425,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
     [
         (
             [
-                Property(name="text", data_type=DataType.TEXT),
+                PropertyFactory.basic(name="text", data_type=DataType.TEXT),
             ],
             [
                 DataObject(properties={"text": "text"}, uuid=uuid.uuid4()),
@@ -436,7 +435,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="text", data_type=DataType.TEXT),
+                PropertyFactory.basic(name="text", data_type=DataType.TEXT),
             ],
             [
                 DataObject(properties={"text": "there is some text in here"}, uuid=uuid.uuid4()),
@@ -446,7 +445,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="text", data_type=DataType.TEXT),
+                PropertyFactory.basic(name="text", data_type=DataType.TEXT),
             ],
             [
                 DataObject(properties={"text": "banana"}, uuid=uuid.uuid4()),
@@ -456,7 +455,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="texts", data_type=DataType.TEXT_ARRAY),
+                PropertyFactory.basic(name="texts", data_type=DataType.TEXT_ARRAY),
             ],
             [
                 DataObject(properties={"texts": ["text1", "text2"]}, uuid=uuid.uuid4()),
@@ -466,7 +465,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="texts", data_type=DataType.TEXT_ARRAY),
+                PropertyFactory.basic(name="texts", data_type=DataType.TEXT_ARRAY),
             ],
             [
                 DataObject(properties={"texts": ["text1"]}, uuid=uuid.uuid4()),
@@ -476,7 +475,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
             1,
         ),
         (
-            [Property(name="int", data_type=DataType.INT)],
+            [PropertyFactory.basic(name="int", data_type=DataType.INT)],
             [
                 DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
             ],
@@ -485,7 +484,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="int", data_type=DataType.INT),
+                PropertyFactory.basic(name="int", data_type=DataType.INT),
             ],
             [
                 DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
@@ -495,7 +494,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="int", data_type=DataType.INT),
+                PropertyFactory.basic(name="int", data_type=DataType.INT),
             ],
             [
                 DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
@@ -505,7 +504,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="int", data_type=DataType.INT),
+                PropertyFactory.basic(name="int", data_type=DataType.INT),
             ],
             [
                 DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
@@ -516,7 +515,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="int", data_type=DataType.INT),
+                PropertyFactory.basic(name="int", data_type=DataType.INT),
             ],
             [
                 DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
@@ -527,7 +526,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="ints", data_type=DataType.INT_ARRAY),
+                PropertyFactory.basic(name="ints", data_type=DataType.INT_ARRAY),
             ],
             [
                 DataObject(properties={"ints": [1, 2]}, uuid=uuid.uuid4()),
@@ -537,7 +536,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="ints", data_type=DataType.INT_ARRAY),
+                PropertyFactory.basic(name="ints", data_type=DataType.INT_ARRAY),
             ],
             [
                 DataObject(properties={"ints": [1]}, uuid=uuid.uuid4()),
@@ -548,7 +547,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="float", data_type=DataType.NUMBER),
+                PropertyFactory.basic(name="float", data_type=DataType.NUMBER),
             ],
             [
                 DataObject(properties={"float": 1.0}, uuid=uuid.uuid4()),
@@ -558,7 +557,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="floats", data_type=DataType.NUMBER_ARRAY),
+                PropertyFactory.basic(name="floats", data_type=DataType.NUMBER_ARRAY),
             ],
             [
                 DataObject(properties={"floats": [1.0, 2.0]}, uuid=uuid.uuid4()),
@@ -568,7 +567,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="floats", data_type=DataType.NUMBER_ARRAY),
+                PropertyFactory.basic(name="floats", data_type=DataType.NUMBER_ARRAY),
             ],
             [
                 DataObject(properties={"floats": [1.0]}, uuid=uuid.uuid4()),
@@ -579,7 +578,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="float", data_type=DataType.NUMBER),
+                PropertyFactory.basic(name="float", data_type=DataType.NUMBER),
             ],
             [
                 DataObject(properties={"float": 10.0}, uuid=uuid.uuid4()),
@@ -592,7 +591,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="bool", data_type=DataType.BOOL),
+                PropertyFactory.basic(name="bool", data_type=DataType.BOOL),
             ],
             [
                 DataObject(properties={"bool": True}, uuid=uuid.uuid4()),
@@ -603,7 +602,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="bools", data_type=DataType.BOOL_ARRAY),
+                PropertyFactory.basic(name="bools", data_type=DataType.BOOL_ARRAY),
             ],
             [
                 DataObject(properties={"bools": [True, False]}, uuid=uuid.uuid4()),
@@ -613,7 +612,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="bools", data_type=DataType.BOOL_ARRAY),
+                PropertyFactory.basic(name="bools", data_type=DataType.BOOL_ARRAY),
             ],
             [
                 DataObject(properties={"bools": [True]}, uuid=uuid.uuid4()),
@@ -624,7 +623,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="date", data_type=DataType.DATE),
+                PropertyFactory.basic(name="date", data_type=DataType.DATE),
             ],
             [
                 DataObject(properties={"date": NOW}, uuid=uuid.uuid4()),
@@ -634,7 +633,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="dates", data_type=DataType.DATE_ARRAY),
+                PropertyFactory.basic(name="dates", data_type=DataType.DATE_ARRAY),
             ],
             [
                 DataObject(properties={"dates": [NOW, LATER]}, uuid=uuid.uuid4()),
@@ -644,7 +643,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="dates", data_type=DataType.DATE_ARRAY),
+                PropertyFactory.basic(name="dates", data_type=DataType.DATE_ARRAY),
             ],
             [
                 DataObject(properties={"dates": [NOW]}, uuid=uuid.uuid4()),
@@ -655,7 +654,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="uuid", data_type=DataType.UUID),
+                PropertyFactory.basic(name="uuid", data_type=DataType.UUID),
             ],
             [
                 DataObject(properties={"uuid": UUID1}, uuid=uuid.uuid4()),
@@ -665,7 +664,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="uuids", data_type=DataType.UUID_ARRAY),
+                PropertyFactory.basic(name="uuids", data_type=DataType.UUID_ARRAY),
             ],
             [
                 DataObject(properties={"uuids": [UUID1, UUID2]}, uuid=uuid.uuid4()),
@@ -675,7 +674,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="uuids", data_type=DataType.UUID_ARRAY),
+                PropertyFactory.basic(name="uuids", data_type=DataType.UUID_ARRAY),
             ],
             [
                 DataObject(properties={"uuids": [UUID1]}, uuid=uuid.uuid4()),
@@ -686,7 +685,9 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="text", data_type=DataType.TEXT, tokenization=Tokenization.FIELD),
+                PropertyFactory.basic(
+                    name="text", data_type=DataType.TEXT, tokenization=Tokenization.FIELD
+                ),
             ],
             [
                 DataObject(properties={"text": "some name"}, vector=[1, 2, 3]),
@@ -697,7 +698,9 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="text", data_type=DataType.TEXT, tokenization=Tokenization.FIELD),
+                PropertyFactory.basic(
+                    name="text", data_type=DataType.TEXT, tokenization=Tokenization.FIELD
+                ),
             ],
             [
                 DataObject(properties={"text": "some name"}, vector=[1, 2, 3]),
@@ -708,8 +711,8 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="text", data_type=DataType.TEXT),
-                Property(name="int", data_type=DataType.INT),
+                PropertyFactory.basic(name="text", data_type=DataType.TEXT),
+                PropertyFactory.basic(name="int", data_type=DataType.INT),
             ],
             [
                 DataObject(properties={"text": "Loads of money", "int": 60}, uuid=uuid.uuid4()),
@@ -720,8 +723,8 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         ),
         (
             [
-                Property(name="text", data_type=DataType.TEXT),
-                Property(name="int", data_type=DataType.INT),
+                PropertyFactory.basic(name="text", data_type=DataType.TEXT),
+                PropertyFactory.basic(name="int", data_type=DataType.INT),
             ],
             [
                 DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
@@ -734,7 +737,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
 )
 def test_delete_many_simple(
     client: weaviate.Client,
-    properties: List[Property],
+    properties: List[_PropertyConfig],
     objects: List[DataObject],
     where: _FilterValue,
     expected_len: int,
@@ -760,8 +763,8 @@ def test_delete_many_and(client: weaviate.Client):
     collection = client.collection.create(
         name=name,
         properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-            Property(name="Age", data_type=DataType.INT),
+            PropertyFactory.basic(name="Name", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="Age", data_type=DataType.INT),
         ],
         vectorizer_config=VectorizerFactory.none(),
     )
@@ -789,8 +792,8 @@ def test_delete_many_or(client: weaviate.Client):
     collection = client.collection.create(
         name=name,
         properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-            Property(name="Age", data_type=DataType.INT),
+            PropertyFactory.basic(name="Name", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="Age", data_type=DataType.INT),
         ],
         vectorizer_config=VectorizerFactory.none(),
     )
@@ -816,7 +819,7 @@ def test_delete_many_return(client: weaviate.Client):
     collection = client.collection.create(
         name=name,
         properties=[
-            Property(name="Name", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="Name", data_type=DataType.TEXT),
         ],
         vectorizer_config=VectorizerFactory.none(),
     )

@@ -23,9 +23,8 @@ from pydantic_core import PydanticUndefined
 from weaviate.collection.classes.config import (
     _CollectionConfigCreateBase,
     PropertyConfig,
-    Property,
-    ReferenceProperty,
-    ReferencePropertyMultiTarget,
+    PropertyFactory,
+    PropertyType,
     DataType,
 )
 from weaviate.collection.classes.types import T
@@ -148,7 +147,7 @@ class BaseProperty(BaseModel):
     @staticmethod
     def type_to_properties(
         model: Type["BaseProperty"],
-    ) -> List[Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]]:
+    ) -> List[PropertyType]:
         types = get_type_hints(model)
 
         non_optional_types = {
@@ -158,7 +157,7 @@ class BaseProperty(BaseModel):
         }
 
         non_ref_fields = model.get_non_ref_fields(model)
-        properties: List[Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]] = []
+        properties: List[PropertyType] = []
         for name in non_ref_fields:
             data_type = [PYTHON_TYPE_TO_DATATYPE[non_optional_types[name]]]
             prop: Dict[str, Any] = {}
@@ -168,11 +167,13 @@ class BaseProperty(BaseModel):
                 if isinstance(metadata, PropertyConfig):
                     prop.update(metadata.to_dict())
 
-            properties.append(Property(name=name, data_type=DataType(data_type[0]), **prop))
+            properties.append(
+                PropertyFactory.basic(name=name, data_type=DataType(data_type[0]), **prop)
+            )
 
         reference_fields = model.get_ref_fields(model)
         properties.extend(
-            ReferenceProperty(
+            PropertyFactory.cross_reference(
                 name=name,
                 target_collection=model.model_fields[name].metadata[0].name,
             )

@@ -17,10 +17,8 @@ else:
 import weaviate
 from weaviate import Config
 from weaviate.collection.classes.config import (
-    Property,
+    PropertyFactory,
     DataType,
-    ReferenceProperty,
-    ReferencePropertyMultiTarget,
     VectorizerFactory,
 )
 
@@ -45,7 +43,7 @@ def test_reference_add_delete_replace(client: weaviate.Client):
     uuid_to = ref_collection.data.insert(properties={})
     collection = client.collection.create(
         name="SomethingElse",
-        properties=[ReferenceProperty(name="ref", target_collection="RefClass2")],
+        properties=[PropertyFactory.cross_reference(name="ref", target_collection="RefClass2")],
         vectorizer_config=VectorizerFactory.none(),
     )
 
@@ -81,7 +79,7 @@ def test_mono_references_grpc(client: weaviate.Client):
         name="A",
         vectorizer_config=VectorizerFactory.none(),
         properties=[
-            Property(name="Name", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="Name", data_type=DataType.TEXT),
         ],
     )
     uuid_A1 = A.data.insert(properties={"Name": "A1"})
@@ -93,8 +91,8 @@ def test_mono_references_grpc(client: weaviate.Client):
     B = client.collection.create(
         name="B",
         properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-            ReferenceProperty(name="ref", target_collection="A"),
+            PropertyFactory.basic(name="Name", data_type=DataType.TEXT),
+            PropertyFactory.cross_reference(name="ref", target_collection="A"),
         ],
         vectorizer_config=VectorizerFactory.none(),
     )
@@ -131,8 +129,8 @@ def test_mono_references_grpc(client: weaviate.Client):
     C = client.collection.create(
         name="C",
         properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-            ReferenceProperty(name="ref", target_collection="B"),
+            PropertyFactory.basic(name="Name", data_type=DataType.TEXT),
+            PropertyFactory.cross_reference(name="ref", target_collection="B"),
         ],
         vectorizer_config=VectorizerFactory.none(),
     )
@@ -188,7 +186,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.Client):
         name="ATypedDicts",
         vectorizer_config=VectorizerFactory.none(),
         properties=[
-            Property(name="Name", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="Name", data_type=DataType.TEXT),
         ],
     )
     A = client.collection.get("ATypedDicts", AProps)
@@ -198,8 +196,8 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.Client):
     B = client.collection.create(
         name="BTypedDicts",
         properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-            ReferenceProperty(name="ref", target_collection="ATypedDicts"),
+            PropertyFactory.basic(name="Name", data_type=DataType.TEXT),
+            PropertyFactory.cross_reference(name="ref", target_collection="ATypedDicts"),
         ],
         vectorizer_config=VectorizerFactory.none(),
     )
@@ -214,9 +212,9 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.Client):
     client.collection.create(
         name="CTypedDicts",
         properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-            Property(name="Age", data_type=DataType.INT),
-            ReferenceProperty(name="ref", target_collection="BTypedDicts"),
+            PropertyFactory.basic(name="Name", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="Age", data_type=DataType.INT),
+            PropertyFactory.cross_reference(name="ref", target_collection="BTypedDicts"),
         ],
         vectorizer_config=VectorizerFactory.none(),
     )
@@ -267,7 +265,7 @@ def test_multi_references_grpc(client: weaviate.Client):
         name="A",
         vectorizer_config=VectorizerFactory.none(),
         properties=[
-            Property(name="Name", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="Name", data_type=DataType.TEXT),
         ],
     )
     uuid_A = A.data.insert(properties={"Name": "A"})
@@ -275,7 +273,7 @@ def test_multi_references_grpc(client: weaviate.Client):
     B = client.collection.create(
         name="B",
         properties=[
-            Property(name="Name", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="Name", data_type=DataType.TEXT),
         ],
         vectorizer_config=VectorizerFactory.none(),
     )
@@ -284,8 +282,8 @@ def test_multi_references_grpc(client: weaviate.Client):
     C = client.collection.create(
         name="C",
         properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-            ReferencePropertyMultiTarget(name="ref", target_collections=["A", "B"]),
+            PropertyFactory.basic(name="Name", data_type=DataType.TEXT),
+            PropertyFactory.cross_reference(name="ref", target_collections=["A", "B"]),
         ],
         vectorizer_config=VectorizerFactory.none(),
     )
@@ -351,7 +349,7 @@ def test_references_batch(client: weaviate.Client):
     ref_collection = client.collection.create(
         name=name_ref_to,
         vectorizer_config=VectorizerFactory.none(),
-        properties=[Property(name="num", data_type=DataType.INT)],
+        properties=[PropertyFactory.basic(name="num", data_type=DataType.INT)],
     )
     num_objects = 10
 
@@ -361,8 +359,8 @@ def test_references_batch(client: weaviate.Client):
     collection = client.collection.create(
         name=name_ref_from,
         properties=[
-            ReferenceProperty(name="ref", target_collection=name_ref_to),
-            Property(name="num", data_type=DataType.INT),
+            PropertyFactory.cross_reference(name="ref", target_collection=name_ref_to),
+            PropertyFactory.basic(name="num", data_type=DataType.INT),
         ],
         vectorizer_config=VectorizerFactory.none(),
     )
@@ -406,8 +404,8 @@ def test_references_batch_with_errors(client: weaviate.Client):
     collection = client.collection.create(
         name=name_ref_from,
         properties=[
-            ReferenceProperty(name="ref", target_collection=name_ref_to),
-            Property(name="num", data_type=DataType.INT),
+            PropertyFactory.cross_reference(name="ref", target_collection=name_ref_to),
+            PropertyFactory.basic(name="num", data_type=DataType.INT),
         ],
         vectorizer_config=VectorizerFactory.none(),
     )

@@ -267,8 +267,8 @@ class _VectorizerConfig(_ConfigCreateModel):
 
 
 class PropertyVectorizerConfig(_ConfigCreateModel):
-    skip: bool = Field(default=False)
-    vectorizePropertyName: bool = Field(default=True, alias="vectorize_property_name")
+    skip: bool
+    vectorizePropertyName: bool
 
 
 class GenerativeFactory:
@@ -1045,57 +1045,91 @@ class PropertyConfig:
         }
 
 
-class Property(_ConfigCreateModel):
+class _PropertyConfig(_ConfigCreateModel):
     name: str
-    dataType: DataType = Field(default=..., alias="data_type")
-    indexFilterable: Optional[bool] = Field(default=None, alias="index_filterable")
-    indexSearchable: Optional[bool] = Field(default=None, alias="index_searchable")
-    description: Optional[str] = Field(default=None)
-    moduleConfig: Optional[PropertyVectorizerConfig] = Field(
-        default=None, alias="vectorizer_config"
-    )
-    tokenization: Optional[Tokenization] = Field(default=None)
+    dataType: DataType
+    description: Optional[str]
+    indexFilterable: Optional[bool]
+    indexSearchable: Optional[bool]
+    moduleConfig: PropertyVectorizerConfig
+    tokenization: Optional[Tokenization]
 
     def to_dict(self, vectorizer: Optional[Vectorizer] = None) -> Dict[str, Any]:
         ret_dict = super().to_dict()
         ret_dict["dataType"] = [ret_dict["dataType"]]
-        if "moduleConfig" in ret_dict and vectorizer is not None:
+        if vectorizer is not None:
             ret_dict["moduleConfig"] = {vectorizer.value: ret_dict["moduleConfig"]}
+        else:
+            del ret_dict["moduleConfig"]
         return ret_dict
 
 
-class ReferencePropertyBase(_ConfigCreateModel):
+class _ReferencePropertyConfig(_ConfigCreateModel):
     name: str
-
-
-class ReferenceProperty(ReferencePropertyBase):
-    target_collection: str
-
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
-        ret_dict["dataType"] = [_capitalize_first_letter(self.target_collection)]
-        del ret_dict["target_collection"]
-        return ret_dict
-
-
-class ReferencePropertyMultiTarget(ReferencePropertyBase):
     target_collections: List[str]
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
-        ret_dict["dataType"] = [
-            _capitalize_first_letter(target) for target in self.target_collections
-        ]
+        ret_dict["dataType"] = [_capitalize_first_letter(name) for name in self.target_collections]
         del ret_dict["target_collections"]
         return ret_dict
 
 
-PropertyType = Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]
+PropertyType = Union[_PropertyConfig, _ReferencePropertyConfig]
+
+
+class PropertyFactory:
+    @classmethod
+    def basic(
+        cls,
+        name: str,
+        data_type: DataType,
+        description: Optional[str] = None,
+        index_filterable: Optional[bool] = None,
+        index_searchable: Optional[bool] = None,
+        skip_vectorization: bool = False,
+        tokenization: Optional[Tokenization] = None,
+        vectorize_property_name: bool = True,
+    ) -> _PropertyConfig:
+        return _PropertyConfig(
+            name=name,
+            dataType=data_type,
+            description=description,
+            indexFilterable=index_filterable,
+            indexSearchable=index_searchable,
+            moduleConfig=PropertyVectorizerConfig(
+                skip=skip_vectorization,
+                vectorizePropertyName=vectorize_property_name,
+            ),
+            tokenization=tokenization,
+        )
+
+    @classmethod
+    def cross_reference(
+        cls,
+        name: str,
+        target_collection: str,
+    ) -> _ReferencePropertyConfig:
+        return _ReferencePropertyConfig(
+            name=name,
+            target_collections=[target_collection],
+        )
+
+    @classmethod
+    def cross_reference_multi_target(
+        cls,
+        name: str,
+        target_collections: List[str],
+    ) -> _ReferencePropertyConfig:
+        return _ReferencePropertyConfig(
+            name=name,
+            target_collections=target_collections,
+        )
 
 
 class _CollectionConfigCreate(_CollectionConfigCreateBase):
     name: str
-    properties: Optional[List[Union[Property, ReferencePropertyBase]]] = Field(default=None)
+    properties: Optional[List[PropertyType]] = Field(default=None)
 
     def model_post_init(self, __context: Any) -> None:
         self.name = _capitalize_first_letter(self.name)
@@ -1108,7 +1142,7 @@ class _CollectionConfigCreate(_CollectionConfigCreateBase):
         if self.properties is not None:
             ret_dict["properties"] = [
                 prop.to_dict(self.moduleConfig.vectorizer)
-                if isinstance(prop, Property)
+                if isinstance(prop, _PropertyConfig)
                 else prop.to_dict()
                 for prop in self.properties
             ]

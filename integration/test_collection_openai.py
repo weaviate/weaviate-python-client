@@ -7,7 +7,7 @@ import weaviate
 from weaviate import Config
 from weaviate.collection.classes.config import (
     DataType,
-    Property,
+    PropertyFactory,
     GenerativeFactory,
     VectorizerFactory,
 )
@@ -39,8 +39,8 @@ def test_generative_search_single(client: weaviate.Client, parameter: str, answe
     collection = client.collection.create(
         name=name,
         properties=[
-            Property(name="text", data_type=DataType.TEXT),
-            Property(name="content", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="text", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="content", data_type=DataType.TEXT),
         ],
         generative_search=GenerativeFactory.OpenAI(),
     )
@@ -73,9 +73,9 @@ def test_fetch_objects_generate_search_grouped(
     collection = client.collection.create(
         name=name,
         properties=[
-            Property(name="text", data_type=DataType.TEXT),
-            Property(name="content", data_type=DataType.TEXT),
-            Property(name="extra", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="text", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="content", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="extra", data_type=DataType.TEXT),
         ],
         generative_search=GenerativeFactory.OpenAI(),
     )
@@ -102,9 +102,9 @@ def test_fetch_objects_generate_search_grouped_all_props(client: weaviate.Client
     collection = client.collection.create(
         name=name,
         properties=[
-            Property(name="text", data_type=DataType.TEXT),
-            Property(name="content", data_type=DataType.TEXT),
-            Property(name="extra", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="text", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="content", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="extra", data_type=DataType.TEXT),
         ],
         generative_search=GenerativeFactory.OpenAI(),
     )
@@ -140,9 +140,9 @@ def test_fetch_objects_generate_search_grouped_specified_prop(client: weaviate.C
     collection = client.collection.create(
         name=name,
         properties=[
-            Property(name="text", data_type=DataType.TEXT),
-            Property(name="content", data_type=DataType.TEXT),
-            Property(name="extra", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="text", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="content", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="extra", data_type=DataType.TEXT),
         ],
         generative_search=GenerativeFactory.OpenAI(),
     )
@@ -179,9 +179,9 @@ def test_fetch_objects_generate_with_everything(client: weaviate.Client):
     collection = client.collection.create(
         name=name,
         properties=[
-            Property(name="text", data_type=DataType.TEXT),
-            Property(name="content", data_type=DataType.TEXT),
-            Property(name="extra", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="text", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="content", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="extra", data_type=DataType.TEXT),
         ],
         generative_search=GenerativeFactory.OpenAI(),
     )
@@ -220,9 +220,9 @@ def test_bm25_generate_with_everything(client: weaviate.Client):
     collection = client.collection.create(
         name=name,
         properties=[
-            Property(name="text", data_type=DataType.TEXT),
-            Property(name="content", data_type=DataType.TEXT),
-            Property(name="extra", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="text", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="content", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="extra", data_type=DataType.TEXT),
         ],
         generative_search=GenerativeFactory.OpenAI(),
     )
@@ -263,9 +263,9 @@ def test_hybrid_generate_with_everything(client: weaviate.Client):
     collection = client.collection.create(
         name=name,
         properties=[
-            Property(name="text", data_type=DataType.TEXT),
-            Property(name="content", data_type=DataType.TEXT),
-            Property(name="extra", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="text", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="content", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="extra", data_type=DataType.TEXT),
         ],
         generative_search=GenerativeFactory.OpenAI(),
     )
@@ -306,9 +306,9 @@ def test_near_text_generate_with_everything(client: weaviate.Client):
     collection = client.collection.create(
         name=name,
         properties=[
-            Property(name="text", data_type=DataType.TEXT),
-            Property(name="content", data_type=DataType.TEXT),
-            Property(name="extra", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="text", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="content", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="extra", data_type=DataType.TEXT),
         ],
         generative_search=GenerativeFactory.OpenAI(),
         vectorizer_config=VectorizerFactory.text2vec_openai(vectorize_class_name=False),
@@ -349,9 +349,9 @@ def test_near_vector_generate_with_everything(client: weaviate.Client):
     collection = client.collection.create(
         name=name,
         properties=[
-            Property(name="text", data_type=DataType.TEXT),
-            Property(name="content", data_type=DataType.TEXT),
-            Property(name="extra", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="text", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="content", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="extra", data_type=DataType.TEXT),
         ],
         generative_search=GenerativeFactory.OpenAI(),
     )
@@ -398,7 +398,7 @@ def test_openapi_invalid_key():
     local_client.collection.delete(name)
     collection = local_client.collection.create(
         name=name,
-        properties=[Property(name="text", data_type=DataType.TEXT)],
+        properties=[PropertyFactory.basic(name="text", data_type=DataType.TEXT)],
         generative_search=GenerativeFactory.OpenAI(),
     )
     collection.data.insert(properties={"text": "test"})
@@ -419,7 +419,7 @@ def test_openapi_no_module():
     local_client.collection.delete(name)
     collection = local_client.collection.create(
         name=name,
-        properties=[Property(name="text", data_type=DataType.TEXT)],
+        properties=[PropertyFactory.basic(name="text", data_type=DataType.TEXT)],
         generative_search=GenerativeFactory.OpenAI(),
     )
     collection.data.insert(properties={"text": "test"})
@@ -435,7 +435,7 @@ def test_openai_batch_upload(client: weaviate.Client):
     collection = client.collection.create(
         name=name,
         properties=[
-            Property(name="text", data_type=DataType.TEXT),
+            PropertyFactory.basic(name="text", data_type=DataType.TEXT),
         ],
         vectorizer_config=VectorizerFactory.text2vec_openai(),
     )
