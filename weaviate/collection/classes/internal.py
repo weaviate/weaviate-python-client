@@ -10,10 +10,19 @@ else:
     from typing import Annotated, get_type_hints, get_origin
 
 from weaviate.collection.collection_base import CollectionObjectBase
-from weaviate.collection.classes.grpc import LinkTo, LinkToMultiTarget, MetadataQuery, PROPERTIES
+from weaviate.collection.classes.grpc import (
+    LinkTo,
+    LinkToMultiTarget,
+    MetadataQuery,
+    PROPERTIES,
+    Generate,
+    GroupBy,
+)
 from weaviate.collection.classes.types import Properties, P
 from weaviate.util import _to_beacons
 from weaviate.weaviate_types import UUIDS
+
+from weaviate_grpc import weaviate_pb2
 
 
 @dataclass
@@ -65,6 +74,71 @@ class _GroupByResult(Generic[P]):
 class _GroupByReturn(Generic[P]):
     objects: List[_GroupByObject[P]]
     groups: Dict[str, _GroupByResult]
+
+
+class _Generative:
+    single: Optional[str]
+    grouped: Optional[str]
+    grouped_properties: Optional[List[str]]
+
+    def __init__(
+        self,
+        single: Optional[str],
+        grouped: Optional[str],
+        grouped_properties: Optional[List[str]],
+    ) -> None:
+        self.single = single
+        self.grouped = grouped
+        self.grouped_properties = grouped_properties
+
+    def to_grpc(self) -> weaviate_pb2.GenerativeSearch:
+        return weaviate_pb2.GenerativeSearch(
+            single_response_prompt=self.single,
+            grouped_response_task=self.grouped,
+            grouped_properties=self.grouped_properties,
+        )
+
+    @classmethod
+    def from_input(cls, generate: Optional[Generate]) -> Optional["_Generative"]:
+        return (
+            cls(
+                single=generate.single_prompt,
+                grouped=generate.grouped_task,
+                grouped_properties=generate.grouped_properties,
+            )
+            if generate
+            else None
+        )
+
+
+class _GroupBy:
+    prop: str
+    number_of_groups: int
+    objects_per_group: int
+
+    def __init__(self, prop: str, number_of_groups: int, objects_per_group: int) -> None:
+        self.prop = prop
+        self.number_of_groups = number_of_groups
+        self.objects_per_group = objects_per_group
+
+    def to_grpc(self) -> weaviate_pb2.GroupBy:
+        return weaviate_pb2.GroupBy(
+            path=[self.prop],
+            number_of_groups=self.number_of_groups,
+            objects_per_group=self.objects_per_group,
+        )
+
+    @classmethod
+    def from_input(cls, group_by: Optional[GroupBy]) -> Optional["_GroupBy"]:
+        return (
+            cls(
+                prop=group_by.prop,
+                number_of_groups=group_by.number_of_groups,
+                objects_per_group=group_by.objects_per_group,
+            )
+            if group_by
+            else None
+        )
 
 
 class ReferenceFactory(Generic[P]):

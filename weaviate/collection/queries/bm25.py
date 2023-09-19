@@ -15,14 +15,11 @@ from weaviate.collection.classes.grpc import (
     MetadataQuery,
     PROPERTIES,
 )
-from weaviate.collection.classes.internal import (
-    _GenerativeReturn,
-    _QueryReturn,
-)
+from weaviate.collection.classes.internal import _GenerativeReturn, _QueryReturn, _Generative
 from weaviate.collection.classes.types import (
     Properties,
 )
-from weaviate.collection.grpc.base.wrapper import _Grpc
+from weaviate.collection.queries.base import _Grpc
 
 
 class _BM25(_Grpc):
@@ -75,11 +72,7 @@ class _BM25(_Grpc):
             filters=filters,
             return_metadata=return_metadata,
             return_properties=ret_properties,
-            generative_single=generate.single_prompt if generate is not None else None,
-            generative_grouped=generate.grouped_task if generate is not None else None,
-            generative_grouped_properties=generate.grouped_properties
-            if generate is not None
-            else None,
+            generative=_Generative.from_input(generate),
         )
         if generate is None:
             return self._result_to_query_return(res, ret_type)

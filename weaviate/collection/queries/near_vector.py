@@ -2,8 +2,8 @@ from typing import (
     List,
     Literal,
     Optional,
-    Union,
     Type,
+    Union,
     overload,
 )
 
@@ -15,28 +15,27 @@ from weaviate.collection.classes.grpc import (
     GroupBy,
     MetadataQuery,
     PROPERTIES,
-    Move,
 )
 from weaviate.collection.classes.internal import (
+    _Generative,
     _GenerativeReturn,
+    _GroupBy,
     _GroupByReturn,
     _QueryReturn,
 )
 from weaviate.collection.classes.types import (
     Properties,
 )
-from weaviate.collection.grpc.base.wrapper import _Grpc
+from weaviate.collection.queries.base import _Grpc
 
 
-class _NearText(_Grpc):
+class _NearVector(_Grpc):
     @overload
-    def near_text(
+    def near_vector(
         self,
-        query: Union[List[str], str],
+        near_vector: List[float],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
-        move_to: Optional[Move] = None,
-        move_away: Optional[Move] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
@@ -47,17 +46,15 @@ class _NearText(_Grpc):
         ...
 
     @overload
-    def near_text(
+    def near_vector(
         self,
-        query: Union[List[str], str],
+        near_vector: List[float],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
-        move_to: Optional[Move] = None,
-        move_away: Optional[Move] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        *,
         group_by: Literal[None] = None,
+        *,
         generate: Generate,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
@@ -65,13 +62,11 @@ class _NearText(_Grpc):
         ...
 
     @overload
-    def near_text(
+    def near_vector(
         self,
-        query: Union[List[str], str],
+        near_vector: List[float],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
-        move_to: Optional[Move] = None,
-        move_away: Optional[Move] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         *,
@@ -82,34 +77,30 @@ class _NearText(_Grpc):
     ) -> _GroupByReturn[Properties]:
         ...
 
-    def near_text(
+    def near_vector(
         self,
-        query: Union[List[str], str],
+        near_vector: List[float],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
-        move_to: Optional[Move] = None,
-        move_away: Optional[Move] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[GroupBy] = None,
         generate: Optional[Generate] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
-    ) -> Union[_QueryReturn[Properties], _GenerativeReturn[Properties], _GroupByReturn[Properties]]:
+    ) -> Union[_GenerativeReturn[Properties], _GroupByReturn[Properties], _QueryReturn[Properties]]:
         if generate is not None and group_by is not None:
             raise ValueError("Cannot have group_by and generate defined simultaneously")
 
         ret_properties, ret_type = self._determine_generic(return_properties)
-        res = self._query().near_text(
-            near_text=query,
+        res = self._query().near_vector(
+            near_vector=near_vector,
             certainty=certainty,
             distance=distance,
-            move_to=move_to,
-            move_away=move_away,
             autocut=auto_limit,
             filters=filters,
-            group_by=group_by,
-            generate=generate,
+            group_by=_GroupBy.from_input(group_by),
+            generative=_Generative.from_input(generate),
             return_metadata=return_metadata,
             return_properties=ret_properties,
         )

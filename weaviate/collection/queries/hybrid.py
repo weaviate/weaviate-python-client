@@ -14,11 +14,12 @@ from weaviate.collection.classes.grpc import Generate, MetadataQuery, PROPERTIES
 from weaviate.collection.classes.internal import (
     _GenerativeReturn,
     _QueryReturn,
+    _Generative,
 )
 from weaviate.collection.classes.types import (
     Properties,
 )
-from weaviate.collection.grpc.base.wrapper import _Grpc
+from weaviate.collection.queries.base import _Grpc
 
 
 class _Hybrid(_Grpc):
@@ -33,9 +34,9 @@ class _Hybrid(_Grpc):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        generate: Literal[None] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
-        generate: Literal[None] = None,
     ) -> _QueryReturn[Properties]:
         ...
 
@@ -50,10 +51,10 @@ class _Hybrid(_Grpc):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
-        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
         *,
         generate: Generate,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _GenerativeReturn[Properties]:
         ...
 
@@ -67,9 +68,9 @@ class _Hybrid(_Grpc):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        generate: Optional[Generate] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
-        generate: Optional[Generate] = None,
     ) -> Union[_QueryReturn[Properties], _GenerativeReturn[Properties]]:
         ret_properties, ret_type = self._determine_generic(return_properties)
         res = self._query().hybrid(
@@ -83,11 +84,7 @@ class _Hybrid(_Grpc):
             filters=filters,
             return_metadata=return_metadata,
             return_properties=ret_properties,
-            generative_single=generate.single_prompt if generate is not None else None,
-            generative_grouped=generate.grouped_task if generate is not None else None,
-            generative_grouped_properties=generate.grouped_properties
-            if generate is not None
-            else None,
+            generative=_Generative.from_input(generate),
         )
         if generate is None:
             return self._result_to_query_return(res, ret_type)

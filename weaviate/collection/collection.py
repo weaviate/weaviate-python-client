@@ -42,7 +42,9 @@ class CollectionObject(CollectionObjectBase, Generic[Properties]):
 
         self.config = _ConfigCollection(self._connection, name)
         self.data = _DataCollection[Properties](connection, name, consistency_level, tenant, type_)
-        self.query = _GrpcCollection(connection, name, consistency_level, tenant)
+        self.query = _GrpcCollection[Properties](
+            connection, name, self.data, consistency_level, tenant
+        )
         self.tenants = _Tenants(connection, name)
 
         self.__tenant = tenant
@@ -100,16 +102,20 @@ class Collection(CollectionBase):
         name = _capitalize_first_letter(name)
         return CollectionObject[Properties](self._connection, name, type_=data_model)
 
-    def delete(self, name: str) -> None:
-        """Use this method to delete a collection from the Weaviate instance by its name.
+    def delete(self, name: Union[str, List[str]]) -> None:
+        """Use this method to delete collection(s) from the Weaviate instance by its/their name(s).
 
         WARNING: If you have instances of client.collection.get() or client.collection.create()
-        for this collection within your code, they will cease to function correctly after this operation.
+        for these collections within your code, they will cease to function correctly after this operation.
 
         Parameters:
-        - name: The name of the collection to delete.
+        - name: The names of the collections to delete.
         """
-        self._delete(_capitalize_first_letter(name))
+        if isinstance(name, str):
+            self._delete(_capitalize_first_letter(name))
+        else:
+            for n in name:
+                self._delete(_capitalize_first_letter(n))
 
     def exists(self, name: str) -> bool:
         return self._exists(_capitalize_first_letter(name))

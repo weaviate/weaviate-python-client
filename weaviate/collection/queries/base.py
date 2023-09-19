@@ -38,7 +38,7 @@ from weaviate.collection.classes.internal import (
 from weaviate.collection.classes.types import (
     Properties,
 )
-from weaviate.collection.grpc.base.query import _GRPC, GroupByResult, SearchResponse, SearchResult
+from weaviate.collection.grpc import _GRPC, GroupByResult, SearchResponse, SearchResult
 from weaviate.connect import Connection
 from weaviate_grpc import weaviate_pb2
 

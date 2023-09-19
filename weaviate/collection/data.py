@@ -17,6 +17,7 @@ from typing import (
 from google.protobuf.struct_pb2 import Struct
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
+from weaviate.collection.classes.batch import _BatchDeleteResult
 from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.classes.data import (
     BatchReference,
@@ -29,7 +30,9 @@ from weaviate.collection.classes.orm import (
     Model,
 )
 from weaviate.collection.classes.types import Properties, TProperties, _check_data_model
-from weaviate.collection.grpc import _BatchGRPC
+from weaviate.collection.classes.filters import _Filters
+from weaviate.collection.grpc_batch import _BatchGRPC
+from weaviate.collection.rest_batch import _BatchREST
 from weaviate.connect import Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
@@ -52,7 +55,8 @@ class _Data:
         self.name = name
         self._consistency_level = consistency_level
         self._tenant = tenant
-        self._batch = _BatchGRPC(connection, consistency_level)
+        self._batch_grpc = _BatchGRPC(connection, consistency_level)
+        self._batch_rest = _BatchREST(connection)
 
     def _insert(self, weaviate_obj: Dict[str, Any]) -> uuid_package.UUID:
         path = "/objects"
@@ -83,7 +87,7 @@ class _Data:
             for obj in objects
         ]
 
-        errors = self._batch.batch(weaviate_objs)
+        errors = self._batch_grpc.batch(weaviate_objs)
 
         all_responses: List[Union[uuid_package.UUID, Error]] = cast(
             List[Union[uuid_package.UUID, Error]], list(range(len(weaviate_objs)))
@@ -108,7 +112,7 @@ class _Data:
             all_responses=all_responses,
         )
 
-    def delete(self, uuid: UUID) -> bool:
+    def delete_by_id(self, uuid: UUID) -> bool:
         path = f"/objects/{self.name}/{uuid}"
 
         try:
@@ -120,6 +124,13 @@ class _Data:
         elif response.status_code == 404:
             return False  # did not exist
         raise UnexpectedStatusCodeException("Delete object", response)
+
+    def delete_many(
+        self, where: _Filters, verbose: bool = False, dry_run: bool = False
+    ) -> _BatchDeleteResult:
+        return self._batch_rest.delete(
+            self.name, where, verbose, dry_run, self._consistency_level, self._tenant
+        )
 
     def _replace(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
         path = f"/objects/{self.name}/{uuid}"
@@ -331,7 +342,7 @@ class _Data:
             elif isinstance(val, list) and isinstance(val[0], float):
                 float_arrays.append(weaviate_pb2.NumberArrayProperties(prop_name=key, values=val))
             else:
-                non_ref_properties.update({key: val})
+                non_ref_properties.update({key: self.__serialize_primitive(val)})
 
         return weaviate_pb2.BatchObject.Properties(
             non_ref_properties=non_ref_properties,
@@ -432,21 +443,6 @@ class _DataCollection(Generic[Properties], _Data):
             weaviate_obj["vector"] = vector
 
         self._update(weaviate_obj, uuid=uuid)
-
-    def get_by_id(self, uuid: UUID, include_vector: bool = False) -> Optional[_Object[Properties]]:
-        ret = self._get_by_id(uuid=uuid, include_vector=include_vector)
-        if ret is None:
-            return ret
-        return self._json_to_object(ret)
-
-    def get(
-        self, limit: Optional[int] = None, include_vector: bool = False
-    ) -> List[_Object[Properties]]:
-        ret = self._get(limit=limit, include_vector=include_vector)
-        if ret is None:
-            return []
-
-        return [self._json_to_object(obj) for obj in ret["objects"]]
 
     def reference_add(self, from_uuid: UUID, from_property: str, ref: ReferenceFactory) -> None:
         self._reference_add(
