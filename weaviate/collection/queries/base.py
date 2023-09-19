@@ -38,7 +38,7 @@ from weaviate.collection.classes.internal import (
 from weaviate.collection.classes.types import (
     Properties,
 )
-from weaviate.collection.grpc_base import _GRPC, GroupByResult, SearchResponse, SearchResult
+from weaviate.collection.grpc_query import _QueryGRPC, GroupByResult, SearchResponse, SearchResult
 from weaviate.connect import Connection
 from weaviate_grpc import weaviate_pb2
 
@@ -56,8 +56,8 @@ class _Grpc:
         self.__tenant = tenant
         self.__consistency_level = consistency_level
 
-    def _query(self) -> _GRPC:
-        return _GRPC(self.__connection, self.__name, self.__tenant, self.__consistency_level)
+    def _query(self) -> _QueryGRPC:
+        return _QueryGRPC(self.__connection, self.__name, self.__tenant, self.__consistency_level)
 
     @staticmethod
     def _extract_metadata_for_object(

@@ -105,7 +105,7 @@ class _Move:
     objects: List[uuid_lib.UUID]
 
 
-class _GRPC(_BaseGRPC):
+class _QueryGRPC(_BaseGRPC):
     def __init__(
         self,
         connection: Connection,

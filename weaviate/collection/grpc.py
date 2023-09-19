@@ -23,7 +23,7 @@ from weaviate.collection.classes.types import TProperties
 
 from weaviate.collection.data import _DataCollection
 
-from weaviate.collection.grpc_base import SearchResult
+from weaviate.collection.grpc_query import SearchResult
 
 from weaviate.collection.queries.base import _Grpc
 from weaviate.collection.queries.bm25 import _BM25
