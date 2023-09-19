@@ -64,7 +64,7 @@ class Collection(CollectionBase):
         self,
         name: str,
         description: Optional[str] = None,
-        generative_search: Optional[_GenerativeConfig] = None,
+        generative_config: Optional[_GenerativeConfig] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
         properties: Optional[List[Union[Property, ReferencePropertyBase]]] = None,
@@ -77,7 +77,7 @@ class Collection(CollectionBase):
     ) -> CollectionObject[Properties]:
         config = _CollectionConfigCreate(
             description=description,
-            generative_search=generative_search,
+            generative_config=generative_config,
             inverted_index_config=inverted_index_config,
             multi_tenancy_config=multi_tenancy_config,
             name=name,
