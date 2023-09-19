@@ -140,6 +140,27 @@ def test_get_data_with_where_contains_any(client: weaviate.Client):
     assert len(objects) == 1 and objects[0]["name"] == "HMS British Name"
 
 
+def test_get_data_with_where_contains_any_value_text(client: weaviate.Client):
+    client.schema.create_class(
+        {"class": "Test", "properties": [{"name": "someProp", "dataType": ["text[]"]}]}
+    )
+    client.data_object.create({"someProp": ["CA", "BC"]}, "Test")
+
+    res = (
+        client.query.get("Test", ["someProp"])
+        .with_where({"path": ["someProp"], "operator": "ContainsAny", "valueText": ["CA"]})
+        .do()
+    )  # fails with error mentioned above
+    objects = res["data"]["Get"]["Test"]
+    assert len(objects) == 1 and objects[0]["someProp"] == ["CA", "BC"]
+
+    res = client.query.raw(
+        '{Get{Test(where:{path:["someProp"]operator:ContainsAny valueText:["CA"]}){someProp}}}'
+    )  # returns successfully
+    objects = res["data"]["Get"]["Test"]
+    assert len(objects) == 1 and objects[0]["someProp"] == ["CA", "BC"]
+
+
 @pytest.mark.parametrize(
     "path,operator,value_type_key,value_type_value,name,expected_objects_len",
     [
