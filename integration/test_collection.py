@@ -1769,4 +1769,7 @@ def test_iterator_dict_hint(client: weaviate.Client):
 
     with pytest.raises(TypeError) as e:
         collection.iterator(dict)
-    assert "data_model must be a TypedDict or None within this context but is " in e.value.args[0]
+    assert (
+        "return_properties must only be a TypedDict or None within this context but is "
+        in e.value.args[0]
+    )
