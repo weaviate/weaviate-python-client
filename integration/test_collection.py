@@ -35,7 +35,7 @@ from weaviate.collection.classes.data import (
 from weaviate.collection.classes.internal import ReferenceFactory
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.exceptions import WeaviateGRPCException
-from weaviate.collection.collection import CollectionObject
+from weaviate.collection.collection import ITERATOR_CACHE_SIZE, CollectionObject
 from weaviate.collection.data import _DataCollection
 from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery, Move
 from weaviate.exceptions import InvalidDataModelException
@@ -1586,3 +1586,38 @@ def test_optional_ref_returns(client: weaviate.Client):
 
     assert objects[0].properties["ref"].objects[0].properties["text"] == "ref text"
     assert objects[0].properties["ref"].objects[0].metadata.uuid is not None
+
+
+@pytest.mark.parametrize(
+    "count",
+    [
+        0,
+        1,
+        2,
+        ITERATOR_CACHE_SIZE - 1,
+        ITERATOR_CACHE_SIZE,
+        ITERATOR_CACHE_SIZE + 1,
+        2 * ITERATOR_CACHE_SIZE - 1,
+        2 * ITERATOR_CACHE_SIZE,
+        2 * ITERATOR_CACHE_SIZE + 1,
+        20 * ITERATOR_CACHE_SIZE,
+    ],
+)
+def test_iterator(client: weaviate.Client, count: int):
+    name = "TestIterator"
+    client.collection.delete(name)
+
+    collection = client.collection.create(
+        name=name,
+        properties=[Property(name="data", data_type=DataType.INT)],
+        vectorizer_config=VectorizerFactory.none(),
+    )
+
+    if count > 0:
+        collection.data.insert_many([DataObject(properties={"data": i}) for i in range(count)])
+
+    # make sure a new iterator resets the internal state
+    for _ in range(3):
+        # get the property and sort them - order returned by weaviate is not identical to the order inserted
+        all_data: list[int] = sorted([int(obj.properties["data"]) for obj in collection])
+        assert all_data == list(range(count))

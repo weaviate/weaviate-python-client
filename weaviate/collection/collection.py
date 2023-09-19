@@ -1,4 +1,5 @@
-from typing import Dict, Generic, List, Literal, Optional, Type, Union, overload
+from typing import Dict, Generic, Iterable, Iterator, List, Literal, Optional, Type, Union, overload
+from uuid import UUID
 
 from weaviate.collection.classes.config import (
     _CollectionConfigCreate,
@@ -17,6 +18,7 @@ from weaviate.collection.classes.config import (
     _VectorIndexConfigCreate,
     VectorIndexType,
 )
+from weaviate.collection.classes.internal import _Object, _QueryReturn
 from weaviate.collection.classes.types import Properties, _check_data_model
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.collection.config import _ConfigCollection
@@ -27,7 +29,10 @@ from weaviate.connect import Connection
 from weaviate.util import _capitalize_first_letter
 
 
-class CollectionObject(CollectionObjectBase, Generic[Properties]):
+ITERATOR_CACHE_SIZE = 100
+
+
+class CollectionObject(CollectionObjectBase, Generic[Properties], Iterable[_Object[Properties]]):
     def __init__(
         self,
         connection: Connection,
@@ -48,6 +53,9 @@ class CollectionObject(CollectionObjectBase, Generic[Properties]):
         self.__tenant = tenant
         self.__consistency_level = consistency_level
 
+        self.__iter_object_cache: List[_Object[Properties]] = []
+        self.__iter_object_last_uuid: Optional[UUID] = None
+
     def with_tenant(self, tenant: Optional[str] = None) -> "CollectionObject":
         return CollectionObject(self._connection, self.name, self.__consistency_level, tenant)
 
@@ -55,6 +63,28 @@ class CollectionObject(CollectionObjectBase, Generic[Properties]):
         self, consistency_level: Optional[ConsistencyLevel] = None
     ) -> "CollectionObject":
         return CollectionObject(self._connection, self.name, consistency_level, self.__tenant)
+
+    def __iter__(self) -> Iterator[_Object[Properties]]:
+        self.__iter_object_cache = []
+        self.__iter_object_last_uuid = None
+        return self
+
+    def __next__(self) -> _Object[Properties]:
+        if len(self.__iter_object_cache) == 0:
+            ret: _QueryReturn[Properties] = self.query.get(
+                limit=ITERATOR_CACHE_SIZE,
+                after=self.__iter_object_last_uuid,
+            )
+            self.__iter_object_cache = ret.objects
+            if len(self.__iter_object_cache) == 0:
+                raise StopIteration
+
+        ret_object = self.__iter_object_cache.pop(0)
+        self.__iter_object_last_uuid = ret_object.metadata.uuid
+        assert (
+            self.__iter_object_last_uuid is not None
+        )  # if this is None the iterator will never stop
+        return ret_object
 
 
 class Collection(CollectionBase):
