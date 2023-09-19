@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-fix-issues-with-references-and-toclass-autodetect-23ab716
+    image: semitechnologies/weaviate:preview-automatically-request-properties-that-are-needed-for-groupby-e98008c
     ports:
       - 8081:8081
     restart: on-failure:0
