@@ -785,6 +785,40 @@ def test_near_object(client: weaviate.Client):
     client.collection.delete("TestNearObject")
 
 
+@pytest.mark.skip(
+    reason="gRPC call failed with message panic occurred: interface conversion: models.PropertySchema is nil, not map[string]interface {}."
+)
+def test_near_object_group_by(client: weaviate.Client):
+    collection = client.collection.create(
+        name="TestNearObject",
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+            Property(name="Count", data_type=DataType.INT),
+        ],
+        vectorizer_config=VectorizerFactory.text2vec_contextionary(),
+    )
+    uuid_banana1 = collection.data.insert({"Name": "Banana", "Count": 51})
+    collection.data.insert({"Name": "Banana", "Count": 72})
+    collection.data.insert({"Name": "car", "Count": 12})
+    collection.data.insert({"Name": "Mountain", "Count": 1})
+
+    ret = collection.query.near_object(
+        uuid_banana1,
+        group_by=GroupBy(prop="name", number_of_groups=4, objects_per_group=10),
+        return_metadata=MetadataQuery(distance=True, certainty=True),
+    )
+
+    assert len(ret.objects) == 4
+    assert ret.objects[0].belongs_to_group == "Banana"
+    assert ret.objects[0].properties["count"] == 51
+    assert ret.objects[1].belongs_to_group == "Banana"
+    assert ret.objects[1].properties["count"] == 72
+    assert ret.objects[2].belongs_to_group == "car"
+    assert ret.objects[3].belongs_to_group == "Mountain"
+
+    client.collection.delete("TestNearObject")
+
+
 def test_mono_references_grpc(client: weaviate.Client):
     A = client.collection.create(
         name="A",
