@@ -266,11 +266,6 @@ class _VectorizerConfig(_ConfigCreateModel):
     vectorizer: Vectorizer
 
 
-class PropertyVectorizerConfig(_ConfigCreateModel):
-    skip: bool = Field(default=False)
-    vectorizePropertyName: bool = Field(default=True, alias="vectorize_property_name")
-
-
 class GenerativeFactory:
     @classmethod
     def OpenAI(cls) -> _GenerativeConfig:
@@ -1051,16 +1046,22 @@ class Property(_ConfigCreateModel):
     indexFilterable: Optional[bool] = Field(default=None, alias="index_filterable")
     indexSearchable: Optional[bool] = Field(default=None, alias="index_searchable")
     description: Optional[str] = Field(default=None)
-    moduleConfig: Optional[PropertyVectorizerConfig] = Field(
-        default=None, alias="vectorizer_config"
-    )
+    skip_vectorization: bool = False
     tokenization: Optional[Tokenization] = Field(default=None)
+    vectorize_property_name: bool = True
 
     def to_dict(self, vectorizer: Optional[Vectorizer] = None) -> Dict[str, Any]:
         ret_dict = super().to_dict()
         ret_dict["dataType"] = [ret_dict["dataType"]]
-        if "moduleConfig" in ret_dict and vectorizer is not None:
-            ret_dict["moduleConfig"] = {vectorizer.value: ret_dict["moduleConfig"]}
+        if vectorizer is not None and vectorizer != Vectorizer.NONE:
+            ret_dict["moduleConfig"] = {
+                vectorizer.value: {
+                    "skip": self.skip_vectorization,
+                    "vectorizePropertyName": self.vectorize_property_name,
+                }
+            }
+        del ret_dict["skip_vectorization"]
+        del ret_dict["vectorize_property_name"]
         return ret_dict
 
 

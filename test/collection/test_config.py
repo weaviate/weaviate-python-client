@@ -7,7 +7,6 @@ from weaviate.collection.classes.config import (
     _VectorizerConfig,
     VectorizerFactory,
     Property,
-    PropertyVectorizerConfig,
 )
 
 
@@ -310,9 +309,35 @@ TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
             Property(
                 name="text",
                 data_type=DataType.TEXT,
-                vectorizer_config=PropertyVectorizerConfig(
-                    skip=False, vectorize_property_name=False
-                ),
+                skip_vectorization=True,
+                vectorize_property_name=False,
+            )
+        ],
+        {
+            "text2vec-transformers": {
+                "vectorizeClassName": True,
+                "poolingStrategy": "masked_mean",
+            }
+        },
+        [
+            {
+                "dataType": ["text"],
+                "name": "text",
+                "moduleConfig": {
+                    "text2vec-transformers": {
+                        "skip": True,
+                        "vectorizePropertyName": False,
+                    }
+                },
+            }
+        ],
+    ),
+    (
+        VectorizerFactory.text2vec_transformers(),
+        [
+            Property(
+                name="text",
+                data_type=DataType.TEXT,
             )
         ],
         {
@@ -328,12 +353,12 @@ TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
                 "moduleConfig": {
                     "text2vec-transformers": {
                         "skip": False,
-                        "vectorizePropertyName": False,
+                        "vectorizePropertyName": True,
                     }
                 },
             }
         ],
-    )
+    ),
 ]
 
 
