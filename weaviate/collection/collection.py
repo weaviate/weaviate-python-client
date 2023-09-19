@@ -45,8 +45,10 @@ FULL_METADATA_QUERY = MetadataQuery(
 )
 
 
-class _ObjectIterator(Generic[Properties], Iterable[_Object[Properties]]):
-    def __init__(self, query: _GrpcCollection, type_: Optional[Type[Properties]]) -> None:
+class _ObjectIterator(Generic[Properties, TProperties], Iterable[_Object[Properties]]):
+    def __init__(
+        self, query: _GrpcCollection[TProperties], type_: Optional[Type[Properties]]
+    ) -> None:
         self.__query = query
         self.__type = type_
 
@@ -60,7 +62,7 @@ class _ObjectIterator(Generic[Properties], Iterable[_Object[Properties]]):
 
     def __next__(self) -> _Object[Properties]:
         if len(self.__iter_object_cache) == 0:
-            ret: _QueryReturn[Properties] = self.__query.get(
+            ret: _QueryReturn[Properties] = self.__query.fetch_objects(
                 limit=ITERATOR_CACHE_SIZE,
                 after=self.__iter_object_last_uuid,
                 return_metadata=FULL_METADATA_QUERY if self.__type is not None else None,
@@ -95,7 +97,9 @@ class CollectionObject(CollectionObjectBase, Generic[TProperties]):
 
         self.config = _ConfigCollection(self._connection, name)
         self.data = _DataCollection[TProperties](connection, name, consistency_level, tenant, type_)
-        self.query = _GrpcCollection(connection, name, consistency_level, tenant)
+        self.query = _GrpcCollection[TProperties](
+            connection, name, self.data, consistency_level, tenant
+        )
         self.tenants = _Tenants(connection, name)
 
         self.__tenant = tenant
@@ -111,12 +115,12 @@ class CollectionObject(CollectionObjectBase, Generic[TProperties]):
 
     def iterator(
         self, return_properties: Optional[Type[Properties]] = None
-    ) -> _ObjectIterator[Properties]:
+    ) -> _ObjectIterator[Properties, TProperties]:
         if return_properties is not None and not is_typeddict(return_properties):
             raise TypeError(
                 f"return_properties must only be a TypedDict or None within this context but is {type(return_properties)}"
             )
-        return _ObjectIterator[Properties](self.query, return_properties)
+        return _ObjectIterator[Properties, TProperties](self.query, return_properties)
 
 
 class Collection(CollectionBase):

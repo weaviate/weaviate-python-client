@@ -89,7 +89,7 @@ class BatchObjectsReply(_message.Message):
     def __init__(self, results: _Optional[_Iterable[_Union[BatchObjectsReply.BatchResults, _Mapping]]] = ..., took: _Optional[float] = ...) -> None: ...
 
 class SearchRequest(_message.Message):
-    __slots__ = ["class_name", "limit", "additional_properties", "near_vector", "near_object", "properties", "hybrid_search", "bm25_search", "offset", "autocut", "after", "tenant", "filters", "near_text", "near_image", "near_audio", "near_video", "consistency_level", "generative", "sort_by"]
+    __slots__ = ["class_name", "limit", "additional_properties", "near_vector", "near_object", "properties", "hybrid_search", "bm25_search", "offset", "autocut", "after", "tenant", "filters", "near_text", "near_image", "near_audio", "near_video", "consistency_level", "generative", "sort_by", "group_by"]
     CLASS_NAME_FIELD_NUMBER: _ClassVar[int]
     LIMIT_FIELD_NUMBER: _ClassVar[int]
     ADDITIONAL_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
@@ -110,6 +110,7 @@ class SearchRequest(_message.Message):
     CONSISTENCY_LEVEL_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_FIELD_NUMBER: _ClassVar[int]
     SORT_BY_FIELD_NUMBER: _ClassVar[int]
+    GROUP_BY_FIELD_NUMBER: _ClassVar[int]
     class_name: str
     limit: int
     additional_properties: AdditionalProperties
@@ -130,7 +131,18 @@ class SearchRequest(_message.Message):
     consistency_level: ConsistencyLevel
     generative: GenerativeSearch
     sort_by: _containers.RepeatedCompositeFieldContainer[SortBy]
-    def __init__(self, class_name: _Optional[str] = ..., limit: _Optional[int] = ..., additional_properties: _Optional[_Union[AdditionalProperties, _Mapping]] = ..., near_vector: _Optional[_Union[NearVectorParams, _Mapping]] = ..., near_object: _Optional[_Union[NearObjectParams, _Mapping]] = ..., properties: _Optional[_Union[Properties, _Mapping]] = ..., hybrid_search: _Optional[_Union[HybridSearchParams, _Mapping]] = ..., bm25_search: _Optional[_Union[BM25SearchParams, _Mapping]] = ..., offset: _Optional[int] = ..., autocut: _Optional[int] = ..., after: _Optional[str] = ..., tenant: _Optional[str] = ..., filters: _Optional[_Union[Filters, _Mapping]] = ..., near_text: _Optional[_Union[NearTextSearchParams, _Mapping]] = ..., near_image: _Optional[_Union[NearImageSearchParams, _Mapping]] = ..., near_audio: _Optional[_Union[NearAudioSearchParams, _Mapping]] = ..., near_video: _Optional[_Union[NearVideoSearchParams, _Mapping]] = ..., consistency_level: _Optional[_Union[ConsistencyLevel, str]] = ..., generative: _Optional[_Union[GenerativeSearch, _Mapping]] = ..., sort_by: _Optional[_Iterable[_Union[SortBy, _Mapping]]] = ...) -> None: ...
+    group_by: GroupBy
+    def __init__(self, class_name: _Optional[str] = ..., limit: _Optional[int] = ..., additional_properties: _Optional[_Union[AdditionalProperties, _Mapping]] = ..., near_vector: _Optional[_Union[NearVectorParams, _Mapping]] = ..., near_object: _Optional[_Union[NearObjectParams, _Mapping]] = ..., properties: _Optional[_Union[Properties, _Mapping]] = ..., hybrid_search: _Optional[_Union[HybridSearchParams, _Mapping]] = ..., bm25_search: _Optional[_Union[BM25SearchParams, _Mapping]] = ..., offset: _Optional[int] = ..., autocut: _Optional[int] = ..., after: _Optional[str] = ..., tenant: _Optional[str] = ..., filters: _Optional[_Union[Filters, _Mapping]] = ..., near_text: _Optional[_Union[NearTextSearchParams, _Mapping]] = ..., near_image: _Optional[_Union[NearImageSearchParams, _Mapping]] = ..., near_audio: _Optional[_Union[NearAudioSearchParams, _Mapping]] = ..., near_video: _Optional[_Union[NearVideoSearchParams, _Mapping]] = ..., consistency_level: _Optional[_Union[ConsistencyLevel, str]] = ..., generative: _Optional[_Union[GenerativeSearch, _Mapping]] = ..., sort_by: _Optional[_Iterable[_Union[SortBy, _Mapping]]] = ..., group_by: _Optional[_Union[GroupBy, _Mapping]] = ...) -> None: ...
+
+class GroupBy(_message.Message):
+    __slots__ = ["path", "number_of_groups", "objects_per_group"]
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    NUMBER_OF_GROUPS_FIELD_NUMBER: _ClassVar[int]
+    OBJECTS_PER_GROUP_FIELD_NUMBER: _ClassVar[int]
+    path: _containers.RepeatedScalarFieldContainer[str]
+    number_of_groups: int
+    objects_per_group: int
+    def __init__(self, path: _Optional[_Iterable[str]] = ..., number_of_groups: _Optional[int] = ..., objects_per_group: _Optional[int] = ...) -> None: ...
 
 class SortBy(_message.Message):
     __slots__ = ["ascending", "path"]
@@ -376,14 +388,30 @@ class NearObjectParams(_message.Message):
     def __init__(self, id: _Optional[str] = ..., certainty: _Optional[float] = ..., distance: _Optional[float] = ...) -> None: ...
 
 class SearchReply(_message.Message):
-    __slots__ = ["results", "took", "generative_grouped_result"]
+    __slots__ = ["results", "took", "generative_grouped_result", "group_by_results"]
     RESULTS_FIELD_NUMBER: _ClassVar[int]
     TOOK_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_GROUPED_RESULT_FIELD_NUMBER: _ClassVar[int]
+    GROUP_BY_RESULTS_FIELD_NUMBER: _ClassVar[int]
     results: _containers.RepeatedCompositeFieldContainer[SearchResult]
     took: float
     generative_grouped_result: str
-    def __init__(self, results: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ..., took: _Optional[float] = ..., generative_grouped_result: _Optional[str] = ...) -> None: ...
+    group_by_results: _containers.RepeatedCompositeFieldContainer[GroupByResults]
+    def __init__(self, results: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ..., took: _Optional[float] = ..., generative_grouped_result: _Optional[str] = ..., group_by_results: _Optional[_Iterable[_Union[GroupByResults, _Mapping]]] = ...) -> None: ...
+
+class GroupByResults(_message.Message):
+    __slots__ = ["name", "min_distance", "max_distance", "number_of_objects", "objects"]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    MIN_DISTANCE_FIELD_NUMBER: _ClassVar[int]
+    MAX_DISTANCE_FIELD_NUMBER: _ClassVar[int]
+    NUMBER_OF_OBJECTS_FIELD_NUMBER: _ClassVar[int]
+    OBJECTS_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    min_distance: float
+    max_distance: float
+    number_of_objects: int
+    objects: _containers.RepeatedCompositeFieldContainer[SearchResult]
+    def __init__(self, name: _Optional[str] = ..., min_distance: _Optional[float] = ..., max_distance: _Optional[float] = ..., number_of_objects: _Optional[int] = ..., objects: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ...) -> None: ...
 
 class SearchResult(_message.Message):
     __slots__ = ["properties", "additional_properties"]

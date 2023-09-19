@@ -52,7 +52,7 @@ def test_generative_search_single(client: weaviate.Client, parameter: str, answe
         ]
     )
 
-    res = collection.query.get(
+    res = collection.query.fetch_objects(
         generate=Generate(
             single_prompt=f"is it good or bad based on {{{parameter}}}? Just answer with yes or no without punctuation"
         )
@@ -65,7 +65,9 @@ def test_generative_search_single(client: weaviate.Client, parameter: str, answe
 @pytest.mark.parametrize(
     "prop,answer", [(["text"], "apples bananas"), (["content"], "bananas apples")]
 )
-def test_get_generate_search_grouped(client: weaviate.Client, prop: List[str], answer: str):
+def test_fetch_objects_generate_search_grouped(
+    client: weaviate.Client, prop: List[str], answer: str
+):
     name = "TestGenerativeSearchOpenAIGroup"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -85,7 +87,7 @@ def test_get_generate_search_grouped(client: weaviate.Client, prop: List[str], a
         ]
     )
 
-    res = collection.query.get(
+    res = collection.query.fetch_objects(
         generate=Generate(
             grouped_task="What is big and what is small? write the name of the big thing first and then the name of the small thing after a space.",
             grouped_properties=prop,
@@ -94,7 +96,7 @@ def test_get_generate_search_grouped(client: weaviate.Client, prop: List[str], a
     assert res.generated == answer
 
 
-def test_get_generate_search_grouped_all_props(client: weaviate.Client):
+def test_fetch_objects_generate_search_grouped_all_props(client: weaviate.Client):
     name = "TestGenerativeSearchOpenAIGroupWithProp"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -124,7 +126,7 @@ def test_get_generate_search_grouped_all_props(client: weaviate.Client):
         ]
     )
 
-    res = collection.query.get(
+    res = collection.query.fetch_objects(
         generate=Generate(
             grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space"
         )
@@ -132,7 +134,7 @@ def test_get_generate_search_grouped_all_props(client: weaviate.Client):
     assert res.generated == "Teddy cats"
 
 
-def test_get_generate_search_grouped_specified_prop(client: weaviate.Client):
+def test_fetch_objects_generate_search_grouped_specified_prop(client: weaviate.Client):
     name = "TestGenerativeSearchOpenAIGroupWithProp"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -162,7 +164,7 @@ def test_get_generate_search_grouped_specified_prop(client: weaviate.Client):
         ]
     )
 
-    res = collection.query.get(
+    res = collection.query.fetch_objects(
         generate=Generate(
             grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
             grouped_properties=["text"],
@@ -171,8 +173,8 @@ def test_get_generate_search_grouped_specified_prop(client: weaviate.Client):
     assert res.generated == "apples bananas"
 
 
-def test_get_generate_with_everything(client: weaviate.Client):
-    name = "TestGenerativeSearchOpenAI"
+def test_fetch_objects_generate_with_everything(client: weaviate.Client):
+    name = "TestGetGenerativeSearchOpenAI"
     client.collection.delete(name)
     collection = client.collection.create(
         name=name,
@@ -201,7 +203,7 @@ def test_get_generate_with_everything(client: weaviate.Client):
         ]
     )
 
-    res = collection.query.get(
+    res = collection.query.fetch_objects(
         generate=Generate(
             single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
             grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
@@ -213,7 +215,7 @@ def test_get_generate_with_everything(client: weaviate.Client):
 
 
 def test_bm25_generate_with_everything(client: weaviate.Client):
-    name = "TestGenerativeSearchOpenAI"
+    name = "TestBM25GenerativeSearchOpenAI"
     client.collection.delete(name)
     collection = client.collection.create(
         name=name,
@@ -256,7 +258,7 @@ def test_bm25_generate_with_everything(client: weaviate.Client):
 
 
 def test_hybrid_generate_with_everything(client: weaviate.Client):
-    name = "TestGenerativeSearchOpenAI"
+    name = "TestHybridGenerativeSearchOpenAI"
     client.collection.delete(name)
     collection = client.collection.create(
         name=name,
@@ -298,6 +300,93 @@ def test_hybrid_generate_with_everything(client: weaviate.Client):
         assert obj.metadata.generative == "No"
 
 
+def test_near_text_generate_with_everything(client: weaviate.Client):
+    name = "TestNearTextGenerativeSearchOpenAI"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        name=name,
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+            Property(name="content", data_type=DataType.TEXT),
+            Property(name="extra", data_type=DataType.TEXT),
+        ],
+        generative_search=GenerativeFactory.OpenAI(),
+        vectorizer_config=VectorizerFactory.text2vec_openai(vectorize_class_name=False),
+    )
+
+    collection.data.insert_many(
+        [
+            DataObject(
+                properties={
+                    "text": "apples are big",
+                    "content": "Teddy is the biggest and bigger than everything else",
+                }
+            ),
+            DataObject(
+                properties={
+                    "text": "cats are small",
+                    "content": "bananas are the smallest and smaller than everything else",
+                }
+            ),
+        ]
+    )
+
+    res = collection.query.near_text(
+        query="small fruit",
+        generate=Generate(
+            single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+            grouped_task="Write out the fruit in the order in which they appear in the provided list. Only write the names separated by a space",
+        ),
+    )
+    assert res.generated == "bananas apples"
+    assert res.objects[0].metadata.generative == "No"
+    assert res.objects[1].metadata.generative == "Yes"
+
+
+def test_near_vector_generate_with_everything(client: weaviate.Client):
+    name = "TestNearTextGenerativeSearchOpenAI"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        name=name,
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+            Property(name="content", data_type=DataType.TEXT),
+            Property(name="extra", data_type=DataType.TEXT),
+        ],
+        generative_search=GenerativeFactory.OpenAI(),
+    )
+
+    collection.data.insert_many(
+        [
+            DataObject(
+                properties={
+                    "text": "apples are big",
+                    "content": "Teddy is the biggest and bigger than everything else",
+                },
+                vector=[1, 2, 3, 4, 5],
+            ),
+            DataObject(
+                properties={
+                    "text": "cats are small",
+                    "content": "bananas are the smallest and smaller than everything else",
+                },
+                vector=[6, 7, 8, 9, 10],
+            ),
+        ]
+    )
+
+    res = collection.query.near_vector(
+        near_vector=[1, 2, 3, 4, 6],
+        generate=Generate(
+            single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+            grouped_task="Write out the fruit in the order in which they appear in the provided list. Only write the names separated by a space",
+        ),
+    )
+    assert res.generated == "apples bananas"
+    assert res.objects[0].metadata.generative == "Yes"
+    assert res.objects[1].metadata.generative == "No"
+
+
 def test_openapi_invalid_key():
     local_client = weaviate.Client(
         "http://localhost:8086",
@@ -314,7 +403,9 @@ def test_openapi_invalid_key():
     )
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):
-        collection.query.get(generate=Generate(single_prompt="tell a joke based on {text}"))
+        collection.query.fetch_objects(
+            generate=Generate(single_prompt="tell a joke based on {text}")
+        )
 
 
 def test_openapi_no_module():
@@ -333,11 +424,13 @@ def test_openapi_no_module():
     )
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):
-        collection.query.get(generate=Generate(single_prompt="tell a joke based on {text}"))
+        collection.query.fetch_objects(
+            generate=Generate(single_prompt="tell a joke based on {text}")
+        )
 
 
 def test_openai_batch_upload(client: weaviate.Client):
-    name = "TestGenerativeSearchOpenAI"
+    name = "TestGenerativeSearchOpenAIBatch"
     client.collection.delete(name)
     collection = client.collection.create(
         name=name,
@@ -355,7 +448,6 @@ def test_openai_batch_upload(client: weaviate.Client):
     )
     assert not ret.has_errors
 
-    objects = collection.query.get(return_metadata=MetadataQuery(vector=True)).objects
-    print(objects[0])
+    objects = collection.query.fetch_objects(return_metadata=MetadataQuery(vector=True)).objects
     assert objects[0].metadata.vector is not None
     assert len(objects[0].metadata.vector) > 0
