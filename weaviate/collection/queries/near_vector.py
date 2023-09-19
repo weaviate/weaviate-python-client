@@ -101,6 +101,7 @@ class _NearVector(_Grpc):
             near_vector=near_vector,
             certainty=certainty,
             distance=distance,
+            limit=limit,
             autocut=auto_limit,
             filters=filters,
             group_by=_GroupBy.from_input(group_by),
