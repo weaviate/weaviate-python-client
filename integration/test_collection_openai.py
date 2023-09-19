@@ -298,9 +298,6 @@ def test_hybrid_generate_with_everything(client: weaviate.Client):
         assert obj.metadata.generative == "No"
 
 
-@pytest.mark.skip(
-    reason="Throws: weaviate.exceptions.WeaviateGRPCException: gRPC call failed with message panic occurred: ValidateParam was called without any known params present."
-)
 def test_near_text_generate_with_everything(client: weaviate.Client):
     name = "TestNearTextGenerativeSearchOpenAI"
     client.collection.delete(name)
@@ -312,6 +309,7 @@ def test_near_text_generate_with_everything(client: weaviate.Client):
             Property(name="extra", data_type=DataType.TEXT),
         ],
         generative_search=GenerativeFactory.OpenAI(),
+        vectorizer_config=VectorizerFactory.text2vec_openai(vectorize_class_name=False),
     )
 
     collection.data.insert_many(
@@ -332,15 +330,15 @@ def test_near_text_generate_with_everything(client: weaviate.Client):
     )
 
     res = collection.query.near_text(
-        query="cats",
+        query="small fruit",
         generate=Generate(
             single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
-            grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space from biggest to smallest",
+            grouped_task="Write out the fruit in the order in which they appear in the provided list. Only write the names separated by a space",
         ),
     )
-    assert res.generated == "cats bananas"
-    for obj in res.objects:
-        assert obj.metadata.generative == "No"
+    assert res.generated == "bananas apples"
+    assert res.objects[0].metadata.generative == "No"
+    assert res.objects[1].metadata.generative == "Yes"
 
 
 def test_openapi_invalid_key():
