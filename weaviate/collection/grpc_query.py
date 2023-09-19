@@ -251,6 +251,7 @@ class _QueryGRPC(_BaseGRPC):
         near_vector: List[float],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
+        limit: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
@@ -261,6 +262,7 @@ class _QueryGRPC(_BaseGRPC):
         self._near_vector_vec = near_vector
         self._near_certainty = certainty
         self._near_distance = distance
+        self._limit = limit
         self._autocut = autocut
         self._filters = filters
         self._metadata = return_metadata
@@ -275,6 +277,7 @@ class _QueryGRPC(_BaseGRPC):
         near_object: UUID,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
+        limit: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
@@ -285,6 +288,7 @@ class _QueryGRPC(_BaseGRPC):
         self._near_object_obj = near_object
         self._near_certainty = certainty
         self._near_distance = distance
+        self._limit = limit
         self._autocut = autocut
         self._filters = filters
         self._metadata = return_metadata
@@ -300,6 +304,7 @@ class _QueryGRPC(_BaseGRPC):
         distance: Optional[float] = None,
         move_to: Optional[Move] = None,
         move_away: Optional[Move] = None,
+        limit: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
@@ -312,6 +317,7 @@ class _QueryGRPC(_BaseGRPC):
         self._near_text = near_text
         self._near_certainty = certainty
         self._near_distance = distance
+        self._limit = limit
         self._autocut = autocut
         self._filters = filters
         if move_away is not None:
@@ -338,6 +344,7 @@ class _QueryGRPC(_BaseGRPC):
         image: str,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
+        limit: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
@@ -348,6 +355,7 @@ class _QueryGRPC(_BaseGRPC):
         self._near_image = image
         self._near_certainty = certainty
         self._near_distance = distance
+        self._limit = limit
         self._autocut = autocut
         self._filters = filters
         self._group_by = group_by
@@ -363,6 +371,7 @@ class _QueryGRPC(_BaseGRPC):
         video: str,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
+        limit: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
@@ -373,6 +382,7 @@ class _QueryGRPC(_BaseGRPC):
         self._near_video = video
         self._near_certainty = certainty
         self._near_distance = distance
+        self._limit = limit
         self._autocut = autocut
         self._filters = filters
         self._group_by = group_by
@@ -388,6 +398,7 @@ class _QueryGRPC(_BaseGRPC):
         audio: str,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
+        limit: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
@@ -398,6 +409,7 @@ class _QueryGRPC(_BaseGRPC):
         self._near_audio = audio
         self._near_certainty = certainty
         self._near_distance = distance
+        self._limit = limit
         self._autocut = autocut
         self._filters = filters
         self._group_by = group_by
