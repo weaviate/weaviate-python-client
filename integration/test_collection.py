@@ -1619,7 +1619,7 @@ def test_iterator(client: weaviate.Client, count: int):
     # make sure a new iterator resets the internal state
     for _ in range(3):
         # get the property and sort them - order returned by weaviate is not identical to the order inserted
-        all_data: list[int] = sorted([int(obj.properties["data"]) for obj in collection])
+        all_data: list[int] = sorted([int(obj.properties["data"]) for obj in collection.iterator()])
         assert all_data == list(range(count))
 
 
@@ -1634,7 +1634,6 @@ def test_iterator_typed_dict(client: weaviate.Client):
         name=name,
         properties=[Property(name="data", data_type=DataType.INT)],
         vectorizer_config=VectorizerFactory.none(),
-        data_model=Data,
     )
 
     collection.data.insert_many([DataObject(properties={"data": i}) for i in range(10)])
@@ -1642,5 +1641,24 @@ def test_iterator_typed_dict(client: weaviate.Client):
     # make sure a new iterator resets the internal state
     for _ in range(3):
         # get the property and sort them - order returned by weaviate is not identical to the order inserted
-        all_data: list[int] = sorted([int(obj.properties.data) for obj in collection])
+        all_data: list[int] = sorted(
+            [int(obj.properties["data"]) for obj in collection.iterator(Data)]
+        )
         assert all_data == list(range(10))
+
+
+def test_iterator_dict_hint(client: weaviate.Client):
+    name = "TestIteratorTypedDict"
+    client.collection.delete(name)
+
+    collection = client.collection.create(
+        name=name,
+        properties=[Property(name="data", data_type=DataType.INT)],
+        vectorizer_config=VectorizerFactory.none(),
+    )
+
+    collection.data.insert_many([DataObject(properties={"data": i}) for i in range(10)])
+
+    with pytest.raises(TypeError) as e:
+        collection.iterator(dict)
+    assert "data_model must be a TypedDict or None within this context but is " in e.value.args[0]
