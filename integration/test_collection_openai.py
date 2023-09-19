@@ -65,7 +65,9 @@ def test_generative_search_single(client: weaviate.Client, parameter: str, answe
 @pytest.mark.parametrize(
     "prop,answer", [(["text"], "apples bananas"), (["content"], "bananas apples")]
 )
-def test_get_generate_search_grouped(client: weaviate.Client, prop: List[str], answer: str):
+def test_fetch_objects_generate_search_grouped(
+    client: weaviate.Client, prop: List[str], answer: str
+):
     name = "TestGenerativeSearchOpenAIGroup"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -94,7 +96,7 @@ def test_get_generate_search_grouped(client: weaviate.Client, prop: List[str], a
     assert res.generated == answer
 
 
-def test_get_generate_search_grouped_all_props(client: weaviate.Client):
+def test_fetch_objects_generate_search_grouped_all_props(client: weaviate.Client):
     name = "TestGenerativeSearchOpenAIGroupWithProp"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -132,7 +134,7 @@ def test_get_generate_search_grouped_all_props(client: weaviate.Client):
     assert res.generated == "Teddy cats"
 
 
-def test_get_generate_search_grouped_specified_prop(client: weaviate.Client):
+def test_fetch_objects_generate_search_grouped_specified_prop(client: weaviate.Client):
     name = "TestGenerativeSearchOpenAIGroupWithProp"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -171,7 +173,7 @@ def test_get_generate_search_grouped_specified_prop(client: weaviate.Client):
     assert res.generated == "apples bananas"
 
 
-def test_get_generate_with_everything(client: weaviate.Client):
+def test_fetch_objects_generate_with_everything(client: weaviate.Client):
     name = "TestGetGenerativeSearchOpenAI"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -339,6 +341,50 @@ def test_near_text_generate_with_everything(client: weaviate.Client):
     assert res.generated == "bananas apples"
     assert res.objects[0].metadata.generative == "No"
     assert res.objects[1].metadata.generative == "Yes"
+
+
+def test_near_vector_generate_with_everything(client: weaviate.Client):
+    name = "TestNearTextGenerativeSearchOpenAI"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        name=name,
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+            Property(name="content", data_type=DataType.TEXT),
+            Property(name="extra", data_type=DataType.TEXT),
+        ],
+        generative_search=GenerativeFactory.OpenAI(),
+    )
+
+    collection.data.insert_many(
+        [
+            DataObject(
+                properties={
+                    "text": "apples are big",
+                    "content": "Teddy is the biggest and bigger than everything else",
+                },
+                vector=[1, 2, 3, 4, 5],
+            ),
+            DataObject(
+                properties={
+                    "text": "cats are small",
+                    "content": "bananas are the smallest and smaller than everything else",
+                },
+                vector=[6, 7, 8, 9, 10],
+            ),
+        ]
+    )
+
+    res = collection.query.near_vector(
+        near_vector=[1, 2, 3, 4, 6],
+        generate=Generate(
+            single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+            grouped_task="Write out the fruit in the order in which they appear in the provided list. Only write the names separated by a space",
+        ),
+    )
+    assert res.generated == "apples bananas"
+    assert res.objects[0].metadata.generative == "Yes"
+    assert res.objects[1].metadata.generative == "No"
 
 
 def test_openapi_invalid_key():
