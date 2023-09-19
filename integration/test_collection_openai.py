@@ -52,7 +52,7 @@ def test_generative_search_single(client: weaviate.Client, parameter: str, answe
         ]
     )
 
-    res = collection.query.get(
+    res = collection.query.fetch_objects(
         generate=Generate(
             single_prompt=f"is it good or bad based on {{{parameter}}}? Just answer with yes or no without punctuation"
         )
@@ -85,7 +85,7 @@ def test_get_generate_search_grouped(client: weaviate.Client, prop: List[str], a
         ]
     )
 
-    res = collection.query.get(
+    res = collection.query.fetch_objects(
         generate=Generate(
             grouped_task="What is big and what is small? write the name of the big thing first and then the name of the small thing after a space.",
             grouped_properties=prop,
@@ -124,7 +124,7 @@ def test_get_generate_search_grouped_all_props(client: weaviate.Client):
         ]
     )
 
-    res = collection.query.get(
+    res = collection.query.fetch_objects(
         generate=Generate(
             grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space"
         )
@@ -162,7 +162,7 @@ def test_get_generate_search_grouped_specified_prop(client: weaviate.Client):
         ]
     )
 
-    res = collection.query.get(
+    res = collection.query.fetch_objects(
         generate=Generate(
             grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
             grouped_properties=["text"],
@@ -201,7 +201,7 @@ def test_get_generate_with_everything(client: weaviate.Client):
         ]
     )
 
-    res = collection.query.get(
+    res = collection.query.fetch_objects(
         generate=Generate(
             single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
             grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
@@ -314,7 +314,9 @@ def test_openapi_invalid_key():
     )
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):
-        collection.query.get(generate=Generate(single_prompt="tell a joke based on {text}"))
+        collection.query.fetch_objects(
+            generate=Generate(single_prompt="tell a joke based on {text}")
+        )
 
 
 def test_openapi_no_module():
@@ -333,7 +335,9 @@ def test_openapi_no_module():
     )
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):
-        collection.query.get(generate=Generate(single_prompt="tell a joke based on {text}"))
+        collection.query.fetch_objects(
+            generate=Generate(single_prompt="tell a joke based on {text}")
+        )
 
 
 def test_openai_batch_upload(client: weaviate.Client):
