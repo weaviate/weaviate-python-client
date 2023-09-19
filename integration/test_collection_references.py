@@ -5,6 +5,7 @@ import pytest as pytest
 import uuid
 
 from weaviate.collection.classes.data import BatchReference, DataObject
+from weaviate.collection.classes.grpc import LinkTo, LinkToMultiTarget
 
 
 if sys.version_info < (3, 9):
@@ -24,7 +25,7 @@ from weaviate.collection.classes.config import (
 )
 
 from weaviate.collection.classes.internal import ReferenceFactory
-from weaviate.collection.grpc import LinkTo, LinkToMultiTarget, MetadataQuery
+from weaviate.collection.grpc import MetadataQuery
 
 
 @pytest.fixture(scope="module")
