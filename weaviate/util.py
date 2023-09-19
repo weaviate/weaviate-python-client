@@ -21,7 +21,7 @@ from weaviate.exceptions import (
     ResponseCannotBeDecodedException,
 )
 from weaviate.warnings import _Warnings
-from weaviate.weaviate_types import NUMBER, UUIDS, TIME
+from weaviate.types import NUMBER, UUIDS, TIME
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"
 MAXIMUM_MINOR_VERSION_DELTA = 3  # The maximum delta between minor versions of Weaviate Client that will not trigger an upgrade warning.

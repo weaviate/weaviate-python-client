@@ -35,7 +35,7 @@ from weaviate.collection.grpc_shared import _BaseGRPC
 
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGRPCException
-from weaviate.weaviate_types import UUID
+from weaviate.types import UUID
 
 from weaviate_grpc import weaviate_pb2
 

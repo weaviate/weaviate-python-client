@@ -7,7 +7,7 @@ from typing import List, Sequence, Optional, Dict, Any, Union
 from uuid import uuid4
 
 from weaviate.util import get_valid_uuid, get_vector
-from weaviate.weaviate_types import UUID
+from weaviate.types import UUID
 
 BatchResponse = List[Dict[str, Any]]
 

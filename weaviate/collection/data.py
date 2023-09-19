@@ -44,7 +44,7 @@ from weaviate.util import (
     _decode_json_response_dict,
     _decode_json_response_list,
 )
-from weaviate.weaviate_types import BEACON, UUID
+from weaviate.types import BEACON, UUID
 from weaviate_grpc import weaviate_pb2
 
 
