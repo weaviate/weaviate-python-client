@@ -3,7 +3,6 @@ import sys
 from dataclasses import dataclass
 from typing import Dict, List, Optional, TypedDict, Union
 
-import pytest as pytest
 import uuid
 
 from weaviate.collection.classes.grpc import Sort
@@ -16,30 +15,39 @@ else:
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
-import weaviate
 from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_ENCODED
-from weaviate import Config
 from weaviate.collection.classes.config import (
     ConfigFactory,
-    Property,
-    DataType,
     ReferenceProperty,
     ReferencePropertyMultiTarget,
     Vectorizer,
-    VectorizerFactory,
 )
 from weaviate.collection.classes.data import (
     DataObject,
     Error,
 )
+from weaviate.collection.classes.grpc import (
+    GroupBy,
+    HybridFusion,
+    LinkTo,
+    LinkToMultiTarget,
+    MetadataQuery,
+    Move,
+)
 from weaviate.collection.classes.internal import ReferenceFactory
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.exceptions import WeaviateGRPCException
-from weaviate.collection.collection import CollectionObject
 from weaviate.collection.data import _DataCollection
-from weaviate.collection.grpc import HybridFusion, LinkTo, LinkToMultiTarget, MetadataQuery, Move
 from weaviate.exceptions import InvalidDataModelException
 from weaviate.weaviate_types import UUID
+
+
+import pytest
+
+import weaviate
+from weaviate.collection.classes.config import DataType, Property, VectorizerFactory
+from weaviate.collection.collection import CollectionObject
+from weaviate.config import Config
 
 BEACON_START = "weaviate://localhost"
 
@@ -711,6 +719,43 @@ def test_near_vector(client: weaviate.Client):
     client.collection.delete("TestNearVector")
 
 
+@pytest.mark.skip(
+    reason="gRPC call failed with message panic occurred: interface conversion: models.PropertySchema is nil, not map[string]interface {}."
+)
+def test_near_vector_group_by(client: weaviate.Client):
+    collection = client.collection.create(
+        name="TestNearVector",
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+            Property(name="Count", data_type=DataType.INT),
+        ],
+        vectorizer_config=VectorizerFactory.text2vec_contextionary(),
+    )
+    uuid_banana1 = collection.data.insert({"Name": "Banana", "Count": 51})
+    collection.data.insert({"Name": "Banana", "Count": 72})
+    collection.data.insert({"Name": "car", "Count": 12})
+    collection.data.insert({"Name": "Mountain", "Count": 1})
+
+    banana1 = collection.query.fetch_object_by_id(uuid_banana1, include_vector=True)
+
+    assert banana1.metadata.vector is not None
+    ret = collection.query.near_vector(
+        banana1.metadata.vector,
+        group_by=GroupBy(prop="name", number_of_groups=4, objects_per_group=10),
+        return_metadata=MetadataQuery(distance=True, certainty=True),
+    )
+
+    assert len(ret.objects) == 4
+    assert ret.objects[0].belongs_to_group == "Banana"
+    assert ret.objects[0].properties["count"] == 51
+    assert ret.objects[1].belongs_to_group == "Banana"
+    assert ret.objects[1].properties["count"] == 72
+    assert ret.objects[2].belongs_to_group == "car"
+    assert ret.objects[3].belongs_to_group == "Mountain"
+
+    client.collection.delete("TestNearVector")
+
+
 def test_near_object(client: weaviate.Client):
     collection = client.collection.create(
         name="TestNearObject",
@@ -736,6 +781,40 @@ def test_near_object(client: weaviate.Client):
         uuid_banana, certainty=full_objects[2].metadata.certainty
     ).objects
     assert len(objects_certainty) == 3
+
+    client.collection.delete("TestNearObject")
+
+
+@pytest.mark.skip(
+    reason="gRPC call failed with message panic occurred: interface conversion: models.PropertySchema is nil, not map[string]interface {}."
+)
+def test_near_object_group_by(client: weaviate.Client):
+    collection = client.collection.create(
+        name="TestNearObject",
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+            Property(name="Count", data_type=DataType.INT),
+        ],
+        vectorizer_config=VectorizerFactory.text2vec_contextionary(),
+    )
+    uuid_banana1 = collection.data.insert({"Name": "Banana", "Count": 51})
+    collection.data.insert({"Name": "Banana", "Count": 72})
+    collection.data.insert({"Name": "car", "Count": 12})
+    collection.data.insert({"Name": "Mountain", "Count": 1})
+
+    ret = collection.query.near_object(
+        uuid_banana1,
+        group_by=GroupBy(prop="name", number_of_groups=4, objects_per_group=10),
+        return_metadata=MetadataQuery(distance=True, certainty=True),
+    )
+
+    assert len(ret.objects) == 4
+    assert ret.objects[0].belongs_to_group == "Banana"
+    assert ret.objects[0].properties["count"] == 51
+    assert ret.objects[1].belongs_to_group == "Banana"
+    assert ret.objects[1].properties["count"] == 72
+    assert ret.objects[2].belongs_to_group == "car"
+    assert ret.objects[3].belongs_to_group == "Mountain"
 
     client.collection.delete("TestNearObject")
 
@@ -1077,7 +1156,7 @@ def test_search_with_tenant(client: weaviate.Client):
     client.collection.delete("TestTenantSearch")
 
 
-def test_get_by_id_with_tenant(client: weaviate.Client):
+def test_fetch_object_by_id_with_tenant(client: weaviate.Client):
     collection = client.collection.create(
         name="TestTenantGet",
         vectorizer_config=VectorizerFactory.none(),
@@ -1106,7 +1185,7 @@ def test_get_by_id_with_tenant(client: weaviate.Client):
     client.collection.delete("TestTenantGet")
 
 
-def test_get_with_limit(client: weaviate.Client):
+def test_fetch_objects_with_limit(client: weaviate.Client):
     collection = client.collection.create(
         name="TestLimit",
         vectorizer_config=VectorizerFactory.none(),
@@ -1122,7 +1201,7 @@ def test_get_with_limit(client: weaviate.Client):
     client.collection.delete("TestLimit")
 
 
-def test_get_with_tenant(client: weaviate.Client):
+def test_fetch_objects_with_tenant(client: weaviate.Client):
     collection = client.collection.create(
         name="TestTenantGetWithTenant",
         vectorizer_config=VectorizerFactory.none(),
@@ -1390,6 +1469,38 @@ def test_near_text_error(client: weaviate.Client):
 
     with pytest.raises(ValueError):
         collection.query.near_text(query="test", move_to=Move(force=1.0))
+
+
+def test_near_text_group_by(client: weaviate.Client):
+    name = "TestNearTextGroupBy"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        name=name,
+        vectorizer_config=VectorizerFactory.text2vec_contextionary(),
+        properties=[Property(name="value", data_type=DataType.TEXT)],
+    )
+
+    batch_return = collection.data.insert_many(
+        [
+            DataObject(properties={"value": "Apple"}, uuid=UUID1),
+            DataObject(properties={"value": "Mountain climbing"}),
+            DataObject(properties={"value": "apple cake"}),
+            DataObject(properties={"value": "cake"}),
+        ]
+    )
+
+    ret = collection.query.near_text(
+        query="cake",
+        group_by=GroupBy(prop="value", number_of_groups=2, objects_per_group=100),
+        return_metadata=MetadataQuery(uuid=True),
+        return_properties=["value"],
+    )
+
+    assert len(ret.objects) == 2
+    assert ret.objects[0].metadata.uuid == batch_return.uuids[2]
+    assert ret.objects[0].belongs_to_group == "apple cake"
+    assert ret.objects[1].metadata.uuid == batch_return.uuids[3]
+    assert ret.objects[1].belongs_to_group == "cake"
 
 
 @pytest.mark.parametrize("distance,certainty", [(None, None), (10, None), (None, 0.1)])
