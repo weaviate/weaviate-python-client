@@ -44,6 +44,7 @@ class CollectionObject(CollectionObjectBase, Generic[Properties], Iterable[_Obje
         super().__init__(name)
 
         self._connection = connection
+        self.__type = type_
 
         self.config = _ConfigCollection(self._connection, name)
         self.data = _DataCollection[Properties](connection, name, consistency_level, tenant, type_)
@@ -74,6 +75,7 @@ class CollectionObject(CollectionObjectBase, Generic[Properties], Iterable[_Obje
             ret: _QueryReturn[Properties] = self.query.get(
                 limit=ITERATOR_CACHE_SIZE,
                 after=self.__iter_object_last_uuid,
+                return_properties=self.__type,
             )
             self.__iter_object_cache = ret.objects
             if len(self.__iter_object_cache) == 0:

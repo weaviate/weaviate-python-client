@@ -1621,3 +1621,26 @@ def test_iterator(client: weaviate.Client, count: int):
         # get the property and sort them - order returned by weaviate is not identical to the order inserted
         all_data: list[int] = sorted([int(obj.properties["data"]) for obj in collection])
         assert all_data == list(range(count))
+
+
+def test_iterator_typed_dict(client: weaviate.Client):
+    name = "TestIteratorTypedDict"
+    client.collection.delete(name)
+
+    class Data(TypedDict):
+        data: int
+
+    collection = client.collection.create(
+        name=name,
+        properties=[Property(name="data", data_type=DataType.INT)],
+        vectorizer_config=VectorizerFactory.none(),
+        data_model=Data,
+    )
+
+    collection.data.insert_many([DataObject(properties={"data": i}) for i in range(10)])
+
+    # make sure a new iterator resets the internal state
+    for _ in range(3):
+        # get the property and sort them - order returned by weaviate is not identical to the order inserted
+        all_data: list[int] = sorted([int(obj.properties.data) for obj in collection])
+        assert all_data == list(range(10))
