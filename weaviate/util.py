@@ -804,7 +804,7 @@ def _decode_json_response_dict(
 
     if 200 <= response.status_code < 300:
         try:
-            json_response = cast(dict, response.json())
+            json_response = cast(Dict[str, Any], response.json())
             return json_response
         except JSONDecodeError:
             raise ResponseCannotBeDecodedException(location, response)

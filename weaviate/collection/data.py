@@ -24,6 +24,7 @@ from weaviate.collection.classes.data import (
     DataObject,
     Error,
     _BatchReturn,
+    RefError,
 )
 from weaviate.collection.classes.internal import _Object, _metadata_from_dict, ReferenceFactory
 from weaviate.collection.classes.orm import (
@@ -38,7 +39,11 @@ from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     ObjectAlreadyExistsException,
 )
-from weaviate.util import _datetime_to_string
+from weaviate.util import (
+    _datetime_to_string,
+    _decode_json_response_dict,
+    _decode_json_response_list,
+)
 from weaviate.weaviate_types import BEACON, UUID
 from weaviate_grpc import weaviate_pb2
 
@@ -69,7 +74,9 @@ class _Data:
             return uuid_package.UUID(weaviate_obj["id"])
 
         try:
-            if "already exists" in response.json()["error"][0]["message"]:
+            response_json = _decode_json_response_dict(response, "insert object")
+            assert response_json is not None
+            if "already exists" in response_json["error"][0]["message"]:
                 raise ObjectAlreadyExistsException(weaviate_obj["id"])
         except KeyError:
             pass
@@ -182,8 +189,9 @@ class _Data:
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Could not get object/s.") from conn_err
         if response.status_code == 200:
-            return_dict: Dict[str, Any] = response.json()
-            return return_dict
+            response_json = _decode_json_response_dict(response, "get")
+            assert response_json is not None
+            return response_json
         if response.status_code == 404:
             return None
         raise UnexpectedStatusCodeException("Get object/s", response)
@@ -204,7 +212,9 @@ class _Data:
             if response.status_code != 200:
                 raise UnexpectedStatusCodeException("Add property reference to object", response)
 
-    def _reference_add_many(self, refs: List[Dict[str, str]]) -> None:
+    def _reference_add_many(
+        self, refs: List[Dict[str, str]]
+    ) -> Optional[Dict[int, List[RefError]]]:
         params: Dict[str, str] = {}
         if self._consistency_level is not None:
             params["consistency_level"] = self._consistency_level
@@ -216,7 +226,21 @@ class _Data:
         response = self._connection.post(
             path="/batch/references", weaviate_object=refs, params=params
         )
+
+        error_return: Dict[int, List[RefError]] = {}
         if response.status_code == 200:
+            response_json = _decode_json_response_list(response, "batch references")
+            assert response_json is not None
+
+            for i, resp in enumerate(response_json):
+                if "errors" in resp["result"] and len(resp["result"]["errors"]["error"]) > 0:
+                    error_return[i] = [
+                        RefError(message=err["message"])
+                        for err in resp["result"]["errors"]["error"]
+                    ]
+
+            if len(error_return) > 0:
+                return error_return
             return None
         raise UnexpectedStatusCodeException("Send ref batch", response)
 
@@ -451,7 +475,9 @@ class _DataCollection(Generic[Properties], _Data):
             ref=ref,
         )
 
-    def reference_add_many(self, from_property: str, refs: List[BatchReference]) -> None:
+    def reference_add_many(
+        self, from_property: str, refs: List[BatchReference]
+    ) -> Optional[Dict[int, List[RefError]]]:
         refs_dict = [
             {
                 "from": BEACON + f"{self.name}/{ref.from_uuid}/{from_property}",
@@ -459,7 +485,7 @@ class _DataCollection(Generic[Properties], _Data):
             }
             for ref in refs
         ]
-        self._reference_add_many(refs_dict)
+        return self._reference_add_many(refs_dict)
 
     def reference_delete(self, from_uuid: UUID, from_property: str, ref: ReferenceFactory) -> None:
         self._reference_delete(from_uuid=from_uuid, from_property=from_property, ref=ref)

@@ -34,6 +34,11 @@ class _BatchReturn:
 
 
 @dataclass
+class RefError:
+    message: str
+
+
+@dataclass
 class ReferenceTo:
     uuids: UUIDS
 
