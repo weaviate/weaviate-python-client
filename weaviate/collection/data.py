@@ -444,21 +444,6 @@ class _DataCollection(Generic[Properties], _Data):
 
         self._update(weaviate_obj, uuid=uuid)
 
-    def get_by_id(self, uuid: UUID, include_vector: bool = False) -> Optional[_Object[Properties]]:
-        ret = self._get_by_id(uuid=uuid, include_vector=include_vector)
-        if ret is None:
-            return ret
-        return self._json_to_object(ret)
-
-    def get(
-        self, limit: Optional[int] = None, include_vector: bool = False
-    ) -> List[_Object[Properties]]:
-        ret = self._get(limit=limit, include_vector=include_vector)
-        if ret is None:
-            return []
-
-        return [self._json_to_object(obj) for obj in ret["objects"]]
-
     def reference_add(self, from_uuid: UUID, from_property: str, ref: ReferenceFactory) -> None:
         self._reference_add(
             from_uuid=from_uuid,

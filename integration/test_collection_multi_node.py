@@ -44,6 +44,8 @@ def test_consistency_on_multinode(client: weaviate.Client, level: ConsistencyLev
     )
     assert not ret.has_errors
 
-    objects = collection.query.get(return_metadata=MetadataQuery(is_consistent=True)).objects
+    objects = collection.query.fetch_objects(
+        return_metadata=MetadataQuery(is_consistent=True)
+    ).objects
     for obj in objects:
         assert obj.metadata.is_consistent

@@ -19,6 +19,7 @@ from typing import (
 from typing_extensions import TypeAlias
 
 from weaviate.collection.classes.config import ConsistencyLevel
+from weaviate.collection.data import _DataCollection
 from weaviate.collection.extract_filters import FilterToGRPC
 from weaviate.collection.grpc_shared import _BaseGRPC
 
@@ -603,6 +604,17 @@ class _Grpc:
 
 
 class _GrpcCollection(_Grpc):
+    def __init__(
+        self,
+        connection: Connection,
+        name: str,
+        rest_query: _DataCollection,
+        consistency_level: Optional[ConsistencyLevel],
+        tenant: Optional[str],
+    ):
+        super().__init__(connection, name, consistency_level, tenant)
+        self.__data = rest_query
+
     def __parse_result(
         self, properties: "weaviate_pb2.ResultProperties", type_: Optional[Type[Properties]]
     ) -> Properties:
@@ -697,8 +709,16 @@ class _GrpcCollection(_Grpc):
             ret_type = type_
         return ret_properties, ret_type
 
+    def fetch_object_by_id(
+        self, uuid: UUID, include_vector: bool = False
+    ) -> Optional[_Object[Properties]]:
+        ret = self.__data._get_by_id(uuid=uuid, include_vector=include_vector)
+        if ret is None:
+            return ret
+        return self.__data._json_to_object(ret)
+
     @overload
-    def get(
+    def fetch_objects(
         self,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
@@ -712,7 +732,7 @@ class _GrpcCollection(_Grpc):
         ...
 
     @overload
-    def get(
+    def fetch_objects(
         self,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
@@ -726,7 +746,7 @@ class _GrpcCollection(_Grpc):
     ) -> _GenerativeReturn[Properties]:
         ...
 
-    def get(
+    def fetch_objects(
         self,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
