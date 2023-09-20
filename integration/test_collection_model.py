@@ -7,7 +7,7 @@ from pydantic_core._pydantic_core import PydanticUndefined
 from weaviate import Config
 from weaviate.collection.classes.grpc import MetadataQuery
 from weaviate.exceptions import WeaviateAddInvalidPropertyError
-from weaviate.weaviate_types import UUIDS
+from weaviate.types import UUIDS
 
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated

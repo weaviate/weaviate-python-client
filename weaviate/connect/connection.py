@@ -36,7 +36,7 @@ from weaviate.util import (
     _decode_json_response_dict,
 )
 from weaviate.warnings import _Warnings
-from weaviate.weaviate_types import NUMBER
+from weaviate.types import NUMBER
 
 try:
     import grpc

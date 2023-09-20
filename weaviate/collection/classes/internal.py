@@ -20,7 +20,7 @@ from weaviate.collection.classes.grpc import (
 )
 from weaviate.collection.classes.types import Properties, P
 from weaviate.util import _to_beacons
-from weaviate.weaviate_types import UUIDS
+from weaviate.types import UUIDS
 
 from weaviate_grpc import weaviate_pb2
 

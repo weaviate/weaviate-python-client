@@ -37,7 +37,7 @@ from weaviate.collection.queries.near_vector import _NearVector
 from weaviate.collection.queries.near_video import _NearVideo
 
 from weaviate.connect import Connection
-from weaviate.weaviate_types import UUID
+from weaviate.types import UUID
 
 from weaviate_grpc import weaviate_pb2
 
