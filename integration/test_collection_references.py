@@ -25,7 +25,7 @@ from weaviate.collection.classes.config import (
 )
 
 from weaviate.collection.classes.internal import ReferenceFactory
-from weaviate.collection.grpc import MetadataQuery
+from weaviate.collection.query import MetadataQuery
 
 
 @pytest.fixture(scope="module")
