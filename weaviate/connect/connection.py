@@ -49,7 +49,7 @@ except ImportError:
 JSONPayload = Union[dict, list]
 Session = Union[requests.sessions.Session, OAuth2Session]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBERS, NUMBERS]
-PYPI_TIMEOUT = 1
+PYPI_TIMEOUT = 0.1
 
 
 class Connection:
@@ -177,8 +177,8 @@ class Connection:
             latest_version = pkg_info.get("version", "unknown version")
             if is_weaviate_client_too_old(client_version, latest_version):
                 _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
-        except (RequestsConnectionError, JSONDecodeError, ReadTimeout):
-            pass  # air-gaped environments
+        except requests.exceptions.RequestException:
+            pass  # ignore any errors related to requests, it is a best-effort warning
 
     def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
         """Creates a request session.
