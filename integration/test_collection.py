@@ -1445,7 +1445,14 @@ def test_iterator(client: weaviate.Client, count: int):
         assert all_data == list(range(count))
 
 
-def test_iterator_typed_dict(client: weaviate.Client):
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        None,
+        MetadataQuery(creation_time_unix=True),
+    ],
+)
+def test_iterator_typed_dict(client: weaviate.Client, metadata: Optional[MetadataQuery]):
     name = "TestIteratorTypedDict"
     client.collection.delete(name)
 
@@ -1464,7 +1471,11 @@ def test_iterator_typed_dict(client: weaviate.Client):
     for _ in range(3):
         # get the property and sort them - order returned by weaviate is not identical to the order inserted
         all_data: list[int] = sorted(
-            [int(obj.properties["data"]) for obj in collection.iterator(Data)]
+            [
+                int(obj.properties["data"])
+                for obj in collection.iterator(return_metadata=metadata, return_properties=Data)
+                if metadata is None or obj.metadata.creation_time_unix is not None
+            ]
         )
         assert all_data == list(range(10))
 
@@ -1482,8 +1493,9 @@ def test_iterator_dict_hint(client: weaviate.Client):
     collection.data.insert_many([DataObject(properties={"data": i}) for i in range(10)])
 
     with pytest.raises(TypeError) as e:
-        collection.iterator(dict)
+        for _ in collection.iterator(return_properties=dict):
+            pass
     assert (
-        "return_properties must only be a TypedDict or None within this context but is "
+        "return_properties must only be a TypedDict or PROPERTIES within this context but is "
         in e.value.args[0]
     )

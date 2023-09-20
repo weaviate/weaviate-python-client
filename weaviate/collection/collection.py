@@ -1,6 +1,4 @@
-from typing import Dict, Generic, Iterable, Iterator, List, Literal, Optional, Type, Union, overload
-from typing_extensions import is_typeddict
-from uuid import UUID
+from typing import Dict, Generic, List, Literal, Optional, Type, Union, overload
 
 from weaviate.collection.classes.config import (
     _CollectionConfigCreate,
@@ -19,67 +17,19 @@ from weaviate.collection.classes.config import (
     _VectorIndexConfigCreate,
     VectorIndexType,
 )
-from weaviate.collection.classes.grpc import MetadataQuery
-from weaviate.collection.classes.internal import _Object, _QueryReturn
+from weaviate.collection.classes.grpc import MetadataQuery, PROPERTIES
 from weaviate.collection.classes.types import Properties, TProperties, _check_data_model
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.collection.config import _ConfigCollection
 from weaviate.collection.data import _DataCollection
 from weaviate.collection.grpc import _GrpcCollection
+from weaviate.collection.object_iterator import _ObjectIterator
 from weaviate.collection.tenants import _Tenants
 from weaviate.connect import Connection
 from weaviate.util import _capitalize_first_letter
 
 
 ITERATOR_CACHE_SIZE = 100
-
-FULL_METADATA_QUERY = MetadataQuery(
-    uuid=True,
-    creation_time_unix=True,
-    last_update_time_unix=True,
-    distance=True,
-    certainty=True,
-    score=True,
-    explain_score=True,
-    is_consistent=True,
-)
-
-
-class _ObjectIterator(Generic[Properties, TProperties], Iterable[_Object[Properties]]):
-    def __init__(
-        self, query: _GrpcCollection[TProperties], type_: Optional[Type[Properties]]
-    ) -> None:
-        self.__query = query
-        self.__type = type_
-
-        self.__iter_object_cache: List[_Object[Properties]] = []
-        self.__iter_object_last_uuid: Optional[UUID] = None
-
-    def __iter__(self) -> Iterator[_Object[Properties]]:
-        self.__iter_object_cache = []
-        self.__iter_object_last_uuid = None
-        return self
-
-    def __next__(self) -> _Object[Properties]:
-        if len(self.__iter_object_cache) == 0:
-            ret: _QueryReturn[Properties] = self.__query.fetch_objects(
-                limit=ITERATOR_CACHE_SIZE,
-                after=self.__iter_object_last_uuid,
-                return_metadata=FULL_METADATA_QUERY if self.__type is not None else None,
-                # If self.__type==None then both must be None so that server auto-populates everything
-                # If self.__type!=None then must supply full MetaDataQuery (without vector) to get all metadata as required
-                return_properties=self.__type,
-            )
-            self.__iter_object_cache = ret.objects
-            if len(self.__iter_object_cache) == 0:
-                raise StopIteration
-
-        ret_object = self.__iter_object_cache.pop(0)
-        self.__iter_object_last_uuid = ret_object.metadata.uuid
-        assert (
-            self.__iter_object_last_uuid is not None
-        )  # if this is None the iterator will never stop
-        return ret_object
 
 
 class CollectionObject(CollectionObjectBase, Generic[TProperties]):
@@ -114,13 +64,13 @@ class CollectionObject(CollectionObjectBase, Generic[TProperties]):
         return CollectionObject(self._connection, self.name, consistency_level, self.__tenant)
 
     def iterator(
-        self, return_properties: Optional[Type[Properties]] = None
+        self,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _ObjectIterator[Properties, TProperties]:
-        if return_properties is not None and not is_typeddict(return_properties):
-            raise TypeError(
-                f"return_properties must only be a TypedDict or None within this context but is {type(return_properties)}"
-            )
-        return _ObjectIterator[Properties, TProperties](self.query, return_properties)
+        return _ObjectIterator[Properties, TProperties](
+            self.query, return_metadata, return_properties
+        )
 
 
 class Collection(CollectionBase):
