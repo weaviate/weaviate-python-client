@@ -37,8 +37,8 @@ def test_consistency_on_multinode(client: weaviate.Client, level: ConsistencyLev
         replication_config=ConfigFactory.replication(factor=2),
     ).with_consistency_level(level)
 
-    collection.modify.insert({"name": "first"})
-    ret = collection.modify.insert_many(
+    collection.data.insert({"name": "first"})
+    ret = collection.data.insert_many(
         [DataObject(properties={"name": "second"}), DataObject(properties={"name": "third"})]
     )
     assert not ret.has_errors

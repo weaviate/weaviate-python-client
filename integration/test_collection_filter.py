@@ -59,9 +59,9 @@ def test_filters_text(client: weaviate.Client, weaviate_filter: _FilterValue, re
     )
 
     uuids = [
-        collection.modify.insert({"name": "Banana"}),
-        collection.modify.insert({"name": "Apple"}),
-        collection.modify.insert({"name": "Mountain"}),
+        collection.data.insert({"name": "Banana"}),
+        collection.data.insert({"name": "Apple"}),
+        collection.data.insert({"name": "Mountain"}),
     ]
 
     objects = collection.query.fetch_objects(filters=weaviate_filter).objects
@@ -105,10 +105,10 @@ def test_filters_nested(
     )
 
     uuids = [
-        collection.modify.insert({"num": 1.0}),
-        collection.modify.insert({"num": 2.0}),
-        collection.modify.insert({"num": 3.0}),
-        collection.modify.insert({"num": None}),
+        collection.data.insert({"num": 1.0}),
+        collection.data.insert({"num": 2.0}),
+        collection.data.insert({"num": 3.0}),
+        collection.data.insert({"num": None}),
     ]
 
     objects = collection.query.fetch_objects(
@@ -129,10 +129,10 @@ def test_length_filter(client: weaviate.Client):
         inverted_index_config=ConfigFactory.inverted_index(index_property_length=True),
     )
     uuids = [
-        collection.modify.insert({"field": "one"}),
-        collection.modify.insert({"field": "two"}),
-        collection.modify.insert({"field": "three"}),
-        collection.modify.insert({"field": "four"}),
+        collection.data.insert({"field": "one"}),
+        collection.data.insert({"field": "two"}),
+        collection.data.insert({"field": "three"}),
+        collection.data.insert({"field": "four"}),
     ]
     objects = collection.query.fetch_objects(
         filters=Filter(path="field", length=True).equal(3)
@@ -163,10 +163,10 @@ def test_filters_comparison(
     )
 
     uuids = [
-        collection.modify.insert({"number": 1}),
-        collection.modify.insert({"number": 2}),
-        collection.modify.insert({"number": 3}),
-        collection.modify.insert({"number": None}),
+        collection.data.insert({"number": 1}),
+        collection.data.insert({"number": 2}),
+        collection.data.insert({"number": 3}),
+        collection.data.insert({"number": None}),
     ]
 
     objects = collection.query.fetch_objects(filters=weaviate_filter).objects
@@ -237,7 +237,7 @@ def test_filters_contains(
     )
 
     uuids = [
-        collection.modify.insert(
+        collection.data.insert(
             {
                 "text": "this is a test",
                 "texts": "this is a test".split(" "),
@@ -253,7 +253,7 @@ def test_filters_contains(
                 "uuid": UUID1,
             }
         ),
-        collection.modify.insert(
+        collection.data.insert(
             {
                 "text": "this is not a real test",
                 "texts": "this is not a real test".split(" "),
@@ -269,7 +269,7 @@ def test_filters_contains(
                 "uuid": UUID2,
             }
         ),
-        collection.modify.insert(
+        collection.data.insert(
             {
                 "text": "real deal",
                 "texts": "real deal".split(" "),
@@ -282,7 +282,7 @@ def test_filters_contains(
                 "uuids": [],
             }
         ),
-        collection.modify.insert(
+        collection.data.insert(
             {
                 "text": "not real deal",
                 "texts": "not real deal".split(" "),
@@ -329,8 +329,8 @@ def test_ref_filters(client: weaviate.Client, weaviate_filter: _FilterValue, res
         inverted_index_config=ConfigFactory.inverted_index(index_property_length=True),
     )
     uuids_to = [
-        to_collection.modify.insert(properties={"int": 0, "text": "first"}),
-        to_collection.modify.insert(properties={"int": 15, "text": "second"}),
+        to_collection.data.insert(properties={"int": 0, "text": "first"}),
+        to_collection.data.insert(properties={"int": 15, "text": "second"}),
     ]
     from_collection = client.collection.create(
         name="TestFilterRef",
@@ -342,8 +342,8 @@ def test_ref_filters(client: weaviate.Client, weaviate_filter: _FilterValue, res
     )
 
     uuids_from = [
-        from_collection.modify.insert({"ref": ReferenceFactory.to(uuids_to[0]), "name": "first"}),
-        from_collection.modify.insert({"ref": ReferenceFactory.to(uuids_to[1]), "name": "second"}),
+        from_collection.data.insert({"ref": ReferenceFactory.to(uuids_to[0]), "name": "first"}),
+        from_collection.data.insert({"ref": ReferenceFactory.to(uuids_to[1]), "name": "second"}),
     ]
 
     objects = from_collection.query.fetch_objects(
@@ -365,8 +365,8 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         vectorizer_config=ConfigFactory.Vectorizer.none(),
         properties=[Property(name="int", data_type=DataType.INT)],
     )
-    uuid_to = to_collection.modify.insert(properties={"int": 0})
-    uuid_to2 = to_collection.modify.insert(properties={"int": 5})
+    uuid_to = to_collection.data.insert(properties={"int": 0})
+    uuid_to2 = to_collection.data.insert(properties={"int": 5})
     from_collection = client.collection.create(
         name=source,
         properties=[
@@ -378,19 +378,19 @@ def test_ref_filters_multi_target(client: weaviate.Client):
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
 
-    uuid_from_to_target1 = from_collection.modify.insert(
+    uuid_from_to_target1 = from_collection.data.insert(
         {
             "ref": ReferenceFactory.to_multi_target(uuids=uuid_to, target_collection=target),
             "name": "first",
         }
     )
-    uuid_from_to_target2 = from_collection.modify.insert(
+    uuid_from_to_target2 = from_collection.data.insert(
         {
             "ref": ReferenceFactory.to_multi_target(uuids=uuid_to2, target_collection=target),
             "name": "second",
         }
     )
-    from_collection.modify.insert(
+    from_collection.data.insert(
         {
             "ref": ReferenceFactory.to_multi_target(
                 uuids=uuid_from_to_target1, target_collection=source
@@ -398,7 +398,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
             "name": "third",
         }
     )
-    from_collection.modify.insert(
+    from_collection.data.insert(
         {
             "ref": ReferenceFactory.to_multi_target(
                 uuids=uuid_from_to_target2, target_collection=source
@@ -746,10 +746,10 @@ def test_delete_many_simple(
         inverted_index_config=ConfigFactory.inverted_index(index_null_state=True),
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
-    collection.modify.insert_many(objects)
+    collection.data.insert_many(objects)
     assert len(collection.query.fetch_objects().objects) == len(objects)
 
-    collection.modify.delete_many(where=where)
+    collection.data.delete_many(where=where)
     ret = collection.query.fetch_objects()
     assert len(ret.objects) == expected_len
 
@@ -764,7 +764,7 @@ def test_delete_many_and(client: weaviate.Client):
         ],
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
-    collection.modify.insert_many(
+    collection.data.insert_many(
         [
             DataObject(properties={"age": 10, "name": "Timmy"}, uuid=uuid.uuid4()),
             DataObject(properties={"age": 10, "name": "Tommy"}, uuid=uuid.uuid4()),
@@ -773,7 +773,7 @@ def test_delete_many_and(client: weaviate.Client):
     ret = collection.query.fetch_objects()
     assert len(ret.objects) == 2
 
-    collection.modify.delete_many(
+    collection.data.delete_many(
         where=Filter(path="age").equal(10) & Filter(path="name").equal("Timmy")
     )
 
@@ -793,7 +793,7 @@ def test_delete_many_or(client: weaviate.Client):
         ],
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
-    collection.modify.insert_many(
+    collection.data.insert_many(
         [
             DataObject(properties={"age": 10, "name": "Timmy"}, uuid=uuid.uuid4()),
             DataObject(properties={"age": 20, "name": "Tim"}, uuid=uuid.uuid4()),
@@ -803,7 +803,7 @@ def test_delete_many_or(client: weaviate.Client):
     ret = collection.query.fetch_objects()
     assert len(ret.objects) == 3
 
-    collection.modify.delete_many(where=Filter(path="age").equal(10) | Filter(path="age").equal(30))
+    collection.data.delete_many(where=Filter(path="age").equal(10) | Filter(path="age").equal(30))
     ret = collection.query.fetch_objects()
     assert len(ret.objects) == 1
     assert ret.objects[0].properties["age"] == 20
@@ -819,12 +819,12 @@ def test_delete_many_return(client: weaviate.Client):
         ],
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
-    collection.modify.insert_many(
+    collection.data.insert_many(
         [
             DataObject(properties={"name": "delet me"}, uuid=uuid.uuid4()),
         ]
     )
-    ret = collection.modify.delete_many(where=Filter(path="name").equal("delet me"))
+    ret = collection.data.delete_many(where=Filter(path="name").equal("delet me"))
     assert ret.failed == 0
     assert ret.matches == 1
     assert ret.objects is None

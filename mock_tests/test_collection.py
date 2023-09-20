@@ -11,7 +11,7 @@ def test_warning_old_weaviate(recwarn, ready_mock: HTTPServer):
     ready_mock.expect_request("/v1/objects").respond_with_json({})
 
     client = weaviate.Client(MOCK_SERVER_URL)
-    client.collection.get("Class").modify.insert(
+    client.collection.get("Class").data.insert(
         {
             "date": datetime.now(),
         }
