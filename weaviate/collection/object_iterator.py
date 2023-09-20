@@ -4,7 +4,7 @@ from uuid import UUID
 from weaviate.collection.classes.grpc import MetadataQuery, PROPERTIES
 from weaviate.collection.classes.internal import _Object, _QueryReturn
 from weaviate.collection.classes.types import Properties, TProperties
-from weaviate.collection.grpc import _GrpcCollection
+from weaviate.collection.query import _QueryCollection
 
 
 ITERATOR_CACHE_SIZE = 100
@@ -13,7 +13,7 @@ ITERATOR_CACHE_SIZE = 100
 class _ObjectIterator(Generic[Properties, TProperties], Iterable[_Object[Properties]]):
     def __init__(
         self,
-        query: _GrpcCollection[TProperties],
+        query: _QueryCollection[TProperties],
         return_metadata: Optional[MetadataQuery],
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]],
     ) -> None:
