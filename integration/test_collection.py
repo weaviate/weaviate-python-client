@@ -1481,41 +1481,26 @@ def test_iterator_arguments(
 
     # Expect everything back
     if return_metadata is None and return_properties is None:
-        all_data: list[int] = sorted([int(obj.properties["data"]) for obj in collection.iterator()])
+        all_data: list[int] = sorted([int(obj.properties["data"]) for obj in iter_])
         assert all_data == list(range(10))
-
-        creation_time_unixes = [obj.metadata.creation_time_unix is not None for obj in iter_]
-        assert all(creation_time_unixes)
-        scores = [obj.metadata.score is not None for obj in iter_]
-        assert all(scores)
-
+        assert all(obj.metadata.creation_time_unix is not None for obj in iter_)
+        assert all(obj.metadata.score is not None for obj in iter_)
     # Expect only metadata with only creation_time_unix
     elif return_metadata is not None and return_properties is None:
-        all_props = [obj.properties == {} for obj in iter_]
-        assert all(all_props)
-
-        creation_time_unixes = [obj.metadata.creation_time_unix is not None for obj in iter_]
-        assert all(creation_time_unixes)
-        scores = [obj.metadata.score is None for obj in iter_]
-        assert all(scores)
-
+        assert all(obj.properties == {} for obj in iter_)
+        assert all(obj.metadata.creation_time_unix is not None for obj in iter_)
+        assert all(obj.metadata.score is None for obj in iter_)
     # Expect only properties
     elif return_metadata is None and return_properties is not None:
-        all_data: list[int] = sorted([int(obj.properties["data"]) for obj in collection.iterator()])
+        all_data: list[int] = sorted([int(obj.properties["data"]) for obj in iter_])
         assert all_data == list(range(10))
-
-        creation_time_unixes = [obj.metadata.creation_time_unix is None for obj in iter_]
-        assert all(creation_time_unixes)
-
+        assert all(obj.metadata.creation_time_unix is None for obj in iter_)
     # Expect properties and metadata with only creation_time_unix
     else:
-        all_data: list[int] = sorted([int(obj.properties["data"]) for obj in collection.iterator()])
+        all_data: list[int] = sorted([int(obj.properties["data"]) for obj in iter_])
         assert all_data == list(range(10))
-
-        creation_time_unixes = [obj.metadata.creation_time_unix is not None for obj in iter_]
-        assert all(creation_time_unixes)
-        scores = [obj.metadata.score is None for obj in iter_]
-        assert all(scores)
+        assert all(obj.metadata.creation_time_unix is not None for obj in iter_)
+        assert all(obj.metadata.score is None for obj in iter_)
 
 
 def test_iterator_dict_hint(client: weaviate.Client):
