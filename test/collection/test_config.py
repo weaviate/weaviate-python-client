@@ -4,10 +4,10 @@ from weaviate.collection.classes.config import (
     _CollectionConfigCreate,
     DataType,
     Multi2VecField,
+    _GenerativeConfig,
     _VectorizerConfig,
-    VectorizerFactory,
+    ConfigFactory,
     Property,
-    PropertyVectorizerConfig,
 )
 
 
@@ -31,7 +31,7 @@ def test_basic_config():
 
 TEST_CONFIG_WITH_MODULE_PARAMETERS = [
     (
-        VectorizerFactory.text2vec_contextionary(),
+        ConfigFactory.Vectorizer.text2vec_contextionary(),
         {
             "text2vec-contextionary": {
                 "vectorizeClassName": True,
@@ -39,7 +39,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        VectorizerFactory.text2vec_azure_openai(
+        ConfigFactory.Vectorizer.text2vec_azure_openai(
             resource_name="resource",
             deployment_id="deployment",
         ),
@@ -51,15 +51,15 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        VectorizerFactory.text2vec_cohere(),
+        ConfigFactory.Vectorizer.text2vec_cohere(),
         {"text2vec-cohere": {}},
     ),
     (
-        VectorizerFactory.text2vec_cohere(model="embed-multilingual-v2.0", truncate="NONE"),
+        ConfigFactory.Vectorizer.text2vec_cohere(model="embed-multilingual-v2.0", truncate="NONE"),
         {"text2vec-cohere": {"model": "embed-multilingual-v2.0", "truncate": "NONE"}},
     ),
     (
-        VectorizerFactory.text2vec_gpt4all(),
+        ConfigFactory.Vectorizer.text2vec_gpt4all(),
         {
             "text2vec-gpt4all": {
                 "vectorizeClassName": True,
@@ -67,7 +67,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        VectorizerFactory.text2vec_gpt4all(
+        ConfigFactory.Vectorizer.text2vec_gpt4all(
             vectorize_class_name=False,
         ),
         {
@@ -77,7 +77,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        VectorizerFactory.text2vec_huggingface(
+        ConfigFactory.Vectorizer.text2vec_huggingface(
             model="model", wait_for_model=False, use_gpu=False, use_cache=False
         ),
         {
@@ -92,7 +92,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        VectorizerFactory.text2vec_huggingface(
+        ConfigFactory.Vectorizer.text2vec_huggingface(
             passage_model="passageModel",
             query_model="queryModel",
             wait_for_model=True,
@@ -112,7 +112,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        VectorizerFactory.text2vec_huggingface(
+        ConfigFactory.Vectorizer.text2vec_huggingface(
             endpoint_url="endpoint",
         ),
         {
@@ -122,7 +122,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        VectorizerFactory.text2vec_openai(),
+        ConfigFactory.Vectorizer.text2vec_openai(),
         {
             "text2vec-openai": {
                 "vectorizeClassName": True,
@@ -130,7 +130,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        VectorizerFactory.text2vec_openai(
+        ConfigFactory.Vectorizer.text2vec_openai(
             vectorize_class_name=False,
             model="ada",
             model_version="002",
@@ -146,7 +146,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        VectorizerFactory.text2vec_palm(
+        ConfigFactory.Vectorizer.text2vec_palm(
             project_id="project",
         ),
         {
@@ -157,7 +157,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        VectorizerFactory.text2vec_palm(
+        ConfigFactory.Vectorizer.text2vec_palm(
             project_id="project",
             api_endpoint="https://weaviate.io",
             model_id="model",
@@ -173,7 +173,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        VectorizerFactory.text2vec_transformers(),
+        ConfigFactory.Vectorizer.text2vec_transformers(),
         {
             "text2vec-transformers": {
                 "vectorizeClassName": True,
@@ -182,7 +182,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        VectorizerFactory.text2vec_transformers(
+        ConfigFactory.Vectorizer.text2vec_transformers(
             pooling_strategy="cls",
             vectorize_class_name=False,
         ),
@@ -194,7 +194,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        VectorizerFactory.img2vec_neural(
+        ConfigFactory.Vectorizer.img2vec_neural(
             image_fields=["test"],
         ),
         {
@@ -204,7 +204,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        VectorizerFactory.multi2vec_clip(
+        ConfigFactory.Vectorizer.multi2vec_clip(
             image_fields=[Multi2VecField(name="image")],
             text_fields=[Multi2VecField(name="text")],
         ),
@@ -217,7 +217,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        VectorizerFactory.multi2vec_clip(
+        ConfigFactory.Vectorizer.multi2vec_clip(
             image_fields=[Multi2VecField(name="image", weight=0.5)],
             text_fields=[Multi2VecField(name="text", weight=0.5)],
             vectorize_class_name=False,
@@ -235,7 +235,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        VectorizerFactory.multi2vec_bind(
+        ConfigFactory.Vectorizer.multi2vec_bind(
             audio_fields=[Multi2VecField(name="audio")],
             depth_fields=[Multi2VecField(name="depth")],
             image_fields=[Multi2VecField(name="image")],
@@ -256,7 +256,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        VectorizerFactory.multi2vec_bind(
+        ConfigFactory.Vectorizer.multi2vec_bind(
             audio_fields=[Multi2VecField(name="audio", weight=0.5)],
             depth_fields=[Multi2VecField(name="depth", weight=0.5)],
             image_fields=[Multi2VecField(name="image", weight=0.5)],
@@ -286,7 +286,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
-        VectorizerFactory.ref2vec_centroid(reference_properties=["prop"]),
+        ConfigFactory.Vectorizer.ref2vec_centroid(reference_properties=["prop"]),
         {"ref2vec-centroid": {"referenceProperties": ["prop"], "method": "mean"}},
     ),
 ]
@@ -305,14 +305,40 @@ def test_config_with_module(vectorizer_config: _VectorizerConfig, expected: dict
 
 TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
     (
-        VectorizerFactory.text2vec_transformers(),
+        ConfigFactory.Vectorizer.text2vec_transformers(),
         [
             Property(
                 name="text",
                 data_type=DataType.TEXT,
-                vectorizer_config=PropertyVectorizerConfig(
-                    skip=False, vectorize_property_name=False
-                ),
+                skip_vectorization=True,
+                vectorize_property_name=False,
+            )
+        ],
+        {
+            "text2vec-transformers": {
+                "vectorizeClassName": True,
+                "poolingStrategy": "masked_mean",
+            }
+        },
+        [
+            {
+                "dataType": ["text"],
+                "name": "text",
+                "moduleConfig": {
+                    "text2vec-transformers": {
+                        "skip": True,
+                        "vectorizePropertyName": False,
+                    }
+                },
+            }
+        ],
+    ),
+    (
+        ConfigFactory.Vectorizer.text2vec_transformers(),
+        [
+            Property(
+                name="text",
+                data_type=DataType.TEXT,
             )
         ],
         {
@@ -328,12 +354,12 @@ TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
                 "moduleConfig": {
                     "text2vec-transformers": {
                         "skip": False,
-                        "vectorizePropertyName": False,
+                        "vectorizePropertyName": True,
                     }
                 },
             }
         ],
-    )
+    ),
 ]
 
 
@@ -359,11 +385,107 @@ def test_config_with_module_and_properties(
     }
 
 
+TEST_CONFIG_WITH_GENERATIVE_MODULE = [
+    (
+        ConfigFactory.Generative.openai(),
+        {"generative-openai": {}},
+    ),
+    (
+        ConfigFactory.Generative.openai(
+            model="gpt-4",
+            frequency_penalty=0.5,
+            max_tokens=100,
+            presence_penalty=0.5,
+            temperature=0.5,
+            top_p=0.5,
+        ),
+        {
+            "generative-openai": {
+                "model": "gpt-4",
+                "frequencyPenaltyProperty": 0.5,
+                "maxTokensProperty": 100,
+                "presencePenaltyProperty": 0.5,
+                "temperatureProperty": 0.5,
+                "topPProperty": 0.5,
+            }
+        },
+    ),
+    (ConfigFactory.Generative.cohere(), {"generative-cohere": {}}),
+    (
+        ConfigFactory.Generative.cohere(
+            model="model",
+            k=10,
+            max_tokens=100,
+            return_likelihoods="ALL",
+            stop_sequences=["stop"],
+            temperature=0.5,
+        ),
+        {
+            "generative-cohere": {
+                "model": "model",
+                "kProperty": 10,
+                "maxTokensProperty": 100,
+                "returnLikelihoodsProperty": "ALL",
+                "stopSequencesProperty": ["stop"],
+                "temperatureProperty": 0.5,
+            }
+        },
+    ),
+    (
+        ConfigFactory.Generative.palm(project_id="project"),
+        {
+            "generative-palm": {
+                "projectId": "project",
+            }
+        },
+    ),
+    (
+        ConfigFactory.Generative.palm(
+            project_id="project",
+            api_endpoint="https://weaviate.io",
+            max_output_tokens=100,
+            model_id="model",
+            temperature=0.5,
+            top_k=10,
+            top_p=0.5,
+        ),
+        {
+            "generative-palm": {
+                "projectId": "project",
+                "apiEndpoint": "https://weaviate.io",
+                "maxOutputTokens": 100,
+                "modelId": "model",
+                "temperature": 0.5,
+                "topK": 10,
+                "topP": 0.5,
+            }
+        },
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "generative_config,expected_mc",
+    TEST_CONFIG_WITH_GENERATIVE_MODULE,
+)
+def test_config_with_generative_module(
+    generative_config: _GenerativeConfig,
+    expected_mc: dict,
+):
+    config = _CollectionConfigCreate(name="test", generative_config=generative_config)
+    assert config.to_dict() == {
+        **DEFAULTS,
+        "vectorizer": "none",
+        "class": "Test",
+        "moduleConfig": expected_mc,
+    }
+
+
 def test_config_with_properties():
     config = _CollectionConfigCreate(
         name="test",
         description="test",
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
         properties=[
             Property(
                 name="text",

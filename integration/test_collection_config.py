@@ -15,7 +15,6 @@ from weaviate.collection.classes.config import (
     VectorDistance,
     VectorIndexType,
     Vectorizer,
-    VectorizerFactory,
 )
 
 
@@ -32,7 +31,7 @@ def client():
 def test_collection_list(client: weaviate.Client):
     client.collection.create(
         name="TestCollectionList",
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
@@ -53,7 +52,7 @@ def test_collection_list(client: weaviate.Client):
 def test_collection_get_simple(client: weaviate.Client):
     client.collection.create(
         name="TestCollectionGetSimple",
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
@@ -124,7 +123,7 @@ def test_collection_config_defaults(client: weaviate.Client):
         multi_tenancy_config=ConfigFactory.multi_tenancy(),
         replication_config=ConfigFactory.replication(),
         vector_index_config=ConfigFactory.vector_index(),
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
     config = collection.config.get()
 
@@ -174,7 +173,7 @@ def test_collection_config_full(client: weaviate.Client):
     collection = client.collection.create(
         name="TestCollectionConfigFull",
         description="Test",
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
         properties=[
             Property(name="text", data_type=DataType.TEXT),
             Property(name="texts", data_type=DataType.TEXT_ARRAY),
@@ -295,7 +294,7 @@ def test_collection_config_full(client: weaviate.Client):
 def test_collection_config_update(client: weaviate.Client):
     collection = client.collection.create(
         name="TestCollectionConfigUpdate",
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),

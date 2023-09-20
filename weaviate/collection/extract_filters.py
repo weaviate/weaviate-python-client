@@ -9,7 +9,7 @@ from weaviate.collection.classes.filters import (
     FilterValues,
 )
 from weaviate.util import _datetime_to_string
-from weaviate.weaviate_types import TIME
+from weaviate.types import TIME
 from weaviate_grpc import weaviate_pb2
 
 

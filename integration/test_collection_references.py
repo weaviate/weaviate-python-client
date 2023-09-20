@@ -17,11 +17,11 @@ else:
 import weaviate
 from weaviate import Config
 from weaviate.collection.classes.config import (
+    ConfigFactory,
     Property,
     DataType,
     ReferenceProperty,
     ReferencePropertyMultiTarget,
-    VectorizerFactory,
 )
 
 from weaviate.collection.classes.internal import ReferenceFactory
@@ -40,13 +40,13 @@ def client():
 
 def test_reference_add_delete_replace(client: weaviate.Client):
     ref_collection = client.collection.create(
-        name="RefClass2", vectorizer_config=VectorizerFactory.none()
+        name="RefClass2", vectorizer_config=ConfigFactory.Vectorizer.none()
     )
     uuid_to = ref_collection.data.insert(properties={})
     collection = client.collection.create(
         name="SomethingElse",
         properties=[ReferenceProperty(name="ref", target_collection="RefClass2")],
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
 
     uuid_from1 = collection.data.insert({}, uuid.uuid4())
@@ -79,7 +79,7 @@ def test_reference_add_delete_replace(client: weaviate.Client):
 def test_mono_references_grpc(client: weaviate.Client):
     A = client.collection.create(
         name="A",
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
@@ -96,7 +96,7 @@ def test_mono_references_grpc(client: weaviate.Client):
             Property(name="Name", data_type=DataType.TEXT),
             ReferenceProperty(name="ref", target_collection="A"),
         ],
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
     uuid_B = B.data.insert({"Name": "B", "ref": ReferenceFactory.to(uuids=uuid_A1)})
     B.data.reference_add(
@@ -134,7 +134,7 @@ def test_mono_references_grpc(client: weaviate.Client):
             Property(name="Name", data_type=DataType.TEXT),
             ReferenceProperty(name="ref", target_collection="B"),
         ],
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
     C.data.insert({"Name": "find me", "ref": ReferenceFactory.to(uuids=uuid_B)})
 
@@ -186,7 +186,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.Client):
 
     client.collection.create(
         name="ATypedDicts",
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
@@ -201,7 +201,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.Client):
             Property(name="Name", data_type=DataType.TEXT),
             ReferenceProperty(name="ref", target_collection="ATypedDicts"),
         ],
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
     B = client.collection.get("BTypedDicts", BProps)
     uuid_B = B.data.insert(
@@ -218,7 +218,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.Client):
             Property(name="Age", data_type=DataType.INT),
             ReferenceProperty(name="ref", target_collection="BTypedDicts"),
         ],
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
     C = client.collection.get("CTypedDicts", CProps)
     C.data.insert(properties=CProps(name="find me", ref=ReferenceFactory[BProps].to(uuids=uuid_B)))
@@ -265,7 +265,7 @@ def test_multi_references_grpc(client: weaviate.Client):
 
     A = client.collection.create(
         name="A",
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
@@ -277,7 +277,7 @@ def test_multi_references_grpc(client: weaviate.Client):
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
     uuid_B = B.data.insert({"Name": "B"})
 
@@ -287,7 +287,7 @@ def test_multi_references_grpc(client: weaviate.Client):
             Property(name="Name", data_type=DataType.TEXT),
             ReferencePropertyMultiTarget(name="ref", target_collections=["A", "B"]),
         ],
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
     C.data.insert(
         {
@@ -350,7 +350,7 @@ def test_references_batch(client: weaviate.Client):
 
     ref_collection = client.collection.create(
         name=name_ref_to,
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
         properties=[Property(name="num", data_type=DataType.INT)],
     )
     num_objects = 10
@@ -364,7 +364,7 @@ def test_references_batch(client: weaviate.Client):
             ReferenceProperty(name="ref", target_collection=name_ref_to),
             Property(name="num", data_type=DataType.INT),
         ],
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
     uuids_from = collection.data.insert_many(
         [DataObject(properties={"num": i}) for i in range(num_objects)]
@@ -400,7 +400,7 @@ def test_references_batch_with_errors(client: weaviate.Client):
 
     _ = client.collection.create(
         name=name_ref_to,
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
 
     collection = client.collection.create(
@@ -409,7 +409,7 @@ def test_references_batch_with_errors(client: weaviate.Client):
             ReferenceProperty(name="ref", target_collection=name_ref_to),
             Property(name="num", data_type=DataType.INT),
         ],
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
 
     batch_return = collection.data.reference_add_many(

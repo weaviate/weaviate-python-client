@@ -262,27 +262,135 @@ class _GenerativeConfig(_ConfigCreateModel):
     generative: GenerativeSearches
 
 
+class _GenerativeOpenAIConfigBase(_GenerativeConfig):
+    generative: GenerativeSearches = Field(
+        default=GenerativeSearches.OPENAI, frozen=True, exclude=True
+    )
+    frequencyPenaltyProperty: Optional[float]
+    presencePenaltyProperty: Optional[float]
+    maxTokensProperty: Optional[int]
+    temperatureProperty: Optional[float]
+    topPProperty: Optional[float]
+
+
+class _GenerativeOpenAIConfig(_GenerativeOpenAIConfigBase):
+    model: Optional[str]
+
+
+class _GenerativeAzureOpenAIConfig(_GenerativeOpenAIConfigBase):
+    resourceName: str
+    deploymentId: str
+
+
+class _GenerativeCohereConfig(_GenerativeConfig):
+    generative: GenerativeSearches = Field(
+        default=GenerativeSearches.COHERE, frozen=True, exclude=True
+    )
+    kProperty: Optional[int]
+    model: Optional[str]
+    maxTokensProperty: Optional[int]
+    returnLikelihoodsProperty: Optional[str]
+    stopSequencesProperty: Optional[List[str]]
+    temperatureProperty: Optional[float]
+
+
+class _GenerativePaLMConfig(_GenerativeConfig):
+    generative: GenerativeSearches = Field(
+        default=GenerativeSearches.PALM, frozen=True, exclude=True
+    )
+    apiEndpoint: Optional[str]
+    maxOutputTokens: Optional[int]
+    modelId: Optional[str]
+    projectId: str
+    temperature: Optional[float]
+    topK: Optional[int]
+    topP: Optional[float]
+
+
 class _VectorizerConfig(_ConfigCreateModel):
     vectorizer: Vectorizer
 
 
-class PropertyVectorizerConfig(_ConfigCreateModel):
-    skip: bool = Field(default=False)
-    vectorizePropertyName: bool = Field(default=True, alias="vectorize_property_name")
-
-
-class GenerativeFactory:
+class _GenerativeFactory:
     @classmethod
-    def OpenAI(cls) -> _GenerativeConfig:
-        return _GenerativeConfig(generative=GenerativeSearches.OPENAI)
+    def openai(
+        cls,
+        model: Optional[str] = None,
+        frequency_penalty: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        presence_penalty: Optional[float] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+    ) -> _GenerativeConfig:
+        return _GenerativeOpenAIConfig(
+            frequencyPenaltyProperty=frequency_penalty,
+            maxTokensProperty=max_tokens,
+            model=model,
+            presencePenaltyProperty=presence_penalty,
+            temperatureProperty=temperature,
+            topPProperty=top_p,
+        )
 
     @classmethod
-    def Cohere(cls) -> _GenerativeConfig:
-        return _GenerativeConfig(generative=GenerativeSearches.COHERE)
+    def azure_openai(
+        cls,
+        resource_name: str,
+        deployment_id: str,
+        frequency_penalty: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        presence_penalty: Optional[float] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+    ) -> _GenerativeConfig:
+        return _GenerativeAzureOpenAIConfig(
+            deploymentId=deployment_id,
+            frequencyPenaltyProperty=frequency_penalty,
+            maxTokensProperty=max_tokens,
+            presencePenaltyProperty=presence_penalty,
+            resourceName=resource_name,
+            temperatureProperty=temperature,
+            topPProperty=top_p,
+        )
 
     @classmethod
-    def Palm(cls) -> _GenerativeConfig:
-        return _GenerativeConfig(generative=GenerativeSearches.PALM)
+    def cohere(
+        cls,
+        model: Optional[str] = None,
+        k: Optional[int] = None,
+        max_tokens: Optional[int] = None,
+        return_likelihoods: Optional[str] = None,
+        stop_sequences: Optional[List[str]] = None,
+        temperature: Optional[float] = None,
+    ) -> _GenerativeConfig:
+        return _GenerativeCohereConfig(
+            kProperty=k,
+            maxTokensProperty=max_tokens,
+            model=model,
+            returnLikelihoodsProperty=return_likelihoods,
+            stopSequencesProperty=stop_sequences,
+            temperatureProperty=temperature,
+        )
+
+    @classmethod
+    def palm(
+        cls,
+        project_id: str,
+        api_endpoint: Optional[str] = None,
+        max_output_tokens: Optional[int] = None,
+        model_id: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+    ) -> _GenerativeConfig:
+        return _GenerativePaLMConfig(
+            apiEndpoint=api_endpoint,
+            maxOutputTokens=max_output_tokens,
+            modelId=model_id,
+            projectId=project_id,
+            temperature=temperature,
+            topK=top_k,
+            topP=top_p,
+        )
 
 
 class _Text2VecContextionaryConfig(_VectorizerConfig):
@@ -464,7 +572,7 @@ class _Ref2VecCentroidConfig(_VectorizerConfig):
     method: Literal["mean"]
 
 
-class VectorizerFactory:
+class _VectorizerFactory:
     """Use this factory class to generate the correct `VectorizerConfig` object for use in the `CollectionConfig` object.
 
     Each classmethod provides options specific to the named vectorizer in the function's name. Under-the-hood data validation steps
@@ -487,7 +595,7 @@ class VectorizerFactory:
     def img2vec_neural(
         cls,
         image_fields: List[str],
-    ) -> _Img2VecNeuralConfig:
+    ) -> _VectorizerConfig:
         """Returns a `Img2VecNeuralConfig` object for use when vectorizing using the `img2vec-neural` model
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/img2vec-neural)
         for detailed usage.
@@ -510,7 +618,7 @@ class VectorizerFactory:
         image_fields: Optional[List[Multi2VecField]] = None,
         text_fields: Optional[List[Multi2VecField]] = None,
         vectorize_class_name: bool = True,
-    ) -> _Multi2VecClipConfig:
+    ) -> _VectorizerConfig:
         """Returns a `Multi2VecClipConfig` object for use when vectorizing using the `multi2vec-clip` model
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-clip)
         for detailed usage.
@@ -543,7 +651,7 @@ class VectorizerFactory:
         thermal_fields: Optional[List[Multi2VecField]] = None,
         video_fields: Optional[List[Multi2VecField]] = None,
         vectorize_class_name: bool = True,
-    ) -> _Multi2VecBindConfig:
+    ) -> _VectorizerConfig:
         """Returns a `Multi2VecClipConfig` object for use when vectorizing using the `multi2vec-clip` model
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind)
         for detailed usage.
@@ -580,7 +688,7 @@ class VectorizerFactory:
         cls,
         reference_properties: List[str],
         method: Literal["mean"] = "mean",
-    ) -> _Ref2VecCentroidConfig:
+    ) -> _VectorizerConfig:
         """Returns a `Ref2VecCentroidConfig` object for use when vectorizing using the `ref2vec-centroid` model.
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/ref2vec-centroid)
         for detailed usage.
@@ -601,9 +709,7 @@ class VectorizerFactory:
         )
 
     @classmethod
-    def text2vec_azure_openai(
-        cls, resource_name: str, deployment_id: str
-    ) -> _Text2VecAzureOpenAIConfig:
+    def text2vec_azure_openai(cls, resource_name: str, deployment_id: str) -> _VectorizerConfig:
         """Returns a `Text2VecAzureOpenAIConfig` object for use when vectorizing using the `text2vec-azure-openai` model
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-azure-openai)
         for detailed usage.
@@ -622,9 +728,7 @@ class VectorizerFactory:
         return _Text2VecAzureOpenAIConfig(resourceName=resource_name, deploymentId=deployment_id)
 
     @classmethod
-    def text2vec_contextionary(
-        cls, vectorize_class_name: bool = True
-    ) -> _Text2VecContextionaryConfig:
+    def text2vec_contextionary(cls, vectorize_class_name: bool = True) -> _VectorizerConfig:
         """Returns a `Text2VecContextionaryConfig` object for use when vectorizing using the `text2vec-contextionary` model
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-contextionary)
         for detailed usage.
@@ -645,7 +749,7 @@ class VectorizerFactory:
         cls,
         model: Optional[CohereModel] = None,
         truncate: Optional[CohereTruncation] = None,
-    ) -> _Text2VecCohereConfig:
+    ) -> _VectorizerConfig:
         """Returns a `Text2VecCohereConfig` object for use when vectorizing using the `text2vec-cohere` model
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-cohere)
         for detailed usage.
@@ -666,7 +770,7 @@ class VectorizerFactory:
     def text2vec_gpt4all(
         cls,
         vectorize_class_name: bool = True,
-    ) -> _Text2VecGPT4AllConfig:
+    ) -> _VectorizerConfig:
         """Returns a `Text2VecGPT4AllConfig` object for use when vectorizing using the `text2vec-gpt4all` model
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-gpt4all)
         for detailed usage.
@@ -692,7 +796,7 @@ class VectorizerFactory:
         wait_for_model: Optional[bool] = None,
         use_gpu: Optional[bool] = None,
         use_cache: Optional[bool] = None,
-    ) -> _Text2VecHuggingFaceConfig:
+    ) -> _VectorizerConfig:
         """Returns a `Text2VecHuggingFaceConfig` object for use when vectorizing using the `text2vec-huggingface` model
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-huggingface)
         for detailed usage.
@@ -731,7 +835,7 @@ class VectorizerFactory:
         model_version: Optional[str] = None,
         type_: Optional[OpenAIType] = None,
         vectorize_class_name: bool = True,
-    ) -> _Text2VecOpenAIConfig:
+    ) -> _VectorizerConfig:
         """Returns a `Text2VecOpenAIConfig` object for use when vectorizing using the `text2vec-openai` model
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-openai)
         for detailed usage.
@@ -762,7 +866,7 @@ class VectorizerFactory:
         api_endpoint: Optional[AnyHttpUrl] = None,
         model_id: Optional[str] = None,
         vectorize_class_name: bool = True,
-    ) -> _Text2VecPalmConfig:
+    ) -> _VectorizerConfig:
         """Returns a `Text2VecPalmConfig` object for use when vectorizing using the `text2vec-palm` model
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-palm)
         for detailed usage.
@@ -791,7 +895,7 @@ class VectorizerFactory:
         cls,
         pooling_strategy: Literal["masked_mean", "cls"] = "masked_mean",
         vectorize_class_name: bool = True,
-    ) -> _Text2VecTransformersConfig:
+    ) -> _VectorizerConfig:
         """Returns a `Text2VecTransformersConfig` object for use when vectorizing using the `text2vec-transformers` model
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-transformers)
         for detailed usage.
@@ -831,9 +935,9 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
         default=VectorIndexType.HNSW, alias="vector_index_type"
     )
     moduleConfig: _VectorizerConfig = Field(
-        default=VectorizerFactory.none(), alias="vectorizer_config"
+        default=_VectorizerFactory.none(), alias="vectorizer_config"
     )
-    generativeSearch: Optional[_GenerativeConfig] = Field(default=None, alias="generative_search")
+    generativeSearch: Optional[_GenerativeConfig] = Field(default=None, alias="generative_config")
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
@@ -847,7 +951,7 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
             elif isinstance(val, (bool, float, str, int)):
                 ret_dict[cls_field] = str(val)
             elif isinstance(val, _GenerativeConfig):
-                self.__add_to_module_config(ret_dict, val.generative.value, {})
+                self.__add_to_module_config(ret_dict, val.generative.value, val.to_dict())
             elif isinstance(val, _VectorizerConfig):
                 ret_dict["vectorizer"] = val.vectorizer.value
                 if val.vectorizer != Vectorizer.NONE:
@@ -1051,16 +1155,22 @@ class Property(_ConfigCreateModel):
     indexFilterable: Optional[bool] = Field(default=None, alias="index_filterable")
     indexSearchable: Optional[bool] = Field(default=None, alias="index_searchable")
     description: Optional[str] = Field(default=None)
-    moduleConfig: Optional[PropertyVectorizerConfig] = Field(
-        default=None, alias="vectorizer_config"
-    )
+    skip_vectorization: bool = False
     tokenization: Optional[Tokenization] = Field(default=None)
+    vectorize_property_name: bool = True
 
     def to_dict(self, vectorizer: Optional[Vectorizer] = None) -> Dict[str, Any]:
         ret_dict = super().to_dict()
         ret_dict["dataType"] = [ret_dict["dataType"]]
-        if "moduleConfig" in ret_dict and vectorizer is not None:
-            ret_dict["moduleConfig"] = {vectorizer.value: ret_dict["moduleConfig"]}
+        if vectorizer is not None and vectorizer != Vectorizer.NONE:
+            ret_dict["moduleConfig"] = {
+                vectorizer.value: {
+                    "skip": self.skip_vectorization,
+                    "vectorizePropertyName": self.vectorize_property_name,
+                }
+            }
+        del ret_dict["skip_vectorization"]
+        del ret_dict["vectorize_property_name"]
         return ret_dict
 
 
@@ -1124,6 +1234,9 @@ class ConfigFactory:
     Each classmethod provides options specific to the named configuration type in the function's name. Under-the-hood data validation steps
     will ensure that any mis-specifications are caught before the request is sent to Weaviate.
     """
+
+    Generative = _GenerativeFactory
+    Vectorizer = _VectorizerFactory
 
     @classmethod
     def inverted_index(
@@ -1263,6 +1376,10 @@ class ConfigFactory:
             skip=skip,
             vectorCacheMaxObjects=vector_cache_max_objects,
         )
+
+    @classmethod
+    def vector_index_type(cls) -> VectorIndexType:
+        return VectorIndexType.HNSW
 
 
 class ConfigUpdateFactory:

@@ -11,6 +11,7 @@ from typing import (
     Type,
     cast,
 )
+from typing_extensions import is_typeddict
 
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated, get_type_hints, get_origin
@@ -220,7 +221,10 @@ class _Grpc:
             ret_properties = cast(Optional[PROPERTIES], type_)
             ret_type = cast(Type[Properties], Dict[str, Any])
         else:
-            assert get_origin(type_) is not dict
+            if not is_typeddict(type_):
+                raise TypeError(
+                    f"return_properties must only be a TypedDict or PROPERTIES within this context but is {type(type_)}"
+                )
             type_ = cast(Type[Properties], type_)
             ret_properties = _extract_properties_from_data_model(type_)
             ret_type = type_
