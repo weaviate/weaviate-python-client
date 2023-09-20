@@ -11,11 +11,11 @@ Properties = TypeVar("Properties", bound=Mapping[str, Any], default=Dict[str, An
 TProperties = TypeVar("TProperties", bound=Mapping[str, Any], default=Dict[str, Any])
 """`TProperties` is used alongside `Properties` wherever there are two generic types needed
 
-E.g., in `_DataCollection`, `Properties` is used when defining the generic of the class while
+E.g., in `_ModifyCollection`, `Properties` is used when defining the generic of the class while
 `TProperties` is used when defining the generic to be supplied in `.with_data_model` to create
-a new instance of `_DataCollection` with a different `Properties` type.
+a new instance of `_ModifyCollection` with a different `Properties` type.
 
-To be clear: `_DataCollection[Properties]().with_data_model(TProperties) -> _DataCollection[TProperties]()`
+To be clear: `_ModifyCollection[Properties]().with_data_model(TProperties) -> _ModifyCollection[TProperties]()`
 """
 
 P = TypeVar("P")
