@@ -4,7 +4,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.classes.batch import _BatchDeleteResult
 from weaviate.collection.classes.config import ConsistencyLevel
-from weaviate.collection.extract_filters import FilterToREST
+from weaviate.collection.extract_filters import _FilterToREST
 from weaviate.collection.classes.filters import _Filters
 from weaviate.connect import Connection
 from weaviate.util import _decode_json_response_dict
@@ -26,7 +26,7 @@ class _BatchREST:
         payload: Dict[str, Any] = {
             "match": {
                 "class": class_name,
-                "where": FilterToREST.convert(where),
+                "where": _FilterToREST.convert(where),
             }
         }
         if verbose:

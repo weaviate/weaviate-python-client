@@ -19,7 +19,7 @@ from weaviate.collection.classes.config import (
 )
 from weaviate.collection.classes.grpc import MetadataQuery, PROPERTIES
 from weaviate.collection.classes.types import Properties, TProperties, _check_data_model
-from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
+from weaviate.collection.collection_base import _CollectionBase, _CollectionObjectBase
 from weaviate.collection.config import _ConfigCollection
 from weaviate.collection.data import _DataCollection
 from weaviate.collection.grpc import _GrpcCollection
@@ -29,7 +29,7 @@ from weaviate.connect import Connection
 from weaviate.util import _capitalize_first_letter
 
 
-class CollectionObject(CollectionObjectBase, Generic[TProperties]):
+class _CollectionObject(_CollectionObjectBase, Generic[TProperties]):
     def __init__(
         self,
         connection: Connection,
@@ -52,13 +52,13 @@ class CollectionObject(CollectionObjectBase, Generic[TProperties]):
         self.__tenant = tenant
         self.__consistency_level = consistency_level
 
-    def with_tenant(self, tenant: Optional[str] = None) -> "CollectionObject":
-        return CollectionObject(self._connection, self.name, self.__consistency_level, tenant)
+    def with_tenant(self, tenant: Optional[str] = None) -> "_CollectionObject":
+        return _CollectionObject(self._connection, self.name, self.__consistency_level, tenant)
 
     def with_consistency_level(
         self, consistency_level: Optional[ConsistencyLevel] = None
-    ) -> "CollectionObject":
-        return CollectionObject(self._connection, self.name, consistency_level, self.__tenant)
+    ) -> "_CollectionObject":
+        return _CollectionObject(self._connection, self.name, consistency_level, self.__tenant)
 
     def iterator(
         self,
@@ -70,7 +70,7 @@ class CollectionObject(CollectionObjectBase, Generic[TProperties]):
         )
 
 
-class Collection(CollectionBase):
+class _Collection(_CollectionBase):
     def create(
         self,
         name: str,
@@ -85,7 +85,7 @@ class Collection(CollectionBase):
         vector_index_type: VectorIndexType = VectorIndexType.HNSW,
         vectorizer_config: Optional[_VectorizerConfig] = None,
         data_model: Optional[Type[Properties]] = None,
-    ) -> CollectionObject[Properties]:
+    ) -> _CollectionObject[Properties]:
         config = _CollectionConfigCreate(
             description=description,
             generative_config=generative_config,
@@ -108,10 +108,10 @@ class Collection(CollectionBase):
 
     def get(
         self, name: str, data_model: Optional[Type[Properties]] = None
-    ) -> CollectionObject[Properties]:
+    ) -> _CollectionObject[Properties]:
         _check_data_model(data_model)
         name = _capitalize_first_letter(name)
-        return CollectionObject[Properties](self._connection, name, type_=data_model)
+        return _CollectionObject[Properties](self._connection, name, type_=data_model)
 
     def delete(self, name: Union[str, List[str]]) -> None:
         """Use this method to delete collection(s) from the Weaviate instance by its/their name(s).
@@ -119,8 +119,14 @@ class Collection(CollectionBase):
         WARNING: If you have instances of client.collection.get() or client.collection.create()
         for these collections within your code, they will cease to function correctly after this operation.
 
-        Parameters:
+        Arguments:
         - name: The names of the collections to delete.
+
+        Raises:
+        - `requests.ConnectionError`
+            - If the network connection to Weaviate fails.
+        - `weaviate.UnexpectedStatusCodeException`
+            - If Weaviate reports a non-OK status.
         """
         if isinstance(name, str):
             self._delete(_capitalize_first_letter(name))
@@ -142,6 +148,17 @@ class Collection(CollectionBase):
     def list_all(
         self, simple: bool = True
     ) -> Union[Dict[str, _CollectionConfig], Dict[str, _CollectionConfigSimple]]:
+        """List the configurations of the all the collections currently in the Weaviate instance.
+
+        Arguments:
+        - simple : If True, return a simplified version of the configuration containing only name and properties.
+
+        Raises:
+        - `requests.ConnectionError`
+            - If the network connection to Weaviate fails.
+        - `weaviate.UnexpectedStatusCodeException`
+            - If Weaviate reports a non-OK status.
+        """
         if simple:
             return self._get_simple()
         return self._get_all()

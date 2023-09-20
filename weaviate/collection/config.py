@@ -26,13 +26,6 @@ from weaviate.exceptions import (
 
 
 class _ConfigBase:
-    """
-    Represents all the CRUD methods available on a collection's configuration specification within Weaviate.
-
-    This class should not be instantiated directly, but is available as a property of the `Collection` class under
-    the `collection.config` class attribute.
-    """
-
     def __init__(self, connection: Connection, name: str) -> None:
         self.__connection = connection
         self._name = name
@@ -59,6 +52,9 @@ class _ConfigBase:
     def get(self, simple: bool = False) -> Union[_CollectionConfig, _CollectionConfigSimple]:
         """Get the configuration for this collection from Weaviate.
 
+        Arguments:
+        - simple : If True, return a simplified version of the configuration containing only name and properties.
+
         Raises:
         - `requests.ConnectionError`
             - If the network connection to Weaviate fails.
@@ -79,9 +75,11 @@ class _ConfigBase:
     ) -> None:
         """Update the configuration for this collection in Weaviate.
 
-        Parameters:
-        - config : The available options for updating a collection's configuration. If a property is not specified, it will
-            not be updated.
+        Arguments:
+        - description: A description of the collection.
+        - inverted_index_config: Configuration for the inverted index. Use `ConfigUpdateFactory.inverted_index` to generate one.
+        - replication_config: Configuration for the replication. Use `ConfigUpdateFactory.replication` to generate one.
+        - vector_index_config: Configuration for the vector index. Use `ConfigUpdateFactory.vector_index` to generate one.
 
         Raises:
         - `requests.ConnectionError`:
@@ -133,7 +131,7 @@ class _ConfigCollection(_ConfigBase):
     def add_property(self, additional_property: PropertyType) -> None:
         """Add a property to the collection in Weaviate.
 
-        Parameters:
+        Arguments:
         - additional_property : The property to add to the collection.
 
         Raises:

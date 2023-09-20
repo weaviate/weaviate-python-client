@@ -9,7 +9,7 @@ if sys.version_info < (3, 9):
 else:
     from typing import Annotated, get_type_hints, get_origin
 
-from weaviate.collection.collection_base import CollectionObjectBase
+from weaviate.collection.collection_base import _CollectionObjectBase
 from weaviate.collection.classes.grpc import (
     LinkTo,
     LinkToMultiTarget,
@@ -158,12 +158,12 @@ class ReferenceFactory(Generic[P]):
 
     @classmethod
     def to_multi_target(
-        cls, uuids: UUIDS, target_collection: Union[str, CollectionObjectBase]
+        cls, uuids: UUIDS, target_collection: Union[str, _CollectionObjectBase]
     ) -> "ReferenceFactory[P]":
         return cls(
             None,
             target_collection.name
-            if isinstance(target_collection, CollectionObjectBase)
+            if isinstance(target_collection, _CollectionObjectBase)
             else target_collection,
             uuids,
         )

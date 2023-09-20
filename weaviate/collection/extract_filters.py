@@ -13,30 +13,30 @@ from weaviate.types import TIME
 from weaviate_grpc import weaviate_pb2
 
 
-class FilterToGRPC:
+class _FilterToGRPC:
     @staticmethod
     def convert(weav_filter: Optional[_Filters]) -> Optional[weaviate_pb2.Filters]:
         if weav_filter is None:
             return None
 
         if isinstance(weav_filter, _FilterValue):
-            return FilterToGRPC.__value_filter(weav_filter)
+            return _FilterToGRPC.__value_filter(weav_filter)
         else:
-            return FilterToGRPC.__and_or_filter(weav_filter)
+            return _FilterToGRPC.__and_or_filter(weav_filter)
 
     @staticmethod
     def __value_filter(weav_filter: _FilterValue) -> weaviate_pb2.Filters:
 
         return weaviate_pb2.Filters(
             operator=weav_filter.operator._to_grpc(),
-            value_text=FilterToGRPC.__filter_to_text(weav_filter.value),
+            value_text=_FilterToGRPC.__filter_to_text(weav_filter.value),
             value_int=weav_filter.value if isinstance(weav_filter.value, int) else None,
             value_boolean=weav_filter.value if isinstance(weav_filter.value, bool) else None,  # type: ignore
             value_number=weav_filter.value if isinstance(weav_filter.value, float) else None,
-            value_int_array=FilterToGRPC.__filter_to_int_list(weav_filter.value),
-            value_number_array=FilterToGRPC.__filter_to_float_list(weav_filter.value),
-            value_text_array=FilterToGRPC.__filter_to_text_list(weav_filter.value),
-            value_boolean_array=FilterToGRPC.__filter_to_bool_list(weav_filter.value),
+            value_int_array=_FilterToGRPC.__filter_to_int_list(weav_filter.value),
+            value_number_array=_FilterToGRPC.__filter_to_float_list(weav_filter.value),
+            value_text_array=_FilterToGRPC.__filter_to_text_list(weav_filter.value),
+            value_boolean_array=_FilterToGRPC.__filter_to_bool_list(weav_filter.value),
             on=weav_filter.path if isinstance(weav_filter.path, list) else [weav_filter.path],
         )
 
@@ -103,27 +103,27 @@ class FilterToGRPC:
             filters=[
                 filter_
                 for single_filter in weav_filter.filters
-                if (filter_ := FilterToGRPC.convert(single_filter)) is not None
+                if (filter_ := _FilterToGRPC.convert(single_filter)) is not None
             ],
         )
 
 
-class FilterToREST:
+class _FilterToREST:
     @staticmethod
     def convert(weav_filter: Optional[_Filters]) -> Optional[Dict[str, Any]]:
         if weav_filter is None:
             return None
         if isinstance(weav_filter, _FilterValue):
-            return FilterToREST.__value_filter(weav_filter)
+            return _FilterToREST.__value_filter(weav_filter)
         else:
-            return FilterToREST.__and_or_filter(weav_filter)
+            return _FilterToREST.__and_or_filter(weav_filter)
 
     @staticmethod
     def __value_filter(weav_filter: _FilterValue) -> Dict[str, Any]:
         return {
             "operator": weav_filter.operator.value,
             "path": weav_filter.path if isinstance(weav_filter.path, list) else [weav_filter.path],
-            **FilterToREST.__parse_filter(weav_filter.value),
+            **_FilterToREST.__parse_filter(weav_filter.value),
         }
 
     @staticmethod
@@ -163,6 +163,6 @@ class FilterToREST:
             "operands": [
                 filter_
                 for single_filter in weav_filter.filters
-                if (filter_ := FilterToREST.convert(single_filter)) is not None
+                if (filter_ := _FilterToREST.convert(single_filter)) is not None
             ],
         }

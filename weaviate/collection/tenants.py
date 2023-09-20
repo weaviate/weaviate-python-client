@@ -8,9 +8,9 @@ from weaviate.exceptions import UnexpectedStatusCodeException
 
 
 class _Tenants:
-    """
-    Represents all the CRUD methods available on a collection's multi-tenancy specification within Weaviate. The
-    collection must have been created with multi-tenancy enabled in order to use any of these methods. This class
+    """Represents all the CRUD methods available on a collection's multi-tenancy specification within Weaviate.
+
+    The collection must have been created with multi-tenancy enabled in order to use any of these methods. This class
     should not be instantiated directly, but is available as a property of the `Collection` class under
     the `collection.tenants` class attribute.
     """
@@ -24,7 +24,7 @@ class _Tenants:
 
         The collection must have been created with multi-tenancy enabled.
 
-        Parameters:
+        Arguments:
         - `tenants`: List of `Tenant`.
 
         Raises:
@@ -33,7 +33,6 @@ class _Tenants:
         - `weaviate.UnexpectedStatusCodeException`
             - If Weaviate reports a non-OK status.
         """
-
         loaded_tenants = [tenant.model_dump() for tenant in tenants]
 
         path = "/schema/" + self.__name + "/tenants"
@@ -53,7 +52,7 @@ class _Tenants:
 
         The collection must have been created with multi-tenancy enabled.
 
-        Parameters:
+        Arguments:
         - `tenants`: List of tenant names to remove from the given class.
 
         Raises:
