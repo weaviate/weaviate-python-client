@@ -1,3 +1,5 @@
+from io import BufferedReader
+from pathlib import Path
 from typing import Literal, Optional, Type, Union, overload
 
 from weaviate.collection.classes.filters import (
@@ -26,7 +28,7 @@ class _NearAudio(_Grpc):
     @overload
     def near_audio(
         self,
-        near_audio: str,
+        near_audio: Union[str, Path, BufferedReader],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -42,7 +44,7 @@ class _NearAudio(_Grpc):
     @overload
     def near_audio(
         self,
-        near_audio: str,
+        near_audio: Union[str, Path, BufferedReader],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -59,7 +61,7 @@ class _NearAudio(_Grpc):
     @overload
     def near_audio(
         self,
-        near_audio: str,
+        near_audio: Union[str, Path, BufferedReader],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -75,7 +77,7 @@ class _NearAudio(_Grpc):
 
     def near_audio(
         self,
-        near_audio: str,
+        near_audio: Union[str, Path, BufferedReader],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -91,7 +93,7 @@ class _NearAudio(_Grpc):
 
         ret_properties, ret_type = self._determine_generic(return_properties)
         res = self._query().near_audio(
-            audio=near_audio,
+            audio=self._parse_media(near_audio),
             certainty=certainty,
             distance=distance,
             filters=filters,

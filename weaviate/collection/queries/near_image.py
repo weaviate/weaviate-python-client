@@ -1,3 +1,5 @@
+from io import BufferedReader
+from pathlib import Path
 from typing import Literal, Optional, Type, Union, overload
 
 from weaviate.collection.classes.filters import (
@@ -21,7 +23,7 @@ class _NearImage(_Grpc):
     @overload
     def near_image(
         self,
-        near_image: str,
+        near_image: Union[str, Path, BufferedReader],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -37,7 +39,7 @@ class _NearImage(_Grpc):
     @overload
     def near_image(
         self,
-        near_image: str,
+        near_image: Union[str, Path, BufferedReader],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -54,7 +56,7 @@ class _NearImage(_Grpc):
     @overload
     def near_image(
         self,
-        near_image: str,
+        near_image: Union[str, Path, BufferedReader],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -70,7 +72,7 @@ class _NearImage(_Grpc):
 
     def near_image(
         self,
-        near_image: str,
+        near_image: Union[str, Path, BufferedReader],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -86,7 +88,7 @@ class _NearImage(_Grpc):
 
         ret_properties, ret_type = self._determine_generic(return_properties)
         res = self._query().near_image(
-            image=near_image,
+            image=self._parse_media(near_image),
             certainty=certainty,
             distance=distance,
             limit=limit,

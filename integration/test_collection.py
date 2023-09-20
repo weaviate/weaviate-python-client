@@ -1,7 +1,9 @@
 import datetime
+import io
+import pathlib
 import uuid
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Type, TypedDict, Union
+from typing import Callable, Dict, List, Optional, Type, TypedDict, Union
 
 import pytest
 import weaviate
@@ -1217,8 +1219,25 @@ def test_near_text_limit(client: weaviate.Client):
     assert ret.objects[1].properties["value"] == "cake"
 
 
-@pytest.mark.parametrize("distance,certainty", [(None, None), (10, None), (None, 0.1)])
-def test_near_image(client: weaviate.Client, distance: Optional[float], certainty: Optional[float]):
+@pytest.mark.parametrize(
+    "image_maker",
+    [
+        lambda: WEAVIATE_LOGO_OLD_ENCODED,
+        lambda: pathlib.Path("./integration/weaviate-logo.png"),
+        lambda: pathlib.Path("./integration/weaviate-logo.png").open("rb"),
+    ],
+    ids=["base64", "pathlib.Path", "io.BufferedReader"],
+)
+@pytest.mark.parametrize(
+    "distance,certainty",
+    [(None, None), (10, None), (None, 0.1)],
+)
+def test_near_image(
+    client: weaviate.Client,
+    image_maker: Callable[[], Union[str, pathlib.Path, io.BufferedReader]],
+    distance: Optional[float],
+    certainty: Optional[float],
+):
     name = "TestNearImage"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -1232,9 +1251,12 @@ def test_near_image(client: weaviate.Client, distance: Optional[float], certaint
     uuid1 = collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_OLD_ENCODED})
     collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_NEW_ENCODED})
 
-    objects = collection.query.near_image(
-        WEAVIATE_LOGO_OLD_ENCODED, distance=distance, certainty=certainty
-    ).objects
+    image = image_maker()
+    objects = collection.query.near_image(image, distance=distance, certainty=certainty).objects
+
+    if isinstance(image, io.BufferedReader):
+        image.close()
+
     assert len(objects) == 2
     assert objects[0].metadata.uuid == uuid1
 

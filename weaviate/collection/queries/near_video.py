@@ -1,3 +1,5 @@
+from io import BufferedReader
+from pathlib import Path
 from typing import (
     Literal,
     Optional,
@@ -32,7 +34,7 @@ class _NearVideo(_Grpc):
     @overload
     def near_video(
         self,
-        near_video: str,
+        near_video: Union[str, Path, BufferedReader],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -48,7 +50,7 @@ class _NearVideo(_Grpc):
     @overload
     def near_video(
         self,
-        near_video: str,
+        near_video: Union[str, Path, BufferedReader],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -65,7 +67,7 @@ class _NearVideo(_Grpc):
     @overload
     def near_video(
         self,
-        near_video: str,
+        near_video: Union[str, Path, BufferedReader],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -81,7 +83,7 @@ class _NearVideo(_Grpc):
 
     def near_video(
         self,
-        near_video: str,
+        near_video: Union[str, Path, BufferedReader],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -97,7 +99,7 @@ class _NearVideo(_Grpc):
 
         ret_properties, ret_type = self._determine_generic(return_properties)
         res = self._query().near_video(
-            video=near_video,
+            video=self._parse_media(near_video),
             certainty=certainty,
             distance=distance,
             limit=limit,
