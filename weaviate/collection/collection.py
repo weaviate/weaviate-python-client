@@ -13,7 +13,7 @@ from weaviate.collection.classes.config import (
     ReferencePropertyBase,
     _ReplicationConfigCreate,
     _VectorizerConfig,
-    VectorizerFactory,
+    _VectorizerFactory,
     _VectorIndexConfigCreate,
     VectorIndexType,
 )
@@ -84,7 +84,7 @@ class Collection(CollectionBase):
             properties=properties,
             replication_config=replication_config,
             sharding_config=sharding_config,
-            vectorizer_config=vectorizer_config or VectorizerFactory.none(),
+            vectorizer_config=vectorizer_config or _VectorizerFactory.none(),
             vector_index_config=vector_index_config,
             vector_index_type=vector_index_type,
         )
