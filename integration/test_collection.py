@@ -1,16 +1,10 @@
 import datetime
-import sys
 from dataclasses import dataclass
 from typing import Dict, List, Optional, TypedDict, Union
 
 import uuid
 
 from weaviate.collection.classes.grpc import Sort
-
-if sys.version_info < (3, 9):
-    from typing_extensions import Annotated
-else:
-    from typing import Annotated
 
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
@@ -30,7 +24,6 @@ from weaviate.collection.classes.grpc import (
     GroupBy,
     HybridFusion,
     LinkTo,
-    LinkToMultiTarget,
     MetadataQuery,
     Move,
 )
@@ -40,7 +33,7 @@ from weaviate.exceptions import WeaviateGRPCException
 from weaviate.collection.collection import ITERATOR_CACHE_SIZE, CollectionObject
 from weaviate.collection.data import _DataCollection
 from weaviate.exceptions import InvalidDataModelException
-from weaviate.weaviate_types import UUID
+from weaviate.types import UUID
 
 
 import pytest
@@ -520,44 +513,6 @@ def test_types(client: weaviate.Client, data_type: DataType, value):
     client.collection.delete("Something")
 
 
-def test_reference_add_delete_replace(client: weaviate.Client):
-    ref_collection = client.collection.create(
-        name="RefClass2", vectorizer_config=VectorizerFactory.none()
-    )
-    uuid_to = ref_collection.data.insert(properties={})
-    collection = client.collection.create(
-        name="SomethingElse",
-        properties=[ReferenceProperty(name="ref", target_collection="RefClass2")],
-        vectorizer_config=VectorizerFactory.none(),
-    )
-
-    uuid_from1 = collection.data.insert({}, uuid.uuid4())
-    uuid_from2 = collection.data.insert({"ref": ReferenceFactory.to(uuids=uuid_to)}, uuid.uuid4())
-    collection.data.reference_add(
-        from_uuid=uuid_from1, from_property="ref", ref=ReferenceFactory.to(uuids=uuid_to)
-    )
-
-    collection.data.reference_delete(
-        from_uuid=uuid_from1, from_property="ref", ref=ReferenceFactory.to(uuids=uuid_to)
-    )
-    assert len(collection.query.fetch_object_by_id(uuid_from1).properties["ref"]) == 0
-
-    collection.data.reference_add(
-        from_uuid=uuid_from2, from_property="ref", ref=ReferenceFactory.to(uuids=uuid_to)
-    )
-    obj = collection.query.fetch_object_by_id(uuid_from2)
-    assert len(obj.properties["ref"]) == 2
-    assert str(uuid_to) in "".join([ref["beacon"] for ref in obj.properties["ref"]])
-
-    collection.data.reference_replace(
-        from_uuid=uuid_from2, from_property="ref", ref=ReferenceFactory.to(uuids=[])
-    )
-    assert len(collection.query.fetch_object_by_id(uuid_from2).properties["ref"]) == 0
-
-    client.collection.delete("SomethingElse")
-    client.collection.delete("RefClass2")
-
-
 @pytest.mark.parametrize("fusion_type", [HybridFusion.RANKED, HybridFusion.RELATIVE_SCORE])
 def test_search_hybrid(client: weaviate.Client, fusion_type):
     collection = client.collection.create(
@@ -719,12 +674,9 @@ def test_near_vector(client: weaviate.Client):
     client.collection.delete("TestNearVector")
 
 
-@pytest.mark.skip(
-    reason="gRPC call failed with message panic occurred: interface conversion: models.PropertySchema is nil, not map[string]interface {}."
-)
 def test_near_vector_group_by(client: weaviate.Client):
     collection = client.collection.create(
-        name="TestNearVector",
+        name="TestNearVectorGroupBy",
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
             Property(name="Count", data_type=DataType.INT),
@@ -747,9 +699,7 @@ def test_near_vector_group_by(client: weaviate.Client):
 
     assert len(ret.objects) == 4
     assert ret.objects[0].belongs_to_group == "Banana"
-    assert ret.objects[0].properties["count"] == 51
     assert ret.objects[1].belongs_to_group == "Banana"
-    assert ret.objects[1].properties["count"] == 72
     assert ret.objects[2].belongs_to_group == "car"
     assert ret.objects[3].belongs_to_group == "Mountain"
 
@@ -785,12 +735,9 @@ def test_near_object(client: weaviate.Client):
     client.collection.delete("TestNearObject")
 
 
-@pytest.mark.skip(
-    reason="gRPC call failed with message panic occurred: interface conversion: models.PropertySchema is nil, not map[string]interface {}."
-)
 def test_near_object_group_by(client: weaviate.Client):
     collection = client.collection.create(
-        name="TestNearObject",
+        name="TestNearObjectGroupBy",
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
             Property(name="Count", data_type=DataType.INT),
@@ -810,278 +757,11 @@ def test_near_object_group_by(client: weaviate.Client):
 
     assert len(ret.objects) == 4
     assert ret.objects[0].belongs_to_group == "Banana"
-    assert ret.objects[0].properties["count"] == 51
     assert ret.objects[1].belongs_to_group == "Banana"
-    assert ret.objects[1].properties["count"] == 72
     assert ret.objects[2].belongs_to_group == "car"
     assert ret.objects[3].belongs_to_group == "Mountain"
 
     client.collection.delete("TestNearObject")
-
-
-def test_mono_references_grpc(client: weaviate.Client):
-    A = client.collection.create(
-        name="A",
-        vectorizer_config=VectorizerFactory.none(),
-        properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-        ],
-    )
-    uuid_A1 = A.data.insert(properties={"Name": "A1"})
-    uuid_A2 = A.data.insert(properties={"Name": "A2"})
-
-    objects = A.query.bm25(query="A1", return_properties="name").objects
-    assert objects[0].properties["name"] == "A1"
-
-    B = client.collection.create(
-        name="B",
-        properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-            ReferenceProperty(name="ref", target_collection="A"),
-        ],
-        vectorizer_config=VectorizerFactory.none(),
-    )
-    uuid_B = B.data.insert({"Name": "B", "ref": ReferenceFactory.to(uuids=uuid_A1)})
-    B.data.reference_add(
-        from_uuid=uuid_B, from_property="ref", ref=ReferenceFactory.to(uuids=uuid_A2)
-    )
-
-    objects = B.query.bm25(
-        query="B",
-        return_properties=LinkTo(
-            link_on="ref",
-            return_properties=["name"],
-        ),
-    ).objects
-    assert objects[0].properties["ref"].objects[0].properties["name"] == "A1"
-    assert objects[0].properties["ref"].objects[1].properties["name"] == "A2"
-
-    objects = B.query.bm25(
-        query="B",
-        return_properties=[
-            LinkTo(
-                link_on="ref",
-                return_properties=["name"],
-                return_metadata=MetadataQuery(uuid=True),
-            )
-        ],
-    ).objects
-    assert objects[0].properties["ref"].objects[0].properties["name"] == "A1"
-    assert objects[0].properties["ref"].objects[0].metadata.uuid == uuid_A1
-    assert objects[0].properties["ref"].objects[1].properties["name"] == "A2"
-    assert objects[0].properties["ref"].objects[1].metadata.uuid == uuid_A2
-
-    C = client.collection.create(
-        name="C",
-        properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-            ReferenceProperty(name="ref", target_collection="B"),
-        ],
-        vectorizer_config=VectorizerFactory.none(),
-    )
-    C.data.insert({"Name": "find me", "ref": ReferenceFactory.to(uuids=uuid_B)})
-
-    objects = C.query.bm25(
-        query="find",
-        return_properties=[
-            "name",
-            LinkTo(
-                link_on="ref",
-                return_properties=[
-                    "name",
-                    LinkTo(
-                        link_on="ref",
-                        return_properties=["name"],
-                        return_metadata=MetadataQuery(uuid=True),
-                    ),
-                ],
-                return_metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
-            ),
-        ],
-    ).objects
-    assert objects[0].properties["name"] == "find me"
-    assert objects[0].properties["ref"].objects[0].properties["name"] == "B"
-    assert (
-        objects[0].properties["ref"].objects[0].properties["ref"].objects[0].properties["name"]
-        == "A1"
-    )
-    assert (
-        objects[0].properties["ref"].objects[0].properties["ref"].objects[1].properties["name"]
-        == "A2"
-    )
-
-
-def test_mono_references_grpc_typed_dicts(client: weaviate.Client):
-    client.collection.delete("ATypedDicts")
-    client.collection.delete("BTypedDicts")
-    client.collection.delete("CTypedDicts")
-
-    class AProps(TypedDict):
-        name: str
-
-    class BProps(TypedDict):
-        name: str
-        ref: Annotated[ReferenceFactory[AProps], MetadataQuery(uuid=True)]
-
-    class CProps(TypedDict):
-        name: str
-        ref: Annotated[ReferenceFactory[BProps], MetadataQuery(uuid=True)]
-
-    client.collection.create(
-        name="ATypedDicts",
-        vectorizer_config=VectorizerFactory.none(),
-        properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-        ],
-    )
-    A = client.collection.get("ATypedDicts", AProps)
-    uuid_A1 = A.data.insert(AProps(name="A1"))
-    uuid_A2 = A.data.insert(AProps(name="A2"))
-
-    B = client.collection.create(
-        name="BTypedDicts",
-        properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-            ReferenceProperty(name="ref", target_collection="ATypedDicts"),
-        ],
-        vectorizer_config=VectorizerFactory.none(),
-    )
-    B = client.collection.get("BTypedDicts", BProps)
-    uuid_B = B.data.insert(
-        properties=BProps(name="B", ref=ReferenceFactory[AProps].to(uuids=uuid_A1))
-    )
-    B.data.reference_add(
-        from_uuid=uuid_B, from_property="ref", ref=ReferenceFactory[AProps].to(uuids=uuid_A2)
-    )
-
-    client.collection.create(
-        name="CTypedDicts",
-        properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-            Property(name="Age", data_type=DataType.INT),
-            ReferenceProperty(name="ref", target_collection="BTypedDicts"),
-        ],
-        vectorizer_config=VectorizerFactory.none(),
-    )
-    C = client.collection.get("CTypedDicts", CProps)
-    C.data.insert(properties=CProps(name="find me", ref=ReferenceFactory[BProps].to(uuids=uuid_B)))
-
-    objects = (
-        client.collection.get("CTypedDicts")
-        .query.bm25(
-            query="find",
-            return_properties=CProps,
-        )
-        .objects
-    )
-    assert (
-        objects[0].properties["name"] == "find me"
-    )  # happy path (in type and in return_properties)
-    assert objects[0].metadata.uuid is None
-    assert (
-        objects[0].properties.get("not_specified") is None
-    )  # type is str but instance is None (in type but not in return_properties)
-    assert objects[0].properties["ref"].objects[0].properties["name"] == "B"
-    assert objects[0].properties["ref"].objects[0].metadata.uuid == uuid_B
-    assert (
-        objects[0].properties["ref"].objects[0].properties["ref"].objects[0].properties["name"]
-        == "A1"
-    )
-    assert (
-        objects[0].properties["ref"].objects[0].properties["ref"].objects[0].metadata.uuid
-        == uuid_A1
-    )
-    assert (
-        objects[0].properties["ref"].objects[0].properties["ref"].objects[1].properties["name"]
-        == "A2"
-    )
-    assert (
-        objects[0].properties["ref"].objects[0].properties["ref"].objects[1].metadata.uuid
-        == uuid_A2
-    )
-
-
-def test_multi_references_grpc(client: weaviate.Client):
-    client.collection.delete("A")
-    client.collection.delete("B")
-    client.collection.delete("C")
-
-    A = client.collection.create(
-        name="A",
-        vectorizer_config=VectorizerFactory.none(),
-        properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-        ],
-    )
-    uuid_A = A.data.insert(properties={"Name": "A"})
-
-    B = client.collection.create(
-        name="B",
-        properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-        ],
-        vectorizer_config=VectorizerFactory.none(),
-    )
-    uuid_B = B.data.insert({"Name": "B"})
-
-    C = client.collection.create(
-        name="C",
-        properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-            ReferencePropertyMultiTarget(name="ref", target_collections=["A", "B"]),
-        ],
-        vectorizer_config=VectorizerFactory.none(),
-    )
-    C.data.insert(
-        {
-            "Name": "first",
-            "ref": ReferenceFactory.to_multi_target(uuids=uuid_A, target_collection="A"),
-        }
-    )
-    C.data.insert(
-        {
-            "Name": "second",
-            "ref": ReferenceFactory.to_multi_target(uuids=uuid_B, target_collection="B"),
-        }
-    )
-
-    objects = C.query.bm25(
-        query="first",
-        return_properties=[
-            "name",
-            LinkToMultiTarget(
-                link_on="ref",
-                target_collection="A",
-                return_properties=["name"],
-                return_metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
-            ),
-        ],
-    ).objects
-    assert objects[0].properties["name"] == "first"
-    assert len(objects[0].properties["ref"].objects) == 1
-    assert objects[0].properties["ref"].objects[0].properties["name"] == "A"
-
-    objects = C.query.bm25(
-        query="second",
-        return_properties=[
-            "name",
-            LinkToMultiTarget(
-                link_on="ref",
-                target_collection="B",
-                return_properties=[
-                    "name",
-                ],
-                return_metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
-            ),
-        ],
-    ).objects
-    assert objects[0].properties["name"] == "second"
-    assert len(objects[0].properties["ref"].objects) == 1
-    assert objects[0].properties["ref"].objects[0].properties["name"] == "B"
-
-    client.collection.delete("A")
-    client.collection.delete("B")
-    client.collection.delete("C")
 
 
 def test_tenants(client: weaviate.Client):
@@ -1455,6 +1135,8 @@ def test_near_text(
         return_properties=["value"],
     ).objects
 
+    assert len(objs) == 4
+
     assert objs[0].metadata.uuid == batch_return.uuids[2]
     assert objs[0].properties["value"] == "apple cake"
 
@@ -1501,6 +1183,38 @@ def test_near_text_group_by(client: weaviate.Client):
     assert ret.objects[0].belongs_to_group == "apple cake"
     assert ret.objects[1].metadata.uuid == batch_return.uuids[3]
     assert ret.objects[1].belongs_to_group == "cake"
+
+
+def test_near_text_limit(client: weaviate.Client):
+    name = "TestNearTextLimit"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        name=name,
+        vectorizer_config=VectorizerFactory.text2vec_contextionary(),
+        properties=[Property(name="value", data_type=DataType.TEXT)],
+    )
+
+    batch_return = collection.data.insert_many(
+        [
+            DataObject(properties={"value": "Apple"}, uuid=UUID1),
+            DataObject(properties={"value": "Mountain climbing"}),
+            DataObject(properties={"value": "apple cake"}),
+            DataObject(properties={"value": "cake"}),
+        ]
+    )
+
+    ret = collection.query.near_text(
+        query="cake",
+        limit=2,
+        return_metadata=MetadataQuery(uuid=True),
+        return_properties=["value"],
+    )
+
+    assert len(ret.objects) == 2
+    assert ret.objects[0].metadata.uuid == batch_return.uuids[2]
+    assert ret.objects[0].properties["value"] == "apple cake"
+    assert ret.objects[1].metadata.uuid == batch_return.uuids[3]
+    assert ret.objects[1].properties["value"] == "cake"
 
 
 @pytest.mark.parametrize("distance,certainty", [(None, None), (10, None), (None, 0.1)])

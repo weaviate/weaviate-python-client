@@ -4,10 +4,11 @@ from weaviate.collection.classes.config import (
     _CollectionConfigCreate,
     DataType,
     Multi2VecField,
+    _GenerativeConfig,
     _VectorizerConfig,
+    GenerativeFactory,
     VectorizerFactory,
     Property,
-    PropertyVectorizerConfig,
 )
 
 
@@ -310,9 +311,35 @@ TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
             Property(
                 name="text",
                 data_type=DataType.TEXT,
-                vectorizer_config=PropertyVectorizerConfig(
-                    skip=False, vectorize_property_name=False
-                ),
+                skip_vectorization=True,
+                vectorize_property_name=False,
+            )
+        ],
+        {
+            "text2vec-transformers": {
+                "vectorizeClassName": True,
+                "poolingStrategy": "masked_mean",
+            }
+        },
+        [
+            {
+                "dataType": ["text"],
+                "name": "text",
+                "moduleConfig": {
+                    "text2vec-transformers": {
+                        "skip": True,
+                        "vectorizePropertyName": False,
+                    }
+                },
+            }
+        ],
+    ),
+    (
+        VectorizerFactory.text2vec_transformers(),
+        [
+            Property(
+                name="text",
+                data_type=DataType.TEXT,
             )
         ],
         {
@@ -328,12 +355,12 @@ TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
                 "moduleConfig": {
                     "text2vec-transformers": {
                         "skip": False,
-                        "vectorizePropertyName": False,
+                        "vectorizePropertyName": True,
                     }
                 },
             }
         ],
-    )
+    ),
 ]
 
 
@@ -355,6 +382,102 @@ def test_config_with_module_and_properties(
         "vectorizer": vectorizer_config.vectorizer.value,
         "class": "Test",
         "properties": expected_props,
+        "moduleConfig": expected_mc,
+    }
+
+
+TEST_CONFIG_WITH_GENERATIVE_MODULE = [
+    (
+        GenerativeFactory.openai(),
+        {"generative-openai": {}},
+    ),
+    (
+        GenerativeFactory.openai(
+            model="gpt-4",
+            frequency_penalty=0.5,
+            max_tokens=100,
+            presence_penalty=0.5,
+            temperature=0.5,
+            top_p=0.5,
+        ),
+        {
+            "generative-openai": {
+                "model": "gpt-4",
+                "frequencyPenaltyProperty": 0.5,
+                "maxTokensProperty": 100,
+                "presencePenaltyProperty": 0.5,
+                "temperatureProperty": 0.5,
+                "topPProperty": 0.5,
+            }
+        },
+    ),
+    (GenerativeFactory.cohere(), {"generative-cohere": {}}),
+    (
+        GenerativeFactory.cohere(
+            model="model",
+            k=10,
+            max_tokens=100,
+            return_likelihoods="ALL",
+            stop_sequences=["stop"],
+            temperature=0.5,
+        ),
+        {
+            "generative-cohere": {
+                "model": "model",
+                "kProperty": 10,
+                "maxTokensProperty": 100,
+                "returnLikelihoodsProperty": "ALL",
+                "stopSequencesProperty": ["stop"],
+                "temperatureProperty": 0.5,
+            }
+        },
+    ),
+    (
+        GenerativeFactory.palm(project_id="project"),
+        {
+            "generative-palm": {
+                "projectId": "project",
+            }
+        },
+    ),
+    (
+        GenerativeFactory.palm(
+            project_id="project",
+            api_endpoint="https://weaviate.io",
+            max_output_tokens=100,
+            model_id="model",
+            temperature=0.5,
+            top_k=10,
+            top_p=0.5,
+        ),
+        {
+            "generative-palm": {
+                "projectId": "project",
+                "apiEndpoint": "https://weaviate.io",
+                "maxOutputTokens": 100,
+                "modelId": "model",
+                "temperature": 0.5,
+                "topK": 10,
+                "topP": 0.5,
+            }
+        },
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "generative_config,expected_mc",
+    TEST_CONFIG_WITH_GENERATIVE_MODULE,
+)
+def test_config_with_generative_module(
+    generative_config: _GenerativeConfig,
+    expected_mc: dict,
+):
+    config = _CollectionConfigCreate(name="test", generative_config=generative_config)
+    assert config.to_dict() == {
+        **DEFAULTS,
+        "vectorizer": "none",
+        "class": "Test",
         "moduleConfig": expected_mc,
     }
 

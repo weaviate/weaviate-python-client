@@ -21,7 +21,7 @@ from weaviate.exceptions import (
     ResponseCannotBeDecodedException,
 )
 from weaviate.warnings import _Warnings
-from weaviate.weaviate_types import NUMBER, UUIDS, TIME
+from weaviate.types import NUMBER, UUIDS, TIME
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"
 MAXIMUM_MINOR_VERSION_DELTA = 3  # The maximum delta between minor versions of Weaviate Client that will not trigger an upgrade warning.
@@ -804,7 +804,7 @@ def _decode_json_response_dict(
 
     if 200 <= response.status_code < 300:
         try:
-            json_response = cast(dict, response.json())
+            json_response = cast(Dict[str, Any], response.json())
             return json_response
         except JSONDecodeError:
             raise ResponseCannotBeDecodedException(location, response)

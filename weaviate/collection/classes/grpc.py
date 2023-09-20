@@ -5,7 +5,7 @@ from pydantic import Field
 
 from weaviate.collection.classes.types import WeaviateInput
 from weaviate.util import BaseEnum
-from weaviate.weaviate_types import UUID
+from weaviate.types import UUID
 
 
 class HybridFusion(str, BaseEnum):

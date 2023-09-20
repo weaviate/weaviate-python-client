@@ -4,7 +4,7 @@ from typing import List, Optional, Dict, Union, Generic
 
 from weaviate.collection.classes.internal import Properties
 from weaviate.util import _to_beacons
-from weaviate.weaviate_types import UUID, UUIDS
+from weaviate.types import UUID, UUIDS
 
 
 @dataclass
@@ -31,6 +31,11 @@ class _BatchReturn:
     uuids: Dict[int, uuid_package.UUID]
     errors: Dict[int, Error]
     has_errors: bool = False
+
+
+@dataclass
+class RefError:
+    message: str
 
 
 @dataclass

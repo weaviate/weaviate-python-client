@@ -32,7 +32,7 @@ from requests.exceptions import HTTPError as RequestsHTTPError
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.gql.filter import _find_value_type, VALUE_ARRAY_TYPES, WHERE_OPERATORS
-from weaviate.weaviate_types import UUID
+from weaviate.types import UUID
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest, BatchResponse
 from ..cluster import Cluster
 from ..error_msgs import (

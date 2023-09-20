@@ -21,7 +21,7 @@ from weaviate.collection.classes.types import (
     Properties,
 )
 from weaviate.collection.queries.base import _Grpc
-from weaviate.weaviate_types import UUID
+from weaviate.types import UUID
 
 
 class _FetchObjects(_Grpc):
