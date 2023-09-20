@@ -378,7 +378,7 @@ def test_insert_many_with_tenant(client: weaviate.Client):
         multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
     )
 
-    collection.tenants.add([Tenant(name="tenant1"), Tenant(name="tenant2")])
+    collection.tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
     tenant1 = collection.with_tenant("tenant1")
     tenant2 = collection.with_tenant("tenant2")
 
@@ -442,7 +442,7 @@ def test_replace_with_tenant(client: weaviate.Client):
         multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
     )
 
-    collection.tenants.add([Tenant(name="tenant1"), Tenant(name="tenant2")])
+    collection.tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
     tenant1 = collection.with_tenant("tenant1")
     tenant2 = collection.with_tenant("tenant2")
 
@@ -477,7 +477,7 @@ def test_update_with_tenant(client: weaviate.Client):
         multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
     )
 
-    collection.tenants.add([Tenant(name="tenant1"), Tenant(name="tenant2")])
+    collection.tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
     tenant1 = collection.with_tenant("tenant1")
     tenant2 = collection.with_tenant("tenant2")
 
@@ -775,7 +775,7 @@ def test_tenants(client: weaviate.Client):
         ),
     )
 
-    collection.tenants.add([Tenant(name="tenant1")])
+    collection.tenants.create([Tenant(name="tenant1")])
 
     tenants = collection.tenants.get()
     assert len(tenants) == 1
@@ -824,7 +824,7 @@ def test_search_with_tenant(client: weaviate.Client):
         multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
     )
 
-    collection.tenants.add([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
+    collection.tenants.create([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
     tenant1 = collection.with_tenant("Tenant1")
     tenant2 = collection.with_tenant("Tenant2")
     uuid1 = tenant1.data.insert({"name": "some name"})
@@ -846,7 +846,7 @@ def test_fetch_object_by_id_with_tenant(client: weaviate.Client):
         multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
     )
 
-    collection.tenants.add([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
+    collection.tenants.create([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
     tenant1 = collection.with_tenant("Tenant1")
     tenant2 = collection.with_tenant("Tenant2")
 
@@ -891,7 +891,7 @@ def test_fetch_objects_with_tenant(client: weaviate.Client):
         multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
     )
 
-    collection.tenants.add([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
+    collection.tenants.create([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
     tenant1 = collection.with_tenant("Tenant1")
     tenant2 = collection.with_tenant("Tenant2")
 
@@ -1029,7 +1029,7 @@ def test_tenant_with_activity(client: weaviate.Client):
         vectorizer_config=ConfigFactory.Vectorizer.none(),
         multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
     )
-    collection.tenants.add(
+    collection.tenants.create(
         [
             Tenant(name="1", activity_status=TenantActivityStatus.HOT),
             Tenant(name="2", activity_status=TenantActivityStatus.COLD),
@@ -1049,7 +1049,7 @@ def test_update_tenant(client: weaviate.Client):
         vectorizer_config=ConfigFactory.Vectorizer.none(),
         multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
     )
-    collection.tenants.add([Tenant(name="1", activity_status=TenantActivityStatus.HOT)])
+    collection.tenants.create([Tenant(name="1", activity_status=TenantActivityStatus.HOT)])
     tenants = collection.tenants.get()
     assert tenants["1"].activity_status == TenantActivityStatus.HOT
 
