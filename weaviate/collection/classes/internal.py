@@ -142,24 +142,48 @@ class _GroupBy:
 
 
 class ReferenceFactory(Generic[P]):
+    """Factory class for cross references to other objects.
+
+    Can be used with or without generics. If used with generics, the type of the cross reference can be defined from
+    which the nested relationship will be used when performing queries using the generics. If used without generics,
+    all returned objects will of the`Dict[str, Any]` type.
+    """
+
     def __init__(
         self,
         objects: Optional[List[_Object[P]]],
         target_collection: Optional[str],
         uuids: Optional[UUIDS],
     ):
+        """You should not initialise this class directly. Use the `.to()` or `.to_multi_target()` class methods instead."""
         self.__objects = objects
         self.__target_collection = target_collection if target_collection else ""
         self.__uuids = uuids
 
     @classmethod
     def to(cls, uuids: UUIDS) -> "ReferenceFactory[P]":
+        """Defines cross references to other objects by their UUIDs.
+
+        Can be made to be generic by using `ReferenceFactory[Properties]` as the type.
+
+        Arguments:
+            uuids
+                List of UUIDs of the objects to which the reference should point.
+        """
         return cls(None, None, uuids)
 
     @classmethod
     def to_multi_target(
         cls, uuids: UUIDS, target_collection: Union[str, _CollectionObjectBase]
     ) -> "ReferenceFactory[P]":
+        """Defines cross references to other objects by their UUIDs and the collection in which they are stored.
+
+        Can be made to be generic by using `ReferenceFactory[Properties]` as the type.
+
+        Arguments:
+            - uuids: List of UUIDs of the objects to which the reference should point.
+            - target_collection: The collection in which the objects are stored. Can be either the name of the collection or the collection object itself.
+        """
         return cls(
             None,
             target_collection.name
@@ -179,10 +203,12 @@ class ReferenceFactory(Generic[P]):
 
     @property
     def is_multi_target(self) -> bool:
+        """Returns True if the reference is to a multi-target collection."""
         return self.__target_collection != ""
 
     @property
     def uuids_str(self) -> List[str]:
+        """Returns the UUIDs as strings."""
         if isinstance(self.__uuids, list):
             return [str(uid) for uid in self.__uuids]
         else:
@@ -190,10 +216,12 @@ class ReferenceFactory(Generic[P]):
 
     @property
     def target_collection(self) -> str:
+        """Returns the target collection name."""
         return self.__target_collection
 
     @property
     def objects(self) -> List[_Object[P]]:
+        """Returns the objects of the cross reference."""
         return self.__objects or []
 
 
@@ -212,7 +240,7 @@ def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
 
 
 def _extract_property_type_from_reference(type_: ReferenceFactory[P]) -> Type[P]:
-    """Extract inner type from Reference[Properties]"""
+    """Extract inner type from Reference[Properties]."""
     if getattr(type_, "__origin__", None) == ReferenceFactory:
         args = cast(List[Type[P]], getattr(type_, "__args__", None))
         return args[0]
@@ -225,7 +253,7 @@ def _extract_property_type_from_annotated_reference(
         Annotated[ReferenceFactory[P], MetadataQuery, str],
     ]
 ) -> Type[P]:
-    """Extract inner type from Annotated[Reference[Properties]]"""
+    """Extract inner type from Annotated[Reference[Properties]]."""
     if get_origin(type_) is Annotated:
         args = cast(List[ReferenceFactory[Type[P]]], getattr(type_, "__args__", None))
         inner_type = args[0]
@@ -242,7 +270,7 @@ def __create_link_to_from_annotated_reference(
         Annotated[ReferenceFactory[Properties], MetadataQuery, str],
     ],
 ) -> Union[LinkTo, LinkToMultiTarget]:
-    """Create LinkTo or LinkToMultiTarget from Annotated[Reference[Properties]]"""
+    """Create LinkTo or LinkToMultiTarget from Annotated[Reference[Properties]]."""
     assert get_origin(value) is Annotated
     args = cast(List[ReferenceFactory[Properties]], getattr(value, "__args__", None))
     inner_type = args[0]
@@ -277,7 +305,7 @@ def __create_link_to_from_reference(
     link_on: str,
     value: ReferenceFactory[Properties],
 ) -> LinkTo:
-    """Create LinkTo from Reference[Properties]"""
+    """Create LinkTo from Reference[Properties]."""
     return LinkTo(
         link_on=link_on,
         return_metadata=MetadataQuery(),
@@ -288,7 +316,11 @@ def __create_link_to_from_reference(
 
 
 def _extract_properties_from_data_model(type_: Type[Properties]) -> PROPERTIES:
-    """Extract properties of Properties recursively from Properties"""
+    """Extract properties of Properties recursively from Properties.
+
+    Checks to see if there is a Reference[Properties] or Annotated[Reference[Properties]] in the data model and
+    lists out the non-cross-reference properties.
+    """
     return [
         __create_link_to_from_annotated_reference(key, value)
         if get_origin(value) is Annotated

@@ -95,7 +95,7 @@ class PQEncoderDistribution(str, Enum):
 class _ConfigCreateModel(BaseModel):
     model_config = ConfigDict(strict=True)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> Dict[str, Any]:
         return cast(dict, self.model_dump(exclude_none=True))
 
 
@@ -121,8 +121,8 @@ class _PQEncoderConfigCreate(_ConfigCreateModel):
     type_: PQEncoderType
     distribution: PQEncoderDistribution
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
         ret_dict["type"] = ret_dict.pop("type_")
         return ret_dict
 
@@ -150,8 +150,8 @@ class _PQConfigCreate(_ConfigCreateModel):
     segments: int
     trainingLimit: int = Field(..., ge=100000)
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
         ret_dict["encoder"] = {
             "type": ret_dict.pop("encoder_type"),
             "distribution": ret_dict.pop("encoder_distribution"),
@@ -457,8 +457,8 @@ class _Text2VecHuggingFaceConfig(_VectorizerConfig):
             )
         return values
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
         options = {}
         if self.waitForModel is not None:
             options["waitForModel"] = ret_dict.pop("waitForModel")
@@ -482,8 +482,8 @@ class _Text2VecOpenAIConfig(_VectorizerConfig):
     type_: Optional[OpenAIType]
     vectorizeClassName: bool
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
         if self.type_ is not None:
             ret_dict["type"] = ret_dict.pop("type_")
         return ret_dict
@@ -502,8 +502,8 @@ class _Text2VecPalmConfig(_VectorizerConfig):
     modelId: Optional[str]
     vectorizeClassName: bool
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
         if self.apiEndpoint is not None:
             ret_dict["apiEndpoint"] = str(self.apiEndpoint)
         return ret_dict
@@ -537,8 +537,8 @@ class _Multi2VecBase(_VectorizerConfig):
     textFields: Optional[List[Multi2VecField]]
     vectorizeClassName: bool
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
         ret_dict["weights"] = {}
         for cls_field in self.model_fields:
             val = getattr(self, cls_field)
@@ -939,7 +939,7 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
     )
     generativeSearch: Optional[_GenerativeConfig] = Field(default=None, alias="generative_config")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
 
         for cls_field in self.model_fields:
@@ -951,14 +951,14 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
             elif isinstance(val, (bool, float, str, int)):
                 ret_dict[cls_field] = str(val)
             elif isinstance(val, _GenerativeConfig):
-                self.__add_to_module_config(ret_dict, val.generative.value, val.to_dict())
+                self.__add_to_module_config(ret_dict, val.generative.value, val._to_dict())
             elif isinstance(val, _VectorizerConfig):
                 ret_dict["vectorizer"] = val.vectorizer.value
                 if val.vectorizer != Vectorizer.NONE:
-                    self.__add_to_module_config(ret_dict, val.vectorizer.value, val.to_dict())
+                    self.__add_to_module_config(ret_dict, val.vectorizer.value, val._to_dict())
             else:
                 assert isinstance(val, _ConfigCreateModel)
-                ret_dict[cls_field] = val.to_dict()
+                ret_dict[cls_field] = val._to_dict()
         if self.moduleConfig is None:
             ret_dict["vectorizer"] = Vectorizer.NONE.value
         return ret_dict
@@ -1139,7 +1139,7 @@ class PropertyConfig:
 
     # tmp solution. replace with a pydantic BaseModel, see bugreport: https://github.com/pydantic/pydantic/issues/6948
     # bugreport was closed as not planned :( so dataclasses must stay
-    def to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> Dict[str, Any]:
         return {
             "indexFilterable": self.index_filterable,
             "indexSearchable": self.index_searchable,
@@ -1159,8 +1159,8 @@ class Property(_ConfigCreateModel):
     tokenization: Optional[Tokenization] = Field(default=None)
     vectorize_property_name: bool = True
 
-    def to_dict(self, vectorizer: Optional[Vectorizer] = None) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self, vectorizer: Optional[Vectorizer] = None) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
         ret_dict["dataType"] = [ret_dict["dataType"]]
         if vectorizer is not None and vectorizer != Vectorizer.NONE:
             ret_dict["moduleConfig"] = {
@@ -1181,8 +1181,8 @@ class ReferencePropertyBase(_ConfigCreateModel):
 class ReferenceProperty(ReferencePropertyBase):
     target_collection: str
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
         ret_dict["dataType"] = [_capitalize_first_letter(self.target_collection)]
         del ret_dict["target_collection"]
         return ret_dict
@@ -1191,8 +1191,8 @@ class ReferenceProperty(ReferencePropertyBase):
 class ReferencePropertyMultiTarget(ReferencePropertyBase):
     target_collections: List[str]
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
         ret_dict["dataType"] = [
             _capitalize_first_letter(target) for target in self.target_collections
         ]
@@ -1210,16 +1210,16 @@ class _CollectionConfigCreate(_CollectionConfigCreateBase):
     def model_post_init(self, __context: Any) -> None:
         self.name = _capitalize_first_letter(self.name)
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
 
         ret_dict["class"] = self.name
 
         if self.properties is not None:
             ret_dict["properties"] = [
-                prop.to_dict(self.moduleConfig.vectorizer)
+                prop._to_dict(self.moduleConfig.vectorizer)
                 if isinstance(prop, Property)
-                else prop.to_dict()
+                else prop._to_dict()
                 for prop in self.properties
             ]
 
@@ -1227,9 +1227,7 @@ class _CollectionConfigCreate(_CollectionConfigCreateBase):
 
 
 class ConfigFactory:
-    """Use this factory class to generate the correct `xxxConfig` object for use in the `CollectionConfig` object for each type of
-    Weaviate configuration that you'd like to specify. E.g., `.multi_tenancy()` will return a `MultiTenancyConfigCreate` object
-    to be used in the `multi_tenancy_config` attribute of `CollectionConfig`.
+    """Use this factory class to generate the correct `_xxxConfig` object for use when using the `collection.create()` method. E.g., `.multi_tenancy()` will return a `MultiTenancyConfigCreate` object to be used in the `multi_tenancy_config` argument.
 
     Each classmethod provides options specific to the named configuration type in the function's name. Under-the-hood data validation steps
     will ensure that any mis-specifications are caught before the request is sent to Weaviate.
@@ -1253,25 +1251,12 @@ class ConfigFactory:
     ) -> _InvertedIndexConfigCreate:
         """Create an `InvertedIndexConfigCreate` object to be used when defining the configuration of the keyword searching algorithm of Weaviate.
 
-        Define the free parameters of the BM25 ranking algorithm through `bm25_b` and `bm25_k1`. The default values are
-        `bm25_b=0.75` and `bm25_k1=1.2`. See the [documentation](https://weaviate.io/developers/weaviate/search/bm25) for detail on the
-        BM25 implementation and the [Wikipedia article](https://en.wikipedia.org/wiki/Okapi_BM25) for details on the theory, especially
-        in relation to the `bm25_b` and `bm25_k1` parameters.
-
-        Args:
-            `bm25_b`: The `b` parameter of the BM25 ranking algorithm. Defaults to `0.75`.
-            `bm25_k1`: The `k1` parameter of the BM25 ranking algorithm. Defaults to `1.2`.
-            `cleanup_interval_seconds`: The interval in seconds at which the inverted index is cleaned up. Defaults to `60`.
-            `index_timestamps`: Whether to index timestamps. Defaults to `False`.
-            `index_property_length`: Whether to index property length. Defaults to `None`.
-            `index_null_state`: Whether to index the null state. Defaults to `None`.
-            `stopwords_preset`: The preset to use for stopwords. Defaults to `None`.
-            `stopwords_additions`: The stopwords to add. Defaults to `None`.
-            `stopwords_removals`: The stopwords to remove. Defaults to `None`.
+        Arguments:
+            - See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for details!
 
         Returns:
             An `InvertedIndexConfigCreate` object.
-        """
+        """  # noqa: D417 (missing argument descriptions in the docstring)
         return _InvertedIndexConfigCreate(
             bm25=_BM25ConfigCreate(b=bm25_b, k1=bm25_k1),
             cleanupIntervalSeconds=cleanup_interval_seconds,
@@ -1287,14 +1272,22 @@ class ConfigFactory:
 
     @classmethod
     def multi_tenancy(cls, enabled: bool = False) -> _MultiTenancyConfigCreate:
+        """Create a `MultiTenancyConfigCreate` object to be used when defining the multi-tenancy configuration of Weaviate.
+
+        Argumentss:
+            - `enabled`: Whether multi-tenancy is enabled. Defaults to `False`.
+
+        Returns:
+            A `MultiTenancyConfigCreate` object.
+        """
         return _MultiTenancyConfigCreate(enabled=enabled)
 
     @classmethod
     def replication(cls, factor: int = 1) -> _ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
-        Args:
-            `factor`: The replication factor. Defaults to `1`.
+        Arguments:
+            - `factor`: The replication factor. Defaults to `1`.
 
         Returns:
             A `ReplicationConfigCreate` object.
@@ -1312,12 +1305,16 @@ class ConfigFactory:
     ) -> _ShardingConfigCreate:
         """Create a `ShardingConfigCreate` object to be used when defining the sharding configuration of Weaviate.
 
-        Args:
-            `virtual_per_physical`: The number of virtual shards per physical shard. Defaults to `128`.
-            `desired_count`: The desired number of physical shards. Defaults to `1`.
-            `actual_count`: The actual number of physical shards. Defaults to `1`.
-            `desired_virtual_count`: The desired number of virtual shards. Defaults to `128`.
-            `actual_virtual_count`: The actual number of virtual shards. Defaults to `128`.
+        NOTE: You can only use one of Sharding or Replication, not both.
+
+        See [the docs](https://weaviate.io/developers/weaviate/concepts/replication-architecture#replication-vs-sharding) for more details.
+
+        Arguments:
+            - `virtual_per_physical`: The number of virtual shards per physical shard. Defaults to `128`.
+            - `desired_count`: The desired number of physical shards. Defaults to `1`.
+            - `actual_count`: The actual number of physical shards. Defaults to `1`.
+            - `desired_virtual_count`: The desired number of virtual shards. Defaults to `128`.
+            - `actual_virtual_count`: The actual number of virtual shards. Defaults to `128`.
 
         Returns:
             A `ShardingConfigCreate` object.
@@ -1352,6 +1349,16 @@ class ConfigFactory:
         skip: bool = False,
         vector_cache_max_objects: int = 1000000000000,
     ) -> _VectorIndexConfigCreate:
+        """Create a `_VectorIndexConfigCreate` object to be used when defining the vector index configuration of Weaviate.
+
+        Use this method when defining the `vector_index_config` argument in `collection.create()`.
+
+        Arguments:
+            - See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
+
+        Returns:
+            A `_VectorIndexConfigCreate` object.
+        """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigCreate(
             cleanupIntervalSeconds=cleanup_interval_seconds,
             distance=distance_metric,
@@ -1379,10 +1386,25 @@ class ConfigFactory:
 
     @classmethod
     def vector_index_type(cls) -> VectorIndexType:
+        """Create a `VectorIndexType` object to be used when defining the vector index type of Weaviate.
+
+        Use this method when defining the `vector_index_type` argument in `collection.create()`.
+
+        Returns:
+            A `VectorIndexType` object.
+        """
         return VectorIndexType.HNSW
 
 
 class ConfigUpdateFactory:
+    """Use this factory class to generate the correct `xxxConfig` object for use when using the `collection.update()` method.
+
+    Each classmethod provides options specific to the named configuration type in the function's name. Under-the-hood data validation steps
+    will ensure that any mis-specifications are caught before the request is sent to Weaviate. Only those configurations that are mutable are
+    available in this class. If you wish to update the configuration of an immutable aspect of your collection then you will have to delete
+    the collection and re-create it with the new configuration.
+    """
+
     @classmethod
     def inverted_index(
         cls,
@@ -1395,20 +1417,14 @@ class ConfigUpdateFactory:
     ) -> _InvertedIndexConfigUpdate:
         """Create an `InvertedIndexConfigUpdate` object.
 
-        Args:
-            `bm25_b`: The `b` parameter of the BM25 ranking algorithm. Defaults to `None`.
-            `bm25_k1`: The `k1` parameter of the BM25 ranking algorithm. Defaults to `None`.
-            `cleanup_interval_seconds`: The interval in seconds at which the inverted index is cleaned up. Defaults to `None`.
-            `index_timestamps`: Whether to index timestamps. Defaults to `None`.
-            `index_property_length`: Whether to index property length. Defaults to `None`.
-            `index_null_state`: Whether to index the null state. Defaults to `None`.
-            `stopwords_preset`: The preset to use for stopwords. Defaults to `None`.
-            `stopwords_additions`: The stopwords to add. Defaults to `None`.
-            `stopwords_removals`: The stopwords to remove. Defaults to `None`.
+        Use this method when defining the `inverted_index_config` argument in `collection.update()`.
+
+        Arguments:
+            - See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
 
         Returns:
             An `InvertedIndexConfigUpdate` object.
-        """
+        """  # noqa: D417 (missing argument descriptions in the docstring)
         return _InvertedIndexConfigUpdate(
             bm25=_BM25ConfigUpdate(b=bm25_b, k1=bm25_k1),
             cleanupIntervalSeconds=cleanup_interval_seconds,
@@ -1423,8 +1439,10 @@ class ConfigUpdateFactory:
     def replication(cls, factor: int = 1) -> _ReplicationConfigUpdate:
         """Create a `ReplicationConfigUpdate` object.
 
+        Use this method when defining the `replication_config` argument in `collection.update()`.
+
         Args:
-            `factor`: The replication factor. Defaults to `1`.
+            - `factor`: The replication factor. Defaults to `1`.
 
         Returns:
             A `ReplicationConfigUpdate` object.
@@ -1449,6 +1467,13 @@ class ConfigUpdateFactory:
         pq_segments: Optional[int] = None,
         pq_training_limit: Optional[int] = None,
     ) -> _VectorIndexConfigUpdate:
+        """Create a `_VectorIndexConfigUpdate` object.
+
+        Use this method when defining the `vector_index_config` argument in `collection.update()`.
+
+        Arguments:
+            - See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for details!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigUpdate(
             dynamicEfFactor=dynamic_ef_factor,
             dynamicEfMin=dynamic_ef_min,

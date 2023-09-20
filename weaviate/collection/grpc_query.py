@@ -323,12 +323,12 @@ class _QueryGRPC(_BaseGRPC):
         if move_away is not None:
             self._near_text_move_away = weaviate_pb2.NearTextSearchParams.Move(
                 force=move_away.force,
-                concepts=move_away.concepts_list,
-                uuids=move_away.objects_list,
+                concepts=move_away._concepts_list,
+                uuids=move_away._objects_list,
             )
         if move_to is not None:
             self._near_text_move_to = weaviate_pb2.NearTextSearchParams.Move(
-                force=move_to.force, concepts=move_to.concepts_list, uuids=move_to.objects_list
+                force=move_to.force, concepts=move_to._concepts_list, uuids=move_to._objects_list
             )
 
         self._generative = generative

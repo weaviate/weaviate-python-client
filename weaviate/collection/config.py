@@ -112,7 +112,7 @@ class _ConfigBase:
 
     def _add_property(self, additional_property: PropertyType) -> None:
         path = f"/schema/{self._name}/properties"
-        obj = additional_property.to_dict()
+        obj = additional_property._to_dict()
         try:
             response = self.__connection.post(path=path, weaviate_object=obj)
         except RequestsConnectionError as conn_err:
@@ -167,7 +167,7 @@ class _ConfigCollectionModel(_ConfigBase):
         for prop in model_props:
             try:
                 idx = schema_props_simple.index(
-                    {"name": prop.name, "dataType": prop.to_dict().get("dataType")}
+                    {"name": prop.name, "dataType": prop._to_dict().get("dataType")}
                 )
                 schema_props_simple.pop(idx)
                 only_in_schema.pop(idx)

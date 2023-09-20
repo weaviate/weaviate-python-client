@@ -23,7 +23,7 @@ class _CollectionBase:
         self,
         config: _CollectionConfigCreateBase,
     ) -> str:
-        weaviate_object = config.to_dict()
+        weaviate_object = config._to_dict()
 
         try:
             response = self._connection.post(path="/schema", weaviate_object=weaviate_object)
