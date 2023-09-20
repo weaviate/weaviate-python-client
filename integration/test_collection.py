@@ -1,6 +1,6 @@
 import datetime
 from dataclasses import dataclass
-from typing import Dict, List, Optional, TypedDict, Union
+from typing import Dict, List, Optional, Type, TypedDict, Union
 
 import uuid
 
@@ -26,9 +26,11 @@ from weaviate.collection.classes.grpc import (
     LinkTo,
     MetadataQuery,
     Move,
+    PROPERTIES,
 )
 from weaviate.collection.classes.internal import ReferenceFactory
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
+from weaviate.collection.classes.types import Properties
 from weaviate.exceptions import WeaviateGRPCException
 from weaviate.collection.collection import ITERATOR_CACHE_SIZE, CollectionObject
 from weaviate.collection.data import _DataCollection
@@ -1445,19 +1447,25 @@ def test_iterator(client: weaviate.Client, count: int):
         assert all_data == list(range(count))
 
 
+class Data(TypedDict):
+    data: int
+
+
 @pytest.mark.parametrize(
-    "metadata",
-    [
-        None,
-        MetadataQuery(creation_time_unix=True),
-    ],
+    "return_metadata",
+    [None, MetadataQuery(creation_time_unix=True)],
 )
-def test_iterator_typed_dict(client: weaviate.Client, metadata: Optional[MetadataQuery]):
+@pytest.mark.parametrize(
+    "return_properties",
+    [None, Data, ["data"]],
+)
+def test_iterator_arguments(
+    client: weaviate.Client,
+    return_metadata: Optional[MetadataQuery],
+    return_properties: Optional[Union[PROPERTIES, Type[Properties]]],
+):
     name = "TestIteratorTypedDict"
     client.collection.delete(name)
-
-    class Data(TypedDict):
-        data: int
 
     collection = client.collection.create(
         name=name,
@@ -1467,17 +1475,47 @@ def test_iterator_typed_dict(client: weaviate.Client, metadata: Optional[Metadat
 
     collection.data.insert_many([DataObject(properties={"data": i}) for i in range(10)])
 
-    # make sure a new iterator resets the internal state
-    for _ in range(3):
-        # get the property and sort them - order returned by weaviate is not identical to the order inserted
-        all_data: list[int] = sorted(
-            [
-                int(obj.properties["data"])
-                for obj in collection.iterator(return_metadata=metadata, return_properties=Data)
-                if metadata is None or obj.metadata.creation_time_unix is not None
-            ]
-        )
+    iter_ = collection.iterator(
+        return_metadata=return_metadata, return_properties=return_properties
+    )
+
+    # Expect everything back
+    if return_metadata is None and return_properties is None:
+        all_data: list[int] = sorted([int(obj.properties["data"]) for obj in collection.iterator()])
         assert all_data == list(range(10))
+
+        creation_time_unixes = [obj.metadata.creation_time_unix is not None for obj in iter_]
+        assert all(creation_time_unixes)
+        scores = [obj.metadata.score is not None for obj in iter_]
+        assert all(scores)
+
+    # Expect only metadata with only creation_time_unix
+    elif return_metadata is not None and return_properties is None:
+        all_props = [obj.properties == {} for obj in iter_]
+        assert all(all_props)
+
+        creation_time_unixes = [obj.metadata.creation_time_unix is not None for obj in iter_]
+        assert all(creation_time_unixes)
+        scores = [obj.metadata.score is None for obj in iter_]
+        assert all(scores)
+
+    # Expect only properties
+    elif return_metadata is None and return_properties is not None:
+        all_data: list[int] = sorted([int(obj.properties["data"]) for obj in collection.iterator()])
+        assert all_data == list(range(10))
+
+        creation_time_unixes = [obj.metadata.creation_time_unix is None for obj in iter_]
+        assert all(creation_time_unixes)
+
+    # Expect properties and metadata with only creation_time_unix
+    else:
+        all_data: list[int] = sorted([int(obj.properties["data"]) for obj in collection.iterator()])
+        assert all_data == list(range(10))
+
+        creation_time_unixes = [obj.metadata.creation_time_unix is not None for obj in iter_]
+        assert all(creation_time_unixes)
+        scores = [obj.metadata.score is None for obj in iter_]
+        assert all(scores)
 
 
 def test_iterator_dict_hint(client: weaviate.Client):
