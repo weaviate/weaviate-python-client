@@ -4,7 +4,6 @@ import weaviate
 from weaviate import Config
 from weaviate.collection.classes.config import (
     ConfigFactory,
-    VectorizerFactory,
     Property,
     ConsistencyLevel,
     DataType,
@@ -31,7 +30,7 @@ def test_consistency_on_multinode(client: weaviate.Client, level: ConsistencyLev
     client.collection.delete(name)
     collection = client.collection.create(
         name=name,
-        vectorizer_config=VectorizerFactory.none(),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],

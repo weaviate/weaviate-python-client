@@ -13,7 +13,7 @@ from weaviate.collection.classes.config import (
     ReferencePropertyBase,
     _ReplicationConfigCreate,
     _VectorizerConfig,
-    VectorizerFactory,
+    _VectorizerFactory,
     _VectorIndexConfigCreate,
     VectorIndexType,
 )
@@ -27,9 +27,6 @@ from weaviate.collection.object_iterator import _ObjectIterator
 from weaviate.collection.tenants import _Tenants
 from weaviate.connect import Connection
 from weaviate.util import _capitalize_first_letter
-
-
-ITERATOR_CACHE_SIZE = 100
 
 
 class CollectionObject(CollectionObjectBase, Generic[TProperties]):
@@ -98,7 +95,7 @@ class Collection(CollectionBase):
             properties=properties,
             replication_config=replication_config,
             sharding_config=sharding_config,
-            vectorizer_config=vectorizer_config or VectorizerFactory.none(),
+            vectorizer_config=vectorizer_config or _VectorizerFactory.none(),
             vector_index_config=vector_index_config,
             vector_index_type=vector_index_type,
         )

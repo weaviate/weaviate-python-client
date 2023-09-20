@@ -311,7 +311,7 @@ class _VectorizerConfig(_ConfigCreateModel):
     vectorizer: Vectorizer
 
 
-class GenerativeFactory:
+class _GenerativeFactory:
     @classmethod
     def openai(
         cls,
@@ -572,7 +572,7 @@ class _Ref2VecCentroidConfig(_VectorizerConfig):
     method: Literal["mean"]
 
 
-class VectorizerFactory:
+class _VectorizerFactory:
     """Use this factory class to generate the correct `VectorizerConfig` object for use in the `CollectionConfig` object.
 
     Each classmethod provides options specific to the named vectorizer in the function's name. Under-the-hood data validation steps
@@ -935,7 +935,7 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
         default=VectorIndexType.HNSW, alias="vector_index_type"
     )
     moduleConfig: _VectorizerConfig = Field(
-        default=VectorizerFactory.none(), alias="vectorizer_config"
+        default=_VectorizerFactory.none(), alias="vectorizer_config"
     )
     generativeSearch: Optional[_GenerativeConfig] = Field(default=None, alias="generative_config")
 
@@ -1235,6 +1235,9 @@ class ConfigFactory:
     will ensure that any mis-specifications are caught before the request is sent to Weaviate.
     """
 
+    Generative = _GenerativeFactory
+    Vectorizer = _VectorizerFactory
+
     @classmethod
     def inverted_index(
         cls,
@@ -1373,6 +1376,10 @@ class ConfigFactory:
             skip=skip,
             vectorCacheMaxObjects=vector_cache_max_objects,
         )
+
+    @classmethod
+    def vector_index_type(cls) -> VectorIndexType:
+        return VectorIndexType.HNSW
 
 
 class ConfigUpdateFactory:

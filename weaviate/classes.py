@@ -1,15 +1,12 @@
 from weaviate.collection.classes.config import (
     ConfigFactory,
     DataType,
-    GenerativeFactory,
     Multi2VecField,
     Property,
     ReferenceProperty,
     ReferencePropertyMultiTarget,
     Tokenization,
-    VectorizerFactory,
     VectorDistance,
-    VectorIndexType,
 )
 from weaviate.collection.classes.data import (
     DataObject,
@@ -30,7 +27,6 @@ __all__ = [
     "DataObject",
     "DataType",
     "Filter",
-    "GenerativeFactory",
     "Generate",
     "HybridFusion",
     "LinkTo",
@@ -43,7 +39,5 @@ __all__ = [
     "ReferencePropertyMultiTarget",
     "Tenant",
     "Tokenization",
-    "VectorizerFactory",
     "VectorDistance",
-    "VectorIndexType",
 ]
