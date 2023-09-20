@@ -37,7 +37,7 @@ from weaviate.collection.classes.grpc import (
 from weaviate.collection.classes.internal import ReferenceFactory
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collection.classes.types import Properties
-from weaviate.collection.modify import _DataCollection
+from weaviate.collection.modify import _ModifyCollection
 from weaviate.collection.object_iterator import ITERATOR_CACHE_SIZE
 from weaviate.exceptions import InvalidDataModelException, WeaviateGRPCException
 from weaviate.types import UUID
@@ -123,8 +123,8 @@ def test_data_with_data_model_with_dict_generic(client: weaviate.Client):
 
     col = client.collection.get(name)
     assert isinstance(col, CollectionObject)
-    data = col.data.with_data_model(Right)
-    assert isinstance(data, _DataCollection)
+    data = col.modify.with_data_model(Right)
+    assert isinstance(data, _ModifyCollection)
 
 
 WRONG_GENERIC_ERROR_MSG = "data_model can only be a dict type, e.g. Dict[str, str], or a class that inherits from TypedDict"
@@ -201,14 +201,14 @@ def test_insert(client: weaviate.Client, which_generic: str):
     if which_generic == "typed_dict":
         client.collection.create(**create_args)
         collection = client.collection.get(name, TestInsert)
-        uuid = collection.data.insert(properties=TestInsert(**insert_data))
+        uuid = collection.modify.insert(properties=TestInsert(**insert_data))
     elif which_generic == "dict":
         client.collection.create(**create_args)
         collection = client.collection.get(name, Dict[str, str])
-        uuid = collection.data.insert(properties=insert_data)
+        uuid = collection.modify.insert(properties=insert_data)
     else:
         collection = client.collection.create(**create_args)
-        uuid = collection.data.insert(properties=insert_data)
+        uuid = collection.modify.insert(properties=insert_data)
     name = collection.query.fetch_object_by_id(uuid).properties["name"]
     assert name == insert_data["name"]
 
@@ -221,9 +221,9 @@ def test_delete_by_id(client: weaviate.Client):
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
 
-    uuid = collection.data.insert(properties={"name": "some name"})
+    uuid = collection.modify.insert(properties={"name": "some name"})
     assert collection.query.fetch_object_by_id(uuid) is not None
-    collection.data.delete_by_id(uuid)
+    collection.modify.delete_by_id(uuid)
     assert collection.query.fetch_object_by_id(uuid) is None
 
     client.collection.delete(name)
@@ -236,7 +236,7 @@ def test_insert_many(client: weaviate.Client):
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
-    ret = collection.data.insert_many(
+    ret = collection.modify.insert_many(
         [
             DataObject(properties={"name": "some name"}, vector=[1, 2, 3]),
             DataObject(properties={"name": "some other name"}, uuid=uuid.uuid4()),
@@ -262,7 +262,7 @@ def test_insert_many_with_typed_dict(client: weaviate.Client):
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
     collection = client.collection.get(name, TestInsertManyWithTypedDict)
-    ret = collection.data.insert_many(
+    ret = collection.modify.insert_many(
         [
             DataObject(properties=TestInsertManyWithTypedDict(name="some name"), vector=[1, 2, 3]),
             DataObject(
@@ -286,8 +286,8 @@ def test_insert_many_with_refs(client: weaviate.Client):
         name=name_target,
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
-    uuid_to1 = ref_collection.data.insert(properties={})
-    uuid_to2 = ref_collection.data.insert(properties={})
+    uuid_to1 = ref_collection.modify.insert(properties={})
+    uuid_to2 = ref_collection.modify.insert(properties={})
 
     name = "TestInsertManyRefs"
     client.collection.delete(name)
@@ -301,9 +301,9 @@ def test_insert_many_with_refs(client: weaviate.Client):
         ],
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
-    uuid_from = collection.data.insert(properties={"name": "first"})
+    uuid_from = collection.modify.insert(properties={"name": "first"})
 
-    ret = collection.data.insert_many(
+    ret = collection.modify.insert_many(
         [
             DataObject(
                 properties={
@@ -346,7 +346,7 @@ def test_insert_many_error(client: weaviate.Client):
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
-    ret = collection.data.insert_many(
+    ret = collection.modify.insert_many(
         [
             DataObject(properties={"wrong_name": "some name"}, vector=[1, 2, 3]),
             DataObject(properties={"name": "some other name"}, uuid=uuid.uuid4()),
@@ -380,7 +380,7 @@ def test_insert_many_with_tenant(client: weaviate.Client):
     tenant1 = collection.with_tenant("tenant1")
     tenant2 = collection.with_tenant("tenant2")
 
-    ret = tenant1.data.insert_many(
+    ret = tenant1.modify.insert_many(
         [
             DataObject(properties={"name": "some name"}, vector=[1, 2, 3]),
             DataObject(properties={"name": "some other name"}, uuid=uuid.uuid4()),
@@ -404,8 +404,8 @@ def test_replace(client: weaviate.Client):
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
-    uuid = collection.data.insert(properties={"name": "some name"})
-    collection.data.replace(properties={"name": "other name"}, uuid=uuid)
+    uuid = collection.modify.insert(properties={"name": "some name"})
+    collection.modify.replace(properties={"name": "other name"}, uuid=uuid)
     assert collection.query.fetch_object_by_id(uuid).properties["name"] == "other name"
 
     client.collection.delete(name)
@@ -418,12 +418,12 @@ def test_replace_overwrites_vector(client: weaviate.Client):
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
-    uuid = collection.data.insert(properties={"name": "some name"}, vector=[1, 2, 3])
+    uuid = collection.modify.insert(properties={"name": "some name"}, vector=[1, 2, 3])
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
     assert obj.properties["name"] == "some name"
     assert obj.metadata.vector == [1, 2, 3]
 
-    collection.data.replace(properties={"name": "other name"}, uuid=uuid)
+    collection.modify.replace(properties={"name": "other name"}, uuid=uuid)
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
     assert obj.properties["name"] == "other name"
     assert obj.metadata.vector is None
@@ -444,8 +444,8 @@ def test_replace_with_tenant(client: weaviate.Client):
     tenant1 = collection.with_tenant("tenant1")
     tenant2 = collection.with_tenant("tenant2")
 
-    uuid = tenant1.data.insert(properties={"name": "some name"})
-    tenant1.data.replace(properties={"name": "other name"}, uuid=uuid)
+    uuid = tenant1.modify.insert(properties={"name": "some name"})
+    tenant1.modify.replace(properties={"name": "other name"}, uuid=uuid)
     assert tenant1.query.fetch_object_by_id(uuid).properties["name"] == "other name"
     assert tenant2.query.fetch_object_by_id(uuid) is None
 
@@ -459,8 +459,8 @@ def test_update(client: weaviate.Client):
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
-    uuid = collection.data.insert(properties={"name": "some name"})
-    collection.data.update(properties={"name": "other name"}, uuid=uuid)
+    uuid = collection.modify.insert(properties={"name": "some name"})
+    collection.modify.update(properties={"name": "other name"}, uuid=uuid)
     assert collection.query.fetch_object_by_id(uuid).properties["name"] == "other name"
 
     client.collection.delete(name)
@@ -479,8 +479,8 @@ def test_update_with_tenant(client: weaviate.Client):
     tenant1 = collection.with_tenant("tenant1")
     tenant2 = collection.with_tenant("tenant2")
 
-    uuid = tenant1.data.insert(properties={"name": "some name"})
-    tenant1.data.update(properties={"name": "other name"}, uuid=uuid)
+    uuid = tenant1.modify.insert(properties={"name": "some name"})
+    tenant1.modify.update(properties={"name": "other name"}, uuid=uuid)
     assert tenant1.query.fetch_object_by_id(uuid).properties["name"] == "other name"
     assert tenant2.query.fetch_object_by_id(uuid) is None
 
@@ -505,7 +505,7 @@ def test_types(client: weaviate.Client, data_type: DataType, value):
         properties=[Property(name=name, data_type=data_type)],
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
-    uuid_object = collection.data.insert(properties={name: value})
+    uuid_object = collection.modify.insert(properties={name: value})
 
     object_get = collection.query.fetch_object_by_id(uuid_object)
     assert object_get.properties[name] == value
@@ -520,8 +520,8 @@ def test_search_hybrid(client: weaviate.Client, fusion_type):
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=ConfigFactory.Vectorizer.text2vec_contextionary(),
     )
-    collection.data.insert({"Name": "some name"}, uuid.uuid4())
-    collection.data.insert({"Name": "other word"}, uuid.uuid4())
+    collection.modify.insert({"Name": "some name"}, uuid.uuid4())
+    collection.modify.insert({"Name": "other word"}, uuid.uuid4())
     res = collection.query.hybrid(alpha=0, query="name", fusion_type=fusion_type).objects
     assert len(res) == 1
     client.collection.delete("Testing")
@@ -535,7 +535,7 @@ def test_search_limit(client: weaviate.Client, limit):
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
     for i in range(5):
-        collection.data.insert({"Name": str(i)})
+        collection.modify.insert({"Name": str(i)})
 
     assert len(collection.query.fetch_objects(limit=limit).objects) == limit
 
@@ -552,7 +552,7 @@ def test_search_offset(client: weaviate.Client, offset):
 
     nr_objects = 5
     for i in range(nr_objects):
-        collection.data.insert({"Name": str(i)})
+        collection.modify.insert({"Name": str(i)})
 
     objects = collection.query.fetch_objects(offset=offset).objects
     assert len(objects) == nr_objects - offset
@@ -569,7 +569,7 @@ def test_search_after(client: weaviate.Client):
 
     nr_objects = 10
     for i in range(nr_objects):
-        collection.data.insert({"Name": str(i)})
+        collection.modify.insert({"Name": str(i)})
 
     objects = collection.query.fetch_objects(return_metadata=MetadataQuery(uuid=True)).objects
     for i, obj in enumerate(objects):
@@ -586,11 +586,11 @@ def test_auto_limit(client: weaviate.Client):
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
     for _ in range(4):
-        collection.data.insert({"Name": "rain rain"})
+        collection.modify.insert({"Name": "rain rain"})
     for _ in range(4):
-        collection.data.insert({"Name": "rain"})
+        collection.modify.insert({"Name": "rain"})
     for _ in range(4):
-        collection.data.insert({"Name": ""})
+        collection.modify.insert({"Name": ""})
 
     # match all objects with rain
     objects = collection.query.bm25(query="rain", auto_limit=0).objects
@@ -620,11 +620,11 @@ def test_query_properties(client: weaviate.Client):
         ],
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
-    collection.data.insert({"Name": "rain", "Age": 1})
-    collection.data.insert({"Name": "sun", "Age": 2})
-    collection.data.insert({"Name": "cloud", "Age": 3})
-    collection.data.insert({"Name": "snow", "Age": 4})
-    collection.data.insert({"Name": "hail", "Age": 5})
+    collection.modify.insert({"Name": "rain", "Age": 1})
+    collection.modify.insert({"Name": "sun", "Age": 2})
+    collection.modify.insert({"Name": "cloud", "Age": 3})
+    collection.modify.insert({"Name": "snow", "Age": 4})
+    collection.modify.insert({"Name": "hail", "Age": 5})
 
     objects = collection.query.bm25(query="rain", query_properties=["name"]).objects
     assert len(objects) == 1
@@ -649,10 +649,10 @@ def test_near_vector(client: weaviate.Client):
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=ConfigFactory.Vectorizer.text2vec_contextionary(),
     )
-    uuid_banana = collection.data.insert({"Name": "Banana"})
-    collection.data.insert({"Name": "Fruit"})
-    collection.data.insert({"Name": "car"})
-    collection.data.insert({"Name": "Mountain"})
+    uuid_banana = collection.modify.insert({"Name": "Banana"})
+    collection.modify.insert({"Name": "Fruit"})
+    collection.modify.insert({"Name": "car"})
+    collection.modify.insert({"Name": "Mountain"})
 
     banana = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
 
@@ -683,10 +683,10 @@ def test_near_vector_group_by(client: weaviate.Client):
         ],
         vectorizer_config=ConfigFactory.Vectorizer.text2vec_contextionary(),
     )
-    uuid_banana1 = collection.data.insert({"Name": "Banana", "Count": 51})
-    collection.data.insert({"Name": "Banana", "Count": 72})
-    collection.data.insert({"Name": "car", "Count": 12})
-    collection.data.insert({"Name": "Mountain", "Count": 1})
+    uuid_banana1 = collection.modify.insert({"Name": "Banana", "Count": 51})
+    collection.modify.insert({"Name": "Banana", "Count": 72})
+    collection.modify.insert({"Name": "car", "Count": 12})
+    collection.modify.insert({"Name": "Mountain", "Count": 1})
 
     banana1 = collection.query.fetch_object_by_id(uuid_banana1, include_vector=True)
 
@@ -712,10 +712,10 @@ def test_near_object(client: weaviate.Client):
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=ConfigFactory.Vectorizer.text2vec_contextionary(),
     )
-    uuid_banana = collection.data.insert({"Name": "Banana"})
-    collection.data.insert({"Name": "Fruit"})
-    collection.data.insert({"Name": "car"})
-    collection.data.insert({"Name": "Mountain"})
+    uuid_banana = collection.modify.insert({"Name": "Banana"})
+    collection.modify.insert({"Name": "Fruit"})
+    collection.modify.insert({"Name": "car"})
+    collection.modify.insert({"Name": "Mountain"})
 
     full_objects = collection.query.near_object(
         uuid_banana, return_metadata=MetadataQuery(distance=True, certainty=True)
@@ -744,10 +744,10 @@ def test_near_object_group_by(client: weaviate.Client):
         ],
         vectorizer_config=ConfigFactory.Vectorizer.text2vec_contextionary(),
     )
-    uuid_banana1 = collection.data.insert({"Name": "Banana", "Count": 51})
-    collection.data.insert({"Name": "Banana", "Count": 72})
-    collection.data.insert({"Name": "car", "Count": 12})
-    collection.data.insert({"Name": "Mountain", "Count": 1})
+    uuid_banana1 = collection.modify.insert({"Name": "Banana", "Count": 51})
+    collection.modify.insert({"Name": "Banana", "Count": 72})
+    collection.modify.insert({"Name": "car", "Count": 12})
+    collection.modify.insert({"Name": "Mountain", "Count": 1})
 
     ret = collection.query.near_object(
         uuid_banana1,
@@ -795,8 +795,8 @@ def test_multi_searches(client: weaviate.Client):
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
 
-    collection.data.insert(properties={"name": "word"})
-    collection.data.insert(properties={"name": "other"})
+    collection.modify.insert(properties={"name": "word"})
+    collection.modify.insert(properties={"name": "other"})
 
     objects = collection.query.bm25(
         query="word",
@@ -825,7 +825,7 @@ def test_search_with_tenant(client: weaviate.Client):
     collection.tenants.add([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
     tenant1 = collection.with_tenant("Tenant1")
     tenant2 = collection.with_tenant("Tenant2")
-    uuid1 = tenant1.data.insert({"name": "some name"})
+    uuid1 = tenant1.modify.insert({"name": "some name"})
     objects1 = tenant1.query.bm25(query="some", return_metadata=MetadataQuery(uuid=True)).objects
     assert len(objects1) == 1
     assert objects1[0].metadata.uuid == uuid1
@@ -848,14 +848,14 @@ def test_fetch_object_by_id_with_tenant(client: weaviate.Client):
     tenant1 = collection.with_tenant("Tenant1")
     tenant2 = collection.with_tenant("Tenant2")
 
-    uuid1 = tenant1.data.insert({"name": "some name"})
+    uuid1 = tenant1.modify.insert({"name": "some name"})
     obj1 = tenant1.query.fetch_object_by_id(uuid1)
     assert obj1.properties["name"] == "some name"
 
     obj2 = tenant2.query.fetch_object_by_id(uuid1)
     assert obj2 is None
 
-    uuid2 = tenant2.data.insert({"name": "some other name"})
+    uuid2 = tenant2.modify.insert({"name": "some other name"})
     obj3 = tenant2.query.fetch_object_by_id(uuid2)
     assert obj3.properties["name"] == "some other name"
 
@@ -873,7 +873,7 @@ def test_fetch_objects_with_limit(client: weaviate.Client):
     )
 
     for i in range(10):
-        collection.data.insert({"name": str(i)})
+        collection.modify.insert({"name": str(i)})
 
     ret = collection.query.fetch_objects(limit=5)
     assert len(ret.objects) == 5
@@ -893,7 +893,7 @@ def test_fetch_objects_with_tenant(client: weaviate.Client):
     tenant1 = collection.with_tenant("Tenant1")
     tenant2 = collection.with_tenant("Tenant2")
 
-    tenant1.data.insert({"name": "some name"})
+    tenant1.modify.insert({"name": "some name"})
     ret = tenant1.query.fetch_objects()
     assert len(ret.objects) == 1
     assert ret.objects[0].properties["name"] == "some name"
@@ -901,7 +901,7 @@ def test_fetch_objects_with_tenant(client: weaviate.Client):
     ret = tenant2.query.fetch_objects()
     assert len(ret.objects) == 0
 
-    tenant2.data.insert({"name": "some other name"})
+    tenant2.modify.insert({"name": "some other name"})
     ret = tenant2.query.fetch_objects()
     assert len(ret.objects) == 1
     assert ret.objects[0].properties["name"] == "some other name"
@@ -915,9 +915,9 @@ def test_add_property(client: weaviate.Client):
         vectorizer_config=ConfigFactory.Vectorizer.none(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
     )
-    uuid1 = collection.data.insert({"name": "first"})
+    uuid1 = collection.modify.insert({"name": "first"})
     collection.config.add_property(Property(name="number", data_type=DataType.INT))
-    uuid2 = collection.data.insert({"name": "second", "number": 5})
+    uuid2 = collection.modify.insert({"name": "second", "number": 5})
     obj1 = collection.query.fetch_object_by_id(uuid1)
     obj2 = collection.query.fetch_object_by_id(uuid2)
     assert "name" in obj1.properties
@@ -955,7 +955,7 @@ def test_empty_search_returns_everything(client: weaviate.Client):
         properties=[Property(name="name", data_type=DataType.TEXT)],
     )
 
-    collection.data.insert(properties={"name": "word"})
+    collection.modify.insert(properties={"name": "word"})
 
     objects = collection.query.bm25(query="word").objects
     assert "name" in objects[0].properties
@@ -981,7 +981,7 @@ def test_insert_date_property(client: weaviate.Client, hours: int, minutes: int,
     now = datetime.datetime.now(
         datetime.timezone(sign * datetime.timedelta(hours=hours, minutes=minutes))
     )
-    uuid = collection.data.insert(properties={"date": now})
+    uuid = collection.modify.insert(properties={"date": now})
 
     obj = collection.query.fetch_object_by_id(uuid)
 
@@ -1082,7 +1082,7 @@ def test_return_list_properties(client: weaviate.Client):
         ],
         "uuids": [uuid.uuid4(), uuid.uuid4()],
     }
-    collection.data.insert(properties=data)
+    collection.modify.insert(properties=data)
     objects = collection.query.fetch_objects().objects
     assert len(objects) == 1
 
@@ -1118,7 +1118,7 @@ def test_near_text(
         properties=[Property(name="value", data_type=DataType.TEXT)],
     )
 
-    batch_return = collection.data.insert_many(
+    batch_return = collection.modify.insert_many(
         [
             DataObject(properties={"value": "Apple"}, uuid=UUID1),
             DataObject(properties={"value": "Mountain climbing"}),
@@ -1162,7 +1162,7 @@ def test_near_text_group_by(client: weaviate.Client):
         properties=[Property(name="value", data_type=DataType.TEXT)],
     )
 
-    batch_return = collection.data.insert_many(
+    batch_return = collection.modify.insert_many(
         [
             DataObject(properties={"value": "Apple"}, uuid=UUID1),
             DataObject(properties={"value": "Mountain climbing"}),
@@ -1194,7 +1194,7 @@ def test_near_text_limit(client: weaviate.Client):
         properties=[Property(name="value", data_type=DataType.TEXT)],
     )
 
-    batch_return = collection.data.insert_many(
+    batch_return = collection.modify.insert_many(
         [
             DataObject(properties={"value": "Apple"}, uuid=UUID1),
             DataObject(properties={"value": "Mountain climbing"}),
@@ -1229,8 +1229,8 @@ def test_near_image(client: weaviate.Client, distance: Optional[float], certaint
         ],
     )
 
-    uuid1 = collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_OLD_ENCODED})
-    collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_NEW_ENCODED})
+    uuid1 = collection.modify.insert(properties={"imageProp": WEAVIATE_LOGO_OLD_ENCODED})
+    collection.modify.insert(properties={"imageProp": WEAVIATE_LOGO_NEW_ENCODED})
 
     objects = collection.query.near_image(
         WEAVIATE_LOGO_OLD_ENCODED, distance=distance, certainty=certainty
@@ -1255,7 +1255,7 @@ def test_return_properties_with_typed_dict(client: weaviate.Client, which_case: 
         "int_": 1,
         "ints": [1, 2, 3],
     }
-    collection.data.insert(properties=data)
+    collection.modify.insert(properties=data)
     if which_case == 0:
 
         class DataModel(TypedDict):
@@ -1328,7 +1328,7 @@ def test_batch_with_arrays(client: weaviate.Client):
         ),
     ]
 
-    ret = collection.data.insert_many(objects_in)
+    ret = collection.modify.insert_many(objects_in)
 
     assert not ret.has_errors
 
@@ -1369,9 +1369,9 @@ def test_sort(client: weaviate.Client, sort: Union[Sort, List[Sort]], expected: 
         ],
     )
     uuids_from = [
-        collection.data.insert(properties={"name": "A", "age": 20}),
-        collection.data.insert(properties={"name": "B", "age": 22}),
-        collection.data.insert(properties={"name": "C", "age": 22}),
+        collection.modify.insert(properties={"name": "A", "age": 20}),
+        collection.modify.insert(properties={"name": "B", "age": 22}),
+        collection.modify.insert(properties={"name": "C", "age": 22}),
     ]
 
     objects = collection.query.fetch_objects(sort=sort).objects
@@ -1393,7 +1393,7 @@ def test_optional_ref_returns(client: weaviate.Client):
         vectorizer_config=ConfigFactory.Vectorizer.none(),
         properties=[Property(name="text", data_type=DataType.TEXT)],
     )
-    uuid_to1 = ref_collection.data.insert(properties={"text": "ref text"})
+    uuid_to1 = ref_collection.modify.insert(properties={"text": "ref text"})
 
     collection = client.collection.create(
         name=name,
@@ -1402,7 +1402,7 @@ def test_optional_ref_returns(client: weaviate.Client):
         ],
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
-    collection.data.insert(properties={"ref": ReferenceFactory.to(uuid_to1)})
+    collection.modify.insert(properties={"ref": ReferenceFactory.to(uuid_to1)})
 
     objects = collection.query.fetch_objects(return_properties=[LinkTo(link_on="ref")]).objects
 
@@ -1436,7 +1436,7 @@ def test_iterator(client: weaviate.Client, count: int):
     )
 
     if count > 0:
-        collection.data.insert_many([DataObject(properties={"data": i}) for i in range(count)])
+        collection.modify.insert_many([DataObject(properties={"data": i}) for i in range(count)])
 
     # make sure a new iterator resets the internal state
     for _ in range(3):
@@ -1471,7 +1471,7 @@ def test_iterator_arguments(
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
 
-    collection.data.insert_many([DataObject(properties={"data": i}) for i in range(10)])
+    collection.modify.insert_many([DataObject(properties={"data": i}) for i in range(10)])
 
     iter_ = collection.iterator(
         return_metadata=return_metadata, return_properties=return_properties
@@ -1511,7 +1511,7 @@ def test_iterator_dict_hint(client: weaviate.Client):
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
 
-    collection.data.insert_many([DataObject(properties={"data": i}) for i in range(10)])
+    collection.modify.insert_many([DataObject(properties={"data": i}) for i in range(10)])
 
     with pytest.raises(TypeError) as e:
         for _ in collection.iterator(return_properties=dict):
