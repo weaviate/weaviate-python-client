@@ -379,7 +379,7 @@ class _Data:
         )
 
 
-class _ModifyCollection(Generic[Properties], _Data):
+class _DataCollection(Generic[Properties], _Data):
     def __init__(
         self,
         connection: Connection,
@@ -391,9 +391,9 @@ class _ModifyCollection(Generic[Properties], _Data):
         super().__init__(connection, name, consistency_level, tenant)
         self.__type = type_
 
-    def with_data_model(self, data_model: Type[TProperties]) -> "_ModifyCollection[TProperties]":
+    def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]":
         _check_data_model(data_model)
-        return _ModifyCollection[TProperties](
+        return _DataCollection[TProperties](
             self._connection, self.name, self._consistency_level, self._tenant, data_model
         )
 

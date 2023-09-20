@@ -44,7 +44,7 @@ def test_generative_search_single(client: weaviate.Client, parameter: str, answe
         generative_config=ConfigFactory.Generative.openai(),
     )
 
-    collection.modify.insert_many(
+    collection.data.insert_many(
         [
             DataObject(properties={"text": "bananas are great", "content": "bananas are bad"}),
             DataObject(properties={"text": "apples are great", "content": "apples are bad"}),
@@ -79,7 +79,7 @@ def test_fetch_objects_generate_search_grouped(
         generative_config=ConfigFactory.Generative.openai(),
     )
 
-    collection.modify.insert_many(
+    collection.data.insert_many(
         [
             DataObject(properties={"text": "apples are big", "content": "apples are small"}),
             DataObject(properties={"text": "bananas are small", "content": "bananas are big"}),
@@ -108,7 +108,7 @@ def test_fetch_objects_generate_search_grouped_all_props(client: weaviate.Client
         generative_config=ConfigFactory.Generative.openai(),
     )
 
-    collection.modify.insert_many(
+    collection.data.insert_many(
         [
             DataObject(
                 properties={
@@ -146,7 +146,7 @@ def test_fetch_objects_generate_search_grouped_specified_prop(client: weaviate.C
         generative_config=ConfigFactory.Generative.openai(),
     )
 
-    collection.modify.insert_many(
+    collection.data.insert_many(
         [
             DataObject(
                 properties={
@@ -185,7 +185,7 @@ def test_fetch_objects_generate_with_everything(client: weaviate.Client):
         generative_config=ConfigFactory.Generative.openai(),
     )
 
-    collection.modify.insert_many(
+    collection.data.insert_many(
         [
             DataObject(
                 properties={
@@ -226,7 +226,7 @@ def test_bm25_generate_with_everything(client: weaviate.Client):
         generative_config=ConfigFactory.Generative.openai(),
     )
 
-    collection.modify.insert_many(
+    collection.data.insert_many(
         [
             DataObject(
                 properties={
@@ -269,7 +269,7 @@ def test_hybrid_generate_with_everything(client: weaviate.Client):
         generative_config=ConfigFactory.Generative.openai(),
     )
 
-    collection.modify.insert_many(
+    collection.data.insert_many(
         [
             DataObject(
                 properties={
@@ -313,7 +313,7 @@ def test_near_text_generate_with_everything(client: weaviate.Client):
         vectorizer_config=ConfigFactory.Vectorizer.text2vec_openai(vectorize_class_name=False),
     )
 
-    collection.modify.insert_many(
+    collection.data.insert_many(
         [
             DataObject(
                 properties={
@@ -355,7 +355,7 @@ def test_near_vector_generate_with_everything(client: weaviate.Client):
         generative_config=ConfigFactory.Generative.openai(),
     )
 
-    collection.modify.insert_many(
+    collection.data.insert_many(
         [
             DataObject(
                 properties={
@@ -400,7 +400,7 @@ def test_openapi_invalid_key():
         properties=[Property(name="text", data_type=DataType.TEXT)],
         generative_config=ConfigFactory.Generative.openai(),
     )
-    collection.modify.insert(properties={"text": "test"})
+    collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):
         collection.query.fetch_objects(
             generate=Generate(single_prompt="tell a joke based on {text}")
@@ -421,7 +421,7 @@ def test_openapi_no_module():
         properties=[Property(name="text", data_type=DataType.TEXT)],
         generative_config=ConfigFactory.Generative.openai(),
     )
-    collection.modify.insert(properties={"text": "test"})
+    collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):
         collection.query.fetch_objects(
             generate=Generate(single_prompt="tell a joke based on {text}")
@@ -439,7 +439,7 @@ def test_openai_batch_upload(client: weaviate.Client):
         vectorizer_config=ConfigFactory.Vectorizer.text2vec_openai(),
     )
 
-    ret = collection.modify.insert_many(
+    ret = collection.data.insert_many(
         [
             DataObject(properties={"text": "apples are big"}),
             DataObject(properties={"text": "bananas are small"}),

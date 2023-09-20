@@ -21,7 +21,7 @@ from weaviate.collection.classes.internal import _Object
 from weaviate.collection.classes.orm import Model
 from weaviate.collection.classes.types import TProperties
 
-from weaviate.collection.modify import _ModifyCollection
+from weaviate.collection.data import _DataCollection
 
 from weaviate.collection.grpc_query import SearchResult
 
@@ -42,7 +42,7 @@ from weaviate.types import UUID
 from weaviate_grpc import weaviate_pb2
 
 
-class _QueryCollection(
+class _GrpcCollection(
     Generic[TProperties],
     _BM25,
     _FetchObjects,
@@ -58,7 +58,7 @@ class _QueryCollection(
         self,
         connection: Connection,
         name: str,
-        rest_query: _ModifyCollection[TProperties],
+        rest_query: _DataCollection[TProperties],
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
     ):
