@@ -1,5 +1,5 @@
-import io
-import pathlib
+from io import BufferedReader
+from pathlib import Path
 from typing import Literal, Optional, Type, Union, overload
 
 from weaviate.collection.classes.filters import (
@@ -23,7 +23,7 @@ class _NearImage(_Grpc):
     @overload
     def near_image(
         self,
-        near_image: Union[str, pathlib.Path, io.BufferedReader],
+        near_image: Union[str, Path, BufferedReader],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -39,7 +39,7 @@ class _NearImage(_Grpc):
     @overload
     def near_image(
         self,
-        near_image: Union[str, pathlib.Path, io.BufferedReader],
+        near_image: Union[str, Path, BufferedReader],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -56,7 +56,7 @@ class _NearImage(_Grpc):
     @overload
     def near_image(
         self,
-        near_image: Union[str, pathlib.Path, io.BufferedReader],
+        near_image: Union[str, Path, BufferedReader],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -72,7 +72,7 @@ class _NearImage(_Grpc):
 
     def near_image(
         self,
-        near_image: Union[str, pathlib.Path, io.BufferedReader],
+        near_image: Union[str, Path, BufferedReader],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
