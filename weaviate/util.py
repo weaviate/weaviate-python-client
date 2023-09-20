@@ -29,6 +29,7 @@ MAXIMUM_MINOR_VERSION_DELTA = 3  # The maximum delta between minor versions of W
 MINIMUM_NO_WARNING_VERSION = (
     "v1.16.0"  # The minimum version of Weaviate that will not trigger an upgrade warning.
 )
+BYTES_PER_CHUNK = 65535  # The number of bytes to read per chunk when encoding files ~ 64kb
 
 
 # MetaEnum and BaseEnum are required to support `in` statements:
@@ -87,9 +88,7 @@ def image_encoder_b64(image_or_image_path: Union[str, io.BufferedReader]) -> str
     return base64.b64encode(content).decode("utf-8")
 
 
-def file_encoder_b64(
-    file_or_file_path: Union[str, Path, io.BufferedReader], use_buffering: bool = False
-) -> str:
+def file_encoder_b64(file_or_file_path: Union[str, Path, io.BufferedReader]) -> str:
     """
     Encode a file in a Weaviate understandable format from an io.BufferedReader binary read file or by providing
     the file path as either a string of a pathlib.Path object
@@ -122,17 +121,20 @@ def file_encoder_b64(
             yield data
 
     should_close_file = False
+    use_buffering = True
 
     if isinstance(file_or_file_path, str):
         if not os.path.isfile(file_or_file_path):
             raise ValueError("No file found at location " + file_or_file_path)
         file = open(file_or_file_path, "br")
         should_close_file = True
+        use_buffering = os.path.getsize(file_or_file_path) > BYTES_PER_CHUNK
     elif isinstance(file_or_file_path, Path):
         if not file_or_file_path.is_file():
             raise ValueError("No file found at location " + str(file_or_file_path))
         file = file_or_file_path.open("br")
         should_close_file = True
+        use_buffering = file_or_file_path.stat().st_size > BYTES_PER_CHUNK
     elif isinstance(file_or_file_path, io.BufferedReader):
         file = file_or_file_path
     else:
@@ -142,7 +144,7 @@ def file_encoder_b64(
 
     if use_buffering:
         encoded: str = ""
-        for chunk in _chunks(file, 65535):
+        for chunk in _chunks(file, BYTES_PER_CHUNK):
             encoded += base64.b64encode(chunk).decode("utf-8")
     else:
         encoded = base64.b64encode(file.read()).decode("utf-8")

@@ -235,4 +235,4 @@ class _Grpc:
         if isinstance(media, str):  # if already encoded by user
             return media
         else:
-            return file_encoder_b64(media, True)
+            return file_encoder_b64(media)
