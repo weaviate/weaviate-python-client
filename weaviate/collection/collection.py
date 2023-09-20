@@ -17,32 +17,34 @@ from weaviate.collection.classes.config import (
     _VectorIndexConfigCreate,
     VectorIndexType,
 )
-from weaviate.collection.classes.types import Properties, _check_data_model
+from weaviate.collection.classes.grpc import MetadataQuery, PROPERTIES
+from weaviate.collection.classes.types import Properties, TProperties, _check_data_model
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.collection.config import _ConfigCollection
 from weaviate.collection.data import _DataCollection
 from weaviate.collection.grpc import _GrpcCollection
+from weaviate.collection.object_iterator import _ObjectIterator
 from weaviate.collection.tenants import _Tenants
 from weaviate.connect import Connection
 from weaviate.util import _capitalize_first_letter
 
 
-class CollectionObject(CollectionObjectBase, Generic[Properties]):
+class CollectionObject(CollectionObjectBase, Generic[TProperties]):
     def __init__(
         self,
         connection: Connection,
         name: str,
         consistency_level: Optional[ConsistencyLevel] = None,
         tenant: Optional[str] = None,
-        type_: Optional[Type[Properties]] = None,
+        type_: Optional[Type[TProperties]] = None,
     ) -> None:
         super().__init__(name)
 
         self._connection = connection
 
         self.config = _ConfigCollection(self._connection, name)
-        self.data = _DataCollection[Properties](connection, name, consistency_level, tenant, type_)
-        self.query = _GrpcCollection[Properties](
+        self.data = _DataCollection[TProperties](connection, name, consistency_level, tenant, type_)
+        self.query = _GrpcCollection[TProperties](
             connection, name, self.data, consistency_level, tenant
         )
         self.tenants = _Tenants(connection, name)
@@ -57,6 +59,15 @@ class CollectionObject(CollectionObjectBase, Generic[Properties]):
         self, consistency_level: Optional[ConsistencyLevel] = None
     ) -> "CollectionObject":
         return CollectionObject(self._connection, self.name, consistency_level, self.__tenant)
+
+    def iterator(
+        self,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+    ) -> _ObjectIterator[Properties, TProperties]:
+        return _ObjectIterator[Properties, TProperties](
+            self.query, return_metadata, return_properties
+        )
 
 
 class Collection(CollectionBase):
