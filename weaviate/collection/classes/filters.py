@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Union
 
-from weaviate.weaviate_types import UUID
+from weaviate.types import UUID
 from weaviate_grpc import weaviate_pb2
 
 

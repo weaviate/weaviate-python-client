@@ -18,7 +18,7 @@ from weaviate.collection.tenants import _Tenants
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _capitalize_first_letter
-from weaviate.weaviate_types import PYTHON_TYPE_TO_DATATYPE
+from weaviate.types import PYTHON_TYPE_TO_DATATYPE
 
 
 class CollectionObjectModel(CollectionObjectBase, Generic[Model]):

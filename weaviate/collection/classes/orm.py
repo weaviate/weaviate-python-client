@@ -30,7 +30,7 @@ from weaviate.collection.classes.config import (
 )
 from weaviate.collection.classes.types import T
 from weaviate.util import _capitalize_first_letter, _to_beacons
-from weaviate.weaviate_types import PYTHON_TYPE_TO_DATATYPE, UUID
+from weaviate.types import PYTHON_TYPE_TO_DATATYPE, UUID
 
 
 @dataclass

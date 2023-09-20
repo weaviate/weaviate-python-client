@@ -32,7 +32,7 @@ from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.exceptions import WeaviateGRPCException
 from weaviate.collection.data import _DataCollection
 from weaviate.exceptions import InvalidDataModelException
-from weaviate.weaviate_types import UUID
+from weaviate.types import UUID
 
 
 import pytest
