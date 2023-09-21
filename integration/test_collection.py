@@ -30,7 +30,7 @@ from weaviate.collection.classes.data import (
 from weaviate.collection.classes.grpc import (
     GroupBy,
     HybridFusion,
-    LinkTo,
+    FromReference,
     MetadataQuery,
     Move,
     Sort,
@@ -1426,7 +1426,9 @@ def test_optional_ref_returns(client: weaviate.Client):
     )
     collection.data.insert(properties={"ref": ReferenceFactory.to(uuid_to1)})
 
-    objects = collection.query.fetch_objects(return_properties=[LinkTo(link_on="ref")]).objects
+    objects = collection.query.fetch_objects(
+        return_properties=[FromReference(link_on="ref")]
+    ).objects
 
     assert objects[0].properties["ref"].objects[0].properties["text"] == "ref text"
     assert objects[0].properties["ref"].objects[0].metadata.uuid is not None

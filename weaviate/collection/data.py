@@ -26,7 +26,12 @@ from weaviate.collection.classes.data import (
     _BatchReturn,
     RefError,
 )
-from weaviate.collection.classes.internal import _Object, _metadata_from_dict, ReferenceFactory
+from weaviate.collection.classes.internal import (
+    _Object,
+    _metadata_from_dict,
+    CrossReference,
+    _Reference,
+)
 from weaviate.collection.classes.orm import (
     Model,
 )
@@ -196,7 +201,7 @@ class _Data:
             return None
         raise UnexpectedStatusCodeException("Get object/s", response)
 
-    def _reference_add(self, from_uuid: UUID, from_property: str, ref: ReferenceFactory) -> None:
+    def _reference_add(self, from_uuid: UUID, from_property: str, ref: CrossReference) -> None:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
@@ -244,7 +249,7 @@ class _Data:
             return None
         raise UnexpectedStatusCodeException("Send ref batch", response)
 
-    def _reference_delete(self, from_uuid: UUID, from_property: str, ref: ReferenceFactory) -> None:
+    def _reference_delete(self, from_uuid: UUID, from_property: str, ref: CrossReference) -> None:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
@@ -260,9 +265,7 @@ class _Data:
             if response.status_code != 204:
                 raise UnexpectedStatusCodeException("Add property reference to object", response)
 
-    def _reference_replace(
-        self, from_uuid: UUID, from_property: str, ref: ReferenceFactory
-    ) -> None:
+    def _reference_replace(self, from_uuid: UUID, from_property: str, ref: CrossReference) -> None:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
@@ -296,7 +299,7 @@ class _Data:
     def _serialize_properties(self, data: Properties) -> Dict[str, Any]:
         return {
             key: val._to_beacons()
-            if isinstance(val, ReferenceFactory)
+            if isinstance(val, _Reference)
             else self.__serialize_primitive(val)
             for key, val in data.items()
         }
@@ -332,7 +335,7 @@ class _Data:
         int_arrays: List[weaviate_pb2.IntArrayProperties] = []
         float_arrays: List[weaviate_pb2.NumberArrayProperties] = []
         for key, val in data.items():
-            if isinstance(val, ReferenceFactory):
+            if isinstance(val, _Reference):
                 if val.is_multi_target:
                     multi_target.append(
                         weaviate_pb2.BatchObject.RefPropertiesMultiTarget(
@@ -468,7 +471,7 @@ class _DataCollection(Generic[Properties], _Data):
 
         self._update(weaviate_obj, uuid=uuid)
 
-    def reference_add(self, from_uuid: UUID, from_property: str, ref: ReferenceFactory) -> None:
+    def reference_add(self, from_uuid: UUID, from_property: str, ref: CrossReference) -> None:
         self._reference_add(
             from_uuid=from_uuid,
             from_property=from_property,
@@ -487,10 +490,10 @@ class _DataCollection(Generic[Properties], _Data):
         ]
         return self._reference_add_many(refs_dict)
 
-    def reference_delete(self, from_uuid: UUID, from_property: str, ref: ReferenceFactory) -> None:
+    def reference_delete(self, from_uuid: UUID, from_property: str, ref: CrossReference) -> None:
         self._reference_delete(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_replace(self, from_uuid: UUID, from_property: str, ref: ReferenceFactory) -> None:
+    def reference_replace(self, from_uuid: UUID, from_property: str, ref: CrossReference) -> None:
         self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
 
@@ -605,13 +608,13 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         return [self._json_to_object(obj) for obj in ret["objects"]]
 
-    def reference_add(self, from_uuid: UUID, from_property: str, ref: ReferenceFactory) -> None:
+    def reference_add(self, from_uuid: UUID, from_property: str, ref: CrossReference) -> None:
         self._reference_add(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_delete(self, from_uuid: UUID, from_property: str, ref: ReferenceFactory) -> None:
+    def reference_delete(self, from_uuid: UUID, from_property: str, ref: CrossReference) -> None:
         self._reference_delete(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_replace(self, from_uuid: UUID, from_property: str, ref: ReferenceFactory) -> None:
+    def reference_replace(self, from_uuid: UUID, from_property: str, ref: CrossReference) -> None:
         self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
     def reference_add_many(self, from_property: str, refs: List[BatchReference]) -> None:

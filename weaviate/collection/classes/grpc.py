@@ -80,7 +80,7 @@ class GroupBy(WeaviateInput):
     objects_per_group: int
 
 
-class LinkTo(WeaviateInput):
+class FromReference(WeaviateInput):
     link_on: str
     return_properties: Optional["PROPERTIES"] = Field(default=None)
     return_metadata: Optional[MetadataQuery] = Field(default=None)
@@ -89,11 +89,11 @@ class LinkTo(WeaviateInput):
         return hash(str(self))
 
 
-class LinkToMultiTarget(LinkTo):
+class FromReferenceMultiTarget(FromReference):
     target_collection: str
 
 
-PROPERTY = Union[str, LinkTo]
+PROPERTY = Union[str, FromReference]
 PROPERTIES = Union[List[PROPERTY], PROPERTY]
 
 

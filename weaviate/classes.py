@@ -14,8 +14,8 @@ from weaviate.collection.classes.data import (
 from weaviate.collection.classes.filters import Filter
 from weaviate.collection.classes.grpc import (
     HybridFusion,
-    LinkTo,
-    LinkToMultiTarget,
+    FromReference,
+    FromReferenceMultiTarget,
     MetadataQuery,
     Generate,
 )
@@ -29,8 +29,8 @@ __all__ = [
     "Filter",
     "Generate",
     "HybridFusion",
-    "LinkTo",
-    "LinkToMultiTarget",
+    "FromReference",
+    "FromReferenceMultiTarget",
     "MetadataQuery",
     "Multi2VecField",
     "Property",

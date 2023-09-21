@@ -5,7 +5,7 @@ import pytest as pytest
 import uuid
 
 from weaviate.collection.classes.data import BatchReference, DataObject
-from weaviate.collection.classes.grpc import LinkTo, LinkToMultiTarget
+from weaviate.collection.classes.grpc import FromReference, FromReferenceMultiTarget
 
 
 if sys.version_info < (3, 9):
@@ -24,7 +24,7 @@ from weaviate.collection.classes.config import (
     ReferencePropertyMultiTarget,
 )
 
-from weaviate.collection.classes.internal import ReferenceFactory
+from weaviate.collection.classes.internal import CrossReference, ReferenceFactory
 from weaviate.collection.grpc import MetadataQuery
 
 
@@ -105,7 +105,7 @@ def test_mono_references_grpc(client: weaviate.Client):
 
     objects = B.query.bm25(
         query="B",
-        return_properties=LinkTo(
+        return_properties=FromReference(
             link_on="ref",
             return_properties=["name"],
         ),
@@ -116,7 +116,7 @@ def test_mono_references_grpc(client: weaviate.Client):
     objects = B.query.bm25(
         query="B",
         return_properties=[
-            LinkTo(
+            FromReference(
                 link_on="ref",
                 return_properties=["name"],
                 return_metadata=MetadataQuery(uuid=True),
@@ -142,11 +142,11 @@ def test_mono_references_grpc(client: weaviate.Client):
         query="find",
         return_properties=[
             "name",
-            LinkTo(
+            FromReference(
                 link_on="ref",
                 return_properties=[
                     "name",
-                    LinkTo(
+                    FromReference(
                         link_on="ref",
                         return_properties=["name"],
                         return_metadata=MetadataQuery(uuid=True),
@@ -178,11 +178,11 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.Client):
 
     class BProps(TypedDict):
         name: str
-        ref: Annotated[ReferenceFactory[AProps], MetadataQuery(uuid=True)]
+        ref: Annotated[CrossReference[AProps], MetadataQuery(uuid=True)]
 
     class CProps(TypedDict):
         name: str
-        ref: Annotated[ReferenceFactory[BProps], MetadataQuery(uuid=True)]
+        ref: Annotated[CrossReference[BProps], MetadataQuery(uuid=True)]
 
     client.collection.create(
         name="ATypedDicts",
@@ -205,10 +205,12 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.Client):
     )
     B = client.collection.get("BTypedDicts", BProps)
     uuid_B = B.data.insert(
-        properties=BProps(name="B", ref=ReferenceFactory[AProps].to(uuids=uuid_A1))
+        properties=BProps(name="B", ref=ReferenceFactory.to(uuids=uuid_A1, data_model=AProps))
     )
     B.data.reference_add(
-        from_uuid=uuid_B, from_property="ref", ref=ReferenceFactory[AProps].to(uuids=uuid_A2)
+        from_uuid=uuid_B,
+        from_property="ref",
+        ref=ReferenceFactory.to(uuids=uuid_A2, data_model=AProps),
     )
 
     client.collection.create(
@@ -221,7 +223,9 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.Client):
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
     C = client.collection.get("CTypedDicts", CProps)
-    C.data.insert(properties=CProps(name="find me", ref=ReferenceFactory[BProps].to(uuids=uuid_B)))
+    C.data.insert(
+        properties=CProps(name="find me", ref=ReferenceFactory.to(uuids=uuid_B, data_model=BProps))
+    )
 
     objects = (
         client.collection.get("CTypedDicts")
@@ -306,7 +310,7 @@ def test_multi_references_grpc(client: weaviate.Client):
         query="first",
         return_properties=[
             "name",
-            LinkToMultiTarget(
+            FromReferenceMultiTarget(
                 link_on="ref",
                 target_collection="A",
                 return_properties=["name"],
@@ -322,7 +326,7 @@ def test_multi_references_grpc(client: weaviate.Client):
         query="second",
         return_properties=[
             "name",
-            LinkToMultiTarget(
+            FromReferenceMultiTarget(
                 link_on="ref",
                 target_collection="B",
                 return_properties=[
@@ -383,7 +387,7 @@ def test_references_batch(client: weaviate.Client):
     objects = collection.query.fetch_objects(
         return_properties=[
             "num",
-            LinkTo(link_on="ref"),
+            FromReference(link_on="ref"),
         ],
     ).objects
 

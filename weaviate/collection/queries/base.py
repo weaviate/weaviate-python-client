@@ -22,14 +22,14 @@ import uuid as uuid_lib
 
 from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.classes.grpc import (
-    LinkTo,
+    FromReference,
     PROPERTIES,
 )
 from weaviate.collection.classes.internal import (
     _GroupByObject,
     _MetadataReturn,
     _Object,
-    ReferenceFactory,
+    _Reference,
     _extract_property_type_from_annotated_reference,
     _extract_property_type_from_reference,
     _extract_properties_from_data_model,
@@ -126,9 +126,9 @@ class _Grpc:
                 if get_origin(hint) is Annotated:
                     referenced_property_type = _extract_property_type_from_annotated_reference(hint)
                 else:
-                    assert get_origin(hint) is ReferenceFactory
+                    assert get_origin(hint) is _Reference
                     referenced_property_type = _extract_property_type_from_reference(hint)
-                result[ref_prop.prop_name] = ReferenceFactory._from(
+                result[ref_prop.prop_name] = _Reference._from(
                     [
                         _Object(
                             properties=self.__parse_result(prop, referenced_property_type),
@@ -138,7 +138,7 @@ class _Grpc:
                     ]
                 )
             else:
-                result[ref_prop.prop_name] = ReferenceFactory[Dict[str, Any]]._from(
+                result[ref_prop.prop_name] = _Reference._from(
                     [
                         _Object(
                             properties=self.__parse_result(prop, Dict[str, Any]),
@@ -215,7 +215,7 @@ class _Grpc:
         if (
             isinstance(type_, list)
             or isinstance(type_, str)
-            or isinstance(type_, LinkTo)
+            or isinstance(type_, FromReference)
             or type_ is None
         ):
             ret_properties = cast(Optional[PROPERTIES], type_)
