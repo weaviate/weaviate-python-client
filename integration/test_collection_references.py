@@ -426,3 +426,62 @@ def test_references_batch_with_errors(client: weaviate.Client):
         batch_return[0][0].message
         == "property doesNotExist does not exist for class TestBatchRefErrorFrom"
     )
+
+
+def test_references_with_string_syntax(client: weaviate.Client):
+    name1 = "TestReferencesWithStringSyntaxA"
+    name2 = "TestReferencesWithStringSyntaxB"
+    client.collection.delete(name1)
+    client.collection.delete(name2)
+
+    client.collection.create(
+        name=name1,
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+            Property(name="Age", data_type=DataType.INT),
+            Property(name="Weird__Name", data_type=DataType.INT),
+        ],
+    )
+
+    uuid_A = client.collection.get(name1).data.insert(
+        properties={"Name": "A", "Age": 1, "Weird__Name": 2}
+    )
+
+    client.collection.get(name1).query.fetch_object_by_id(uuid_A)
+
+    client.collection.create(
+        name=name2,
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+            ReferenceProperty(name="ref", target_collection=name1),
+        ],
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
+    )
+
+    client.collection.get(name2).data.insert(
+        {"Name": "B", "ref": ReferenceFactory.to(uuids=uuid_A)}
+    )
+
+    objects = (
+        client.collection.get(name2)
+        .query.bm25(
+            query="B",
+            return_properties=[
+                "name",
+                "__ref__properties__Name",
+                "__ref__properties__Age",
+                "__ref__properties__Weird__Name",
+                "__ref__metadata__uuid",
+                "__ref__metadata__last_update_time_unix",
+            ],
+        )
+        .objects
+    )
+
+    assert objects[0].properties["name"] == "B"
+    assert objects[0].properties["ref"].objects[0].properties["name"] == "A"
+    assert objects[0].properties["ref"].objects[0].properties["age"] == 1
+    assert objects[0].properties["ref"].objects[0].properties["weird__Name"] == 2
+    assert objects[0].properties["ref"].objects[0].metadata.uuid == uuid_A
+    assert objects[0].properties["ref"].objects[0].metadata.last_update_time_unix is not None

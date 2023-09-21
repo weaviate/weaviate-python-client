@@ -91,7 +91,7 @@ class _NearAudio(_Grpc):
         if generate is not None and group_by is not None:
             raise ValueError("Cannot have group_by and generate defined simultaneously")
 
-        ret_properties, ret_type = self._determine_generic(return_properties)
+        ret_properties, ret_type = self._parse_return_properties(return_properties)
         res = self._query().near_audio(
             audio=self._parse_media(near_audio),
             certainty=certainty,
