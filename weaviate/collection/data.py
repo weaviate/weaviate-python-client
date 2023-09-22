@@ -66,6 +66,11 @@ class _Data:
 
     def __validate_props(self, props: Dict[str, Any], clean_props: bool) -> None:
         should_throw = False
+        if "id" in props:
+            if clean_props:
+                del props["id"]
+            else:
+                should_throw = True
         if "vector" in props:
             if clean_props:
                 del props["vector"]

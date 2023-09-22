@@ -271,13 +271,6 @@ def test_delete_by_id(client: weaviate.Client):
         ),
         (
             [
-                {"name": "some name", "uuid": uuid.uuid4()},
-            ],
-            False,
-            True,
-        ),
-        (
-            [
                 {"name": "some name", "vector": [1, 2, 3]},
                 DataObject(properties={"name": "some other name"}),
             ],
@@ -286,25 +279,7 @@ def test_delete_by_id(client: weaviate.Client):
         ),
         (
             [
-                {"name": "some name", "uuid": uuid.uuid4()},
-                DataObject(properties={"name": "some other name"}),
-            ],
-            False,
-            True,
-        ),
-        (
-            [
                 {"name": "some name", "vector": [1, 2, 3]},
-                DataObject(
-                    properties={"name": "some other name"}, uuid=uuid.uuid4(), vector=[1, 2, 3]
-                ),
-            ],
-            False,
-            True,
-        ),
-        (
-            [
-                {"name": "some name", "uuid": uuid.uuid4()},
                 DataObject(
                     properties={"name": "some other name"}, uuid=uuid.uuid4(), vector=[1, 2, 3]
                 ),
@@ -319,6 +294,13 @@ def test_delete_by_id(client: weaviate.Client):
             ],
             True,
             False,
+        ),
+        (
+            [
+                {"name": "some name", "id": uuid.uuid4()},
+            ],
+            False,
+            True,
         ),
     ],
 )
@@ -349,7 +331,7 @@ def test_insert_many(
             collection.data.insert_many(objects)
         assert (
             e.value.message
-            == f"""It is forbidden to insert `vector` inside properties: {objects[0]}. Only properties defined in your collection's config can be insterted as properties of the object, `vector` is forbidden at this level. You should use the `DataObject` class if you wish to insert an object with a custom `vector` whilst inserting its properties."""
+            == f"""It is forbidden to insert `id` or `vector` inside properties: {objects[0]}. Only properties defined in your collection's config can be insterted as properties of the object, `id` is totally forbidden as it is reserved and `vector` is forbidden at this level. You should use the `DataObject` class if you wish to insert an object with a custom `vector` whilst inserting its properties."""
         )
 
 
