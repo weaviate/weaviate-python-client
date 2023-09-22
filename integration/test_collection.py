@@ -41,7 +41,11 @@ from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collection.classes.types import Properties
 from weaviate.collection.data import _DataCollection
 from weaviate.collection.object_iterator import ITERATOR_CACHE_SIZE
-from weaviate.exceptions import InvalidDataModelException, WeaviateGRPCException
+from weaviate.exceptions import (
+    InvalidDataModelException,
+    WeaviateGRPCException,
+    WeaviateInsertInvalidPropertyError,
+)
 from weaviate.types import UUID
 
 BEACON_START = "weaviate://localhost"
@@ -231,25 +235,122 @@ def test_delete_by_id(client: weaviate.Client):
     client.collection.delete(name)
 
 
-def test_insert_many(client: weaviate.Client):
+@pytest.mark.parametrize(
+    "objects,should_implicitly_clean,should_error",
+    [
+        (
+            [
+                DataObject(properties={"name": "some name"}, vector=[1, 2, 3]),
+                DataObject(properties={"name": "some other name"}, uuid=uuid.uuid4()),
+            ],
+            False,
+            False,
+        ),
+        (
+            [
+                {"name": "some name"},
+                DataObject(properties={"name": "some other name"}),
+            ],
+            False,
+            False,
+        ),
+        (
+            [
+                {"name": "some name"},
+                {"name": "some other name"},
+            ],
+            False,
+            False,
+        ),
+        (
+            [
+                {"name": "some name", "vector": [1, 2, 3]},
+            ],
+            False,
+            True,
+        ),
+        (
+            [
+                {"name": "some name", "uuid": uuid.uuid4()},
+            ],
+            False,
+            True,
+        ),
+        (
+            [
+                {"name": "some name", "vector": [1, 2, 3]},
+                DataObject(properties={"name": "some other name"}),
+            ],
+            False,
+            True,
+        ),
+        (
+            [
+                {"name": "some name", "uuid": uuid.uuid4()},
+                DataObject(properties={"name": "some other name"}),
+            ],
+            False,
+            True,
+        ),
+        (
+            [
+                {"name": "some name", "vector": [1, 2, 3]},
+                DataObject(
+                    properties={"name": "some other name"}, uuid=uuid.uuid4(), vector=[1, 2, 3]
+                ),
+            ],
+            False,
+            True,
+        ),
+        (
+            [
+                {"name": "some name", "uuid": uuid.uuid4()},
+                DataObject(
+                    properties={"name": "some other name"}, uuid=uuid.uuid4(), vector=[1, 2, 3]
+                ),
+            ],
+            False,
+            True,
+        ),
+        (
+            [
+                {"name": "some name", "vector": [1, 2, 3]},
+                {"name": "some other name", "uuid": uuid.uuid4()},
+            ],
+            True,
+            False,
+        ),
+    ],
+)
+def test_insert_many(
+    client: weaviate.Client,
+    objects: List[Union[Properties, DataObject[Properties]]],
+    should_implicitly_clean: bool,
+    should_error: bool,
+):
     name = "TestInsertMany"
+    client.collection.delete(name)
     collection = client.collection.create(
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
-    ret = collection.data.insert_many(
-        [
-            DataObject(properties={"name": "some name"}, vector=[1, 2, 3]),
-            DataObject(properties={"name": "some other name"}, uuid=uuid.uuid4()),
-        ]
-    )
-    obj1 = collection.query.fetch_object_by_id(ret.uuids[0])
-    obj2 = collection.query.fetch_object_by_id(ret.uuids[1])
-    assert obj1.properties["name"] == "some name"
-    assert obj2.properties["name"] == "some other name"
-
-    client.collection.delete(name)
+    if not should_error:
+        ret = collection.data.insert_many(objects, should_implicitly_clean)
+        for idx, uuid_ in ret.uuids.items():
+            obj1 = collection.query.fetch_object_by_id(uuid_)
+            assert (
+                obj1.properties["name"] == objects[idx].properties["name"]
+                if isinstance(objects[idx], DataObject)
+                else objects[idx]["name"]
+            )
+    else:
+        with pytest.raises(WeaviateInsertInvalidPropertyError) as e:
+            collection.data.insert_many(objects)
+        assert (
+            e.value.message
+            == f"""It is forbidden to insert either of `uuid` or `vector` inside properties: {objects[0]}. Only properties defined in your collection's config can be insterted as properties of the object, `uuid` and `vector` are forbidden at this level. You should use the `DataObject` class if you wish to insert an object with `uuid` and `vector` alongside its properties."""
+        )
 
 
 def test_insert_many_with_typed_dict(client: weaviate.Client):
