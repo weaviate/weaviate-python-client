@@ -349,7 +349,7 @@ def test_insert_many(
             collection.data.insert_many(objects)
         assert (
             e.value.message
-            == f"""It is forbidden to insert either of `uuid` or `vector` inside properties: {objects[0]}. Only properties defined in your collection's config can be insterted as properties of the object, `uuid` and `vector` are forbidden at this level. You should use the `DataObject` class if you wish to insert an object with `uuid` and `vector` alongside its properties."""
+            == f"""It is forbidden to insert `vector` inside properties: {objects[0]}. Only properties defined in your collection's config can be insterted as properties of the object, `vector` is forbidden at this level. You should use the `DataObject` class if you wish to insert an object with a custom `vector` whilst inserting its properties."""
         )
 
 
