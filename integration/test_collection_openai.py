@@ -11,7 +11,7 @@ from weaviate.collection.classes.config import (
     Property,
 )
 from weaviate.collection.classes.data import DataObject
-from weaviate.collection.classes.grpc import Generate, MetadataQuery
+from weaviate.collection.classes.grpc import MetadataQuery
 from weaviate.exceptions import WeaviateGRPCException
 
 
@@ -51,10 +51,8 @@ def test_generative_search_single(client: weaviate.Client, parameter: str, answe
         ]
     )
 
-    res = collection.query.fetch_objects(
-        generate=Generate(
-            single_prompt=f"is it good or bad based on {{{parameter}}}? Just answer with yes or no without punctuation"
-        )
+    res = collection.generate.fetch_objects(
+        single_prompt=f"is it good or bad based on {{{parameter}}}? Just answer with yes or no without punctuation"
     )
     for obj in res.objects:
         assert obj.metadata.generative == answer
@@ -86,11 +84,9 @@ def test_fetch_objects_generate_search_grouped(
         ]
     )
 
-    res = collection.query.fetch_objects(
-        generate=Generate(
-            grouped_task="What is big and what is small? write the name of the big thing first and then the name of the small thing after a space.",
-            grouped_properties=prop,
-        )
+    res = collection.generate.fetch_objects(
+        grouped_task="What is big and what is small? write the name of the big thing first and then the name of the small thing after a space.",
+        grouped_properties=prop,
     )
     assert res.generated == answer
 
@@ -125,10 +121,8 @@ def test_fetch_objects_generate_search_grouped_all_props(client: weaviate.Client
         ]
     )
 
-    res = collection.query.fetch_objects(
-        generate=Generate(
-            grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space"
-        )
+    res = collection.generate.fetch_objects(
+        grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space"
     )
     assert res.generated == "Teddy cats"
 
@@ -163,11 +157,9 @@ def test_fetch_objects_generate_search_grouped_specified_prop(client: weaviate.C
         ]
     )
 
-    res = collection.query.fetch_objects(
-        generate=Generate(
-            grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
-            grouped_properties=["text"],
-        )
+    res = collection.generate.fetch_objects(
+        grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
+        grouped_properties=["text"],
     )
     assert res.generated == "apples bananas"
 
@@ -202,11 +194,9 @@ def test_fetch_objects_generate_with_everything(client: weaviate.Client):
         ]
     )
 
-    res = collection.query.fetch_objects(
-        generate=Generate(
-            single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
-            grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
-        )
+    res = collection.generate.fetch_objects(
+        single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+        grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
     )
     assert res.generated == "Teddy cats"
     for obj in res.objects:
@@ -243,13 +233,11 @@ def test_bm25_generate_with_everything(client: weaviate.Client):
         ]
     )
 
-    res = collection.query.bm25(
+    res = collection.generate.bm25(
         query="Teddy",
         query_properties=["content"],
-        generate=Generate(
-            single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
-            grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
-        ),
+        single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+        grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
     )
     assert res.generated == "Teddy apples"
     for obj in res.objects:
@@ -286,13 +274,11 @@ def test_hybrid_generate_with_everything(client: weaviate.Client):
         ]
     )
 
-    res = collection.query.hybrid(
+    res = collection.generate.hybrid(
         query="cats",
         query_properties=["text"],
-        generate=Generate(
-            single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
-            grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space from biggest to smallest",
-        ),
+        single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+        grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space from biggest to smallest",
     )
     assert res.generated == "cats bananas"
     for obj in res.objects:
@@ -330,12 +316,10 @@ def test_near_text_generate_with_everything(client: weaviate.Client):
         ]
     )
 
-    res = collection.query.near_text(
+    res = collection.generate.near_text(
         query="small fruit",
-        generate=Generate(
-            single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
-            grouped_task="Write out the fruit in the order in which they appear in the provided list. Only write the names separated by a space",
-        ),
+        single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+        grouped_task="Write out the fruit in the order in which they appear in the provided list. Only write the names separated by a space",
     )
     assert res.generated == "bananas apples"
     assert res.objects[0].metadata.generative == "No"
@@ -374,12 +358,10 @@ def test_near_vector_generate_with_everything(client: weaviate.Client):
         ]
     )
 
-    res = collection.query.near_vector(
+    res = collection.generate.near_vector(
         near_vector=[1, 2, 3, 4, 6],
-        generate=Generate(
-            single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
-            grouped_task="Write out the fruit in the order in which they appear in the provided list. Only write the names separated by a space",
-        ),
+        single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+        grouped_task="Write out the fruit in the order in which they appear in the provided list. Only write the names separated by a space",
     )
     assert res.generated == "apples bananas"
     assert res.objects[0].metadata.generative == "Yes"
@@ -402,9 +384,7 @@ def test_openapi_invalid_key():
     )
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):
-        collection.query.fetch_objects(
-            generate=Generate(single_prompt="tell a joke based on {text}")
-        )
+        collection.generate.fetch_objects(single_prompt="tell a joke based on {text}")
 
 
 def test_openapi_no_module():
@@ -423,9 +403,7 @@ def test_openapi_no_module():
     )
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):
-        collection.query.fetch_objects(
-            generate=Generate(single_prompt="tell a joke based on {text}")
-        )
+        collection.generate.fetch_objects(single_prompt="tell a joke based on {text}")
 
 
 def test_openai_batch_upload(client: weaviate.Client):
