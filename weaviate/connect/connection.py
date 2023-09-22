@@ -12,7 +12,7 @@ from typing import Any, Dict, Optional, Tuple, Union, cast
 from urllib.parse import urlparse
 
 import requests
-from authlib.integrations.requests_client import OAuth2Session
+from authlib.integrations.requests_client import OAuth2Session  # type: ignore
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError, ReadTimeout
 from requests.exceptions import HTTPError as RequestsHTTPError
@@ -39,7 +39,7 @@ from weaviate.util import (
 from weaviate.warnings import _Warnings
 
 try:
-    import grpc
+    import grpc  # type: ignore
     from weaviate_grpc import weaviate_pb2_grpc
 
     has_grpc = True

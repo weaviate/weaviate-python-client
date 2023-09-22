@@ -39,7 +39,7 @@ from weaviate.warnings import _Warnings
 
 try:
     from weaviate_grpc import weaviate_pb2
-    import grpc
+    import grpc  # type: ignore
 except ImportError:
     pass
 
