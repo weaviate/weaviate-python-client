@@ -220,7 +220,7 @@ UserModelType = Type[BaseProperty]
 class CollectionModelConfig(_CollectionConfigCreateBase, Generic[Model]):
     model: Type[Model]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
 
         ret_dict["class"] = _capitalize_first_letter(self.model.__name__)
