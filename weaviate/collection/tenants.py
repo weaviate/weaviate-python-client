@@ -20,7 +20,7 @@ class _Tenants:
         self.__name = name
 
     def create(self, tenants: List[Tenant]) -> None:
-        """Creates the specified tenants for a collection in Weaviate.
+        """Create the specified tenants for a collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
 

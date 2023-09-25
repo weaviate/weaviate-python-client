@@ -157,7 +157,7 @@ class ReferenceFactory(Generic[P]):
 
     @classmethod
     def to(cls, uuids: UUIDS) -> "ReferenceFactory[P]":
-        """Defines cross references to other objects by their UUIDs.
+        """Define cross references to other objects by their UUIDs.
 
         Can be made to be generic by using `ReferenceFactory[Properties]` as the type.
 
@@ -171,7 +171,7 @@ class ReferenceFactory(Generic[P]):
     def to_multi_target(
         cls, uuids: UUIDS, target_collection: Union[str, _CollectionObjectBase]
     ) -> "ReferenceFactory[P]":
-        """Defines cross references to other objects by their UUIDs and the collection in which they are stored.
+        """Define cross references to other objects by their UUIDs and the collection in which they are stored.
 
         Can be made to be generic by using `ReferenceFactory[Properties]` as the type.
 
