@@ -19,8 +19,8 @@ class _Tenants:
         self.__connection = connection
         self.__name = name
 
-    def add(self, tenants: List[Tenant]) -> None:
-        """Add the specified tenants to a collection in Weaviate.
+    def create(self, tenants: List[Tenant]) -> None:
+        """Creates the specified tenants for a collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
 

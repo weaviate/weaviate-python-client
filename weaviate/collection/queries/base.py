@@ -1,12 +1,15 @@
 import datetime
+import io
+import pathlib
 import sys
 from typing import (
     Any,
     Dict,
+    List,
     Optional,
-    Union,
     Tuple,
     Type,
+    Union,
     cast,
 )
 from typing_extensions import is_typeddict
@@ -32,7 +35,6 @@ from weaviate.collection.classes.internal import (
     _extract_property_type_from_reference,
     _extract_properties_from_data_model,
     _GenerativeReturn,
-    _QueryReturn,
     _GroupByResult,
     _GroupByReturn,
 )
@@ -41,6 +43,7 @@ from weaviate.collection.classes.types import (
 )
 from weaviate.collection.grpc_query import _QueryGRPC, GroupByResult, SearchResponse, SearchResult
 from weaviate.connect import Connection
+from weaviate.util import file_encoder_b64
 from weaviate_grpc import weaviate_pb2
 
 
@@ -158,9 +161,8 @@ class _Grpc:
         self,
         res: SearchResponse,
         type_: Optional[Type[Properties]],
-    ) -> _QueryReturn[Properties]:
-        objects = [self.__result_to_object(obj, type_=type_) for obj in res.results]
-        return _QueryReturn[Properties](objects=objects)
+    ) -> List[_Object[Properties]]:
+        return [self.__result_to_object(obj, type_=type_) for obj in res.results]
 
     def _result_to_generative_return(
         self,
@@ -226,3 +228,10 @@ class _Grpc:
             ret_properties = _extract_properties_from_data_model(type_)
             ret_type = type_
         return ret_properties, ret_type
+
+    @staticmethod
+    def _parse_media(media: Union[str, pathlib.Path, io.BufferedReader]) -> str:
+        if isinstance(media, str):  # if already encoded by user
+            return media
+        else:
+            return file_encoder_b64(media)

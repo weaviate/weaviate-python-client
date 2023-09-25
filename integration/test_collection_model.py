@@ -168,7 +168,7 @@ def test_tenants(client: weaviate.Client):
         )
     )
 
-    collection.tenants.add([Tenant(name="tenant1")])
+    collection.tenants.create([Tenant(name="tenant1")])
 
     tenants = collection.tenants.get()
     assert len(tenants) == 1
@@ -193,7 +193,7 @@ def test_tenants_activity(client: weaviate.Client):
             model=TenantsUpdateTest,
         )
     )
-    collection.tenants.add(
+    collection.tenants.create(
         [
             Tenant(name="1", activity_status=TenantActivityStatus.HOT),
             Tenant(name="2", activity_status=TenantActivityStatus.COLD),
@@ -218,7 +218,7 @@ def test_tenants_update(client: weaviate.Client):
             model=TenantsUpdateTest,
         )
     )
-    collection.tenants.add([Tenant(name="1", activity_status=TenantActivityStatus.HOT)])
+    collection.tenants.create([Tenant(name="1", activity_status=TenantActivityStatus.HOT)])
     tenants = collection.tenants.get()
     assert tenants["1"].activity_status == TenantActivityStatus.HOT
 
@@ -311,7 +311,7 @@ def test_search_with_tenant(client: weaviate.Client):
         )
     )
 
-    collection.tenants.add([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
+    collection.tenants.create([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
     tenant1 = collection.with_tenant("Tenant1")
     tenant2 = collection.with_tenant("Tenant2")
     uuid1 = tenant1.data.insert(TestTenantSearch(name="some"))
