@@ -28,6 +28,7 @@ __all__ = [
     "DataType",
     "Filter",
     "HybridFusion",
+    "GroupBy",
     "LinkTo",
     "LinkToMultiTarget",
     "MetadataQuery",
