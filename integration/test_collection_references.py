@@ -459,20 +459,16 @@ def test_references_with_string_syntax(client: weaviate.Client):
         {"Name": "B", "ref": ReferenceFactory.to(uuids=uuid_A)}
     )
 
-    objects = (
-        client.collection.get(name2)
-        .query.bm25(
-            query="B",
-            return_properties=[
-                "name",
-                "__ref__properties__Name",
-                "__ref__properties__Age",
-                "__ref__properties__Weird__Name",
-                "__ref__metadata__uuid",
-                "__ref__metadata__last_update_time_unix",
-            ],
-        )
-        .objects
+    objects = client.collection.get(name2).query.bm25(
+        query="B",
+        return_properties=[
+            "name",
+            "__ref__properties__Name",
+            "__ref__properties__Age",
+            "__ref__properties__Weird__Name",
+            "__ref__metadata__uuid",
+            "__ref__metadata__last_update_time_unix",
+        ],
     )
 
     assert objects[0].properties["name"] == "B"
