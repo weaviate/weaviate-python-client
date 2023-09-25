@@ -1,10 +1,8 @@
 from typing import (
     List,
-    Literal,
     Optional,
     Union,
     Type,
-    overload,
 )
 
 from weaviate.collection.classes.filters import (
@@ -21,7 +19,7 @@ from weaviate.collection.classes.internal import (
     _GenerativeReturn,
     _GroupBy,
     _GroupByReturn,
-    _QueryReturn,
+    _Object,
 )
 from weaviate.collection.classes.types import (
     Properties,
@@ -30,7 +28,6 @@ from weaviate.collection.queries.base import _Grpc
 
 
 class _NearTextQuery(_Grpc):
-    @overload
     def near_text(
         self,
         query: Union[List[str], str],
@@ -41,44 +38,9 @@ class _NearTextQuery(_Grpc):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        group_by: Literal[None] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
-    ) -> _QueryReturn[Properties]:
-        ...
-
-    @overload
-    def near_text(
-        self,
-        query: Union[List[str], str],
-        certainty: Optional[float] = None,
-        distance: Optional[float] = None,
-        move_to: Optional[Move] = None,
-        move_away: Optional[Move] = None,
-        limit: Optional[int] = None,
-        auto_limit: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        *,
-        group_by: GroupBy,
-        return_metadata: Optional[MetadataQuery] = None,
-        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
-    ) -> _GroupByReturn[Properties]:
-        ...
-
-    def near_text(
-        self,
-        query: Union[List[str], str],
-        certainty: Optional[float] = None,
-        distance: Optional[float] = None,
-        move_to: Optional[Move] = None,
-        move_away: Optional[Move] = None,
-        limit: Optional[int] = None,
-        auto_limit: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        group_by: Optional[GroupBy] = None,
-        return_metadata: Optional[MetadataQuery] = None,
-        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
-    ) -> Union[_GroupByReturn[Properties], _QueryReturn[Properties]]:
+    ) -> List[_Object[Properties]]:
         ret_properties, ret_type = self._determine_generic(return_properties)
         res = self._query().near_text(
             near_text=query,
@@ -89,14 +51,10 @@ class _NearTextQuery(_Grpc):
             limit=limit,
             autocut=auto_limit,
             filters=filters,
-            group_by=_GroupBy.from_input(group_by),
             return_metadata=return_metadata,
             return_properties=ret_properties,
         )
-        if group_by is None:
-            return self._result_to_query_return(res, ret_type)
-        else:
-            return self._result_to_groupby_return(res, ret_type)
+        return self._result_to_query_return(res, ret_type)
 
 
 class _NearTextGenerate(_Grpc):
@@ -135,3 +93,35 @@ class _NearTextGenerate(_Grpc):
             return_properties=ret_properties,
         )
         return self._result_to_generative_return(res, ret_type)
+
+
+class _NearTextGroupBy(_Grpc):
+    def near_text(
+        self,
+        query: Union[List[str], str],
+        group_by: GroupBy,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+    ) -> _GroupByReturn[Properties]:
+        ret_properties, ret_type = self._determine_generic(return_properties)
+        res = self._query().near_text(
+            near_text=query,
+            certainty=certainty,
+            distance=distance,
+            move_to=move_to,
+            move_away=move_away,
+            limit=limit,
+            autocut=auto_limit,
+            filters=filters,
+            group_by=_GroupBy.from_input(group_by),
+            return_metadata=return_metadata,
+            return_properties=ret_properties,
+        )
+        return self._result_to_groupby_return(res, ret_type)

@@ -2,7 +2,7 @@ from typing import Generic, Iterable, Iterator, List, Optional, Type, Union
 from uuid import UUID
 
 from weaviate.collection.classes.grpc import MetadataQuery, PROPERTIES
-from weaviate.collection.classes.internal import _Object, _QueryReturn
+from weaviate.collection.classes.internal import _Object
 from weaviate.collection.classes.types import Properties, TProperties
 from weaviate.collection.grpc import _QueryCollection
 
@@ -37,13 +37,13 @@ class _ObjectIterator(Generic[Properties, TProperties], Iterable[_Object[Propert
 
     def __next__(self) -> _Object[Properties]:
         if len(self.__iter_object_cache) == 0:
-            ret: _QueryReturn[Properties] = self.__query.fetch_objects(
+            objects: List[_Object[Properties]] = self.__query.fetch_objects(
                 limit=ITERATOR_CACHE_SIZE,
                 after=self.__iter_object_last_uuid,
                 return_metadata=self.__meta,
                 return_properties=self.__props,
             )
-            self.__iter_object_cache = ret.objects
+            self.__iter_object_cache = objects
             if len(self.__iter_object_cache) == 0:
                 raise StopIteration
 
