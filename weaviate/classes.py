@@ -14,6 +14,7 @@ from weaviate.collection.classes.data import (
 from weaviate.collection.classes.filters import Filter
 from weaviate.collection.classes.grpc import (
     HybridFusion,
+    GroupBy,
     LinkTo,
     LinkToMultiTarget,
     MetadataQuery,
