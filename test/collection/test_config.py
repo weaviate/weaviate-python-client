@@ -1,5 +1,8 @@
 import pytest
 from typing import List
+
+from pydantic import ValidationError
+
 from weaviate.collection.classes.config import (
     _CollectionConfigCreate,
     DataType,
@@ -8,6 +11,7 @@ from weaviate.collection.classes.config import (
     _VectorizerConfig,
     ConfigFactory,
     Property,
+    ReferenceProperty,
 )
 
 
@@ -616,3 +620,21 @@ def test_config_with_properties():
             },
         ],
     }
+
+
+@pytest.mark.parametrize("name", ["id", "vector"])
+def test_config_with_invalid_property(name: str):
+    with pytest.raises(ValidationError):
+        _CollectionConfigCreate(
+            name="test",
+            description="test",
+            properties=[Property(name=name, data_type=DataType.TEXT)],
+        )
+
+
+@pytest.mark.parametrize("name", ["id", "vector"])
+def test_config_with_invalid_reference_property(name: str):
+    with pytest.raises(ValidationError):
+        _CollectionConfigCreate(
+            name="test", description="test", properties=[ReferenceProperty(name=name, to="Test")]
+        )

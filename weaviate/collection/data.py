@@ -442,7 +442,6 @@ class _DataCollection(Generic[Properties], _Data):
         properties: Properties,
         uuid: Optional[UUID] = None,
         vector: Optional[List[float]] = None,
-        implicitly_clean_properties: bool = False,
     ) -> uuid_package.UUID:
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
@@ -453,12 +452,11 @@ class _DataCollection(Generic[Properties], _Data):
         if vector is not None:
             weaviate_obj["vector"] = vector
 
-        return self._insert(weaviate_obj, implicitly_clean_properties)
+        return self._insert(weaviate_obj, False)
 
     def insert_many(
         self,
         objects: List[Union[Properties, DataObject[Properties]]],
-        implicitly_clean_properties: bool = False,
     ) -> _BatchReturn:
         return self._insert_many(
             [
@@ -475,7 +473,7 @@ class _DataCollection(Generic[Properties], _Data):
                 }
                 for obj in objects
             ],
-            implicitly_clean_properties,
+            False,
         )
 
     def replace(
@@ -572,7 +570,7 @@ class _DataCollectionModel(Generic[Model], _Data):
         )
         return model_object
 
-    def insert(self, obj: Model, implicitly_clean_properties: bool = False) -> uuid_package.UUID:
+    def insert(self, obj: Model) -> uuid_package.UUID:
         self.__model.model_validate(obj)
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
@@ -582,12 +580,10 @@ class _DataCollectionModel(Generic[Model], _Data):
         if obj.vector is not None:
             weaviate_obj["vector"] = obj.vector
 
-        self._insert(weaviate_obj, implicitly_clean_properties)
+        self._insert(weaviate_obj, False)
         return uuid_package.UUID(str(obj.uuid))
 
-    def insert_many(
-        self, objects: List[Model], implicitly_clean_properties: bool = False
-    ) -> _BatchReturn:
+    def insert_many(self, objects: List[Model]) -> _BatchReturn:
         for obj in objects:
             self.__model.model_validate(obj)
 
@@ -600,7 +596,7 @@ class _DataCollectionModel(Generic[Model], _Data):
             for obj in objects
         ]
 
-        return self._insert_many(data_objects, implicitly_clean_properties)
+        return self._insert_many(data_objects, False)
 
     def replace(self, obj: Model, uuid: UUID) -> None:
         self.__model.model_validate(obj)
