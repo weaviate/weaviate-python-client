@@ -425,6 +425,6 @@ def test_openai_batch_upload(client: weaviate.Client):
     )
     assert not ret.has_errors
 
-    objects = collection.query.fetch_objects(return_metadata=MetadataQuery(vector=True)).objects
+    objects = collection.query.fetch_objects(return_metadata=MetadataQuery(vector=True))
     assert objects[0].metadata.vector is not None
     assert len(objects[0].metadata.vector) > 0

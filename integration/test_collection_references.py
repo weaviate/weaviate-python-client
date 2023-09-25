@@ -385,7 +385,7 @@ def test_references_batch(client: weaviate.Client):
             "num",
             LinkTo(link_on="ref"),
         ],
-    ).objects
+    )
 
     for obj in objects:
         assert obj.properties["num"] == obj.properties["ref"].objects[0].properties["num"]

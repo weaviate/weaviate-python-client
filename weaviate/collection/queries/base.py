@@ -5,10 +5,11 @@ import sys
 from typing import (
     Any,
     Dict,
+    List,
     Optional,
-    Union,
     Tuple,
     Type,
+    Union,
     cast,
 )
 from typing_extensions import is_typeddict
@@ -34,7 +35,6 @@ from weaviate.collection.classes.internal import (
     _extract_property_type_from_reference,
     _extract_properties_from_data_model,
     _GenerativeReturn,
-    _QueryReturn,
     _GroupByResult,
     _GroupByReturn,
 )
@@ -161,9 +161,8 @@ class _Grpc:
         self,
         res: SearchResponse,
         type_: Optional[Type[Properties]],
-    ) -> _QueryReturn[Properties]:
-        objects = [self.__result_to_object(obj, type_=type_) for obj in res.results]
-        return _QueryReturn[Properties](objects=objects)
+    ) -> List[_Object[Properties]]:
+        return [self.__result_to_object(obj, type_=type_) for obj in res.results]
 
     def _result_to_generative_return(
         self,

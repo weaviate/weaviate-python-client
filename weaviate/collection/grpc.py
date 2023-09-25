@@ -29,12 +29,36 @@ from weaviate.collection.queries.base import _Grpc
 from weaviate.collection.queries.bm25 import _BM25Generate, _BM25Query
 from weaviate.collection.queries.fetch_objects import _FetchObjectsGenerate, _FetchObjectsQuery
 from weaviate.collection.queries.hybrid import _HybridGenerate, _HybridQuery
-from weaviate.collection.queries.near_audio import _NearAudioGenerate, _NearAudioQuery
-from weaviate.collection.queries.near_image import _NearImageGenerate, _NearImageQuery
-from weaviate.collection.queries.near_object import _NearObjectGenerate, _NearObjectQuery
-from weaviate.collection.queries.near_text import _NearTextGenerate, _NearTextQuery
-from weaviate.collection.queries.near_vector import _NearVectorGenerate, _NearVectorQuery
-from weaviate.collection.queries.near_video import _NearVideoGenerate, _NearVideoQuery
+from weaviate.collection.queries.near_audio import (
+    _NearAudioGenerate,
+    _NearAudioGroupBy,
+    _NearAudioQuery,
+)
+from weaviate.collection.queries.near_image import (
+    _NearImageGenerate,
+    _NearImageGroupBy,
+    _NearImageQuery,
+)
+from weaviate.collection.queries.near_object import (
+    _NearObjectGenerate,
+    _NearObjectGroupBy,
+    _NearObjectQuery,
+)
+from weaviate.collection.queries.near_text import (
+    _NearTextGenerate,
+    _NearTextGroupBy,
+    _NearTextQuery,
+)
+from weaviate.collection.queries.near_vector import (
+    _NearVectorGenerate,
+    _NearVectorGroupBy,
+    _NearVectorQuery,
+)
+from weaviate.collection.queries.near_video import (
+    _NearVideoGenerate,
+    _NearVideoGroupBy,
+    _NearVideoQuery,
+)
 
 from weaviate.connect import Connection
 from weaviate.types import UUID
@@ -84,6 +108,17 @@ class _GenerateCollection(
     _NearTextGenerate,
     _NearVectorGenerate,
     _NearVideoGenerate,
+):
+    pass
+
+
+class _GroupByCollection(
+    _NearAudioGroupBy,
+    _NearImageGroupBy,
+    _NearObjectGroupBy,
+    _NearTextGroupBy,
+    _NearVectorGroupBy,
+    _NearVideoGroupBy,
 ):
     pass
 
