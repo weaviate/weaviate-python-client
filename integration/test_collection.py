@@ -236,7 +236,7 @@ def test_delete_by_id(client: weaviate.Client):
 
 
 @pytest.mark.parametrize(
-    "objects,should_implicitly_clean,should_error",
+    "objects,should_error",
     [
         (
             [
@@ -244,14 +244,12 @@ def test_delete_by_id(client: weaviate.Client):
                 DataObject(properties={"name": "some other name"}, uuid=uuid.uuid4()),
             ],
             False,
-            False,
         ),
         (
             [
                 {"name": "some name"},
                 DataObject(properties={"name": "some other name"}),
             ],
-            False,
             False,
         ),
         (
@@ -260,13 +258,11 @@ def test_delete_by_id(client: weaviate.Client):
                 {"name": "some other name"},
             ],
             False,
-            False,
         ),
         (
             [
                 {"name": "some name", "vector": [1, 2, 3]},
             ],
-            False,
             True,
         ),
         (
@@ -274,7 +270,6 @@ def test_delete_by_id(client: weaviate.Client):
                 {"name": "some name", "vector": [1, 2, 3]},
                 DataObject(properties={"name": "some other name"}),
             ],
-            False,
             True,
         ),
         (
@@ -284,22 +279,12 @@ def test_delete_by_id(client: weaviate.Client):
                     properties={"name": "some other name"}, uuid=uuid.uuid4(), vector=[1, 2, 3]
                 ),
             ],
-            False,
             True,
-        ),
-        (
-            [
-                {"name": "some name", "vector": [1, 2, 3]},
-                {"name": "some other name", "uuid": uuid.uuid4()},
-            ],
-            True,
-            False,
         ),
         (
             [
                 {"name": "some name", "id": uuid.uuid4()},
             ],
-            False,
             True,
         ),
     ],
@@ -307,7 +292,6 @@ def test_delete_by_id(client: weaviate.Client):
 def test_insert_many(
     client: weaviate.Client,
     objects: List[Union[Properties, DataObject[Properties]]],
-    should_implicitly_clean: bool,
     should_error: bool,
 ):
     name = "TestInsertMany"
@@ -318,7 +302,7 @@ def test_insert_many(
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
     if not should_error:
-        ret = collection.data.insert_many(objects, should_implicitly_clean)
+        ret = collection.data.insert_many(objects)
         for idx, uuid_ in ret.uuids.items():
             obj1 = collection.query.fetch_object_by_id(uuid_)
             assert (
