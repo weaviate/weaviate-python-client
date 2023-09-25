@@ -443,6 +443,16 @@ class _DataCollection(Generic[Properties], _Data):
         uuid: Optional[UUID] = None,
         vector: Optional[List[float]] = None,
     ) -> uuid_package.UUID:
+        """Insert a single object into the collection.
+
+        Arguments:
+            properties: The properties of the object.
+            uuid: The UUID of the object. If not provided, a random UUID will be generated.
+            vector: The vector of the object.
+
+        Returns:
+            The UUID of the inserted object.
+        """
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
             "properties": self._serialize_properties(properties),
@@ -458,6 +468,22 @@ class _DataCollection(Generic[Properties], _Data):
         self,
         objects: List[Union[Properties, DataObject[Properties]]],
     ) -> _BatchReturn:
+        """Insert multiple objects into the collection.
+
+        Arguments:
+            objects: The objects to insert. This can be either a list of `Properties` or `DataObject[Properties]`.
+                If you didn't set `data_model` then `Properties` will be `Data[str, Any]` in which case you can insert simple dictionaries here.
+                    If you want to insert vectors and UUIDs alongside your properties, you will have to use `DataObject` instead.
+
+        Returns:
+            A `_BatchReturn` object with the results of the batch insert.
+
+        Raises:
+            `weaviate.exceptions.WeaviateGRPCException`:
+                If the network connection to Weaviate fails.
+            `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
+                If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
+        """
         return self._insert_many(
             [
                 {
@@ -479,6 +505,21 @@ class _DataCollection(Generic[Properties], _Data):
     def replace(
         self, properties: Properties, uuid: UUID, vector: Optional[List[float]] = None
     ) -> None:
+        """Replace an object in the collection.
+
+        Arguments:
+            properties: The properties of the object.
+            uuid: The UUID of the object.
+            vector: The vector of the object.
+
+        Raises:
+            `requests.ConnectionError`:
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`:
+                If Weaviate reports a non-OK status.
+            `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
+                If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
+        """
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
             "properties": self._serialize_properties(properties),
