@@ -22,7 +22,7 @@ from weaviate.collection.classes.types import Properties, TProperties, _check_da
 from weaviate.collection.collection_base import CollectionBase, CollectionObjectBase
 from weaviate.collection.config import _ConfigCollection
 from weaviate.collection.data import _DataCollection
-from weaviate.collection.grpc import _GrpcCollection
+from weaviate.collection.grpc import _GenerateCollection, _QueryCollection
 from weaviate.collection.object_iterator import _ObjectIterator
 from weaviate.collection.tenants import _Tenants
 from weaviate.connect import Connection
@@ -44,7 +44,8 @@ class CollectionObject(CollectionObjectBase, Generic[TProperties]):
 
         self.config = _ConfigCollection(self._connection, name)
         self.data = _DataCollection[TProperties](connection, name, consistency_level, tenant, type_)
-        self.query = _GrpcCollection[TProperties](
+        self.generate = _GenerateCollection(connection, name, consistency_level, tenant)
+        self.query = _QueryCollection[TProperties](
             connection, name, self.data, consistency_level, tenant
         )
         self.tenants = _Tenants(connection, name)
