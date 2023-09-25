@@ -26,17 +26,43 @@ from weaviate_grpc import weaviate_pb2
 
 
 @dataclass
+class _MetadataResult:
+    uuid: Optional[uuid_package.UUID]
+    vector: Optional[List[float]]
+    creation_time_unix: Optional[int]
+    last_update_time_unix: Optional[int]
+    distance: Optional[float]
+    certainty: Optional[float]
+    score: Optional[float]
+    explain_score: Optional[str]
+    is_consistent: Optional[bool]
+    generative: Optional[str]
+
+    def _to_return(self) -> "_MetadataReturn":
+        return _MetadataReturn(
+            uuid=self.uuid,
+            vector=self.vector,
+            creation_time_unix=self.creation_time_unix,
+            last_update_time_unix=self.last_update_time_unix,
+            distance=self.distance,
+            certainty=self.certainty,
+            score=self.score,
+            explain_score=self.explain_score,
+            is_consistent=self.is_consistent,
+        )
+
+
+@dataclass
 class _MetadataReturn:
-    uuid: Optional[uuid_package.UUID] = None
-    vector: Optional[List[float]] = None
-    creation_time_unix: Optional[int] = None
-    last_update_time_unix: Optional[int] = None
-    distance: Optional[float] = None
-    certainty: Optional[float] = None
-    score: Optional[float] = None
-    explain_score: Optional[str] = None
-    is_consistent: Optional[bool] = None
-    generative: Optional[str] = None
+    uuid: Optional[uuid_package.UUID]
+    vector: Optional[List[float]]
+    creation_time_unix: Optional[int]
+    last_update_time_unix: Optional[int]
+    distance: Optional[float]
+    certainty: Optional[float]
+    score: Optional[float]
+    explain_score: Optional[str]
+    is_consistent: Optional[bool]
 
 
 @dataclass
@@ -51,8 +77,13 @@ class _GroupByObject(Generic[P], _Object[P]):
 
 
 @dataclass
+class _GenerativeObject(Generic[P], _Object[P]):
+    generated: Optional[str]
+
+
+@dataclass
 class _GenerativeReturn(Generic[P]):
-    objects: List[_Object[P]]
+    objects: List[_GenerativeObject[P]]
     generated: Optional[str]
 
 

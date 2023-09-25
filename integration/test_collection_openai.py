@@ -55,7 +55,7 @@ def test_generative_search_single(client: weaviate.Client, parameter: str, answe
         single_prompt=f"is it good or bad based on {{{parameter}}}? Just answer with yes or no without punctuation"
     )
     for obj in res.objects:
-        assert obj.metadata.generative == answer
+        assert obj.generated == answer
     assert res.generated is None
 
 
@@ -200,7 +200,7 @@ def test_fetch_objects_generate_with_everything(client: weaviate.Client):
     )
     assert res.generated == "Teddy cats"
     for obj in res.objects:
-        assert obj.metadata.generative == "Yes"
+        assert obj.generated == "Yes"
 
 
 def test_bm25_generate_with_everything(client: weaviate.Client):
@@ -241,7 +241,7 @@ def test_bm25_generate_with_everything(client: weaviate.Client):
     )
     assert res.generated == "Teddy apples"
     for obj in res.objects:
-        assert obj.metadata.generative == "Yes"
+        assert obj.generated == "Yes"
 
 
 def test_hybrid_generate_with_everything(client: weaviate.Client):
@@ -282,7 +282,7 @@ def test_hybrid_generate_with_everything(client: weaviate.Client):
     )
     assert res.generated == "cats bananas"
     for obj in res.objects:
-        assert obj.metadata.generative == "No"
+        assert obj.generated == "No"
 
 
 def test_near_text_generate_with_everything(client: weaviate.Client):
@@ -322,8 +322,8 @@ def test_near_text_generate_with_everything(client: weaviate.Client):
         grouped_task="Write out the fruit in the order in which they appear in the provided list. Only write the names separated by a space",
     )
     assert res.generated == "bananas apples"
-    assert res.objects[0].metadata.generative == "No"
-    assert res.objects[1].metadata.generative == "Yes"
+    assert res.objects[0].generated == "No"
+    assert res.objects[1].generated == "Yes"
 
 
 def test_near_vector_generate_with_everything(client: weaviate.Client):
@@ -364,8 +364,8 @@ def test_near_vector_generate_with_everything(client: weaviate.Client):
         grouped_task="Write out the fruit in the order in which they appear in the provided list. Only write the names separated by a space",
     )
     assert res.generated == "apples bananas"
-    assert res.objects[0].metadata.generative == "Yes"
-    assert res.objects[1].metadata.generative == "No"
+    assert res.objects[0].generated == "Yes"
+    assert res.objects[1].generated == "No"
 
 
 def test_openapi_invalid_key():
