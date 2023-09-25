@@ -71,6 +71,11 @@ class _GroupByReturn(Generic[P]):
     groups: Dict[str, _GroupByResult]
 
 
+@dataclass
+class _QueryReturn(Generic[P]):
+    objects: List[_Object[P]]
+
+
 class _Generative:
     single: Optional[str]
     grouped: Optional[str]
