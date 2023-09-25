@@ -26,15 +26,39 @@ from weaviate.collection.data import _DataCollection
 from weaviate.collection.grpc_query import SearchResult
 
 from weaviate.collection.queries.base import _Grpc
-from weaviate.collection.queries.bm25 import _BM25
-from weaviate.collection.queries.fetch_objects import _FetchObjects
-from weaviate.collection.queries.hybrid import _Hybrid
-from weaviate.collection.queries.near_audio import _NearAudio
-from weaviate.collection.queries.near_image import _NearImage
-from weaviate.collection.queries.near_object import _NearObject
-from weaviate.collection.queries.near_text import _NearText
-from weaviate.collection.queries.near_vector import _NearVector
-from weaviate.collection.queries.near_video import _NearVideo
+from weaviate.collection.queries.bm25 import _BM25Generate, _BM25Query
+from weaviate.collection.queries.fetch_objects import _FetchObjectsGenerate, _FetchObjectsQuery
+from weaviate.collection.queries.hybrid import _HybridGenerate, _HybridQuery
+from weaviate.collection.queries.near_audio import (
+    _NearAudioGenerate,
+    _NearAudioGroupBy,
+    _NearAudioQuery,
+)
+from weaviate.collection.queries.near_image import (
+    _NearImageGenerate,
+    _NearImageGroupBy,
+    _NearImageQuery,
+)
+from weaviate.collection.queries.near_object import (
+    _NearObjectGenerate,
+    _NearObjectGroupBy,
+    _NearObjectQuery,
+)
+from weaviate.collection.queries.near_text import (
+    _NearTextGenerate,
+    _NearTextGroupBy,
+    _NearTextQuery,
+)
+from weaviate.collection.queries.near_vector import (
+    _NearVectorGenerate,
+    _NearVectorGroupBy,
+    _NearVectorQuery,
+)
+from weaviate.collection.queries.near_video import (
+    _NearVideoGenerate,
+    _NearVideoGroupBy,
+    _NearVideoQuery,
+)
 
 from weaviate.connect import Connection
 from weaviate.types import UUID
@@ -42,17 +66,17 @@ from weaviate.types import UUID
 from weaviate_grpc import weaviate_pb2
 
 
-class _GrpcCollection(
+class _QueryCollection(
     Generic[TProperties],
-    _BM25,
-    _FetchObjects,
-    _Hybrid,
-    _NearAudio,
-    _NearImage,
-    _NearObject,
-    _NearText,
-    _NearVector,
-    _NearVideo,
+    _BM25Query,
+    _FetchObjectsQuery,
+    _HybridQuery,
+    _NearAudioQuery,
+    _NearImageQuery,
+    _NearObjectQuery,
+    _NearTextQuery,
+    _NearVectorQuery,
+    _NearVideoQuery,
 ):
     def __init__(
         self,
@@ -72,6 +96,31 @@ class _GrpcCollection(
         if ret is None:
             return ret
         return self.__data._json_to_object(ret)
+
+
+class _GenerateCollection(
+    _BM25Generate,
+    _FetchObjectsGenerate,
+    _HybridGenerate,
+    _NearAudioGenerate,
+    _NearImageGenerate,
+    _NearObjectGenerate,
+    _NearTextGenerate,
+    _NearVectorGenerate,
+    _NearVideoGenerate,
+):
+    pass
+
+
+class _GroupByCollection(
+    _NearAudioGroupBy,
+    _NearImageGroupBy,
+    _NearObjectGroupBy,
+    _NearTextGroupBy,
+    _NearVectorGroupBy,
+    _NearVideoGroupBy,
+):
+    pass
 
 
 class _GrpcCollectionModel(Generic[Model], _Grpc):

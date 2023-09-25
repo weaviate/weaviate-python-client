@@ -2,12 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, cast
 
-from pydantic import (
-    AnyHttpUrl,
-    BaseModel,
-    ConfigDict,
-    Field,
-)
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
 
 from weaviate.util import _capitalize_first_letter
 from weaviate.warnings import _Warnings
@@ -1159,6 +1154,12 @@ class Property(_ConfigCreateModel):
     tokenization: Optional[Tokenization] = Field(default=None)
     vectorize_property_name: bool = True
 
+    @field_validator("name")
+    def check_name(cls, v: str) -> str:
+        if v in ["id", "vector"]:
+            raise ValueError(f"Property name '{v}' is reserved and cannot be used")
+        return v
+
     def to_dict(self, vectorizer: Optional[Vectorizer] = None) -> Dict[str, Any]:
         ret_dict = super().to_dict()
         ret_dict["dataType"] = [ret_dict["dataType"]]
@@ -1176,6 +1177,12 @@ class Property(_ConfigCreateModel):
 
 class ReferencePropertyBase(_ConfigCreateModel):
     name: str
+
+    @field_validator("name")
+    def check_name(cls, v: str) -> str:
+        if v in ["id", "vector"]:
+            raise ValueError(f"Property name '{v}' is reserved and cannot be used")
+        return v
 
 
 class ReferenceProperty(ReferencePropertyBase):

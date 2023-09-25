@@ -57,11 +57,6 @@ class _GenerativeReturn(Generic[P]):
 
 
 @dataclass
-class _QueryReturn(Generic[P]):
-    objects: List[_Object[P]]
-
-
-@dataclass
 class _GroupByResult(Generic[P]):
     name: str
     min_distance: float

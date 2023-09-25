@@ -17,7 +17,6 @@ from weaviate.collection.classes.grpc import (
     FromReference,
     FromReferenceMultiTarget,
     MetadataQuery,
-    Generate,
 )
 from weaviate.collection.classes.internal import ReferenceFactory
 from weaviate.collection.classes.tenants import Tenant
@@ -27,7 +26,6 @@ __all__ = [
     "DataObject",
     "DataType",
     "Filter",
-    "Generate",
     "HybridFusion",
     "FromReference",
     "FromReferenceMultiTarget",
