@@ -38,6 +38,7 @@ from weaviate.connect import Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     ObjectAlreadyExistsException,
+    WeaviateInsertInvalidPropertyError,
 )
 from weaviate.util import (
     _datetime_to_string,
@@ -63,8 +64,25 @@ class _Data:
         self._batch_grpc = _BatchGRPC(connection, consistency_level)
         self._batch_rest = _BatchREST(connection)
 
-    def _insert(self, weaviate_obj: Dict[str, Any]) -> uuid_package.UUID:
+    def __validate_props(self, props: Dict[str, Any], clean_props: bool) -> None:
+        should_throw = False
+        if "id" in props:
+            if clean_props:
+                del props["id"]
+            else:
+                should_throw = True
+        if "vector" in props:
+            if clean_props:
+                del props["vector"]
+            else:
+                should_throw = True
+        if should_throw:
+            raise WeaviateInsertInvalidPropertyError(props)
+
+    def _insert(self, weaviate_obj: Dict[str, Any], clean_props: bool) -> uuid_package.UUID:
         path = "/objects"
+        self.__validate_props(weaviate_obj["properties"], clean_props=clean_props)
+
         params, weaviate_obj = self.__apply_context_to_params_and_object({}, weaviate_obj)
         try:
             response = self._connection.post(path=path, weaviate_object=weaviate_obj, params=params)
@@ -82,13 +100,13 @@ class _Data:
             pass
         raise UnexpectedStatusCodeException("Creating object", response)
 
-    def _insert_many(self, objects: List[Dict[str, Any]]) -> _BatchReturn:
+    def _insert_many(self, objects: List[Dict[str, Any]], clean_props: bool) -> _BatchReturn:
         weaviate_objs: List[weaviate_pb2.BatchObject] = [
             weaviate_pb2.BatchObject(
                 class_name=self.name,
                 vector=obj["vector"] if obj["vector"] is not None else None,
                 uuid=str(obj["uuid"]) if obj["uuid"] is not None else str(uuid_package.uuid4()),
-                properties=self.__parse_properties_grpc(obj["properties"]),
+                properties=self.__parse_properties_grpc(obj["properties"], clean_props),
                 tenant=self._tenant,
             )
             for obj in objects
@@ -323,7 +341,11 @@ class _Data:
             ]
         return value
 
-    def __parse_properties_grpc(self, data: Dict[str, Any]) -> weaviate_pb2.BatchObject.Properties:
+    def __parse_properties_grpc(
+        self, data: Dict[str, Any], clean_props: bool
+    ) -> weaviate_pb2.BatchObject.Properties:
+        self.__validate_props(data, clean_props)
+
         multi_target: List[weaviate_pb2.BatchObject.RefPropertiesMultiTarget] = []
         single_target: List[weaviate_pb2.BatchObject.RefPropertiesSingleTarget] = []
         non_ref_properties: Struct = Struct()
@@ -430,9 +452,12 @@ class _DataCollection(Generic[Properties], _Data):
         if vector is not None:
             weaviate_obj["vector"] = vector
 
-        return self._insert(weaviate_obj)
+        return self._insert(weaviate_obj, False)
 
-    def insert_many(self, objects: List[DataObject[Properties]]) -> _BatchReturn:
+    def insert_many(
+        self,
+        objects: List[Union[Properties, DataObject[Properties]]],
+    ) -> _BatchReturn:
         return self._insert_many(
             [
                 {
@@ -440,8 +465,15 @@ class _DataCollection(Generic[Properties], _Data):
                     "vector": obj.vector,
                     "uuid": obj.uuid,
                 }
+                if isinstance(obj, DataObject)
+                else {
+                    "properties": obj,
+                    "vector": None,
+                    "uuid": None,
+                }
                 for obj in objects
-            ]
+            ],
+            False,
         )
 
     def replace(
@@ -548,7 +580,7 @@ class _DataCollectionModel(Generic[Model], _Data):
         if obj.vector is not None:
             weaviate_obj["vector"] = obj.vector
 
-        self._insert(weaviate_obj)
+        self._insert(weaviate_obj, False)
         return uuid_package.UUID(str(obj.uuid))
 
     def insert_many(self, objects: List[Model]) -> _BatchReturn:
@@ -564,7 +596,7 @@ class _DataCollectionModel(Generic[Model], _Data):
             for obj in objects
         ]
 
-        return self._insert_many(data_objects)
+        return self._insert_many(data_objects, False)
 
     def replace(self, obj: Model, uuid: UUID) -> None:
         self.__model.model_validate(obj)
