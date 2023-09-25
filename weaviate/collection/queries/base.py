@@ -5,7 +5,6 @@ import sys
 from typing import (
     Any,
     Dict,
-    List,
     Optional,
     Tuple,
     Type,
@@ -37,6 +36,7 @@ from weaviate.collection.classes.internal import (
     _GenerativeReturn,
     _GroupByResult,
     _GroupByReturn,
+    _QueryReturn,
 )
 from weaviate.collection.classes.types import (
     Properties,
@@ -161,8 +161,9 @@ class _Grpc:
         self,
         res: SearchResponse,
         type_: Optional[Type[Properties]],
-    ) -> List[_Object[Properties]]:
-        return [self.__result_to_object(obj, type_=type_) for obj in res.results]
+    ) -> _QueryReturn[Properties]:
+        objects = [self.__result_to_object(obj, type_=type_) for obj in res.results]
+        return _QueryReturn[Properties](objects=objects)
 
     def _result_to_generative_return(
         self,

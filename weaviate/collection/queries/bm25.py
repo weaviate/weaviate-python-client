@@ -12,7 +12,7 @@ from weaviate.collection.classes.grpc import (
     MetadataQuery,
     PROPERTIES,
 )
-from weaviate.collection.classes.internal import _GenerativeReturn, _Object, _Generative
+from weaviate.collection.classes.internal import _GenerativeReturn, _QueryReturn, _Generative
 from weaviate.collection.classes.types import (
     Properties,
 )
@@ -29,7 +29,7 @@ class _BM25Query(_Grpc):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
-    ) -> List[_Object[Properties]]:
+    ) -> _QueryReturn[Properties]:
         ret_properties, ret_type = self._determine_generic(return_properties)
         res = self._query().bm25(
             query=query,
