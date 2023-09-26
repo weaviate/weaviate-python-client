@@ -1,6 +1,6 @@
 from typing import List, Dict
 
-import grpc
+import grpc  # type: ignore
 
 from weaviate.collection.grpc_shared import _BaseGRPC
 from weaviate.exceptions import WeaviateGRPCException

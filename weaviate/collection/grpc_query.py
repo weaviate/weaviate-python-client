@@ -11,7 +11,7 @@ from typing import (
 
 from typing_extensions import TypeAlias
 
-import grpc
+import grpc  # type: ignore
 import uuid as uuid_lib
 from google.protobuf import struct_pb2
 
