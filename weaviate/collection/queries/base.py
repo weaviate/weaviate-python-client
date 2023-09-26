@@ -30,7 +30,8 @@ from weaviate.collection.classes.grpc import (
 )
 from weaviate.collection.classes.internal import (
     _GroupByObject,
-    _MetadataReturn,
+    _MetadataResult,
+    _GenerativeObject,
     _Object,
     _Reference,
     _extract_property_type_from_annotated_reference,
@@ -39,6 +40,7 @@ from weaviate.collection.classes.internal import (
     _GenerativeReturn,
     _GroupByResult,
     _GroupByReturn,
+    _QueryReturn,
 )
 from weaviate.collection.classes.types import (
     Properties,
@@ -68,8 +70,8 @@ class _Grpc:
     @staticmethod
     def _extract_metadata_for_object(
         add_props: "weaviate_pb2.ResultAdditionalProps",
-    ) -> _MetadataReturn:
-        return _MetadataReturn(
+    ) -> _MetadataResult:
+        return _MetadataResult(
             uuid=uuid_lib.UUID(add_props.id) if len(add_props.id) > 0 else None,
             vector=[float(num) for num in add_props.vector] if len(add_props.vector) > 0 else None,
             distance=add_props.distance if add_props.distance_present else None,
@@ -134,7 +136,7 @@ class _Grpc:
                     [
                         _Object(
                             properties=self.__parse_result(prop, referenced_property_type),
-                            metadata=self._extract_metadata_for_object(prop.metadata),
+                            metadata=self._extract_metadata_for_object(prop.metadata)._to_return(),
                         )
                         for prop in ref_prop.properties
                     ]
@@ -144,7 +146,7 @@ class _Grpc:
                     [
                         _Object(
                             properties=self.__parse_result(prop, Dict[str, Any]),
-                            metadata=self._extract_metadata_for_object(prop.metadata),
+                            metadata=self._extract_metadata_for_object(prop.metadata)._to_return(),
                         )
                         for prop in ref_prop.properties
                     ]
@@ -152,26 +154,36 @@ class _Grpc:
 
         return cast(Properties, result)
 
-    def __result_to_object(
+    def __result_to_query_object(
         self, res: SearchResult, type_: Optional[Type[Properties]]
     ) -> _Object[Properties]:
         properties = self.__parse_result(res.properties, type_)
         metadata = self._extract_metadata_for_object(res.additional_properties)
-        return _Object[Properties](properties=properties, metadata=metadata)
+        return _Object[Properties](properties=properties, metadata=metadata._to_return())
+
+    def __result_to_generative_object(
+        self, res: SearchResult, type_: Optional[Type[Properties]]
+    ) -> _GenerativeObject[Properties]:
+        properties = self.__parse_result(res.properties, type_)
+        metadata = self._extract_metadata_for_object(res.additional_properties)
+        return _GenerativeObject[Properties](
+            properties=properties, metadata=metadata._to_return(), generated=metadata.generative
+        )
 
     def _result_to_query_return(
         self,
         res: SearchResponse,
         type_: Optional[Type[Properties]],
-    ) -> List[_Object[Properties]]:
-        return [self.__result_to_object(obj, type_=type_) for obj in res.results]
+    ) -> _QueryReturn[Properties]:
+        objects = [self.__result_to_query_object(obj, type_=type_) for obj in res.results]
+        return _QueryReturn[Properties](objects=objects)
 
     def _result_to_generative_return(
         self,
         res: SearchResponse,
         type_: Optional[Type[Properties]],
     ) -> _GenerativeReturn[Properties]:
-        objects = [self.__result_to_object(obj, type_=type_) for obj in res.results]
+        objects = [self.__result_to_generative_object(obj, type_=type_) for obj in res.results]
         grouped_results = (
             res.generative_grouped_result if res.generative_grouped_result != "" else None
         )
@@ -203,7 +215,7 @@ class _Grpc:
         self, res: GroupByResult, type_: Optional[Type[Properties]]
     ) -> _GroupByResult[Properties]:
         return _GroupByResult[Properties](
-            objects=[self.__result_to_object(obj, type_) for obj in res.objects],
+            objects=[self.__result_to_query_object(obj, type_) for obj in res.objects],
             name=res.name,
             number_of_objects=res.number_of_objects,
             min_distance=res.min_distance,

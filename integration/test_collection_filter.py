@@ -64,7 +64,7 @@ def test_filters_text(client: weaviate.Client, weaviate_filter: _FilterValue, re
         collection.data.insert({"name": "Mountain"}),
     ]
 
-    objects = collection.query.fetch_objects(filters=weaviate_filter)
+    objects = collection.query.fetch_objects(filters=weaviate_filter).objects
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
@@ -113,7 +113,7 @@ def test_filters_nested(
 
     objects = collection.query.fetch_objects(
         filters=weaviate_filter, return_metadata=MetadataQuery(uuid=True)
-    )
+    ).objects
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
@@ -134,7 +134,9 @@ def test_length_filter(client: weaviate.Client):
         collection.data.insert({"field": "three"}),
         collection.data.insert({"field": "four"}),
     ]
-    objects = collection.query.fetch_objects(filters=Filter(path="field", length=True).equal(3))
+    objects = collection.query.fetch_objects(
+        filters=Filter(path="field", length=True).equal(3)
+    ).objects
 
     results = [0, 1]
     assert len(objects) == len(results)
@@ -167,7 +169,7 @@ def test_filters_comparison(
         collection.data.insert({"number": None}),
     ]
 
-    objects = collection.query.fetch_objects(filters=weaviate_filter)
+    objects = collection.query.fetch_objects(filters=weaviate_filter).objects
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
@@ -300,7 +302,7 @@ def test_filters_contains(
 
     objects = collection.query.fetch_objects(
         filters=weaviate_filter, return_metadata=MetadataQuery(uuid=True)
-    )
+    ).objects
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
@@ -346,7 +348,7 @@ def test_ref_filters(client: weaviate.Client, weaviate_filter: _FilterValue, res
 
     objects = from_collection.query.fetch_objects(
         filters=weaviate_filter, return_metadata=MetadataQuery(uuid=True)
-    )
+    ).objects
     assert len(objects) == len(results)
 
     uuids = [uuids_from[result] for result in results]
@@ -407,13 +409,13 @@ def test_ref_filters_multi_target(client: weaviate.Client):
 
     objects = from_collection.query.fetch_objects(
         filters=Filter(path=["ref", target, "int"]).greater_than(3)
-    )
+    ).objects
     assert len(objects) == 1
     assert objects[0].properties["name"] == "second"
 
     objects = from_collection.query.fetch_objects(
         filters=Filter(path=["ref", source, "name"]).equal("first")
-    )
+    ).objects
     assert len(objects) == 1
     assert objects[0].properties["name"] == "third"
 
@@ -745,10 +747,10 @@ def test_delete_many_simple(
         vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
     collection.data.insert_many(objects)
-    assert len(collection.query.fetch_objects()) == len(objects)
+    assert len(collection.query.fetch_objects().objects) == len(objects)
 
     collection.data.delete_many(where=where)
-    objects = collection.query.fetch_objects()
+    objects = collection.query.fetch_objects().objects
     assert len(objects) == expected_len
 
 
@@ -768,14 +770,14 @@ def test_delete_many_and(client: weaviate.Client):
             DataObject(properties={"age": 10, "name": "Tommy"}, uuid=uuid.uuid4()),
         ]
     )
-    objects = collection.query.fetch_objects()
+    objects = collection.query.fetch_objects().objects
     assert len(objects) == 2
 
     collection.data.delete_many(
         where=Filter(path="age").equal(10) & Filter(path="name").equal("Timmy")
     )
 
-    objects = collection.query.fetch_objects()
+    objects = collection.query.fetch_objects().objects
     assert len(objects) == 1
     assert objects[0].properties["age"] == 10
     assert objects[0].properties["name"] == "Tommy"
@@ -798,11 +800,11 @@ def test_delete_many_or(client: weaviate.Client):
             DataObject(properties={"age": 30, "name": "Timothy"}, uuid=uuid.uuid4()),
         ]
     )
-    objects = collection.query.fetch_objects()
+    objects = collection.query.fetch_objects().objects
     assert len(objects) == 3
 
     collection.data.delete_many(where=Filter(path="age").equal(10) | Filter(path="age").equal(30))
-    objects = collection.query.fetch_objects()
+    objects = collection.query.fetch_objects().objects
     assert len(objects) == 1
     assert objects[0].properties["age"] == 20
     assert objects[0].properties["name"] == "Tim"

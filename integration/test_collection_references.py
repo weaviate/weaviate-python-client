@@ -87,7 +87,7 @@ def test_mono_references_grpc(client: weaviate.Client):
     uuid_A1 = A.data.insert(properties={"Name": "A1"})
     uuid_A2 = A.data.insert(properties={"Name": "A2"})
 
-    objects = A.query.bm25(query="A1", return_properties="name")
+    objects = A.query.bm25(query="A1", return_properties="name").objects
     assert objects[0].properties["name"] == "A1"
 
     B = client.collection.create(
@@ -109,7 +109,7 @@ def test_mono_references_grpc(client: weaviate.Client):
             link_on="ref",
             return_properties=["name"],
         ),
-    )
+    ).objects
     assert objects[0].properties["ref"].objects[0].properties["name"] == "A1"
     assert objects[0].properties["ref"].objects[1].properties["name"] == "A2"
 
@@ -122,7 +122,7 @@ def test_mono_references_grpc(client: weaviate.Client):
                 return_metadata=MetadataQuery(uuid=True),
             )
         ],
-    )
+    ).objects
     assert objects[0].properties["ref"].objects[0].properties["name"] == "A1"
     assert objects[0].properties["ref"].objects[0].metadata.uuid == uuid_A1
     assert objects[0].properties["ref"].objects[1].properties["name"] == "A2"
@@ -155,7 +155,7 @@ def test_mono_references_grpc(client: weaviate.Client):
                 return_metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
             ),
         ],
-    )
+    ).objects
     assert objects[0].properties["name"] == "find me"
     assert objects[0].properties["ref"].objects[0].properties["name"] == "B"
     assert (
@@ -227,9 +227,13 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.Client):
         properties=CProps(name="find me", ref=ReferenceFactory.to(uuids=uuid_B, data_model=BProps))
     )
 
-    objects = client.collection.get("CTypedDicts").query.bm25(
-        query="find",
-        return_properties=CProps,
+    objects = (
+        client.collection.get("CTypedDicts")
+        .query.bm25(
+            query="find",
+            return_properties=CProps,
+        )
+        .objects
     )
     assert (
         objects[0].properties["name"] == "find me"
@@ -313,7 +317,7 @@ def test_multi_references_grpc(client: weaviate.Client):
                 return_metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
             ),
         ],
-    )
+    ).objects
     assert objects[0].properties["name"] == "first"
     assert len(objects[0].properties["ref"].objects) == 1
     assert objects[0].properties["ref"].objects[0].properties["name"] == "A"
@@ -331,7 +335,7 @@ def test_multi_references_grpc(client: weaviate.Client):
                 return_metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
             ),
         ],
-    )
+    ).objects
     assert objects[0].properties["name"] == "second"
     assert len(objects[0].properties["ref"].objects) == 1
     assert objects[0].properties["ref"].objects[0].properties["name"] == "B"
@@ -385,7 +389,7 @@ def test_references_batch(client: weaviate.Client):
             "num",
             FromReference(link_on="ref"),
         ],
-    )
+    ).objects
 
     for obj in objects:
         assert obj.properties["num"] == obj.properties["ref"].objects[0].properties["num"]
@@ -459,16 +463,20 @@ def test_references_with_string_syntax(client: weaviate.Client):
         {"Name": "B", "ref": ReferenceFactory.to(uuids=uuid_A)}
     )
 
-    objects = client.collection.get(name2).query.bm25(
-        query="B",
-        return_properties=[
-            "name",
-            "__ref__properties__Name",
-            "__ref__properties__Age",
-            "__ref__properties__Weird__Name",
-            "__ref__metadata__uuid",
-            "__ref__metadata__last_update_time_unix",
-        ],
+    objects = (
+        client.collection.get(name2)
+        .query.bm25(
+            query="B",
+            return_properties=[
+                "name",
+                "__ref__properties__Name",
+                "__ref__properties__Age",
+                "__ref__properties__Weird__Name",
+                "__ref__metadata__uuid",
+                "__ref__metadata__last_update_time_unix",
+            ],
+        )
+        .objects
     )
 
     assert objects[0].properties["name"] == "B"

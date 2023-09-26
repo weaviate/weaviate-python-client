@@ -74,12 +74,6 @@ class Sort(WeaviateInput):
     ascending: bool = Field(default=True)
 
 
-class GroupBy(WeaviateInput):
-    prop: str
-    number_of_groups: int
-    objects_per_group: int
-
-
 class FromReference(WeaviateInput):
     link_on: str
     return_properties: Optional["PROPERTIES"] = Field(default=None)

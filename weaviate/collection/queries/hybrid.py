@@ -11,7 +11,7 @@ from weaviate.collection.classes.filters import (
 from weaviate.collection.classes.grpc import MetadataQuery, PROPERTIES, HybridFusion
 from weaviate.collection.classes.internal import (
     _GenerativeReturn,
-    _Object,
+    _QueryReturn,
     _Generative,
 )
 from weaviate.collection.classes.types import (
@@ -33,7 +33,7 @@ class _HybridQuery(_Grpc):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
-    ) -> List[_Object[Properties]]:
+    ) -> _QueryReturn[Properties]:
         ret_properties, ret_type = self._parse_return_properties(return_properties)
         res = self._query().hybrid(
             query=query,

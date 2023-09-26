@@ -13,7 +13,7 @@ from weaviate.collection.classes.grpc import (
     PROPERTIES,
     Sort,
 )
-from weaviate.collection.classes.internal import _GenerativeReturn, _Object, _Generative
+from weaviate.collection.classes.internal import _GenerativeReturn, _QueryReturn, _Generative
 from weaviate.collection.classes.types import (
     Properties,
 )
@@ -31,7 +31,7 @@ class _FetchObjectsQuery(_Grpc):
         sort: Optional[Union[Sort, List[Sort]]] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
-    ) -> List[_Object[Properties]]:
+    ) -> _QueryReturn[Properties]:
         ret_properties, ret_type = self._parse_return_properties(return_properties)
         res = self._query().get(
             limit=limit,
