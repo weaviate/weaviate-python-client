@@ -46,7 +46,7 @@ from weaviate.util import (
     _decode_json_response_list,
 )
 from weaviate.types import BEACON, UUID
-from weaviate_grpc import weaviate_pb2
+from weaviate_grpc import batch_pb2, base_pb2
 
 
 class _Data:
@@ -101,9 +101,9 @@ class _Data:
         raise UnexpectedStatusCodeException("Creating object", response)
 
     def _insert_many(self, objects: List[Dict[str, Any]], clean_props: bool) -> _BatchReturn:
-        weaviate_objs: List[weaviate_pb2.BatchObject] = [
-            weaviate_pb2.BatchObject(
-                class_name=self.name,
+        weaviate_objs: List[batch_pb2.BatchObject] = [
+            batch_pb2.BatchObject(
+                collection=self.name,
                 vector=obj["vector"] if obj["vector"] is not None else None,
                 uuid=str(obj["uuid"]) if obj["uuid"] is not None else str(uuid_package.uuid4()),
                 properties=self.__parse_properties_grpc(obj["properties"], clean_props),
@@ -343,21 +343,21 @@ class _Data:
 
     def __parse_properties_grpc(
         self, data: Dict[str, Any], clean_props: bool
-    ) -> weaviate_pb2.BatchObject.Properties:
+    ) -> batch_pb2.BatchObject.Properties:
         self.__validate_props(data, clean_props)
 
-        multi_target: List[weaviate_pb2.BatchObject.RefPropertiesMultiTarget] = []
-        single_target: List[weaviate_pb2.BatchObject.RefPropertiesSingleTarget] = []
+        multi_target: List[batch_pb2.BatchObject.MultiTargetRefProps] = []
+        single_target: List[batch_pb2.BatchObject.SingleTargetRefProps] = []
         non_ref_properties: Struct = Struct()
-        bool_arrays: List[weaviate_pb2.BooleanArrayProperties] = []
-        text_arrays: List[weaviate_pb2.TextArrayProperties] = []
-        int_arrays: List[weaviate_pb2.IntArrayProperties] = []
-        float_arrays: List[weaviate_pb2.NumberArrayProperties] = []
+        bool_arrays: List[base_pb2.BooleanArrayProperties] = []
+        text_arrays: List[base_pb2.TextArrayProperties] = []
+        int_arrays: List[base_pb2.IntArrayProperties] = []
+        float_arrays: List[base_pb2.NumberArrayProperties] = []
         for key, val in data.items():
             if isinstance(val, ReferenceFactory):
                 if val.is_multi_target:
                     multi_target.append(
-                        weaviate_pb2.BatchObject.RefPropertiesMultiTarget(
+                        batch_pb2.BatchObject.MultiTargetRefProps(
                             uuids=val.uuids_str,
                             target_collection=val.target_collection,
                             prop_name=key,
@@ -365,35 +365,35 @@ class _Data:
                     )
                 else:
                     single_target.append(
-                        weaviate_pb2.BatchObject.RefPropertiesSingleTarget(
+                        batch_pb2.BatchObject.SingleTargetRefProps(
                             uuids=val.uuids_str, prop_name=key
                         )
                     )
             elif isinstance(val, list) and isinstance(val[0], bool):
-                bool_arrays.append(weaviate_pb2.BooleanArrayProperties(prop_name=key, values=val))
+                bool_arrays.append(base_pb2.BooleanArrayProperties(prop_name=key, values=val))
             elif isinstance(val, list) and isinstance(val[0], str):
-                text_arrays.append(weaviate_pb2.TextArrayProperties(prop_name=key, values=val))
+                text_arrays.append(base_pb2.TextArrayProperties(prop_name=key, values=val))
             elif isinstance(val, list) and isinstance(val[0], datetime.datetime):
                 text_arrays.append(
-                    weaviate_pb2.TextArrayProperties(
+                    base_pb2.TextArrayProperties(
                         prop_name=key, values=[_datetime_to_string(x) for x in val]
                     )
                 )
             elif isinstance(val, list) and isinstance(val[0], uuid_package.UUID):
                 text_arrays.append(
-                    weaviate_pb2.TextArrayProperties(prop_name=key, values=[str(x) for x in val])
+                    base_pb2.TextArrayProperties(prop_name=key, values=[str(x) for x in val])
                 )
             elif isinstance(val, list) and isinstance(val[0], int):
-                int_arrays.append(weaviate_pb2.IntArrayProperties(prop_name=key, values=val))
+                int_arrays.append(base_pb2.IntArrayProperties(prop_name=key, values=val))
             elif isinstance(val, list) and isinstance(val[0], float):
-                float_arrays.append(weaviate_pb2.NumberArrayProperties(prop_name=key, values=val))
+                float_arrays.append(base_pb2.NumberArrayProperties(prop_name=key, values=val))
             else:
                 non_ref_properties.update({key: self.__serialize_primitive(val)})
 
-        return weaviate_pb2.BatchObject.Properties(
+        return batch_pb2.BatchObject.Properties(
             non_ref_properties=non_ref_properties,
-            ref_props_multi=multi_target,
-            ref_props_single=single_target,
+            multi_target_ref_props=multi_target,
+            single_target_ref_props=single_target,
             text_array_properties=text_arrays,
             number_array_properties=float_arrays,
             int_array_properties=int_arrays,

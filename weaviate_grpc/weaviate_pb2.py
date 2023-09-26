@@ -11,10 +11,12 @@ from google.protobuf.internal import builder as _builder
 _sym_db = _symbol_database.Default()
 
 
-from google.protobuf import struct_pb2 as google_dot_protobuf_dot_struct__pb2
+from . import batch_pb2 as batch__pb2
+from . import search_get_pb2 as search__get__pb2
+from . import search_get_v1_pb2 as search__get__v1__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0eweaviate.proto\x12\x0cweaviategrpc\x1a\x1cgoogle/protobuf/struct.proto\"\x97\x01\n\x13\x42\x61tchObjectsRequest\x12*\n\x07objects\x18\x01 \x03(\x0b\x32\x19.weaviategrpc.BatchObject\x12>\n\x11\x63onsistency_level\x18\x02 \x01(\x0e\x32\x1e.weaviategrpc.ConsistencyLevelH\x00\x88\x01\x01\x42\x14\n\x12_consistency_level\"\x91\x06\n\x0b\x42\x61tchObject\x12\x0c\n\x04uuid\x18\x01 \x01(\t\x12\x0e\n\x06vector\x18\x02 \x03(\x02\x12\x38\n\nproperties\x18\x03 \x01(\x0b\x32$.weaviategrpc.BatchObject.Properties\x12\x12\n\nclass_name\x18\x04 \x01(\t\x12\x0e\n\x06tenant\x18\x05 \x01(\t\x1a\xed\x03\n\nProperties\x12\x33\n\x12non_ref_properties\x18\x01 \x01(\x0b\x32\x17.google.protobuf.Struct\x12M\n\x10ref_props_single\x18\x02 \x03(\x0b\x32\x33.weaviategrpc.BatchObject.RefPropertiesSingleTarget\x12K\n\x0fref_props_multi\x18\x03 \x03(\x0b\x32\x32.weaviategrpc.BatchObject.RefPropertiesMultiTarget\x12\x44\n\x17number_array_properties\x18\x04 \x03(\x0b\x32#.weaviategrpc.NumberArrayProperties\x12>\n\x14int_array_properties\x18\x05 \x03(\x0b\x32 .weaviategrpc.IntArrayProperties\x12@\n\x15text_array_properties\x18\x06 \x03(\x0b\x32!.weaviategrpc.TextArrayProperties\x12\x46\n\x18\x62oolean_array_properties\x18\x07 \x03(\x0b\x32$.weaviategrpc.BooleanArrayProperties\x1a=\n\x19RefPropertiesSingleTarget\x12\r\n\x05uuids\x18\x01 \x03(\t\x12\x11\n\tprop_name\x18\x02 \x01(\t\x1aW\n\x18RefPropertiesMultiTarget\x12\r\n\x05uuids\x18\x01 \x03(\t\x12\x11\n\tprop_name\x18\x02 \x01(\t\x12\x19\n\x11target_collection\x18\x03 \x01(\t\"\x8e\x01\n\x11\x42\x61tchObjectsReply\x12=\n\x07results\x18\x01 \x03(\x0b\x32,.weaviategrpc.BatchObjectsReply.BatchResults\x12\x0c\n\x04took\x18\x02 \x01(\x02\x1a,\n\x0c\x42\x61tchResults\x12\r\n\x05index\x18\x01 \x01(\x05\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"\xa5\x08\n\rSearchRequest\x12\x12\n\nclass_name\x18\x01 \x01(\t\x12\r\n\x05limit\x18\x02 \x01(\r\x12\x41\n\x15\x61\x64\x64itional_properties\x18\x03 \x01(\x0b\x32\".weaviategrpc.AdditionalProperties\x12\x33\n\x0bnear_vector\x18\x04 \x01(\x0b\x32\x1e.weaviategrpc.NearVectorParams\x12\x33\n\x0bnear_object\x18\x05 \x01(\x0b\x32\x1e.weaviategrpc.NearObjectParams\x12,\n\nproperties\x18\x06 \x01(\x0b\x32\x18.weaviategrpc.Properties\x12\x37\n\rhybrid_search\x18\x07 \x01(\x0b\x32 .weaviategrpc.HybridSearchParams\x12\x33\n\x0b\x62m25_search\x18\x08 \x01(\x0b\x32\x1e.weaviategrpc.BM25SearchParams\x12\x0e\n\x06offset\x18\t \x01(\r\x12\x0f\n\x07\x61utocut\x18\n \x01(\r\x12\r\n\x05\x61\x66ter\x18\x0b \x01(\t\x12\x0e\n\x06tenant\x18\x0c \x01(\t\x12+\n\x07\x66ilters\x18\r \x01(\x0b\x32\x15.weaviategrpc.FiltersH\x00\x88\x01\x01\x12:\n\tnear_text\x18\x0e \x01(\x0b\x32\".weaviategrpc.NearTextSearchParamsH\x01\x88\x01\x01\x12<\n\nnear_image\x18\x0f \x01(\x0b\x32#.weaviategrpc.NearImageSearchParamsH\x02\x88\x01\x01\x12<\n\nnear_audio\x18\x10 \x01(\x0b\x32#.weaviategrpc.NearAudioSearchParamsH\x03\x88\x01\x01\x12<\n\nnear_video\x18\x11 \x01(\x0b\x32#.weaviategrpc.NearVideoSearchParamsH\x04\x88\x01\x01\x12>\n\x11\x63onsistency_level\x18\x12 \x01(\x0e\x32\x1e.weaviategrpc.ConsistencyLevelH\x05\x88\x01\x01\x12\x37\n\ngenerative\x18\x13 \x01(\x0b\x32\x1e.weaviategrpc.GenerativeSearchH\x06\x88\x01\x01\x12%\n\x07sort_by\x18\x14 \x03(\x0b\x32\x14.weaviategrpc.SortBy\x12,\n\x08group_by\x18\x15 \x01(\x0b\x32\x15.weaviategrpc.GroupByH\x07\x88\x01\x01\x42\n\n\x08_filtersB\x0c\n\n_near_textB\r\n\x0b_near_imageB\r\n\x0b_near_audioB\r\n\x0b_near_videoB\x14\n\x12_consistency_levelB\r\n\x0b_generativeB\x0b\n\t_group_by\"L\n\x07GroupBy\x12\x0c\n\x04path\x18\x01 \x03(\t\x12\x18\n\x10number_of_groups\x18\x02 \x01(\x05\x12\x19\n\x11objects_per_group\x18\x03 \x01(\x05\")\n\x06SortBy\x12\x11\n\tascending\x18\x01 \x01(\x08\x12\x0c\n\x04path\x18\x02 \x03(\t\"m\n\x10GenerativeSearch\x12\x1e\n\x16single_response_prompt\x18\x01 \x01(\t\x12\x1d\n\x15grouped_response_task\x18\x02 \x01(\t\x12\x1a\n\x12grouped_properties\x18\x03 \x03(\t\"\x1b\n\tTextArray\x12\x0e\n\x06values\x18\x01 \x03(\t\"\x1a\n\x08IntArray\x12\x0e\n\x06values\x18\x01 \x03(\x03\"\x1d\n\x0bNumberArray\x12\x0e\n\x06values\x18\x01 \x03(\x01\"\x1e\n\x0c\x42ooleanArray\x12\x0e\n\x06values\x18\x01 \x03(\x08\"\x9b\x06\n\x07\x46ilters\x12\x30\n\x08operator\x18\x01 \x01(\x0e\x32\x1e.weaviategrpc.Filters.Operator\x12\n\n\x02on\x18\x02 \x03(\t\x12&\n\x07\x66ilters\x18\x03 \x03(\x0b\x32\x15.weaviategrpc.Filters\x12\x14\n\nvalue_text\x18\x04 \x01(\tH\x00\x12\x13\n\tvalue_int\x18\x05 \x01(\x03H\x00\x12\x17\n\rvalue_boolean\x18\x06 \x01(\x08H\x00\x12\x16\n\x0cvalue_number\x18\x07 \x01(\x02H\x00\x12\x33\n\x10value_text_array\x18\t \x01(\x0b\x32\x17.weaviategrpc.TextArrayH\x00\x12\x31\n\x0fvalue_int_array\x18\n \x01(\x0b\x32\x16.weaviategrpc.IntArrayH\x00\x12\x39\n\x13value_boolean_array\x18\x0b \x01(\x0b\x32\x1a.weaviategrpc.BooleanArrayH\x00\x12\x37\n\x12value_number_array\x18\x0c \x01(\x0b\x32\x19.weaviategrpc.NumberArrayH\x00\"\xe3\x02\n\x08Operator\x12\x18\n\x14OPERATOR_UNSPECIFIED\x10\x00\x12\x12\n\x0eOPERATOR_EQUAL\x10\x01\x12\x16\n\x12OPERATOR_NOT_EQUAL\x10\x02\x12\x19\n\x15OPERATOR_GREATER_THAN\x10\x03\x12\x1f\n\x1bOPERATOR_GREATER_THAN_EQUAL\x10\x04\x12\x16\n\x12OPERATOR_LESS_THAN\x10\x05\x12\x1c\n\x18OPERATOR_LESS_THAN_EQUAL\x10\x06\x12\x10\n\x0cOPERATOR_AND\x10\x07\x12\x0f\n\x0bOPERATOR_OR\x10\x08\x12\x1d\n\x19OPERATOR_WITHIN_GEO_RANGE\x10\t\x12\x11\n\rOPERATOR_LIKE\x10\n\x12\x14\n\x10OPERATOR_IS_NULL\x10\x0b\x12\x19\n\x15OPERATOR_CONTAINS_ANY\x10\x0c\x12\x19\n\x15OPERATOR_CONTAINS_ALL\x10\rB\x0c\n\ntest_value\"\xcb\x01\n\x14\x41\x64\x64itionalProperties\x12\x0c\n\x04uuid\x18\x01 \x01(\x08\x12\x0e\n\x06vector\x18\x02 \x01(\x08\x12\x18\n\x10\x63reationTimeUnix\x18\x03 \x01(\x08\x12\x1a\n\x12lastUpdateTimeUnix\x18\x04 \x01(\x08\x12\x10\n\x08\x64istance\x18\x05 \x01(\x08\x12\x11\n\tcertainty\x18\x06 \x01(\x08\x12\r\n\x05score\x18\x07 \x01(\x08\x12\x14\n\x0c\x65xplainScore\x18\x08 \x01(\x08\x12\x15\n\ris_consistent\x18\t \x01(\x08\"]\n\nProperties\x12\x1a\n\x12non_ref_properties\x18\x01 \x03(\t\x12\x33\n\x0eref_properties\x18\x02 \x03(\x0b\x32\x1b.weaviategrpc.RefProperties\"\xfb\x01\n\x12HybridSearchParams\x12\r\n\x05query\x18\x01 \x01(\t\x12\x12\n\nproperties\x18\x02 \x03(\t\x12\x0e\n\x06vector\x18\x03 \x03(\x02\x12\r\n\x05\x61lpha\x18\x04 \x01(\x02\x12@\n\x0b\x66usion_type\x18\x05 \x01(\x0e\x32+.weaviategrpc.HybridSearchParams.FusionType\"a\n\nFusionType\x12\x1b\n\x17\x46USION_TYPE_UNSPECIFIED\x10\x00\x12\x16\n\x12\x46USION_TYPE_RANKED\x10\x01\x12\x1e\n\x1a\x46USION_TYPE_RELATIVE_SCORE\x10\x02\"\xc1\x02\n\x14NearTextSearchParams\x12\r\n\x05query\x18\x01 \x03(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x12=\n\x07move_to\x18\x04 \x01(\x0b\x32\'.weaviategrpc.NearTextSearchParams.MoveH\x02\x88\x01\x01\x12?\n\tmove_away\x18\x05 \x01(\x0b\x32\'.weaviategrpc.NearTextSearchParams.MoveH\x03\x88\x01\x01\x1a\x36\n\x04Move\x12\r\n\x05\x66orce\x18\x01 \x01(\x02\x12\x10\n\x08\x63oncepts\x18\x02 \x03(\t\x12\r\n\x05uuids\x18\x03 \x03(\tB\x0c\n\n_certaintyB\x0b\n\t_distanceB\n\n\x08_move_toB\x0c\n\n_move_away\"p\n\x15NearImageSearchParams\x12\r\n\x05image\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x42\x0c\n\n_certaintyB\x0b\n\t_distance\"p\n\x15NearAudioSearchParams\x12\r\n\x05\x61udio\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x42\x0c\n\n_certaintyB\x0b\n\t_distance\"p\n\x15NearVideoSearchParams\x12\r\n\x05video\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x42\x0c\n\n_certaintyB\x0b\n\t_distance\"5\n\x10\x42M25SearchParams\x12\r\n\x05query\x18\x01 \x01(\t\x12\x12\n\nproperties\x18\x02 \x03(\t\"\xb0\x01\n\rRefProperties\x12\x1a\n\x12reference_property\x18\x02 \x01(\t\x12\x33\n\x11linked_properties\x18\x03 \x01(\x0b\x32\x18.weaviategrpc.Properties\x12\x34\n\x08metadata\x18\x04 \x01(\x0b\x32\".weaviategrpc.AdditionalProperties\x12\x18\n\x10which_collection\x18\x05 \x01(\t\"l\n\x10NearVectorParams\x12\x0e\n\x06vector\x18\x01 \x03(\x02\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x42\x0c\n\n_certaintyB\x0b\n\t_distance\"h\n\x10NearObjectParams\x12\n\n\x02id\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x42\x0c\n\n_certaintyB\x0b\n\t_distance\"\xa3\x01\n\x0bSearchReply\x12+\n\x07results\x18\x01 \x03(\x0b\x32\x1a.weaviategrpc.SearchResult\x12\x0c\n\x04took\x18\x02 \x01(\x02\x12!\n\x19generative_grouped_result\x18\x03 \x01(\t\x12\x36\n\x10group_by_results\x18\x04 \x03(\x0b\x32\x1c.weaviategrpc.GroupByResults\"\x92\x01\n\x0eGroupByResults\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x14\n\x0cmin_distance\x18\x02 \x01(\x02\x12\x14\n\x0cmax_distance\x18\x03 \x01(\x02\x12\x19\n\x11number_of_objects\x18\x04 \x01(\x03\x12+\n\x07objects\x18\x05 \x03(\x0b\x32\x1a.weaviategrpc.SearchResult\"\x86\x01\n\x0cSearchResult\x12\x32\n\nproperties\x18\x01 \x01(\x0b\x32\x1e.weaviategrpc.ResultProperties\x12\x42\n\x15\x61\x64\x64itional_properties\x18\x02 \x01(\x0b\x32#.weaviategrpc.ResultAdditionalProps\"\xcd\x03\n\x15ResultAdditionalProps\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06vector\x18\x02 \x03(\x02\x12\x1a\n\x12\x63reation_time_unix\x18\x03 \x01(\x03\x12\"\n\x1a\x63reation_time_unix_present\x18\x04 \x01(\x08\x12\x1d\n\x15last_update_time_unix\x18\x05 \x01(\x03\x12%\n\x1dlast_update_time_unix_present\x18\x06 \x01(\x08\x12\x10\n\x08\x64istance\x18\x07 \x01(\x02\x12\x18\n\x10\x64istance_present\x18\x08 \x01(\x08\x12\x11\n\tcertainty\x18\t \x01(\x02\x12\x19\n\x11\x63\x65rtainty_present\x18\n \x01(\x08\x12\r\n\x05score\x18\x0b \x01(\x02\x12\x15\n\rscore_present\x18\x0c \x01(\x08\x12\x15\n\rexplain_score\x18\r \x01(\t\x12\x1d\n\x15\x65xplain_score_present\x18\x0e \x01(\x08\x12\x1a\n\ris_consistent\x18\x0f \x01(\x08H\x00\x88\x01\x01\x12\x12\n\ngenerative\x18\x10 \x01(\t\x12\x1a\n\x12generative_present\x18\x11 \x01(\x08\x42\x10\n\x0e_is_consistent\":\n\x15NumberArrayProperties\x12\x0e\n\x06values\x18\x01 \x03(\x01\x12\x11\n\tprop_name\x18\x02 \x01(\t\"7\n\x12IntArrayProperties\x12\x0e\n\x06values\x18\x01 \x03(\x03\x12\x11\n\tprop_name\x18\x02 \x01(\t\"8\n\x13TextArrayProperties\x12\x0e\n\x06values\x18\x01 \x03(\t\x12\x11\n\tprop_name\x18\x02 \x01(\t\";\n\x16\x42ooleanArrayProperties\x12\x0e\n\x06values\x18\x01 \x03(\x08\x12\x11\n\tprop_name\x18\x02 \x01(\t\"\xd8\x03\n\x10ResultProperties\x12\x33\n\x12non_ref_properties\x18\x01 \x01(\x0b\x32\x17.google.protobuf.Struct\x12\x34\n\tref_props\x18\x02 \x03(\x0b\x32!.weaviategrpc.ReturnRefProperties\x12\x12\n\nclass_name\x18\x03 \x01(\t\x12\x35\n\x08metadata\x18\x04 \x01(\x0b\x32#.weaviategrpc.ResultAdditionalProps\x12\x44\n\x17number_array_properties\x18\x05 \x03(\x0b\x32#.weaviategrpc.NumberArrayProperties\x12>\n\x14int_array_properties\x18\x06 \x03(\x0b\x32 .weaviategrpc.IntArrayProperties\x12@\n\x15text_array_properties\x18\x07 \x03(\x0b\x32!.weaviategrpc.TextArrayProperties\x12\x46\n\x18\x62oolean_array_properties\x18\x08 \x03(\x0b\x32$.weaviategrpc.BooleanArrayProperties\"\\\n\x13ReturnRefProperties\x12\x32\n\nproperties\x18\x01 \x03(\x0b\x32\x1e.weaviategrpc.ResultProperties\x12\x11\n\tprop_name\x18\x02 \x01(\t*\x89\x01\n\x10\x43onsistencyLevel\x12!\n\x1d\x43ONSISTENCY_LEVEL_UNSPECIFIED\x10\x00\x12\x19\n\x15\x43ONSISTENCY_LEVEL_ONE\x10\x01\x12\x1c\n\x18\x43ONSISTENCY_LEVEL_QUORUM\x10\x02\x12\x19\n\x15\x43ONSISTENCY_LEVEL_ALL\x10\x03\x32\xa4\x01\n\x08Weaviate\x12\x42\n\x06Search\x12\x1b.weaviategrpc.SearchRequest\x1a\x19.weaviategrpc.SearchReply\"\x00\x12T\n\x0c\x42\x61tchObjects\x12!.weaviategrpc.BatchObjectsRequest\x1a\x1f.weaviategrpc.BatchObjectsReply\"\x00\x42T\n io.weaviate.client.grpc.protocolB\rWeaviateProtoZ!github.com/weaviate/weaviate/grpcb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0eweaviate.proto\x12\x0cweaviategrpc\x1a\x0b\x62\x61tch.proto\x1a\x10search_get.proto\x1a\x13search_get_v1.proto2\xee\x01\n\x08Weaviate\x12\x42\n\x06Search\x12\x1b.weaviategrpc.SearchRequest\x1a\x19.weaviategrpc.SearchReply\"\x00\x12H\n\x08SearchV1\x12\x1d.weaviategrpc.SearchRequestV1\x1a\x1b.weaviategrpc.SearchReplyV1\"\x00\x12T\n\x0c\x42\x61tchObjects\x12!.weaviategrpc.BatchObjectsRequest\x1a\x1f.weaviategrpc.BatchObjectsReply\"\x00\x42`\n\x19io.weaviate.grpc.protocolB\rWeaviateProtoZ4github.com/weaviate/weaviate/grpc/generated;protocolb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -22,89 +24,7 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'weaviate_pb2', _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
-  DESCRIPTOR._serialized_options = b'\n io.weaviate.client.grpc.protocolB\rWeaviateProtoZ!github.com/weaviate/weaviate/grpc'
-  _globals['_CONSISTENCYLEVEL']._serialized_start=6756
-  _globals['_CONSISTENCYLEVEL']._serialized_end=6893
-  _globals['_BATCHOBJECTSREQUEST']._serialized_start=63
-  _globals['_BATCHOBJECTSREQUEST']._serialized_end=214
-  _globals['_BATCHOBJECT']._serialized_start=217
-  _globals['_BATCHOBJECT']._serialized_end=1002
-  _globals['_BATCHOBJECT_PROPERTIES']._serialized_start=357
-  _globals['_BATCHOBJECT_PROPERTIES']._serialized_end=850
-  _globals['_BATCHOBJECT_REFPROPERTIESSINGLETARGET']._serialized_start=852
-  _globals['_BATCHOBJECT_REFPROPERTIESSINGLETARGET']._serialized_end=913
-  _globals['_BATCHOBJECT_REFPROPERTIESMULTITARGET']._serialized_start=915
-  _globals['_BATCHOBJECT_REFPROPERTIESMULTITARGET']._serialized_end=1002
-  _globals['_BATCHOBJECTSREPLY']._serialized_start=1005
-  _globals['_BATCHOBJECTSREPLY']._serialized_end=1147
-  _globals['_BATCHOBJECTSREPLY_BATCHRESULTS']._serialized_start=1103
-  _globals['_BATCHOBJECTSREPLY_BATCHRESULTS']._serialized_end=1147
-  _globals['_SEARCHREQUEST']._serialized_start=1150
-  _globals['_SEARCHREQUEST']._serialized_end=2211
-  _globals['_GROUPBY']._serialized_start=2213
-  _globals['_GROUPBY']._serialized_end=2289
-  _globals['_SORTBY']._serialized_start=2291
-  _globals['_SORTBY']._serialized_end=2332
-  _globals['_GENERATIVESEARCH']._serialized_start=2334
-  _globals['_GENERATIVESEARCH']._serialized_end=2443
-  _globals['_TEXTARRAY']._serialized_start=2445
-  _globals['_TEXTARRAY']._serialized_end=2472
-  _globals['_INTARRAY']._serialized_start=2474
-  _globals['_INTARRAY']._serialized_end=2500
-  _globals['_NUMBERARRAY']._serialized_start=2502
-  _globals['_NUMBERARRAY']._serialized_end=2531
-  _globals['_BOOLEANARRAY']._serialized_start=2533
-  _globals['_BOOLEANARRAY']._serialized_end=2563
-  _globals['_FILTERS']._serialized_start=2566
-  _globals['_FILTERS']._serialized_end=3361
-  _globals['_FILTERS_OPERATOR']._serialized_start=2992
-  _globals['_FILTERS_OPERATOR']._serialized_end=3347
-  _globals['_ADDITIONALPROPERTIES']._serialized_start=3364
-  _globals['_ADDITIONALPROPERTIES']._serialized_end=3567
-  _globals['_PROPERTIES']._serialized_start=3569
-  _globals['_PROPERTIES']._serialized_end=3662
-  _globals['_HYBRIDSEARCHPARAMS']._serialized_start=3665
-  _globals['_HYBRIDSEARCHPARAMS']._serialized_end=3916
-  _globals['_HYBRIDSEARCHPARAMS_FUSIONTYPE']._serialized_start=3819
-  _globals['_HYBRIDSEARCHPARAMS_FUSIONTYPE']._serialized_end=3916
-  _globals['_NEARTEXTSEARCHPARAMS']._serialized_start=3919
-  _globals['_NEARTEXTSEARCHPARAMS']._serialized_end=4240
-  _globals['_NEARTEXTSEARCHPARAMS_MOVE']._serialized_start=4133
-  _globals['_NEARTEXTSEARCHPARAMS_MOVE']._serialized_end=4187
-  _globals['_NEARIMAGESEARCHPARAMS']._serialized_start=4242
-  _globals['_NEARIMAGESEARCHPARAMS']._serialized_end=4354
-  _globals['_NEARAUDIOSEARCHPARAMS']._serialized_start=4356
-  _globals['_NEARAUDIOSEARCHPARAMS']._serialized_end=4468
-  _globals['_NEARVIDEOSEARCHPARAMS']._serialized_start=4470
-  _globals['_NEARVIDEOSEARCHPARAMS']._serialized_end=4582
-  _globals['_BM25SEARCHPARAMS']._serialized_start=4584
-  _globals['_BM25SEARCHPARAMS']._serialized_end=4637
-  _globals['_REFPROPERTIES']._serialized_start=4640
-  _globals['_REFPROPERTIES']._serialized_end=4816
-  _globals['_NEARVECTORPARAMS']._serialized_start=4818
-  _globals['_NEARVECTORPARAMS']._serialized_end=4926
-  _globals['_NEAROBJECTPARAMS']._serialized_start=4928
-  _globals['_NEAROBJECTPARAMS']._serialized_end=5032
-  _globals['_SEARCHREPLY']._serialized_start=5035
-  _globals['_SEARCHREPLY']._serialized_end=5198
-  _globals['_GROUPBYRESULTS']._serialized_start=5201
-  _globals['_GROUPBYRESULTS']._serialized_end=5347
-  _globals['_SEARCHRESULT']._serialized_start=5350
-  _globals['_SEARCHRESULT']._serialized_end=5484
-  _globals['_RESULTADDITIONALPROPS']._serialized_start=5487
-  _globals['_RESULTADDITIONALPROPS']._serialized_end=5948
-  _globals['_NUMBERARRAYPROPERTIES']._serialized_start=5950
-  _globals['_NUMBERARRAYPROPERTIES']._serialized_end=6008
-  _globals['_INTARRAYPROPERTIES']._serialized_start=6010
-  _globals['_INTARRAYPROPERTIES']._serialized_end=6065
-  _globals['_TEXTARRAYPROPERTIES']._serialized_start=6067
-  _globals['_TEXTARRAYPROPERTIES']._serialized_end=6123
-  _globals['_BOOLEANARRAYPROPERTIES']._serialized_start=6125
-  _globals['_BOOLEANARRAYPROPERTIES']._serialized_end=6184
-  _globals['_RESULTPROPERTIES']._serialized_start=6187
-  _globals['_RESULTPROPERTIES']._serialized_end=6659
-  _globals['_RETURNREFPROPERTIES']._serialized_start=6661
-  _globals['_RETURNREFPROPERTIES']._serialized_end=6753
-  _globals['_WEAVIATE']._serialized_start=6896
-  _globals['_WEAVIATE']._serialized_end=7060
+  DESCRIPTOR._serialized_options = b'\n\031io.weaviate.grpc.protocolB\rWeaviateProtoZ4github.com/weaviate/weaviate/grpc/generated;protocol'
+  _globals['_WEAVIATE']._serialized_start=85
+  _globals['_WEAVIATE']._serialized_end=323
 # @@protoc_insertion_point(module_scope)

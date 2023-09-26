@@ -4,7 +4,7 @@ from enum import Enum
 from typing import List, Union
 
 from weaviate.types import UUID
-from weaviate_grpc import weaviate_pb2
+from weaviate_grpc import search_get_v1_pb2
 
 
 class _Operator(str, Enum):
@@ -21,31 +21,31 @@ class _Operator(str, Enum):
     AND = "And"
     OR = "Or"
 
-    def _to_grpc(self) -> weaviate_pb2.Filters.Operator:
+    def _to_grpc(self) -> search_get_v1_pb2.Filters.Operator:
         if self == _Operator.EQUAL:
-            return weaviate_pb2.Filters.OPERATOR_EQUAL
+            return search_get_v1_pb2.Filters.OPERATOR_EQUAL
         elif self == _Operator.NOT_EQUAL:
-            return weaviate_pb2.Filters.OPERATOR_NOT_EQUAL
+            return search_get_v1_pb2.Filters.OPERATOR_NOT_EQUAL
         elif self == _Operator.LESS_THAN:
-            return weaviate_pb2.Filters.OPERATOR_LESS_THAN
+            return search_get_v1_pb2.Filters.OPERATOR_LESS_THAN
         elif self == _Operator.LESS_THAN_EQUAL:
-            return weaviate_pb2.Filters.OPERATOR_LESS_THAN_EQUAL
+            return search_get_v1_pb2.Filters.OPERATOR_LESS_THAN_EQUAL
         elif self == _Operator.GREATER_THAN:
-            return weaviate_pb2.Filters.OPERATOR_GREATER_THAN
+            return search_get_v1_pb2.Filters.OPERATOR_GREATER_THAN
         elif self == _Operator.GREATER_THAN_EQUAL:
-            return weaviate_pb2.Filters.OPERATOR_GREATER_THAN_EQUAL
+            return search_get_v1_pb2.Filters.OPERATOR_GREATER_THAN_EQUAL
         elif self == _Operator.LIKE:
-            return weaviate_pb2.Filters.OPERATOR_LIKE
+            return search_get_v1_pb2.Filters.OPERATOR_LIKE
         elif self == _Operator.IS_NULL:
-            return weaviate_pb2.Filters.OPERATOR_IS_NULL
+            return search_get_v1_pb2.Filters.OPERATOR_IS_NULL
         elif self == _Operator.CONTAINS_ANY:
-            return weaviate_pb2.Filters.OPERATOR_CONTAINS_ANY
+            return search_get_v1_pb2.Filters.OPERATOR_CONTAINS_ANY
         elif self == _Operator.CONTAINS_ALL:
-            return weaviate_pb2.Filters.OPERATOR_CONTAINS_ALL
+            return search_get_v1_pb2.Filters.OPERATOR_CONTAINS_ALL
         elif self == _Operator.AND:
-            return weaviate_pb2.Filters.OPERATOR_AND
+            return search_get_v1_pb2.Filters.OPERATOR_AND
         elif self == _Operator.OR:
-            return weaviate_pb2.Filters.OPERATOR_OR
+            return search_get_v1_pb2.Filters.OPERATOR_OR
         else:
             raise ValueError(f"Unknown operator {self}")
 
