@@ -25,13 +25,14 @@ class _Tenants:
         The collection must have been created with multi-tenancy enabled.
 
         Arguments:
-        - `tenants`: List of `Tenant`.
+            `tenants`
+                List of tenants to add to the given collection.
 
         Raises:
-        - `requests.ConnectionError`
-            - If the network connection to Weaviate fails.
-        - `weaviate.UnexpectedStatusCodeException`
-            - If Weaviate reports a non-OK status.
+            `requests.ConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a non-OK status.
         """
         loaded_tenants = [tenant.model_dump() for tenant in tenants]
 
@@ -53,15 +54,14 @@ class _Tenants:
         The collection must have been created with multi-tenancy enabled.
 
         Arguments:
-        - `tenants`: List of tenant names to remove from the given class.
+            `tenants`
+                List of tenant names to remove from the given class.
 
         Raises:
-        - `TypeError`
-            - If 'tenants' has not the correct type.
-        - `requests.ConnectionError`
-            - If the network connection to Weaviate fails.
-        - `weaviate.UnexpectedStatusCodeException`
-            - If Weaviate reports a non-OK status.
+            `requests.ConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a non-OK status.
         """
         path = "/schema/" + self.__name + "/tenants"
         try:
@@ -81,10 +81,10 @@ class _Tenants:
         The collection must have been created with multi-tenancy enabled.
 
         Raises:
-        - `requests.ConnectionError`
-            - If the network connection to Weaviate fails.
-        - `weaviate.UnexpectedStatusCodeException`
-            - If Weaviate reports a non-OK status.
+            `requests.ConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a non-OK status.
         """
         path = "/schema/" + self.__name + "/tenants"
         try:
@@ -102,6 +102,20 @@ class _Tenants:
         return {tenant["name"]: Tenant(**tenant) for tenant in tenant_resp}
 
     def update(self, tenants: List[Tenant]) -> None:
+        """Update the specified tenants for a collection in Weaviate.
+
+        The collection must have been created with multi-tenancy enabled.
+
+        Arguments:
+            `tenants`
+                List of tenants to update for the given collection.
+
+        Raises:
+            `requests.ConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a non-OK status.
+        """
         loaded_tenants = [tenant.model_dump() for tenant in tenants]
 
         path = "/schema/" + self.__name + "/tenants"

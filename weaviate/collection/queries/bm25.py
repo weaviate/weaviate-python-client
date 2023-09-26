@@ -87,7 +87,7 @@ class _BM25Generate(_Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _GenerativeReturn[Properties]:
-        """Search for objects in this collection using the keyword-based BM25 algorithm and perform retrieval-augmented generation (RaG) on the results.
+        """Perform retrieval-augmented generation (RaG) on the results of a keyword-based BM25 search of objects in this collection.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/bm25) for a more detailed explanation.
 
@@ -117,7 +117,7 @@ class _BM25Generate(_Grpc):
             If neither `return_metadata` nor `return_properties` are provided then all properties and metadata are returned except for `metadata.vector`.
 
         Returns:
-            A `_GenerativeReturn` object that includes the searched objects including per-object generated results and grouped generated results.
+            A `_GenerativeReturn` object that includes the searched objects with per-object generated results and group generated results.
 
         Raises:
             `weaviate.exceptions.WeaviateGRPCException`:

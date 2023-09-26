@@ -87,7 +87,7 @@ class _FetchObjectsGenerate(_Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _GenerativeReturn[Properties]:
-        """Retrieve the objects in this collection without any search and perform retrieval-augmented generation (RaG) on the results.
+        """Perform retrieval-augmented generation (RaG) on the results of a simple get query of objects in this collection.
 
         Arguments:
             `single_prompt`
@@ -115,7 +115,7 @@ class _FetchObjectsGenerate(_Grpc):
             If neither `return_metadata` nor `return_properties` are provided then all properties and metadata are returned except for `metadata.vector`.
 
         Returns:
-            A `_GenerativeReturn` object that includes the searched objects including per-object generated results and grouped generated results.
+            A `_GenerativeReturn` object that includes the searched objects with per-object generated results and group generated results.
 
         Raises:
             `weaviate.exceptions.WeaviateGRPCException`:

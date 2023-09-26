@@ -31,6 +31,38 @@ class _NearImageQuery(_Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _QueryReturn[Properties]:
+        """Search for objects in this collection by an image using an image-capable vectorisation module and vector-based similarity search.
+
+        See the [docs](https://weaviate.io/developers/weaviate/search/image) for a more detailed explanation.
+
+        NOTE:
+            You must have an image-capable vectorisation module installed in order to use this method, e.g. `img2vec-neural`, `multi2vec-clip`, or `multi2vec-bind.
+
+        Arguments:
+            `near_image`
+                The image file to search on, REQUIRED. This can be a base64 encoded string of the binary, a path to the file, or a file-like object.
+            `certainty`
+                The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
+            `distance`
+                The maximum distance to search. If not specified, the default distance specified by the server is used.
+            `limit`
+                The maximum number of results to return. If not specified, the default limit specified by the server is returned.
+            `auto_limit`
+                The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
+            `filters`
+                The filters to apply to the search.
+            `return_metadata`
+                The metadata to return for each object.
+            `return_properties`
+                The properties to return for each object.
+
+        Returns:
+            A `_QueryReturn` object that includes the searched objects.
+
+        Raises:
+            `weaviate.exceptions.WeaviateGrpcError`:
+                If the request to the Weaviate server fails.
+        """
         ret_properties, ret_type = self._parse_return_properties(return_properties)
         res = self._query().near_image(
             image=self._parse_media(near_image),
@@ -60,6 +92,44 @@ class _NearImageGenerate(_Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _GenerativeReturn[Properties]:
+        """Perform retrieval-augmented generation (RaG) on the results of a by-image object search in this collection using the image-capable vectorisation module and vector-based similarity search.
+
+        See the [docs](https://weaviate.io/developers/weaviate/search/image) for a more detailed explanation.
+
+        NOTE:
+            You must have an image-capable vectorisation module installed in order to use this method, e.g. `img2vec-neural`, `multi2vec-clip`, or `multi2vec-bind.
+
+        Arguments:
+            `near_image`
+                The image file to search on, REQUIRED. This can be a base64 encoded string of the binary, a path to the file, or a file-like object.
+            `single_prompt`
+                The prompt to use for RaG on each object individually.
+            `grouped_task`
+                The prompt to use for RaG on the entire result set.
+            `grouped_properties`
+                The properties to use in the RaG on the entire result set.
+            `certainty`
+                The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
+            `distance`
+                The maximum distance to search. If not specified, the default distance specified by the server is used.
+            `limit`
+                The maximum number of results to return. If not specified, the default limit specified by the server is returned.
+            `auto_limit`
+                The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
+            `filters`
+                The filters to apply to the search.
+            `return_metadata`
+                The metadata to return for each object.
+            `return_properties`
+                The properties to return for each object.
+
+        Returns:
+            A `_GenerativeReturn` object that includes the searched objects with per-object generated results and group generated results.
+
+        Raises:
+            `weaviate.exceptions.WeaviateGrpcError`:
+                If the request to the Weaviate server fails.
+        """
         ret_properties, ret_type = self._parse_return_properties(return_properties)
         res = self._query().near_image(
             image=self._parse_media(near_image),
@@ -94,6 +164,44 @@ class _NearImageGroupBy(_Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _GroupByReturn[Properties]:
+        """Group the results of a by-image object search in this collection using an image-capable vectorisation module and vector-based similarity search.
+
+        See the [docs](https://weaviate.io/developers/weaviate/search/image) for a more detailed explanation.
+
+        NOTE:
+            You must have an image-capable vectorisation module installed in order to use this method, e.g. `img2vec-neural`, `multi2vec-clip`, or `multi2vec-bind.
+
+        Arguments:
+            `near_image`
+                The image file to search on, REQUIRED. This can be a base64 encoded string of the binary, a path to the file, or a file-like object.
+            `group_by_property`
+                The property to group by, REQUIRED.
+            `number_of_groups`
+                The number of groups to return, REQUIRED.
+            `objects_per_group`
+                The number of objects per group to return, REQUIRED.
+            `certainty`
+                The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
+            `distance`
+                The maximum distance to search. If not specified, the default distance specified by the server is used.
+            `limit`
+                The maximum number of results to return. If not specified, the default limit specified by the server is returned.
+            `auto_limit`
+                The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
+            `filters`
+                The filters to apply to the search.
+            `return_metadata`
+                The metadata to return for each object.
+            `return_properties`
+                The properties to return for each object.
+
+        Returns:
+            A `_GroupByReturn` object that includes the searched objects grouped by the specified property.
+
+        Raises:
+            `weaviate.exceptions.WeaviateGrpcError`:
+                If the request to the Weaviate server fails.
+        """
         ret_properties, ret_type = self._parse_return_properties(return_properties)
         res = self._query().near_image(
             image=self._parse_media(near_image),
