@@ -66,7 +66,8 @@ class _CollectionObject(_CollectionObjectBase, Generic[TProperties]):
         If multi-tenancy is not configured for this collection then Weaviate will throw an error.
 
         Arguments:
-            tenant: The name of the tenant to use.
+            `tenant`
+                The name of the tenant to use.
         """
         return _CollectionObject(self._connection, self.name, self.__consistency_level, tenant)
 
@@ -78,7 +79,8 @@ class _CollectionObject(_CollectionObjectBase, Generic[TProperties]):
         If replication is not configured for this collection then Weaviate will throw an error.
 
         Arguments:
-            consistency_level: The consistency level to use.
+            `consistency_level`
+                The consistency level to use.
         """
         return _CollectionObject(self._connection, self.name, consistency_level, self.__tenant)
 
@@ -97,8 +99,10 @@ class _CollectionObject(_CollectionObjectBase, Generic[TProperties]):
         and `return_properties` to only request the data that you need.
 
         Arguments:
-            return_metadata: The metadata to return with each object.
-            return_properties: The properties to return with each object.
+            `return_metadata`
+                The metadata to return with each object.
+            `return_properties`
+                The properties to return with each object.
 
         Raises:
             `requests.ConnectionError`
@@ -137,18 +141,30 @@ class _Collection(_CollectionBase):
         configuration options and how they affect the behavior of your collection.
 
         Arguments:
-            name: The name of the collection to create.
-            description: A description of the collection to create.
-            generative_config: The configuration for Weaviate's generative capabilities.
-            inverted_index_config: The configuration for Weaviate's inverted index.
-            multi_tenancy_config: The configuration for Weaviate's multi-tenancy capabilities.
-            properties: The properties of the objects in the collection.
-            replication_config: The configuration for Weaviate's replication strategy.
-            sharding_config: The configuration for Weaviate's sharding strategy.
-            vector_index_config: The configuration for Weaviate's vector index.
-            vector_index_type: The type of vector index to use.
-            vectorizer_config: The configuration for Weaviate's vectorizer.
-            data_model: The generic class that you want to use to represent the properties of objects in this collection. See the `get` method for more information.
+            `name`
+                The name of the collection to create.
+            `description`
+                A description of the collection to create.
+            `generative_config`
+                The configuration for Weaviate's generative capabilities.
+            `inverted_index_config`
+                The configuration for Weaviate's inverted index.
+            `multi_tenancy_config`
+                The configuration for Weaviate's multi-tenancy capabilities.
+            `properties`
+                The properties of the objects in the collection.
+            `replication_config`
+                The configuration for Weaviate's replication strategy.
+            `sharding_config`
+                The configuration for Weaviate's sharding strategy.
+            `vector_index_config`
+                The configuration for Weaviate's vector index.
+            `vector_index_type`
+                The type of vector index to use.
+            `vectorizer_config`
+                The configuration for Weaviate's vectorizer.
+            `data_model`
+                The generic class that you want to use to represent the properties of objects in this collection. See the `get` method for more information.
 
         Raises:
             `requests.ConnectionError`
@@ -184,11 +200,12 @@ class _Collection(_CollectionBase):
         """Use this method to return a collection object to be used when interacting with your Weaviate collection.
 
         Arguments:
-            name: The name of the collection to get.
-            data_model: The generic class that you want to use to represent the properties of objects in this collection
-            when mutating objects through the `.data` namespace.
-                The generic provided in this argument will propagate to the methods in `.data` and allow you to do `mypy` static type checking on your codebase.
-                    If you do not provide a generic, the methods in `.data` will return objects of `Dict[str, Any]` type.
+            `name`
+                The name of the collection to get.
+            `data_model`
+                The generic class that you want to use to represent the properties of objects in this collection when mutating objects through the `.data` namespace.
+                    The generic provided in this argument will propagate to the methods in `.data` and allow you to do `mypy` static type checking on your codebase.
+                        If you do not provide a generic, the methods in `.data` will return objects of `Dict[str, Any]` type.
 
         Raises:
             `weaviate.exceptions.InvalidDataModelException`
@@ -205,7 +222,8 @@ class _Collection(_CollectionBase):
         for these collections within your code, they will cease to function correctly after this operation.
 
         Arguments:
-            `name: The names of the collections to delete.
+            `name`
+                The name(s) of the collection(s) to delete.
 
         Raises:
             `requests.ConnectionError`
@@ -236,7 +254,8 @@ class _Collection(_CollectionBase):
         """List the configurations of the all the collections currently in the Weaviate instance.
 
         Arguments:
-            simple: If `True`, return a simplified version of the configuration containing only name and properties.
+            `simple`
+                If `True`, return a simplified version of the configuration containing only name and properties.
 
         Returns:
             A dictionary containing the configurations of all the collections currently in the Weaviate instance mapping

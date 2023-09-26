@@ -104,9 +104,11 @@ class Filter:
         """Initialise the filter.
 
         Arguments:
-            - path: The path to the property to be filtered on. This can be a single string in the case of a
+            `path`
+                The path to the property to be filtered on. This can be a single string in the case of a
                 top-level property or a list of strings in the case of a nested cross-ref property.
-            - length: If True, the length of the property will be used in the filter. This is only valid for
+            `length`
+                If `True`, the length of the property will be used in the filter. This is only valid for
                 properties of type `string` or `text`. Defaults to `False`.
         """
         if isinstance(path, str):

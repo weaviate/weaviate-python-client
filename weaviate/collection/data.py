@@ -449,9 +449,12 @@ class _DataCollection(Generic[Properties], _Data):
         """Insert a single object into the collection.
 
         Arguments:
-            properties: The properties of the object.
-            uuid: The UUID of the object. If not provided, a random UUID will be generated.
-            vector: The vector of the object.
+            `properties`
+                The properties of the object, REQUIRED.
+            `uuid`
+                The UUID of the object. If not provided, a random UUID will be generated.
+            `vector`
+                The vector of the object.
         """
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
@@ -471,9 +474,10 @@ class _DataCollection(Generic[Properties], _Data):
         """Insert multiple objects into the collection.
 
         Arguments:
-            objects: The objects to insert. This can be either a list of `Properties` or `DataObject[Properties]`.
-                If you didn't set `data_model` then `Properties` will be `Data[str, Any]` in which case you can insert simple dictionaries here.
-                    If you want to insert vectors and UUIDs alongside your properties, you will have to use `DataObject` instead.
+            `objects` REQUIRED
+                The objects to insert. This can be either a list of `Properties` or `DataObject[Properties]`
+                    If you didn't set `data_model` then `Properties` will be `Data[str, Any]` in which case you can insert simple dictionaries here.
+                        If you want to insert vectors and UUIDs alongside your properties, you will have to use `DataObject` instead.
 
         Raises:
             `weaviate.exceptions.WeaviateGRPCException`:
@@ -507,9 +511,12 @@ class _DataCollection(Generic[Properties], _Data):
         This is equivalent to a PUT operation.
 
         Arguments:
-            properties: The properties of the object, REQUIRED.
-            uuid: The UUID of the object, REQUIRED.
-            vector: The vector of the object.
+            `properties`
+                The properties of the object, REQUIRED.
+            `uuid`
+                The UUID of the object, REQUIRED.
+            `vector`
+                The vector of the object.
 
         Raises:
             `requests.ConnectionError`:
@@ -536,9 +543,12 @@ class _DataCollection(Generic[Properties], _Data):
         This is equivalent to a PATCH operation.
 
         Arguments:
-            properties: The properties of the object, REQUIRED.
-            uuid: The UUID of the object, REQUIRED.
-            vector: The vector of the object.
+            `properties`
+                The properties of the object, REQUIRED.
+            `uuid`
+                The UUID of the object, REQUIRED.
+            `vector`
+                The vector of the object.
         """
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
@@ -553,9 +563,12 @@ class _DataCollection(Generic[Properties], _Data):
         """Create a reference between an object in this collection and any other object in Weaviate.
 
         Arguments:
-            from_uuid: The UUID of the object in this collection, REQUIRED.
-            from_property: The name of the property in the object in this collection, REQUIRED.
-            ref: The reference to add, REQUIRED.
+            `from_uuid`
+                The UUID of the object in this collection, REQUIRED.
+            `from_property`
+                The name of the property in the object in this collection, REQUIRED.
+            `ref`
+                The reference to add, REQUIRED. Use `ReferenceFactory.to` to generate the correct type.
 
         Raises:
             `requests.ConnectionError`:
@@ -575,8 +588,10 @@ class _DataCollection(Generic[Properties], _Data):
         """Create multiple references on a property in batch between objects in this collection and any other object in Weaviate.
 
         Arguments:
-            from_property: The name of the property in the object in this collection, REQUIRED.
-            refs: The references to add, REQUIRED.
+            `from_property`
+                The name of the property in the object in this collection, REQUIRED.
+            `refs`
+                The references to add, REQUIRED.
 
         Raises:
             `requests.ConnectionError`:
