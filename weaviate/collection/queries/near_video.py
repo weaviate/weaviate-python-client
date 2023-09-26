@@ -11,7 +11,6 @@ from weaviate.collection.classes.filters import (
     _Filters,
 )
 from weaviate.collection.classes.grpc import (
-    GroupBy,
     MetadataQuery,
     PROPERTIES,
 )
@@ -92,7 +91,9 @@ class _NearVideoGroupBy(_Grpc):
     def near_video(
         self,
         near_video: Union[str, Path, BufferedReader],
-        group_by: GroupBy,
+        group_by_property: str,
+        number_of_groups: int,
+        objects_per_group: int,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -107,7 +108,11 @@ class _NearVideoGroupBy(_Grpc):
             certainty=certainty,
             distance=distance,
             filters=filters,
-            group_by=_GroupBy.from_input(group_by),
+            group_by=_GroupBy(
+                prop=group_by_property,
+                number_of_groups=number_of_groups,
+                objects_per_group=objects_per_group,
+            ),
             limit=limit,
             autocut=auto_limit,
             return_metadata=return_metadata,

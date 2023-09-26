@@ -16,7 +16,6 @@ from weaviate.collection.classes.grpc import (
     MetadataQuery,
     PROPERTIES,
     Generate,
-    GroupBy,
 )
 from weaviate.collection.classes.types import Properties, P
 from weaviate.util import _to_beacons
@@ -157,18 +156,6 @@ class _GroupBy:
             path=[self.prop],
             number_of_groups=self.number_of_groups,
             objects_per_group=self.objects_per_group,
-        )
-
-    @classmethod
-    def from_input(cls, group_by: Optional[GroupBy]) -> Optional["_GroupBy"]:
-        return (
-            cls(
-                prop=group_by.prop,
-                number_of_groups=group_by.number_of_groups,
-                objects_per_group=group_by.objects_per_group,
-            )
-            if group_by
-            else None
         )
 
 
