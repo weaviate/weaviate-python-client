@@ -21,7 +21,7 @@ from weaviate.collection.classes.config import (
     ConfigFactory,
     PropertyConfig,
 )
-from weaviate.collection.classes.internal import CrossReference, ReferenceFactory
+from weaviate.collection.classes.internal import Reference, ReferenceFactory
 from weaviate.collection.classes.orm import BaseProperty, CollectionModelConfig
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from pydantic import Field
@@ -96,8 +96,8 @@ def test_types(client: weaviate.Client, member_type, value, optional: bool):
     "member_type, annotation ,value,expected",
     [
         (str, PropertyConfig(index_filterable=False), "value", "text"),
-        (UUIDS, CrossReference[Group], [str(REF_TO_UUID)], "Group"),
-        (Optional[UUIDS], CrossReference[Group], [str(REF_TO_UUID)], "Group"),
+        (UUIDS, Reference[Group], [str(REF_TO_UUID)], "Group"),
+        (Optional[UUIDS], Reference[Group], [str(REF_TO_UUID)], "Group"),
     ],
 )
 def test_types_annotates(client: weaviate.Client, member_type, annotation, value, expected: str):
@@ -261,7 +261,7 @@ def test_multi_searches(client: weaviate.Client):
 def test_multi_searches_with_references(client: weaviate.Client):
     class TestMultiSearchesWithReferences(BaseProperty):
         name: Optional[str] = None
-        group: Optional[CrossReference[Group]] = None
+        group: Optional[Reference[Group]] = None
 
     client.collection_model.delete(TestMultiSearchesWithReferences)
     collection = client.collection_model.create(
@@ -465,7 +465,7 @@ def test_update_reference_property(client: weaviate.Client):
 
     class TestRefPropUpdate(BaseProperty):
         name: str
-        group: CrossReference[Group]
+        group: Reference[Group]
 
     create_original_collection()
     client.collection_model.update(TestRefPropUpdate)

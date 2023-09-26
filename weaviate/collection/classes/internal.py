@@ -199,7 +199,7 @@ class _Reference(Generic[P]):
         return self.__objects or []
 
 
-CrossReference = _Reference[P]
+Reference = _Reference[P]
 
 
 class ReferenceFactory:
@@ -211,7 +211,7 @@ class ReferenceFactory:
     """
 
     @classmethod
-    def to(cls, uuids: UUIDS, data_model: Optional[Type[P]] = None) -> CrossReference[P]:
+    def to(cls, uuids: UUIDS, data_model: Optional[Type[P]] = None) -> Reference[P]:
         """Defines cross references to other objects by their UUIDs.
 
         Can be made to be generic by supplying a type to the `data_model` argument.
@@ -228,7 +228,7 @@ class ReferenceFactory:
         uuids: UUIDS,
         target_collection: Union[str, CollectionObjectBase],
         data_model: Optional[Type[P]] = None,
-    ) -> CrossReference[P]:
+    ) -> Reference[P]:
         """Defines cross references to other objects by their UUIDs and the collection in which they are stored.
 
         Can be made to be generic by supplying a type to the `data_model` argument.

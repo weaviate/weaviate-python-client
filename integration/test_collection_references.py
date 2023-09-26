@@ -24,7 +24,7 @@ from weaviate.collection.classes.config import (
     ReferencePropertyMultiTarget,
 )
 
-from weaviate.collection.classes.internal import CrossReference, ReferenceFactory
+from weaviate.collection.classes.internal import Reference, ReferenceFactory
 from weaviate.collection.grpc import MetadataQuery
 
 
@@ -178,11 +178,11 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.Client):
 
     class BProps(TypedDict):
         name: str
-        ref: Annotated[CrossReference[AProps], MetadataQuery(uuid=True)]
+        ref: Annotated[Reference[AProps], MetadataQuery(uuid=True)]
 
     class CProps(TypedDict):
         name: str
-        ref: Annotated[CrossReference[BProps], MetadataQuery(uuid=True)]
+        ref: Annotated[Reference[BProps], MetadataQuery(uuid=True)]
 
     client.collection.create(
         name="ATypedDicts",

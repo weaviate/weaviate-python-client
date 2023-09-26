@@ -29,7 +29,7 @@ from weaviate.collection.classes.data import (
 from weaviate.collection.classes.internal import (
     _Object,
     _metadata_from_dict,
-    CrossReference,
+    Reference,
     _Reference,
 )
 from weaviate.collection.classes.orm import (
@@ -219,7 +219,7 @@ class _Data:
             return None
         raise UnexpectedStatusCodeException("Get object/s", response)
 
-    def _reference_add(self, from_uuid: UUID, from_property: str, ref: CrossReference) -> None:
+    def _reference_add(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
@@ -267,7 +267,7 @@ class _Data:
             return None
         raise UnexpectedStatusCodeException("Send ref batch", response)
 
-    def _reference_delete(self, from_uuid: UUID, from_property: str, ref: CrossReference) -> None:
+    def _reference_delete(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
@@ -283,7 +283,7 @@ class _Data:
             if response.status_code != 204:
                 raise UnexpectedStatusCodeException("Add property reference to object", response)
 
-    def _reference_replace(self, from_uuid: UUID, from_property: str, ref: CrossReference) -> None:
+    def _reference_replace(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
@@ -503,7 +503,7 @@ class _DataCollection(Generic[Properties], _Data):
 
         self._update(weaviate_obj, uuid=uuid)
 
-    def reference_add(self, from_uuid: UUID, from_property: str, ref: CrossReference) -> None:
+    def reference_add(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
         self._reference_add(
             from_uuid=from_uuid,
             from_property=from_property,
@@ -522,10 +522,10 @@ class _DataCollection(Generic[Properties], _Data):
         ]
         return self._reference_add_many(refs_dict)
 
-    def reference_delete(self, from_uuid: UUID, from_property: str, ref: CrossReference) -> None:
+    def reference_delete(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
         self._reference_delete(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_replace(self, from_uuid: UUID, from_property: str, ref: CrossReference) -> None:
+    def reference_replace(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
         self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
 
@@ -640,13 +640,13 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         return [self._json_to_object(obj) for obj in ret["objects"]]
 
-    def reference_add(self, from_uuid: UUID, from_property: str, ref: CrossReference) -> None:
+    def reference_add(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
         self._reference_add(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_delete(self, from_uuid: UUID, from_property: str, ref: CrossReference) -> None:
+    def reference_delete(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
         self._reference_delete(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_replace(self, from_uuid: UUID, from_property: str, ref: CrossReference) -> None:
+    def reference_replace(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
         self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
     def reference_add_many(self, from_property: str, refs: List[BatchReference]) -> None:
