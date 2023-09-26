@@ -1,10 +1,12 @@
 import datetime
 import io
 import pathlib
+import re
 import sys
 from typing import (
     Any,
     Dict,
+    List,
     Optional,
     Tuple,
     Type,
@@ -22,7 +24,8 @@ import uuid as uuid_lib
 
 from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.classes.grpc import (
-    LinkTo,
+    FromReference,
+    MetadataQuery,
     PROPERTIES,
 )
 from weaviate.collection.classes.internal import (
@@ -30,7 +33,7 @@ from weaviate.collection.classes.internal import (
     _MetadataResult,
     _GenerativeObject,
     _Object,
-    ReferenceFactory,
+    _Reference,
     _extract_property_type_from_annotated_reference,
     _extract_property_type_from_reference,
     _extract_properties_from_data_model,
@@ -127,9 +130,9 @@ class _Grpc:
                 if get_origin(hint) is Annotated:
                     referenced_property_type = _extract_property_type_from_annotated_reference(hint)
                 else:
-                    assert get_origin(hint) is ReferenceFactory
+                    assert get_origin(hint) is _Reference
                     referenced_property_type = _extract_property_type_from_reference(hint)
-                result[ref_prop.prop_name] = ReferenceFactory._from(
+                result[ref_prop.prop_name] = _Reference._from(
                     [
                         _Object(
                             properties=self.__parse_result(prop, referenced_property_type),
@@ -139,7 +142,7 @@ class _Grpc:
                     ]
                 )
             else:
-                result[ref_prop.prop_name] = ReferenceFactory[Dict[str, Any]]._from(
+                result[ref_prop.prop_name] = _Reference._from(
                     [
                         _Object(
                             properties=self.__parse_result(prop, Dict[str, Any]),
@@ -219,25 +222,25 @@ class _Grpc:
             max_distance=res.max_distance,
         )
 
-    def _determine_generic(
-        self, type_: Union[PROPERTIES, Type[Properties], None]
+    def _parse_return_properties(
+        self, return_properties: Optional[Union[PROPERTIES, Type[Properties]]]
     ) -> Tuple[Optional[PROPERTIES], Type[Properties]]:
         if (
-            isinstance(type_, list)
-            or isinstance(type_, str)
-            or isinstance(type_, LinkTo)
-            or type_ is None
+            isinstance(return_properties, list)
+            or isinstance(return_properties, str)
+            or isinstance(return_properties, FromReference)
+            or return_properties is None
         ):
-            ret_properties = cast(Optional[PROPERTIES], type_)
+            ret_properties = _PropertiesParser().parse(return_properties)
             ret_type = cast(Type[Properties], Dict[str, Any])
         else:
-            if not is_typeddict(type_):
+            if not is_typeddict(return_properties):
                 raise TypeError(
-                    f"return_properties must only be a TypedDict or PROPERTIES within this context but is {type(type_)}"
+                    f"return_properties must only be a TypedDict or PROPERTIES within this context but is {type(return_properties)}"
                 )
-            type_ = cast(Type[Properties], type_)
-            ret_properties = _extract_properties_from_data_model(type_)
-            ret_type = type_
+            return_properties = cast(Type[Properties], return_properties)
+            ret_properties = _extract_properties_from_data_model(return_properties)
+            ret_type = return_properties
         return ret_properties, ret_type
 
     @staticmethod
@@ -246,3 +249,90 @@ class _Grpc:
             return media
         else:
             return file_encoder_b64(media)
+
+
+class _PropertiesParser:
+    def __init__(self) -> None:
+        self.__from_references_by_prop_name: Dict[str, FromReference] = {}
+        self.__non_ref_properties: List[str] = []
+
+    def parse(self, properties: Optional[PROPERTIES]) -> Optional[PROPERTIES]:
+        if (
+            properties is None
+            or isinstance(properties, str)
+            or isinstance(properties, FromReference)
+        ):
+            if isinstance(properties, str) and properties.startswith("__"):
+                self.__parse_reference_property_string(properties)
+                return list(self.__from_references_by_prop_name.values())
+            else:
+                return properties
+        elif isinstance(properties, list):
+            for prop in properties:
+                if prop is None:
+                    continue
+                if isinstance(prop, str):
+                    if prop.startswith("__"):
+                        self.__parse_reference_property_string(prop)
+                    else:
+                        self.__non_ref_properties.append(prop)
+                else:
+                    self.__from_references_by_prop_name[prop.link_on] = prop
+            return [*self.__non_ref_properties, *self.__from_references_by_prop_name.values()]
+        else:
+            raise TypeError(
+                f"return_properties must be a list of strings and/or FromReferences, a string, or a FromReference but is {type(properties)}"
+            )
+
+    def __parse_reference_property_string_without_options(self, ref_prop: str) -> None:
+        match = re.search(r"__([^_]+)", ref_prop)
+        if match is None:
+            raise ValueError(
+                f"return reference property {ref_prop} must be in the format __{{prop_name}} or __{{prop_name}}__{{properties|metadata}}_{{nested_prop_name}} when using string syntax"
+            )
+        else:
+            prop_name = match.group(1)
+            existing_from_reference = self.__from_references_by_prop_name.get(prop_name)
+            if existing_from_reference is None:
+                self.__from_references_by_prop_name[prop_name] = FromReference(link_on=prop_name)
+
+    def __parse_reference_property_string(self, ref_prop: str) -> None:
+        match_ = re.search(r"__([^_]+)__([^_]+)__([\w_]+)", ref_prop)
+        if match_ is None:
+            self.__parse_reference_property_string_without_options(ref_prop)
+            return
+
+        prop_name = match_.group(1)
+        existing_from_reference = self.__from_references_by_prop_name.get(prop_name)
+        properties_or_metadata = match_.group(2)
+        if properties_or_metadata not in ["properties", "metadata"]:
+            raise ValueError(
+                f"return reference property {ref_prop} must be in the format __{{prop_name}} or __{{prop_name}}__{{properties|metadata}}_{{nested_prop_name}} when using string syntax"
+            )
+        nested_prop_name = match_.group(3)
+        if existing_from_reference is None:
+            self.__from_references_by_prop_name[prop_name] = FromReference(
+                link_on=prop_name,
+                return_properties=[nested_prop_name]
+                if properties_or_metadata == "properties"
+                else None,
+                return_metadata=MetadataQuery(**{nested_prop_name: True})
+                if properties_or_metadata == "metadata"
+                else None,
+            )
+        else:
+            if properties_or_metadata == "properties":
+                if existing_from_reference.return_properties is None:
+                    self.__from_references_by_prop_name[prop_name].return_properties = [
+                        nested_prop_name
+                    ]
+                else:
+                    assert isinstance(existing_from_reference.return_properties, list)
+                    existing_from_reference.return_properties.append(nested_prop_name)
+            else:
+                if existing_from_reference.return_metadata is None:
+                    metadata = MetadataQuery()
+                else:
+                    metadata = existing_from_reference.return_metadata
+                setattr(metadata, nested_prop_name, True)
+                self.__from_references_by_prop_name[prop_name].return_metadata = metadata

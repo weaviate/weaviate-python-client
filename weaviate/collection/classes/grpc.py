@@ -83,7 +83,7 @@ class Sort(_WeaviateInput):
     ascending: bool = Field(default=True)
 
 
-class LinkTo(_WeaviateInput):
+class FromReference(_WeaviateInput):
     """Define a query-time reference to a single-target property when querying through cross-references."""
 
     link_on: str
@@ -94,11 +94,11 @@ class LinkTo(_WeaviateInput):
         return hash(str(self))
 
 
-class LinkToMultiTarget(LinkTo):
+class FromReferenceMultiTarget(FromReference):
     """Define a query-time reference to a multi-target property when querying through cross-references."""
 
     target_collection: str
 
 
-PROPERTY = Union[str, LinkTo]
+PROPERTY = Union[str, FromReference]
 PROPERTIES = Union[List[PROPERTY], PROPERTY]

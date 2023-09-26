@@ -34,7 +34,7 @@ class _HybridQuery(_Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _QueryReturn[Properties]:
-        ret_properties, ret_type = self._determine_generic(return_properties)
+        ret_properties, ret_type = self._parse_return_properties(return_properties)
         res = self._query().hybrid(
             query=query,
             alpha=alpha,
@@ -67,7 +67,7 @@ class _HybridGenerate(_Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _GenerativeReturn[Properties]:
-        ret_properties, ret_type = self._determine_generic(return_properties)
+        ret_properties, ret_type = self._parse_return_properties(return_properties)
         res = self._query().hybrid(
             query=query,
             alpha=alpha,

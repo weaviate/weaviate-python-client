@@ -34,7 +34,7 @@ from weaviate.types import PYTHON_TYPE_TO_DATATYPE, UUID
 
 
 @dataclass
-class CrossReference:
+class Reference:
     ref_type: Union[Type, str]
 
     @property
@@ -65,7 +65,7 @@ class BaseProperty(BaseModel):
             if (
                 field.metadata is not None
                 and len(field.metadata) > 0
-                and isinstance(field.metadata[0], CrossReference)
+                and isinstance(field.metadata[0], Reference)
             )
             and name not in BaseProperty.model_fields
         }
