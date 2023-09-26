@@ -250,9 +250,15 @@ class _PropertiesParser:
             or isinstance(properties, str)
             or isinstance(properties, FromReference)
         ):
-            return properties
+            if isinstance(properties, str) and properties.startswith("__"):
+                self.__parse_reference_property_string(properties)
+                return list(self.__from_references_by_prop_name.values())
+            else:
+                return properties
         elif isinstance(properties, list):
             for prop in properties:
+                if prop is None:
+                    continue
                 if isinstance(prop, str):
                     if prop.startswith("__"):
                         self.__parse_reference_property_string(prop)
@@ -266,18 +272,30 @@ class _PropertiesParser:
                 f"return_properties must be a list of strings and/or FromReferences, a string, or a FromReference but is {type(properties)}"
             )
 
+    def __parse_reference_property_string_without_options(self, ref_prop: str) -> None:
+        match = re.search(r"__([^_]+)", ref_prop)
+        if match is None:
+            raise ValueError(
+                f"return reference property {ref_prop} must be in the format __{{prop_name}} or __{{prop_name}}__{{properties|metadata}}_{{nested_prop_name}} when using string syntax"
+            )
+        else:
+            prop_name = match.group(1)
+            existing_from_reference = self.__from_references_by_prop_name.get(prop_name)
+            if existing_from_reference is None:
+                self.__from_references_by_prop_name[prop_name] = FromReference(link_on=prop_name)
+
     def __parse_reference_property_string(self, ref_prop: str) -> None:
         match_ = re.search(r"__([^_]+)__([^_]+)__([\w_]+)", ref_prop)
         if match_ is None:
-            raise ValueError(
-                f"return reference property {ref_prop} must be in the format __{{prop_name}}__{{properties|metadata}}_{{nested_prop_name}} when using string syntax"
-            )
+            self.__parse_reference_property_string_without_options(ref_prop)
+            return
+
         prop_name = match_.group(1)
         existing_from_reference = self.__from_references_by_prop_name.get(prop_name)
         properties_or_metadata = match_.group(2)
         if properties_or_metadata not in ["properties", "metadata"]:
             raise ValueError(
-                f"return reference property {ref_prop} must be in the format __{{prop_name}}__{{properties|metadata}}_{{nested_prop_name}} when using string syntax"
+                f"return reference property {ref_prop} must be in the format __{{prop_name}} or __{{prop_name}}__{{properties|metadata}}_{{nested_prop_name}} when using string syntax"
             )
         nested_prop_name = match_.group(3)
         if existing_from_reference is None:
