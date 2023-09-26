@@ -28,7 +28,6 @@ from weaviate.collection.classes.data import (
     Error,
 )
 from weaviate.collection.classes.grpc import (
-    GroupBy,
     HybridFusion,
     LinkTo,
     MetadataQuery,
@@ -762,7 +761,9 @@ def test_near_vector_group_by(client: weaviate.Client):
     assert banana1.metadata.vector is not None
     ret = collection.query_group_by.near_vector(
         banana1.metadata.vector,
-        group_by=GroupBy(prop="name", number_of_groups=4, objects_per_group=10),
+        group_by_property="name",
+        number_of_groups=4,
+        objects_per_group=10,
         return_metadata=MetadataQuery(distance=True, certainty=True),
     )
 
@@ -820,7 +821,9 @@ def test_near_object_group_by(client: weaviate.Client):
 
     ret = collection.query_group_by.near_object(
         uuid_banana1,
-        group_by=GroupBy(prop="name", number_of_groups=4, objects_per_group=10),
+        group_by_property="name",
+        number_of_groups=4,
+        objects_per_group=10,
         return_metadata=MetadataQuery(distance=True, certainty=True),
     )
 
@@ -1242,7 +1245,9 @@ def test_near_text_group_by(client: weaviate.Client):
 
     ret = collection.query_group_by.near_text(
         query="cake",
-        group_by=GroupBy(prop="value", number_of_groups=2, objects_per_group=100),
+        group_by_property="value",
+        number_of_groups=2,
+        objects_per_group=100,
         return_metadata=MetadataQuery(uuid=True),
         return_properties=["value"],
     )
