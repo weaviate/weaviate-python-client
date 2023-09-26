@@ -38,13 +38,16 @@ from weaviate.util import (
 )
 from weaviate.warnings import _Warnings
 
+
 try:
     import grpc  # type: ignore
     from weaviate_grpc import weaviate_pb2_grpc
 
     has_grpc = True
+
 except ImportError:
     has_grpc = False
+
 
 JSONPayload = Union[dict, list]
 Session = Union[requests.sessions.Session, OAuth2Session]
