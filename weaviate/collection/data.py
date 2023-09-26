@@ -449,9 +449,6 @@ class _DataCollection(Generic[Properties], _Data):
             properties: The properties of the object.
             uuid: The UUID of the object. If not provided, a random UUID will be generated.
             vector: The vector of the object.
-
-        Returns:
-            The UUID of the inserted object.
         """
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
@@ -474,9 +471,6 @@ class _DataCollection(Generic[Properties], _Data):
             objects: The objects to insert. This can be either a list of `Properties` or `DataObject[Properties]`.
                 If you didn't set `data_model` then `Properties` will be `Data[str, Any]` in which case you can insert simple dictionaries here.
                     If you want to insert vectors and UUIDs alongside your properties, you will have to use `DataObject` instead.
-
-        Returns:
-            A `_BatchReturn` object with the results of the batch insert.
 
         Raises:
             `weaviate.exceptions.WeaviateGRPCException`:
@@ -507,9 +501,11 @@ class _DataCollection(Generic[Properties], _Data):
     ) -> None:
         """Replace an object in the collection.
 
+        This is equivalent to a PUT operation.
+
         Arguments:
-            properties: The properties of the object.
-            uuid: The UUID of the object.
+            properties: The properties of the object, REQUIRED.
+            uuid: The UUID of the object, REQUIRED.
             vector: The vector of the object.
 
         Raises:
@@ -532,6 +528,15 @@ class _DataCollection(Generic[Properties], _Data):
     def update(
         self, properties: Properties, uuid: UUID, vector: Optional[List[float]] = None
     ) -> None:
+        """Update an object in the collection.
+
+        This is equivalent to a PATCH operation.
+
+        Arguments:
+            properties: The properties of the object, REQUIRED.
+            uuid: The UUID of the object, REQUIRED.
+            vector: The vector of the object.
+        """
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
             "properties": self._serialize_properties(properties),
@@ -542,6 +547,19 @@ class _DataCollection(Generic[Properties], _Data):
         self._update(weaviate_obj, uuid=uuid)
 
     def reference_add(self, from_uuid: UUID, from_property: str, ref: ReferenceFactory) -> None:
+        """Create a reference between an object in this collection and any other object in Weaviate.
+
+        Arguments:
+            from_uuid: The UUID of the object in this collection, REQUIRED.
+            from_property: The name of the property in the object in this collection, REQUIRED.
+            ref: The reference to add, REQUIRED.
+
+        Raises:
+            `requests.ConnectionError`:
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`:
+                If Weaviate reports a non-OK status.
+        """
         self._reference_add(
             from_uuid=from_uuid,
             from_property=from_property,
@@ -551,6 +569,18 @@ class _DataCollection(Generic[Properties], _Data):
     def reference_add_many(
         self, from_property: str, refs: List[BatchReference]
     ) -> Optional[Dict[int, List[RefError]]]:
+        """Create multiple references on a property in batch between objects in this collection and any other object in Weaviate.
+
+        Arguments:
+            from_property: The name of the property in the object in this collection, REQUIRED.
+            refs: The references to add, REQUIRED.
+
+        Raises:
+            `requests.ConnectionError`:
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`:
+                If Weaviate reports a non-OK status.
+        """
         refs_dict = [
             {
                 "from": BEACON + f"{self.name}/{ref.from_uuid}/{from_property}",

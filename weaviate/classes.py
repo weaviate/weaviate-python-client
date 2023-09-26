@@ -1,5 +1,6 @@
 from weaviate.collection.classes.config import (
     ConfigFactory,
+    ConfigUpdateFactory,
     DataType,
     Multi2VecField,
     Property,
@@ -23,6 +24,7 @@ from weaviate.collection.classes.tenants import Tenant
 
 __all__ = [
     "ConfigFactory",
+    "ConfigUpdateFactory",
     "DataObject",
     "DataType",
     "Filter",

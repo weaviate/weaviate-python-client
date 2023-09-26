@@ -15,7 +15,7 @@ from weaviate.collection.classes.config import (
     _VectorizerConfig,
     _VectorizerFactory,
     _VectorIndexConfigCreate,
-    VectorIndexType,
+    _VectorIndexType,
 )
 from weaviate.collection.classes.grpc import MetadataQuery, PROPERTIES
 from weaviate.collection.classes.types import Properties, TProperties, _check_data_model
@@ -43,13 +43,19 @@ class _CollectionObject(_CollectionObjectBase, Generic[TProperties]):
         self._connection = connection
 
         self.config = _ConfigCollection(self._connection, name)
+        """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
         self.data = _DataCollection[TProperties](connection, name, consistency_level, tenant, type_)
+        """This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate."""
         self.generate = _GenerateCollection(connection, name, consistency_level, tenant)
+        """This namespace includes all the querying methods available to you when using Weaviate's generative capabilities."""
         self.query_group_by = _GroupByCollection(connection, name, consistency_level, tenant)
+        """This namespace includes all the querying methods available to you when using Weaviate's group-by capabilities."""
         self.query = _QueryCollection[TProperties](
             connection, name, self.data, consistency_level, tenant
         )
+        """This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities."""
         self.tenants = _Tenants(connection, name)
+        """This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate."""
 
         self.__tenant = tenant
         self.__consistency_level = consistency_level
@@ -61,9 +67,6 @@ class _CollectionObject(_CollectionObjectBase, Generic[TProperties]):
 
         Arguments:
             tenant: The name of the tenant to use.
-
-        Returns:
-            The collection object to be used when interacting with the collection for the given tenant.
         """
         return _CollectionObject(self._connection, self.name, self.__consistency_level, tenant)
 
@@ -76,9 +79,6 @@ class _CollectionObject(_CollectionObjectBase, Generic[TProperties]):
 
         Arguments:
             consistency_level: The consistency level to use.
-
-        Returns:
-            The collection object to be used when interacting with the collection for the given consistency level.
         """
         return _CollectionObject(self._connection, self.name, consistency_level, self.__tenant)
 
@@ -99,9 +99,6 @@ class _CollectionObject(_CollectionObjectBase, Generic[TProperties]):
         Arguments:
             return_metadata: The metadata to return with each object.
             return_properties: The properties to return with each object.
-
-        Returns:
-            The iterator over the objects in the collection.
 
         Raises:
             `requests.ConnectionError`
@@ -126,7 +123,7 @@ class _Collection(_CollectionBase):
         replication_config: Optional[_ReplicationConfigCreate] = None,
         sharding_config: Optional[_ShardingConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vector_index_type: VectorIndexType = VectorIndexType.HNSW,
+        vector_index_type: _VectorIndexType = _VectorIndexType.HNSW,
         vectorizer_config: Optional[_VectorizerConfig] = None,
         data_model: Optional[Type[Properties]] = None,
     ) -> _CollectionObject[Properties]:
@@ -189,12 +186,9 @@ class _Collection(_CollectionBase):
         Arguments:
             name: The name of the collection to get.
             data_model: The generic class that you want to use to represent the properties of objects in this collection
-            when mutating objects through the `.data` namespace. The generic provided in this argument will propagate
-            to the methods in `.data` and allow you to do `mypy` static type checking on your codebase. If you do not provide
-            a generic, the methods in `.data` will return objects of `Dict[str, Any]` type.
-
-        Returns:
-            The collection object to be used when interacting with the collection.
+            when mutating objects through the `.data` namespace.
+                The generic provided in this argument will propagate to the methods in `.data` and allow you to do `mypy` static type checking on your codebase.
+                    If you do not provide a generic, the methods in `.data` will return objects of `Dict[str, Any]` type.
 
         Raises:
             `weaviate.exceptions.InvalidDataModelException`

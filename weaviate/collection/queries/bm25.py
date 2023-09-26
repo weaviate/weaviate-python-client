@@ -30,6 +30,22 @@ class _BM25Query(_Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> List[_Object[Properties]]:
+        """Search for objects in this collection using the keyword-based BM25 algorithm.
+
+        See the [docs](https://weaviate.io/developers/weaviate/search/bm25) for a more detailed explanation.
+
+        Arguments:
+            query: The keyword-based query to search for, REQUIRED.
+            query_properties: The properties to search in. If not specified, all properties are searched.
+            limit: The maximum number of results to return. If not specified, the limit specified by Weaviate is returned.
+            auto_limit: The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
+            filters: The filters to apply to the search.
+            return_metadata: The metadata to return for each object.
+            return_properties: The properties to return for each object.
+
+        Note:
+            If neither `return_metadata` nor `return_properties` are provided then all properties and metadata are returned except for `metadata.vector`.
+        """
         ret_properties, ret_type = self._determine_generic(return_properties)
         res = self._query().bm25(
             query=query,
@@ -57,6 +73,25 @@ class _BM25Generate(_Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _GenerativeReturn[Properties]:
+        """Search for objects in this collection using the keyword-based BM25 algorithm and perform retrieval-augmented generation (RaG) on the results.
+
+        See the [docs](https://weaviate.io/developers/weaviate/search/bm25) for a more detailed explanation.
+
+        Arguments:
+            query: The keyword-based query to search for, REQUIRED.
+            single_prompt: The prompt to use for RaG on each object individually.
+            grouped_task: The prompt to use for RaG on the entire result set.
+            grouped_properties: The properties to use in the RaG on the entire result set.
+            query_properties: The properties to search in. If not specified, all properties are searched.
+            limit: The maximum number of results to return. If not specified, the limit specified by Weaviate is returned.
+            auto_limit: The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
+            filters: The filters to apply to the search.
+            return_metadata: The metadata to return for each object.
+            return_properties: The properties to return for each object.
+
+        Note:
+            If neither `return_metadata` nor `return_properties` are provided then all properties and metadata are returned except for `metadata.vector`.
+        """
         ret_properties, ret_type = self._determine_generic(return_properties)
         res = self._query().bm25(
             query=query,

@@ -75,6 +75,8 @@ class _ConfigBase:
     ) -> None:
         """Update the configuration for this collection in Weaviate.
 
+        Use the `weaviate.classes.ConfigUpdateFactory` class to generate the necessary configuration objects for this method.
+
         Arguments:
             description: A description of the collection.
             inverted_index_config: Configuration for the inverted index. Use `ConfigUpdateFactory.inverted_index` to generate one.
