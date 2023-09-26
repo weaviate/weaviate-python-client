@@ -156,7 +156,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
                         properties=self.__parse_result(
                             prop, cast(Type[Model], referenced_property_type)
                         ),
-                        metadata=self._extract_metadata_for_object(prop.metadata),
+                        metadata=self._extract_metadata_for_object(prop.metadata)._to_return(),
                     )
                     for prop in ref_prop.properties
                 ]
@@ -169,7 +169,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
 
     def __result_to_object(self, res: SearchResult) -> _Object[Model]:
         properties = self.__parse_result(res.properties, self.model)
-        metadata = self._extract_metadata_for_object(res.additional_properties)
+        metadata = self._extract_metadata_for_object(res.additional_properties)._to_return()
         return _Object[Model](properties=properties, metadata=metadata)
 
     def get(

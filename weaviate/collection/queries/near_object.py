@@ -4,7 +4,6 @@ from weaviate.collection.classes.filters import (
     _Filters,
 )
 from weaviate.collection.classes.grpc import (
-    GroupBy,
     MetadataQuery,
     PROPERTIES,
 )
@@ -13,7 +12,7 @@ from weaviate.collection.classes.internal import (
     _GenerativeReturn,
     _GroupBy,
     _GroupByReturn,
-    _Object,
+    _QueryReturn,
 )
 from weaviate.collection.classes.types import (
     Properties,
@@ -33,7 +32,7 @@ class _NearObjectQuery(_Grpc):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
-    ) -> List[_Object[Properties]]:
+    ) -> _QueryReturn[Properties]:
         ret_properties, ret_type = self._determine_generic(return_properties)
         res = self._query().near_object(
             near_object=near_object,
@@ -86,7 +85,9 @@ class _NearObjectGroupBy(_Grpc):
     def near_object(
         self,
         near_object: UUID,
-        group_by: GroupBy,
+        group_by_property: str,
+        number_of_groups: int,
+        objects_per_group: int,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -103,7 +104,11 @@ class _NearObjectGroupBy(_Grpc):
             limit=limit,
             autocut=auto_limit,
             filters=filters,
-            group_by=_GroupBy.from_input(group_by),
+            group_by=_GroupBy(
+                prop=group_by_property,
+                number_of_groups=number_of_groups,
+                objects_per_group=objects_per_group,
+            ),
             return_metadata=return_metadata,
             return_properties=ret_properties,
         )

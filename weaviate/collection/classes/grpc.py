@@ -83,14 +83,6 @@ class Sort(_WeaviateInput):
     ascending: bool = Field(default=True)
 
 
-class GroupBy(_WeaviateInput):
-    """Define how the query's group by operation should be performed."""
-
-    prop: str
-    number_of_groups: int
-    objects_per_group: int
-
-
 class LinkTo(_WeaviateInput):
     """Define a query-time reference to a single-target property when querying through cross-references."""
 

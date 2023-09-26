@@ -42,7 +42,7 @@ class _ObjectIterator(Generic[Properties, TProperties], Iterable[_Object[Propert
                 after=self.__iter_object_last_uuid,
                 return_metadata=self.__meta,
                 return_properties=self.__props,
-            )
+            ).objects
             self.__iter_object_cache = objects
             if len(self.__iter_object_cache) == 0:
                 raise StopIteration

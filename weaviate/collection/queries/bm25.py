@@ -12,7 +12,7 @@ from weaviate.collection.classes.grpc import (
     MetadataQuery,
     PROPERTIES,
 )
-from weaviate.collection.classes.internal import _GenerativeReturn, _Object, _Generative
+from weaviate.collection.classes.internal import _GenerativeReturn, _QueryReturn, _Generative
 from weaviate.collection.classes.types import (
     Properties,
 )
@@ -29,7 +29,7 @@ class _BM25Query(_Grpc):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
-    ) -> List[_Object[Properties]]:
+    ) -> _QueryReturn[Properties]:
         """Search for objects in this collection using the keyword-based BM25 algorithm.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/bm25) for a more detailed explanation.
