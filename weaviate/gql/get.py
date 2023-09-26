@@ -39,7 +39,7 @@ from weaviate.types import UUID
 
 try:
     from weaviate_grpc import weaviate_pb2
-    import grpc
+    import grpc  # type: ignore
 except ImportError:
     pass
 
