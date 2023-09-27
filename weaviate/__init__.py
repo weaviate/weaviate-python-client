@@ -48,6 +48,7 @@ __all__ = [
     "EmbeddedOptions",
     "Config",
     "ConnectionConfig",
+    "ConnectionParams",
     "AdditionalProperties",
     "LinkTo",
     "Tenant",
@@ -66,6 +67,7 @@ except PackageNotFoundError:
 from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken, AuthApiKey
 from .batch.crud_batch import WeaviateErrorRetryConf
 from .client import Client
+from .connect.connection import ConnectionParams
 from .data.replication import ConsistencyLevel
 from .schema.crud_schema import Tenant, TenantActivityStatus
 from .embedded import EmbeddedOptions

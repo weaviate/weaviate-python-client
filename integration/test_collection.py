@@ -13,7 +13,6 @@ from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_ENCODED
 
-from weaviate.config import Config
 from weaviate.collection.collection import CollectionObject
 from weaviate.collection.classes.config import (
     ConfigFactory,
@@ -60,9 +59,10 @@ DATE3 = datetime.datetime.strptime("2019-06-10", "%Y-%m-%d").replace(tzinfo=date
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.Client(
-        "http://localhost:8080", additional_config=Config(grpc_port_experimental=50051)
+    connection_params = weaviate.ConnectionParams(
+        scheme="http", host="localhost", port=8080, grpc_port=50051
     )
+    client = weaviate.Client(connection_params)
     client.schema.delete_all()
     yield client
     client.schema.delete_all()

@@ -47,6 +47,7 @@ from weaviate.collection.classes.types import (
 )
 from weaviate.collection.grpc_query import _QueryGRPC, GroupByResult, SearchResponse, SearchResult
 from weaviate.connect import Connection
+from weaviate.exceptions import WeaviateGrpcUnavailable
 from weaviate.util import file_encoder_b64
 from weaviate_grpc import weaviate_pb2
 
@@ -65,6 +66,8 @@ class _Grpc:
         self.__consistency_level = consistency_level
 
     def _query(self) -> _QueryGRPC:
+        if not self.__connection._grpc_available:
+            raise WeaviateGrpcUnavailable()
         return _QueryGRPC(self.__connection, self.__name, self.__tenant, self.__consistency_level)
 
     @staticmethod
