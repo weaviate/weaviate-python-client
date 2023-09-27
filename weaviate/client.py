@@ -267,7 +267,7 @@ class Client:
                     scheme="http",
                     host="localhost",
                     port=embedded_db.options.port,
-                    grpc_port=embedded_db.options.port + 1,
+                    grpc_port=50051,
                 ),
                 embedded_db,
             )
