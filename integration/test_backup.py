@@ -79,7 +79,7 @@ articles = [
 
 @pytest.fixture(scope="module")
 def client():
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", rest_port=8080)
+    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
     client = weaviate.Client(connection_params)
     client.schema.create(schema)
     for para in paragraphs:

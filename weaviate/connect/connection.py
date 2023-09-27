@@ -57,7 +57,7 @@ MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC 
 class ConnectionParams(BaseModel):
     scheme: str
     host: str
-    rest_port: int
+    port: int
     grpc_port: Optional[int] = Field(default=None)
     grpc_url: Optional[str] = Field(default=None)
 
@@ -73,10 +73,10 @@ class ConnectionParams(BaseModel):
             raise ValueError("host must not be empty")
         return v
 
-    @field_validator("rest_port")
-    def _check_rest_port(cls, v: int) -> int:
+    @field_validator("port")
+    def _check_port(cls, v: int) -> int:
         if v < 0 or v > 65535:
-            raise ValueError("rest_port must be between 0 and 65535")
+            raise ValueError("port must be between 0 and 65535")
         return v
 
     @field_validator("grpc_port")
@@ -89,8 +89,8 @@ class ConnectionParams(BaseModel):
 
     @model_validator(mode="after")
     def _check_port_collision(self) -> ConnectionParams:
-        if self.rest_port == self.grpc_port:
-            raise ValueError("rest_port and grpc_port must be different")
+        if self.port == self.grpc_port:
+            raise ValueError("port and grpc_port must be different")
         return self
 
     @model_validator(mode="after")
@@ -100,7 +100,7 @@ class ConnectionParams(BaseModel):
         return self
 
     def _to_rest_url(self) -> str:
-        return f"{self.scheme}://{self.host}:{self.rest_port}"
+        return f"{self.scheme}://{self.host}:{self.port}"
 
     @classmethod
     def from_connection_string(cls, url: str, grpc_port: Optional[int] = None) -> ConnectionParams:
@@ -108,7 +108,7 @@ class ConnectionParams(BaseModel):
         return cls(
             scheme=parsed.scheme,
             host=cast(str, parsed.hostname),
-            rest_port=cast(int, parsed.port),
+            port=cast(int, parsed.port),
             grpc_port=grpc_port,
         )
 

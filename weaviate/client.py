@@ -267,7 +267,7 @@ class Client:
                 ConnectionParams(
                     scheme="http",
                     host="localhost",
-                    rest_port=embedded_db.options.port,
+                    port=embedded_db.options.port,
                     grpc_port=embedded_db.options.port + 1,
                 ),
                 embedded_db,

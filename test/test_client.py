@@ -37,7 +37,7 @@ class TestWeaviateClient(unittest.TestCase):
             Mock(side_effect=lambda **kwargs: Mock(timeout_config=kwargs["timeout_config"])),
         ) as mock_obj:
             Client(
-                connection_params=ConnectionParams(scheme="http", host="localhost", rest_port=8080),
+                connection_params=ConnectionParams(scheme="http", host="localhost", port=8080),
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 additional_headers=None,
@@ -61,7 +61,7 @@ class TestWeaviateClient(unittest.TestCase):
             Mock(side_effect=lambda **kwargs: Mock(timeout_config=kwargs["timeout_config"])),
         ) as mock_obj:
             Client(
-                connection_params=ConnectionParams(scheme="http", host="localhost", rest_port=8080),
+                connection_params=ConnectionParams(scheme="http", host="localhost", port=8080),
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 additional_headers={"Test": True},
@@ -85,7 +85,7 @@ class TestWeaviateClient(unittest.TestCase):
             Mock(side_effect=lambda **kwargs: Mock(timeout_config=kwargs["timeout_config"])),
         ) as mock_obj:
             Client(
-                connection_params=ConnectionParams(scheme="http", host="localhost", rest_port=8080),
+                connection_params=ConnectionParams(scheme="http", host="localhost", port=8080),
                 auth_client_secret=None,
                 timeout_config=(5, 20),
                 startup_period=None,
@@ -108,7 +108,7 @@ class TestWeaviateClient(unittest.TestCase):
             Mock(side_effect=lambda **kwargs: Mock(timeout_config=kwargs["timeout_config"])),
         ) as mock_obj:
             Client(
-                connection_params=ConnectionParams(scheme="http", host="localhost", rest_port=8080),
+                connection_params=ConnectionParams(scheme="http", host="localhost", port=8080),
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 proxies={"http": "test"},
@@ -148,7 +148,7 @@ class TestWeaviateClient(unittest.TestCase):
         """
         Test the `is_ready` method.
         """
-        connection_params = ConnectionParams(scheme="http", host="localhost", rest_port=8080)
+        connection_params = ConnectionParams(scheme="http", host="localhost", port=8080)
         client = Client(connection_params)
         # Request to weaviate returns 200
         connection_mock = mock_connection_func("get")
@@ -173,7 +173,7 @@ class TestWeaviateClient(unittest.TestCase):
         """
         Test the `is_live` method.
         """
-        connection_params = ConnectionParams(scheme="http", host="localhost", rest_port=8080)
+        connection_params = ConnectionParams(scheme="http", host="localhost", port=8080)
         client = Client(connection_params)
         # Request to weaviate returns 200
         connection_mock = mock_connection_func("get")
@@ -217,7 +217,7 @@ class TestWeaviateClient(unittest.TestCase):
         """
         Test the `get_open_id_configuration` method.
         """
-        connection_params = ConnectionParams(scheme="http", host="localhost", rest_port=8080)
+        connection_params = ConnectionParams(scheme="http", host="localhost", port=8080)
         client = Client(connection_params)
         # Request to weaviate returns 200
         connection_mock = mock_connection_func("get", return_json={"status": "OK!"})
@@ -245,7 +245,7 @@ class TestWeaviateClient(unittest.TestCase):
         """
         Test the `set_timeout_config` method.
         """
-        connection_params = ConnectionParams(scheme="http", host="some_url.com", rest_port=80)
+        connection_params = ConnectionParams(scheme="http", host="some_url.com", port=80)
         client = Client(connection_params, auth_client_secret=None, timeout_config=(1, 2))
         self.assertEqual(client.timeout_config, (1, 2))
         client.timeout_config = (4, 20)  # ;)

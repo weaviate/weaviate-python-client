@@ -21,7 +21,7 @@ def client():
         pytest.skip("No OpenAI API key found.")
 
     connection_params = weaviate.ConnectionParams(
-        scheme="http", host="localhost", rest_port=8086, grpc_port=50057
+        scheme="http", host="localhost", port=8086, grpc_port=50057
     )  # ports with generative module
     client = weaviate.Client(
         connection_params,
@@ -371,7 +371,7 @@ def test_near_vector_generate_with_everything(client: weaviate.Client):
 
 def test_openapi_invalid_key():
     connection_params = weaviate.ConnectionParams(
-        scheme="http", host="localhost", rest_port=8086, grpc_port=50057
+        scheme="http", host="localhost", port=8086, grpc_port=50057
     )  # ports with generative module
     local_client = weaviate.Client(
         connection_params,
@@ -392,7 +392,7 @@ def test_openapi_invalid_key():
 
 def test_openapi_no_module():
     connection_params = weaviate.ConnectionParams(
-        scheme="http", host="localhost", rest_port=8080, grpc_port=50051
+        scheme="http", host="localhost", port=8080, grpc_port=50051
     )  # main version that does not have a generative module
     local_client = weaviate.Client(
         connection_params,

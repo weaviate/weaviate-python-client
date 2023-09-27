@@ -30,7 +30,7 @@ from weaviate.collection.grpc import MetadataQuery
 @pytest.fixture(scope="module")
 def client():
     connection_params = weaviate.ConnectionParams(
-        scheme="http", host="localhost", rest_port=8080, grpc_port=50051
+        scheme="http", host="localhost", port=8080, grpc_port=50051
     )
     client = weaviate.Client(connection_params)
     client.schema.delete_all()

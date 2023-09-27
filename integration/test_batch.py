@@ -50,7 +50,7 @@ class MockTensorFlow:
 
 @pytest.fixture(scope="function")
 def client():
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", rest_port=8080)
+    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
     client = weaviate.Client(connection_params)
     client.schema.delete_all()
     client.schema.create_class(
@@ -274,7 +274,7 @@ def test_add_reference(
 
 
 def test_add_object_batch_with_tenant():
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", rest_port=8080)
+    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
     client = weaviate.Client(connection_params)
     client.schema.delete_all()
 
@@ -349,7 +349,7 @@ def test_add_object_batch_with_tenant():
 
 
 def test_add_ref_batch_with_tenant():
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", rest_port=8080)
+    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
     client = weaviate.Client(connection_params)
     client.schema.delete_all()
 
