@@ -133,7 +133,10 @@ class TestWeaviateClient(unittest.TestCase):
                 with patch("weaviate.embedded.EmbeddedDB.start") as mocked_start:
                     Client(embedded_options=EmbeddedOptions())
                     args, kwargs = mock_obj.call_args_list[0]
-                    self.assertEqual(kwargs["url"], "http://localhost:8079")
+                    self.assertEqual(
+                        kwargs["connection_params"],
+                        ConnectionParams(scheme="http", host="localhost", port=8079),
+                    )
                     self.assertTrue(isinstance(kwargs["embedded_db"], EmbeddedDB))
                     self.assertTrue(kwargs["embedded_db"] is not None)
                     self.assertEqual(kwargs["embedded_db"].options.port, 8079)
