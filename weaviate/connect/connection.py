@@ -17,6 +17,7 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError, ReadTimeout
 from requests.exceptions import HTTPError as RequestsHTTPError
 from requests.exceptions import JSONDecodeError
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from weaviate import __version__ as client_version
 from weaviate.auth import AuthCredentials, AuthClientCredentials, AuthApiKey
@@ -51,6 +52,55 @@ Session = Union[requests.sessions.Session, OAuth2Session]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
 PYPI_TIMEOUT = 1
 MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC server
+
+
+class ConnectionParams(BaseModel):
+    scheme: str
+    host: str
+    rest_port: int
+    grpc_port: Optional[int] = Field(default=None)
+    grpc_url: Optional[str] = Field(default=None)
+
+    @field_validator("scheme")
+    def _check_scheme(cls, v: str) -> str:
+        if v not in ["http", "https"]:
+            raise ValueError("scheme must be either http or https")
+        return v
+
+    @field_validator("host")
+    def _check_host(cls, v: str) -> str:
+        if v == "":
+            raise ValueError("host must not be empty")
+        return v
+
+    @field_validator("rest_port")
+    def _check_rest_port(cls, v: int) -> int:
+        if v < 0 or v > 65535:
+            raise ValueError("rest_port must be between 0 and 65535")
+        return v
+
+    @field_validator("grpc_port")
+    def _check_grpc_port(cls, v: Optional[int]) -> Optional[int]:
+        if v is None:
+            return None
+        if v < 0 or v > 65535:
+            raise ValueError("grpc_port must be between 0 and 65535")
+        return v
+
+    @model_validator(mode="after")
+    def _check_port_collision(self) -> ConnectionParams:
+        if self.rest_port == self.grpc_port:
+            raise ValueError("rest_port and grpc_port must be different")
+        return self
+
+    @model_validator(mode="after")
+    def _check_grpc_port_and_url(self) -> ConnectionParams:
+        if self.grpc_port is not None and self.grpc_url is not None:
+            raise ValueError("grpc_port and grpc_url cannot be set at the same time")
+        return self
+
+    def _to_rest_url(self) -> str:
+        return f"{self.scheme}://{self.host}:{self.rest_port}"
 
 
 class Connection:
@@ -135,12 +185,14 @@ class Connection:
                     ],
                 )
                 self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(channel)
+                self._grpc_available = True
             except (
                 ConnectionRefusedError,
                 TimeoutError,
                 socket.timeout,
             ):  # self._grpc_stub stays None
                 s.close()
+                self._grpc_available = False
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:

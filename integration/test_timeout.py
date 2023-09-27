@@ -16,7 +16,8 @@ schema = {
 
 
 def test_low_timeout():
-    client = weaviate.Client("http://localhost:8080", timeout_config=(1, 1))
+    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", rest_port=8080)
+    client = weaviate.Client(connection_params, timeout_config=(1, 1))
     client.schema.delete_all()
     client.schema.create(schema)
     client.batch.configure(dynamic=True, batch_size=10, num_workers=4)

@@ -13,7 +13,7 @@ from .cluster import Cluster
 from .collection import Collection
 from .collection.collection_model import CollectionModel
 from .config import Config
-from .connect.connection import Connection, TIMEOUT_TYPE_RETURN
+from .connect.connection import Connection, ConnectionParams, TIMEOUT_TYPE_RETURN
 from .contextionary import Contextionary
 from .data import DataObject
 from .embedded import EmbeddedDB, EmbeddedOptions
@@ -51,11 +51,13 @@ class Client:
         A Schema object instance connected to the same Weaviate instance as the Client.
     query : weaviate.gql.Query
         A Query object instance connected to the same Weaviate instance as the Client.
+    collection: weaviate.collection.Collection
+        A Collection object instance connected to the same Weaviate instance as the Client.
     """
 
     def __init__(
         self,
-        url: Optional[str] = None,
+        connection_params: Optional[ConnectionParams] = None,
         auth_client_secret: Optional[AuthCredentials] = None,
         timeout_config: TIMEOUT_TYPE = (10, 60),
         proxies: Union[dict, str, None] = None,
@@ -65,13 +67,12 @@ class Client:
         embedded_options: Optional[EmbeddedOptions] = None,
         additional_config: Optional[Config] = None,
     ) -> None:
-        """
-        Initialize a Client class instance.
+        """Initialize a Client class instance to use when interacting with Weaviate.
 
-        Parameters
+        Arguments:
         ----------
-        url : str
-            The URL to the weaviate instance.
+        connection_params : ConnectionParams or None, optional
+            The connection parameters to use when connecting to Weaviate.
         auth_client_secret : weaviate.AuthCredentials or None, optional
         # fmt: off
             Authenticate to weaviate by using one of the given authentication modes:
@@ -110,47 +111,19 @@ class Client:
             - Take a look at the attributes of weaviate.embedded.EmbeddedOptions to see what is configurable
         additional_config: weaviate.Config, optional
             Additional and advanced configuration options for weaviate.
-        Examples
-        --------
-        Without Auth.
 
-        >>> client = Client(
-        ...     url = 'http://localhost:8080'
-        ... )
-        >>> client = Client(
-        ...     url = 'http://localhost:8080',
-        ...     timeout_config = (5, 15)
-        ... )
-
-        With Auth.
-
-        >>> my_credentials = weaviate.AuthClientPassword(USER_NAME, MY_PASSWORD)
-        >>> client = Client(
-        ...     url = 'http://localhost:8080',
-        ...     auth_client_secret = my_credentials
-        ... )
-
-        Creating a client with an embedded database:
-
-        >>> from weaviate import EmbeddedOptions
-        >>> client = Client(embedded_options=EmbeddedOptions())
-
-        Creating a client with additional configurations:
-
-        >>> from weaviate import Config
-        >>> client = Client(additional_config=Config())
-
-
-        Raises
-        ------
-        TypeError
-            If arguments are of a wrong data type.
+        Raises:
+        -------
+            `TypeError`
+                If arguments are of a wrong data type.
         """
-        url, embedded_db = self.__parse_url_and_embedded_db(url, embedded_options)
+        connection_params, embedded_db = self.__parse_connection_params_and_embedded_db(
+            connection_params, embedded_options
+        )
         config = Config() if additional_config is None else additional_config
 
         self._connection = Connection(
-            url=url,
+            url=connection_params._to_rest_url(),
             auth_client_secret=auth_client_secret,
             timeout_config=_get_valid_timeout_config(timeout_config),
             proxies=proxies,
@@ -158,7 +131,7 @@ class Client:
             additional_headers=additional_headers,
             startup_period=startup_period,
             embedded_db=embedded_db,
-            grcp_port=config.grpc_port_experimental,
+            grcp_port=connection_params.grpc_port,
             connection_config=config.connection_config,
         )
         self.classification = Classification(self._connection)
@@ -277,24 +250,35 @@ class Client:
         self._connection.timeout_config = _get_valid_timeout_config(timeout_config)
 
     @staticmethod
-    def __parse_url_and_embedded_db(
-        url: Optional[str], embedded_options: Optional[EmbeddedOptions]
-    ) -> Tuple[str, Optional[EmbeddedDB]]:
-        if embedded_options is None and url is None:
-            raise TypeError("Either url or embedded options must be present.")
-        elif embedded_options is not None and url is not None:
+    def __parse_connection_params_and_embedded_db(
+        connection_params: Optional[ConnectionParams], embedded_options: Optional[EmbeddedOptions]
+    ) -> Tuple[ConnectionParams, Optional[EmbeddedDB]]:
+        if connection_params is None and embedded_options is None:
+            raise TypeError("Either connection_params or embedded_options must be present.")
+        elif connection_params is not None and embedded_options is not None:
             raise TypeError(
-                f"URL is not expected to be set when using embedded_options but URL was {url}"
+                f"connection_params is not expected to be set when using embedded_options but connection_params was {connection_params}"
             )
 
         if embedded_options is not None:
             embedded_db = EmbeddedDB(options=embedded_options)
             embedded_db.start()
-            return f"http://localhost:{embedded_db.options.port}", embedded_db
+            return (
+                ConnectionParams(
+                    scheme="http",
+                    host="localhost",
+                    rest_port=embedded_db.options.port,
+                    grpc_port=embedded_db.options.port + 1,
+                ),
+                embedded_db,
+            )
 
-        if not isinstance(url, str):
-            raise TypeError(f"URL is expected to be string but is {type(url)}")
-        return url.strip("/"), None
+        if not isinstance(connection_params, ConnectionParams):
+            raise TypeError(
+                f"connection_params is expected to be a ConnectionParams object but is {type(connection_params)}"
+            )
+
+        return connection_params, None
 
     def __del__(self) -> None:
         # in case an exception happens before definition of these members

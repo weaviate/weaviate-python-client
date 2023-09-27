@@ -4,7 +4,6 @@ from typing import List
 import pytest
 
 import weaviate
-from weaviate import Config
 from weaviate.collection.classes.config import (
     ConfigFactory,
     DataType,
@@ -21,9 +20,11 @@ def client():
     if api_key is None:
         pytest.skip("No OpenAI API key found.")
 
+    connection_params = weaviate.ConnectionParams(
+        scheme="http", host="localhost", rest_port=8086, grpc_port=50057
+    )  # ports with generative module
     client = weaviate.Client(
-        "http://localhost:8086",
-        additional_config=Config(grpc_port_experimental=50057),  # ports with generative module
+        connection_params,
         additional_headers={"X-OpenAI-Api-Key": api_key},
     )
     client.schema.delete_all()
@@ -369,9 +370,11 @@ def test_near_vector_generate_with_everything(client: weaviate.Client):
 
 
 def test_openapi_invalid_key():
+    connection_params = weaviate.ConnectionParams(
+        scheme="http", host="localhost", rest_port=8086, grpc_port=50057
+    )  # ports with generative module
     local_client = weaviate.Client(
-        "http://localhost:8086",
-        additional_config=Config(grpc_port_experimental=50057),
+        connection_params,
         additional_headers={"X-OpenAI-Api-Key": "IamNotValid"},
     )
 
@@ -388,9 +391,11 @@ def test_openapi_invalid_key():
 
 
 def test_openapi_no_module():
+    connection_params = weaviate.ConnectionParams(
+        scheme="http", host="localhost", rest_port=8080, grpc_port=50051
+    )  # main version that does not have a generative module
     local_client = weaviate.Client(
-        "http://localhost:8080",  # main version that does not have a generative module
-        additional_config=Config(grpc_port_experimental=50051),
+        connection_params,
         additional_headers={"X-OpenAI-Api-Key": "doesnt matter"},
     )
 

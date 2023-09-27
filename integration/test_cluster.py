@@ -26,7 +26,8 @@ def schema(class_name: str) -> Dict[str, Any]:
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.Client("http://localhost:8080")
+    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", rest_port=8080)
+    client = weaviate.Client(connection_params)
     client.schema.delete_all()
     yield client
     client.schema.delete_all()
