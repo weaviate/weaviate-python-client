@@ -34,6 +34,7 @@ class EmbeddedOptions:
     port: int = 8079
     hostname: str = "127.0.0.1"
     additional_env_vars: Optional[Dict[str, str]] = None
+    grpc_port: int = 50060
 
 
 def get_random_port() -> int:
@@ -45,10 +46,10 @@ def get_random_port() -> int:
 
 
 class EmbeddedDB:
-    def __init__(self, options: EmbeddedOptions, grpc_port: Optional[int] = None) -> None:
+    def __init__(self, options: EmbeddedOptions) -> None:
         self.data_bind_port = get_random_port()
         self.options = options
-        self.grpc_port: int = grpc_port if grpc_port else 50600
+        self.grpc_port: int = options.grpc_port
         self.process: Optional[subprocess.Popen[bytes]] = None
         self.ensure_paths_exist()
         self.check_supported_platform()
@@ -197,7 +198,7 @@ class EmbeddedDB:
         my_env.setdefault("PERSISTENCE_DATA_PATH", self.options.persistence_data_path)
         # Bug with weaviate requires setting gossip and data bind port
         my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(get_random_port()))
-        my_env.setdefault("GRPC_PORT", str(object=self.grpc_port))
+        my_env.setdefault("GRPC_PORT", str(self.grpc_port))
 
         my_env.setdefault(
             "ENABLE_MODULES",

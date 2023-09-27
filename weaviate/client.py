@@ -145,9 +145,7 @@ class Client:
             If arguments are of a wrong data type.
         """
         config = Config() if additional_config is None else additional_config
-        url, embedded_db = self.__parse_url_and_embedded_db(
-            url, embedded_options, grpc_port=config.grpc_port_experimental
-        )
+        url, embedded_db = self.__parse_url_and_embedded_db(url, embedded_options)
 
         self._connection = Connection(
             url=url,
@@ -276,7 +274,7 @@ class Client:
 
     @staticmethod
     def __parse_url_and_embedded_db(
-        url: Optional[str], embedded_options: Optional[EmbeddedOptions], grpc_port: Optional[int]
+        url: Optional[str], embedded_options: Optional[EmbeddedOptions]
     ) -> Tuple[str, Optional[EmbeddedDB]]:
         if embedded_options is None and url is None:
             raise TypeError("Either url or embedded options must be present.")
@@ -286,7 +284,7 @@ class Client:
             )
 
         if embedded_options is not None:
-            embedded_db = EmbeddedDB(options=embedded_options, grpc_port=grpc_port)
+            embedded_db = EmbeddedDB(options=embedded_options)
             embedded_db.start()
             return f"http://localhost:{embedded_db.options.port}", embedded_db
 

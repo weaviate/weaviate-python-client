@@ -15,7 +15,6 @@ from werkzeug import Request, Response
 
 import weaviate
 from weaviate import embedded, EmbeddedOptions
-from weaviate.config import Config
 from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import WeaviateEmbeddedInvalidVersion, WeaviateStartUpError
 
@@ -27,7 +26,7 @@ GRPC_EMBEDDED_DEFAULT_PORT = 50060
 
 def test_embedded__init__(tmp_path):
     assert (
-        EmbeddedDB(EmbeddedOptions(port=6666, persistence_data_path=tmp_path)).options.port == 6666
+        EmbeddedDB(EmbeddedOptions(port=8079, persistence_data_path=tmp_path)).options.port == 8079
     )
 
 
@@ -283,8 +282,8 @@ def test_embedded_with_grpc_port(tmp_path_factory: pytest.TempPathFactory):
             binary_path=tmp_path_factory.mktemp("bin"),
             version="latest",
             port=30668,
+            grpc_port=GRPC_EMBEDDED_DEFAULT_PORT + 1,
         ),
-        additional_config=Config(grpc_port_experimental=GRPC_EMBEDDED_DEFAULT_PORT + 1),
     )
 
     assert client.is_ready()
