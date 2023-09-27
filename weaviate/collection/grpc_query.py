@@ -20,8 +20,8 @@ from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.classes.filters import _Filters
 from weaviate.collection.classes.grpc import (
     HybridFusion,
-    LinkTo,
-    LinkToMultiTarget,
+    FromReference,
+    FromReferenceMultiTarget,
     MetadataQuery,
     Move,
     PROPERTIES,
@@ -560,11 +560,11 @@ class _QueryGRPC(_BaseGRPC):
                     if prop.return_metadata is not None
                     else None,
                     target_collection=prop.target_collection
-                    if isinstance(prop, LinkToMultiTarget)
+                    if isinstance(prop, FromReferenceMultiTarget)
                     else None,
                 )
                 for prop in properties
-                if isinstance(prop, LinkTo)
+                if isinstance(prop, FromReference)
             ],
         )
 

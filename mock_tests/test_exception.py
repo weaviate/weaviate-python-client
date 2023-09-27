@@ -1,7 +1,7 @@
 import pytest
 
 import weaviate
-from mock_tests.conftest import MOCK_SERVER_URL
+from mock_tests.conftest import MOCK_SERVER_CONNECTION_PARAMS
 from weaviate.exceptions import ResponseCannotBeDecodedException
 
 
@@ -10,7 +10,7 @@ def test_json_decode_exception_dict(weaviate_mock):
 
     weaviate_mock.expect_request("/v1/schema").respond_with_data("JsonCannotParseThis")
 
-    client = weaviate.Client(url=MOCK_SERVER_URL)
+    client = weaviate.Client(connection_params=MOCK_SERVER_CONNECTION_PARAMS)
     with pytest.raises(ResponseCannotBeDecodedException) as e:
         client.schema.get()
 
@@ -22,7 +22,7 @@ def test_json_decode_exception_list(weaviate_mock):
 
     weaviate_mock.expect_request("/v1/schema/Test/shards").respond_with_data("JsonCannotParseThis")
 
-    client = weaviate.Client(url=MOCK_SERVER_URL)
+    client = weaviate.Client(connection_params=MOCK_SERVER_CONNECTION_PARAMS)
     with pytest.raises(ResponseCannotBeDecodedException) as e:
         client.schema.get_class_shards("Test")
         assert "JsonCannotParseThis" in e.value

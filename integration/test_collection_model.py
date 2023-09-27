@@ -4,7 +4,6 @@ from typing import List, Optional
 
 from pydantic_core._pydantic_core import PydanticUndefined
 
-from weaviate import Config
 from weaviate.collection.classes.grpc import MetadataQuery
 from weaviate.exceptions import WeaviateAddInvalidPropertyError
 from weaviate.types import UUIDS
@@ -21,7 +20,7 @@ from weaviate.collection.classes.config import (
     ConfigFactory,
     PropertyConfig,
 )
-from weaviate.collection.classes.internal import ReferenceFactory
+from weaviate.collection.classes.internal import Reference, ReferenceFactory
 from weaviate.collection.classes.orm import BaseProperty, CollectionModelConfig
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from pydantic import Field
@@ -35,9 +34,10 @@ class Group(BaseProperty):
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.Client(
-        "http://localhost:8080", additional_config=Config(grpc_port_experimental=50051)
+    connection_params = weaviate.ConnectionParams(
+        scheme="http", host="localhost", port=8080, grpc_port=50051
     )
+    client = weaviate.Client(connection_params)
     client.collection_model.delete(Group)
     collection = client.collection_model.create(
         CollectionModelConfig[Group](model=Group, vectorizer_config=ConfigFactory.Vectorizer.none())
@@ -96,8 +96,8 @@ def test_types(client: weaviate.Client, member_type, value, optional: bool):
     "member_type, annotation ,value,expected",
     [
         (str, PropertyConfig(index_filterable=False), "value", "text"),
-        (UUIDS, ReferenceFactory[Group], [str(REF_TO_UUID)], "Group"),
-        (Optional[UUIDS], ReferenceFactory[Group], [str(REF_TO_UUID)], "Group"),
+        (UUIDS, Reference[Group], [str(REF_TO_UUID)], "Group"),
+        (Optional[UUIDS], Reference[Group], [str(REF_TO_UUID)], "Group"),
     ],
 )
 def test_types_annotates(client: weaviate.Client, member_type, annotation, value, expected: str):
@@ -261,7 +261,7 @@ def test_multi_searches(client: weaviate.Client):
 def test_multi_searches_with_references(client: weaviate.Client):
     class TestMultiSearchesWithReferences(BaseProperty):
         name: Optional[str] = None
-        group: Optional[ReferenceFactory[Group]] = None
+        group: Optional[Reference[Group]] = None
 
     client.collection_model.delete(TestMultiSearchesWithReferences)
     collection = client.collection_model.create(
@@ -272,11 +272,11 @@ def test_multi_searches_with_references(client: weaviate.Client):
 
     collection.data.insert(
         TestMultiSearchesWithReferences(
-            name="some word", group=ReferenceFactory[Group].to(REF_TO_UUID)
+            name="some word", group=ReferenceFactory.to(REF_TO_UUID, Group)
         )
     )
     collection.data.insert(
-        TestMultiSearchesWithReferences(name="other", group=ReferenceFactory[Group].to(REF_TO_UUID))
+        TestMultiSearchesWithReferences(name="other", group=ReferenceFactory.to(REF_TO_UUID, Group))
     )
 
     objects = collection.query.bm25(
@@ -465,7 +465,7 @@ def test_update_reference_property(client: weaviate.Client):
 
     class TestRefPropUpdate(BaseProperty):
         name: str
-        group: ReferenceFactory[Group]
+        group: Reference[Group]
 
     create_original_collection()
     client.collection_model.update(TestRefPropUpdate)

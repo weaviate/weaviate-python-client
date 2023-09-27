@@ -9,7 +9,6 @@ from weaviate.collection.classes.filters import (
     _Filters,
 )
 from weaviate.collection.classes.grpc import (
-    GroupBy,
     MetadataQuery,
     PROPERTIES,
     Move,
@@ -41,7 +40,7 @@ class _NearTextQuery(_Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _QueryReturn[Properties]:
-        ret_properties, ret_type = self._determine_generic(return_properties)
+        ret_properties, ret_type = self._parse_return_properties(return_properties)
         res = self._query().near_text(
             near_text=query,
             certainty=certainty,
@@ -74,7 +73,7 @@ class _NearTextGenerate(_Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _GenerativeReturn[Properties]:
-        ret_properties, ret_type = self._determine_generic(return_properties)
+        ret_properties, ret_type = self._parse_return_properties(return_properties)
         res = self._query().near_text(
             near_text=query,
             certainty=certainty,
@@ -99,7 +98,9 @@ class _NearTextGroupBy(_Grpc):
     def near_text(
         self,
         query: Union[List[str], str],
-        group_by: GroupBy,
+        group_by_property: str,
+        number_of_groups: int,
+        objects_per_group: int,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         move_to: Optional[Move] = None,
@@ -110,7 +111,7 @@ class _NearTextGroupBy(_Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _GroupByReturn[Properties]:
-        ret_properties, ret_type = self._determine_generic(return_properties)
+        ret_properties, ret_type = self._parse_return_properties(return_properties)
         res = self._query().near_text(
             near_text=query,
             certainty=certainty,
@@ -120,7 +121,11 @@ class _NearTextGroupBy(_Grpc):
             limit=limit,
             autocut=auto_limit,
             filters=filters,
-            group_by=_GroupBy.from_input(group_by),
+            group_by=_GroupBy(
+                prop=group_by_property,
+                number_of_groups=number_of_groups,
+                objects_per_group=objects_per_group,
+            ),
             return_metadata=return_metadata,
             return_properties=ret_properties,
         )

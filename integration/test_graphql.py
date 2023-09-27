@@ -96,7 +96,8 @@ def client(request):
             for _, c in enumerate(schema["classes"]):
                 c["replicationConfig"] = {"factor": 2}
 
-    client = weaviate.Client(f"http://localhost:{port}")
+    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=port)
+    client = weaviate.Client(connection_params)
     client.schema.delete_all()
     client.schema.create(schema)
     with client.batch as batch:
@@ -531,9 +532,8 @@ def test_generative_openai(single: str, grouped: str):
     if api_key is None:
         pytest.skip("No OpenAI API key found.")
 
-    client = weaviate.Client(
-        "http://127.0.0.1:8086", additional_headers={"X-OpenAI-Api-Key": api_key}
-    )
+    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8086)
+    client = weaviate.Client(connection_params, additional_headers={"X-OpenAI-Api-Key": api_key})
     client.schema.delete_all()
     wine_class = {
         "class": "Wine",
@@ -571,7 +571,8 @@ def test_generative_openai(single: str, grouped: str):
 
 
 def test_graphql_with_tenant():
-    client = weaviate.Client("http://127.0.0.1:8080")
+    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
+    client = weaviate.Client(connection_params)
     client.schema.delete_all()
     schema_class = {
         "class": "GraphQlTenantClass",

@@ -11,12 +11,11 @@ else:
 
 from weaviate.collection.collection_base import CollectionObjectBase
 from weaviate.collection.classes.grpc import (
-    LinkTo,
-    LinkToMultiTarget,
+    FromReference,
+    FromReferenceMultiTarget,
     MetadataQuery,
     PROPERTIES,
     Generate,
-    GroupBy,
 )
 from weaviate.collection.classes.types import Properties, P
 from weaviate.util import _to_beacons
@@ -159,20 +158,8 @@ class _GroupBy:
             objects_per_group=self.objects_per_group,
         )
 
-    @classmethod
-    def from_input(cls, group_by: Optional[GroupBy]) -> Optional["_GroupBy"]:
-        return (
-            cls(
-                prop=group_by.prop,
-                number_of_groups=group_by.number_of_groups,
-                objects_per_group=group_by.objects_per_group,
-            )
-            if group_by
-            else None
-        )
 
-
-class ReferenceFactory(Generic[P]):
+class _Reference(Generic[P]):
     def __init__(
         self,
         objects: Optional[List[_Object[P]]],
@@ -183,29 +170,13 @@ class ReferenceFactory(Generic[P]):
         self.__target_collection = target_collection if target_collection else ""
         self.__uuids = uuids
 
-    @classmethod
-    def to(cls, uuids: UUIDS) -> "ReferenceFactory[P]":
-        return cls(None, None, uuids)
-
-    @classmethod
-    def to_multi_target(
-        cls, uuids: UUIDS, target_collection: Union[str, CollectionObjectBase]
-    ) -> "ReferenceFactory[P]":
-        return cls(
-            None,
-            target_collection.name
-            if isinstance(target_collection, CollectionObjectBase)
-            else target_collection,
-            uuids,
-        )
-
     def _to_beacons(self) -> List[Dict[str, str]]:
         if self.__uuids is None:
             return []
         return _to_beacons(self.__uuids, self.__target_collection)
 
     @classmethod
-    def _from(cls, objects: List[_Object[P]]) -> "ReferenceFactory[P]":
+    def _from(cls, objects: List[_Object[P]]) -> "_Reference[P]":
         return cls(objects, None, None)
 
     @property
@@ -228,6 +199,53 @@ class ReferenceFactory(Generic[P]):
         return self.__objects or []
 
 
+Reference = _Reference[P]
+
+
+class ReferenceFactory:
+    """Factory class for cross references to other objects.
+
+    Can be used with or without generics. If used with generics, the type of the cross reference can be defined from
+    which the nested relationship will be used when performing queries using the generics. If used without generics,
+    all returned objects will of the`Dict[str, Any]` type.
+    """
+
+    @classmethod
+    def to(cls, uuids: UUIDS, data_model: Optional[Type[P]] = None) -> Reference[P]:
+        """Defines cross references to other objects by their UUIDs.
+
+        Can be made to be generic by supplying a type to the `data_model` argument.
+
+        Arguments:
+            uuids
+                List of UUIDs of the objects to which the reference should point.
+        """
+        return _Reference[P](None, None, uuids)
+
+    @classmethod
+    def to_multi_target(
+        cls,
+        uuids: UUIDS,
+        target_collection: Union[str, CollectionObjectBase],
+        data_model: Optional[Type[P]] = None,
+    ) -> Reference[P]:
+        """Defines cross references to other objects by their UUIDs and the collection in which they are stored.
+
+        Can be made to be generic by supplying a type to the `data_model` argument.
+
+        Arguments:
+            - uuids: List of UUIDs of the objects to which the reference should point.
+            - target_collection: The collection in which the objects are stored. Can be either the name of the collection or the collection object itself.
+        """
+        return _Reference[P](
+            None,
+            target_collection.name
+            if isinstance(target_collection, CollectionObjectBase)
+            else target_collection,
+            uuids,
+        )
+
+
 def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
     return _MetadataReturn(
         uuid=uuid_package.UUID(metadata["id"]) if "id" in metadata else None,
@@ -242,9 +260,9 @@ def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
     )
 
 
-def _extract_property_type_from_reference(type_: ReferenceFactory[P]) -> Type[P]:
-    """Extract inner type from Reference[Properties]"""
-    if getattr(type_, "__origin__", None) == ReferenceFactory:
+def _extract_property_type_from_reference(type_: _Reference[P]) -> Type[P]:
+    """Extract inner type from Reference[Properties]."""
+    if getattr(type_, "__origin__", None) == _Reference:
         args = cast(List[Type[P]], getattr(type_, "__args__", None))
         return args[0]
     raise ValueError("Type is not Reference[Properties]")
@@ -252,15 +270,15 @@ def _extract_property_type_from_reference(type_: ReferenceFactory[P]) -> Type[P]
 
 def _extract_property_type_from_annotated_reference(
     type_: Union[
-        Annotated[ReferenceFactory[P], MetadataQuery],
-        Annotated[ReferenceFactory[P], MetadataQuery, str],
+        Annotated[_Reference[P], MetadataQuery],
+        Annotated[_Reference[P], MetadataQuery, str],
     ]
 ) -> Type[P]:
     """Extract inner type from Annotated[Reference[Properties]]"""
     if get_origin(type_) is Annotated:
-        args = cast(List[ReferenceFactory[Type[P]]], getattr(type_, "__args__", None))
+        args = cast(List[_Reference[Type[P]]], getattr(type_, "__args__", None))
         inner_type = args[0]
-        if get_origin(inner_type) is ReferenceFactory:
+        if get_origin(inner_type) is _Reference:
             inner_args = cast(List[Type[P]], getattr(inner_type, "__args__", None))
             return inner_args[0]
     raise ValueError("Type is not Annotated[Reference[Properties]]")
@@ -269,15 +287,15 @@ def _extract_property_type_from_annotated_reference(
 def __create_link_to_from_annotated_reference(
     link_on: str,
     value: Union[
-        Annotated[ReferenceFactory[Properties], MetadataQuery],
-        Annotated[ReferenceFactory[Properties], MetadataQuery, str],
+        Annotated[_Reference[Properties], MetadataQuery],
+        Annotated[_Reference[Properties], MetadataQuery, str],
     ],
-) -> Union[LinkTo, LinkToMultiTarget]:
-    """Create LinkTo or LinkToMultiTarget from Annotated[Reference[Properties]]"""
+) -> Union[FromReference, FromReferenceMultiTarget]:
+    """Create FromReference or FromReferenceMultiTarget from Annotated[Reference[Properties]]"""
     assert get_origin(value) is Annotated
-    args = cast(List[ReferenceFactory[Properties]], getattr(value, "__args__", None))
+    args = cast(List[_Reference[Properties]], getattr(value, "__args__", None))
     inner_type = args[0]
-    assert get_origin(inner_type) is ReferenceFactory
+    assert get_origin(inner_type) is _Reference
     inner_type_metadata = cast(
         Union[Tuple[MetadataQuery], Tuple[MetadataQuery, str]], getattr(value, "__metadata__", None)
     )
@@ -286,7 +304,7 @@ def __create_link_to_from_annotated_reference(
         target_collection = cast(Tuple[MetadataQuery, str], inner_type_metadata)[
             1
         ]  # https://github.com/python/mypy/issues/1178
-        return LinkToMultiTarget(
+        return FromReferenceMultiTarget(
             link_on=link_on,
             return_metadata=metadata,
             return_properties=_extract_properties_from_data_model(
@@ -295,7 +313,7 @@ def __create_link_to_from_annotated_reference(
             target_collection=target_collection,
         )
     else:
-        return LinkTo(
+        return FromReference(
             link_on=link_on,
             return_metadata=metadata,
             return_properties=_extract_properties_from_data_model(
@@ -306,10 +324,10 @@ def __create_link_to_from_annotated_reference(
 
 def __create_link_to_from_reference(
     link_on: str,
-    value: ReferenceFactory[Properties],
-) -> LinkTo:
-    """Create LinkTo from Reference[Properties]"""
-    return LinkTo(
+    value: _Reference[Properties],
+) -> FromReference:
+    """Create FromReference from Reference[Properties]"""
+    return FromReference(
         link_on=link_on,
         return_metadata=MetadataQuery(),
         return_properties=_extract_properties_from_data_model(
@@ -319,14 +337,16 @@ def __create_link_to_from_reference(
 
 
 def _extract_properties_from_data_model(type_: Type[Properties]) -> PROPERTIES:
-    """Extract properties of Properties recursively from Properties"""
+    """Extract properties of Properties recursively from Properties.
+
+    Checks to see if there is a _Reference[Properties] or Annotated[_Reference[Properties]] in the data model and
+    lists out the non-cross-reference properties.
+    """
     return [
         __create_link_to_from_annotated_reference(key, value)
         if get_origin(value) is Annotated
         else (
-            __create_link_to_from_reference(key, value)
-            if get_origin(value) is ReferenceFactory
-            else key
+            __create_link_to_from_reference(key, value) if get_origin(value) is _Reference else key
         )
         for key, value in get_type_hints(type_, include_extras=True).items()
     ]

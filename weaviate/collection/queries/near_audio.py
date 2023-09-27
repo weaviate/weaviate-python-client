@@ -8,7 +8,6 @@ from weaviate.collection.classes.filters import (
 from weaviate.collection.classes.grpc import (
     MetadataQuery,
     PROPERTIES,
-    GroupBy,
 )
 from weaviate.collection.classes.internal import (
     _Generative,
@@ -35,7 +34,7 @@ class _NearAudioQuery(_Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _QueryReturn[Properties]:
-        ret_properties, ret_type = self._determine_generic(return_properties)
+        ret_properties, ret_type = self._parse_return_properties(return_properties)
         res = self._query().near_audio(
             audio=self._parse_media(near_audio),
             certainty=certainty,
@@ -64,7 +63,7 @@ class _NearAudioGenerate(_Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _GenerativeReturn[Properties]:
-        ret_properties, ret_type = self._determine_generic(return_properties)
+        ret_properties, ret_type = self._parse_return_properties(return_properties)
         res = self._query().near_audio(
             audio=self._parse_media(near_audio),
             certainty=certainty,
@@ -87,7 +86,9 @@ class _NearAudioGroupBy(_Grpc):
     def near_audio(
         self,
         near_audio: Union[str, Path, BufferedReader],
-        group_by: GroupBy,
+        group_by_property: str,
+        number_of_groups: int,
+        objects_per_group: int,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -96,13 +97,17 @@ class _NearAudioGroupBy(_Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _GroupByReturn[Properties]:
-        ret_properties, ret_type = self._determine_generic(return_properties)
+        ret_properties, ret_type = self._parse_return_properties(return_properties)
         res = self._query().near_audio(
             audio=self._parse_media(near_audio),
             certainty=certainty,
             distance=distance,
             filters=filters,
-            group_by=_GroupBy.from_input(group_by),
+            group_by=_GroupBy(
+                prop=group_by_property,
+                number_of_groups=number_of_groups,
+                objects_per_group=objects_per_group,
+            ),
             limit=limit,
             autocut=auto_limit,
             return_metadata=return_metadata,

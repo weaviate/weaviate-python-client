@@ -13,7 +13,6 @@ from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_ENCODED
 
-from weaviate.config import Config
 from weaviate.collection.collection import CollectionObject
 from weaviate.collection.classes.config import (
     ConfigFactory,
@@ -28,9 +27,8 @@ from weaviate.collection.classes.data import (
     Error,
 )
 from weaviate.collection.classes.grpc import (
-    GroupBy,
     HybridFusion,
-    LinkTo,
+    FromReference,
     MetadataQuery,
     Move,
     Sort,
@@ -61,9 +59,10 @@ DATE3 = datetime.datetime.strptime("2019-06-10", "%Y-%m-%d").replace(tzinfo=date
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.Client(
-        "http://localhost:8080", additional_config=Config(grpc_port_experimental=50051)
+    connection_params = weaviate.ConnectionParams(
+        scheme="http", host="localhost", port=8080, grpc_port=50051
     )
+    client = weaviate.Client(connection_params)
     client.schema.delete_all()
     yield client
     client.schema.delete_all()
@@ -762,7 +761,9 @@ def test_near_vector_group_by(client: weaviate.Client):
     assert banana1.metadata.vector is not None
     ret = collection.query_group_by.near_vector(
         banana1.metadata.vector,
-        group_by=GroupBy(prop="name", number_of_groups=4, objects_per_group=10),
+        group_by_property="name",
+        number_of_groups=4,
+        objects_per_group=10,
         return_metadata=MetadataQuery(distance=True, certainty=True),
     )
 
@@ -820,7 +821,9 @@ def test_near_object_group_by(client: weaviate.Client):
 
     ret = collection.query_group_by.near_object(
         uuid_banana1,
-        group_by=GroupBy(prop="name", number_of_groups=4, objects_per_group=10),
+        group_by_property="name",
+        number_of_groups=4,
+        objects_per_group=10,
         return_metadata=MetadataQuery(distance=True, certainty=True),
     )
 
@@ -1242,7 +1245,9 @@ def test_near_text_group_by(client: weaviate.Client):
 
     ret = collection.query_group_by.near_text(
         query="cake",
-        group_by=GroupBy(prop="value", number_of_groups=2, objects_per_group=100),
+        group_by_property="value",
+        number_of_groups=2,
+        objects_per_group=100,
         return_metadata=MetadataQuery(uuid=True),
         return_properties=["value"],
     )
@@ -1493,7 +1498,9 @@ def test_optional_ref_returns(client: weaviate.Client):
     )
     collection.data.insert(properties={"ref": ReferenceFactory.to(uuid_to1)})
 
-    objects = collection.query.fetch_objects(return_properties=[LinkTo(link_on="ref")]).objects
+    objects = collection.query.fetch_objects(
+        return_properties=[FromReference(link_on="ref")]
+    ).objects
 
     assert objects[0].properties["ref"].objects[0].properties["text"] == "ref text"
     assert objects[0].properties["ref"].objects[0].metadata.uuid is not None
