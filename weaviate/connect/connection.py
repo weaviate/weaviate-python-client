@@ -99,9 +99,6 @@ class ConnectionParams(BaseModel):
             raise ValueError("grpc_port and grpc_url cannot be set at the same time")
         return self
 
-    def _to_rest_url(self) -> str:
-        return f"{self.scheme}://{self.host}:{self.port}"
-
     @classmethod
     def from_connection_string(cls, url: str, grpc_port: Optional[int] = None) -> ConnectionParams:
         parsed = urlparse(url)
@@ -112,6 +109,33 @@ class ConnectionParams(BaseModel):
             grpc_port=grpc_port,
         )
 
+    @property
+    def _grpc_address(self) -> Tuple[str, int]:
+        if self.grpc_url is None:
+            assert self.grpc_port is not None
+            return (self.host, self.grpc_port)
+        else:
+            parsed = urlparse(self.grpc_url)
+            return (
+                cast(str, parsed.hostname),
+                parsed.port or (443 if self.scheme == "https" else 80),
+            )
+
+    @property
+    def _grpc_url(self) -> str:
+        if self.grpc_url is None:
+            return f"{self.host}:{self.grpc_port}"
+        else:
+            return self.grpc_url
+
+    @property
+    def _has_grpc(self) -> bool:
+        return self.grpc_port is not None or self.grpc_url is not None
+
+    @property
+    def _rest_url(self) -> str:
+        return f"{self.scheme}://{self.host}:{self.port}"
+
 
 class Connection:
     """
@@ -120,7 +144,7 @@ class Connection:
 
     def __init__(
         self,
-        url: str,
+        connection_params: ConnectionParams,
         auth_client_secret: Optional[AuthCredentials],
         timeout_config: TIMEOUT_TYPE_RETURN,
         proxies: Union[dict, str, None],
@@ -129,7 +153,6 @@ class Connection:
         startup_period: Optional[int],
         connection_config: ConnectionConfig,
         embedded_db: Optional[EmbeddedDB] = None,
-        grcp_port: Optional[int] = None,
     ):
         """
         Initialize a Connection class instance.
@@ -171,7 +194,7 @@ class Connection:
         """
 
         self._api_version_path = "/v1"
-        self.url = url  # e.g. http://localhost:80
+        self.url = connection_params._rest_url  # e.g. http://localhost:80
         self.timeout_config: TIMEOUT_TYPE_RETURN = timeout_config
         self.embedded_db = embedded_db
 
@@ -179,16 +202,15 @@ class Connection:
         self.__additional_headers: Dict[str, str] = {}
 
         # create GRPC channel. If weaviate does not support GRPC, fallback to GraphQL is used.
-        if has_grpc and grcp_port is not None:
-            parsed_url = urlparse(self.url)
+        if has_grpc and connection_params._has_grpc:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
                 s.settimeout(1.0)  # we're only pinging the port, 1s is plenty
-                s.connect((parsed_url.hostname, grcp_port))
+                s.connect(connection_params._grpc_address)
                 s.shutdown(2)
                 s.close()
                 channel = grpc.insecure_channel(
-                    f"{parsed_url.hostname}:{grcp_port}",
+                    connection_params._grpc_url,
                     options=[
                         ("grpc.max_send_message_length", MAX_GRPC_MESSAGE_LENGTH),
                         ("grpc.max_receive_message_length", MAX_GRPC_MESSAGE_LENGTH),

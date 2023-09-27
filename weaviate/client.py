@@ -123,7 +123,7 @@ class Client:
         config = Config() if additional_config is None else additional_config
 
         self._connection = Connection(
-            url=connection_params._to_rest_url(),
+            connection_params=connection_params,
             auth_client_secret=auth_client_secret,
             timeout_config=_get_valid_timeout_config(timeout_config),
             proxies=proxies,
@@ -131,7 +131,6 @@ class Client:
             additional_headers=additional_headers,
             startup_period=startup_period,
             embedded_db=embedded_db,
-            grcp_port=connection_params.grpc_port,
             connection_config=config.connection_config,
         )
         self.classification = Classification(self._connection)

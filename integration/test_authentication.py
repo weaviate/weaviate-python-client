@@ -54,7 +54,7 @@ def is_auth_enabled(url: str):
 def test_no_auth_provided():
     """Test exception when trying to access a weaviate that requires authentication."""
     connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=AZURE_PORT)
-    url = connection_params._to_rest_url()
+    url = connection_params._rest_url
     assert is_auth_enabled(url)
     with pytest.raises(AuthenticationFailedException):
         weaviate.Client(connection_params)
@@ -82,7 +82,7 @@ def test_authentication_client_credentials(
         pytest.skip(f"No {name} login data found.")
 
     connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=port)
-    url = connection_params._to_rest_url()
+    url = connection_params._rest_url
     assert is_auth_enabled(url)
     client = weaviate.Client(
         connection_params,
@@ -128,7 +128,7 @@ def test_authentication_user_pw(
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 
     connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=port)
-    url = connection_params._to_rest_url()
+    url = connection_params._rest_url
     assert is_auth_enabled(url)
 
     pw = os.environ.get(env_variable_name)
@@ -193,7 +193,7 @@ def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
 def test_authentication_with_bearer_token(name: str, user: str, env_variable_name: str, port: str):
     """Test authentication using existing bearer token."""
     connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=port)
-    url = connection_params._to_rest_url()
+    url = connection_params._rest_url
     assert is_auth_enabled(url)
     pw = os.environ.get(env_variable_name)
     if pw is None:
@@ -219,7 +219,7 @@ def test_client_with_authentication_with_anon_weaviate(recwarn):
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 
     connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=ANON_PORT)
-    url = connection_params._to_rest_url()
+    url = connection_params._rest_url
     assert not is_auth_enabled(url)
 
     client = weaviate.Client(
@@ -243,7 +243,7 @@ def test_bearer_token_without_refresh(recwarn):
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 
     connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=WCS_PORT)
-    url = connection_params._to_rest_url()
+    url = connection_params._rest_url
     assert is_auth_enabled(url)
     pw = os.environ.get("WCS_DUMMY_CI_PW")
     if pw is None:
@@ -266,7 +266,7 @@ def test_bearer_token_without_refresh(recwarn):
 
 def test_api_key():
     connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=WCS_PORT)
-    url = connection_params._to_rest_url()
+    url = connection_params._rest_url
     assert is_auth_enabled(url)
 
     client = weaviate.Client(
@@ -277,7 +277,7 @@ def test_api_key():
 
 def test_api_key_wrong_key():
     connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=WCS_PORT)
-    url = connection_params._to_rest_url()
+    url = connection_params._rest_url
     assert is_auth_enabled(url)
 
     with pytest.raises(UnexpectedStatusCodeException) as e:
