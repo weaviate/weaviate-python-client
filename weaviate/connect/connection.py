@@ -102,6 +102,16 @@ class ConnectionParams(BaseModel):
     def _to_rest_url(self) -> str:
         return f"{self.scheme}://{self.host}:{self.rest_port}"
 
+    @classmethod
+    def from_connection_string(cls, url: str, grpc_port: Optional[int] = None) -> ConnectionParams:
+        parsed = urlparse(url)
+        return cls(
+            scheme=parsed.scheme,
+            host=cast(str, parsed.hostname),
+            rest_port=cast(int, parsed.port),
+            grpc_port=grpc_port,
+        )
+
 
 class Connection:
     """
