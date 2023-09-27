@@ -116,7 +116,7 @@ class Connection:
         self.url = url  # e.g. http://localhost:80
         self.timeout_config: TIMEOUT_TYPE_RETURN = timeout_config
         self.embedded_db = embedded_db
-
+        self._headers: Dict[str, str] = {}
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
 
         # create GRPC channel. If weaviate does not support GRPC, fallback to GraphQL is used.
