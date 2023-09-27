@@ -44,7 +44,7 @@ class TestWeaviateClient(unittest.TestCase):
                 startup_period=None,
             )
             mock_obj.assert_called_with(
-                url="http://localhost:8080",
+                connection_params=ConnectionParams(scheme="http", host="localhost", port=8080),
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 proxies=None,
@@ -52,7 +52,6 @@ class TestWeaviateClient(unittest.TestCase):
                 additional_headers=None,
                 startup_period=None,
                 embedded_db=None,
-                grcp_port=None,
                 connection_config=ConnectionConfig(),
             )
 
@@ -68,7 +67,7 @@ class TestWeaviateClient(unittest.TestCase):
                 startup_period=None,
             )
             mock_obj.assert_called_with(
-                url="http://localhost:8080",
+                connection_params=ConnectionParams(scheme="http", host="localhost", port=8080),
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 proxies=None,
@@ -76,7 +75,6 @@ class TestWeaviateClient(unittest.TestCase):
                 additional_headers={"Test": True},
                 startup_period=None,
                 embedded_db=None,
-                grcp_port=None,
                 connection_config=ConnectionConfig(),
             )
 
@@ -91,7 +89,7 @@ class TestWeaviateClient(unittest.TestCase):
                 startup_period=None,
             )
             mock_obj.assert_called_with(
-                url="http://localhost:8080",
+                connection_params=ConnectionParams(scheme="http", host="localhost", port=8080),
                 auth_client_secret=None,
                 timeout_config=(5, 20),
                 proxies=None,
@@ -99,7 +97,6 @@ class TestWeaviateClient(unittest.TestCase):
                 additional_headers=None,
                 startup_period=None,
                 embedded_db=None,
-                grcp_port=None,
                 connection_config=ConnectionConfig(),
             )
 
@@ -117,7 +114,7 @@ class TestWeaviateClient(unittest.TestCase):
                 startup_period=None,
             )
             mock_obj.assert_called_with(
-                url="http://localhost:8080",
+                connection_params=ConnectionParams(scheme="http", host="localhost", port=8080),
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 proxies={"http": "test"},
@@ -125,7 +122,6 @@ class TestWeaviateClient(unittest.TestCase):
                 additional_headers=None,
                 startup_period=None,
                 embedded_db=None,
-                grcp_port=None,
                 connection_config=ConnectionConfig(),
             )
 
