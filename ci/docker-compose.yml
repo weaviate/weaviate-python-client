@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:1.21.1
+    image: semitechnologies/weaviate:preview-make-proto-naming-consistent-4b98dfa
     ports:
       - "8080:8080"
       - "50051:50051"
