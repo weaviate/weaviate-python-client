@@ -42,7 +42,8 @@ schema = {
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.Client("http://localhost:8080")
+    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
+    client = weaviate.Client(connection_params)
     client.schema.create(schema)
     yield client
     client.schema.delete_all()

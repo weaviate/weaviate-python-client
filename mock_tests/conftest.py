@@ -4,10 +4,13 @@ import pytest
 from pytest_httpserver import HTTPServer, HeaderValueMatcher
 from werkzeug.wrappers import Response
 
+from weaviate.connect.connection import ConnectionParams
+
 MOCK_IP = "127.0.0.1"
 MOCK_PORT = 23536
 CLIENT_ID = "DoesNotMatter"
 MOCK_SERVER_URL = "http://" + MOCK_IP + ":" + str(MOCK_PORT)
+MOCK_SERVER_CONNECTION_PARAMS = ConnectionParams(scheme="http", host=MOCK_IP, port=MOCK_PORT)
 
 # pytest_httpserver 'Authorization' HeaderValueMatcher does not work with Bearer tokens.
 # Hence, overwrite it with the default header value matcher that just compares for equality.

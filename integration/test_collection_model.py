@@ -4,7 +4,6 @@ from typing import List, Optional
 
 from pydantic_core._pydantic_core import PydanticUndefined
 
-from weaviate import Config
 from weaviate.collection.classes.grpc import MetadataQuery
 from weaviate.exceptions import WeaviateAddInvalidPropertyError
 from weaviate.types import UUIDS
@@ -35,9 +34,10 @@ class Group(BaseProperty):
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.Client(
-        "http://localhost:8080", additional_config=Config(grpc_port_experimental=50051)
+    connection_params = weaviate.ConnectionParams(
+        scheme="http", host="localhost", port=8080, grpc_port=50051
     )
+    client = weaviate.Client(connection_params)
     client.collection_model.delete(Group)
     collection = client.collection_model.create(
         CollectionModelConfig[Group](model=Group, vectorizer_config=ConfigFactory.Vectorizer.none())

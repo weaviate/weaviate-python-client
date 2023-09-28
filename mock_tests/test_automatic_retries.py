@@ -6,7 +6,7 @@ import uuid
 from werkzeug.wrappers import Request, Response
 
 import weaviate
-from mock_tests.conftest import MOCK_SERVER_URL
+from mock_tests.conftest import MOCK_SERVER_CONNECTION_PARAMS
 from weaviate.batch.crud_batch import WeaviateErrorRetryConf, BatchResponse
 from weaviate.util import check_batch_result
 
@@ -43,7 +43,7 @@ def test_automatic_retry_obs(weaviate_mock, error):
 
     weaviate_mock.expect_request("/v1/batch/objects").respond_with_handler(handler)
 
-    client = weaviate.Client(url=MOCK_SERVER_URL)
+    client = weaviate.Client(connection_params=MOCK_SERVER_CONNECTION_PARAMS)
     added_uuids = []
     batch_size = 4  # Do not change, affects how many failed requests there are
     n = (
@@ -88,7 +88,7 @@ def test_automatic_retry_refs(weaviate_mock):
 
     weaviate_mock.expect_request("/v1/batch/references").respond_with_handler(handler)
 
-    client = weaviate.Client(url=MOCK_SERVER_URL)
+    client = weaviate.Client(connection_params=MOCK_SERVER_CONNECTION_PARAMS)
     batch_size = 4  # Do not change, affects how many failed requests there are
     n = (
         50 * batch_size
@@ -132,7 +132,7 @@ def test_automatic_retry_unsuccessful(weaviate_mock):
 
     weaviate_mock.expect_request("/v1/batch/objects").respond_with_handler(handler)
 
-    client = weaviate.Client(url=MOCK_SERVER_URL)
+    client = weaviate.Client(connection_params=MOCK_SERVER_CONNECTION_PARAMS)
     batch_size = 20
     n = batch_size * 2
     with client.batch(
@@ -171,7 +171,7 @@ def test_print_threadsafety(weaviate_mock, capfd, retry_config):
 
     weaviate_mock.expect_request("/v1/batch/objects").respond_with_handler(handler)
 
-    client = weaviate.Client(url=MOCK_SERVER_URL)
+    client = weaviate.Client(connection_params=MOCK_SERVER_CONNECTION_PARAMS)
 
     added_uuids = []
     n = 200 * 4
@@ -227,7 +227,7 @@ def test_include_error(weaviate_mock, retry_config, expected):
 
     weaviate_mock.expect_request("/v1/batch/objects").respond_with_handler(handler)
 
-    client = weaviate.Client(url=MOCK_SERVER_URL)
+    client = weaviate.Client(connection_params=MOCK_SERVER_CONNECTION_PARAMS)
 
     added_uuids = []
     n = 400 * 2
@@ -260,7 +260,7 @@ def test_callback_for_successful_responses(weaviate_mock, capfd):
 
     weaviate_mock.expect_request("/v1/batch/objects").respond_with_handler(handler)
 
-    client = weaviate.Client(url=MOCK_SERVER_URL)
+    client = weaviate.Client(connection_params=MOCK_SERVER_CONNECTION_PARAMS)
 
     def callback_print_all(results: Optional[BatchResponse]):
         if results is None:
