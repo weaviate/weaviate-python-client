@@ -155,7 +155,7 @@ class VectorDistance(str, Enum):
     """Vector similarity distance metric to be used in the `VectorIndexConfig` class.
 
     To ensure optimal search results, we recommend reviewing whether your model provider advises a
-    specific distance metric and following their advise.
+    specific distance metric and following their advice.
 
     Attributes:
         `COSINE`
