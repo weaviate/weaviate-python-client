@@ -35,5 +35,5 @@ def _check_data_model(data_model: Optional[Type[Properties]]) -> None:
         raise InvalidDataModelException()
 
 
-class WeaviateInput(BaseModel):
+class _WeaviateInput(BaseModel):
     model_config = ConfigDict(extra="forbid")

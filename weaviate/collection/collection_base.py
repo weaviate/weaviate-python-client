@@ -15,7 +15,7 @@ from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 
 
-class CollectionBase:
+class _CollectionBase:
     def __init__(self, connection: Connection):
         self._connection = connection
 
@@ -23,7 +23,7 @@ class CollectionBase:
         self,
         config: _CollectionConfigCreateBase,
     ) -> str:
-        weaviate_object = config.to_dict()
+        weaviate_object = config._to_dict()
 
         try:
             response = self._connection.post(path="/schema", weaviate_object=weaviate_object)
@@ -81,6 +81,6 @@ class CollectionBase:
         raise UnexpectedStatusCodeException("Get schema", response)
 
 
-class CollectionObjectBase:
+class _CollectionObjectBase:
     def __init__(self, name: str):
         self.name = name

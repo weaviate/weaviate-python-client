@@ -143,6 +143,12 @@ class _Data:
         )
 
     def delete_by_id(self, uuid: UUID) -> bool:
+        """Delete an object from the collection based on its UUID.
+
+        Arguments:
+            `uuid`
+                The UUID of the object to delete, REQUIRED.
+        """
         path = f"/objects/{self.name}/{uuid}"
 
         try:
@@ -158,6 +164,22 @@ class _Data:
     def delete_many(
         self, where: _Filters, verbose: bool = False, dry_run: bool = False
     ) -> _BatchDeleteResult:
+        """Delete multiple objects from the collection based on a filter.
+
+        Arguments:
+            `where`
+                The filter to apply. This filter is the same that is used when performing queries and has the same syntax, REQUIRED.
+            `verbose`
+                Whether to return the deleted objects in the response.
+            `dry_run`
+                Whether to perform a dry run. If set to `True`, the objects will not be deleted, but the response will contain the objects that would have been deleted.
+
+        Raises:
+            `requests.ConnectionError`:
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`:
+                If Weaviate reports a non-OK status.
+        """
         return self._batch_rest.delete(
             self.name, where, verbose, dry_run, self._consistency_level, self._tenant
         )
@@ -446,6 +468,16 @@ class _DataCollection(Generic[Properties], _Data):
         uuid: Optional[UUID] = None,
         vector: Optional[List[float]] = None,
     ) -> uuid_package.UUID:
+        """Insert a single object into the collection.
+
+        Arguments:
+            `properties`
+                The properties of the object, REQUIRED.
+            `uuid`
+                The UUID of the object. If not provided, a random UUID will be generated.
+            `vector`
+                The vector of the object.
+        """
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
             "properties": self._serialize_properties(properties),
@@ -461,6 +493,20 @@ class _DataCollection(Generic[Properties], _Data):
         self,
         objects: List[Union[Properties, DataObject[Properties]]],
     ) -> _BatchReturn:
+        """Insert multiple objects into the collection.
+
+        Arguments:
+            `objects` REQUIRED
+                The objects to insert. This can be either a list of `Properties` or `DataObject[Properties]`
+                    If you didn't set `data_model` then `Properties` will be `Data[str, Any]` in which case you can insert simple dictionaries here.
+                        If you want to insert vectors and UUIDs alongside your properties, you will have to use `DataObject` instead.
+
+        Raises:
+            `weaviate.exceptions.WeaviateGRPCException`:
+                If the network connection to Weaviate fails.
+            `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
+                If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
+        """
         return self._insert_many(
             [
                 {
@@ -482,6 +528,26 @@ class _DataCollection(Generic[Properties], _Data):
     def replace(
         self, properties: Properties, uuid: UUID, vector: Optional[List[float]] = None
     ) -> None:
+        """Replace an object in the collection.
+
+        This is equivalent to a PUT operation.
+
+        Arguments:
+            `properties`
+                The properties of the object, REQUIRED.
+            `uuid`
+                The UUID of the object, REQUIRED.
+            `vector`
+                The vector of the object.
+
+        Raises:
+            `requests.ConnectionError`:
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`:
+                If Weaviate reports a non-OK status.
+            `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
+                If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
+        """
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
             "properties": self._serialize_properties(properties),
@@ -494,6 +560,18 @@ class _DataCollection(Generic[Properties], _Data):
     def update(
         self, properties: Properties, uuid: UUID, vector: Optional[List[float]] = None
     ) -> None:
+        """Update an object in the collection.
+
+        This is equivalent to a PATCH operation.
+
+        Arguments:
+            `properties`
+                The properties of the object, REQUIRED.
+            `uuid`
+                The UUID of the object, REQUIRED.
+            `vector`
+                The vector of the object.
+        """
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
             "properties": self._serialize_properties(properties),
@@ -504,6 +582,22 @@ class _DataCollection(Generic[Properties], _Data):
         self._update(weaviate_obj, uuid=uuid)
 
     def reference_add(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
+        """Create a reference between an object in this collection and any other object in Weaviate.
+
+        Arguments:
+            `from_uuid`
+                The UUID of the object in this collection, REQUIRED.
+            `from_property`
+                The name of the property in the object in this collection, REQUIRED.
+            `ref`
+                The reference to add, REQUIRED. Use `ReferenceFactory.to` to generate the correct type.
+
+        Raises:
+            `requests.ConnectionError`:
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`:
+                If Weaviate reports a non-OK status.
+        """
         self._reference_add(
             from_uuid=from_uuid,
             from_property=from_property,
@@ -513,6 +607,20 @@ class _DataCollection(Generic[Properties], _Data):
     def reference_add_many(
         self, from_property: str, refs: List[BatchReference]
     ) -> Optional[Dict[int, List[RefError]]]:
+        """Create multiple references on a property in batch between objects in this collection and any other object in Weaviate.
+
+        Arguments:
+            `from_property`
+                The name of the property in the object in this collection, REQUIRED.
+            `refs`
+                The references to add, REQUIRED.
+
+        Raises:
+            `requests.ConnectionError`:
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`:
+                If Weaviate reports a non-OK status.
+        """
         refs_dict = [
             {
                 "from": BEACON + f"{self.name}/{ref.from_uuid}/{from_property}",
@@ -523,9 +631,29 @@ class _DataCollection(Generic[Properties], _Data):
         return self._reference_add_many(refs_dict)
 
     def reference_delete(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
+        """Delete a reference from an object within the collection.
+
+        Arguments:
+            `from_uuid`
+                The UUID of the object in this collection, REQUIRED.
+            `from_property`
+                The name of the property in the object in this collection from which the reference should be deleted, REQUIRED.
+            `ref`
+                The reference to delete, REQUIRED. Use `ReferenceFactory.to` to generate the correct type.
+        """
         self._reference_delete(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
     def reference_replace(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
+        """Replace a reference of an object within the collection.
+
+        Arguments:
+            `from_uuid`
+                The UUID of the object in this collection, REQUIRED.
+            `from_property`
+                The name of the property in the object in this collection from which the reference should be replaced, REQUIRED.
+            `ref`
+                The reference to replace, REQUIRED. Use `ReferenceFactory.to` to generate the correct type.
+        """
         self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
 

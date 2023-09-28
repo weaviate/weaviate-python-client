@@ -92,6 +92,20 @@ class _QueryCollection(
     def fetch_object_by_id(
         self, uuid: UUID, include_vector: bool = False
     ) -> Optional[_Object[TProperties]]:
+        """Retrieve an object from the server by its UUID.
+
+        Arguments:
+            `uuid`
+                The UUID of the object to retrieve, REQUIRED.
+            `include_vector`
+                Whether to include the vector in the returned object.
+
+        Raises:
+            `weaviate.exceptions.WeaviateGRPCException`:
+                If the network connection to Weaviate fails.
+            `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
+                If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
+        """
         ret = self.__data._get_by_id(uuid=uuid, include_vector=include_vector)
         if ret is None:
             return ret

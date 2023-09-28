@@ -9,12 +9,40 @@ from weaviate.warnings import _Warnings
 
 
 class ConsistencyLevel(str, Enum):
+    """The consistency levels when writing to Weaviate with replication enabled.
+
+    Attributes:
+        ALL: Wait for confirmation of write success from all, `N`, replicas.
+        ONE: Wait for confirmation of write success from only one replica.
+        QUORUM: Wait for confirmation of write success from a quorum: `N/2+1`, of replicas.
+    """
+
     ALL = "ALL"
     ONE = "ONE"
     QUORUM = "QUORUM"
 
 
 class DataType(str, Enum):
+    """The available primitive data types in Weaviate.
+
+    Attributes:
+        TEXT: Text data type.
+        TEXT_ARRAY: Text array data type.
+        INT: Integer data type.
+        INT_ARRAY: Integer array data type.
+        BOOL: Boolean data type.
+        BOOL_ARRAY: Boolean array data type.
+        NUMBER: Number data type.
+        NUMBER_ARRAY: Number array data type.
+        DATE: Date data type.
+        DATE_ARRAY: Date array data type.
+        UUID: UUID data type.
+        UUID_ARRAY: UUID array data type.
+        GEO_COORDINATES: Geo coordinates data type.
+        BLOB: Blob data type.
+        PHONE_NUMBER: Phone number data type.
+    """
+
     TEXT = "text"
     TEXT_ARRAY = "text[]"
     INT = "int"
@@ -32,11 +60,24 @@ class DataType(str, Enum):
     PHONE_NUMBER = "phoneNumber"
 
 
-class VectorIndexType(str, Enum):
+class _VectorIndexType(str, Enum):
     HNSW = "hnsw"
 
 
 class Tokenization(str, Enum):
+    """The available inverted index tokenization methods for text properties in Weaviate.
+
+    Attributes:
+        `WORD`
+            Tokenize by word.
+        `WHITESPACE`
+            Tokenize by whitespace.
+        `LOWERCASE`
+            Tokenize by lowercase.
+        `FIELD`
+            Tokenize by field.
+    """
+
     WORD = "word"
     WHITESPACE = "whitespace"
     LOWERCASE = "lowercase"
@@ -44,14 +85,46 @@ class Tokenization(str, Enum):
 
 
 class Vectorizer(str, Enum):
+    """The available vectorization modules in Weaviate.
+
+    These modules encode binary data into lists of floats called vectors.
+    See the [docs](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules) for more details.
+
+    Attributes:
+        `NONE`
+            No vectorizer.
+        `TEXT2VEC_COHERE`
+            Weaviate module backed by Cohere text-based embedding models.
+        `TEXT2VEC_CONTEXTIONARY`
+            Weaviate module backed by Contextionary text-based embedding models.
+        `TEXT2VEC_GPT4ALL`
+            Weaviate module backed by GPT-4-All text-based embedding models.
+        `TEXT2VEC_HUGGINGFACE`
+            Weaviate module backed by HuggingFace text-based embedding models.
+        `TEXT2VEC_OPENAI`
+            Weaviate module backed by OpenAI and Azure-OpenAI text-based embedding models.
+        `TEXT2VEC_PALM`
+            Weaviate module backed by PaLM text-based embedding models.
+        `TEXT2VEC_TRANSFORMERS`
+            Weaviate module backed by Transformers text-based embedding models.
+        `IMG2VEC_NEURAL`
+            Weaviate module backed by a ResNet-50 neural network for images.
+        `MULTI2VEC_CLIP`
+            Weaviate module backed by a Sentence-BERT CLIP model for images and text.
+        `MULTI2VEC_BIND`
+            Weaviate module backed by the ImageBind model for images, text, audio, depth, IMU, thermal, and video.
+        `REF2VEC_CENTROID`
+            Weaviate module backed by a centroid-based model that calculates an object's vectors from its referenced vectors.
+    """
+
     NONE = "none"
-    TEXT2VEC_OPENAI = "text2vec-openai"
     TEXT2VEC_COHERE = "text2vec-cohere"
-    TEXT2VEC_PALM = "text2vec-palm"
-    TEXT2VEC_HUGGINGFACE = "text2vec-huggingface"
-    TEXT2VEC_TRANSFORMERS = "text2vec-transformers"
     TEXT2VEC_CONTEXTIONARY = "text2vec-contextionary"
     TEXT2VEC_GPT4ALL = "text2vec-gpt4all"
+    TEXT2VEC_HUGGINGFACE = "text2vec-huggingface"
+    TEXT2VEC_OPENAI = "text2vec-openai"
+    TEXT2VEC_PALM = "text2vec-palm"
+    TEXT2VEC_TRANSFORMERS = "text2vec-transformers"
     IMG2VEC_NEURAL = "img2vec-neural"
     MULTI2VEC_CLIP = "multi2vec-clip"
     MULTI2VEC_BIND = "multi2vec-bind"
@@ -59,12 +132,44 @@ class Vectorizer(str, Enum):
 
 
 class GenerativeSearches(str, Enum):
+    """The available generative search modules in Weaviate.
+
+    These modules generate text from text-based inputs.
+    See the [docs](https://weaviate.io/developers/weaviate/modules/reader-generator-modules) for more details.
+
+    Attributes:
+        `OPENAI`
+            Weaviate module backed by OpenAI and Azure-OpenAI generative models.
+        `COHERE`
+            Weaviate module backed by Cohere generative models.
+        `PALM`
+            Weaviate module backed by PaLM generative models.
+    """
+
     OPENAI = "generative-openai"
     COHERE = "generative-cohere"
     PALM = "generative-palm"
 
 
 class VectorDistance(str, Enum):
+    """Vector similarity distance metric to be used in the `VectorIndexConfig` class.
+
+    To ensure optimal search results, we recommend reviewing whether your model provider advises a
+    specific distance metric and following their advice.
+
+    Attributes:
+        `COSINE`
+            Cosine distance: [reference](https://en.wikipedia.org/wiki/Cosine_similarity)
+        `DOT`
+            Dot distance: [reference](https://en.wikipedia.org/wiki/Dot_product)
+        `L2_SQUARED`
+            L2 squared distance: [reference](https://en.wikipedia.org/wiki/Euclidean_distance)
+        `HAMMING`
+            Hamming distance: [reference](https://en.wikipedia.org/wiki/Hamming_distance)
+        `MANHATTAN`
+            Manhattan distance: [reference](https://en.wikipedia.org/wiki/Taxicab_geometry)
+    """
+
     COSINE = "cosine"
     DOT = "dot"
     L2_SQUARED = "l2-squared"
@@ -73,16 +178,43 @@ class VectorDistance(str, Enum):
 
 
 class StopwordsPreset(str, Enum):
+    """Preset stopwords to use in the `Stopwords` class.
+
+    Attributes:
+        `EN`
+            English stopwords.
+        `NONE`
+            No stopwords.
+    """
+
     NONE = "none"
     EN = "en"
 
 
 class PQEncoderType(str, Enum):
+    """Type of the PQ encoder.
+
+    Attributes:
+        `KMEANS`
+            K-means encoder.
+        `TILE`
+            Tile encoder.
+    """
+
     KMEANS = "kmeans"
     TILE = "tile"
 
 
 class PQEncoderDistribution(str, Enum):
+    """Distribution of the PQ encoder.
+
+    Attributes:
+        `LOG_NORMAL`
+            Log-normal distribution.
+        `NORMAL`
+            Normal distribution.
+    """
+
     LOG_NORMAL = "log-normal"
     NORMAL = "normal"
 
@@ -90,7 +222,7 @@ class PQEncoderDistribution(str, Enum):
 class _ConfigCreateModel(BaseModel):
     model_config = ConfigDict(strict=True)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> Dict[str, Any]:
         return cast(dict, self.model_dump(exclude_none=True))
 
 
@@ -116,8 +248,8 @@ class _PQEncoderConfigCreate(_ConfigCreateModel):
     type_: PQEncoderType
     distribution: PQEncoderDistribution
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
         ret_dict["type"] = ret_dict.pop("type_")
         return ret_dict
 
@@ -128,6 +260,7 @@ class _PQEncoderConfigUpdate(_ConfigUpdateModel):
 
     def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
         """Must be done manually since Pydantic does not work well with type and type_.
+
         Errors shadowing type occur if we want to use type as a field name.
         """
         if self.type_ is not None:
@@ -145,8 +278,8 @@ class _PQConfigCreate(_ConfigCreateModel):
     segments: int
     trainingLimit: int = Field(..., ge=100000)
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
         ret_dict["encoder"] = {
             "type": ret_dict.pop("encoder_type"),
             "distribution": ret_dict.pop("encoder_distribution"),
@@ -307,6 +440,12 @@ class _VectorizerConfig(_ConfigCreateModel):
 
 
 class _GenerativeFactory:
+    """Use this factory class to create the correct object for the `generative_config` argument in the `collection.create()` method.
+
+    Each classmethod provides options specific to the named generative search module in the function's name. Under-the-hood data validation steps
+    will ensure that any mis-specifications will be caught before the request is sent to Weaviate.
+    """
+
     @classmethod
     def openai(
         cls,
@@ -452,8 +591,8 @@ class _Text2VecHuggingFaceConfig(_VectorizerConfig):
             )
         return values
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
         options = {}
         if self.waitForModel is not None:
             options["waitForModel"] = ret_dict.pop("waitForModel")
@@ -477,8 +616,8 @@ class _Text2VecOpenAIConfig(_VectorizerConfig):
     type_: Optional[OpenAIType]
     vectorizeClassName: bool
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
         if self.type_ is not None:
             ret_dict["type"] = ret_dict.pop("type_")
         return ret_dict
@@ -497,8 +636,8 @@ class _Text2VecPalmConfig(_VectorizerConfig):
     modelId: Optional[str]
     vectorizeClassName: bool
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
         if self.apiEndpoint is not None:
             ret_dict["apiEndpoint"] = str(self.apiEndpoint)
         return ret_dict
@@ -523,6 +662,8 @@ class _Img2VecNeuralConfig(_VectorizerConfig):
 
 
 class Multi2VecField(BaseModel):
+    """Use this class when defining the fields to use in the `Multi2VecClip` and `Multi2VecBind` vectorizers."""
+
     name: str
     weight: Optional[float] = Field(default=None, exclude=True)
 
@@ -532,8 +673,8 @@ class _Multi2VecBase(_VectorizerConfig):
     textFields: Optional[List[Multi2VecField]]
     vectorizeClassName: bool
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
         ret_dict["weights"] = {}
         for cls_field in self.model_fields:
             val = getattr(self, cls_field)
@@ -568,7 +709,7 @@ class _Ref2VecCentroidConfig(_VectorizerConfig):
 
 
 class _VectorizerFactory:
-    """Use this factory class to generate the correct `VectorizerConfig` object for use in the `CollectionConfig` object.
+    """Use this factory class to create the correct object for the `vectorizer_config` argument in the `collection.create()` method.
 
     Each classmethod provides options specific to the named vectorizer in the function's name. Under-the-hood data validation steps
     will ensure that any mis-specifications will be caught before the request is sent to Weaviate.
@@ -576,31 +717,23 @@ class _VectorizerFactory:
 
     @classmethod
     def none(cls) -> _VectorizerConfig:
-        """Return a `VectorizerConfig` object with the vectorizer set to `Vectorizer.NONE`"""
+        """Create a `VectorizerConfig` object with the vectorizer set to `Vectorizer.NONE`."""
         return _VectorizerConfig(vectorizer=Vectorizer.NONE)
-
-    @classmethod
-    def auto(cls) -> None:
-        """Returns a `VectorizerConfig` object with the `Vectorizer` auto-detected from the environment
-        variables of the client or Weaviate itself"""
-        # TODO: Can this be done?
-        pass
 
     @classmethod
     def img2vec_neural(
         cls,
         image_fields: List[str],
     ) -> _VectorizerConfig:
-        """Returns a `Img2VecNeuralConfig` object for use when vectorizing using the `img2vec-neural` model
+        """Create a `Img2VecNeuralConfig` object for use when vectorizing using the `img2vec-neural` model.
+
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/img2vec-neural)
         for detailed usage.
 
-        Args:
-            `image_fields`: The image fields to use. This is a required field and must match the property fields
-            of the collection that are defined as `DataType.BLOB`.
-
-        Returns:
-            A `Img2VecNeuralConfig` object.
+        Arguments:
+            `image_fields`
+                The image fields to use. This is a required field and must match the property fields
+                of the collection that are defined as `DataType.BLOB`.
 
         Raises:
             `pydantic.ValidationError` if `image_fields` is not a `list`.
@@ -614,17 +747,18 @@ class _VectorizerFactory:
         text_fields: Optional[List[Multi2VecField]] = None,
         vectorize_class_name: bool = True,
     ) -> _VectorizerConfig:
-        """Returns a `Multi2VecClipConfig` object for use when vectorizing using the `multi2vec-clip` model
+        """Create a `Multi2VecClipConfig` object for use when vectorizing using the `multi2vec-clip` model.
+
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-clip)
         for detailed usage.
 
-        Args:
-            `image_fields`: The image fields to use in vectorization.
-            `text_fields`: The text fields to use in vectorization.
-            `vectorize_class_name`: Whether to vectorize the class name. Defaults to `True`.
-
-        Returns:
-            A `Multi2VecClipConfig` object.
+        Arguments:
+            `image_fields`
+                The image fields to use in vectorization.
+            `text_fields`
+                The text fields to use in vectorization.
+            `vectorize_class_name`
+                Whether to vectorize the class name. Defaults to `True`.
 
         Raises:
             `pydantic.ValidationError` if `image_fields` or `text_fields` are not `None` or a `list`.
@@ -647,22 +781,28 @@ class _VectorizerFactory:
         video_fields: Optional[List[Multi2VecField]] = None,
         vectorize_class_name: bool = True,
     ) -> _VectorizerConfig:
-        """Returns a `Multi2VecClipConfig` object for use when vectorizing using the `multi2vec-clip` model
+        """Create a `Multi2VecClipConfig` object for use when vectorizing using the `multi2vec-clip` model.
+
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind)
         for detailed usage.
 
-        Args:
-            `audio_fields`: The audio fields to use in vectorization.
-            `depth_fields`: The depth fields to use in vectorization.
-            `image_fields`: The image fields to use in vectorization.
-            `imu_fields`: The IMU fields to use in vectorization.
-            `text_fields`: The text fields to use in vectorization.
-            `thermal_fields`: The thermal fields to use in vectorization.
-            `video_fields`: The video fields to use in vectorization.
-            `vectorize_class_name`: Whether to vectorize the class name. Defaults to `True`.
-
-        Returns:
-            A `Multi2VecClipConfig` object.
+        Arguments:
+            `audio_fields`
+                The audio fields to use in vectorization.
+            `depth_fields`
+                The depth fields to use in vectorization.
+            `image_fields`
+                The image fields to use in vectorization.
+            `imu_fields`
+                The IMU fields to use in vectorization.
+            `text_fields`
+                The text fields to use in vectorization.
+            `thermal_fields`
+                The thermal fields to use in vectorization.
+            `video_fields`
+                The video fields to use in vectorization.
+            `vectorize_class_name`
+                Whether to vectorize the class name. Defaults to `True`.
 
         Raises:
             `pydantic.ValidationError` if any of the `*_fields` are not `None` or a `list`.
@@ -684,16 +824,16 @@ class _VectorizerFactory:
         reference_properties: List[str],
         method: Literal["mean"] = "mean",
     ) -> _VectorizerConfig:
-        """Returns a `Ref2VecCentroidConfig` object for use when vectorizing using the `ref2vec-centroid` model.
+        """Create a `Ref2VecCentroidConfig` object for use when vectorizing using the `ref2vec-centroid` model.
+
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/ref2vec-centroid)
         for detailed usage.
 
-        Args:
-            `reference_properties`: The reference properties to use in vectorization.
-            `method`: The method to use in vectorization. Defaults to `mean`.
-
-        Returns:
-            A `Ref2VecCentroidConfig` object.
+        Arguments:
+            `reference_properties`
+                The reference properties to use in vectorization, REQUIRED.
+            `method`
+                The method to use in vectorization. Defaults to `mean`.
 
         Raises:
             `pydantic.ValidationError` if `reference_properties` is not a `list`.
@@ -705,17 +845,18 @@ class _VectorizerFactory:
 
     @classmethod
     def text2vec_azure_openai(cls, resource_name: str, deployment_id: str) -> _VectorizerConfig:
-        """Returns a `Text2VecAzureOpenAIConfig` object for use when vectorizing using the `text2vec-azure-openai` model
+        """Create a `Text2VecAzureOpenAIConfig` object for use when vectorizing using the `text2vec-azure-openai` model.
+
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-azure-openai)
         for detailed usage.
 
-        Args:
-            `resource_name`: The resource name to use.
-            `deployment_id`: The deployment ID to use.
-            `vectorize_class_name`: Whether to vectorize the class name. Defaults to `True`.
-
-        Returns:
-            A `Text2VecAzureOpenAIConfig` object.
+        Arguments:
+            `resource_name`
+                The resource name to use, REQUIRED.
+            `deployment_id`
+                The deployment ID to use, REQUIRED.
+            `vectorize_class_name`
+                Whether to vectorize the class name. Defaults to `True`.
 
         Raises:
             `pydantic.ValidationError` if `resource_name` or `deployment_id` are not `str`.
@@ -724,18 +865,16 @@ class _VectorizerFactory:
 
     @classmethod
     def text2vec_contextionary(cls, vectorize_class_name: bool = True) -> _VectorizerConfig:
-        """Returns a `Text2VecContextionaryConfig` object for use when vectorizing using the `text2vec-contextionary` model
+        """Create a `Text2VecContextionaryConfig` object for use when vectorizing using the `text2vec-contextionary` model.
+
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-contextionary)
         for detailed usage.
 
-        Args:
-            `vectorize_class_name`: Whether to vectorize the class name. Defaults to `True`.
-
-        Returns:
-            A `Text2VecContextionaryConfig` object.
+        Arguments:
+            vectorize_class_name: Whether to vectorize the class name. Defaults to `True`.
 
         Raises:
-            `pydantic.ValidationError` if `vectorize_class_name` is not a `bool`.
+            pydantic.ValidationError` if `vectorize_class_name` is not a `bool`.
         """
         return _Text2VecContextionaryConfig(vectorizeClassName=vectorize_class_name)
 
@@ -745,16 +884,16 @@ class _VectorizerFactory:
         model: Optional[CohereModel] = None,
         truncate: Optional[CohereTruncation] = None,
     ) -> _VectorizerConfig:
-        """Returns a `Text2VecCohereConfig` object for use when vectorizing using the `text2vec-cohere` model
+        """Create a `Text2VecCohereConfig` object for use when vectorizing using the `text2vec-cohere` model.
+
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-cohere)
         for detailed usage.
 
-        Args:
-            `model`: The model to use. Defaults to `None`. If `None`, the default model is used.
-            `truncate`: The truncation strategy to use. Defaults to `None`. If `None`, the default truncation strategy is used.
-
-        Returns:
-            A `Text2VecCohereConfig` object.
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`. If `None`, the default model is used.
+            `truncate`
+                The truncation strategy to use. Defaults to `None`. If `None`, the default truncation strategy is used.
 
         Raises:
             `pydantic.ValidationError` if `model` or `truncate` are not valid values from the `CohereModel` and `CohereTruncate` types.
@@ -766,15 +905,14 @@ class _VectorizerFactory:
         cls,
         vectorize_class_name: bool = True,
     ) -> _VectorizerConfig:
-        """Returns a `Text2VecGPT4AllConfig` object for use when vectorizing using the `text2vec-gpt4all` model
+        """Create a `Text2VecGPT4AllConfig` object for use when vectorizing using the `text2vec-gpt4all` model.
+
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-gpt4all)
         for detailed usage.
 
-        Args:
-            `vectorize_class_name`: Whether to vectorize the class name. Defaults to `True`.
-
-        Returns:
-            A `Text2VecGPT4AllConfig` object.
+        Arguments:
+            `vectorize_class_name`
+                Whether to vectorize the class name. Defaults to `True`.
 
         Raises:
             `pydantic.ValidationError` if `vectorize_class_name` is not a `bool`.
@@ -792,26 +930,31 @@ class _VectorizerFactory:
         use_gpu: Optional[bool] = None,
         use_cache: Optional[bool] = None,
     ) -> _VectorizerConfig:
-        """Returns a `Text2VecHuggingFaceConfig` object for use when vectorizing using the `text2vec-huggingface` model
+        """Create a `Text2VecHuggingFaceConfig` object for use when vectorizing using the `text2vec-huggingface` model.
+
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-huggingface)
         for detailed usage.
 
-        Args:
-            `model`: The model to use. Defaults to `None`.
-            `passage_model`: The passage model to use. Defaults to `None`.
-            `query_model`: The query model to use. Defaults to `None`.
-            `endpoint_url`: The endpoint URL to use. Defaults to `None`.
-            `wait_for_model`: Whether to wait for the model to be loaded. Defaults to `None`.
-            `use_gpu`: Whether to use the GPU. Defaults to `None`.
-            `use_cache`: Whether to use the cache. Defaults to `None`.
-
-        Returns:
-            A `Text2VecHuggingFaceConfig` object.
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`.
+            `passage_model`
+                The passage model to use. Defaults to `None`.
+            `query_model`
+                The query model to use. Defaults to `None`.
+            `endpoint_url`
+                The endpoint URL to use. Defaults to `None`.
+            `wait_for_model`
+                Whether to wait for the model to be loaded. Defaults to `None`.
+            `use_gpu`
+                Whether to use the GPU. Defaults to `None`.
+            `use_cache`
+                Whether to use the cache. Defaults to `None`.
 
         Raises:
-            `pydantic.ValidationError` if the arguments passed to the function are invalid. It is important to note that some of these variables
-            are mutually exclusive. See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-huggingface)
-            for more details.
+            `pydantic.ValidationError` if the arguments passed to the function are invalid.
+                It is important to note that some of these variables are mutually exclusive.
+                    See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-huggingface) for more details.
         """
         return _Text2VecHuggingFaceConfig(
             model=model,
@@ -831,18 +974,20 @@ class _VectorizerFactory:
         type_: Optional[OpenAIType] = None,
         vectorize_class_name: bool = True,
     ) -> _VectorizerConfig:
-        """Returns a `Text2VecOpenAIConfig` object for use when vectorizing using the `text2vec-openai` model
+        """Create a `Text2VecOpenAIConfig` object for use when vectorizing using the `text2vec-openai` model.
+
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-openai)
         for detailed usage.
 
-        Args:
-            `model`: The model to use. Defaults to `None`. If `None`, the default model is used.
-            `model_version`: The model version to use. Defaults to `None`.
-            `type_`: The type of model to use. Defaults to `None`. If `None`, the default type is used.
-            `vectorize_class_name`: Whether to vectorize the class name. Defaults to `True`.
-
-        Returns:
-            A `Text2VecOpenAIConfig` object.
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`. If `None`, the default model is used.
+            `model_version`
+                The model version to use. Defaults to `None`.
+            `type_`
+                The type of model to use. Defaults to `None`. If `None`, the default type is used.
+            `vectorize_class_name`
+                Whether to vectorize the class name. Defaults to `True`.
 
         Raises:
             `pydantic.ValidationError` if `model` or `type_` are not valid values from the `OpenAIModel` and `OpenAIType` types.
@@ -862,18 +1007,20 @@ class _VectorizerFactory:
         model_id: Optional[str] = None,
         vectorize_class_name: bool = True,
     ) -> _VectorizerConfig:
-        """Returns a `Text2VecPalmConfig` object for use when vectorizing using the `text2vec-palm` model
+        """Create a `Text2VecPalmConfig` object for use when vectorizing using the `text2vec-palm` model.
+
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-palm)
         for detailed usage.
 
-        Args:
-            `project_id`: The project ID to use.
-            `api_endpoint`: The API endpoint to use. Defaults to `None`.
-            `model_id`: The model ID to use. Defaults to `None`.
-            `vectorize_class_name`: Whether to vectorize the class name. Defaults to `True`.
-
-        Returns:
-            A `Text2VecPalmConfig` object.
+        Arguments:
+            `project_id`
+                The project ID to use, REQUIRED.
+            `api_endpoint`
+                The API endpoint to use. Defaults to `None`.
+            `model_id`
+                The model ID to use. Defaults to `None`.
+            `vectorize_class_name`
+                Whether to vectorize the class name. Defaults to `True`.
 
         Raises:
             `pydantic.ValidationError` if `api_endpoint` is not a valid URL.
@@ -891,16 +1038,16 @@ class _VectorizerFactory:
         pooling_strategy: Literal["masked_mean", "cls"] = "masked_mean",
         vectorize_class_name: bool = True,
     ) -> _VectorizerConfig:
-        """Returns a `Text2VecTransformersConfig` object for use when vectorizing using the `text2vec-transformers` model
+        """Create a `Text2VecTransformersConfig` object for use when vectorizing using the `text2vec-transformers` model.
+
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-transformers)
         for detailed usage.
 
-        Args:
-            `pooling_strategy`: The pooling strategy to use. Defaults to `masked_mean`.
-            `vectorize_class_name`: Whether to vectorize the class name. Defaults to `True`.
-
-        Returns:
-            A `Text2VecTransformersConfig` object.
+        Arguments:
+            `pooling_strategy`
+                The pooling strategy to use. Defaults to `masked_mean`.
+            `vectorize_class_name`
+                Whether to vectorize the class name. Defaults to `True`.
 
         Raises:
             `pydantic.ValidationError` if `pooling_strategy` is not a valid value from the `PoolingStrategy` type.
@@ -926,15 +1073,15 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
     vectorIndexConfig: Optional[_VectorIndexConfigCreate] = Field(
         default=None, alias="vector_index_config"
     )
-    vectorIndexType: VectorIndexType = Field(
-        default=VectorIndexType.HNSW, alias="vector_index_type"
+    vectorIndexType: _VectorIndexType = Field(
+        default=_VectorIndexType.HNSW, alias="vector_index_type"
     )
     moduleConfig: _VectorizerConfig = Field(
         default=_VectorizerFactory.none(), alias="vectorizer_config"
     )
     generativeSearch: Optional[_GenerativeConfig] = Field(default=None, alias="generative_config")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
 
         for cls_field in self.model_fields:
@@ -946,14 +1093,14 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
             elif isinstance(val, (bool, float, str, int)):
                 ret_dict[cls_field] = str(val)
             elif isinstance(val, _GenerativeConfig):
-                self.__add_to_module_config(ret_dict, val.generative.value, val.to_dict())
+                self.__add_to_module_config(ret_dict, val.generative.value, val._to_dict())
             elif isinstance(val, _VectorizerConfig):
                 ret_dict["vectorizer"] = val.vectorizer.value
                 if val.vectorizer != Vectorizer.NONE:
-                    self.__add_to_module_config(ret_dict, val.vectorizer.value, val.to_dict())
+                    self.__add_to_module_config(ret_dict, val.vectorizer.value, val._to_dict())
             else:
                 assert isinstance(val, _ConfigCreateModel)
-                ret_dict[cls_field] = val.to_dict()
+                ret_dict[cls_field] = val._to_dict()
         if self.moduleConfig is None:
             ret_dict["vectorizer"] = Vectorizer.NONE.value
         return ret_dict
@@ -1104,7 +1251,7 @@ class _CollectionConfig:
     replication_config: _ReplicationConfig
     sharding_config: _ShardingConfig
     vector_index_config: _VectorIndexConfig
-    vector_index_type: VectorIndexType
+    vector_index_type: _VectorIndexType
     vectorizer: Vectorizer
 
 
@@ -1125,7 +1272,7 @@ class _CollectionConfigSimple:
 
 
 @dataclass
-class PropertyConfig:
+class PropertyConfig:  # noqa
     index_filterable: Optional[bool] = None
     index_searchable: Optional[bool] = None
     tokenization: Optional[Tokenization] = None
@@ -1134,7 +1281,7 @@ class PropertyConfig:
 
     # tmp solution. replace with a pydantic BaseModel, see bugreport: https://github.com/pydantic/pydantic/issues/6948
     # bugreport was closed as not planned :( so dataclasses must stay
-    def to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> Dict[str, Any]:
         return {
             "indexFilterable": self.index_filterable,
             "indexSearchable": self.index_searchable,
@@ -1145,23 +1292,44 @@ class PropertyConfig:
 
 
 class Property(_ConfigCreateModel):
+    """This class defines the structure of a data property that a collection can have within Weaviate.
+
+    Attributes:
+        `name`
+            The name of the property, REQUIRED.
+        `data_type`
+            The data type of the property, REQUIRED.
+        `index_filterable`
+            Whether the property should be filterable in the inverted index.
+        `index_searchable`
+            Whether the property should be searchable in the inverted index.
+        `description`
+            A description of the property.
+        `skip_vectorization`
+            Whether to skip vectorization of the property. Defaults to `False`.
+        `tokenization`
+            The tokenization method to use for the inverted index. Defaults to `None`.
+        `vectorize_property_name`
+            Whether to vectorize the property name. Defaults to `True`.
+    """
+
     name: str
     dataType: DataType = Field(default=..., alias="data_type")
     indexFilterable: Optional[bool] = Field(default=None, alias="index_filterable")
     indexSearchable: Optional[bool] = Field(default=None, alias="index_searchable")
     description: Optional[str] = Field(default=None)
-    skip_vectorization: bool = False
+    skip_vectorization: bool = Field(default=False)
     tokenization: Optional[Tokenization] = Field(default=None)
-    vectorize_property_name: bool = True
+    vectorize_property_name: bool = Field(default=True)
 
     @field_validator("name")
-    def check_name(cls, v: str) -> str:
+    def _check_name(cls, v: str) -> str:
         if v in ["id", "vector"]:
             raise ValueError(f"Property name '{v}' is reserved and cannot be used")
         return v
 
-    def to_dict(self, vectorizer: Optional[Vectorizer] = None) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self, vectorizer: Optional[Vectorizer] = None) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
         ret_dict["dataType"] = [ret_dict["dataType"]]
         if vectorizer is not None and vectorizer != Vectorizer.NONE:
             ret_dict["moduleConfig"] = {
@@ -1175,7 +1343,7 @@ class Property(_ConfigCreateModel):
         return ret_dict
 
 
-class ReferencePropertyBase(_ConfigCreateModel):
+class _ReferencePropertyBase(_ConfigCreateModel):
     name: str
 
     @field_validator("name")
@@ -1185,21 +1353,45 @@ class ReferencePropertyBase(_ConfigCreateModel):
         return v
 
 
-class ReferenceProperty(ReferencePropertyBase):
+class ReferenceProperty(_ReferencePropertyBase):
+    """This class defines properties that are cross references to a single target collection.
+
+    Use this class when you want to create a cross-reference in the collection's config that is capable
+    of having only cross-references to a single other collection.
+
+    Attributes:
+        `name`
+            The name of the property, REQUIRED.
+        `target_collection`
+            The name of the target collection, REQUIRED.
+    """
+
     target_collection: str
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
         ret_dict["dataType"] = [_capitalize_first_letter(self.target_collection)]
         del ret_dict["target_collection"]
         return ret_dict
 
 
-class ReferencePropertyMultiTarget(ReferencePropertyBase):
+class ReferencePropertyMultiTarget(_ReferencePropertyBase):
+    """This class defines properties that are cross references to multiple target collections.
+
+    Use this class when you want to create a cross-reference in the collection's config that is capable
+    of having cross-references to multiple other collections at once.
+
+    Attributes:
+        `name`
+            The name of the property, REQUIRED.
+        `target_collections`
+            The names of the target collections, REQUIRED.
+    """
+
     target_collections: List[str]
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
         ret_dict["dataType"] = [
             _capitalize_first_letter(target) for target in self.target_collections
         ]
@@ -1212,21 +1404,21 @@ PropertyType = Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]
 
 class _CollectionConfigCreate(_CollectionConfigCreateBase):
     name: str
-    properties: Optional[List[Union[Property, ReferencePropertyBase]]] = Field(default=None)
+    properties: Optional[List[Union[Property, _ReferencePropertyBase]]] = Field(default=None)
 
     def model_post_init(self, __context: Any) -> None:
         self.name = _capitalize_first_letter(self.name)
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
 
         ret_dict["class"] = self.name
 
         if self.properties is not None:
             ret_dict["properties"] = [
-                prop.to_dict(self.moduleConfig.vectorizer)
+                prop._to_dict(self.moduleConfig.vectorizer)
                 if isinstance(prop, Property)
-                else prop.to_dict()
+                else prop._to_dict()
                 for prop in self.properties
             ]
 
@@ -1234,11 +1426,9 @@ class _CollectionConfigCreate(_CollectionConfigCreateBase):
 
 
 class ConfigFactory:
-    """Use this factory class to generate the correct `xxxConfig` object for use in the `CollectionConfig` object for each type of
-    Weaviate configuration that you'd like to specify. E.g., `.multi_tenancy()` will return a `MultiTenancyConfigCreate` object
-    to be used in the `multi_tenancy_config` attribute of `CollectionConfig`.
+    """Use this factory class to generate the correct object for use when using the `collection.create()` method. E.g., `.multi_tenancy()` will return a `MultiTenancyConfigCreate` object to be used in the `multi_tenancy_config` argument.
 
-    Each classmethod provides options specific to the named configuration type in the function's name. Under-the-hood data validation steps
+    Each class method provides options specific to the named configuration type in the function's name. Under-the-hood data validation steps
     will ensure that any mis-specifications are caught before the request is sent to Weaviate.
     """
 
@@ -1260,25 +1450,9 @@ class ConfigFactory:
     ) -> _InvertedIndexConfigCreate:
         """Create an `InvertedIndexConfigCreate` object to be used when defining the configuration of the keyword searching algorithm of Weaviate.
 
-        Define the free parameters of the BM25 ranking algorithm through `bm25_b` and `bm25_k1`. The default values are
-        `bm25_b=0.75` and `bm25_k1=1.2`. See the [documentation](https://weaviate.io/developers/weaviate/search/bm25) for detail on the
-        BM25 implementation and the [Wikipedia article](https://en.wikipedia.org/wiki/Okapi_BM25) for details on the theory, especially
-        in relation to the `bm25_b` and `bm25_k1` parameters.
-
-        Args:
-            `bm25_b`: The `b` parameter of the BM25 ranking algorithm. Defaults to `0.75`.
-            `bm25_k1`: The `k1` parameter of the BM25 ranking algorithm. Defaults to `1.2`.
-            `cleanup_interval_seconds`: The interval in seconds at which the inverted index is cleaned up. Defaults to `60`.
-            `index_timestamps`: Whether to index timestamps. Defaults to `False`.
-            `index_property_length`: Whether to index property length. Defaults to `None`.
-            `index_null_state`: Whether to index the null state. Defaults to `None`.
-            `stopwords_preset`: The preset to use for stopwords. Defaults to `None`.
-            `stopwords_additions`: The stopwords to add. Defaults to `None`.
-            `stopwords_removals`: The stopwords to remove. Defaults to `None`.
-
-        Returns:
-            An `InvertedIndexConfigCreate` object.
-        """
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for details!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
         return _InvertedIndexConfigCreate(
             bm25=_BM25ConfigCreate(b=bm25_b, k1=bm25_k1),
             cleanupIntervalSeconds=cleanup_interval_seconds,
@@ -1294,17 +1468,21 @@ class ConfigFactory:
 
     @classmethod
     def multi_tenancy(cls, enabled: bool = False) -> _MultiTenancyConfigCreate:
+        """Create a `MultiTenancyConfigCreate` object to be used when defining the multi-tenancy configuration of Weaviate.
+
+        Arguments:
+            `enabled`
+                Whether multi-tenancy is enabled. Defaults to `False`.
+        """
         return _MultiTenancyConfigCreate(enabled=enabled)
 
     @classmethod
     def replication(cls, factor: int = 1) -> _ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
-        Args:
-            `factor`: The replication factor. Defaults to `1`.
-
-        Returns:
-            A `ReplicationConfigCreate` object.
+        Arguments:
+            `factor`
+                The replication factor. Defaults to `1`.
         """
         return _ReplicationConfigCreate(factor=factor)
 
@@ -1319,15 +1497,21 @@ class ConfigFactory:
     ) -> _ShardingConfigCreate:
         """Create a `ShardingConfigCreate` object to be used when defining the sharding configuration of Weaviate.
 
-        Args:
-            `virtual_per_physical`: The number of virtual shards per physical shard. Defaults to `128`.
-            `desired_count`: The desired number of physical shards. Defaults to `1`.
-            `actual_count`: The actual number of physical shards. Defaults to `1`.
-            `desired_virtual_count`: The desired number of virtual shards. Defaults to `128`.
-            `actual_virtual_count`: The actual number of virtual shards. Defaults to `128`.
+        NOTE: You can only use one of Sharding or Replication, not both.
 
-        Returns:
-            A `ShardingConfigCreate` object.
+        See [the docs](https://weaviate.io/developers/weaviate/concepts/replication-architecture#replication-vs-sharding) for more details.
+
+        Arguments:
+            `virtual_per_physical`
+                The number of virtual shards per physical shard. Defaults to `128`.
+            `desired_count`
+                The desired number of physical shards. Defaults to `1`.
+            `actual_count`
+                The actual number of physical shards. Defaults to `1`.
+            `desired_virtual_count`
+                The desired number of virtual shards. Defaults to `128`.
+            `actual_virtual_count`
+                The actual number of virtual shards. Defaults to `128`.
         """
         return _ShardingConfigCreate(
             virtualPerPhysical=virtual_per_physical,
@@ -1359,6 +1543,13 @@ class ConfigFactory:
         skip: bool = False,
         vector_cache_max_objects: int = 1000000000000,
     ) -> _VectorIndexConfigCreate:
+        """Create a `_VectorIndexConfigCreate` object to be used when defining the vector index configuration of Weaviate.
+
+        Use this method when defining the `vector_index_config` argument in `collection.create()`.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigCreate(
             cleanupIntervalSeconds=cleanup_interval_seconds,
             distance=distance_metric,
@@ -1385,11 +1576,23 @@ class ConfigFactory:
         )
 
     @classmethod
-    def vector_index_type(cls) -> VectorIndexType:
-        return VectorIndexType.HNSW
+    def vector_index_type(cls) -> _VectorIndexType:
+        """Create a `_VectorIndexType` object to be used when defining the vector index type of Weaviate.
+
+        Use this method when defining the `vector_index_type` argument in `collection.create()`.
+        """
+        return _VectorIndexType.HNSW
 
 
 class ConfigUpdateFactory:
+    """Use this factory class to generate the correct `xxxConfig` object for use when using the `collection.update()` method.
+
+    Each classmethod provides options specific to the named configuration type in the function's name. Under-the-hood data validation steps
+    will ensure that any mis-specifications are caught before the request is sent to Weaviate. Only those configurations that are mutable are
+    available in this class. If you wish to update the configuration of an immutable aspect of your collection then you will have to delete
+    the collection and re-create it with the new configuration.
+    """
+
     @classmethod
     def inverted_index(
         cls,
@@ -1402,20 +1605,11 @@ class ConfigUpdateFactory:
     ) -> _InvertedIndexConfigUpdate:
         """Create an `InvertedIndexConfigUpdate` object.
 
-        Args:
-            `bm25_b`: The `b` parameter of the BM25 ranking algorithm. Defaults to `None`.
-            `bm25_k1`: The `k1` parameter of the BM25 ranking algorithm. Defaults to `None`.
-            `cleanup_interval_seconds`: The interval in seconds at which the inverted index is cleaned up. Defaults to `None`.
-            `index_timestamps`: Whether to index timestamps. Defaults to `None`.
-            `index_property_length`: Whether to index property length. Defaults to `None`.
-            `index_null_state`: Whether to index the null state. Defaults to `None`.
-            `stopwords_preset`: The preset to use for stopwords. Defaults to `None`.
-            `stopwords_additions`: The stopwords to add. Defaults to `None`.
-            `stopwords_removals`: The stopwords to remove. Defaults to `None`.
+        Use this method when defining the `inverted_index_config` argument in `collection.update()`.
 
-        Returns:
-            An `InvertedIndexConfigUpdate` object.
-        """
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
         return _InvertedIndexConfigUpdate(
             bm25=_BM25ConfigUpdate(b=bm25_b, k1=bm25_k1),
             cleanupIntervalSeconds=cleanup_interval_seconds,
@@ -1430,11 +1624,11 @@ class ConfigUpdateFactory:
     def replication(cls, factor: int = 1) -> _ReplicationConfigUpdate:
         """Create a `ReplicationConfigUpdate` object.
 
-        Args:
-            `factor`: The replication factor. Defaults to `1`.
+        Use this method when defining the `replication_config` argument in `collection.update()`.
 
-        Returns:
-            A `ReplicationConfigUpdate` object.
+        Arguments:
+            `factor`
+                The replication factor. Defaults to `1`.
         """
         return _ReplicationConfigUpdate(factor=factor)
 
@@ -1456,6 +1650,13 @@ class ConfigUpdateFactory:
         pq_segments: Optional[int] = None,
         pq_training_limit: Optional[int] = None,
     ) -> _VectorIndexConfigUpdate:
+        """Create a `_VectorIndexConfigUpdate` object.
+
+        Use this method when defining the `vector_index_config` argument in `collection.update()`.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for details!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigUpdate(
             dynamicEfFactor=dynamic_ef_factor,
             dynamicEfMin=dynamic_ef_min,

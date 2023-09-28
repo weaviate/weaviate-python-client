@@ -92,7 +92,28 @@ class _FilterValue(_Filters):
 
 
 class Filter:
+    """Define a filter based on a property to be used when querying a collection.
+
+    Use the `__init__` method to define the path to the property to be filtered on and then
+    use the methods of this class to define the condition to filter on.
+
+    To combine multiple filters, you can use `&` or `|` operators for each `AND` or `OR` operations, e.g.,
+        `Filter("name").equal("John") & Filter("age").greater_than(18)`
+
+    See [the docs](https://weaviate.io/developers/weaviate/search/filters) for more details!
+    """
+
     def __init__(self, path: Union[str, List[str]], length: bool = False):
+        """Initialise the filter.
+
+        Arguments:
+            `path`
+                The path to the property to be filtered on.
+                    This can be a single string in the case of a top-level property or a list of strings in the case of a nested cross-ref property.
+            `length`
+                If `True`, the length of the property will be used in the filter. Defaults to `False`.
+                    This is only valid for properties of type `string` or `text`. The inverted index must also be configured to index the property length.
+        """
         if isinstance(path, str):
             path = [path]
         if length:
@@ -100,9 +121,11 @@ class Filter:
         self.__internal_path = path
 
     def is_none(self, val: bool) -> _FilterValue:
+        """Filter on whether the property is `None`."""
         return _FilterValue(path=self.__internal_path, value=val, operator=_Operator.IS_NULL)
 
     def contains_any(self, val: FilterValuesList) -> _FilterValue:
+        """Filter on whether the property contains any of the given values."""
         return _FilterValue(
             path=self.__internal_path,
             value=val,
@@ -110,6 +133,7 @@ class Filter:
         )
 
     def contains_all(self, val: FilterValuesList) -> _FilterValue:
+        """Filter on whether the property contains all of the given values."""
         return _FilterValue(
             path=self.__internal_path,
             value=val,
@@ -117,15 +141,19 @@ class Filter:
         )
 
     def equal(self, val: FilterValues) -> _FilterValue:
+        """Filter on whether the property is equal to the given value."""
         return _FilterValue(path=self.__internal_path, value=val, operator=_Operator.EQUAL)
 
     def not_equal(self, val: FilterValues) -> _FilterValue:
+        """Filter on whether the property is not equal to the given value."""
         return _FilterValue(path=self.__internal_path, value=val, operator=_Operator.NOT_EQUAL)
 
     def less_than(self, val: FilterValues) -> _FilterValue:
+        """Filter on whether the property is less than the given value."""
         return _FilterValue(path=self.__internal_path, value=val, operator=_Operator.LESS_THAN)
 
     def less_or_equal(self, val: FilterValues) -> _FilterValue:
+        """Filter on whether the property is less than or equal to the given value."""
         return _FilterValue(
             path=self.__internal_path,
             value=val,
@@ -133,6 +161,7 @@ class Filter:
         )
 
     def greater_than(self, val: FilterValues) -> _FilterValue:
+        """Filter on whether the property is greater than the given value."""
         return _FilterValue(
             path=self.__internal_path,
             value=val,
@@ -140,6 +169,7 @@ class Filter:
         )
 
     def greater_or_equal(self, val: FilterValues) -> _FilterValue:
+        """Filter on whether the property is greater than or equal to the given value."""
         return _FilterValue(
             path=self.__internal_path,
             value=val,
@@ -147,4 +177,8 @@ class Filter:
         )
 
     def like(self, val: str) -> _FilterValue:
+        """Filter on whether the property is like the given value.
+
+        This filter can make use of `*` and `?` as wildcards. See [the docs](https://weaviate.io/developers/weaviate/search/filters#by-partial-matches-text) for more details.
+        """
         return _FilterValue(path=self.__internal_path, value=val, operator=_Operator.LIKE)

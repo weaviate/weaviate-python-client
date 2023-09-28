@@ -1,19 +1,22 @@
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Union
+from typing import List, Optional, Union
 
 from pydantic import Field
 
-from weaviate.collection.classes.types import WeaviateInput
+from weaviate.collection.classes.types import _WeaviateInput
 from weaviate.util import BaseEnum
 from weaviate.types import UUID
 
 
 class HybridFusion(str, BaseEnum):
+    """Define how the query's hybrid fusion operation should be performed."""
+
     RANKED = "FUSION_TYPE_RANKED"
     RELATIVE_SCORE = "FUSION_TYPE_RELATIVE_SCORE"
 
 
 class Move:
+    """Define how the query's move operation should be performed."""
+
     def __init__(
         self,
         force: float,
@@ -43,15 +46,17 @@ class Move:
             self.__concepts = concepts
 
     @property
-    def objects_list(self) -> Optional[List[str]]:
+    def _objects_list(self) -> Optional[List[str]]:
         return self.__objects
 
     @property
-    def concepts_list(self) -> Optional[List[str]]:
+    def _concepts_list(self) -> Optional[List[str]]:
         return self.__concepts
 
 
-class MetadataQuery(WeaviateInput):
+class MetadataQuery(_WeaviateInput):
+    """Define which metadata should be returned in the query's results."""
+
     uuid: bool = Field(default=False)
     vector: bool = Field(default=False)
     creation_time_unix: bool = Field(default=False)
@@ -63,18 +68,24 @@ class MetadataQuery(WeaviateInput):
     is_consistent: bool = Field(default=False)
 
 
-class Generate(WeaviateInput):
+class Generate(_WeaviateInput):
+    """Define how the query's RAG capabilities should be performed."""
+
     single_prompt: Optional[str] = Field(default=None)
     grouped_task: Optional[str] = Field(default=None)
     grouped_properties: Optional[List[str]] = Field(default=None)
 
 
-class Sort(WeaviateInput):
+class Sort(_WeaviateInput):
+    """Define how the query's sort operation should be performed."""
+
     prop: str
     ascending: bool = Field(default=True)
 
 
-class FromReference(WeaviateInput):
+class FromReference(_WeaviateInput):
+    """Define a query-time reference to a single-target property when querying through cross-references."""
+
     link_on: str
     return_properties: Optional["PROPERTIES"] = Field(default=None)
     return_metadata: Optional[MetadataQuery] = Field(default=None)
@@ -84,14 +95,10 @@ class FromReference(WeaviateInput):
 
 
 class FromReferenceMultiTarget(FromReference):
+    """Define a query-time reference to a multi-target property when querying through cross-references."""
+
     target_collection: str
 
 
 PROPERTY = Union[str, FromReference]
 PROPERTIES = Union[List[PROPERTY], PROPERTY]
-
-
-@dataclass
-class RefProps:
-    meta: MetadataQuery
-    refs: Dict[str, "RefProps"]
