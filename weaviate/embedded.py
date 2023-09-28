@@ -25,16 +25,19 @@ DEFAULT_BINARY_PATH = str(Path.home() / ".cache/weaviate-embedded/")
 DEFAULT_PERSISTENCE_DATA_PATH = str(Path.home() / ".local/share/weaviate")
 GITHUB_RELEASE_DOWNLOAD_URL = "https://github.com/weaviate/weaviate/releases/download/"
 
+DEFAULT_PORT = 8079
+DEFAULT_GRPC_PORT = 50060
+
 
 @dataclass
 class EmbeddedOptions:
     persistence_data_path: str = os.environ.get("XDG_DATA_HOME", DEFAULT_PERSISTENCE_DATA_PATH)
     binary_path: str = os.environ.get("XDG_CACHE_HOME", DEFAULT_BINARY_PATH)
     version: str = "1.21.1"
-    port: int = 8079
+    port: int = DEFAULT_PORT
     hostname: str = "127.0.0.1"
     additional_env_vars: Optional[Dict[str, str]] = None
-    grpc_port: int = 50060
+    grpc_port: int = DEFAULT_GRPC_PORT
 
 
 def get_random_port() -> int:

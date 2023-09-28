@@ -21,8 +21,6 @@ from weaviate.exceptions import WeaviateEmbeddedInvalidVersion, WeaviateStartUpE
 if platform != "linux" and platform != "darwin":
     pytest.skip("Currently only supported on linux", allow_module_level=True)
 
-GRPC_EMBEDDED_DEFAULT_PORT = 50060
-
 
 def test_embedded__init__(tmp_path):
     assert (
@@ -282,7 +280,7 @@ def test_embedded_with_grpc_port(tmp_path_factory: pytest.TempPathFactory):
             binary_path=tmp_path_factory.mktemp("bin"),
             version="latest",
             port=30668,
-            grpc_port=GRPC_EMBEDDED_DEFAULT_PORT + 1,
+            grpc_port=50061,
         ),
     )
 
@@ -290,7 +288,7 @@ def test_embedded_with_grpc_port(tmp_path_factory: pytest.TempPathFactory):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(1.0)  # we're only pinging the port, 1s is plenty
 
-    assert sock.connect_ex(("127.0.0.1", GRPC_EMBEDDED_DEFAULT_PORT + 1)) == 0  # running
+    assert sock.connect_ex(("127.0.0.1", 50061)) == 0  # running
 
 
 def test_embedded_with_grpc_port_default(tmp_path_factory: pytest.TempPathFactory):
@@ -307,4 +305,4 @@ def test_embedded_with_grpc_port_default(tmp_path_factory: pytest.TempPathFactor
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(1.0)  # we're only pinging the port, 1s is plenty
 
-    assert sock.connect_ex(("127.0.0.1", GRPC_EMBEDDED_DEFAULT_PORT)) == 0  # running
+    assert sock.connect_ex(("127.0.0.1", 50060)) == 0  # running
