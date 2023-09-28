@@ -243,3 +243,16 @@ class TestWeaviateClient(unittest.TestCase):
         self.assertEqual(client.timeout_config, (1, 2))
         client.timeout_config = (4, 20)  # ;)
         self.assertEqual(client.timeout_config, (4, 20))
+
+        # Openai key
+        client.set_apikey(openai_key="your_key")
+        self.assertEqual(client.additional_headers["x-openai-api-key"], "your_key")
+        # Cohere key
+        client.set_apikey(cohere_key="your_key")
+        self.assertEqual(client.additional_headers["x-cohere-api-key"], "your_key")
+        # Huggingface key
+        client.set_apikey(huggingface_key="your_key")
+        self.assertEqual(client.additional_headers["x-huggingface-api-key"], "your_key")
+        # Palm key
+        client.set_apikey(palm_key="your_key")
+        self.assertEqual(client.additional_headers["x-palm-api-key"], "your_key")
