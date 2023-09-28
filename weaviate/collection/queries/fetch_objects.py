@@ -1,9 +1,4 @@
-from typing import (
-    List,
-    Optional,
-    Union,
-    Type,
-)
+from typing import Generic, List, Optional, Union, Type, overload
 
 from weaviate.collection.classes.filters import (
     _Filters,
@@ -14,14 +9,14 @@ from weaviate.collection.classes.grpc import (
     Sort,
 )
 from weaviate.collection.classes.internal import _GenerativeReturn, _QueryReturn, _Generative
-from weaviate.collection.classes.types import (
-    Properties,
-)
+from weaviate.collection.classes.types import Properties, TProperties
 from weaviate.collection.queries.base import _Grpc
+from weaviate.collection.queries.types import GenerativeReturn, QueryReturn, ReturnProperties
 from weaviate.types import UUID
 
 
-class _FetchObjectsQuery(_Grpc):
+class _FetchObjectsQuery(Generic[Properties], _Grpc[Properties]):
+    @overload
     def fetch_objects(
         self,
         limit: Optional[int] = None,
@@ -30,8 +25,35 @@ class _FetchObjectsQuery(_Grpc):
         filters: Optional[_Filters] = None,
         sort: Optional[Union[Sort, List[Sort]]] = None,
         return_metadata: Optional[MetadataQuery] = None,
-        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+        *,
+        return_properties: Optional[PROPERTIES] = None,
     ) -> _QueryReturn[Properties]:
+        ...
+
+    @overload
+    def fetch_objects(
+        self,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+        filters: Optional[_Filters] = None,
+        sort: Optional[Union[Sort, List[Sort]]] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        *,
+        return_properties: Type[TProperties],
+    ) -> _QueryReturn[TProperties]:
+        ...
+
+    def fetch_objects(
+        self,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+        filters: Optional[_Filters] = None,
+        sort: Optional[Union[Sort, List[Sort]]] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[ReturnProperties[TProperties]] = None,
+    ) -> QueryReturn[Properties, TProperties]:
         """Retrieve the objects in this collection without any search.
 
         Arguments:
@@ -60,7 +82,7 @@ class _FetchObjectsQuery(_Grpc):
             `weaviate.exceptions.WeaviateGRPCException`:
                 If the network connection to Weaviate fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties = self._parse_return_properties(return_properties)
         res = self._query().get(
             limit=limit,
             offset=offset,
@@ -70,10 +92,11 @@ class _FetchObjectsQuery(_Grpc):
             return_metadata=return_metadata,
             return_properties=ret_properties,
         )
-        return self._result_to_query_return(res, ret_type)
+        return self._result_to_query_return(res, return_properties)
 
 
-class _FetchObjectsGenerate(_Grpc):
+class _FetchObjectsGenerate(Generic[Properties], _Grpc[Properties]):
+    @overload
     def fetch_objects(
         self,
         single_prompt: Optional[str] = None,
@@ -85,8 +108,40 @@ class _FetchObjectsGenerate(_Grpc):
         filters: Optional[_Filters] = None,
         sort: Optional[Union[Sort, List[Sort]]] = None,
         return_metadata: Optional[MetadataQuery] = None,
-        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+        return_properties: Optional[PROPERTIES] = None,
     ) -> _GenerativeReturn[Properties]:
+        ...
+
+    @overload
+    def fetch_objects(
+        self,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+        filters: Optional[_Filters] = None,
+        sort: Optional[Union[Sort, List[Sort]]] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        *,
+        return_properties: Type[TProperties],
+    ) -> _GenerativeReturn[TProperties]:
+        ...
+
+    def fetch_objects(
+        self,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+        filters: Optional[_Filters] = None,
+        sort: Optional[Union[Sort, List[Sort]]] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[ReturnProperties[TProperties]] = None,
+    ) -> GenerativeReturn[Properties, TProperties]:
         """Perform retrieval-augmented generation (RaG) on the results of a simple get query of objects in this collection.
 
         Arguments:
@@ -121,7 +176,7 @@ class _FetchObjectsGenerate(_Grpc):
             `weaviate.exceptions.WeaviateGRPCException`:
                 If the network connection to Weaviate fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties = self._parse_return_properties(return_properties)
         res = self._query().get(
             limit=limit,
             offset=offset,
@@ -136,4 +191,4 @@ class _FetchObjectsGenerate(_Grpc):
                 grouped_properties=grouped_properties,
             ),
         )
-        return self._result_to_generative_return(res, ret_type)
+        return self._result_to_generative_return(res, return_properties)

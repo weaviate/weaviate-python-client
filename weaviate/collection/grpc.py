@@ -1,4 +1,5 @@
 from typing import (
+    Any,
     Generic,
     List,
     Optional,
@@ -68,8 +69,8 @@ from weaviate_grpc import weaviate_pb2
 
 class _QueryCollection(
     Generic[TProperties],
-    _BM25Query,
-    _FetchObjectsQuery,
+    _BM25Query[TProperties],
+    _FetchObjectsQuery[TProperties],
     _HybridQuery,
     _NearAudioQuery,
     _NearImageQuery,
@@ -85,8 +86,9 @@ class _QueryCollection(
         rest_query: _DataCollection[TProperties],
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
+        type_: Optional[Type[TProperties]],
     ):
-        super().__init__(connection, name, consistency_level, tenant)
+        super().__init__(connection, name, consistency_level, tenant, type_)
         self.__data = rest_query
 
     def fetch_object_by_id(
@@ -137,7 +139,7 @@ class _GroupByCollection(
     pass
 
 
-class _GrpcCollectionModel(Generic[Model], _Grpc):
+class _GrpcCollectionModel(Generic[Model], _Grpc[Any]):
     def __init__(
         self,
         connection: Connection,
@@ -146,7 +148,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
         tenant: Optional[str] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
     ):
-        super().__init__(connection, name, consistency_level, tenant)
+        super().__init__(connection, name, consistency_level, tenant, type_=model)
         self.model = model
 
     def __parse_result(

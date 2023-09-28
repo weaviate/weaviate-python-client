@@ -71,7 +71,7 @@ class _NearVideoQuery(_Grpc):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties = self._parse_return_properties(return_properties)
         res = self._query().near_video(
             video=self._parse_media(near_video),
             certainty=certainty,
@@ -82,7 +82,7 @@ class _NearVideoQuery(_Grpc):
             return_metadata=return_metadata,
             return_properties=ret_properties,
         )
-        return self._result_to_query_return(res, ret_type)
+        return self._result_to_query_return(res, return_properties)
 
 
 class _NearVideoGenerate(_Grpc):
@@ -135,7 +135,7 @@ class _NearVideoGenerate(_Grpc):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties = self._parse_return_properties(return_properties)
         res = self._query().near_video(
             video=self._parse_media(near_video),
             certainty=certainty,
@@ -151,7 +151,7 @@ class _NearVideoGenerate(_Grpc):
             return_metadata=return_metadata,
             return_properties=ret_properties,
         )
-        return self._result_to_generative_return(res, ret_type)
+        return self._result_to_generative_return(res, return_properties)
 
 
 class _NearVideoGroupBy(_Grpc):
@@ -204,7 +204,7 @@ class _NearVideoGroupBy(_Grpc):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties = self._parse_return_properties(return_properties)
         res = self._query().near_video(
             video=self._parse_media(near_video),
             certainty=certainty,
@@ -220,4 +220,4 @@ class _NearVideoGroupBy(_Grpc):
             return_metadata=return_metadata,
             return_properties=ret_properties,
         )
-        return self._result_to_groupby_return(res, ret_type)
+        return self._result_to_groupby_return(res, return_properties)

@@ -66,7 +66,7 @@ class _NearVectorQuery(_Grpc):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties = self._parse_return_properties(return_properties)
         res = self._query().near_vector(
             near_vector=near_vector,
             certainty=certainty,
@@ -77,7 +77,7 @@ class _NearVectorQuery(_Grpc):
             return_metadata=return_metadata,
             return_properties=ret_properties,
         )
-        return self._result_to_query_return(res, ret_type)
+        return self._result_to_query_return(res, return_properties)
 
 
 class _NearVectorGenerate(_Grpc):
@@ -130,7 +130,7 @@ class _NearVectorGenerate(_Grpc):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties = self._parse_return_properties(return_properties)
         res = self._query().near_vector(
             near_vector=near_vector,
             certainty=certainty,
@@ -146,7 +146,7 @@ class _NearVectorGenerate(_Grpc):
             return_metadata=return_metadata,
             return_properties=ret_properties,
         )
-        return self._result_to_generative_return(res, ret_type)
+        return self._result_to_generative_return(res, return_properties)
 
 
 class _NearVectorGroupBy(_Grpc):
@@ -199,7 +199,7 @@ class _NearVectorGroupBy(_Grpc):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties = self._parse_return_properties(return_properties)
         res = self._query().near_vector(
             near_vector=near_vector,
             certainty=certainty,
@@ -215,4 +215,4 @@ class _NearVectorGroupBy(_Grpc):
             return_metadata=return_metadata,
             return_properties=ret_properties,
         )
-        return self._result_to_groupby_return(res, ret_type)
+        return self._result_to_groupby_return(res, return_properties)

@@ -1,9 +1,4 @@
-from typing import (
-    List,
-    Optional,
-    Union,
-    Type,
-)
+from typing import Generic, List, Optional, Type, overload
 
 from weaviate.collection.classes.filters import (
     _Filters,
@@ -14,13 +9,13 @@ from weaviate.collection.classes.internal import (
     _QueryReturn,
     _Generative,
 )
-from weaviate.collection.classes.types import (
-    Properties,
-)
+from weaviate.collection.classes.types import Properties, TProperties
 from weaviate.collection.queries.base import _Grpc
+from weaviate.collection.queries.types import GenerativeReturn, QueryReturn, ReturnProperties
 
 
-class _HybridQuery(_Grpc):
+class _HybridQuery(Generic[Properties], _Grpc[Properties]):
+    @overload
     def hybrid(
         self,
         query: str,
@@ -32,8 +27,40 @@ class _HybridQuery(_Grpc):
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
-        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+        return_properties: Optional[PROPERTIES] = None,
     ) -> _QueryReturn[Properties]:
+        ...
+
+    @overload
+    def hybrid(
+        self,
+        query: str,
+        alpha: Optional[float] = None,
+        vector: Optional[List[float]] = None,
+        query_properties: Optional[List[str]] = None,
+        fusion_type: Optional[HybridFusion] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        *,
+        return_properties: Type[TProperties],
+    ) -> _QueryReturn[TProperties]:
+        ...
+
+    def hybrid(
+        self,
+        query: str,
+        alpha: Optional[float] = None,
+        vector: Optional[List[float]] = None,
+        query_properties: Optional[List[str]] = None,
+        fusion_type: Optional[HybridFusion] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[ReturnProperties[TProperties]] = None,
+    ) -> QueryReturn[Properties, TProperties]:
         """Search for objects in this collection using the hybrid algorithm blending keyword-based BM25 and vector-based similarity.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/hybrid) for a more detailed explanation.
@@ -70,7 +97,7 @@ class _HybridQuery(_Grpc):
             `weaviate.exceptions.WeaviateGRPCException`:
                 If the network connection to Weaviate fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties = self._parse_return_properties(return_properties)
         res = self._query().hybrid(
             query=query,
             alpha=alpha,
@@ -83,10 +110,11 @@ class _HybridQuery(_Grpc):
             return_metadata=return_metadata,
             return_properties=ret_properties,
         )
-        return self._result_to_query_return(res, ret_type)
+        return self._result_to_query_return(res, return_properties)
 
 
-class _HybridGenerate(_Grpc):
+class _HybridGenerate(Generic[Properties], _Grpc[Properties]):
+    @overload
     def hybrid(
         self,
         query: str,
@@ -101,8 +129,46 @@ class _HybridGenerate(_Grpc):
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
-        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+        return_properties: Optional[PROPERTIES] = None,
     ) -> _GenerativeReturn[Properties]:
+        ...
+
+    @overload
+    def hybrid(
+        self,
+        query: str,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        alpha: Optional[float] = None,
+        vector: Optional[List[float]] = None,
+        query_properties: Optional[List[str]] = None,
+        fusion_type: Optional[HybridFusion] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        *,
+        return_properties: Type[TProperties],
+    ) -> _GenerativeReturn[TProperties]:
+        ...
+
+    def hybrid(
+        self,
+        query: str,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        alpha: Optional[float] = None,
+        vector: Optional[List[float]] = None,
+        query_properties: Optional[List[str]] = None,
+        fusion_type: Optional[HybridFusion] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[ReturnProperties[TProperties]] = None,
+    ) -> GenerativeReturn[Properties, TProperties]:
         """Perform retrieval-augmented generation (RaG) on the results of an object search in this collection using the hybrid algorithm blending keyword-based BM25 and vector-based similarity.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/hybrid) for a more detailed explanation.
@@ -145,7 +211,7 @@ class _HybridGenerate(_Grpc):
             `weaviate.exceptions.WeaviateGRPCException`:
                 If the network connection to Weaviate fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties = self._parse_return_properties(return_properties)
         res = self._query().hybrid(
             query=query,
             alpha=alpha,
@@ -163,4 +229,4 @@ class _HybridGenerate(_Grpc):
                 grouped_properties=grouped_properties,
             ),
         )
-        return self._result_to_generative_return(res, ret_type)
+        return self._result_to_generative_return(res, return_properties)

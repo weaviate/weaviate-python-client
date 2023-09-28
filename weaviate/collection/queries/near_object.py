@@ -62,7 +62,7 @@ class _NearObjectQuery(_Grpc):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties = self._parse_return_properties(return_properties)
         res = self._query().near_object(
             near_object=near_object,
             certainty=certainty,
@@ -73,7 +73,7 @@ class _NearObjectQuery(_Grpc):
             return_metadata=return_metadata,
             return_properties=ret_properties,
         )
-        return self._result_to_query_return(res, ret_type)
+        return self._result_to_query_return(res, return_properties)
 
 
 class _NearObjectGenerate(_Grpc):
@@ -120,7 +120,7 @@ class _NearObjectGenerate(_Grpc):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties = self._parse_return_properties(return_properties)
         res = self._query().near_object(
             near_object=near_object,
             certainty=certainty,
@@ -136,7 +136,7 @@ class _NearObjectGenerate(_Grpc):
             return_metadata=return_metadata,
             return_properties=ret_properties,
         )
-        return self._result_to_generative_return(res, ret_type)
+        return self._result_to_generative_return(res, return_properties)
 
 
 class _NearObjectGroupBy(_Grpc):
@@ -189,7 +189,7 @@ class _NearObjectGroupBy(_Grpc):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties = self._parse_return_properties(return_properties)
         res = self._query().near_object(
             near_object=near_object,
             certainty=certainty,
@@ -205,4 +205,4 @@ class _NearObjectGroupBy(_Grpc):
             return_metadata=return_metadata,
             return_properties=ret_properties,
         )
-        return self._result_to_groupby_return(res, ret_type)
+        return self._result_to_groupby_return(res, return_properties)

@@ -1,9 +1,4 @@
-from typing import (
-    List,
-    Optional,
-    Union,
-    Type,
-)
+from typing import Generic, List, Optional, Type, overload
 
 from weaviate.collection.classes.filters import (
     _Filters,
@@ -13,13 +8,13 @@ from weaviate.collection.classes.grpc import (
     PROPERTIES,
 )
 from weaviate.collection.classes.internal import _GenerativeReturn, _QueryReturn, _Generative
-from weaviate.collection.classes.types import (
-    Properties,
-)
+from weaviate.collection.classes.types import Properties, TProperties
 from weaviate.collection.queries.base import _Grpc
+from weaviate.collection.queries.types import GenerativeReturn, QueryReturn, ReturnProperties
 
 
-class _BM25Query(_Grpc):
+class _BM25Query(Generic[Properties], _Grpc[Properties]):
+    @overload
     def bm25(
         self,
         query: str,
@@ -28,8 +23,34 @@ class _BM25Query(_Grpc):
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
-        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+        return_properties: Optional[PROPERTIES] = None,
     ) -> _QueryReturn[Properties]:
+        ...
+
+    @overload
+    def bm25(
+        self,
+        query: str,
+        query_properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        *,
+        return_properties: Type[TProperties]
+    ) -> _QueryReturn[TProperties]:
+        ...
+
+    def bm25(
+        self,
+        query: str,
+        query_properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[ReturnProperties[TProperties]] = None,
+    ) -> QueryReturn[Properties, TProperties]:
         """Search for objects in this collection using the keyword-based BM25 algorithm.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/bm25) for a more detailed explanation.
@@ -60,7 +81,7 @@ class _BM25Query(_Grpc):
             `weaviate.exceptions.WeaviateGRPCException`:
                 If the network connection to Weaviate fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties = self._parse_return_properties(return_properties)
         res = self._query().bm25(
             query=query,
             properties=query_properties,
@@ -70,10 +91,11 @@ class _BM25Query(_Grpc):
             return_metadata=return_metadata,
             return_properties=ret_properties,
         )
-        return self._result_to_query_return(res, ret_type)
+        return self._result_to_query_return(res, return_properties)
 
 
-class _BM25Generate(_Grpc):
+class _BM25Generate(Generic[Properties], _Grpc[Properties]):
+    @overload
     def bm25(
         self,
         query: str,
@@ -85,8 +107,40 @@ class _BM25Generate(_Grpc):
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
-        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+        return_properties: Optional[PROPERTIES] = None,
     ) -> _GenerativeReturn[Properties]:
+        ...
+
+    @overload
+    def bm25(
+        self,
+        query: str,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        query_properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        *,
+        return_properties: Type[TProperties]
+    ) -> _GenerativeReturn[TProperties]:
+        ...
+
+    def bm25(
+        self,
+        query: str,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        query_properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[ReturnProperties[TProperties]] = None,
+    ) -> GenerativeReturn[Properties, TProperties]:
         """Perform retrieval-augmented generation (RaG) on the results of a keyword-based BM25 search of objects in this collection.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/bm25) for a more detailed explanation.
@@ -123,7 +177,7 @@ class _BM25Generate(_Grpc):
             `weaviate.exceptions.WeaviateGRPCException`:
                 If the network connection to Weaviate fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties = self._parse_return_properties(return_properties)
         res = self._query().bm25(
             query=query,
             properties=query_properties,
@@ -138,4 +192,4 @@ class _BM25Generate(_Grpc):
                 grouped_properties=grouped_properties,
             ),
         )
-        return self._result_to_generative_return(res, ret_type)
+        return self._result_to_generative_return(res, return_properties)

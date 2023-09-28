@@ -1,30 +1,33 @@
-from typing import Generic, Iterable, Iterator, List, Optional, Type, Union
+from typing import Callable, Generic, Iterable, Iterator, List, Optional, TypeVar
 from uuid import UUID
 
-from weaviate.collection.classes.grpc import MetadataQuery, PROPERTIES
+from weaviate.collection.classes.grpc import MetadataQuery
 from weaviate.collection.classes.internal import _Object
-from weaviate.collection.classes.types import Properties, TProperties
-from weaviate.collection.grpc import _QueryCollection
+from weaviate.collection.classes.types import Properties
+from weaviate.collection.queries.types import ReturnProperties
 
 
 ITERATOR_CACHE_SIZE = 100
 
+P = TypeVar("P")
 
-class _ObjectIterator(Generic[Properties, TProperties], Iterable[_Object[Properties]]):
+
+class _ObjectIterator(Generic[Properties], Iterable[_Object[Properties]]):
     def __init__(
         self,
-        query: _QueryCollection[TProperties],
+        fetch_objects_query: Callable[
+            [int, Optional[UUID], Optional[MetadataQuery]], List[_Object[Properties]]
+        ],
         return_metadata: Optional[MetadataQuery],
-        return_properties: Optional[Union[PROPERTIES, Type[Properties]]],
+        return_properties: Optional[ReturnProperties[Properties]],
     ) -> None:
-        self.__query = query
+        self.__query = fetch_objects_query
 
         self.__meta = return_metadata
-        self.__props = return_properties
 
         if self.__meta is not None:
             self.__meta.uuid = True
-        elif self.__props is not None:
+        elif return_properties is not None:
             self.__meta = MetadataQuery(uuid=True)
 
         self.__iter_object_cache: List[_Object[Properties]] = []
@@ -37,12 +40,11 @@ class _ObjectIterator(Generic[Properties, TProperties], Iterable[_Object[Propert
 
     def __next__(self) -> _Object[Properties]:
         if len(self.__iter_object_cache) == 0:
-            objects: List[_Object[Properties]] = self.__query.fetch_objects(
-                limit=ITERATOR_CACHE_SIZE,
-                after=self.__iter_object_last_uuid,
-                return_metadata=self.__meta,
-                return_properties=self.__props,
-            ).objects
+            objects = self.__query(
+                ITERATOR_CACHE_SIZE,
+                self.__iter_object_last_uuid,
+                self.__meta,
+            )
             self.__iter_object_cache = objects
             if len(self.__iter_object_cache) == 0:
                 raise StopIteration
