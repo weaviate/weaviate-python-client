@@ -97,6 +97,9 @@ class Filter:
     Use the `__init__` method to define the path to the property to be filtered on and then
     use the methods of this class to define the condition to filter on.
 
+    To combine multiple filters, you can use `&` or `|` operators for each `AND` or `OR` operations, e.g.,
+        `Filter("name").equal("John") & Filter("age").greater_than(18)`
+
     See [the docs](https://weaviate.io/developers/weaviate/search/filters) for more details!
     """
 
@@ -105,11 +108,11 @@ class Filter:
 
         Arguments:
             `path`
-                The path to the property to be filtered on. This can be a single string in the case of a
-                top-level property or a list of strings in the case of a nested cross-ref property.
+                The path to the property to be filtered on.
+                    This can be a single string in the case of a top-level property or a list of strings in the case of a nested cross-ref property.
             `length`
-                If `True`, the length of the property will be used in the filter. This is only valid for
-                properties of type `string` or `text`. Defaults to `False`.
+                If `True`, the length of the property will be used in the filter. Defaults to `False`.
+                    This is only valid for properties of type `string` or `text`. The inverted index must also be configured to index the property length.
         """
         if isinstance(path, str):
             path = [path]

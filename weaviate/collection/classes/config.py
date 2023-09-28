@@ -12,9 +12,9 @@ class ConsistencyLevel(str, Enum):
     """The consistency levels when writing to Weaviate with replication enabled.
 
     Attributes:
-        ALL: Write to all replicas.
-        ONE: Write to one replica.
-        QUORUM: Write to a quorum (`n/2+1`) of replicas.
+        ALL: Wait for confirmation of write success from all, `N`, replicas.
+        ONE: Wait for confirmation of write success from only one replica.
+        QUORUM: Wait for confirmation of write success from a quorum: `N/2+1`, of replicas.
     """
 
     ALL = "ALL"
@@ -65,7 +65,7 @@ class _VectorIndexType(str, Enum):
 
 
 class Tokenization(str, Enum):
-    """The available tokenization methods for text properties in Weaviate.
+    """The available inverted index tokenization methods for text properties in Weaviate.
 
     Attributes:
         `WORD`
@@ -85,45 +85,46 @@ class Tokenization(str, Enum):
 
 
 class Vectorizer(str, Enum):
-    """The available vectorizers in Weaviate.
+    """The available vectorization modules in Weaviate.
 
+    These modules encode binary data into lists of floats called vectors.
     See the [docs](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules) for more details.
 
     Attributes:
         `NONE`
             No vectorizer.
-        `TEXT2VEC_OPENAI`
-            OpenAI's embeddings module for text.
         `TEXT2VEC_COHERE`
-            Cohere's embeddings module for text.
-        `TEXT2VEC_PALM`
-            PaLM's embeddings module for text.
-        `TEXT2VEC_HUGGINGFACE`
-            HuggingFace's embeddings module for text.
-        `TEXT2VEC_TRANSFORMERS`
-            Transformers' embeddings module for text.
+            Weaviate module backed by Cohere text-based embedding models.
         `TEXT2VEC_CONTEXTIONARY`
-            Contextionary's embeddings module for text.
+            Weaviate module backed by Contextionary text-based embedding models.
         `TEXT2VEC_GPT4ALL`
-            GPT-4-All's embeddings module for text.
+            Weaviate module backed by GPT-4-All text-based embedding models.
+        `TEXT2VEC_HUGGINGFACE`
+            Weaviate module backed by HuggingFace text-based embedding models.
+        `TEXT2VEC_OPENAI`
+            Weaviate module backed by OpenAI and Azure-OpenAI text-based embedding models.
+        `TEXT2VEC_PALM`
+            Weaviate module backed by PaLM text-based embedding models.
+        `TEXT2VEC_TRANSFORMERS`
+            Weaviate module backed by Transformers text-based embedding models.
         `IMG2VEC_NEURAL`
-            A ResNet-50 neural network for images.
+            Weaviate module backed by a ResNet-50 neural network for images.
         `MULTI2VEC_CLIP`
-            A Sentence-BERT CLIP model for images and text.
+            Weaviate module backed by a Sentence-BERT CLIP model for images and text.
         `MULTI2VEC_BIND`
-            The ImageBind model for images, text, audio, depth, IMU, thermal, and video.
+            Weaviate module backed by the ImageBind model for images, text, audio, depth, IMU, thermal, and video.
         `REF2VEC_CENTROID`
-            A centroid-based model that calculates an object's vectors from its referenced vectors.
+            Weaviate module backed by a centroid-based model that calculates an object's vectors from its referenced vectors.
     """
 
     NONE = "none"
-    TEXT2VEC_OPENAI = "text2vec-openai"
     TEXT2VEC_COHERE = "text2vec-cohere"
-    TEXT2VEC_PALM = "text2vec-palm"
-    TEXT2VEC_HUGGINGFACE = "text2vec-huggingface"
-    TEXT2VEC_TRANSFORMERS = "text2vec-transformers"
     TEXT2VEC_CONTEXTIONARY = "text2vec-contextionary"
     TEXT2VEC_GPT4ALL = "text2vec-gpt4all"
+    TEXT2VEC_HUGGINGFACE = "text2vec-huggingface"
+    TEXT2VEC_OPENAI = "text2vec-openai"
+    TEXT2VEC_PALM = "text2vec-palm"
+    TEXT2VEC_TRANSFORMERS = "text2vec-transformers"
     IMG2VEC_NEURAL = "img2vec-neural"
     MULTI2VEC_CLIP = "multi2vec-clip"
     MULTI2VEC_BIND = "multi2vec-bind"
@@ -133,13 +134,16 @@ class Vectorizer(str, Enum):
 class GenerativeSearches(str, Enum):
     """The available generative search modules in Weaviate.
 
+    These modules generate text from text-based inputs.
+    See the [docs](https://weaviate.io/developers/weaviate/modules/reader-generator-modules) for more details.
+
     Attributes:
         `OPENAI`
-            OpenAI's Generative module.
+            Weaviate module backed by OpenAI and Azure-OpenAI generative models.
         `COHERE`
-            Cohere's Generative module.
+            Weaviate module backed by Cohere generative models.
         `PALM`
-            PaLM's Generative module.
+            Weaviate module backed by PaLM generative models.
     """
 
     OPENAI = "generative-openai"
@@ -1285,7 +1289,7 @@ class PropertyConfig:  # noqa
 
 
 class Property(_ConfigCreateModel):
-    """This class defines primitive data properties, e.g. integer or float, that a collection can have within Weaviate.
+    """This class defines the structure of a data property that a collection can have within Weaviate.
 
     Attributes:
         `name`
@@ -1301,7 +1305,7 @@ class Property(_ConfigCreateModel):
         `skip_vectorization`
             Whether to skip vectorization of the property. Defaults to `False`.
         `tokenization`
-            The tokenization method to use. Defaults to `None`.
+            The tokenization method to use for the inverted index. Defaults to `None`.
         `vectorize_property_name`
             Whether to vectorize the property name. Defaults to `True`.
     """
