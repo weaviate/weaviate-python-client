@@ -9,6 +9,7 @@ from typing import (
     Generic,
     List,
     Optional,
+    Tuple,
     Type,
     TypeVar,
     Union,
@@ -278,19 +279,19 @@ class _Grpc(Generic[Properties]):
 
     def _parse_return_properties(
         self, return_properties: Optional[ReturnProperties[TProperties]]
-    ) -> Optional[PROPERTIES]:
+    ) -> Tuple[Optional[PROPERTIES], Optional[MetadataQuery]]:
         if (
             isinstance(return_properties, list)
             or isinstance(return_properties, str)
             or isinstance(return_properties, FromReference)
             or (return_properties is None and self._type is None)
         ):
-            return self.__parse_properties(return_properties)
+            return self.__parse_properties(return_properties), None
         elif return_properties is None and self._type is not None:
-            return self.__parse_generic_properties(self._type)
+            return self.__parse_generic_properties(self._type), MetadataQuery._full()
         else:
             assert return_properties is not None
-            return self.__parse_generic_properties(return_properties)
+            return self.__parse_generic_properties(return_properties), None
 
     @staticmethod
     def _parse_media(media: Union[str, pathlib.Path, io.BufferedReader]) -> str:

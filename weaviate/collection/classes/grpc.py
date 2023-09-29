@@ -67,6 +67,20 @@ class MetadataQuery(_WeaviateInput):
     explain_score: bool = Field(default=False)
     is_consistent: bool = Field(default=False)
 
+    @classmethod
+    def _full(cls) -> "MetadataQuery":
+        """Return a MetadataQuery with all fields set to True except for vector."""
+        return cls(
+            uuid=True,
+            creation_time_unix=True,
+            last_update_time_unix=True,
+            distance=True,
+            certainty=True,
+            score=True,
+            explain_score=True,
+            is_consistent=True,
+        )
+
 
 class Generate(_WeaviateInput):
     """Define how the query's RAG capabilities should be performed."""

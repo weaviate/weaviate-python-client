@@ -106,7 +106,7 @@ class _NearTextQuery(Generic[Properties], _Grpc[Properties]):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties = self._parse_return_properties(return_properties)
+        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().near_text(
             near_text=query,
             certainty=certainty,
@@ -116,7 +116,7 @@ class _NearTextQuery(Generic[Properties], _Grpc[Properties]):
             limit=limit,
             autocut=auto_limit,
             filters=filters,
-            return_metadata=return_metadata,
+            return_metadata=return_metadata or ret_metadata,
             return_properties=ret_properties,
         )
         return self._result_to_query_return(res, return_properties)
@@ -220,7 +220,7 @@ class _NearTextGenerate(Generic[Properties], _Grpc[Properties]):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties = self._parse_return_properties(return_properties)
+        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().near_text(
             near_text=query,
             certainty=certainty,
@@ -235,7 +235,7 @@ class _NearTextGenerate(Generic[Properties], _Grpc[Properties]):
                 grouped=grouped_task,
                 grouped_properties=grouped_properties,
             ),
-            return_metadata=return_metadata,
+            return_metadata=return_metadata or ret_metadata,
             return_properties=ret_properties,
         )
         return self._result_to_generative_return(res, return_properties)
@@ -339,7 +339,7 @@ class _NearTextGroupBy(Generic[Properties], _Grpc[Properties]):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties = self._parse_return_properties(return_properties)
+        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().near_text(
             near_text=query,
             certainty=certainty,
@@ -354,7 +354,7 @@ class _NearTextGroupBy(Generic[Properties], _Grpc[Properties]):
                 number_of_groups=number_of_groups,
                 objects_per_group=objects_per_group,
             ),
-            return_metadata=return_metadata,
+            return_metadata=return_metadata or ret_metadata,
             return_properties=ret_properties,
         )
         return self._result_to_groupby_return(res, return_properties)

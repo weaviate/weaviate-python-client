@@ -97,7 +97,7 @@ class _NearVideoQuery(Generic[Properties], _Grpc[Properties]):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties = self._parse_return_properties(return_properties)
+        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().near_video(
             video=self._parse_media(near_video),
             certainty=certainty,
@@ -105,7 +105,7 @@ class _NearVideoQuery(Generic[Properties], _Grpc[Properties]):
             filters=filters,
             limit=limit,
             autocut=auto_limit,
-            return_metadata=return_metadata,
+            return_metadata=return_metadata or ret_metadata,
             return_properties=ret_properties,
         )
         return self._result_to_query_return(res, return_properties)
@@ -196,7 +196,7 @@ class _NearVideoGenerate(Generic[Properties], _Grpc[Properties]):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties = self._parse_return_properties(return_properties)
+        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().near_video(
             video=self._parse_media(near_video),
             certainty=certainty,
@@ -209,7 +209,7 @@ class _NearVideoGenerate(Generic[Properties], _Grpc[Properties]):
             ),
             limit=limit,
             autocut=auto_limit,
-            return_metadata=return_metadata,
+            return_metadata=return_metadata or ret_metadata,
             return_properties=ret_properties,
         )
         return self._result_to_generative_return(res, return_properties)
@@ -300,7 +300,7 @@ class _NearVideoGroupBy(Generic[Properties], _Grpc[Properties]):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties = self._parse_return_properties(return_properties)
+        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().near_video(
             video=self._parse_media(near_video),
             certainty=certainty,
@@ -313,7 +313,7 @@ class _NearVideoGroupBy(Generic[Properties], _Grpc[Properties]):
             ),
             limit=limit,
             autocut=auto_limit,
-            return_metadata=return_metadata,
+            return_metadata=return_metadata or ret_metadata,
             return_properties=ret_properties,
         )
         return self._result_to_groupby_return(res, return_properties)

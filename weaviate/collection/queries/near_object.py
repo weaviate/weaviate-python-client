@@ -93,7 +93,7 @@ class _NearObjectQuery(Generic[Properties], _Grpc[Properties]):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties = self._parse_return_properties(return_properties)
+        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().near_object(
             near_object=near_object,
             certainty=certainty,
@@ -186,7 +186,7 @@ class _NearObjectGenerate(Generic[Properties], _Grpc[Properties]):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties = self._parse_return_properties(return_properties)
+        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().near_object(
             near_object=near_object,
             certainty=certainty,
@@ -199,7 +199,7 @@ class _NearObjectGenerate(Generic[Properties], _Grpc[Properties]):
                 grouped=grouped_task,
                 grouped_properties=grouped_properties,
             ),
-            return_metadata=return_metadata,
+            return_metadata=return_metadata or ret_metadata,
             return_properties=ret_properties,
         )
         return self._result_to_generative_return(res, return_properties)
@@ -290,7 +290,7 @@ class _NearObjectGroupBy(Generic[Properties], _Grpc[Properties]):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties = self._parse_return_properties(return_properties)
+        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().near_object(
             near_object=near_object,
             certainty=certainty,
@@ -303,7 +303,7 @@ class _NearObjectGroupBy(Generic[Properties], _Grpc[Properties]):
                 number_of_groups=number_of_groups,
                 objects_per_group=objects_per_group,
             ),
-            return_metadata=return_metadata,
+            return_metadata=return_metadata or ret_metadata,
             return_properties=ret_properties,
         )
         return self._result_to_groupby_return(res, return_properties)

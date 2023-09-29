@@ -99,7 +99,7 @@ class _HybridQuery(Generic[Properties], _Grpc[Properties]):
             `weaviate.exceptions.WeaviateGRPCException`:
                 If the network connection to Weaviate fails.
         """
-        ret_properties = self._parse_return_properties(return_properties)
+        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().hybrid(
             query=query,
             alpha=alpha,
@@ -109,7 +109,7 @@ class _HybridQuery(Generic[Properties], _Grpc[Properties]):
             limit=limit,
             autocut=auto_limit,
             filters=filters,
-            return_metadata=return_metadata,
+            return_metadata=return_metadata or ret_metadata,
             return_properties=ret_properties,
         )
         return self._result_to_query_return(res, return_properties)
@@ -213,7 +213,7 @@ class _HybridGenerate(Generic[Properties], _Grpc[Properties]):
             `weaviate.exceptions.WeaviateGRPCException`:
                 If the network connection to Weaviate fails.
         """
-        ret_properties = self._parse_return_properties(return_properties)
+        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().hybrid(
             query=query,
             alpha=alpha,
@@ -223,7 +223,7 @@ class _HybridGenerate(Generic[Properties], _Grpc[Properties]):
             limit=limit,
             autocut=auto_limit,
             filters=filters,
-            return_metadata=return_metadata,
+            return_metadata=return_metadata or ret_metadata,
             return_properties=ret_properties,
             generative=_Generative(
                 single=single_prompt,
