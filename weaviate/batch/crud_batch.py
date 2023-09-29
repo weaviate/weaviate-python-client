@@ -7,18 +7,34 @@ import threading
 import time
 import warnings
 from collections import deque
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, Future
 from dataclasses import dataclass
 from numbers import Real
-from typing import Tuple, Callable, Optional, Sequence, Union, List
+from typing import (
+    Any,
+    Callable,
+    Deque,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 
 from requests import ReadTimeout, Response
 from requests.exceptions import ConnectionError as RequestsConnectionError
+from requests.exceptions import HTTPError as RequestsHTTPError
 
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.weaviate_types import UUID
+from weaviate.gql.filter import _find_value_type, VALUE_ARRAY_TYPES, WHERE_OPERATORS
+from weaviate.types import UUID
 from .requests import BatchRequest, ObjectsBatchRequest, ReferenceBatchRequest, BatchResponse
+from ..cluster import Cluster
 from ..error_msgs import (
     BATCH_REF_DEPRECATION_NEW_V14_CLS_NS_W,
     BATCH_REF_DEPRECATION_OLD_V14_CLS_NS_W,
@@ -29,6 +45,8 @@ from ..util import (
     _capitalize_first_letter,
     check_batch_result,
     _check_positive_num,
+    _decode_json_response_dict,
+    _decode_json_response_list,
 )
 from ..warnings import _Warnings
 
@@ -246,47 +264,37 @@ class Batch:
         """
 
         # set all protected attributes
+        self._shutdown_background_event: Optional[threading.Event] = None
+        self._new_dynamic_batching = True
         self._connection = connection
         self._objects_batch = ObjectsBatchRequest()
         self._reference_batch = ReferenceBatchRequest()
         # do not keep too many past values, so it is a better estimation of the throughput is computed for 1 second
-        self._objects_throughput_frame = deque(maxlen=5)
-        self._references_throughput_frame = deque(maxlen=5)
-        self._future_pool = []
-        self._reference_batch_queue = []
+        self._objects_throughput_frame: Deque[float] = deque(maxlen=5)
+        self._references_throughput_frame: Deque[float] = deque(maxlen=5)
+        self._future_pool: List[Future[Tuple[Union[Response, None], int]]] = []
+        self._reference_batch_queue: List[ReferenceBatchRequest] = []
         self._callback_lock = threading.Lock()
 
         # user configurable, need to be public should implement a setter/getter
-        self._recommended_num_objects = None
-        self._recommended_num_references = None
         self._callback: Optional[Callable[[BatchResponse], None]] = check_batch_result
         self._weaviate_error_retry: Optional[WeaviateErrorRetryConf] = None
-        self._batch_size = None
-        self._creation_time = min(self._connection.timeout_config[1] / 10, 2)
+        self._batch_size: Optional[int] = 50
+        self._creation_time = cast(Real, min(self._connection.timeout_config[1] / 10, 2))
         self._timeout_retries = 3
         self._connection_error_retries = 3
-        self._batching_type = None
+        self._batching_type: Optional[str] = "dynamic"
+        self._recommended_num_objects = self._batch_size
+        self._recommended_num_references = self._batch_size
+
         self._num_workers = 1
-        self._consistency_level = None
+        self._consistency_level: Optional[ConsistencyLevel] = None
         # thread pool executor
         self._executor: Optional[BatchExecutor] = None
 
-    def configure(
-        self,
-        batch_size: Optional[int] = None,
-        creation_time: Optional[Real] = None,
-        timeout_retries: int = 3,
-        connection_error_retries: int = 3,
-        weaviate_error_retries: Optional[WeaviateErrorRetryConf] = None,
-        callback: Optional[Callable[[dict], None]] = check_batch_result,
-        dynamic: bool = False,
-        num_workers: int = 1,
-        consistency_level: Optional[ConsistencyLevel] = None,
-    ) -> "Batch":
+    def __call__(self, **kwargs: Any) -> "Batch":
         """
-        Configure the instance to your needs. (`__call__` and `configure` methods are the same).
-        NOTE: It has default values and if you want to change only one use a setter instead, or
-        provide all the configurations.
+        WARNING: This method will be deprecated in the next major release. Use `configure` instead.
 
         Parameters
         ----------
@@ -329,35 +337,28 @@ class Batch:
         ValueError
             If the value of one of the arguments is wrong.
         """
+        _Warnings.use_of_client_batch_will_be_removed_in_next_major_release()
+        return self.configure(**kwargs)
 
-        return self.__call__(
-            batch_size=batch_size,
-            creation_time=creation_time,
-            timeout_retries=timeout_retries,
-            weaviate_error_retries=weaviate_error_retries,
-            connection_error_retries=connection_error_retries,
-            callback=callback,
-            dynamic=dynamic,
-            num_workers=num_workers,
-            consistency_level=consistency_level,
-        )
-
-    def __call__(
+    def configure(
         self,
-        batch_size: Optional[int] = None,
+        batch_size: Optional[int] = 50,
         creation_time: Optional[Real] = None,
         timeout_retries: int = 3,
         connection_error_retries: int = 3,
         weaviate_error_retries: Optional[WeaviateErrorRetryConf] = None,
-        callback: Optional[Callable[[dict], None]] = check_batch_result,
-        dynamic: bool = False,
+        callback: Optional[Callable[[List[dict]], None]] = check_batch_result,
+        dynamic: bool = True,
         num_workers: int = 1,
         consistency_level: Optional[ConsistencyLevel] = None,
     ) -> "Batch":
         """
-        Configure the instance to your needs. (`__call__` and `configure` methods are the same).
-        NOTE: It has default values and if you want to change only one use a setter instead, or
-        provide all the configurations.
+        Warnings
+        --------
+            - It has default values and if you want to change only one use a setter instead or
+        provide all the configurations, both the old and new ones.
+            - This method will return `None` in the next major release. If you are using the returned
+        `Batch` object then you should start using the `client.batch` object instead.
 
         Parameters
         ----------
@@ -367,7 +368,7 @@ class Batch:
             positive number auto-creation is enabled and the value represents: 1) in case `dynamic`
             is False -> the number of data in the Batch (sum of objects and references) when to
             auto-create; 2) in case `dynamic` is True -> the initial value for both
-            `recommended_num_objects` and `recommended_num_references`, by default None
+            `recommended_num_objects` and `recommended_num_references`, by default 50
         creation_time : Real, optional
             How long it should take to create a Batch. Used ONLY for computing dynamic batch sizes. By default None
         timeout_retries : int, optional
@@ -382,7 +383,7 @@ class Batch:
             A callback function on the results of each (objects and references) batch types.
             By default `weaviate.util.check_batch_result`
         dynamic : bool, optional
-            Whether to use dynamic batching or not, by default False
+            Whether to use dynamic batching or not, by default True
         num_workers : int, optional
             The maximal number of concurrent threads to run batch import. Only used for non-MANUAL
             batching. i.e. is used only with AUTO or DYNAMIC batching.
@@ -405,7 +406,7 @@ class Batch:
             _check_positive_num(creation_time, "creation_time", Real)
             self._creation_time = creation_time
         else:
-            self._creation_time = min(self._connection.timeout_config[1] / 10, 2)
+            self._creation_time = cast(Real, min(self._connection.timeout_config[1] / 10, 2))
 
         _check_non_negative(timeout_retries, "timeout_retries", int)
         _check_non_negative(connection_error_retries, "connection_error_retries", int)
@@ -416,7 +417,7 @@ class Batch:
         self._connection_error_retries = connection_error_retries
         self._weaviate_error_retry = weaviate_error_retries
         # set Batch to manual import
-        if batch_size is None:
+        if batch_size is None and not dynamic:
             self._batch_size = None
             self._batching_type = None
             return self
@@ -425,22 +426,78 @@ class Batch:
         _check_positive_num(num_workers, "num_workers", int)
         _check_bool(dynamic, "dynamic")
 
-        self._batch_size = batch_size
-        if dynamic is False:  # set Batch to auto-commit with fixed batch_size
-            self._batching_type = "fixed"
-        else:  # else set to 'dynamic'
-            self._batching_type = "dynamic"
-            self._recommended_num_objects = batch_size
-            self._recommended_num_references = batch_size
-
         if self._num_workers != num_workers:
             self.flush()
             self.shutdown()
             self._num_workers = num_workers
             self.start()
 
+        self._batch_size = batch_size
+
+        if dynamic is False:  # set Batch to auto-commit with fixed batch_size
+            self._batching_type = "fixed"
+        else:  # else set to 'dynamic'
+            self._batching_type = "dynamic"
+            self._recommended_num_objects = 50 if batch_size is None else batch_size
+            self._recommended_num_references = 50 if batch_size is None else batch_size
+            if self._shutdown_background_event is None:
+                self._update_recommended_batch_size()
+
         self._auto_create()
         return self
+
+    def _update_recommended_batch_size(self) -> None:
+        """Create a background thread that periodically checks how congested the batch queue is."""
+        self._shutdown_background_event = threading.Event()
+
+        def periodic_check() -> None:
+            cluster = Cluster(self._connection)
+            while (
+                self._shutdown_background_event is not None
+                and not self._shutdown_background_event.is_set()
+            ):
+                try:
+                    status = cluster.get_nodes_status()
+                    if "stats" not in status[0] or "ratePerSecond" not in status[0]["stats"]:
+                        self._new_dynamic_batching = False
+                        return
+                    rate = status[0]["batchStats"]["ratePerSecond"]
+                    rate_per_worker = rate / self._num_workers
+                    batch_length = status[0]["batchStats"]["queueLength"]
+
+                    if batch_length == 0:  # scale up if queue is empty
+                        self._recommended_num_objects = self._recommended_num_objects + min(
+                            self._recommended_num_objects * 2, 25
+                        )
+                    else:
+                        ratio = batch_length / rate
+                        if (
+                            2.1 > ratio > 1.9
+                        ):  # ideal, send exactly as many objects as weaviate can process
+                            self._recommended_num_objects = rate_per_worker
+                        elif ratio <= 1.9:  # we can send more
+                            self._recommended_num_objects = min(
+                                self._recommended_num_objects * 1.5, rate_per_worker * 2 / ratio
+                            )
+                        elif ratio < 10:  # too high, scale down
+                            self._recommended_num_objects = rate_per_worker * 2 / ratio
+                        else:  # way too high, stop sending new batches
+                            self._recommended_num_objects = 0
+
+                    refresh_time: float = 2
+                except (RequestsHTTPError, ReadTimeout):
+                    refresh_time = 0.1
+
+                time.sleep(refresh_time)
+            self._recommended_num_objects = 10  # in case some batch needs to be send afterwards
+            self._shutdown_background_event = None
+
+        demon = threading.Thread(
+            target=periodic_check,
+            daemon=True,
+            name="batchSizeRefresh",
+        )
+        demon.start()
 
     def add_data_object(
         self,
@@ -611,9 +668,9 @@ class Batch:
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
-        params = {}
+        params: Dict[str, str] = {}
         if self._consistency_level is not None:
-            params["consistency_level"] = self._consistency_level
+            params["consistency_level"] = self._consistency_level.value
 
         try:
             timeout_count = connection_count = batch_error_count = 0
@@ -649,7 +706,8 @@ class Batch:
                     )
                     connection_count += 1
                 else:
-                    response_json = response.json()
+                    response_json = _decode_json_response_list(response, "batch response")
+                    assert response_json is not None
                     if (
                         self._weaviate_error_retry is not None
                         and batch_error_count < self._weaviate_error_retry.number_retries
@@ -680,7 +738,7 @@ class Batch:
             return response
         raise UnexpectedStatusCodeException(f"Create {data_type} in batch", response)
 
-    def _run_callback(self, response: BatchResponse):
+    def _run_callback(self, response: BatchResponse) -> None:
         if self._callback is None:
             return
         # We don't know if user-supplied functions are threadsafe
@@ -707,8 +765,10 @@ class Batch:
         """
 
         if data_type == "objects":
+            assert isinstance(batch_request, ObjectsBatchRequest)
             return self._readd_objects_after_timeout(batch_request)
         else:
+            assert isinstance(batch_request, ReferenceBatchRequest)
             return self._readd_references_after_timeout(batch_request)
 
     def _readd_objects_after_timeout(
@@ -750,7 +810,8 @@ class Batch:
                 path="/objects/" + class_name + "/" + uuid,
             )
 
-            obj_weav = response.json()
+            obj_weav = _decode_json_response_dict(response, "Re-add objects")
+            assert obj_weav is not None
             if obj_weav["properties"] != obj["properties"] or obj.get(
                 "vector", None
             ) != obj_weav.get("vector", None):
@@ -892,9 +953,11 @@ class Batch:
                 self._objects_throughput_frame
             )
 
-            self._recommended_num_objects = round(obj_per_second * self._creation_time)
+            self._recommended_num_objects = max(round(obj_per_second * self._creation_time), 1)
 
-            return response.json()
+            res = _decode_json_response_list(response, "batch add objects")
+            assert res is not None
+            return res
         return []
 
     def create_references(self) -> list:
@@ -989,7 +1052,9 @@ class Batch:
 
             self._recommended_num_references = round(ref_per_sec * self._creation_time)
 
-            return response.json()
+            res = _decode_json_response_list(response, "Create references")
+            assert res is not None
+            return res
         return []
 
     def _flush_in_thread(
@@ -1051,6 +1116,7 @@ class Batch:
             )
             self.start()
 
+        assert self._executor is not None
         future = self._executor.submit(
             self._flush_in_thread,
             data_type="objects",
@@ -1081,14 +1147,22 @@ class Batch:
 
         if timeout_occurred and self._recommended_num_objects is not None:
             self._recommended_num_objects = max(self._recommended_num_objects // 2, 1)
-        elif len(self._objects_throughput_frame) != 0 and self._recommended_num_objects is not None:
+        elif (
+            len(self._objects_throughput_frame) != 0
+            and self._recommended_num_objects is not None
+            and not self._new_dynamic_batching
+        ):
             obj_per_second = (
                 sum(self._objects_throughput_frame) / len(self._objects_throughput_frame) * 0.75
             )
-            self._recommended_num_objects = min(
-                round(obj_per_second * self._creation_time),
-                self._recommended_num_objects + 250,
+            self._recommended_num_objects = max(
+                min(
+                    round(obj_per_second * self._creation_time),
+                    self._recommended_num_objects + 250,
+                ),
+                1,
             )
+
         # Create references after all the objects have been created
         reference_future_pool = []
         for reference_batch in self._reference_batch_queue:
@@ -1111,7 +1185,7 @@ class Batch:
             else:
                 timeout_occurred = True
 
-        if timeout_occurred and self._recommended_num_objects is not None:
+        if timeout_occurred and self._recommended_num_references is not None:
             self._recommended_num_references = max(self._recommended_num_references // 2, 1)
         elif (
             len(self._references_throughput_frame) != 0
@@ -1139,6 +1213,7 @@ class Batch:
 
         # greater or equal in case the self._batch_size is changed manually
         if self._batching_type == "fixed":
+            assert self._batch_size is not None
             if sum(self.shape) >= self._batch_size:
                 self._send_batch_requests(force_wait=False)
             return
@@ -1147,6 +1222,9 @@ class Batch:
                 self.num_objects() >= self._recommended_num_objects
                 or self.num_references() >= self._recommended_num_references
             ):
+                while self._recommended_num_objects == 0:
+                    time.sleep(1)  # block if weaviate is overloaded
+
                 self._send_batch_requests(force_wait=False)
             return
         # just in case
@@ -1244,22 +1322,22 @@ class Batch:
         if not isinstance(class_name, str):
             raise TypeError(f"'class_name' must be of type str. Given type: {type(class_name)}.")
         if not isinstance(where, dict):
-            raise TypeError(f"'where' must be of type dict. Given type: {type(class_name)}.")
+            raise TypeError(f"'where' must be of type dict. Given type: {type(where)}.")
         if not isinstance(output, str):
-            raise TypeError(f"'output' must be of type str. Given type: {type(class_name)}.")
+            raise TypeError(f"'output' must be of type str. Given type: {type(output)}.")
         if not isinstance(dry_run, bool):
-            raise TypeError(f"'dry_run' must be of type bool. Given type: {type(class_name)}.")
+            raise TypeError(f"'dry_run' must be of type bool. Given type: {type(dry_run)}.")
 
-        params = {}
+        params: Dict[str, str] = {}
         if self._consistency_level is not None:
-            params["consistency_level"] = self._consistency_level
+            params["consistency_level"] = self._consistency_level.value
         if tenant is not None:
             params["tenant"] = tenant
 
         payload = {
             "match": {
-                "class": class_name,
-                "where": where,
+                "class": _capitalize_first_letter(class_name),
+                "where": _clean_delete_objects_where(where),
             },
             "output": output,
             "dryRun": dry_run,
@@ -1273,9 +1351,9 @@ class Batch:
             )
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Batch delete was not successful.") from conn_err
-        if response.status_code == 200:
-            return response.json()
-        raise UnexpectedStatusCodeException("Delete in batch", response)
+        res = _decode_json_response_dict(response, "Delete in batch")
+        assert res is not None
+        return res
 
     def num_objects(self) -> int:
         """
@@ -1484,12 +1562,12 @@ class Batch:
         self._auto_create()
 
     @property
-    def consistency_level(self, value: Optional[Union[ConsistencyLevel, None]]) -> Union[str, None]:
-        return self._consistency_level
+    def consistency_level(self) -> Union[str, None]:
+        return self._consistency_level.value if self._consistency_level is not None else None
 
     @consistency_level.setter
-    def consistency_level(self, x: Optional[Union[ConsistencyLevel, None]]) -> None:
-        self._consistency_level = ConsistencyLevel(x).value if x else None
+    def consistency_level(self, x: Optional[Union[ConsistencyLevel, str]]) -> None:
+        self._consistency_level = ConsistencyLevel(x) if x is not None else None
 
     @property
     def recommended_num_objects(self) -> Optional[int]:
@@ -1529,6 +1607,12 @@ class Batch:
 
         if self._executor is None or self._executor.is_shutdown():
             self._executor = BatchExecutor(max_workers=self._num_workers)
+
+        if self._batching_type == "dynamic" and (
+            self._shutdown_background_event is None or self._shutdown_background_event.is_set()
+        ):
+            self._update_recommended_batch_size()
+
         return self
 
     def shutdown(self) -> None:
@@ -1538,10 +1622,13 @@ class Batch:
         if not (self._executor is None or self._executor.is_shutdown()):
             self._executor.shutdown()
 
+        if self._shutdown_background_event is not None:
+            self._shutdown_background_event.set()
+
     def __enter__(self) -> "Batch":
         return self.start()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.flush()
         self.shutdown()
 
@@ -1651,9 +1738,10 @@ class Batch:
         self, response: BatchResponse, data_type: str
     ) -> Tuple[BatchRequestType, BatchResponse]:
         if data_type == "objects":
-            new_batch = ObjectsBatchRequest()
+            new_batch: Union[ObjectsBatchRequest, ReferenceBatchRequest] = ObjectsBatchRequest()
         else:
             new_batch = ReferenceBatchRequest()
+        assert self._weaviate_error_retry is not None
         successful_responses = new_batch.add_failed_objects_from_response(
             response,
             self._weaviate_error_retry.errors_to_exclude,
@@ -1662,17 +1750,20 @@ class Batch:
         return new_batch, successful_responses
 
 
-def _check_non_negative(value: Real, arg_name: str, data_type: type) -> None:
+N = TypeVar("N", bound=Union[int, float, Real])
+
+
+def _check_non_negative(value: N, arg_name: str, data_type: Type[N]) -> None:
     """
     Check if the `value` of the `arg_name` is a non-negative number.
 
     Parameters
     ----------
-    value : Union[int, float]
+    value : N (int, float, Real)
         The value to check.
     arg_name : str
         The name of the variable from the original function call. Used for error message.
-    data_type : type
+    data_type : Type[N]
         The data type to check for.
 
     Raises
@@ -1737,3 +1828,74 @@ def _batch_create_error_handler(retry: int, max_retries: int, error: Exception) 
         flush=True,
     )
     time.sleep((retry + 1) * 2)
+
+
+def _clean_delete_objects_where(where: dict) -> dict:
+    """Converts the Python-defined where filter type into the Weaviate-defined
+    where filter type used in the Batch REST request endpoint.
+
+    Parameters
+    ----------
+    where : dict
+        The Python-defined where filter.
+
+    Returns
+    -------
+    dict
+        The Weaviate-defined where filter.
+    """
+    if "path" in where:
+        py_value_type = _find_value_type(where)
+        weaviate_value_type = _convert_value_type(py_value_type)
+        if "operator" not in where:
+            raise ValueError(
+                "Where filter is missing required field `operator`." f" Given: {where}"
+            )
+        if where["operator"] not in WHERE_OPERATORS:
+            raise ValueError(
+                f"Operator {where['operator']} is not allowed. "
+                f"Allowed operators are: {WHERE_OPERATORS}"
+            )
+        operator = where["operator"]
+        if "Contains" in operator and "Array" not in weaviate_value_type:
+            raise ValueError(
+                f"Operator '{operator}' is not supported for value type '{weaviate_value_type}'. Supported value types are: {VALUE_ARRAY_TYPES}"
+            )
+        where[weaviate_value_type] = where.pop(py_value_type)
+    elif "operands" in where:
+        where["operands"] = [_clean_delete_objects_where(operand) for operand in where["operands"]]
+    else:
+        raise ValueError(
+            "Where is missing required fields `path` or `operands`." f" Given: {where}"
+        )
+    return where
+
+
+def _convert_value_type(_type: str) -> str:
+    """Converts the Python-defined where filter type into the Weaviate-defined
+    where filter type used in the Batch REST request endpoint.
+
+    Parameters
+    ----------
+    _type : str
+        The Python-defined where filter type.
+
+    Returns
+    -------
+    str
+        The Weaviate-defined where filter type.
+    """
+    if _type == "valueTextList":
+        return "valueTextArray"
+    elif _type == "valueStringList":
+        return "valueStringArray"
+    elif _type == "valueIntList":
+        return "valueIntArray"
+    elif _type == "valueNumberList":
+        return "valueNumberArray"
+    elif _type == "valueBooleanList":
+        return "valueBooleanList"
+    elif _type == "valueDateList":
+        return "valueDateArray"
+    else:
+        return _type

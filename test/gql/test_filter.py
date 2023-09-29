@@ -1,7 +1,22 @@
 import unittest
 
 from test.util import check_error_message, check_startswith_error_message
-from weaviate.gql.filter import NearText, NearVector, NearObject, NearImage, Where, Ask
+from weaviate.gql.filter import (
+    NearText,
+    NearVector,
+    NearObject,
+    NearImage,
+    MediaType,
+    NearVideo,
+    NearAudio,
+    NearDepth,
+    NearThermal,
+    NearIMU,
+    Where,
+    Ask,
+    WHERE_OPERATORS,
+    VALUE_TYPES,
+)
 
 
 def helper_get_test_filter(filter_type, value):
@@ -537,8 +552,14 @@ class TestWhere(unittest.TestCase):
         content_error_msg = lambda dt: f"Where filter is expected to be type dict but is {dt}"
         content_key_error_msg = "Filter is missing required fields `path` or `operands`. Given: "
         path_key_error = "Filter is missing required field `operator`. Given: "
-        dtype_no_value_error_msg = "Filter is missing required field 'value<TYPE>': "
+        dtype_no_value_error_msg = "'value<TYPE>' field is either missing or incorrect: "
         dtype_multiple_value_error_msg = "Multiple fields 'value<TYPE>' are not supported: "
+        operator_error_msg = (
+            lambda op: f"Operator {op} is not allowed. Allowed operators are: {', '.join(WHERE_OPERATORS)}"
+        )
+        geo_operator_value_type_mismatch_msg = (
+            lambda op, vt: f"Operator {op} requires a value of type valueGeoRange. Given value type: {vt}"
+        )
 
         with self.assertRaises(TypeError) as error:
             Where(None)
@@ -576,6 +597,16 @@ class TestWhere(unittest.TestCase):
             Where({"operands": ["some_path"], "operator": "Like"})
         check_error_message(self, error, content_error_msg(str))
 
+        with self.assertRaises(ValueError) as error:
+            Where({"path": "some_path", "operator": "NotValid"})
+        check_error_message(self, error, operator_error_msg("NotValid"))
+
+        with self.assertRaises(ValueError) as error:
+            Where({"path": "some_path", "operator": "WithinGeoRange", "valueBoolean": True})
+        check_error_message(
+            self, error, geo_operator_value_type_mismatch_msg("WithinGeoRange", "valueBoolean")
+        )
+
         # test valid calls
         Where({"path": "hasTheOneRing", "operator": "Equal", "valueBoolean": False})
         Where(
@@ -592,6 +623,9 @@ class TestWhere(unittest.TestCase):
         """
         Test the `__str__` method.
         """
+        value_is_not_list_err = (
+            lambda v, t: f"Must provide a list when constructing where filter for {t} with {v}"
+        )
 
         test_filter = {"path": ["name"], "operator": "Equal", "valueString": "A"}
         result = str(Where(test_filter))
@@ -619,6 +653,37 @@ class TestWhere(unittest.TestCase):
         result = str(Where(test_filter))
         self.assertEqual('where: {path: ["name"] operator: Equal valueString: "Test"} ', result)
 
+        test_filter = helper_get_test_filter("valueText", "n\n")
+        result = str(Where(test_filter))
+        self.assertEqual('where: {path: ["name"] operator: Equal valueText: "n "} ', result)
+
+        test_filter = helper_get_test_filter("valueString", 'what is an "airport"?')
+        result = str(Where(test_filter))
+        self.assertEqual(
+            'where: {path: ["name"] operator: Equal valueString: "what is an \\"airport\\"?"} ',
+            result,
+        )
+
+        # test_filter = helper_get_test_filter("valueString", "this is an escape sequence \a")
+        # result = str(Where(test_filter))
+        # self.assertEqual(
+        #     'where: {path: ["name"] operator: Equal valueString: "this is an escape sequence \\u0007"} ',
+        #     result,
+        # )
+
+        # test_filter = helper_get_test_filter("valueString", "this is a hex value \u03A9")
+        # result = str(Where(test_filter))
+        # self.assertEqual(
+        #     'where: {path: ["name"] operator: Equal valueString: "this is a hex value \\u03a9"} ',
+        #     result,
+        # )
+
+        test_filter = helper_get_test_filter("valueText", "what is an 'airport'?")
+        result = str(Where(test_filter))
+        self.assertEqual(
+            'where: {path: ["name"] operator: Equal valueText: "what is an \'airport\'?"} ', result
+        )
+
         test_filter = helper_get_test_filter("valueInt", 1)
         result = str(Where(test_filter))
         self.assertEqual('where: {path: ["name"] operator: Equal valueInt: 1} ', result)
@@ -644,8 +709,65 @@ class TestWhere(unittest.TestCase):
         test_filter = helper_get_test_filter("valueGeoRange", geo_range)
         result = str(Where(test_filter))
         self.assertEqual(
-            'where: {path: ["name"] operator: Equal valueGeoRange: {"geoCoordinates": {"latitude": 51.51, "longitude": -0.09}, "distance": {"max": 2000}}} ',
+            'where: {path: ["name"] operator: Equal valueGeoRange: { geoCoordinates: { latitude: 51.51 longitude: -0.09 } distance: { max: 2000 }}} ',
             str(result),
+        )
+
+        test_filter = {
+            "path": ["name"],
+            "operator": "ContainsAny",
+            "valueTextArray": ["A", "B\n"],
+        }
+        result = str(Where(test_filter))
+        self.assertEqual(
+            'where: {path: ["name"] operator: ContainsAny valueText: ["A","B "]} ', str(result)
+        )
+
+        test_filter = {
+            "path": ["name"],
+            "operator": "ContainsAll",
+            "valueStringArray": ["A", '"B"'],
+        }
+        result = str(Where(test_filter))
+        self.assertEqual(
+            'where: {path: ["name"] operator: ContainsAll valueString: ["A","\\"B\\""]} ',
+            str(result),
+        )
+
+        test_filter = {"path": ["name"], "operator": "ContainsAny", "valueIntArray": [1, 2]}
+        result = str(Where(test_filter))
+        self.assertEqual(
+            'where: {path: ["name"] operator: ContainsAny valueInt: [1, 2]} ', str(result)
+        )
+
+        test_filter = {
+            "path": ["name"],
+            "operator": "ContainsAny",
+            "valueStringArray": "A",
+        }
+        with self.assertRaises(TypeError) as error:
+            str(Where(test_filter))
+        check_error_message(self, error, value_is_not_list_err("A", "valueStringArray"))
+
+        test_filter = {
+            "path": ["name"],
+            "operator": "ContainsAll",
+            "valueTextArray": "A",
+        }
+        with self.assertRaises(TypeError) as error:
+            str(Where(test_filter))
+        check_error_message(self, error, value_is_not_list_err("A", "valueTextArray"))
+
+        test_filter = {
+            "path": ["name"],
+            "operator": "Equal",
+            "valueWrong": "whatever",
+        }
+        with self.assertRaises(ValueError) as error:
+            str(Where(test_filter))
+        assert (
+            error.exception.args[0]
+            == f"'value<TYPE>' field is either missing or incorrect: {test_filter}. Valid values are: {VALUE_TYPES}."
         )
 
 
@@ -814,3 +936,343 @@ class TestAskFilter(unittest.TestCase):
         self.assertEqual(
             str(ask), (f"ask: {{question: \"{content['question']}\"" " rerank: false} ")
         )
+
+
+class TestNearVideo(unittest.TestCase):
+    def test___init__(self):
+        """
+        Test the `__init__` method.
+        """
+
+        # invalid calls
+
+        ## error messages
+        media_type = MediaType.VIDEO
+        arg_name = media_type.value.capitalize()
+        content_error_msg = (
+            lambda dt: f"Near{arg_name} filter is expected to be type dict but is {dt}"
+        )
+        media_key_error_msg = f'"content" is missing the mandatory key "{media_type.value}"!'
+        media_value_error_msg = (
+            lambda dt: f"'{media_type.value}' key-value is expected to be of type <class 'str'> but is {dt}!"
+        )
+        certainty_error_msg = lambda dtype: (
+            f"'certainty' key-value is expected to be of type <class 'float'> but is {dtype}!"
+        )
+
+        with self.assertRaises(TypeError) as error:
+            NearVideo(123)
+        check_error_message(self, error, content_error_msg(int))
+
+        with self.assertRaises(ValueError) as error:
+            NearVideo({"id": "video_path.avi", "certainty": 456})
+        check_error_message(self, error, media_key_error_msg)
+
+        with self.assertRaises(TypeError) as error:
+            NearVideo({"video": True})
+        check_error_message(self, error, media_value_error_msg(bool))
+
+        with self.assertRaises(TypeError) as error:
+            NearVideo({"video": b"True"})
+        check_error_message(self, error, media_value_error_msg(bytes))
+
+        with self.assertRaises(TypeError) as error:
+            NearVideo({"video": "the_encoded_video", "certainty": False})
+        check_error_message(self, error, certainty_error_msg(bool))
+
+        # valid calls
+
+        NearVideo(
+            {
+                "video": "test_video",
+            }
+        )
+
+        NearVideo({"video": "test_video_2", "certainty": 0.7})
+
+    def test___str__(self):
+        """
+        Test the `__str__` method.
+        """
+
+        near_object = NearVideo(
+            {
+                "video": "test_video",
+            }
+        )
+        self.assertEqual(str(near_object), 'nearVideo: {video: "test_video"} ')
+
+        near_object = NearVideo({"video": "test_video", "certainty": 0.7})
+        self.assertEqual(str(near_object), 'nearVideo: {video: "test_video" certainty: 0.7} ')
+
+
+class TestNearAudio(unittest.TestCase):
+    def test___init__(self):
+        """
+        Test the `__init__` method.
+        """
+
+        # invalid calls
+
+        ## error messages
+        media_type = MediaType.AUDIO
+        arg_name = media_type.value.capitalize()
+        content_error_msg = (
+            lambda dt: f"Near{arg_name} filter is expected to be type dict but is {dt}"
+        )
+        media_key_error_msg = f'"content" is missing the mandatory key "{media_type.value}"!'
+        media_value_error_msg = (
+            lambda dt: f"'{media_type.value}' key-value is expected to be of type <class 'str'> but is {dt}!"
+        )
+        certainty_error_msg = lambda dtype: (
+            f"'certainty' key-value is expected to be of type <class 'float'> but is {dtype}!"
+        )
+
+        with self.assertRaises(TypeError) as error:
+            NearAudio(123)
+        check_error_message(self, error, content_error_msg(int))
+
+        with self.assertRaises(ValueError) as error:
+            NearAudio({"id": "audio_path.wav", "certainty": 456})
+        check_error_message(self, error, media_key_error_msg)
+
+        with self.assertRaises(TypeError) as error:
+            NearAudio({"audio": True})
+        check_error_message(self, error, media_value_error_msg(bool))
+
+        with self.assertRaises(TypeError) as error:
+            NearAudio({"audio": b"True"})
+        check_error_message(self, error, media_value_error_msg(bytes))
+
+        with self.assertRaises(TypeError) as error:
+            NearAudio({"audio": "the_encoded_audio", "certainty": False})
+        check_error_message(self, error, certainty_error_msg(bool))
+
+        # valid calls
+
+        NearAudio(
+            {
+                "audio": "test_audio",
+            }
+        )
+
+        NearAudio({"audio": "test_audio_2", "certainty": 0.7})
+
+    def test___str__(self):
+        """
+        Test the `__str__` method.
+        """
+
+        near_object = NearAudio(
+            {
+                "audio": "test_audio",
+            }
+        )
+        self.assertEqual(str(near_object), 'nearAudio: {audio: "test_audio"} ')
+
+        near_object = NearAudio({"audio": "test_audio", "certainty": 0.7})
+        self.assertEqual(str(near_object), 'nearAudio: {audio: "test_audio" certainty: 0.7} ')
+
+
+class TestNearDepth(unittest.TestCase):
+    def test___init__(self):
+        """
+        Test the `__init__` method.
+        """
+
+        # invalid calls
+
+        ## error messages
+        media_type = MediaType.DEPTH
+        arg_name = media_type.value.capitalize()
+        content_error_msg = (
+            lambda dt: f"Near{arg_name} filter is expected to be type dict but is {dt}"
+        )
+        media_key_error_msg = f'"content" is missing the mandatory key "{media_type.value}"!'
+        media_value_error_msg = (
+            lambda dt: f"'{media_type.value}' key-value is expected to be of type <class 'str'> but is {dt}!"
+        )
+        certainty_error_msg = lambda dtype: (
+            f"'certainty' key-value is expected to be of type <class 'float'> but is {dtype}!"
+        )
+
+        with self.assertRaises(TypeError) as error:
+            NearDepth(123)
+        check_error_message(self, error, content_error_msg(int))
+
+        with self.assertRaises(ValueError) as error:
+            NearDepth({"id": "depth_path.png", "certainty": 456})
+        check_error_message(self, error, media_key_error_msg)
+
+        with self.assertRaises(TypeError) as error:
+            NearDepth({"depth": True})
+        check_error_message(self, error, media_value_error_msg(bool))
+
+        with self.assertRaises(TypeError) as error:
+            NearDepth({"depth": b"True"})
+        check_error_message(self, error, media_value_error_msg(bytes))
+
+        with self.assertRaises(TypeError) as error:
+            NearDepth({"depth": "the_encoded_depth", "certainty": False})
+        check_error_message(self, error, certainty_error_msg(bool))
+
+        # valid calls
+
+        NearDepth(
+            {
+                "depth": "test_depth",
+            }
+        )
+
+        NearDepth({"depth": "test_depth_2", "certainty": 0.7})
+
+    def test___str__(self):
+        """
+        Test the `__str__` method.
+        """
+
+        near_object = NearDepth(
+            {
+                "depth": "test_depth",
+            }
+        )
+        self.assertEqual(str(near_object), 'nearDepth: {depth: "test_depth"} ')
+
+        near_object = NearDepth({"depth": "test_depth", "certainty": 0.7})
+        self.assertEqual(str(near_object), 'nearDepth: {depth: "test_depth" certainty: 0.7} ')
+
+
+class TestNearThermal(unittest.TestCase):
+    def test___init__(self):
+        """
+        Test the `__init__` method.
+        """
+
+        # invalid calls
+
+        ## error messages
+        media_type = MediaType.THERMAL
+        arg_name = media_type.value.capitalize()
+        content_error_msg = (
+            lambda dt: f"Near{arg_name} filter is expected to be type dict but is {dt}"
+        )
+        media_key_error_msg = f'"content" is missing the mandatory key "{media_type.value}"!'
+        media_value_error_msg = (
+            lambda dt: f"'{media_type.value}' key-value is expected to be of type <class 'str'> but is {dt}!"
+        )
+        certainty_error_msg = lambda dtype: (
+            f"'certainty' key-value is expected to be of type <class 'float'> but is {dtype}!"
+        )
+
+        with self.assertRaises(TypeError) as error:
+            NearThermal(123)
+        check_error_message(self, error, content_error_msg(int))
+
+        with self.assertRaises(ValueError) as error:
+            NearThermal({"id": "thermal_path.png", "certainty": 456})
+        check_error_message(self, error, media_key_error_msg)
+
+        with self.assertRaises(TypeError) as error:
+            NearThermal({"thermal": True})
+        check_error_message(self, error, media_value_error_msg(bool))
+
+        with self.assertRaises(TypeError) as error:
+            NearThermal({"thermal": b"True"})
+        check_error_message(self, error, media_value_error_msg(bytes))
+
+        with self.assertRaises(TypeError) as error:
+            NearThermal({"thermal": "the_encoded_thermal", "certainty": False})
+        check_error_message(self, error, certainty_error_msg(bool))
+
+        # valid calls
+
+        NearThermal(
+            {
+                "thermal": "test_thermal",
+            }
+        )
+
+        NearThermal({"thermal": "test_thermal_2", "certainty": 0.7})
+
+    def test___str__(self):
+        """
+        Test the `__str__` method.
+        """
+
+        near_object = NearThermal(
+            {
+                "thermal": "test_thermal",
+            }
+        )
+        self.assertEqual(str(near_object), 'nearThermal: {thermal: "test_thermal"} ')
+
+        near_object = NearThermal({"thermal": "test_thermal", "certainty": 0.7})
+        self.assertEqual(str(near_object), 'nearThermal: {thermal: "test_thermal" certainty: 0.7} ')
+
+
+class TestNearIMU(unittest.TestCase):
+    def test___init__(self):
+        """
+        Test the `__init__` method.
+        """
+
+        # invalid calls
+
+        ## error messages
+        media_type = MediaType.IMU
+        arg_name = media_type.value.upper()
+        content_error_msg = (
+            lambda dt: f"Near{arg_name} filter is expected to be type dict but is {dt}"
+        )
+        media_key_error_msg = f'"content" is missing the mandatory key "{media_type.value}"!'
+        media_value_error_msg = (
+            lambda dt: f"'{media_type.value}' key-value is expected to be of type <class 'str'> but is {dt}!"
+        )
+        certainty_error_msg = lambda dtype: (
+            f"'certainty' key-value is expected to be of type <class 'float'> but is {dtype}!"
+        )
+
+        with self.assertRaises(TypeError) as error:
+            NearIMU(123)
+        check_error_message(self, error, content_error_msg(int))
+
+        with self.assertRaises(ValueError) as error:
+            NearIMU({"id": "imu_path.txt", "certainty": 456})
+        check_error_message(self, error, media_key_error_msg)
+
+        with self.assertRaises(TypeError) as error:
+            NearIMU({"imu": True})
+        check_error_message(self, error, media_value_error_msg(bool))
+
+        with self.assertRaises(TypeError) as error:
+            NearIMU({"imu": b"True"})
+        check_error_message(self, error, media_value_error_msg(bytes))
+
+        with self.assertRaises(TypeError) as error:
+            NearIMU({"imu": "the_encoded_imu", "certainty": False})
+        check_error_message(self, error, certainty_error_msg(bool))
+
+        # valid calls
+
+        NearIMU(
+            {
+                "imu": "test_imu",
+            }
+        )
+
+        NearIMU({"imu": "test_imu_2", "certainty": 0.7})
+
+    def test___str__(self):
+        """
+        Test the `__str__` method.
+        """
+
+        near_object = NearIMU(
+            {
+                "imu": "test_imu",
+            }
+        )
+        self.assertEqual(str(near_object), 'nearIMU: {imu: "test_imu"} ')
+
+        near_object = NearIMU({"imu": "test_imu", "certainty": 0.7})
+        self.assertEqual(str(near_object), 'nearIMU: {imu: "test_imu" certainty: 0.7} ')

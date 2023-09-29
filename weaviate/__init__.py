@@ -49,9 +49,11 @@ __all__ = [
     "EmbeddedOptions",
     "Config",
     "ConnectionConfig",
+    "ConnectionParams",
     "AdditionalProperties",
     "LinkTo",
     "Tenant",
+    "TenantActivityStatus",
 ]
 
 import sys
@@ -59,15 +61,16 @@ import sys
 from importlib.metadata import version, PackageNotFoundError
 
 try:
-    __version__ = version("weaviate")
+    __version__ = version("weaviate-client")
 except PackageNotFoundError:
     __version__ = "unknown version"
 
 from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken, AuthApiKey
 from .batch.crud_batch import WeaviateErrorRetryConf
 from .client import Client, CollectionClient
+from .connect.connection import ConnectionParams
 from .data.replication import ConsistencyLevel
-from .schema.crud_schema import Tenant
+from .schema.crud_schema import Tenant, TenantActivityStatus
 from .embedded import EmbeddedOptions
 from .exceptions import (
     UnexpectedStatusCodeException,

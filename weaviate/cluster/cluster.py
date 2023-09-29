@@ -1,15 +1,15 @@
 """
 Cluster class definition.
 """
-from typing import Optional
+from typing import Optional, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.exceptions import (
-    UnexpectedStatusCodeException,
     EmptyResponseException,
 )
+from ..util import _capitalize_first_letter, _decode_json_response_dict
 
 
 class Cluster:
@@ -54,7 +54,7 @@ class Cluster:
         """
         path = "/nodes"
         if class_name is not None:
-            path += "/" + class_name
+            path += "/" + _capitalize_first_letter(class_name)
 
         try:
             response = self._connection.get(path=path)
@@ -63,9 +63,9 @@ class Cluster:
                 "Get nodes status failed due to connection error"
             ) from conn_err
 
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Nodes status", response)
-        nodes = response.json().get("nodes")
+        response_typed = _decode_json_response_dict(response, "Nodes status")
+        assert response_typed is not None
+        nodes = response_typed.get("nodes")
         if nodes is None or nodes == []:
             raise EmptyResponseException("Nodes status response returned empty")
-        return nodes
+        return cast(list, nodes)

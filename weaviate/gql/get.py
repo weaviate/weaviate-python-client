@@ -4,7 +4,7 @@ GraphQL `Get` command.
 from dataclasses import dataclass, Field, fields
 from enum import Enum
 from json import dumps
-from typing import List, Union, Optional, Dict, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 from weaviate import util
 from weaviate.connect import Connection
@@ -19,11 +19,23 @@ from weaviate.gql.filter import (
     Filter,
     Ask,
     NearImage,
+    NearVideo,
+    NearAudio,
+    NearThermal,
+    NearDepth,
+    NearIMU,
+    MediaType,
     Sort,
 )
-from weaviate.util import image_encoder_b64, _capitalize_first_letter, get_valid_uuid, BaseEnum
+from weaviate.util import (
+    image_encoder_b64,
+    _capitalize_first_letter,
+    get_valid_uuid,
+    file_encoder_b64,
+    BaseEnum,
+)
 from weaviate.warnings import _Warnings
-from weaviate.weaviate_types import UUID
+from weaviate.types import UUID
 
 try:
     from weaviate_grpc import weaviate_pb2
@@ -38,7 +50,7 @@ class BM25:
     properties: Optional[List[str]]
 
     def __str__(self) -> str:
-        ret = f'query: "{util.strip_newlines(self.query)}"'
+        ret = f"query: {util._sanitize_str(self.query)}"
         if self.properties is not None and len(self.properties) > 0:
             props = '","'.join(self.properties)
             ret += f', properties: ["{props}"]'
@@ -59,7 +71,7 @@ class Hybrid:
     fusion_type: Optional[HybridFusion]
 
     def __str__(self) -> str:
-        ret = f'query: "{util.strip_newlines(self.query)}"'
+        ret = f"query: {util._sanitize_str(self.query)}"
         if self.vector is not None:
             ret += f", vector: {self.vector}"
         if self.alpha is not None:
@@ -181,7 +193,9 @@ class GetBuilder(GraphQL):
         self._limit: Optional[int] = None  # To store the limit filter if it is added
         self._offset: Optional[str] = None  # To store the offset filter if it is added
         self._after: Optional[str] = None  # To store the offset filter if it is added
-        self._near_ask: Optional[Filter] = None  # To store the `near`/`ask` clause if it is added
+        self._near_clause: Optional[
+            Filter
+        ] = None  # To store the `near`/`ask` clause if it is added
         self._contains_filter = False  # true if any filter is added
         self._sort: Optional[Sort] = None
         self._bm25: Optional[BM25] = None
@@ -190,9 +204,9 @@ class GetBuilder(GraphQL):
         self._alias: Optional[str] = None
         self._tenant: Optional[str] = None
         self._autocut: Optional[int] = None
-        self._consistency_level: Optional[ConsistencyLevel] = None
+        self._consistency_level: Optional[str] = None
 
-    def with_autocut(self, autocut: int):
+    def with_autocut(self, autocut: int) -> "GetBuilder":
         """Cuts off irrelevant results based on "jumps" in scores."""
         if not isinstance(autocut, int):
             raise TypeError("autocut must be of type int")
@@ -201,7 +215,7 @@ class GetBuilder(GraphQL):
         self._contains_filter = True
         return self
 
-    def with_tenant(self, tenant: str):
+    def with_tenant(self, tenant: str) -> "GetBuilder":
         """Sets a tenant for the query."""
         if not isinstance(tenant, str):
             raise TypeError("tenant must be of type str")
@@ -210,12 +224,12 @@ class GetBuilder(GraphQL):
         self._contains_filter = True
         return self
 
-    def with_after(self, after_uuid: UUID):
+    def with_after(self, after_uuid: UUID) -> "GetBuilder":
         """Can be used to extract all elements by giving the last ID from the previous "page".
 
         Requires limit to be set but cannot be combined with any other filters or search. Part of the Cursor API.
         """
-        if not isinstance(after_uuid, UUID.__args__):  # __args__ is workaround for python 3.8
+        if not isinstance(after_uuid, UUID.__args__):  # type: ignore # __args__ is workaround for python 3.8
             raise TypeError("after_uuid must be of type UUID (str or uuid.UUID)")
 
         self._after = f'after: "{get_valid_uuid(after_uuid)}"'
@@ -376,12 +390,12 @@ class GetBuilder(GraphQL):
             If another 'near' filter was already set.
         """
 
-        if self._near_ask is not None:
+        if self._near_clause is not None:
             raise AttributeError(
                 "Cannot use multiple 'near' filters, or a 'near' filter along"
                 " with a 'ask' filter!"
             )
-        self._near_ask = NearText(content)
+        self._near_clause = NearText(content)
         self._contains_filter = True
         return self
 
@@ -444,12 +458,12 @@ class GetBuilder(GraphQL):
             If another 'near' filter was already set.
         """
 
-        if self._near_ask is not None:
+        if self._near_clause is not None:
             raise AttributeError(
                 "Cannot use multiple 'near' filters, or a 'near' filter along"
                 " with a 'ask' filter!"
             )
-        self._near_ask = NearVector(content)
+        self._near_clause = NearVector(content)
         self._contains_filter = True
         return self
 
@@ -493,12 +507,12 @@ class GetBuilder(GraphQL):
 
         is_server_version_14 = self._connection.server_version >= "1.14"
 
-        if self._near_ask is not None:
+        if self._near_clause is not None:
             raise AttributeError(
                 "Cannot use multiple 'near' filters, or a 'near' filter along"
                 " with a 'ask' filter!"
             )
-        self._near_ask = NearObject(content, is_server_version_14)
+        self._near_clause = NearObject(content, is_server_version_14)
         self._contains_filter = True
         return self
 
@@ -509,7 +523,7 @@ class GetBuilder(GraphQL):
         Parameters
         ----------
         content : dict
-            The content of the `nearObject` filter to set. See examples below.
+            The content of the `nearImage` filter to set. See examples below.
         encode : bool, optional
             Whether to encode the `content["image"]` to base64 and convert to string. If True, the
             `content["image"]` can be an image path or a file opened in binary read mode. If False,
@@ -599,14 +613,559 @@ class GetBuilder(GraphQL):
             If another 'near' filter was already set.
         """
 
-        if self._near_ask is not None:
+        if self._near_clause is not None:
             raise AttributeError(
                 "Cannot use multiple 'near' filters, or a 'near' filter along"
                 " with a 'ask' filter!"
             )
         if encode:
             content["image"] = image_encoder_b64(content["image"])
-        self._near_ask = NearImage(content)
+        self._near_clause = NearImage(content)
+        self._contains_filter = True
+        return self
+
+    def with_near_audio(self, content: dict, encode: bool = True) -> "GetBuilder":
+        """
+        Set `nearAudio` filter.
+
+        Parameters
+        ----------
+        content : dict
+            The content of the `nearAudio` filter to set. See examples below.
+        encode : bool, optional
+            Whether to encode the `content["audio"]` to base64 and convert to string. If True, the
+            `content["audio"]` can be an audio path or a file opened in binary read mode. If False,
+            the `content["audio"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
+            string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
+            By default True.
+
+        Examples
+        --------
+        Content prototype:
+
+        >>> content = {
+        ...     'audio': <str or binary read file>,
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ... }
+
+        >>> {
+        ...     'audio': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf",
+        ...     'certainty': 0.7 # or 'distance'
+        ... }
+
+        With `encoded` True:
+
+        >>> content = {
+        ...     'audio': "my_audio_path.wav",
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Audio', 'description')\\
+        ...     .with_near_audio(content, encode=True) # <- encode MUST be set to True
+
+        OR
+
+        >>> my_audio_file = open("my_audio_path.wav", "br")
+        >>> content = {
+        ...     'audio': my_audio_file,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Audio', 'description')\\
+        ...     .with_near_audio(content, encode=True) # <- encode MUST be set to True
+        >>> my_audio_file.close()
+
+        With `encoded` False:
+
+        >>> from weaviate.util import file_encoder_b64
+        >>> encoded_audio = file_encoder_b64("my_audio_path.wav")
+        >>> content = {
+        ...     'audio': encoded_audio,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Audio', 'description')\\
+        ...     .with_near_audio(content, encode=False) # <- encode MUST be set to False
+
+        OR
+
+        >>> from weaviate.util import file_encoder_b64
+        >>> with open("my_audio_path.wav", "br") as my_audio_file:
+        ...     encoded_audio = file_encoder_b64(my_audio_file)
+        >>> content = {
+        ...     'audio': encoded_audio,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Audio', 'description')\\
+        ...     .with_near_audio(content, encode=False) # <- encode MUST be set to False
+
+        Encode Audio yourself:
+
+        >>> import base64
+        >>> with open("my_audio_path.wav", "br") as my_audio_file:
+        ...     encoded_audio = base64.b64encode(my_audio_file.read()).decode("utf-8")
+        >>> content = {
+        ...     'audio': encoded_audio,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Audio', 'description')\\
+        ...     .with_near_audio(content, encode=False) # <- encode MUST be set to False
+
+        Returns
+        -------
+        weaviate.gql.get.GetBuilder
+            The updated GetBuilder.
+
+        Raises
+        ------
+        AttributeError
+            If another 'near' filter was already set.
+        """
+
+        self._media_type = MediaType.AUDIO
+        if self._near_clause is not None:
+            raise AttributeError(
+                "Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!"
+            )
+        if encode:
+            content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
+        self._near_clause = NearAudio(content)
+        self._contains_filter = True
+        return self
+
+    def with_near_video(self, content: dict, encode: bool = True) -> "GetBuilder":
+        """
+        Set `nearVideo` filter.
+
+        Parameters
+        ----------
+        content : dict
+            The content of the `nearVideo` filter to set. See examples below.
+        encode : bool, optional
+            Whether to encode the `content["video"]` to base64 and convert to string. If True, the
+            `content["video"]` can be an video path or a file opened in binary read mode. If False,
+            the `content["video"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
+            string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
+            By default True.
+
+        Examples
+        --------
+        Content prototype:
+
+        >>> content = {
+        ...     'video': <str or binary read file>,
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ... }
+
+        >>> {
+        ...     'video': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf",
+        ...     'certainty': 0.7 # or 'distance'
+        ... }
+
+        With `encoded` True:
+
+        >>> content = {
+        ...     'video': "my_video_path.avi",
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Video', 'description')\\
+        ...     .with_near_video(content, encode=True) # <- encode MUST be set to True
+
+        OR
+
+        >>> my_video_file = open("my_video_path.avi", "br")
+        >>> content = {
+        ...     'video': my_video_file,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Video', 'description')\\
+        ...     .with_near_video(content, encode=True) # <- encode MUST be set to True
+        >>> my_video_file.close()
+
+        With `encoded` False:
+
+        >>> from weaviate.util import file_encoder_b64
+        >>> encoded_video = file_encoder_b64("my_video_path.avi")
+        >>> content = {
+        ...     'video': encoded_video,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Video', 'description')\\
+        ...     .with_near_video(content, encode=False) # <- encode MUST be set to False
+
+        OR
+
+        >>> from weaviate.util import file_encoder_b64, video_decoder_b64
+        >>> with open("my_video_path.avi", "br") as my_video_file:
+        ...     encoded_video = file_encoder_b64(my_video_file)
+        >>> content = {
+        ...     'video': encoded_video,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Video', 'description')\\
+        ...     .with_near_video(content, encode=False) # <- encode MUST be set to False
+
+        Encode Video yourself:
+
+        >>> import base64
+        >>> with open("my_video_path.avi", "br") as my_video_file:
+        ...     encoded_video = base64.b64encode(my_video_file.read()).decode("utf-8")
+        >>> content = {
+        ...     'video': encoded_video,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Video', 'description')\\
+        ...     .with_near_video(content, encode=False) # <- encode MUST be set to False
+
+        Returns
+        -------
+        weaviate.gql.get.GetBuilder
+            The updated GetBuilder.
+
+        Raises
+        ------
+        AttributeError
+            If another 'near' filter was already set.
+        """
+
+        self._media_type = MediaType.VIDEO
+        if self._near_clause is not None:
+            raise AttributeError(
+                "Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!"
+            )
+        if encode:
+            content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
+        self._near_clause = NearVideo(content)
+        self._contains_filter = True
+        return self
+
+    def with_near_depth(self, content: dict, encode: bool = True) -> "GetBuilder":
+        """
+        Set `nearDepth` filter.
+
+        Parameters
+        ----------
+        content : dict
+            The content of the `nearDepth` filter to set. See examples below.
+        encode : bool, optional
+            Whether to encode the `content["depth"]` to base64 and convert to string. If True, the
+            `content["depth"]` can be an depth path or a file opened in binary read mode. If False,
+            the `content["depth"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
+            string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
+            By default True.
+
+        Examples
+        --------
+        Content prototype:
+
+        >>> content = {
+        ...     'depth': <str or binary read file>,
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ... }
+
+        >>> {
+        ...     'depth': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf",
+        ...     'certainty': 0.7 # or 'distance'
+        ... }
+
+        With `encoded` True:
+
+        >>> content = {
+        ...     'depth': "my_depth_path.png",
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Depth', 'description')\\
+        ...     .with_near_depth(content, encode=True) # <- encode MUST be set to True
+
+        OR
+
+        >>> my_depth_file = open("my_depth_path.png", "br")
+        >>> content = {
+        ...     'depth': my_depth_file,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Depth', 'description')\\
+        ...     .with_near_depth(content, encode=True) # <- encode MUST be set to True
+        >>> my_depth_file.close()
+
+        With `encoded` False:
+
+        >>> from weaviate.util import file_encoder_b64
+        >>> encoded_depth = file_encoder_b64("my_depth_path.png")
+        >>> content = {
+        ...     'depth': encoded_depth,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Depth', 'description')\\
+        ...     .with_near_depth(content, encode=False) # <- encode MUST be set to False
+
+        OR
+
+        >>> from weaviate.util import file_encoder_b64
+        >>> with open("my_depth_path.png", "br") as my_depth_file:
+        ...     encoded_depth = file_encoder_b64(my_depth_file)
+        >>> content = {
+        ...     'depth': encoded_depth,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Depth', 'description')\\
+        ...     .with_near_depth(content, encode=False) # <- encode MUST be set to False
+
+        Encode Depth yourself:
+
+        >>> import base64
+        >>> with open("my_depth_path.png", "br") as my_depth_file:
+        ...     encoded_depth = base64.b64encode(my_depth_file.read()).decode("utf-8")
+        >>> content = {
+        ...     'depth': encoded_depth,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Depth', 'description')\\
+        ...     .with_near_depth(content, encode=False) # <- encode MUST be set to False
+
+        Returns
+        -------
+        weaviate.gql.get.GetBuilder
+            The updated GetBuilder.
+
+        Raises
+        ------
+        AttributeError
+            If another 'near' filter was already set.
+        """
+
+        self._media_type = MediaType.DEPTH
+        if self._near_clause is not None:
+            raise AttributeError(
+                "Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!"
+            )
+        if encode:
+            content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
+        self._near_clause = NearDepth(content)
+        self._contains_filter = True
+        return self
+
+    def with_near_thermal(self, content: dict, encode: bool = True) -> "GetBuilder":
+        """
+        Set `nearThermal` filter.
+
+        Parameters
+        ----------
+        content : dict
+            The content of the `nearThermal` filter to set. See examples below.
+        encode : bool, optional
+            Whether to encode the `content["thermal"]` to base64 and convert to string. If True, the
+            `content["thermal"]` can be an thermal path or a file opened in binary read mode. If False,
+            the `content["thermal"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
+            string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
+            By default True.
+
+        Examples
+        --------
+        Content prototype:
+
+        >>> content = {
+        ...     'thermal': <str or binary read file>,
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ... }
+
+        >>> {
+        ...     'thermal': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf",
+        ...     'certainty': 0.7 # or 'distance'
+        ... }
+
+        With `encoded` True:
+
+        >>> content = {
+        ...     'thermal': "my_thermal_path.png",
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Thermal', 'description')\\
+        ...     .with_near_thermal(content, encode=True) # <- encode MUST be set to True
+
+        OR
+
+        >>> my_thermal_file = open("my_thermal_path.png", "br")
+        >>> content = {
+        ...     'thermal': my_thermal_file,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Thermal', 'description')\\
+        ...     .with_near_thermal(content, encode=True) # <- encode MUST be set to True
+        >>> my_thermal_file.close()
+
+        With `encoded` False:
+
+        >>> from weaviate.util import file_encoder_b64
+        >>> encoded_thermal = file_encoder_b64("my_thermal_path.png")
+        >>> content = {
+        ...     'thermal': encoded_thermal,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Thermal', 'description')\\
+        ...     .with_near_thermal(content, encode=False) # <- encode MUST be set to False
+
+        OR
+
+        >>> from weaviate.util import file_encoder_b64
+        >>> with open("my_thermal_path.png", "br") as my_thermal_file:
+        ...     encoded_thermal = file_encoder_b64(my_thermal_file)
+        >>> content = {
+        ...     'thermal': encoded_thermal,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Thermal', 'description')\\
+        ...     .with_near_thermal(content, encode=False) # <- encode MUST be set to False
+
+        Encode Thermal yourself:
+
+        >>> import base64
+        >>> with open("my_thermal_path.png", "br") as my_thermal_file:
+        ...     encoded_thermal = base64.b64encode(my_thermal_file.read()).decode("utf-8")
+        >>> content = {
+        ...     'thermal': encoded_thermal,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('Thermal', 'description')\\
+        ...     .with_near_thermal(content, encode=False) # <- encode MUST be set to False
+
+        Returns
+        -------
+        weaviate.gql.get.GetBuilder
+            The updated GetBuilder.
+
+        Raises
+        ------
+        AttributeError
+            If another 'near' filter was already set.
+        """
+
+        self._media_type = MediaType.THERMAL
+        if self._near_clause is not None:
+            raise AttributeError(
+                "Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!"
+            )
+        if encode:
+            content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
+        self._near_clause = NearThermal(content)
+        self._contains_filter = True
+        return self
+
+    def with_near_imu(self, content: dict, encode: bool = True) -> "GetBuilder":
+        """
+        Set `nearIMU` filter.
+
+        Parameters
+        ----------
+        content : dict
+            The content of the `nearIMU` filter to set. See examples below.
+        encode : bool, optional
+            Whether to encode the `content["thermal"]` to base64 and convert to string. If True, the
+            `content["thermal"]` can be an thermal path or a file opened in binary read mode. If False,
+            the `content["thermal"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
+            string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
+            By default True.
+
+        Examples
+        --------
+        Content prototype:
+
+        >>> content = {
+        ...     'thermal': <str or binary read file>,
+        ...     # certainty ONLY with `cosine` distance specified in the schema
+        ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ... }
+
+        >>> {
+        ...     'thermal': "e5dc4a4c-ef0f-3aed-89a3-a73435c6bbcf",
+        ...     'certainty': 0.7 # or 'distance'
+        ... }
+
+        With `encoded` True:
+
+        >>> content = {
+        ...     'thermal': "my_thermal_path.png",
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('IMU', 'description')\\
+        ...     .with_near_thermal(content, encode=True) # <- encode MUST be set to True
+
+        OR
+
+        >>> my_thermal_file = open("my_thermal_path.png", "br")
+        >>> content = {
+        ...     'thermal': my_thermal_file,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('IMU', 'description')\\
+        ...     .with_near_thermal(content, encode=True) # <- encode MUST be set to True
+        >>> my_thermal_file.close()
+
+        With `encoded` False:
+
+        >>> from weaviate.util import file_encoder_b64
+        >>> encoded_thermal = file_encoder_b64("my_thermal_path.png")
+        >>> content = {
+        ...     'thermal': encoded_thermal,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('IMU', 'description')\\
+        ...     .with_near_thermal(content, encode=False) # <- encode MUST be set to False
+
+        OR
+
+        >>> from weaviate.util import file_encoder_b64
+        >>> with open("my_thermal_path.png", "br") as my_thermal_file:
+        ...     encoded_thermal = file_encoder_b64(my_thermal_file)
+        >>> content = {
+        ...     'thermal': encoded_thermal,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('IMU', 'description')\\
+        ...     .with_near_thermal(content, encode=False) # <- encode MUST be set to False
+
+        Encode IMU yourself:
+
+        >>> import base64
+        >>> with open("my_thermal_path.png", "br") as my_thermal_file:
+        ...     encoded_thermal = base64.b64encode(my_thermal_file.read()).decode("utf-8")
+        >>> content = {
+        ...     'thermal': encoded_thermal,
+        ...     'certainty': 0.7 # or 'distance' instead
+        ... }
+        >>> query = client.query.get('IMU', 'description')\\
+        ...     .with_near_thermal(content, encode=False) # <- encode MUST be set to False
+
+        Returns
+        -------
+        weaviate.gql.get.GetBuilder
+            The updated GetBuilder.
+
+        Raises
+        ------
+        AttributeError
+            If another 'near' filter was already set.
+        """
+
+        self._media_type = MediaType.IMU
+        if self._near_clause is not None:
+            raise AttributeError(
+                "Cannot use multiple 'near' filters, or a 'near' filter along"
+                " with a 'ask' filter!"
+            )
+        if encode:
+            content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
+        self._near_clause = NearIMU(content)
         self._contains_filter = True
         return self
 
@@ -710,12 +1269,12 @@ class GetBuilder(GraphQL):
             The updated GetBuilder.
         """
 
-        if self._near_ask is not None:
+        if self._near_clause is not None:
             raise AttributeError(
                 "Cannot use multiple 'near' filters, or a 'near' filter along"
                 " with a 'ask' filter!"
             )
-        self._near_ask = Ask(content)
+        self._near_clause = Ask(content)
         self._contains_filter = True
         return self
 
@@ -1048,7 +1607,7 @@ class GetBuilder(GraphQL):
         vector: Optional[List[float]] = None,
         properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
-    ):
+    ) -> "GetBuilder":
         """Get objects using bm25 and vector, then combine the results using a reciprocal ranking algorithm.
 
         Parameters
@@ -1130,14 +1689,14 @@ class GetBuilder(GraphQL):
         task_and_prompt = ""
         if single_prompt is not None:
             results.append("singleResult")
-            task_and_prompt += f'singleResult:{{prompt:"{util.strip_newlines(single_prompt)}"}}'
+            task_and_prompt += f"singleResult:{{prompt:{util._sanitize_str(single_prompt)}}}"
         if grouped_task is not None or (
             grouped_properties is not None and len(grouped_properties) > 0
         ):
             results.append("groupedResult")
             args = []
             if grouped_task is not None:
-                args.append(f'task:"{util.strip_newlines(grouped_task)}"')
+                args.append(f"task:{util._sanitize_str(grouped_task)}")
             if grouped_properties is not None and len(grouped_properties) > 0:
                 props = '","'.join(grouped_properties)
                 args.append(f'properties:["{props}"]')
@@ -1150,7 +1709,7 @@ class GetBuilder(GraphQL):
     def with_alias(
         self,
         alias: str,
-    ):
+    ) -> "GetBuilder":
         """Gives an alias for the query. Needs to be used if 'multi_get' requests the same 'class_name' twice.
 
         Parameters
@@ -1162,7 +1721,7 @@ class GetBuilder(GraphQL):
         self._alias = alias
         return self
 
-    def with_consistency_level(self, consistency_level: ConsistencyLevel):
+    def with_consistency_level(self, consistency_level: ConsistencyLevel) -> "GetBuilder":
         """Set the consistency level for the request."""
 
         self._consistency_level = f"consistencyLevel: {consistency_level.value} "
@@ -1199,8 +1758,8 @@ class GetBuilder(GraphQL):
                 query += f"limit: {self._limit} "
             if self._offset is not None:
                 query += self._offset
-            if self._near_ask is not None:
-                query += str(self._near_ask)
+            if self._near_clause is not None:
+                query += str(self._near_clause)
             if self._sort is not None:
                 query += str(self._sort)
             if self._bm25 is not None:
@@ -1253,9 +1812,9 @@ class GetBuilder(GraphQL):
         grpc_enabled = (  # only implemented for some scenarios
             self._connection.grpc_stub is not None
             and (
-                self._near_ask is None
-                or isinstance(self._near_ask, NearVector)
-                or isinstance(self._near_ask, NearObject)
+                self._near_clause is None
+                or isinstance(self._near_clause, NearVector)
+                or isinstance(self._near_clause, NearObject)
             )
             and len(self._additional) == 1
             and (
@@ -1272,29 +1831,31 @@ class GetBuilder(GraphQL):
             )  # no ref props as strings
         )
         if grpc_enabled:
-            metadata = ()
+            metadata: Union[Tuple, Tuple[Tuple[Literal["authorization"], str]]] = ()
             access_token = self._connection.get_current_bearer_token()
             if len(access_token) > 0:
                 metadata = (("authorization", access_token),)
 
             try:
-                res, _ = self._connection.grpc_stub.Search.with_call(
+                res, _ = self._connection.grpc_stub.Search.with_call(  # type: ignore
                     weaviate_pb2.SearchRequest(
                         class_name=self._class_name,
                         limit=self._limit,
                         near_vector=weaviate_pb2.NearVectorParams(
-                            vector=self._near_ask.content["vector"],
-                            certainty=self._near_ask.content.get("certainty", None),
-                            distance=self._near_ask.content.get("distance", None),
+                            vector=self._near_clause.content["vector"],
+                            certainty=self._near_clause.content.get("certainty", None),
+                            distance=self._near_clause.content.get("distance", None),
                         )
-                        if self._near_ask is not None and isinstance(self._near_ask, NearVector)
+                        if self._near_clause is not None
+                        and isinstance(self._near_clause, NearVector)
                         else None,
                         near_object=weaviate_pb2.NearObjectParams(
-                            id=self._near_ask.content["id"],
-                            certainty=self._near_ask.content.get("certainty", None),
-                            distance=self._near_ask.content.get("distance", None),
+                            id=self._near_clause.content["id"],
+                            certainty=self._near_clause.content.get("certainty", None),
+                            distance=self._near_clause.content.get("distance", None),
                         )
-                        if self._near_ask is not None and isinstance(self._near_ask, NearObject)
+                        if self._near_clause is not None
+                        and isinstance(self._near_clause, NearObject)
                         else None,
                         properties=self._convert_references_to_grpc(self._properties),
                         additional_properties=weaviate_pb2.AdditionalProperties(
@@ -1333,7 +1894,9 @@ class GetBuilder(GraphQL):
                         obj["_additional"] = additional
                     objects.append(obj)
 
-                results = {"data": {"Get": {self._class_name: objects}}}
+                results: Union[Dict[str, Dict[str, Dict[str, List]]], Dict[str, List]] = {
+                    "data": {"Get": {self._class_name: objects}}
+                }
 
             except grpc.RpcError as e:
                 results = {"errors": [e.details()]}
@@ -1344,7 +1907,7 @@ class GetBuilder(GraphQL):
     def _extract_additional_properties(
         self, props: "weaviate_pb2.ResultAdditionalProps"
     ) -> Dict[str, str]:
-        additional_props = {}
+        additional_props: Dict[str, Any] = {}
         if self._additional_dataclass is None:
             return additional_props
 
@@ -1377,7 +1940,7 @@ class GetBuilder(GraphQL):
     def _convert_references_to_grpc_result(
         self, properties: "weaviate_pb2.ResultProperties"
     ) -> Dict:
-        result = {}
+        result: Dict[str, Any] = {}
         for name, non_ref_prop in properties.non_ref_properties.items():
             result[name] = non_ref_prop
 
@@ -1395,7 +1958,7 @@ class GetBuilder(GraphQL):
             non_ref_properties=[prop for prop in properties if isinstance(prop, str)],
             ref_properties=[
                 weaviate_pb2.RefProperties(
-                    linked_class=prop.linked_class,
+                    which_collection=prop.linked_class,
                     reference_property=prop.link_on,
                     linked_properties=self._convert_references_to_grpc(prop.properties),
                 )

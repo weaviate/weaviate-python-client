@@ -14,15 +14,16 @@ from weaviate import (
     AuthClientCredentials,
     AuthClientPassword,
     AuthBearerToken,
+    ConnectionParams,
 )
 from weaviate.auth import AuthApiKey
 from weaviate.exceptions import WeaviateStartUpError, UnexpectedStatusCodeException
 
-ANON_PORT = "8080"
-AZURE_PORT = "8081"
-OKTA_PORT_CC = "8082"
-OKTA_PORT_USERS = "8083"
-WCS_PORT = "8085"
+ANON_PORT = 8080
+AZURE_PORT = 8081
+OKTA_PORT_CC = 8082
+OKTA_PORT_USERS = 8083
+WCS_PORT = 8085
 
 
 def wait_for_weaviate(url: str):
@@ -52,10 +53,11 @@ def is_auth_enabled(url: str):
 
 def test_no_auth_provided():
     """Test exception when trying to access a weaviate that requires authentication."""
-    url = "http://127.0.0.1:" + AZURE_PORT
+    connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=AZURE_PORT)
+    url = connection_params._rest_url
     assert is_auth_enabled(url)
     with pytest.raises(AuthenticationFailedException):
-        weaviate.Client(url)
+        weaviate.Client(connection_params)
 
 
 @pytest.mark.parametrize(
@@ -79,10 +81,12 @@ def test_authentication_client_credentials(
     if client_secret is None:
         pytest.skip(f"No {name} login data found.")
 
-    url = "http://127.0.0.1:" + port
+    connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=port)
+    url = connection_params._rest_url
     assert is_auth_enabled(url)
     client = weaviate.Client(
-        url, auth_client_secret=AuthClientCredentials(client_secret=client_secret, scope=scope)
+        connection_params,
+        auth_client_secret=AuthClientCredentials(client_secret=client_secret, scope=scope),
     )
     client.schema.delete_all()  # no exception
 
@@ -106,7 +110,6 @@ def test_authentication_client_credentials(
             "some_scope offline_access",
             False,
         ),
-        ("okta - default scope", "test@test.de", "OKTA_DUMMY_CI_PW", OKTA_PORT_USERS, None, False),
         (
             "okta - no refresh",
             "test@test.de",
@@ -124,7 +127,8 @@ def test_authentication_user_pw(
     # testing for warnings can be flaky without this as there are open SSL conections
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 
-    url = "http://127.0.0.1:" + port
+    connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=port)
+    url = connection_params._rest_url
     assert is_auth_enabled(url)
 
     pw = os.environ.get(env_variable_name)
@@ -136,7 +140,7 @@ def test_authentication_user_pw(
     else:
         auth = AuthClientPassword(username=user, password=pw)
 
-    client = weaviate.Client(url, auth_client_secret=auth)
+    client = weaviate.Client(connection_params, auth_client_secret=auth)
     client.schema.delete_all()  # no exception
     if warning:
         assert len(recwarn) == 1
@@ -188,7 +192,8 @@ def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
 )
 def test_authentication_with_bearer_token(name: str, user: str, env_variable_name: str, port: str):
     """Test authentication using existing bearer token."""
-    url = "http://127.0.0.1:" + port
+    connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=port)
+    url = connection_params._rest_url
     assert is_auth_enabled(url)
     pw = os.environ.get(env_variable_name)
     if pw is None:
@@ -198,7 +203,7 @@ def test_authentication_with_bearer_token(name: str, user: str, env_variable_nam
     token = _get_access_token(url, user, pw)
 
     client = weaviate.Client(
-        url,
+        connection_params,
         auth_client_secret=AuthBearerToken(
             access_token=token["access_token"],
             expires_in=int(token["expires_in"]),
@@ -213,11 +218,12 @@ def test_client_with_authentication_with_anon_weaviate(recwarn):
     # testing for warnings can be flaky without this as there are open SSL conections
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 
-    url = "http://127.0.0.1:" + ANON_PORT
+    connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=ANON_PORT)
+    url = connection_params._rest_url
     assert not is_auth_enabled(url)
 
     client = weaviate.Client(
-        url,
+        connection_params,
         auth_client_secret=AuthClientPassword(username="someUser", password="SomePw"),
     )
 
@@ -236,7 +242,8 @@ def test_bearer_token_without_refresh(recwarn):
     # testing for warnings can be flaky without this as there are open SSL conections
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 
-    url = "http://127.0.0.1:" + WCS_PORT
+    connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=WCS_PORT)
+    url = connection_params._rest_url
     assert is_auth_enabled(url)
     pw = os.environ.get("WCS_DUMMY_CI_PW")
     if pw is None:
@@ -244,7 +251,7 @@ def test_bearer_token_without_refresh(recwarn):
 
     token = _get_access_token(url, "ms_2d0e007e7136de11d5f29fce7a53dae219a51458@existiert.net", pw)
     client = weaviate.Client(
-        url,
+        connection_params,
         auth_client_secret=AuthBearerToken(
             access_token=token["access_token"],
         ),
@@ -258,17 +265,21 @@ def test_bearer_token_without_refresh(recwarn):
 
 
 def test_api_key():
-    url = "http://127.0.0.1:" + WCS_PORT
+    connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=WCS_PORT)
+    url = connection_params._rest_url
     assert is_auth_enabled(url)
 
-    client = weaviate.Client(url, auth_client_secret=AuthApiKey(api_key="my-secret-key"))
+    client = weaviate.Client(
+        connection_params, auth_client_secret=AuthApiKey(api_key="my-secret-key")
+    )
     client.schema.delete_all()  # no exception, client works
 
 
 def test_api_key_wrong_key():
-    url = "http://127.0.0.1:" + WCS_PORT
+    connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=WCS_PORT)
+    url = connection_params._rest_url
     assert is_auth_enabled(url)
 
     with pytest.raises(UnexpectedStatusCodeException) as e:
-        weaviate.Client(url, auth_client_secret=AuthApiKey(api_key="wrong_key"))
+        weaviate.Client(connection_params, auth_client_secret=AuthApiKey(api_key="wrong_key"))
         assert e.value.status_code == 401

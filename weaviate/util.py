@@ -2,25 +2,34 @@
 Helper functions!
 """
 import base64
+import datetime
+import io
 import json
 import os
 import re
 import uuid as uuid_lib
 from enum import Enum, EnumMeta
-from io import BufferedReader
-from typing import Union, Sequence, Any, Optional, List, Dict, Tuple
+from pathlib import Path
+from typing import Union, Sequence, Any, Optional, List, Dict, Generator, Tuple, cast
 
 import requests
 import validators
+from requests.exceptions import JSONDecodeError
 
-from weaviate.exceptions import SchemaValidationException
-from weaviate.weaviate_types import NUMBER, UUIDS
+from weaviate.exceptions import (
+    SchemaValidationException,
+    UnexpectedStatusCodeException,
+    ResponseCannotBeDecodedException,
+)
+from weaviate.warnings import _Warnings
+from weaviate.types import NUMBER, UUIDS, TIME
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"
 MAXIMUM_MINOR_VERSION_DELTA = 3  # The maximum delta between minor versions of Weaviate Client that will not trigger an upgrade warning.
 MINIMUM_NO_WARNING_VERSION = (
     "v1.16.0"  # The minimum version of Weaviate that will not trigger an upgrade warning.
 )
+BYTES_PER_CHUNK = 65535  # The number of bytes to read per chunk when encoding files ~ 64kb
 
 
 # MetaEnum and BaseEnum are required to support `in` statements:
@@ -40,7 +49,7 @@ class BaseEnum(Enum, metaclass=MetaEnum):
     pass
 
 
-def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
+def image_encoder_b64(image_or_image_path: Union[str, io.BufferedReader]) -> str:
     """
     Encode a image in a Weaviate understandable format from a binary read file or by providing
     the image path.
@@ -69,7 +78,7 @@ def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
         with open(image_or_image_path, "br") as file:
             content = file.read()
 
-    elif isinstance(image_or_image_path, BufferedReader):
+    elif isinstance(image_or_image_path, io.BufferedReader):
         content = image_or_image_path.read()
     else:
         raise TypeError(
@@ -77,6 +86,72 @@ def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
             " (io.BufferedReader)"
         )
     return base64.b64encode(content).decode("utf-8")
+
+
+def file_encoder_b64(file_or_file_path: Union[str, Path, io.BufferedReader]) -> str:
+    """
+    Encode a file in a Weaviate understandable format from an io.BufferedReader binary read file or by providing
+    the file path as either a string of a pathlib.Path object
+
+    If you pass an io.BufferedReader object, it is your responsibility to close it after encoding.
+
+    Parameters
+    ----------
+    file_or_file_path : str, pathlib.Path io.BufferedReader
+        The binary read file or the path to the file.
+
+    Returns
+    -------
+    str
+        Encoded file.
+
+    Raises
+    ------
+    ValueError
+        If the argument is str and does not point to an existing file.
+    TypeError
+        If the argument is of a wrong data type.
+    """
+
+    def _chunks(buffer: io.BufferedReader, chunk_size: int) -> Generator[bytes, Any, Any]:
+        while True:
+            data = buffer.read(chunk_size)
+            if not data:
+                break
+            yield data
+
+    should_close_file = False
+    use_buffering = True
+
+    if isinstance(file_or_file_path, str):
+        if not os.path.isfile(file_or_file_path):
+            raise ValueError("No file found at location " + file_or_file_path)
+        file = open(file_or_file_path, "br")
+        should_close_file = True
+        use_buffering = os.path.getsize(file_or_file_path) > BYTES_PER_CHUNK
+    elif isinstance(file_or_file_path, Path):
+        if not file_or_file_path.is_file():
+            raise ValueError("No file found at location " + str(file_or_file_path))
+        file = file_or_file_path.open("br")
+        should_close_file = True
+        use_buffering = file_or_file_path.stat().st_size > BYTES_PER_CHUNK
+    elif isinstance(file_or_file_path, io.BufferedReader):
+        file = file_or_file_path
+    else:
+        raise TypeError(
+            '"file_or_file_path" should be a file path or a binary read file' " (io.BufferedReader)"
+        )
+
+    if use_buffering:
+        encoded: str = ""
+        for chunk in _chunks(file, BYTES_PER_CHUNK):
+            encoded += base64.b64encode(chunk).decode("utf-8")
+    else:
+        encoded = base64.b64encode(file.read()).decode("utf-8")
+
+    if should_close_file:
+        file.close()
+    return encoded
 
 
 def image_decoder_b64(encoded_image: str) -> bytes:
@@ -95,6 +170,26 @@ def image_decoder_b64(encoded_image: str) -> bytes:
     """
 
     return base64.b64decode(encoded_image.encode("utf-8"))
+
+
+def file_decoder_b64(encoded_file: str) -> bytes:
+    """
+    Decode file from a Weaviate format image.
+
+    Parameters
+    ----------
+    encoded_file : str
+        The encoded file.
+
+    Returns
+    -------
+    bytes
+        Decoded file as a binary string. Use this in your file
+        handling code to convert it into a specific file type of choice.
+        E.g., PIL for images.
+    """
+
+    return base64.b64decode(encoded_file.encode("utf-8"))
 
 
 def generate_local_beacon(
@@ -137,7 +232,7 @@ def generate_local_beacon(
 
     if class_name is None:
         return {"beacon": f"weaviate://localhost/{uuid}"}
-    return {"beacon": f"weaviate://localhost/{class_name}/{uuid}"}
+    return {"beacon": f"weaviate://localhost/{_capitalize_first_letter(class_name)}/{uuid}"}
 
 
 def _get_dict_from_object(object_: Union[str, dict]) -> dict:
@@ -176,7 +271,7 @@ def _get_dict_from_object(object_: Union[str, dict]) -> dict:
             # Object is URL
             response = requests.get(object_)
             if response.status_code == 200:
-                return response.json()
+                return cast(dict, response.json())
             raise ValueError("Could not download file " + object_)
 
         if not os.path.isfile(object_):
@@ -184,7 +279,7 @@ def _get_dict_from_object(object_: Union[str, dict]) -> dict:
             raise ValueError("No file found at location " + object_)
         # Object is file
         with open(object_, "r") as file:
-            return json.load(file)
+            return cast(dict, json.load(file))
     raise TypeError(
         "Argument is not of the supported types. Supported types are "
         "url or file path as string or schema as dict."
@@ -520,7 +615,7 @@ def check_batch_result(
 
 
 def _check_positive_num(
-    value: NUMBER, arg_name: str, data_type: type, include_zero: bool = False
+    value: Any, arg_name: str, data_type: type, include_zero: bool = False
 ) -> None:
     """
     Check if the `value` of the `arg_name` is a positive number.
@@ -547,10 +642,10 @@ def _check_positive_num(
     if not isinstance(value, data_type) or isinstance(value, bool):
         raise TypeError(f"'{arg_name}' must be of type {data_type}.")
     if include_zero:
-        if value < 0:
+        if value < 0:  # type: ignore
             raise ValueError(f"'{arg_name}' must be positive, i.e. greater or equal to zero (>=0).")
     else:
-        if value <= 0:
+        if value <= 0:  # type: ignore
             raise ValueError(f"'{arg_name}' must be positive, i.e. greater that zero (>0).")
 
 
@@ -564,6 +659,25 @@ def is_weaviate_domain(url: str) -> bool:
 
 def strip_newlines(s: str) -> str:
     return s.replace("\n", " ")
+
+
+def _sanitize_str(value: str) -> str:
+    """
+    Ensures string is sanitized for GraphQL.
+
+    Parameters
+    ----------
+    value : str
+        The value to be converted.
+
+    Returns
+    -------
+    str
+        The sanitized string.
+    """
+    value = strip_newlines(value)
+    value = re.sub(r'(?<!\\)"', '\\"', value)  # only replaces unescaped double quotes
+    return f'"{value}"'
 
 
 def parse_version_string(ver_str: str) -> tuple:
@@ -669,10 +783,13 @@ def _get_valid_timeout_config(
         If 'timeout_config' is/contains negative number/s.
     """
 
-    def check_number(num: NUMBER):
+    def check_number(num: Union[NUMBER, Tuple[NUMBER, NUMBER], None]) -> bool:
         return isinstance(num, float) or isinstance(num, int)
 
-    if check_number(timeout_config) and not isinstance(timeout_config, bool):
+    if (isinstance(timeout_config, float) or isinstance(timeout_config, int)) and not isinstance(
+        timeout_config, bool
+    ):
+        assert timeout_config is not None
         if timeout_config <= 0.0:
             raise ValueError("'timeout_config' cannot be non-positive number/s!")
         return timeout_config, timeout_config
@@ -707,3 +824,41 @@ def _to_beacons(uuids: UUIDS, to_class: str = "") -> List[Dict[str, str]]:
         to_class = to_class + "/"
 
     return [{"beacon": f"weaviate://localhost/{to_class}{uuid_to}"} for uuid_to in uuids]
+
+
+def _decode_json_response_dict(
+    response: requests.Response, location: str
+) -> Optional[Dict[str, Any]]:
+    if response is None:
+        return None
+
+    if 200 <= response.status_code < 300:
+        try:
+            json_response = cast(Dict[str, Any], response.json())
+            return json_response
+        except JSONDecodeError:
+            raise ResponseCannotBeDecodedException(location, response)
+
+    raise UnexpectedStatusCodeException(location, response)
+
+
+def _decode_json_response_list(
+    response: requests.Response, location: str
+) -> Optional[List[Dict[str, Any]]]:
+    if response is None:
+        return None
+
+    if 200 <= response.status_code < 300:
+        try:
+            json_response = response.json()
+            return cast(list, json_response)
+        except JSONDecodeError:
+            raise ResponseCannotBeDecodedException(location, response)
+    raise UnexpectedStatusCodeException(location, response)
+
+
+def _datetime_to_string(value: TIME) -> str:
+    if value.tzinfo is None:
+        _Warnings.datetime_insertion_with_no_specified_timezone(value)
+        value = value.replace(tzinfo=datetime.timezone.utc)
+    return value.isoformat(sep="T", timespec="microseconds")

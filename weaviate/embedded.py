@@ -15,10 +15,11 @@ from pathlib import Path
 from typing import Dict, Optional
 
 import requests
-import validators as validators
+import validators
 
 from weaviate import exceptions
 from weaviate.exceptions import WeaviateStartUpError
+from weaviate.util import _decode_json_response_dict
 
 DEFAULT_BINARY_PATH = str(Path.home() / ".cache/weaviate-embedded/")
 DEFAULT_PERSISTENCE_DATA_PATH = str(Path.home() / ".local/share/weaviate")
@@ -29,8 +30,8 @@ GITHUB_RELEASE_DOWNLOAD_URL = "https://github.com/weaviate/weaviate/releases/dow
 class EmbeddedOptions:
     persistence_data_path: str = os.environ.get("XDG_DATA_HOME", DEFAULT_PERSISTENCE_DATA_PATH)
     binary_path: str = os.environ.get("XDG_CACHE_HOME", DEFAULT_BINARY_PATH)
-    version: str = "1.19.12"
-    port: int = 6666
+    version: str = "1.21.1"
+    port: int = 8079
     hostname: str = "127.0.0.1"
     additional_env_vars: Optional[Dict[str, str]] = None
 
@@ -58,7 +59,10 @@ class EmbeddedDB:
             r"^\d\.\d{1,2}\.\d{1,2}?(-rc\.\d{1,2}|-beta\.\d{1,2}|-alpha\.\d{1,2}|$)$"
         )
 
-        if validators.url(self.options.version):
+        valid_url = validators.url(self.options.version)
+        if isinstance(valid_url, validators.ValidationError):
+            valid_url = validators.url(self.options.version, simple_host=True)  # for localhost
+        if valid_url:
             if not self.options.version.endswith(".tar.gz") and not self.options.version.endswith(
                 ".zip"
             ):
@@ -76,9 +80,11 @@ class EmbeddedDB:
             self._parsed_weaviate_version = version_tag
             self._set_download_url_from_version_tag(version_tag)
         elif self.options.version == "latest":
-            latest = requests.get(
+            response = requests.get(
                 "https://api.github.com/repos/weaviate/weaviate/releases/latest"
-            ).json()
+            )
+            latest = _decode_json_response_dict(response, "get tag of latest weaviate release")
+            assert latest is not None
             self._set_download_url_from_version_tag(latest["tag_name"])
         else:
             raise exceptions.WeaviateEmbeddedInvalidVersion(self.options.version)
@@ -173,8 +179,8 @@ class EmbeddedDB:
     def check_supported_platform() -> None:
         if platform.system() in ["Windows"]:
             raise WeaviateStartUpError(
-                f"{platform.system()} is not supported with EmbeddedDB. Please upvote the feature request if "
-                f"you want this: https://github.com/weaviate/weaviate-python-client/issues/239"
+                f"{platform.system()} is not supported with EmbeddedDB. Please upvote this feature request if "
+                f"you want this: https://github.com/weaviate/weaviate/issues/3315"
             )
 
     def start(self) -> None:
@@ -192,7 +198,8 @@ class EmbeddedDB:
         my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(get_random_port()))
         my_env.setdefault(
             "ENABLE_MODULES",
-            "text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,generative-openai,qna-openai",
+            "text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,generative-openai,qna-openai,"
+            "reranker-cohere",
         )
 
         # have a deterministic hostname in case of changes in the network name. This allows to run multiple parallel

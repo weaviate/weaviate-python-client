@@ -2,24 +2,46 @@
 Schema class definition.
 """
 from dataclasses import dataclass
-from typing import Union, Optional, List
+from enum import Enum
+from typing import Any, Union, Optional, List, Dict, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.schema.properties import Property
-from weaviate.schema.validate_schema import (
-    validate_schema,
-    check_class,
-    CLASS_KEYS,
-    PROPERTY_KEYS,
-)
 from weaviate.util import (
     _get_dict_from_object,
     _is_sub_schema,
     _capitalize_first_letter,
+    _decode_json_response_dict,
+    _decode_json_response_list,
 )
+
+CLASS_KEYS = {
+    "class",
+    "vectorIndexType",
+    "vectorIndexConfig",
+    "moduleConfig",
+    "description",
+    "vectorizer",
+    "properties",
+    "invertedIndexConfig",
+    "shardingConfig",
+    "replicationConfig",
+    "multiTenancyConfig",
+}
+
+PROPERTY_KEYS = {
+    "dataType",
+    "name",
+    "moduleConfig",
+    "description",
+    "indexInverted",
+    "tokenization",
+    "indexFilterable",
+    "indexSearchable",
+}
 
 _PRIMITIVE_WEAVIATE_TYPES_SET = {
     "string",
@@ -42,17 +64,47 @@ _PRIMITIVE_WEAVIATE_TYPES_SET = {
 }
 
 
+class TenantActivityStatus(str, Enum):
+    """
+    TenantActivityStatus class used to describe the activity status of a tenant in Weaviate.
+
+    Attributes
+    ----------
+    HOT: The tenant is fully active and can be used.
+    COLD: The tenant is not active, files stored locally.
+    """
+
+    HOT = "HOT"
+    COLD = "COLD"
+
+
 @dataclass
 class Tenant:
     """
     Tenant class used to describe a tenant in Weaviate.
 
-    Parameters
+    Attributes
     ----------
+    activity_status : TenantActivityStatus, optional
+        default: "HOT"
     name: the name of the tenant.
     """
 
     name: str
+    activity_status: TenantActivityStatus = TenantActivityStatus.HOT
+
+    def _to_weaviate_object(self) -> Dict[str, str]:
+        return {
+            "activityStatus": self.activity_status,
+            "name": self.name,
+        }
+
+    @classmethod
+    def _from_weaviate_object(cls, weaviate_object: Dict[str, Any]) -> "Tenant":
+        return cls(
+            name=weaviate_object["name"],
+            activity_status=TenantActivityStatus(weaviate_object.get("activityStatus", "HOT")),
+        )
 
 
 class Schema:
@@ -143,8 +195,6 @@ class Schema:
         """
 
         loaded_schema = _get_dict_from_object(schema)
-        # validate the schema before loading
-        validate_schema(loaded_schema)
         self._create_classes_with_primitives(loaded_schema["classes"])
         self._create_complex_properties_from_classes(loaded_schema["classes"])
 
@@ -197,8 +247,6 @@ class Schema:
         """
 
         loaded_schema_class = _get_dict_from_object(schema_class)
-        # validate the class before loading
-        check_class(loaded_schema_class)
         self._create_class_with_primitives(loaded_schema_class)
         self._create_complex_properties_from_class(loaded_schema_class)
 
@@ -404,7 +452,6 @@ class Schema:
         class_name = _capitalize_first_letter(class_name)
         class_schema = self.get(class_name)
         new_class_schema = _update_nested_dict(class_schema, config)
-        check_class(new_class_schema)
 
         path = "/schema/" + class_name
         try:
@@ -416,7 +463,7 @@ class Schema:
         if response.status_code != 200:
             raise UnexpectedStatusCodeException("Update class schema configuration", response)
 
-    def get(self, class_name: str = None) -> dict:
+    def get(self, class_name: Optional[str] = None) -> dict:
         """
         Get the schema from Weaviate.
 
@@ -520,9 +567,10 @@ class Schema:
             response = self._connection.get(path=path)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Schema could not be retrieved.") from conn_err
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Get schema", response)
-        return response.json()
+
+        res = _decode_json_response_dict(response, "Get schema")
+        assert res is not None
+        return res
 
     def get_class_shards(self, class_name: str) -> list:
         """
@@ -565,9 +613,10 @@ class Schema:
             raise RequestsConnectionError(
                 "Class shards' status could not be retrieved due to connection error."
             ) from conn_err
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Get shards' status", response)
-        return response.json()
+
+        res = _decode_json_response_list(response, "Get shards' status")
+        assert res is not None
+        return res
 
     def update_class_shard(
         self,
@@ -660,16 +709,14 @@ class Schema:
                     f"Class shards' status could not be updated for shard '{_shard_name}' due to "
                     "connection error."
                 ) from conn_err
-            if response.status_code != 200:
-                raise UnexpectedStatusCodeException(
-                    f"Update shard '{_shard_name}' status",
-                    response,
-                )
-            to_return.append(response.json())
+
+            to_return.append(
+                _decode_json_response_dict(response, f"Update shard '{_shard_name}' status")
+            )
 
         if shard_name is None:
             return to_return
-        return to_return[0]
+        return cast(list, to_return[0])
 
     def _create_complex_properties_from_class(self, schema_class: dict) -> None:
         """
@@ -807,9 +854,9 @@ class Schema:
             If Weaviate reports a non-OK status.
         """
 
-        loaded_tenants = [{"name": tenant.name} for tenant in tenants]
+        loaded_tenants = [tenant._to_weaviate_object() for tenant in tenants]
 
-        path = "/schema/" + class_name + "/tenants"
+        path = f"/schema/{_capitalize_first_letter(class_name)}/tenants"
         try:
             response = self._connection.post(path=path, weaviate_object=loaded_tenants)
         except RequestsConnectionError as conn_err:
@@ -843,7 +890,7 @@ class Schema:
         weaviate.UnexpectedStatusCodeException
             If Weaviate reports a non-OK status.
         """
-        path = "/schema/" + class_name + "/tenants"
+        path = f"/schema/{_capitalize_first_letter(class_name)}/tenants"
         try:
             response = self._connection.delete(path=path, weaviate_object=tenants)
         except RequestsConnectionError as conn_err:
@@ -872,16 +919,68 @@ class Schema:
         weaviate.UnexpectedStatusCodeException
             If Weaviate reports a non-OK status.
         """
-        path = "/schema/" + class_name + "/tenants"
+        path = f"/schema/{_capitalize_first_letter(class_name)}/tenants"
         try:
             response = self._connection.get(path=path)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Could not get class tenants.") from conn_err
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Get classes tenants", response)
 
-        tenant_resp = response.json()
-        return [Tenant(tenant["name"]) for tenant in tenant_resp]
+        tenant_resp = _decode_json_response_list(response, "Get class tenants")
+        assert tenant_resp is not None
+        return [Tenant._from_weaviate_object(tenant) for tenant in tenant_resp]
+
+    def update_class_tenants(self, class_name: str, tenants: List[Tenant]) -> None:
+        """Update class tenants.
+
+        Use this when you want to move tenants from one activity state to another.
+
+        Parameters
+        ----------
+        class_name : str
+            The class for which we update tenants.
+        tenants : List[Tenant]
+            List of Tenants.
+
+        Examples
+        --------
+        >>> client.schema.add_class_tenants(
+                "class_name",
+                [
+                    Tenant(activity_status=TenantActivityStatus.HOT, name="Tenant1")),
+                    Tenant(activity_status=TenantActivityStatus.COLD, name="Tenant2"))
+                    Tenant(name="Tenant3")
+                ]
+            )
+        >>> client.schema.update_class_tenants(
+                "class_name",
+                [
+                    Tenant(activity_status=TenantActivityStatus.COLD, name="Tenant1")),
+                    Tenant(activity_status=TenantActivityStatus.HOT, name="Tenant2"))
+                ]
+            )
+        >>> client.schema.get_class_tenants("class_name")
+        [
+            Tenant(activity_status=TenantActivityStatus.COLD, name="Tenant1")),
+            Tenant(activity_status=TenantActivityStatus.HOT, name="Tenant2")),
+            Tenant(activity_status=TenantActivityStatus.HOT, name="Tenant3"))
+        ]
+
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to Weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If Weaviate reports a non-OK status.
+        """
+        path = f"/schema/{_capitalize_first_letter(class_name)}/tenants"
+        loaded_tenants = [tenant._to_weaviate_object() for tenant in tenants]
+        try:
+            response = self._connection.put(path=path, weaviate_object=loaded_tenants)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Could not update class tenants.") from conn_err
+        if response.status_code != 200:
+            raise UnexpectedStatusCodeException("Update classes tenants", response)
 
 
 def _property_is_primitive(data_type_list: list) -> bool:

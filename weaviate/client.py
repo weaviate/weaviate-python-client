@@ -10,10 +10,10 @@ from .backup import Backup
 from .batch import Batch
 from .classification import Classification
 from .cluster import Cluster
-from .collection import Collection
-from .collection.collection_model import CollectionModel
+from .collection import _Collection
+from .collection.collection_model import _CollectionModel
 from .config import Config
-from .connect.connection import Connection, TIMEOUT_TYPE_RETURN, GRPCConnection
+from .connect.connection import Connection, ConnectionParams, GRPCConnection, TIMEOUT_TYPE_RETURN
 from .contextionary import Contextionary
 from .data import DataObject
 from .embedded import EmbeddedDB, EmbeddedOptions
@@ -21,7 +21,7 @@ from .exceptions import UnexpectedStatusCodeException
 from .gql import Query
 from .schema import Schema
 from .util import _get_valid_timeout_config, _type_request_response
-from .weaviate_types import NUMBER
+from .types import NUMBER
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
@@ -104,24 +104,35 @@ class _ClientBase:
         raise UnexpectedStatusCodeException("Meta endpoint", response)
 
     @staticmethod
-    def _parse_url_and_embedded_db(
-        url: Optional[str], embedded_options: Optional[EmbeddedOptions]
-    ) -> Tuple[str, Optional[EmbeddedDB]]:
-        if embedded_options is None and url is None:
-            raise TypeError("Either url or embedded options must be present.")
-        elif embedded_options is not None and url is not None:
+    def _parse_connection_params_and_embedded_db(
+        connection_params: Optional[ConnectionParams], embedded_options: Optional[EmbeddedOptions]
+    ) -> Tuple[ConnectionParams, Optional[EmbeddedDB]]:
+        if connection_params is None and embedded_options is None:
+            raise TypeError("Either connection_params or embedded_options must be present.")
+        elif connection_params is not None and embedded_options is not None:
             raise TypeError(
-                f"URL is not expected to be set when using embedded_options but URL was {url}"
+                f"connection_params is not expected to be set when using embedded_options but connection_params was {connection_params}"
             )
 
         if embedded_options is not None:
             embedded_db = EmbeddedDB(options=embedded_options)
             embedded_db.start()
-            return f"http://localhost:{embedded_db.options.port}", embedded_db
+            return (
+                ConnectionParams(
+                    scheme="http",
+                    host="localhost",
+                    port=embedded_db.options.port,
+                    grpc_port=50051,
+                ),
+                embedded_db,
+            )
 
-        if not isinstance(url, str):
-            raise TypeError(f"URL is expected to be string but is {type(url)}")
-        return url.strip("/"), None
+        if not isinstance(connection_params, ConnectionParams):
+            raise TypeError(
+                f"connection_params is expected to be a ConnectionParams object but is {type(connection_params)}"
+            )
+
+        return connection_params, None
 
     def __del__(self) -> None:
         # in case an exception happens before definition of these members
@@ -132,22 +143,22 @@ class _ClientBase:
 class CollectionClient(_ClientBase):
     def __init__(
         self,
-        url: Optional[str] = None,
-        grpc_port: int = 50051,
+        connection_params: Optional[ConnectionParams] = None,
         auth_client_secret: Optional[AuthCredentials] = None,
         additional_headers: Optional[Dict[str, Any]] = None,
         embedded_options: Optional[EmbeddedOptions] = None,
     ) -> None:
-        url, embedded_db = self._parse_url_and_embedded_db(url, embedded_options)
+        connection_params, embedded_db = self._parse_connection_params_and_embedded_db(
+            connection_params, embedded_options
+        )
         config = Config()
 
         self._connection = GRPCConnection(
-            url=url,
+            connection_params=connection_params,
             auth_client_secret=auth_client_secret,
             timeout_config=_get_valid_timeout_config((10, 60)),
             additional_headers=additional_headers,
             embedded_db=embedded_db,
-            grcp_port=grpc_port,
             connection_config=config.connection_config,
             proxies=None,
             trust_env=False,
@@ -161,8 +172,8 @@ class CollectionClient(_ClientBase):
         self.query = Query(self._connection)
         self.backup = Backup(self._connection)
         self.cluster = Cluster(self._connection)
-        self.collection = Collection(self._connection)
-        self._collection_model = CollectionModel(self._connection)  # experimental
+        self.collection = _Collection(self._connection)
+        self._collection_model = _CollectionModel(self._connection)  # experimental
 
 
 class Client(_ClientBase):
@@ -190,11 +201,13 @@ class Client(_ClientBase):
         A Schema object instance connected to the same Weaviate instance as the Client.
     query : weaviate.gql.Query
         A Query object instance connected to the same Weaviate instance as the Client.
+    collection: weaviate.collection.Collection
+        A Collection object instance connected to the same Weaviate instance as the Client.
     """
 
     def __init__(
         self,
-        url: Optional[str] = None,
+        connection_params: Optional[ConnectionParams] = None,
         auth_client_secret: Optional[AuthCredentials] = None,
         timeout_config: TIMEOUT_TYPE = (10, 60),
         proxies: Union[dict, str, None] = None,
@@ -204,13 +217,12 @@ class Client(_ClientBase):
         embedded_options: Optional[EmbeddedOptions] = None,
         additional_config: Optional[Config] = None,
     ) -> None:
-        """
-        Initialize a Client class instance.
+        """Initialize a Client class instance to use when interacting with Weaviate.
 
-        Parameters
+        Arguments:
         ----------
-        url : str
-            The URL to the weaviate instance.
+        connection_params : ConnectionParams or None, optional
+            The connection parameters to use when connecting to Weaviate.
         auth_client_secret : weaviate.AuthCredentials or None, optional
         # fmt: off
             Authenticate to weaviate by using one of the given authentication modes:
@@ -249,47 +261,19 @@ class Client(_ClientBase):
             - Take a look at the attributes of weaviate.embedded.EmbeddedOptions to see what is configurable
         additional_config: weaviate.Config, optional
             Additional and advanced configuration options for weaviate.
-        Examples
-        --------
-        Without Auth.
 
-        >>> client = Client(
-        ...     url = 'http://localhost:8080'
-        ... )
-        >>> client = Client(
-        ...     url = 'http://localhost:8080',
-        ...     timeout_config = (5, 15)
-        ... )
-
-        With Auth.
-
-        >>> my_credentials = weaviate.AuthClientPassword(USER_NAME, MY_PASSWORD)
-        >>> client = Client(
-        ...     url = 'http://localhost:8080',
-        ...     auth_client_secret = my_credentials
-        ... )
-
-        Creating a client with an embedded database:
-
-        >>> from weaviate import EmbeddedOptions
-        >>> client = Client(embedded_options=EmbeddedOptions())
-
-        Creating a client with additional configurations:
-
-        >>> from weaviate import Config
-        >>> client = Client(additional_config=Config())
-
-
-        Raises
-        ------
-        TypeError
-            If arguments are of a wrong data type.
+        Raises:
+        -------
+            `TypeError`
+                If arguments are of a wrong data type.
         """
-        url, embedded_db = self._parse_url_and_embedded_db(url, embedded_options)
+        connection_params, embedded_db = self._parse_connection_params_and_embedded_db(
+            connection_params, embedded_options
+        )
         config = Config() if additional_config is None else additional_config
 
         self._connection = Connection(
-            url=url,
+            connection_params=connection_params,
             auth_client_secret=auth_client_secret,
             timeout_config=_get_valid_timeout_config(timeout_config),
             proxies=proxies,
@@ -297,7 +281,6 @@ class Client(_ClientBase):
             additional_headers=additional_headers,
             startup_period=startup_period,
             embedded_db=embedded_db,
-            grcp_port=config.grpc_port_experimental,
             connection_config=config.connection_config,
         )
         self.classification = Classification(self._connection)

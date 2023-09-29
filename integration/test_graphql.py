@@ -1,7 +1,7 @@
 import json
 import os
 import uuid
-from typing import Optional, List
+from typing import Optional, List, Union
 
 import pytest
 from pytest import FixtureRequest
@@ -20,6 +20,7 @@ schema = {
                 {"dataType": ["string"], "description": "name", "name": "name"},
                 {"dataType": ["string"], "description": "description", "name": "description"},
                 {"dataType": ["int"], "description": "size", "name": "size"},
+                {"dataType": ["number"], "description": "rating", "name": "rating"},
             ],
             "vectorizer": "text2vec-contextionary",
         }
@@ -28,30 +29,50 @@ schema = {
 
 SHIPS = [
     {
-        "props": {"name": "HMS British Name", "size": 5, "description": "Super long description"},
+        "props": {
+            "name": "HMS British Name",
+            "size": 5,
+            "rating": 0.0,
+            "description": "Super long description",
+        },
         "id": uuid.uuid4(),
     },
     {
         "props": {
             "name": "The dragon ship",
+            "rating": 6.66,
             "size": 20,
             "description": "Interesting things about dragons",
         },
         "id": uuid.uuid4(),
     },
     {
-        "props": {"name": "Blackbeard", "size": 43, "description": "Background info about movies"},
+        "props": {
+            "name": "Blackbeard",
+            "size": 43,
+            "rating": 7.2,
+            "description": "Background info about movies",
+        },
         "id": uuid.uuid4(),
     },
-    {"props": {"name": "Titanic", "size": 1, "description": "Everyone knows"}, "id": uuid.uuid4()},
     {
-        "props": {"name": "Artemis", "size": 34, "description": "Name from some story"},
+        "props": {"name": "Titanic", "size": 1, "rating": 4.5, "description": "Everyone knows"},
+        "id": uuid.uuid4(),
+    },
+    {
+        "props": {
+            "name": "Artemis",
+            "size": 34,
+            "rating": 9.1,
+            "description": "Name from some story",
+        },
         "id": uuid.uuid4(),
     },
     {
         "props": {
             "name": "The Crusty Crab",
             "size": 303,
+            "rating": 10.0,
             "description": "sponges, sponges, sponges",
         },
         "id": uuid.uuid4(),
@@ -75,7 +96,8 @@ def client(request):
             for _, c in enumerate(schema["classes"]):
                 c["replicationConfig"] = {"factor": 2}
 
-    client = weaviate.Client(f"http://localhost:{port}")
+    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=port)
+    client = weaviate.Client(connection_params)
     client.schema.delete_all()
     client.schema.create(schema)
     with client.batch as batch:
@@ -96,7 +118,7 @@ def parse_client_options(request: FixtureRequest) -> dict:
         return
 
 
-def test_get_data(client):
+def test_get_data(client: weaviate.Client):
     """Test GraphQL's Get clause."""
     where_filter = {"path": ["size"], "operator": "LessThan", "valueInt": 10}
     result = client.query.get("Ship", ["name", "size"]).with_limit(2).with_where(where_filter).do()
@@ -111,7 +133,162 @@ def test_get_data(client):
     assert a_found and d_found and len(objects) == 2
 
 
-def test_get_data_after(client):
+def test_get_data_with_where_contains_any(client: weaviate.Client):
+    """Test GraphQL's Get clause with where filter."""
+    where_filter = {"path": ["size"], "operator": "ContainsAny", "valueInt": [5]}
+    result = client.query.get("Ship", ["name", "size"]).with_where(where_filter).do()
+    objects = get_objects_from_result(result)
+    assert len(objects) == 1 and objects[0]["name"] == "HMS British Name"
+
+
+@pytest.mark.parametrize(
+    "path,operator,value_type_key,value_type_value,name,expected_objects_len",
+    [
+        (
+            ["description"],
+            "ContainsAll",
+            "valueString",
+            ["sponges, sponges, sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAll",
+            "valueText",
+            ["sponges", "sponges", "sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAll",
+            "valueStringArray",
+            ["sponges", "sponges", "sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAll",
+            "valueTextArray",
+            ["sponges, sponges, sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAll",
+            "valueStringList",
+            ["sponges", "sponges", "sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAll",
+            "valueTextList",
+            ["sponges", "sponges", "sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAny",
+            "valueString",
+            ["sponges, sponges, sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAny",
+            "valueText",
+            ["sponges", "sponges", "sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAny",
+            "valueStringArray",
+            ["sponges", "sponges", "sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAny",
+            "valueTextArray",
+            ["sponges, sponges, sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAny",
+            "valueStringList",
+            ["sponges", "sponges", "sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (
+            ["description"],
+            "ContainsAny",
+            "valueTextList",
+            ["sponges", "sponges", "sponges"],
+            "The Crusty Crab",
+            1,
+        ),
+        (["size"], "ContainsAll", "valueInt", [5], "HMS British Name", 1),
+        (["size"], "ContainsAll", "valueIntList", [5], "HMS British Name", 1),
+        (["size"], "ContainsAll", "valueIntArray", [5], "HMS British Name", 1),
+        (["size"], "ContainsAny", "valueInt", [5], "HMS British Name", 1),
+        (["size"], "ContainsAny", "valueIntList", [5], "HMS British Name", 1),
+        (["size"], "ContainsAny", "valueIntArray", [5], "HMS British Name", 1),
+        (["rating"], "ContainsAll", "valueNumber", [6.66], "The dragon ship", 1),
+        (["rating"], "ContainsAll", "valueNumberList", [6.66], "The dragon ship", 1),
+        (["rating"], "ContainsAll", "valueNumberArray", [6.66], "The dragon ship", 1),
+        (["rating"], "ContainsAny", "valueNumber", [6.66], "The dragon ship", 1),
+        (["rating"], "ContainsAny", "valueNumberList", [6.66], "The dragon ship", 1),
+        (["rating"], "ContainsAny", "valueNumberArray", [6.66], "The dragon ship", 1),
+        (["size"], "Equal", "valueInt", 5, "HMS British Name", 1),
+        (["size"], "LessThan", "valueInt", 5, "Titanic", 1),
+        (["size"], "LessThanEqual", "valueInt", 1, "Titanic", 1),
+        (["size"], "GreaterThan", "valueInt", 300, "The Crusty Crab", 1),
+        (["size"], "GreaterThanEqual", "valueInt", 303, "The Crusty Crab", 1),
+        (["description"], "Like", "valueString", "sponges", "The Crusty Crab", 1),
+        (["description"], "Like", "valueText", "sponges", "The Crusty Crab", 1),
+        (["rating"], "IsNull", "valueBoolean", True, "irrelevant", 0),
+        (["rating"], "NotEqual", "valueNumber", 6.66, "irrelevant", 5),
+    ],
+)
+def test_get_data_with_where(
+    client: weaviate.Client,
+    path: List[str],
+    operator: str,
+    value_type_key: str,
+    value_type_value: Union[List[int], List[str]],
+    name,
+    expected_objects_len: int,
+):
+    """Test GraphQL's Get clause with where filter."""
+    where_filter = {
+        "path": path,
+        "operator": operator,
+        value_type_key: value_type_value,
+    }
+    result = client.query.get("Ship", ["name"]).with_where(where_filter).do()
+    objects = get_objects_from_result(result)
+    if expected_objects_len == 0:
+        assert objects is None
+    else:
+        assert len(objects) == expected_objects_len
+        if expected_objects_len == 1:
+            assert objects[0]["name"] == name
+
+
+def test_get_data_after(client: weaviate.Client):
     full_results = client.query.get("Ship", ["name"]).with_additional(["id"]).do()
     for i, ship in enumerate(full_results["data"]["Get"]["Ship"][:-1]):
         result = (
@@ -127,14 +304,14 @@ def test_get_data_after(client):
         )
 
 
-def test_get_data_after_wrong_types(client):
+def test_get_data_after_wrong_types(client: weaviate.Client):
     with pytest.raises(TypeError):
         client.query.get("Ship", ["name"]).with_additional(["id"]).with_limit(1).with_after(
             1234
         ).do()
 
 
-def test_multi_get_data(client, people_schema):
+def test_multi_get_data(client: weaviate.Client, people_schema):
     """Test GraphQL's MultiGet clause."""
     client.schema.create(people_schema)
     client.data_object.create(
@@ -159,7 +336,7 @@ def test_multi_get_data(client, people_schema):
     assert result["Person"][0]["name"] == "John"
 
 
-def test_aggregate_data(client):
+def test_aggregate_data(client: weaviate.Client):
     """Test GraphQL's Aggregate clause."""
     where_filter = {"path": ["name"], "operator": "Equal", "valueString": "The dragon ship"}
 
@@ -177,7 +354,7 @@ def test_aggregate_data(client):
     assert "name" in aggregation, "Missing name property"
 
 
-def test_aggregate_data_with_group_by_and_limit(client):
+def test_aggregate_data_with_group_by_and_limit(client: weaviate.Client):
     """Test GraphQL's Aggregate clause with group_by and limit."""
     result = (
         client.query.aggregate("Ship")
@@ -191,7 +368,7 @@ def test_aggregate_data_with_group_by_and_limit(client):
     assert len(objects) == 2, "Expected 2 results"
 
 
-def test_aggregate_data_with_just_limit(client):
+def test_aggregate_data_with_just_limit(client: weaviate.Client):
     """Test GraphQL's Aggregate clause with only limit. It's idempotent."""
     result = client.query.aggregate("Ship").with_fields("name{count}").with_limit(2).do()
 
@@ -214,20 +391,20 @@ def get_objects_from_aggregate_result(result):
 
 
 @pytest.mark.parametrize("query", ["sponges", "sponges\n"])
-def test_bm25(client, query):
+def test_bm25(client: weaviate.Client, query):
     result = client.query.get("Ship", ["name"]).with_bm25(query, ["name", "description"]).do()
     assert len(result["data"]["Get"]["Ship"]) == 1
     assert result["data"]["Get"]["Ship"][0]["name"] == "The Crusty Crab"
 
 
-def test_bm25_no_result(client):
+def test_bm25_no_result(client: weaviate.Client):
     result = client.query.get("Ship", ["name"]).with_bm25("sponges\n", ["name"]).do()
     assert len(result["data"]["Get"]["Ship"]) == 0
 
 
 @pytest.mark.parametrize("query", ["sponges", "sponges\n"])
 @pytest.mark.parametrize("fusion_type", [HybridFusion.RANKED, HybridFusion.RELATIVE_SCORE, None])
-def test_hybrid(client, query: str, fusion_type: Optional[HybridFusion]):
+def test_hybrid(client: weaviate.Client, query: str, fusion_type: Optional[HybridFusion]):
     """Test hybrid search with alpha=0.5 to have a combination of BM25 and vector search."""
     result = (
         client.query.get("Ship", ["name", "description"])
@@ -244,7 +421,9 @@ def test_hybrid(client, query: str, fusion_type: Optional[HybridFusion]):
     "properties,num_results",
     [(None, 1), ([], 1), (["description"], 1), (["description", "name"], 1), (["name"], 0)],
 )
-def test_hybrid_properties(client, properties: Optional[List[str]], num_results: int):
+def test_hybrid_properties(
+    client: weaviate.Client, properties: Optional[List[str]], num_results: int
+):
     """Test hybrid search with alpha=0.5 to have a combination of BM25 and vector search."""
     result = (
         client.query.get("Ship", ["name"])
@@ -262,7 +441,7 @@ def test_hybrid_properties(client, properties: Optional[List[str]], num_results:
 
 
 @pytest.mark.parametrize("autocut,num_results", [(1, 1), (2, 6), (-1, len(SHIPS))])
-def test_autocut(client, autocut, num_results):
+def test_autocut(client: weaviate.Client, autocut, num_results):
     result = (
         client.query.get("Ship", ["name"])
         .with_hybrid(query="sponges", properties=["name", "description"], alpha=0.5)
@@ -274,7 +453,7 @@ def test_autocut(client, autocut, num_results):
     assert result["data"]["Get"]["Ship"][0]["name"] == "The Crusty Crab"
 
 
-def test_group_by(client, people_schema):
+def test_group_by(client: weaviate.Client, people_schema):
     """Test hybrid search with alpha=0.5 to have a combination of BM25 and vector search."""
     client.schema.delete_all()
     client.schema.create(people_schema)
@@ -321,7 +500,7 @@ def test_group_by(client, people_schema):
     ],
     indirect=["client"],
 )
-def test_consistency_level(client, level):
+def test_consistency_level(client: weaviate.Client, level):
     result = (
         client.query.get("Ship", ["name"])
         .with_consistency_level(level)
@@ -353,9 +532,8 @@ def test_generative_openai(single: str, grouped: str):
     if api_key is None:
         pytest.skip("No OpenAI API key found.")
 
-    client = weaviate.Client(
-        "http://127.0.0.1:8086", additional_headers={"X-OpenAI-Api-Key": api_key}
-    )
+    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8086)
+    client = weaviate.Client(connection_params, additional_headers={"X-OpenAI-Api-Key": api_key})
     client.schema.delete_all()
     wine_class = {
         "class": "Wine",
@@ -393,7 +571,8 @@ def test_generative_openai(single: str, grouped: str):
 
 
 def test_graphql_with_tenant():
-    client = weaviate.Client("http://127.0.0.1:8080")
+    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
+    client = weaviate.Client(connection_params)
     client.schema.delete_all()
     schema_class = {
         "class": "GraphQlTenantClass",

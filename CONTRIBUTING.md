@@ -6,12 +6,33 @@ Run the following to create a virtual environment, activate it and install depen
 ```shell
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-devel.txt
 ```
 
 The next time you open your shell, you can activate your virtual environment using `source .venv/bin/activate`
 
 To run local instance of Weaviate, we recommend using Docker (see https://weaviate.io/developers/weaviate/installation/docker-compose).
+
+#### Installation
+
+To install the library into your virtual environment while in development, we recommend installing it in “edit mode”:
+
+```shell
+pip install -e /PATH/TO/WEAVIATE-PYTHON-CLIENT
+```
+
+If you do so from the root of the repository, you can use the following command:
+
+```shell
+pip install -e .
+```
+
+You can install a particular branch directly from GitHub with:
+
+```shell
+pip install git+https://github.com/weaviate/weaviate-python-client.git@BRANCH_NAME
+```
+
 
 ### Testing
 

@@ -3,7 +3,7 @@ DataObject class definition.
 """
 import uuid as uuid_lib
 import warnings
-from typing import Union, Optional, List, Sequence, Dict, Any
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -22,7 +22,7 @@ from weaviate.util import (
     _capitalize_first_letter,
     _check_positive_num,
 )
-from weaviate.weaviate_types import UUID
+from weaviate.types import UUID
 
 
 class DataObject:
@@ -369,7 +369,7 @@ class DataObject:
         class_name: str,
         uuid: Union[str, uuid_lib.UUID],
         vector: Optional[Sequence] = None,
-    ):
+    ) -> Tuple[Dict[str, Any], str]:
         if not isinstance(class_name, str):
             raise TypeError("Class must be type str")
 
@@ -397,7 +397,7 @@ class DataObject:
     def get_by_id(
         self,
         uuid: Union[str, uuid_lib.UUID],
-        additional_properties: List[str] = None,
+        additional_properties: Optional[List[str]] = None,
         with_vector: bool = False,
         class_name: Optional[str] = None,
         node_name: Optional[str] = None,
@@ -475,7 +475,7 @@ class DataObject:
     def get(
         self,
         uuid: Union[str, uuid_lib.UUID, None] = None,
-        additional_properties: List[str] = None,
+        additional_properties: Optional[List[str]] = None,
         with_vector: bool = False,
         class_name: Optional[str] = None,
         node_name: Optional[str] = None,
@@ -628,15 +628,15 @@ class DataObject:
                 raise TypeError(
                     f"'sort['order_asc']' must be of type boolean or list[bool]. Given type: {type(sort['order_asc'])}."
                 )
-            if len(sort["properties"]) != len(sort["order_asc"]):
+            if len(sort["properties"]) != len(sort["order_asc"]):  # type: ignore
                 raise ValueError(
-                    f"'sort['order_asc']' must be the same length as 'sort['properties']' or a boolean (not in a list). Current length is sort['properties']:{len(sort['properties'])} and sort['order_asc']:{len(sort['order_asc'])}."
+                    f"'sort['order_asc']' must be the same length as 'sort['properties']' or a boolean (not in a list). Current length is sort['properties']:{len(sort['properties'])} and sort['order_asc']:{len(sort['order_asc'])}."  # type: ignore
                 )
-            if len(sort["order_asc"]) == 0:
+            if len(sort["order_asc"]) == 0:  # type: ignore
                 raise ValueError("'sort['order_asc']' cannot be an empty list.")
 
-            params["sort"] = ",".join(sort["properties"])
-            order = ["asc" if x else "desc" for x in sort["order_asc"]]
+            params["sort"] = ",".join(sort["properties"])  # type: ignore
+            order = ["asc" if x else "desc" for x in sort["order_asc"]]  # type: ignore
             params["order"] = ",".join(order)
 
         try:
@@ -647,7 +647,7 @@ class DataObject:
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Could not get object/s.") from conn_err
         if response.status_code == 200:
-            return response.json()
+            return cast(Dict[str, Any], response.json())
         if response.status_code == 404:
             return None
         raise UnexpectedStatusCodeException("Get object/s", response)
@@ -864,7 +864,7 @@ class DataObject:
         data_object: Union[dict, str],
         class_name: str,
         uuid: Union[str, uuid_lib.UUID, None] = None,
-        vector: Sequence = None,
+        vector: Optional[Sequence] = None,
     ) -> dict:
         """
         Validate an object against Weaviate.

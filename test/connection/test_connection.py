@@ -1,10 +1,9 @@
 import unittest
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 
 from test.util import check_error_message
-from weaviate import ConnectionConfig
 from weaviate.connect.connection import (
-    BaseConnection,
+    Connection,
     _get_proxies,
 )
 from weaviate.util import _get_valid_timeout_config
@@ -13,7 +12,7 @@ from weaviate.util import _get_valid_timeout_config
 class TestConnection(unittest.TestCase):
     def check_connection_attributes(
         self,
-        connection: BaseConnection,
+        connection: Connection,
         url="test_url",
         timeout_config=(2, 20),
         oidc_auth_flow=False,
@@ -37,176 +36,6 @@ class TestConnection(unittest.TestCase):
                 self.assertIsNone(connection._auth)
         if headers != "skip":
             self.assertEqual(connection._headers, headers)
-
-    @patch("weaviate.connect.connection.requests")
-    def test_all_requests_methods(self, mock_requests):
-        """
-        Test the all requests methods ('get', 'put', 'patch', 'post', 'delete').
-        """
-
-        mock_session = mock_requests.Session.return_value = Mock()
-        connection = BaseConnection(
-            url="http://127.0.0.1:1234",
-            auth_client_secret=None,
-            timeout_config=(2, 20),
-            proxies=None,
-            trust_env=False,
-            additional_headers=None,
-            startup_period=None,
-            connection_config=ConnectionConfig(),
-        )
-
-        # GET method with param
-        connection.get("/get", {"test": None}),
-        mock_session.get.assert_called_with(
-            url="http://127.0.0.1:1234/v1/get",
-            headers={"content-type": "application/json"},
-            timeout=(2, 20),
-            proxies={},
-            params={"test": None},
-        )
-        mock_session.reset_mock()
-
-        # GET method without param
-        connection.get("/get"),
-        mock_session.get.assert_called_with(
-            url="http://127.0.0.1:1234/v1/get",
-            headers={"content-type": "application/json"},
-            timeout=(2, 20),
-            proxies={},
-            params={},
-        )
-        mock_session.reset_mock()
-
-        # PUT method
-        connection.put("/put", {"PUT": "test"}),
-        mock_session.put.assert_called_with(
-            url="http://127.0.0.1:1234/v1/put",
-            json={"PUT": "test"},
-            headers={"content-type": "application/json"},
-            timeout=(2, 20),
-            proxies={},
-            params=None,
-        )
-        mock_session.reset_mock()
-
-        # POST method
-        connection.post("/post", {"POST": "TeST!"}),
-        mock_session.post.assert_called_with(
-            url="http://127.0.0.1:1234/v1/post",
-            json={"POST": "TeST!"},
-            headers={"content-type": "application/json"},
-            timeout=(2, 20),
-            proxies={},
-            params=None,
-        )
-        mock_session.reset_mock()
-
-        # PATCH method
-        connection.patch("/patch", {"PATCH": "teST"}),
-        mock_session.patch.assert_called_with(
-            url="http://127.0.0.1:1234/v1/patch",
-            json={"PATCH": "teST"},
-            headers={"content-type": "application/json"},
-            timeout=(2, 20),
-            proxies={},
-            params=None,
-        )
-        mock_session.reset_mock()
-
-        # DELETE method
-        connection.delete("/delete", {"DELETE": "TESt"}),
-        mock_session.delete.assert_called_with(
-            url="http://127.0.0.1:1234/v1/delete",
-            json={"DELETE": "TESt"},
-            headers={"content-type": "application/json"},
-            timeout=(2, 20),
-            proxies={},
-            params=None,
-        )
-
-        # add Proxies
-
-        mock_session = mock_requests.Session.return_value = Mock()
-        connection = BaseConnection(
-            url="http://127.0.0.1:1234",
-            auth_client_secret=None,
-            timeout_config=(2, 20),
-            proxies={"test": True},
-            trust_env=False,
-            additional_headers=None,
-            startup_period=None,
-            connection_config=ConnectionConfig(),
-        )
-
-        # GET method with param
-        connection.get("/get", {"test": None}),
-        mock_session.get.assert_called_with(
-            url="http://127.0.0.1:1234/v1/get",
-            headers={"content-type": "application/json"},
-            timeout=(2, 20),
-            proxies={"test": True},
-            params={"test": None},
-        )
-        mock_session.reset_mock()
-
-        # GET method without param
-        connection.get("/get"),
-        mock_session.get.assert_called_with(
-            url="http://127.0.0.1:1234/v1/get",
-            headers={"content-type": "application/json"},
-            timeout=(2, 20),
-            proxies={"test": True},
-            params={},
-        )
-        mock_session.reset_mock()
-
-        # PUT method
-        connection.put("/put", {"PUT": "test"}, {"A": "B"}),
-        mock_session.put.assert_called_with(
-            url="http://127.0.0.1:1234/v1/put",
-            json={"PUT": "test"},
-            headers={"content-type": "application/json"},
-            timeout=(2, 20),
-            proxies={"test": True},
-            params={"A": "B"},
-        )
-        mock_session.reset_mock()
-
-        # POST method
-        connection.post("/post", {"POST": "TeST!"}, {"A": "B"}),
-        mock_session.post.assert_called_with(
-            url="http://127.0.0.1:1234/v1/post",
-            json={"POST": "TeST!"},
-            headers={"content-type": "application/json"},
-            timeout=(2, 20),
-            proxies={"test": True},
-            params={"A": "B"},
-        )
-        mock_session.reset_mock()
-
-        # PATCH method
-        connection.patch("/patch", {"PATCH": "teST"}, {"A": "B"}),
-        mock_session.patch.assert_called_with(
-            url="http://127.0.0.1:1234/v1/patch",
-            json={"PATCH": "teST"},
-            headers={"content-type": "application/json"},
-            timeout=(2, 20),
-            proxies={"test": True},
-            params={"A": "B"},
-        )
-        mock_session.reset_mock()
-
-        # DELETE method
-        connection.delete("/delete", {"DELETE": "TESt"}, params={"A": "B"}),
-        mock_session.delete.assert_called_with(
-            url="http://127.0.0.1:1234/v1/delete",
-            json={"DELETE": "TESt"},
-            headers={"content-type": "application/json"},
-            timeout=(2, 20),
-            proxies={"test": True},
-            params={"A": "B"},
-        )
 
     @patch("weaviate.connect.connection.datetime")
     def test_get_epoch_time(self, mock_datetime):

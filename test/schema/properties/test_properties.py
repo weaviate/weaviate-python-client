@@ -6,7 +6,6 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
-    SchemaValidationException,
 )
 from weaviate.schema.properties import Property
 
@@ -21,17 +20,11 @@ class TestCRUDProperty(unittest.TestCase):
 
         # invalid calls
         error_message = "Class name must be of type str but is "
-        check_property_error_message = 'Property does not contain "dataType"'
         requests_error_message = "Property was created properly."
 
         with self.assertRaises(TypeError) as error:
             prop.create(35, {})
         check_error_message(self, error, error_message + str(int))
-
-        # test if `check_property` is called in `create`
-        with self.assertRaises(SchemaValidationException) as error:
-            prop.create("Class", {})
-        check_error_message(self, error, check_property_error_message)
 
         prop = Property(mock_connection_func("post", side_effect=RequestsConnectionError("Test!")))
         with self.assertRaises(RequestsConnectionError) as error:

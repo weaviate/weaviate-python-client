@@ -73,6 +73,26 @@ class UnexpectedStatusCodeException(WeaviateBaseError):
         return self._status_code
 
 
+class ResponseCannotBeDecodedException(WeaviateBaseError):
+    def __init__(self, location: str, response: Response):
+        """Raised when a weaviate response cannot be decoded to json
+
+        Parameters
+        ----------
+        location: str
+            From which code path the exception was raised.
+        response: requests.Response
+            The request response of which the status code was unexpected.
+        """
+        msg = f"Cannot decode response from weaviate {response} with content {response.text} for request from {location}"
+        super().__init__(msg)
+        self._status_code: int = response.status_code
+
+    @property
+    def status_code(self) -> int:
+        return self._status_code
+
+
 class ObjectAlreadyExistsException(WeaviateBaseError):
     """
     Object Already Exists Exception.
@@ -121,6 +141,14 @@ class AdditionalPropertiesException(WeaviateBaseError):
         super().__init__(msg)
 
 
+class InvalidDataModelException(WeaviateBaseError):
+    """Is raised when the user provides a generic that is not supported"""
+
+    def __init__(self) -> None:
+        msg = """data_model can only be a dict type, e.g. Dict[str, str], or a class that inherits from TypedDict"""
+        super().__init__(msg)
+
+
 class WeaviateStartUpError(WeaviateBaseError):
     """Is raised if weaviate does not start up in time."""
 
@@ -156,3 +184,19 @@ class WeaviateAddInvalidPropertyError(WeaviateBaseError):
         value are valid"""
         super().__init__(msg)
         self.message = message
+
+
+class WeaviateInsertInvalidPropertyError(WeaviateBaseError):
+    """Is raised when inserting an invalid property."""
+
+    def __init__(self, data: dict):
+        msg = f"""It is forbidden to insert `id` or `vector` inside properties: {data}. Only properties defined in your collection's config can be insterted as properties of the object, `id` is totally forbidden as it is reserved and `vector` is forbidden at this level. You should use the `DataObject` class if you wish to insert an object with a custom `vector` whilst inserting its properties."""
+        super().__init__(msg)
+
+
+class WeaviateGrpcUnavailable(WeaviateBaseError):
+    """Is raised when a gRPC-backed query is made with no gRPC connection present."""
+
+    def __init__(self) -> None:
+        msg = """gRPC is not available. Please make sure that gRPC is configured correctly in the client and on the server."""
+        super().__init__(msg)

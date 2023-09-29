@@ -1,11 +1,12 @@
 import uuid
 from dataclasses import dataclass
-from typing import Union, Sequence, Optional
+from typing import List, Union, Sequence, Optional
 
 import pytest
 
 import weaviate
 from weaviate import Tenant
+from weaviate.gql.filter import VALUE_ARRAY_TYPES, WHERE_OPERATORS
 
 UUID = Union[str, uuid.UUID]
 
@@ -49,12 +50,17 @@ class MockTensorFlow:
 
 @pytest.fixture(scope="function")
 def client():
-    client = weaviate.Client("http://localhost:8080")
+    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
+    client = weaviate.Client(connection_params)
     client.schema.delete_all()
     client.schema.create_class(
         {
             "class": "Test",
-            "properties": [{"name": "test", "dataType": ["Test"]}],
+            "properties": [
+                {"name": "test", "dataType": ["Test"]},
+                {"name": "name", "dataType": ["string"]},
+                {"name": "names", "dataType": ["string[]"]},
+            ],
             "vectorizer": "none",
         }
     )
@@ -77,6 +83,159 @@ def test_add_data_object(client: weaviate.Client, uuid: Optional[UUID], vector: 
     )
     response = client.batch.create_objects()
     assert has_batch_errors(response) is False, str(response)
+
+
+@pytest.mark.parametrize(
+    "objs,where",
+    [
+        (
+            [
+                {"name": "zero"},
+            ],
+            {
+                "path": ["name"],
+                "operator": "NotEqual",
+                "valueText": "one",
+            },
+        ),
+        (
+            [
+                {"name": "one"},
+            ],
+            {
+                "path": ["name"],
+                "operator": "Equal",
+                "valueText": "one",
+            },
+        ),
+        (
+            [{"name": "two"}, {"name": "three"}],
+            {
+                "path": ["name"],
+                "operator": "ContainsAny",
+                "valueTextArray": ["two", "three"],
+            },
+        ),
+        (
+            [
+                {"names": ["Tim", "Tom"], "name": "four"},
+            ],
+            {
+                "path": ["names"],
+                "operator": "ContainsAll",
+                "valueTextArray": ["Tim", "Tom"],
+            },
+        ),
+        (
+            [
+                {"names": ["Tim", "Tom"], "name": "five"},
+            ],
+            {
+                "operator": "And",
+                "operands": [
+                    {
+                        "path": ["names"],
+                        "operator": "ContainsAll",
+                        "valueTextArray": ["Tim", "Tom"],
+                    },
+                    {
+                        "path": ["name"],
+                        "operator": "Equal",
+                        "valueText": "five",
+                    },
+                ],
+            },
+        ),
+        (
+            [{"name": "six"}, {"name": "seven"}],
+            {
+                "operator": "Or",
+                "operands": [
+                    {
+                        "path": ["name"],
+                        "operator": "Equal",
+                        "valueText": "six",
+                    },
+                    {
+                        "path": ["name"],
+                        "operator": "Equal",
+                        "valueText": "seven",
+                    },
+                ],
+            },
+        ),
+        (
+            [
+                {"name": "eight"},
+            ],
+            {
+                "path": ["name"],
+                "operator": "Like",
+                "valueText": "eig*",
+            },
+        ),
+    ],
+)
+def test_delete_objects_successes(client: weaviate.Client, objs: List[dict], where: dict):
+    with client.batch as batch:
+        for obj in objs:
+            batch.add_data_object(data_object=obj, class_name="Test")
+
+    with client.batch as batch:
+        batch.delete_objects(
+            "Test",
+            where=where,
+        )
+    res = client.data_object.get()
+    names = [obj["properties"]["name"] for obj in res["objects"]]
+    for obj in objs:
+        assert obj.get("name") not in names
+
+
+def test_delete_objects_errors(client: weaviate.Client):
+    with pytest.raises(ValueError) as error:
+        with client.batch as batch:
+            batch.delete_objects(
+                "test",
+                where={
+                    "path": ["name"],
+                    "operator": "ContainsAny",
+                    "valueText": ["four"],
+                },
+            )
+    assert (
+        error.value.args[0]
+        == f"Operator 'ContainsAny' is not supported for value type 'valueText'. Supported value types are: {VALUE_ARRAY_TYPES}"
+    )
+
+    where = {
+        "path": ["name"],
+        "valueTextArray": ["four"],
+    }
+    with pytest.raises(ValueError) as error:
+        with client.batch as batch:
+            batch.delete_objects(
+                "Test",
+                where=where,
+            )
+    assert (
+        error.value.args[0] == f"Where filter is missing required field `operator`. Given: {where}"
+    )
+
+    with pytest.raises(ValueError) as error:
+        with client.batch as batch:
+            batch.delete_objects(
+                "Test",
+                where={
+                    "path": ["name"],
+                    "operator": "Wrong",
+                    "valueText": ["four"],
+                },
+            )
+    assert (
+        error.value.args[0]
+        == f"Operator Wrong is not allowed. Allowed operators are: {WHERE_OPERATORS}"
+    )
 
 
 @pytest.mark.parametrize("from_object_uuid", [uuid.uuid4(), str(uuid.uuid4()), uuid.uuid4().hex])
@@ -115,7 +274,8 @@ def test_add_reference(
 
 
 def test_add_object_batch_with_tenant():
-    client = weaviate.Client("http://localhost:8080")
+    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
+    client = weaviate.Client(connection_params)
     client.schema.delete_all()
 
     # create two classes and add 5 tenants each
@@ -189,7 +349,8 @@ def test_add_object_batch_with_tenant():
 
 
 def test_add_ref_batch_with_tenant():
-    client = weaviate.Client("http://localhost:8080")
+    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
+    client = weaviate.Client(connection_params)
     client.schema.delete_all()
 
     # create two classes and add 5 tenants each

@@ -1,9 +1,10 @@
 import warnings
+from datetime import datetime
 from importlib.metadata import version, PackageNotFoundError
 from typing import Optional
 
 try:
-    __version__ = version("weaviate")
+    __version__ = version("weaviate-client")
 except PackageNotFoundError:
     __version__ = "unknown version"
 
@@ -108,7 +109,7 @@ class _Warnings:
         )
 
     @staticmethod
-    def weaviate_too_old_vs_latest(server_version: str):
+    def weaviate_too_old_vs_latest(server_version: str) -> None:
         warnings.warn(
             message=f"""Dep004: You are connected to Weaviate {server_version}.
             Please consider upgrading to the latest version. See https://www.weaviate.io/developers/weaviate for details.""",
@@ -117,10 +118,41 @@ class _Warnings:
         )
 
     @staticmethod
-    def weaviate_client_too_old_vs_latest(client_version: str, latest_version: str):
+    def weaviate_client_too_old_vs_latest(client_version: str, latest_version: str) -> None:
         warnings.warn(
             message=f"""Dep005: You are using weaviate-client version {client_version}. The latest version is {latest_version}.
             Please consider upgrading to the latest version. See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
             category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def use_of_client_batch_will_be_removed_in_next_major_release() -> None:
+        warnings.warn(
+            message="""Dep006: You are using the `client.batch()` method, which will be removed in the next major release.
+            Please instead use the `client.batch.configure()` method to configure your batch and `client.batch` to enter the context manager.
+            See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
+        warnings.warn(
+            message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.
+            If you want to use a different timezone, please specify it in the datetime object. For example:
+            datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=datetime.timezone(-datetime.timedelta(hours=2))).isoformat() = 2021-01-01T00:00:00-02:00
+            """,
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def text2vec_huggingface_endpoint_url_and_model_set_together() -> None:
+        warnings.warn(
+            message="""Con003: You are setting the endpoint_url alongside model or passage_model & query_model in your Text2Vec-HuggingFace module configuration.
+            The model definitions will be ignored in favour of endpoint_url.
+            """,
+            category=UserWarning,
             stacklevel=1,
         )

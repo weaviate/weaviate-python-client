@@ -1,9 +1,9 @@
 import datetime
-import uuid
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
 
 import pytest
+import uuid
 
 import weaviate
 
@@ -106,7 +106,8 @@ class Article:
 @pytest.mark.parametrize("dynamic", [False])
 @pytest.mark.parametrize("batch_size", [50])
 def test_stress(batch_size, dynamic):
-    client = weaviate.Client("http://localhost:8080")
+    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
+    client = weaviate.Client(connection_params)
     client.schema.delete_all()
     client.schema.create(schema)
     client.batch.configure(batch_size=batch_size, dynamic=dynamic, num_workers=4)
@@ -153,7 +154,8 @@ def test_stress(batch_size, dynamic):
     ],
 )
 def client(request):
-    local_client = weaviate.Client("http://localhost:8080")
+    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
+    local_client = weaviate.Client(connection_params)
     if request.param[0] > 0:
         local_client.batch.configure(
             batch_size=request.param[0], dynamic=False, num_workers=request.param[1]
