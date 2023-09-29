@@ -42,18 +42,16 @@ from weaviate.collection.classes.internal import (
     _GroupByResult,
     _GroupByReturn,
     _QueryReturn,
+    GenerativeReturn,
+    GroupByReturn,
+    QueryReturn,
+    ReturnProperties,
 )
 from weaviate.collection.classes.types import (
     Properties,
     TProperties,
 )
 from weaviate.collection.grpc_query import _QueryGRPC, GroupByResult, SearchResponse, SearchResult
-from weaviate.collection.queries.types import (
-    GenerativeReturn,
-    GroupByReturn,
-    QueryReturn,
-    ReturnProperties,
-)
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGrpcUnavailable
 from weaviate.util import file_encoder_b64

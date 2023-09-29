@@ -8,10 +8,12 @@ from weaviate.collection.classes.internal import (
     _GenerativeReturn,
     _QueryReturn,
     _Generative,
+    GenerativeReturn,
+    QueryReturn,
+    ReturnProperties,
 )
 from weaviate.collection.classes.types import Properties, TProperties
 from weaviate.collection.queries.base import _Grpc
-from weaviate.collection.queries.types import GenerativeReturn, QueryReturn, ReturnProperties
 
 
 class _HybridQuery(Generic[Properties], _Grpc[Properties]):

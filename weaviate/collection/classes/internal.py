@@ -1,6 +1,7 @@
 import sys
 from dataclasses import dataclass
 from typing import Any, Dict, Generic, List, Optional, Tuple, Type, Union, cast
+from typing_extensions import TypeAlias
 
 import uuid as uuid_package
 
@@ -17,7 +18,7 @@ from weaviate.collection.classes.grpc import (
     PROPERTIES,
     Generate,
 )
-from weaviate.collection.classes.types import Properties, P
+from weaviate.collection.classes.types import Properties, P, TProperties
 from weaviate.util import _to_beacons
 from weaviate.types import UUIDS
 
@@ -104,6 +105,13 @@ class _GroupByReturn(Generic[P]):
 @dataclass
 class _QueryReturn(Generic[P]):
     objects: List[_Object[P]]
+
+
+QueryReturn: TypeAlias = Union[_QueryReturn[Properties], _QueryReturn[TProperties]]
+GenerativeReturn: TypeAlias = Union[_GenerativeReturn[Properties], _GenerativeReturn[TProperties]]
+GroupByReturn: TypeAlias = Union[_GroupByReturn[Properties], _GroupByReturn[TProperties]]
+
+ReturnProperties: TypeAlias = Union[PROPERTIES, Type[TProperties]]
 
 
 class _Generative:

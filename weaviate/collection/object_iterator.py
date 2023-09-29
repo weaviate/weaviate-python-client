@@ -2,9 +2,8 @@ from typing import Callable, Generic, Iterable, Iterator, List, Optional, TypeVa
 from uuid import UUID
 
 from weaviate.collection.classes.grpc import MetadataQuery
-from weaviate.collection.classes.internal import _Object
+from weaviate.collection.classes.internal import _Object, ReturnProperties
 from weaviate.collection.classes.types import Properties
-from weaviate.collection.queries.types import ReturnProperties
 
 
 ITERATOR_CACHE_SIZE = 100
