@@ -17,7 +17,7 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError, ReadTimeout
 from requests.exceptions import HTTPError as RequestsHTTPError
 from requests.exceptions import JSONDecodeError
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 from weaviate import __version__ as client_version
 from weaviate.auth import AuthCredentials, AuthClientCredentials, AuthApiKey
@@ -42,6 +42,7 @@ from weaviate.types import NUMBER
 
 try:
     import grpc
+    from grpc import Channel
     from weaviate_grpc import weaviate_pb2_grpc
 
     has_grpc = True
@@ -53,20 +54,16 @@ Session = Union[requests.sessions.Session, OAuth2Session]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
 PYPI_TIMEOUT = 1
 MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC server
+GRPC_OPTIONS = [
+    ("grpc.max_send_message_length", MAX_GRPC_MESSAGE_LENGTH),
+    ("grpc.max_receive_message_length", MAX_GRPC_MESSAGE_LENGTH),
+]
 
 
-class ConnectionParams(BaseModel):
-    scheme: str
+class ProtocolParams(BaseModel):
     host: str
     port: int
-    grpc_port: Optional[int] = Field(default=None)
-    grpc_url: Optional[str] = Field(default=None)
-
-    @field_validator("scheme")
-    def _check_scheme(cls, v: str) -> str:
-        if v not in ["http", "https"]:
-            raise ValueError("scheme must be either http or https")
-        return v
+    secure: bool
 
     @field_validator("host")
     def _check_host(cls, v: str) -> str:
@@ -80,62 +77,106 @@ class ConnectionParams(BaseModel):
             raise ValueError("port must be between 0 and 65535")
         return v
 
-    @field_validator("grpc_port")
-    def _check_grpc_port(cls, v: Optional[int]) -> Optional[int]:
-        if v is None:
-            return None
-        if v < 0 or v > 65535:
-            raise ValueError("grpc_port must be between 0 and 65535")
-        return v
+
+class ConnectionParams(BaseModel):
+    http: ProtocolParams
+    grpc: Optional[ProtocolParams] = None
+
+    @classmethod
+    def from_url(cls, url: str, grpc_port: Optional[int] = None) -> ConnectionParams:
+        parsed_url = urlparse(url)
+        if parsed_url.scheme not in ["http", "https"]:
+            raise ValueError(f"Unsupported scheme: {parsed_url.scheme}")
+        if parsed_url.port is None:
+            port = 443 if parsed_url.scheme == "https" else 80
+        else:
+            port = parsed_url.port
+
+        return cls(
+            http=ProtocolParams(
+                host=cast(str, parsed_url.hostname),
+                port=port,
+                secure=parsed_url.scheme == "https",
+            ),
+            grpc=ProtocolParams(
+                host=cast(str, parsed_url.hostname),
+                port=grpc_port,
+                secure=parsed_url.scheme == "https",
+            )
+            if grpc_port is not None
+            else None,
+        )
+
+    @classmethod
+    def from_params(
+        cls,
+        http_host: str,
+        http_port: int,
+        http_secure: bool,
+        grpc_host: Optional[str] = None,
+        grpc_port: Optional[int] = None,
+        grpc_secure: Optional[bool] = None,
+    ) -> ConnectionParams:
+        return cls(
+            http=ProtocolParams(
+                host=http_host,
+                port=http_port,
+                secure=http_secure,
+            ),
+            grpc=ProtocolParams(
+                host=grpc_host,
+                port=grpc_port,
+                secure=grpc_secure,
+            )
+            if (grpc_host is not None and grpc_port is not None and grpc_secure is not None)
+            else None,
+        )
 
     @model_validator(mode="after")
     def _check_port_collision(self) -> ConnectionParams:
-        if self.port == self.grpc_port:
-            raise ValueError("port and grpc_port must be different")
+        if self.grpc is not None and self.http.port == self.grpc.port:
+            raise ValueError("http.port and grpc.port must be different")
         return self
-
-    @model_validator(mode="after")
-    def _check_grpc_port_and_url(self) -> ConnectionParams:
-        if self.grpc_port is not None and self.grpc_url is not None:
-            raise ValueError("grpc_port and grpc_url cannot be set at the same time")
-        return self
-
-    @classmethod
-    def from_connection_string(cls, url: str, grpc_port: Optional[int] = None) -> ConnectionParams:
-        parsed = urlparse(url)
-        return cls(
-            scheme=parsed.scheme,
-            host=cast(str, parsed.hostname),
-            port=cast(int, parsed.port),
-            grpc_port=grpc_port,
-        )
 
     @property
-    def _grpc_address(self) -> Tuple[str, int]:
-        if self.grpc_url is None:
-            assert self.grpc_port is not None
-            return (self.host, self.grpc_port)
+    def _grpc_address(self) -> Optional[Tuple[str, int]]:
+        if self.grpc is None:
+            return None
+        return (self.grpc.host, self.grpc.port)
+
+    @property
+    def _grpc_target(self) -> Optional[str]:
+        if self.grpc is None:
+            return None
+        return f"{self.grpc.host}:{self.grpc.port}"
+
+    @property
+    def _grpc_channel(self) -> Optional[Channel]:
+        if self.grpc is None:
+            return None
+        if self.grpc.secure:
+            return grpc.secure_channel(
+                target=self._grpc_target,
+                credentials=grpc.ssl_channel_credentials(),
+                options=GRPC_OPTIONS,
+            )
         else:
-            parsed = urlparse(self.grpc_url)
-            return (
-                cast(str, parsed.hostname),
-                parsed.port or (443 if self.scheme == "https" else 80),
+            return grpc.insecure_channel(
+                target=self._grpc_target,
+                options=GRPC_OPTIONS,
             )
 
     @property
-    def _grpc_url(self) -> str:
-        if self.grpc_url is None:
-            return f"{self.host}:{self.grpc_port}"
-        else:
-            return self.grpc_url
+    def _http_scheme(self) -> str:
+        return "https" if self.http.secure else "http"
+
+    @property
+    def _http_url(self) -> str:
+        return f"{self._http_scheme}://{self.http.host}:{self.http.port}"
 
     @property
     def _has_grpc(self) -> bool:
-        return self.grpc_port is not None or self.grpc_url is not None
-
-    @property
-    def _rest_url(self) -> str:
-        return f"{self.scheme}://{self.host}:{self.port}"
+        return self.grpc is not None
 
 
 class Connection:
@@ -195,7 +236,7 @@ class Connection:
         """
 
         self._api_version_path = "/v1"
-        self.url = connection_params._rest_url  # e.g. http://localhost:80
+        self.url = connection_params._http_url  # e.g. http://localhost:80
         self.timeout_config: TIMEOUT_TYPE_RETURN = timeout_config
         self.embedded_db = embedded_db
 
@@ -207,16 +248,12 @@ class Connection:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
                 s.settimeout(1.0)  # we're only pinging the port, 1s is plenty
+                assert connection_params._grpc_address is not None
                 s.connect(connection_params._grpc_address)
                 s.shutdown(2)
                 s.close()
-                channel = grpc.insecure_channel(
-                    connection_params._grpc_url,
-                    options=[
-                        ("grpc.max_send_message_length", MAX_GRPC_MESSAGE_LENGTH),
-                        ("grpc.max_receive_message_length", MAX_GRPC_MESSAGE_LENGTH),
-                    ],
-                )
+                assert connection_params._grpc_channel is not None
+                channel = connection_params._grpc_channel
                 self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(channel)
                 self._grpc_available = True
             except (

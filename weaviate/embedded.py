@@ -32,6 +32,7 @@ class EmbeddedOptions:
     binary_path: str = os.environ.get("XDG_CACHE_HOME", DEFAULT_BINARY_PATH)
     version: str = "1.21.1"
     port: int = 8079
+    grpc_port: int = 50051
     hostname: str = "127.0.0.1"
     additional_env_vars: Optional[Dict[str, str]] = None
 
