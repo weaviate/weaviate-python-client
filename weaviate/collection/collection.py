@@ -1,4 +1,5 @@
-from typing import Dict, Generic, List, Literal, Optional, Type, Union, cast, is_typeddict, overload
+from typing import Dict, Generic, List, Literal, Optional, Type, Union, cast, overload
+from typing_extensions import is_typeddict
 
 from weaviate.collection.classes.config import (
     _CollectionConfigCreate,
