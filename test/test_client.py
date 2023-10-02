@@ -143,7 +143,7 @@ class TestWeaviateClient(unittest.TestCase):
                     args, kwargs = mock_obj.call_args_list[0]
                     self.assertEqual(
                         kwargs["connection_params"],
-                        ConnectionParams.from_url("http://localhost:8080", 50051),
+                        ConnectionParams.from_url("http://localhost:8079", 50051),
                     )
                     self.assertTrue(isinstance(kwargs["embedded_db"], EmbeddedDB))
                     self.assertTrue(kwargs["embedded_db"] is not None)
