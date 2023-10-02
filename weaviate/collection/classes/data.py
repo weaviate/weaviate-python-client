@@ -3,12 +3,13 @@ from dataclasses import dataclass
 from typing import List, Optional, Dict, Union, Generic
 
 from weaviate.collection.classes.internal import Properties
-from weaviate.util import _to_beacons
-from weaviate.types import UUID, UUIDS
+from weaviate.types import UUID
 
 
 @dataclass
 class Error:
+    """This class represents an error that occurred when attempting to insert an object within a batch."""
+
     message: str
     code: Optional[int] = None
     original_uuid: Optional[UUID] = None
@@ -21,10 +22,14 @@ class _BatchReturn:
     Since the individual objects within the batch can error for differing reasons, the data is split up within this class for ease use when performing error checking, handling, and data revalidation.
 
     Attributes:
-        all_responses: A list of all the responses from the batch operation. Each response is either a `uuid_package.UUID` object or an `Error` object.
-        uuids: A dictionary of all the successful responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `uuid_package.UUID` objects.
-        errors: A dictionary of all the failed responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `Error` objects.
-        has_errors: A boolean indicating whether or not any of the objects in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry.
+        `all_responses`
+            A list of all the responses from the batch operation. Each response is either a `uuid_package.UUID` object or an `Error` object.
+        `uuids`
+            A dictionary of all the successful responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `uuid_package.UUID` objects.
+        `errors`
+            A dictionary of all the failed responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `Error` objects.
+        `has_errors`
+            A boolean indicating whether or not any of the objects in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry.
     """
 
     all_responses: List[Union[uuid_package.UUID, Error]]
@@ -35,40 +40,23 @@ class _BatchReturn:
 
 @dataclass
 class RefError:
+    """This class represents an error that occurred when attempting to insert a reference between objects within a batch."""
+
     message: str
 
 
 @dataclass
-class ReferenceTo:
-    uuids: UUIDS
-
-    @property
-    def uuids_str(self) -> List[str]:
-        if isinstance(self.uuids, list):
-            return [str(uid) for uid in self.uuids]
-        else:
-            return [str(self.uuids)]
-
-    def to_beacons(self) -> List[Dict[str, str]]:
-        return _to_beacons(self.uuids)
-
-
-@dataclass
-class ReferenceToMultiTarget(ReferenceTo):
-    target_collection: str
-
-    def to_beacons(self) -> List[Dict[str, str]]:
-        return _to_beacons(self.uuids, self.target_collection)
-
-
-@dataclass
 class BatchReference:
+    """This class represents a reference between objects to be used when batching."""
+
     from_uuid: UUID
     to_uuid: UUID
 
 
 @dataclass
 class DataObject(Generic[Properties]):
+    """This class represents an entire object within a collection to be used when batching."""
+
     properties: Properties
     uuid: Optional[UUID] = None
     vector: Optional[List[float]] = None

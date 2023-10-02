@@ -32,6 +32,34 @@ class _FetchObjectsQuery(_Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _QueryReturn[Properties]:
+        """Retrieve the objects in this collection without any search.
+
+        Arguments:
+            `limit`
+                The maximum number of results to return. If not specified, the default limit specified by the server is returned.
+            `offset`
+                The offset to start from. If not specified, the retrieval begins from the first object in the server.
+            `after`
+                The UUID of the object to start from. If not specified, the retrieval begins from the first object in the server.
+            `filters`
+                The filters to apply to the retrieval.
+            `sort`
+                The sorting to apply to the retrieval.
+            `return_metadata`
+                The metadata to return for each object.
+            `return_properties`
+                The properties to return for each object.
+
+        NOTE:
+            If neither `return_metadata` nor `return_properties` are provided then all properties and metadata are returned except for `metadata.vector`.
+
+        Returns:
+            A `_QueryReturn` object that includes the searched objects.
+
+        Raises:
+            `weaviate.exceptions.WeaviateGRPCException`:
+                If the network connection to Weaviate fails.
+        """
         ret_properties, ret_type = self._parse_return_properties(return_properties)
         res = self._query().get(
             limit=limit,
@@ -59,6 +87,40 @@ class _FetchObjectsGenerate(_Grpc):
         return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
     ) -> _GenerativeReturn[Properties]:
+        """Perform retrieval-augmented generation (RaG) on the results of a simple get query of objects in this collection.
+
+        Arguments:
+            `single_prompt`
+                The prompt to use for RaG on each object individually.
+            `grouped_task`
+                The prompt to use for RaG on the entire result set.
+            `grouped_properties`
+                The properties to use in the RaG on the entire result set.
+            `limit`
+                The maximum number of results to return. If not specified, the default limit specified by Weaviate is returned.
+            `offset`
+                The offset to start from. If not specified, the retrieval begins from the first object in Weaviate.
+            `after`
+                The UUID of the object to start from. If not specified, the retrieval begins from the first object in Weaviate.
+            `filters`
+                The filters to apply to the retrieval.
+            `sort`
+                The sorting to apply to the retrieval.
+            `return_metadata`
+                The metadata to return for each object.
+            `return_properties`
+                The properties to return for each object.
+
+        NOTE:
+            If neither `return_metadata` nor `return_properties` are provided then all properties and metadata are returned except for `metadata.vector`.
+
+        Returns:
+            A `_GenerativeReturn` object that includes the searched objects with per-object generated results and group generated results.
+
+        Raises:
+            `weaviate.exceptions.WeaviateGRPCException`:
+                If the network connection to Weaviate fails.
+        """
         ret_properties, ret_type = self._parse_return_properties(return_properties)
         res = self._query().get(
             limit=limit,

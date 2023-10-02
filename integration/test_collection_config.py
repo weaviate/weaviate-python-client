@@ -12,7 +12,7 @@ from weaviate.collection.classes.config import (
     PQEncoderDistribution,
     StopwordsPreset,
     VectorDistance,
-    VectorIndexType,
+    _VectorIndexType,
     Vectorizer,
 )
 
@@ -111,7 +111,7 @@ def test_collection_config_empty(client: weaviate.Client):
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 1000000000000
 
-    assert config.vector_index_type == VectorIndexType.HNSW
+    assert config.vector_index_type == _VectorIndexType.HNSW
 
     client.collection.delete("TestCollectionConfigDefaults")
 
@@ -166,7 +166,7 @@ def test_collection_config_defaults(client: weaviate.Client):
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 1000000000000
 
-    assert config.vector_index_type == VectorIndexType.HNSW
+    assert config.vector_index_type == _VectorIndexType.HNSW
 
 
 def test_collection_config_full(client: weaviate.Client):
@@ -286,7 +286,7 @@ def test_collection_config_full(client: weaviate.Client):
     assert config.vector_index_config.skip is True
     assert config.vector_index_config.vector_cache_max_objects == 100000
 
-    assert config.vector_index_type == VectorIndexType.HNSW
+    assert config.vector_index_type == _VectorIndexType.HNSW
 
     client.collection.delete("TestCollectionConfigFull")
 
@@ -359,6 +359,6 @@ def test_collection_config_update(client: weaviate.Client):
     assert config.vector_index_config.skip is True
     assert config.vector_index_config.vector_cache_max_objects == 2000000
 
-    assert config.vector_index_type == VectorIndexType.HNSW
+    assert config.vector_index_type == _VectorIndexType.HNSW
 
     client.collection.delete("TestCollectionSchemaUpdate")

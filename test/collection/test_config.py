@@ -26,7 +26,7 @@ def test_basic_config():
         name="test",
         description="test",
     )
-    assert config.to_dict() == {
+    assert config._to_dict() == {
         **DEFAULTS,
         "class": "Test",
         "description": "test",
@@ -299,7 +299,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
 @pytest.mark.parametrize("vectorizer_config,expected", TEST_CONFIG_WITH_MODULE_PARAMETERS)
 def test_config_with_module(vectorizer_config: _VectorizerConfig, expected: dict):
     config = _CollectionConfigCreate(name="test", vectorizer_config=vectorizer_config)
-    assert config.to_dict() == {
+    assert config._to_dict() == {
         **DEFAULTS,
         "vectorizer": vectorizer_config.vectorizer.value,
         "class": "Test",
@@ -380,7 +380,7 @@ def test_config_with_module_and_properties(
     config = _CollectionConfigCreate(
         name="test", properties=properties, vectorizer_config=vectorizer_config
     )
-    assert config.to_dict() == {
+    assert config._to_dict() == {
         **DEFAULTS,
         "vectorizer": vectorizer_config.vectorizer.value,
         "class": "Test",
@@ -477,7 +477,7 @@ def test_config_with_generative_module(
     expected_mc: dict,
 ):
     config = _CollectionConfigCreate(name="test", generative_config=generative_config)
-    assert config.to_dict() == {
+    assert config._to_dict() == {
         **DEFAULTS,
         "vectorizer": "none",
         "class": "Test",
@@ -553,7 +553,7 @@ def test_config_with_properties():
             ),
         ],
     )
-    assert config.to_dict() == {
+    assert config._to_dict() == {
         **DEFAULTS,
         "class": "Test",
         "description": "test",

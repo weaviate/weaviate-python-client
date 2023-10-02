@@ -10,8 +10,8 @@ from .backup import Backup
 from .batch import Batch
 from .classification import Classification
 from .cluster import Cluster
-from .collection import Collection
-from .collection.collection_model import CollectionModel
+from .collection import _Collection
+from .collection.collection_model import _CollectionModel
 from .config import Config
 from .connect.connection import Connection, ConnectionParams, TIMEOUT_TYPE_RETURN
 from .contextionary import Contextionary
@@ -141,8 +141,8 @@ class Client:
         self.query = Query(self._connection)
         self.backup = Backup(self._connection)
         self.cluster = Cluster(self._connection)
-        self.collection = Collection(self._connection)
-        self.collection_model = CollectionModel(self._connection)
+        self.collection = _Collection(self._connection)
+        self.collection_model = _CollectionModel(self._connection)
 
     def is_ready(self) -> bool:
         """

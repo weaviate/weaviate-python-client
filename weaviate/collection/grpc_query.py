@@ -28,8 +28,8 @@ from weaviate.collection.classes.grpc import (
     PROPERTY,
     Sort,
 )
-from weaviate.collection.classes.internal import _Generative, _GroupBy, _MetadataReturn
-from weaviate.collection.extract_filters import FilterToGRPC
+from weaviate.collection.classes.internal import _Generative, _GroupBy
+from weaviate.collection.extract_filters import _FilterToGRPC
 
 from weaviate.collection.grpc_shared import _BaseGRPC
 
@@ -70,19 +70,17 @@ _PyValue: TypeAlias = Union[
 
 
 @dataclass
-class GrpcResult:
-    metadata: _MetadataReturn
-    result: Dict[str, Union[_StructValue, List["GrpcResult"]]]
-
-
-@dataclass
 class SearchResult:
+    """Represents a single search result from Weaviate."""
+
     properties: search_get_v1_pb2.PropertiesResult
     metadata: search_get_v1_pb2.MetadataResult
 
 
 @dataclass
 class GroupByResult:
+    """Represents a single group-by result from Weaviate."""
+
     name: str
     min_distance: float
     max_distance: float
@@ -92,6 +90,8 @@ class GroupByResult:
 
 @dataclass
 class SearchResponse:
+    """Represents the response from a search request to Weaviate."""
+
     # the name of these members must match the proto file
     results: List[SearchResult]
     generative_grouped_result: str
@@ -323,12 +323,12 @@ class _QueryGRPC(_BaseGRPC):
         if move_away is not None:
             self._near_text_move_away = search_get_v1_pb2.NearTextSearch.Move(
                 force=move_away.force,
-                concepts=move_away.concepts_list,
-                uuids=move_away.objects_list,
+                concepts=move_away._concepts_list,
+                uuids=move_away._objects_list,
             )
         if move_to is not None:
             self._near_text_move_to = search_get_v1_pb2.NearTextSearch.Move(
-                force=move_to.force, concepts=move_to.concepts_list, uuids=move_to.objects_list
+                force=move_to.force, concepts=move_to._concepts_list, uuids=move_to._objects_list
             )
 
         self._generative = generative
@@ -481,7 +481,7 @@ class _QueryGRPC(_BaseGRPC):
                     if self._hybrid_query is not None
                     else None,
                     tenant=self._tenant,
-                    filters=FilterToGRPC.convert(self._filters),
+                    filters=_FilterToGRPC.convert(self._filters),
                     near_text=search_get_v1_pb2.NearTextSearch(
                         query=self._near_text,
                         certainty=self._near_certainty,

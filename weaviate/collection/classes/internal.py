@@ -9,7 +9,7 @@ if sys.version_info < (3, 9):
 else:
     from typing import Annotated, get_type_hints, get_origin
 
-from weaviate.collection.collection_base import CollectionObjectBase
+from weaviate.collection.collection_base import _CollectionObjectBase
 from weaviate.collection.classes.grpc import (
     FromReference,
     FromReferenceMultiTarget,
@@ -166,6 +166,7 @@ class _Reference(Generic[P]):
         target_collection: Optional[str],
         uuids: Optional[UUIDS],
     ):
+        """You should not initialise this class directly. Use the `.to()` or `.to_multi_target()` class methods instead."""
         self.__objects = objects
         self.__target_collection = target_collection if target_collection else ""
         self.__uuids = uuids
@@ -181,10 +182,12 @@ class _Reference(Generic[P]):
 
     @property
     def is_multi_target(self) -> bool:
+        """Returns True if the reference is to a multi-target collection."""
         return self.__target_collection != ""
 
     @property
     def uuids_str(self) -> List[str]:
+        """Returns the UUIDs as strings."""
         if isinstance(self.__uuids, list):
             return [str(uid) for uid in self.__uuids]
         else:
@@ -192,10 +195,12 @@ class _Reference(Generic[P]):
 
     @property
     def target_collection(self) -> str:
+        """Returns the target collection name."""
         return self.__target_collection
 
     @property
     def objects(self) -> List[_Object[P]]:
+        """Returns the objects of the cross reference."""
         return self.__objects or []
 
 
@@ -212,7 +217,7 @@ class ReferenceFactory:
 
     @classmethod
     def to(cls, uuids: UUIDS, data_model: Optional[Type[P]] = None) -> Reference[P]:
-        """Defines cross references to other objects by their UUIDs.
+        """Define cross references to other objects by their UUIDs.
 
         Can be made to be generic by supplying a type to the `data_model` argument.
 
@@ -226,21 +231,23 @@ class ReferenceFactory:
     def to_multi_target(
         cls,
         uuids: UUIDS,
-        target_collection: Union[str, CollectionObjectBase],
+        target_collection: Union[str, _CollectionObjectBase],
         data_model: Optional[Type[P]] = None,
     ) -> Reference[P]:
-        """Defines cross references to other objects by their UUIDs and the collection in which they are stored.
+        """Define cross references to other objects by their UUIDs and the collection in which they are stored.
 
         Can be made to be generic by supplying a type to the `data_model` argument.
 
         Arguments:
-            - uuids: List of UUIDs of the objects to which the reference should point.
-            - target_collection: The collection in which the objects are stored. Can be either the name of the collection or the collection object itself.
+            uuids
+                List of UUIDs of the objects to which the reference should point.
+            target_collection
+                The collection in which the objects are stored. Can be either the name of the collection or the collection object itself.
         """
         return _Reference[P](
             None,
             target_collection.name
-            if isinstance(target_collection, CollectionObjectBase)
+            if isinstance(target_collection, _CollectionObjectBase)
             else target_collection,
             uuids,
         )
@@ -274,7 +281,7 @@ def _extract_property_type_from_annotated_reference(
         Annotated[_Reference[P], MetadataQuery, str],
     ]
 ) -> Type[P]:
-    """Extract inner type from Annotated[Reference[Properties]]"""
+    """Extract inner type from Annotated[Reference[Properties]]."""
     if get_origin(type_) is Annotated:
         args = cast(List[_Reference[Type[P]]], getattr(type_, "__args__", None))
         inner_type = args[0]
@@ -291,7 +298,7 @@ def __create_link_to_from_annotated_reference(
         Annotated[_Reference[Properties], MetadataQuery, str],
     ],
 ) -> Union[FromReference, FromReferenceMultiTarget]:
-    """Create FromReference or FromReferenceMultiTarget from Annotated[Reference[Properties]]"""
+    """Create FromReference or FromReferenceMultiTarget from Annotated[Reference[Properties]]."""
     assert get_origin(value) is Annotated
     args = cast(List[_Reference[Properties]], getattr(value, "__args__", None))
     inner_type = args[0]
@@ -326,7 +333,7 @@ def __create_link_to_from_reference(
     link_on: str,
     value: _Reference[Properties],
 ) -> FromReference:
-    """Create FromReference from Reference[Properties]"""
+    """Create FromReference from Reference[Properties]."""
     return FromReference(
         link_on=link_on,
         return_metadata=MetadataQuery(),

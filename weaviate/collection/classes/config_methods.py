@@ -19,7 +19,7 @@ from weaviate.collection.classes.config import (
     VectorDistance,
     PQEncoderType,
     PQEncoderDistribution,
-    VectorIndexType,
+    _VectorIndexType,
     Vectorizer,
     Tokenization,
     _PQEncoderConfig,
@@ -154,7 +154,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
             skip=schema["vectorIndexConfig"]["skip"],
             vector_cache_max_objects=schema["vectorIndexConfig"]["vectorCacheMaxObjects"],
         ),
-        vector_index_type=VectorIndexType(schema["vectorIndexType"]),
+        vector_index_type=_VectorIndexType(schema["vectorIndexType"]),
         vectorizer=Vectorizer(schema["vectorizer"]),
     )
 

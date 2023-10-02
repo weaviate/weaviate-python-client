@@ -130,7 +130,7 @@ class BaseProperty(BaseModel):
             if metadata_list is not None and len(metadata_list) > 0:
                 metadata = metadata_list[0]
                 if isinstance(metadata, PropertyConfig):
-                    prop.update(metadata.to_dict())
+                    prop.update(metadata._to_dict())
 
             properties.append(prop)
 
@@ -166,7 +166,7 @@ class BaseProperty(BaseModel):
             if metadata_list is not None and len(metadata_list) > 0:
                 metadata = metadata_list[0]
                 if isinstance(metadata, PropertyConfig):
-                    prop.update(metadata.to_dict())
+                    prop.update(metadata._to_dict())
 
             properties.append(Property(name=name, data_type=DataType(data_type[0]), **prop))
 
@@ -220,8 +220,8 @@ UserModelType = Type[BaseProperty]
 class CollectionModelConfig(_CollectionConfigCreateBase, Generic[Model]):
     model: Type[Model]
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
 
         ret_dict["class"] = _capitalize_first_letter(self.model.__name__)
 
