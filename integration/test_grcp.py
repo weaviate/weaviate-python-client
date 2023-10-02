@@ -54,8 +54,8 @@ UUID2 = "577887c1-4c6b-5594-aa62-f0c17883d9cf"
 def test_grcp(
     with_limit: bool, additional_props, search: Dict[str, Any], properties, grpc_port: Optional[int]
 ):
-    connection_params = weaviate.ConnectionParams(
-        scheme="http", host="localhost", port=8080, grpc_port=grpc_port
+    connection_params = weaviate.ConnectionParams.from_url(
+        "http://localhost:8080", grpc_port=grpc_port
     )
     client = weaviate.Client(connection_params)
     client.schema.delete_all()
@@ -100,17 +100,13 @@ def test_grcp(
 
 
 def test_additional():
-    connection_params = weaviate.ConnectionParams(
-        scheme="http", host="localhost", port=8080, grpc_port=50051
-    )
+    connection_params = weaviate.ConnectionParams.from_url("http://localhost:8080", grpc_port=50051)
     client_grpc = weaviate.Client(connection_params)
     client_grpc.schema.delete_all()
 
     client_grpc.schema.create_class(CLASS1)
     client_grpc.data_object.create({"test": "test"}, "Test", vector=VECTOR)
-    connection_params = weaviate.ConnectionParams(
-        scheme="http", host="localhost", port=8080, grpc_port=50052
-    )
+    connection_params = weaviate.ConnectionParams.from_url("http://localhost:8080", grpc_port=50052)
     client_gql = weaviate.Client(connection_params)
 
     results = []
@@ -138,9 +134,7 @@ def test_additional():
 
 
 def test_grpc_errors():
-    connection_params = weaviate.ConnectionParams(
-        scheme="http", host="localhost", port=8080, grpc_port=50051
-    )
+    connection_params = weaviate.ConnectionParams.from_url("http://localhost:8080", grpc_port=50051)
     client = weaviate.Client(connection_params)
     classname = CLASS1["class"]
     if client.schema.exists(classname):

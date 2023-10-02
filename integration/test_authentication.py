@@ -53,7 +53,7 @@ def is_auth_enabled(url: str):
 
 def test_no_auth_provided():
     """Test exception when trying to access a weaviate that requires authentication."""
-    connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=AZURE_PORT)
+    connection_params = ConnectionParams.from_url(f"http://localhost:{AZURE_PORT}")
     url = connection_params._http_url
     assert is_auth_enabled(url)
     with pytest.raises(AuthenticationFailedException):
@@ -81,7 +81,7 @@ def test_authentication_client_credentials(
     if client_secret is None:
         pytest.skip(f"No {name} login data found.")
 
-    connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=port)
+    connection_params = ConnectionParams.from_url(f"http://localhost:{port}")
     url = connection_params._http_url
     assert is_auth_enabled(url)
     client = weaviate.Client(
@@ -127,7 +127,7 @@ def test_authentication_user_pw(
     # testing for warnings can be flaky without this as there are open SSL conections
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 
-    connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=port)
+    connection_params = ConnectionParams.from_url(f"http://localhost:{port}")
     url = connection_params._http_url
     assert is_auth_enabled(url)
 
@@ -192,7 +192,7 @@ def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
 )
 def test_authentication_with_bearer_token(name: str, user: str, env_variable_name: str, port: str):
     """Test authentication using existing bearer token."""
-    connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=port)
+    connection_params = ConnectionParams.from_url(f"http://localhost:{port}")
     url = connection_params._http_url
     assert is_auth_enabled(url)
     pw = os.environ.get(env_variable_name)
@@ -218,7 +218,7 @@ def test_client_with_authentication_with_anon_weaviate(recwarn):
     # testing for warnings can be flaky without this as there are open SSL conections
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 
-    connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=ANON_PORT)
+    connection_params = ConnectionParams.from_url(f"http://localhost:{ANON_PORT}")
     url = connection_params._http_url
     assert not is_auth_enabled(url)
 
@@ -242,7 +242,7 @@ def test_bearer_token_without_refresh(recwarn):
     # testing for warnings can be flaky without this as there are open SSL conections
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 
-    connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=WCS_PORT)
+    connection_params = ConnectionParams.from_url(f"http://localhost:{WCS_PORT}")
     url = connection_params._http_url
     assert is_auth_enabled(url)
     pw = os.environ.get("WCS_DUMMY_CI_PW")
@@ -265,7 +265,7 @@ def test_bearer_token_without_refresh(recwarn):
 
 
 def test_api_key():
-    connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=WCS_PORT)
+    connection_params = ConnectionParams.from_url(f"http://localhost:{WCS_PORT}")
     url = connection_params._http_url
     assert is_auth_enabled(url)
 
@@ -276,7 +276,7 @@ def test_api_key():
 
 
 def test_api_key_wrong_key():
-    connection_params = ConnectionParams(scheme="http", host="127.0.0.1", port=WCS_PORT)
+    connection_params = ConnectionParams.from_url(f"http://localhost:{WCS_PORT}")
     url = connection_params._http_url
     assert is_auth_enabled(url)
 
