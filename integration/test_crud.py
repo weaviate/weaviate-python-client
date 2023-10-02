@@ -879,3 +879,116 @@ def test_tenants():
             tenant=tenants[i].name,
         )
         assert not exists
+
+
+@pytest.mark.parametrize(
+    "prop_defs,props",
+    [
+        (
+            {
+                "dataType": ["text"],
+                "name": "name",
+            },
+            {
+                "name": "test",
+            },
+        ),
+        (
+            {
+                "dataType": ["text[]"],
+                "name": "names",
+            },
+            {
+                "names": ["test1", "test2"],
+            },
+        ),
+        (
+            {
+                "dataType": ["int"],
+                "name": "age",
+            },
+            {
+                "age": 42,
+            },
+        ),
+        (
+            {
+                "dataType": ["int[]"],
+                "name": "ages",
+            },
+            {
+                "ages": [42, 43],
+            },
+        ),
+        (
+            {
+                "dataType": ["number"],
+                "name": "height",
+            },
+            {
+                "height": 1.80,
+            },
+        ),
+        (
+            {
+                "dataType": ["number[]"],
+                "name": "heights",
+            },
+            {
+                "heights": [1.00, 1.80],
+            },
+        ),
+        (
+            {
+                "dataType": ["boolean"],
+                "name": "isTall",
+            },
+            {
+                "isTall": True,
+            },
+        ),
+        (
+            {
+                "dataType": ["boolean[]"],
+                "name": "areTall",
+            },
+            {
+                "areTall": [False, True],
+            },
+        ),
+        (
+            {
+                "dataType": ["date"],
+                "name": "birthday",
+            },
+            {
+                "birthday": "2021-01-01T00:00:00Z",
+            },
+        ),
+        (
+            {
+                "dataType": ["date[]"],
+                "name": "birthdays",
+            },
+            {
+                "birthdays": ["2021-01-01T00:00:00Z", "2021-01-02T00:00:00Z"],
+            },
+        ),
+    ],
+)
+def test_nested_object_datatype(prop_defs: dict, props: dict):
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+    client.schema.create_class(
+        {
+            "class": "A",
+            "properties": [
+                {"name": "nested", "dataType": ["object"], "nestedProperties": [prop_defs]},
+            ],
+            "vectorizer": "none",
+        }
+    )
+
+    uuid_ = client.data_object.create({"nested": props}, "A")
+    obj = client.data_object.get_by_id(uuid_, class_name="A")
+    assert obj["properties"]["nested"] == props

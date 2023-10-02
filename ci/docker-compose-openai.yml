@@ -9,7 +9,7 @@ services:
       - '8086'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-make-proto-naming-consistent-4b98dfa
+    image: semitechnologies/weaviate:preview-nested-objects-4dc2c30
     ports:
       - 8086:8086
     restart: on-failure:0
