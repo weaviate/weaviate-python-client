@@ -12,7 +12,7 @@ from typing import Any, Dict, Optional, Tuple, Union, cast
 from urllib.parse import urlparse
 
 import requests
-from authlib.integrations.requests_client import OAuth2Session
+from authlib.integrations.requests_client import OAuth2Session  # type: ignore
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError, ReadTimeout
 from requests.exceptions import HTTPError as RequestsHTTPError
@@ -39,18 +39,21 @@ from weaviate.util import (
 from weaviate.warnings import _Warnings
 from weaviate.types import NUMBER
 
+
 try:
-    import grpc
+    import grpc  # type: ignore
     from weaviate_grpc import weaviate_pb2_grpc
 
     has_grpc = True
+
 except ImportError:
     has_grpc = False
+
 
 JSONPayload = Union[dict, list]
 Session = Union[requests.sessions.Session, OAuth2Session]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
-PYPI_TIMEOUT = 1
+PYPI_TIMEOUT = 0.1
 MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC server
 
 
@@ -270,8 +273,8 @@ class Connection:
             latest_version = pkg_info.get("version", "unknown version")
             if is_weaviate_client_too_old(client_version, latest_version):
                 _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
-        except (RequestsConnectionError, JSONDecodeError, ReadTimeout):
-            pass  # air-gaped environments
+        except requests.exceptions.RequestException:
+            pass  # ignore any errors related to requests, it is a best-effort warning
 
     def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
         """Creates a request session.

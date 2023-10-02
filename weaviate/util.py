@@ -7,13 +7,13 @@ import io
 import json
 import os
 import re
-import uuid as uuid_lib
 from enum import Enum, EnumMeta
 from pathlib import Path
 from typing import Union, Sequence, Any, Optional, List, Dict, Generator, Tuple, cast
 
 import requests
-import validators
+import uuid as uuid_lib
+import validators  # type: ignore
 from requests.exceptions import JSONDecodeError
 
 from weaviate.exceptions import (
