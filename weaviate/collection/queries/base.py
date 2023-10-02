@@ -49,7 +49,7 @@ from weaviate.collection.grpc_query import _QueryGRPC, GroupByResult, SearchResp
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGrpcUnavailable
 from weaviate.util import file_encoder_b64
-from weaviate_grpc import weaviate_pb2
+from weaviate_grpc import search_get_v1_pb2
 
 
 class _Grpc:
@@ -72,7 +72,7 @@ class _Grpc:
 
     @staticmethod
     def _extract_metadata_for_object(
-        add_props: "weaviate_pb2.ResultAdditionalProps",
+        add_props: "search_get_v1_pb2.MetadataResult",
     ) -> _MetadataResult:
         return _MetadataResult(
             uuid=uuid_lib.UUID(add_props.id) if len(add_props.id) > 0 else None,
@@ -103,7 +103,7 @@ class _Grpc:
         return value
 
     def __parse_result(
-        self, properties: "weaviate_pb2.ResultProperties", type_: Optional[Type[Properties]]
+        self, properties: "search_get_v1_pb2.PropertiesResult", type_: Optional[Type[Properties]]
     ) -> Properties:
         hints = get_type_hints(type_) if get_origin(type_) is not dict and type_ is not None else {}
         result = {}
@@ -161,14 +161,14 @@ class _Grpc:
         self, res: SearchResult, type_: Optional[Type[Properties]]
     ) -> _Object[Properties]:
         properties = self.__parse_result(res.properties, type_)
-        metadata = self._extract_metadata_for_object(res.additional_properties)
+        metadata = self._extract_metadata_for_object(res.metadata)
         return _Object[Properties](properties=properties, metadata=metadata._to_return())
 
     def __result_to_generative_object(
         self, res: SearchResult, type_: Optional[Type[Properties]]
     ) -> _GenerativeObject[Properties]:
         properties = self.__parse_result(res.properties, type_)
-        metadata = self._extract_metadata_for_object(res.additional_properties)
+        metadata = self._extract_metadata_for_object(res.metadata)
         return _GenerativeObject[Properties](
             properties=properties, metadata=metadata._to_return(), generated=metadata.generative
         )

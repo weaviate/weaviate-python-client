@@ -63,7 +63,7 @@ from weaviate.collection.queries.near_video import (
 from weaviate.connect import Connection
 from weaviate.types import UUID
 
-from weaviate_grpc import weaviate_pb2
+from weaviate_grpc import search_get_v1_pb2
 
 
 class _QueryCollection(
@@ -151,7 +151,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
 
     def __parse_result(
         self,
-        properties: "weaviate_pb2.ResultProperties",
+        properties: "search_get_v1_pb2.PropertiesResult",
         type_: Type[Model],
     ) -> Model:
         hints = get_type_hints(type_)
@@ -183,7 +183,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
 
     def __result_to_object(self, res: SearchResult) -> _Object[Model]:
         properties = self.__parse_result(res.properties, self.model)
-        metadata = self._extract_metadata_for_object(res.additional_properties)._to_return()
+        metadata = self._extract_metadata_for_object(res.metadata)._to_return()
         return _Object[Model](properties=properties, metadata=metadata)
 
     def get(

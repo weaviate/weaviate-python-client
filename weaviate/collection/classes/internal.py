@@ -21,7 +21,7 @@ from weaviate.collection.classes.types import Properties, P
 from weaviate.util import _to_beacons
 from weaviate.types import UUIDS
 
-from weaviate_grpc import weaviate_pb2
+from weaviate_grpc import search_get_v1_pb2
 
 
 @dataclass
@@ -121,8 +121,8 @@ class _Generative:
         self.grouped = grouped
         self.grouped_properties = grouped_properties
 
-    def to_grpc(self) -> weaviate_pb2.GenerativeSearch:
-        return weaviate_pb2.GenerativeSearch(
+    def to_grpc(self) -> search_get_v1_pb2.GenerativeSearch:
+        return search_get_v1_pb2.GenerativeSearch(
             single_response_prompt=self.single,
             grouped_response_task=self.grouped,
             grouped_properties=self.grouped_properties,
@@ -151,8 +151,8 @@ class _GroupBy:
         self.number_of_groups = number_of_groups
         self.objects_per_group = objects_per_group
 
-    def to_grpc(self) -> weaviate_pb2.GroupBy:
-        return weaviate_pb2.GroupBy(
+    def to_grpc(self) -> search_get_v1_pb2.GroupBy:
+        return search_get_v1_pb2.GroupBy(
             path=[self.prop],
             number_of_groups=self.number_of_groups,
             objects_per_group=self.objects_per_group,
