@@ -1334,7 +1334,7 @@ def test_near_image(
 
 
 @pytest.mark.parametrize("which_case", [0, 1, 2, 3])
-def test_return_properties_with_typed_dict(client: weaviate.Client, which_case: int):
+def test_return_properties_with_query_specific_typed_dict(client: weaviate.Client, which_case: int):
     name = "TestReturnListWithModel"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -1382,6 +1382,59 @@ def test_return_properties_with_typed_dict(client: weaviate.Client, which_case: 
 
         with pytest.raises(WeaviateGRPCException):
             collection.query.fetch_objects(return_properties=DataModel).objects
+
+
+def test_return_properties_with_general_typed_dict(client: weaviate.Client):
+    name = "TestReturnListWithModel"
+    client.collection.delete(name)
+
+    class _Data(TypedDict):
+        int_: int
+        ints: List[int]
+
+    collection = client.collection.create(
+        name=name,
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        properties=[
+            Property(name="int_", data_type=DataType.INT),
+            Property(name="ints", data_type=DataType.INT_ARRAY),
+        ],
+        data_model=_Data,
+    )
+    collection.data.insert(properties=_Data(int_=1, ints=[1, 2, 3]))
+    objects = collection.query.fetch_objects().objects
+    assert len(objects) == 1
+    assert objects[0].properties["int_"] == 1
+    assert objects[0].properties["ints"] == [1, 2, 3]
+
+
+def test_return_properties_with_query_specific_typed_dict_overwriting_general_typed_dict(
+    client: weaviate.Client,
+):
+    name = "TestReturnListWithModel"
+    client.collection.delete(name)
+
+    class _DataAll(TypedDict):
+        int_: int
+        ints: List[int]
+
+    class _Data(TypedDict):
+        int_: int
+
+    collection = client.collection.create(
+        name=name,
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        properties=[
+            Property(name="int_", data_type=DataType.INT),
+            Property(name="ints", data_type=DataType.INT_ARRAY),
+        ],
+        data_model=_DataAll,
+    )
+    collection.data.insert(properties=_DataAll(int_=1, ints=[1, 2, 3]))
+    objects = collection.query.fetch_objects(return_properties=_Data).objects
+    assert len(objects) == 1
+    assert objects[0].properties["int_"] == 1
+    assert "ints" not in objects[0].properties
 
 
 def test_batch_with_arrays(client: weaviate.Client):
@@ -1616,3 +1669,39 @@ def test_iterator_dict_hint(client: weaviate.Client):
         "return_properties must only be a TypedDict or PROPERTIES within this context but is "
         in e.value.args[0]
     )
+
+
+def test_iterator_with_default_generic(client: weaviate.Client):
+    name = "TestIteratorWithDefaultGeneric"
+    client.collection.delete(name)
+
+    class This(TypedDict):
+        this: str
+
+    class That(TypedDict):
+        this: str
+        that: str
+
+    collection = client.collection.create(
+        name=name,
+        properties=[
+            Property(name="this", data_type=DataType.TEXT),
+            Property(name="that", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        data_model=That,
+    )
+
+    collection.data.insert_many(
+        [DataObject(properties=That(this="this", that="that")) for _ in range(10)]
+    )
+
+    iter_ = collection.iterator()
+    for datum in iter_:
+        assert datum.properties["this"] == "this"
+        assert datum.properties["that"] == "that"
+
+    iter__ = collection.iterator(return_properties=This)
+    for datum in iter__:
+        assert datum.properties["this"] == "this"
+        assert "that" not in datum.properties

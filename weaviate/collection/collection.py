@@ -1,4 +1,5 @@
-from typing import Dict, Generic, List, Literal, Optional, Type, Union, overload
+from typing import Dict, Generic, List, Literal, Optional, Type, Union, cast, overload
+from typing_extensions import is_typeddict
 
 from weaviate.collection.classes.config import (
     _CollectionConfigCreate,
@@ -29,14 +30,14 @@ from weaviate.connect import Connection
 from weaviate.util import _capitalize_first_letter
 
 
-class _CollectionObject(_CollectionObjectBase, Generic[TProperties]):
+class _CollectionObject(_CollectionObjectBase, Generic[Properties]):
     def __init__(
         self,
         connection: Connection,
         name: str,
         consistency_level: Optional[ConsistencyLevel] = None,
         tenant: Optional[str] = None,
-        type_: Optional[Type[TProperties]] = None,
+        type_: Optional[Type[Properties]] = None,
     ) -> None:
         super().__init__(name)
 
@@ -44,14 +45,14 @@ class _CollectionObject(_CollectionObjectBase, Generic[TProperties]):
 
         self.config = _ConfigCollection(self._connection, name)
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
-        self.data = _DataCollection[TProperties](connection, name, consistency_level, tenant, type_)
+        self.data = _DataCollection[Properties](connection, name, consistency_level, tenant, type_)
         """This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate."""
-        self.generate = _GenerateCollection(connection, name, consistency_level, tenant)
+        self.generate = _GenerateCollection(connection, name, consistency_level, tenant, type_)
         """This namespace includes all the querying methods available to you when using Weaviate's generative capabilities."""
-        self.query_group_by = _GroupByCollection(connection, name, consistency_level, tenant)
+        self.query_group_by = _GroupByCollection(connection, name, consistency_level, tenant, type_)
         """This namespace includes all the querying methods available to you when using Weaviate's group-by capabilities."""
-        self.query = _QueryCollection[TProperties](
-            connection, name, self.data, consistency_level, tenant
+        self.query = _QueryCollection[Properties](
+            connection, name, self.data, consistency_level, tenant, type_
         )
         """This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities."""
         self.tenants = _Tenants(connection, name)
@@ -59,6 +60,7 @@ class _CollectionObject(_CollectionObjectBase, Generic[TProperties]):
 
         self.__tenant = tenant
         self.__consistency_level = consistency_level
+        self.__type = type_
 
     def with_tenant(self, tenant: Optional[str] = None) -> "_CollectionObject":
         """Use this method to return a collection object specific to a single tenant.
@@ -84,11 +86,28 @@ class _CollectionObject(_CollectionObjectBase, Generic[TProperties]):
         """
         return _CollectionObject(self._connection, self.name, consistency_level, self.__tenant)
 
+    @overload
     def iterator(
         self,
         return_metadata: Optional[MetadataQuery] = None,
-        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
-    ) -> _ObjectIterator[Properties, TProperties]:
+        return_properties: Optional[PROPERTIES] = None,
+    ) -> _ObjectIterator[Properties]:
+        ...
+
+    @overload
+    def iterator(
+        self,
+        return_metadata: Optional[MetadataQuery] = None,
+        *,
+        return_properties: Type[TProperties],
+    ) -> _ObjectIterator[TProperties]:
+        ...
+
+    def iterator(
+        self,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[TProperties]]] = None,
+    ) -> Union[_ObjectIterator[Properties], _ObjectIterator[TProperties]]:
         """Use this method to return an iterator over the objects in the collection.
 
         This iterator keeps a record of the last object that it returned to be used in each subsequent call to
@@ -110,8 +129,40 @@ class _CollectionObject(_CollectionObjectBase, Generic[TProperties]):
             `weaviate.UnexpectedStatusCodeException`
                 If Weaviate reports a non-OK status.
         """
-        return _ObjectIterator[Properties, TProperties](
-            self.query, return_metadata, return_properties
+        if is_typeddict(return_properties):
+            return_properties = cast(Type[TProperties], return_properties)
+            return _ObjectIterator[TProperties](
+                lambda limit, alpha, meta: self.query.fetch_objects(
+                    limit=limit,
+                    after=alpha,
+                    return_metadata=meta,
+                    return_properties=return_properties,
+                ).objects,
+                return_metadata,
+                return_properties,
+            )
+        if return_properties is None and self.__type is not None:
+            _type = cast(Type[Properties], self.__type)
+            return _ObjectIterator[Properties](
+                lambda limit, alpha, meta: self.query.fetch_objects(
+                    limit=limit,
+                    after=alpha,
+                    return_metadata=meta,
+                    return_properties=_type,
+                ).objects,
+                return_metadata,
+                _type,
+            )
+        props = cast(PROPERTIES, return_properties)
+        return _ObjectIterator[Properties](
+            lambda limit, alpha, meta: self.query.fetch_objects(
+                limit=limit,
+                after=alpha,
+                return_metadata=meta,
+                return_properties=props,
+            ).objects,
+            return_metadata,
+            props,
         )
 
 
