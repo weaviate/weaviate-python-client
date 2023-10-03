@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-make-proto-naming-consistent-4b98dfa
+    image: semitechnologies/weaviate:preview-nested-objects-4dc2c30
     ports:
       - "8080:8080"
       - "50051:50051"

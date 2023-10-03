@@ -460,7 +460,7 @@ class _QueryGRPC(_BaseGRPC):
                     )
                     if self._near_object_obj is not None
                     else None,
-                    properties=self._convert_references_to_grpc(self._default_props),
+                    properties=self._translate_properties_from_python_to_grpc(self._default_props),
                     metadata=self._metadata_to_grpc(self._metadata)
                     if self._metadata is not None
                     else None,
@@ -543,7 +543,7 @@ class _QueryGRPC(_BaseGRPC):
             is_consistent=metadata.is_consistent,
         )
 
-    def _convert_references_to_grpc(
+    def _translate_properties_from_python_to_grpc(
         self, properties: Set[PROPERTY]
     ) -> search_get_v1_pb2.PropertiesRequest:
         return search_get_v1_pb2.PropertiesRequest(
@@ -551,7 +551,7 @@ class _QueryGRPC(_BaseGRPC):
             ref_properties=[
                 search_get_v1_pb2.RefPropertiesRequest(
                     reference_property=prop.link_on,
-                    properties=self._convert_references_to_grpc(
+                    properties=self._translate_properties_from_python_to_grpc(
                         self.__convert_properties_to_set(prop.return_properties)
                     )
                     if prop.return_properties is not None
