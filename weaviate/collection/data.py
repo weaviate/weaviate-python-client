@@ -384,8 +384,8 @@ class _Data:
         text_arrays: List[base_pb2.TextArrayProperties] = []
         int_arrays: List[base_pb2.IntArrayProperties] = []
         float_arrays: List[base_pb2.NumberArrayProperties] = []
-        object_properties: List[batch_pb2.BatchObject.ObjectProperties] = []
-        object_array_properties: List[batch_pb2.BatchObject.ObjectArrayProperties] = []
+        object_properties: List[base_pb2.ObjectProperties] = []
+        object_array_properties: List[base_pb2.ObjectArrayProperties] = []
         for key, val in data.items():
             if isinstance(val, _Reference):
                 if val.is_multi_target:
@@ -403,19 +403,41 @@ class _Data:
                         )
                     )
             elif isinstance(val, dict):
+                parsed = self.__translate_properties_from_python_to_grpc(val, clean_props)
                 object_properties.append(
-                    batch_pb2.BatchObject.ObjectProperties(
+                    base_pb2.ObjectProperties(
                         prop_name=key,
-                        value=self.__translate_properties_from_python_to_grpc(val, clean_props),
+                        value=base_pb2.ObjectPropertiesValue(
+                            non_ref_properties=parsed.non_ref_properties,
+                            int_array_properties=parsed.int_array_properties,
+                            text_array_properties=parsed.text_array_properties,
+                            number_array_properties=parsed.number_array_properties,
+                            boolean_array_properties=parsed.boolean_array_properties,
+                            object_properties=parsed.object_properties,
+                            object_array_properties=parsed.object_array_properties,
+                        ),
                     )
                 )
             elif isinstance(val, list) and isinstance(val[0], dict):
                 val = cast(List[Dict[str, Any]], val)
                 object_array_properties.append(
-                    batch_pb2.BatchObject.ObjectArrayProperties(
+                    base_pb2.ObjectArrayProperties(
                         values=[
-                            self.__translate_properties_from_python_to_grpc(v, clean_props)
+                            base_pb2.ObjectPropertiesValue(
+                                non_ref_properties=parsed.non_ref_properties,
+                                int_array_properties=parsed.int_array_properties,
+                                text_array_properties=parsed.text_array_properties,
+                                number_array_properties=parsed.number_array_properties,
+                                boolean_array_properties=parsed.boolean_array_properties,
+                                object_properties=parsed.object_properties,
+                                object_array_properties=parsed.object_array_properties,
+                            )
                             for v in val
+                            if (
+                                parsed := self.__translate_properties_from_python_to_grpc(
+                                    v, clean_props
+                                )
+                            )
                         ],
                         prop_name=key,
                     )
