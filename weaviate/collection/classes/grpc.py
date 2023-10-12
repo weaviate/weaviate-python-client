@@ -114,5 +114,14 @@ class FromReferenceMultiTarget(FromReference):
     target_collection: str
 
 
-PROPERTY = Union[str, FromReference]
+class NestedProperty(_WeaviateInput):
+    """Define the return properties of a nested property."""
+
+    name: str
+    properties: "NestedProperties"
+
+
+PROPERTY = Union[str, FromReference, NestedProperty]
 PROPERTIES = Union[List[PROPERTY], PROPERTY]
+
+NestedProperties = Union[List[Union[str, NestedProperty]], Union[str, NestedProperty]]

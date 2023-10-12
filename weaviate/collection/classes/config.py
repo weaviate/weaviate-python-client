@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, cast
 
-from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from weaviate.util import _capitalize_first_letter
 from weaviate.warnings import _Warnings
@@ -41,6 +41,8 @@ class DataType(str, Enum):
         GEO_COORDINATES: Geo coordinates data type.
         BLOB: Blob data type.
         PHONE_NUMBER: Phone number data type.
+        OBJECT: Object data type.
+        OBJECT_ARRAY: Object array data type.
     """
 
     TEXT = "text"
@@ -58,6 +60,8 @@ class DataType(str, Enum):
     GEO_COORDINATES = "geoCoordinates"
     BLOB = "blob"
     PHONE_NUMBER = "phoneNumber"
+    OBJECT = "object"
+    OBJECT_ARRAY = "object[]"
 
 
 class _VectorIndexType(str, Enum):
@@ -1318,6 +1322,9 @@ class Property(_ConfigCreateModel):
     indexFilterable: Optional[bool] = Field(default=None, alias="index_filterable")
     indexSearchable: Optional[bool] = Field(default=None, alias="index_searchable")
     description: Optional[str] = Field(default=None)
+    nestedProperties: Optional[Union["Property", List["Property"]]] = Field(
+        default=None, alias="nested_properties"
+    )
     skip_vectorization: bool = Field(default=False)
     tokenization: Optional[Tokenization] = Field(default=None)
     vectorize_property_name: bool = Field(default=True)
@@ -1327,6 +1334,18 @@ class Property(_ConfigCreateModel):
         if v in ["id", "vector"]:
             raise ValueError(f"Property name '{v}' is reserved and cannot be used")
         return v
+
+    @model_validator(mode="after")
+    def _check_nested(self) -> "Property":
+        if self.dataType == DataType.OBJECT and self.nestedProperties is None:
+            raise ValueError(
+                "Nested properties must be specified if the data type is set to `DataType.OBJECT`"
+            )
+        if self.dataType == DataType.OBJECT_ARRAY and self.nestedProperties is None:
+            raise ValueError(
+                "Nested properties must be specified if the data type is set to `DataType.OBJECT_ARRAY`"
+            )
+        return self
 
     def _to_dict(self, vectorizer: Optional[Vectorizer] = None) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -1340,6 +1359,12 @@ class Property(_ConfigCreateModel):
             }
         del ret_dict["skip_vectorization"]
         del ret_dict["vectorize_property_name"]
+        if self.nestedProperties is not None:
+            ret_dict["nestedProperties"] = (
+                [prop._to_dict() for prop in self.nestedProperties]
+                if isinstance(self.nestedProperties, list)
+                else [self.nestedProperties._to_dict()]
+            )
         return ret_dict
 
 

@@ -22,6 +22,7 @@ from weaviate.collection.classes.grpc import (
     HybridFusion,
     FromReference,
     FromReferenceMultiTarget,
+    NestedProperty,
     MetadataQuery,
     Move,
     PROPERTIES,
@@ -546,6 +547,15 @@ class _QueryGRPC(_BaseGRPC):
     def _translate_properties_from_python_to_grpc(
         self, properties: Set[PROPERTY]
     ) -> search_get_v1_pb2.PropertiesRequest:
+        def resolve_property(prop: NestedProperty) -> search_get_v1_pb2.ObjectPropertiesRequest:
+            return search_get_v1_pb2.ObjectPropertiesRequest(
+                prop_name=prop.name,
+                primitive_properties=[p for p in prop.properties if isinstance(p, str)],
+                object_properties=[
+                    resolve_property(p) for p in prop.properties if isinstance(p, NestedProperty)
+                ],
+            )
+
         return search_get_v1_pb2.PropertiesRequest(
             non_ref_properties=[prop for prop in properties if isinstance(prop, str)],
             ref_properties=[
@@ -565,6 +575,9 @@ class _QueryGRPC(_BaseGRPC):
                 )
                 for prop in properties
                 if isinstance(prop, FromReference)
+            ],
+            object_properties=[
+                resolve_property(prop) for prop in properties if isinstance(prop, NestedProperty)
             ],
         )
 

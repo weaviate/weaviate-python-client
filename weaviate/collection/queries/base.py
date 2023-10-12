@@ -28,6 +28,7 @@ from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.classes.grpc import (
     FromReference,
     MetadataQuery,
+    NestedProperty,
     PROPERTIES,
 )
 from weaviate.collection.classes.internal import (
@@ -56,7 +57,7 @@ from weaviate.collection.grpc_query import _QueryGRPC, GroupByResult, SearchResp
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGrpcUnavailable
 from weaviate.util import file_encoder_b64
-from weaviate_grpc import search_get_v1_pb2
+from weaviate_grpc import base_pb2, search_get_v1_pb2
 
 T = TypeVar("T")
 
@@ -113,9 +114,11 @@ class _Grpc(Generic[Properties]):
             ]
         return value
 
-    def __parse_result(
-        self, properties: "search_get_v1_pb2.PropertiesResult", type_: Optional[Type[T]]
-    ) -> T:
+    def __parse_nonref_properties_result(
+        self,
+        properties: Union[search_get_v1_pb2.PropertiesResult, base_pb2.ObjectPropertiesValue],
+        type_: Optional[Any],
+    ) -> dict:
         hints = get_type_hints(type_) if get_origin(type_) is not dict and type_ is not None else {}
         result = {}
 
@@ -138,6 +141,30 @@ class _Grpc(Generic[Properties]):
                 bool(val) for val in boolean_array_property.values
             ]
 
+        for object_property in properties.object_properties:
+            result[object_property.prop_name] = self.__parse_nonref_properties_result(
+                object_property.value, type_=hints.get(object_property.prop_name)
+            )
+
+        for object_array_property in properties.object_array_properties:
+            result[object_array_property.prop_name] = [
+                self.__parse_nonref_properties_result(
+                    object_property,
+                    hints.get(
+                        object_array_property.prop_name,
+                        [None for _ in range(len(object_array_property.values))][i],
+                    ),
+                )
+                for i, object_property in enumerate(object_array_property.values)
+            ]
+
+        return result
+
+    def __parse_ref_properties_result(
+        self, properties: "search_get_v1_pb2.PropertiesResult", type_: Optional[Type[T]]
+    ) -> dict:
+        hints = get_type_hints(type_) if get_origin(type_) is not dict and type_ is not None else {}
+        result = {}
         for ref_prop in properties.ref_props:
             hint = hints.get(ref_prop.prop_name)
             if hint is not None:
@@ -165,8 +192,14 @@ class _Grpc(Generic[Properties]):
                         for prop in ref_prop.properties
                     ]
                 )
+        return result
 
-        return cast(T, result)
+    def __parse_result(
+        self, properties: "search_get_v1_pb2.PropertiesResult", type_: Optional[Type[T]]
+    ) -> T:
+        nonref_result = self.__parse_nonref_properties_result(properties, type_)
+        ref_result = self.__parse_ref_properties_result(properties, type_)
+        return cast(T, {**nonref_result, **ref_result})
 
     def __result_to_query_object(self, res: SearchResult, type_: Optional[Type[T]]) -> _Object[T]:
         properties = self.__parse_result(res.properties, type_)
@@ -284,6 +317,7 @@ class _Grpc(Generic[Properties]):
             isinstance(return_properties, list)
             or isinstance(return_properties, str)
             or isinstance(return_properties, FromReference)
+            or isinstance(return_properties, NestedProperty)
             or (return_properties is None and self._type is None)
         ):
             return self.__parse_properties(return_properties), None
@@ -311,6 +345,7 @@ class _PropertiesParser:
             properties is None
             or isinstance(properties, str)
             or isinstance(properties, FromReference)
+            or isinstance(properties, NestedProperty)
         ):
             if isinstance(properties, str) and properties.startswith("__"):
                 self.__parse_reference_property_string(properties)
@@ -326,7 +361,7 @@ class _PropertiesParser:
                         self.__parse_reference_property_string(prop)
                     else:
                         self.__non_ref_properties.append(prop)
-                else:
+                elif isinstance(prop, FromReference):
                     self.__from_references_by_prop_name[prop.link_on] = prop
             return [*self.__non_ref_properties, *self.__from_references_by_prop_name.values()]
         else:
