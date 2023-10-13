@@ -9,7 +9,7 @@ services:
       - '8086'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-implement-grpc-nested-objects-1b68109
+    image: semitechnologies/weaviate:preview-implement-grpc-nested-objects-70fe1a7
     ports:
       - 8086:8086
       - "50057:50051"

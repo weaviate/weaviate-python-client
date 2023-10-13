@@ -24,6 +24,8 @@ else:
 
 import uuid as uuid_lib
 
+from google.protobuf import struct_pb2
+
 from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.classes.grpc import (
     FromReference,
@@ -112,6 +114,10 @@ class _Grpc(Generic[Properties]):
             return [
                 self._deserialize_primitive(val, type_value[idx]) for idx, val in enumerate(value)
             ]
+        if isinstance(value, struct_pb2.Struct):
+            raise ValueError(
+                f"The query returned an object value where it expected a primitive. Have you missed a NestedProperty specification in your query? {value}"
+            )
         return value
 
     def __parse_nonref_properties_result(

@@ -120,6 +120,9 @@ class NestedProperty(_WeaviateInput):
     name: str
     properties: "NestedProperties"
 
+    def __hash__(self) -> int:  # for set
+        return hash(str(self))
+
 
 PROPERTY = Union[str, FromReference, NestedProperty]
 PROPERTIES = Union[List[PROPERTY], PROPERTY]

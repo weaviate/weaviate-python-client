@@ -2,7 +2,7 @@
 version: '3.4'
 services:
   weaviate-node-1:
-    image: semitechnologies/weaviate:preview-implement-grpc-nested-objects-1b68109
+    image: semitechnologies/weaviate:preview-implement-grpc-nested-objects-70fe1a7
     restart: on-failure:0
     ports:
       - "8087:8080"
@@ -26,7 +26,7 @@ services:
       - '8080'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-implement-grpc-nested-objects-1b68109
+    image: semitechnologies/weaviate:preview-implement-grpc-nested-objects-70fe1a7
     ports:
       - 8088:8080
       - "50059:50051"
