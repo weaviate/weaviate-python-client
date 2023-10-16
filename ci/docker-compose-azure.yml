@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-nested-objects-4dc2c30
+    image: semitechnologies/weaviate:preview-split-protos-into-v0-and-v1-packages-for-clear-api-break-b4b08ad
     ports:
       - 8081:8081
     restart: on-failure:0
