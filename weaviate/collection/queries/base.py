@@ -30,7 +30,7 @@ from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.classes.grpc import (
     FromReference,
     MetadataQuery,
-    NestedProperty,
+    FromNested,
     PROPERTIES,
 )
 from weaviate.collection.classes.internal import (
@@ -323,7 +323,7 @@ class _Grpc(Generic[Properties]):
             isinstance(return_properties, list)
             or isinstance(return_properties, str)
             or isinstance(return_properties, FromReference)
-            or isinstance(return_properties, NestedProperty)
+            or isinstance(return_properties, FromNested)
             or (return_properties is None and self._type is None)
         ):
             return self.__parse_properties(return_properties), None
@@ -351,7 +351,7 @@ class _PropertiesParser:
             properties is None
             or isinstance(properties, str)
             or isinstance(properties, FromReference)
-            or isinstance(properties, NestedProperty)
+            or isinstance(properties, FromNested)
         ):
             if isinstance(properties, str) and properties.startswith("__"):
                 self.__parse_reference_property_string(properties)

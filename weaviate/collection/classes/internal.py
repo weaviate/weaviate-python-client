@@ -6,12 +6,13 @@ from typing_extensions import TypeAlias
 import uuid as uuid_package
 
 if sys.version_info < (3, 9):
-    from typing_extensions import Annotated, get_type_hints, get_origin
+    from typing_extensions import Annotated, get_type_hints, get_origin, get_args
 else:
-    from typing import Annotated, get_type_hints, get_origin
+    from typing import Annotated, get_type_hints, get_origin, get_args
 
 from weaviate.collection.collection_base import _CollectionObjectBase
 from weaviate.collection.classes.grpc import (
+    FromNested,
     FromReference,
     FromReferenceMultiTarget,
     MetadataQuery,
@@ -167,6 +168,32 @@ class _GroupBy:
         )
 
 
+Nested = Annotated[P, "NESTED"]
+
+
+def __is_nested(value: Any) -> bool:
+    return (
+        get_origin(value) is Annotated
+        and len(get_args(value)) == 2
+        and cast(str, get_args(value)[1]) == "NESTED"
+    )
+
+
+def __create_nested_property_from_nested(name: str, value: Any) -> FromNested:
+    if not __is_nested(value):
+        raise ValueError(
+            f"Non nested property detected in generic resolution, {value} of type {type(value)} is not allowed as a nested property."
+        )
+    inner_type = get_args(value)[0]
+    return FromNested(
+        name=name,
+        properties=[
+            __create_nested_property_from_nested(key, val) if __is_nested(val) else key
+            for key, val in get_type_hints(inner_type, include_extras=True).items()
+        ],
+    )
+
+
 class _Reference(Generic[P]):
     def __init__(
         self,
@@ -299,6 +326,14 @@ def _extract_property_type_from_annotated_reference(
     raise ValueError("Type is not Annotated[Reference[Properties]]")
 
 
+def __is_annotated_reference(value: Any) -> bool:
+    return (
+        get_origin(value) is Annotated
+        and len(get_args(value)) == 2
+        and get_origin(get_args(value)[0]) is _Reference
+    )
+
+
 def __create_link_to_from_annotated_reference(
     link_on: str,
     value: Union[
@@ -337,6 +372,10 @@ def __create_link_to_from_annotated_reference(
         )
 
 
+def __is_reference(value: Any) -> bool:
+    return get_origin(value) is _Reference
+
+
 def __create_link_to_from_reference(
     link_on: str,
     value: _Reference[Properties],
@@ -354,14 +393,16 @@ def __create_link_to_from_reference(
 def _extract_properties_from_data_model(type_: Type[Properties]) -> PROPERTIES:
     """Extract properties of Properties recursively from Properties.
 
-    Checks to see if there is a _Reference[Properties] or Annotated[_Reference[Properties]] in the data model and
-    lists out the non-cross-reference properties.
+    Checks to see if there is a _Reference[Properties], Annotated[_Reference[Properties]], or _Nested[Properties]
+    in the data model and lists out the properties as classes readily consumable by the underlying API.
     """
     return [
         __create_link_to_from_annotated_reference(key, value)
-        if get_origin(value) is Annotated
+        if __is_annotated_reference(value)
         else (
-            __create_link_to_from_reference(key, value) if get_origin(value) is _Reference else key
+            __create_link_to_from_reference(key, value)
+            if __is_reference(value)
+            else (__create_nested_property_from_nested(key, value) if __is_nested(value) else key)
         )
         for key, value in get_type_hints(type_, include_extras=True).items()
     ]

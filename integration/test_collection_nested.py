@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, TypedDict, Union
 
 import pytest
 
@@ -7,7 +7,8 @@ from weaviate.collection.classes.config import (
     DataType,
     Property,
 )
-from weaviate.collection.classes.grpc import PROPERTIES, NestedProperty
+from weaviate.collection.classes.grpc import PROPERTIES, FromNested
+from weaviate.collection.classes.internal import Nested
 
 
 @pytest.fixture(scope="module")
@@ -255,7 +256,7 @@ def client():
         ),
     ],
 )
-def test_insert_nested_return_all_properties(
+def test_nested_return_all_properties(
     client: weaviate.Client, property_: Property, object_: Union[dict, List[dict]]
 ):
     name = "TestInsertNestedPropertiesAll"
@@ -274,40 +275,34 @@ def test_insert_nested_return_all_properties(
 @pytest.mark.parametrize(
     "return_properties,expected",
     [
-        (NestedProperty(name="nested", properties=["text"]), {"text": "Hello World"}),
-        (NestedProperty(name="nested", properties=["texts"]), {"texts": ["Hello", "World"]}),
-        (NestedProperty(name="nested", properties=["number"]), {"number": 42.0}),
-        (NestedProperty(name="nested", properties=["numbers"]), {"numbers": [42.0, 43.0]}),
-        (NestedProperty(name="nested", properties=["int"]), {"int": 42}),
-        (NestedProperty(name="nested", properties=["ints"]), {"ints": [42, 43]}),
-        (NestedProperty(name="nested", properties=["bool"]), {"bool": True}),
-        (NestedProperty(name="nested", properties=["bools"]), {"bools": [True, False]}),
-        (NestedProperty(name="nested", properties=["date"]), {"date": "2020-01-01T00:00:00Z"}),
+        (FromNested(name="nested", properties=["text"]), {"text": "Hello World"}),
+        (FromNested(name="nested", properties=["texts"]), {"texts": ["Hello", "World"]}),
+        (FromNested(name="nested", properties=["number"]), {"number": 42.0}),
+        (FromNested(name="nested", properties=["numbers"]), {"numbers": [42.0, 43.0]}),
+        (FromNested(name="nested", properties=["int"]), {"int": 42}),
+        (FromNested(name="nested", properties=["ints"]), {"ints": [42, 43]}),
+        (FromNested(name="nested", properties=["bool"]), {"bool": True}),
+        (FromNested(name="nested", properties=["bools"]), {"bools": [True, False]}),
+        (FromNested(name="nested", properties=["date"]), {"date": "2020-01-01T00:00:00Z"}),
         (
-            NestedProperty(name="nested", properties=["dates"]),
+            FromNested(name="nested", properties=["dates"]),
             {"dates": ["2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z"]},
         ),
         (
-            NestedProperty(
-                name="nested", properties=[NestedProperty(name="obj", properties=["text"])]
-            ),
+            FromNested(name="nested", properties=[FromNested(name="obj", properties=["text"])]),
             {"obj": {"text": "Hello World"}},
         ),
         (
-            NestedProperty(
-                name="nested", properties=[NestedProperty(name="objs", properties=["text"])]
-            ),
+            FromNested(name="nested", properties=[FromNested(name="objs", properties=["text"])]),
             {"objs": [{"text": "Hello World"}, {"text": "Hello World"}]},
         ),
         (
-            NestedProperty(
+            FromNested(
                 name="nested",
-                properties=NestedProperty(
+                properties=FromNested(
                     name="a",
                     properties=[
-                        NestedProperty(
-                            name="b", properties=[NestedProperty(name="c", properties=["d"])]
-                        )
+                        FromNested(name="b", properties=[FromNested(name="c", properties=["d"])])
                     ],
                 ),
             ),
@@ -315,7 +310,7 @@ def test_insert_nested_return_all_properties(
         ),
     ],
 )
-def test_insert_nested_return_specific_properties(
+def test_nested_return_specific_properties(
     client: weaviate.Client, return_properties: PROPERTIES, expected: dict
 ):
     name = "TestInsertNestedPropertiesSpecific"
@@ -427,3 +422,42 @@ def test_insert_nested_return_specific_properties(
     assert res.has_errors is False
     result = collection.query.fetch_objects(return_properties=return_properties)
     assert result.objects[0].properties["nested"] == expected
+
+
+def test_nested_return_generic_properties(
+    client: weaviate.Client,
+):
+    name = "TestInsertNestedPropertiesGeneric"
+    client.collection.delete(name)
+
+    class Child(TypedDict):
+        name: str
+        age: int
+
+    class Parent(TypedDict):
+        child: Nested[Child]
+
+    collection = client.collection.create(
+        name=name,
+        properties=[
+            Property(
+                name="child",
+                data_type=DataType.OBJECT,
+                nested_properties=[
+                    Property(
+                        name="name",
+                        data_type=DataType.TEXT,
+                    ),
+                    Property(
+                        name="age",
+                        data_type=DataType.INT,
+                    ),
+                ],
+            )
+        ],
+        data_model=Parent,
+    )
+
+    collection.data.insert(Parent(child=Child(name="Timmy", age=10)))
+    results = collection.query.fetch_objects(return_properties=Parent)
+    assert results.objects[0].properties["child"] == {"name": "Timmy", "age": 10}
