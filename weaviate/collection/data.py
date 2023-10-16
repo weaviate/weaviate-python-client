@@ -51,7 +51,7 @@ from weaviate.util import (
     _decode_json_response_list,
 )
 from weaviate.types import BEACON, UUID
-from weaviate_grpc import batch_pb2, base_pb2
+from proto.v1 import batch_pb2, base_pb2
 
 
 class _Data:

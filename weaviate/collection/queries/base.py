@@ -59,7 +59,7 @@ from weaviate.collection.grpc_query import _QueryGRPC, GroupByResult, SearchResp
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGrpcUnavailable
 from weaviate.util import file_encoder_b64
-from weaviate_grpc import base_pb2, search_get_v1_pb2
+from proto.v1 import base_pb2, search_get_pb2
 
 T = TypeVar("T")
 
@@ -86,7 +86,7 @@ class _Grpc(Generic[Properties]):
 
     @staticmethod
     def _extract_metadata_for_object(
-        add_props: "search_get_v1_pb2.MetadataResult",
+        add_props: "search_get_pb2.MetadataResult",
     ) -> _MetadataResult:
         return _MetadataResult(
             uuid=uuid_lib.UUID(add_props.id) if len(add_props.id) > 0 else None,
@@ -122,7 +122,7 @@ class _Grpc(Generic[Properties]):
 
     def __parse_nonref_properties_result(
         self,
-        properties: Union[search_get_v1_pb2.PropertiesResult, base_pb2.ObjectPropertiesValue],
+        properties: Union[search_get_pb2.PropertiesResult, base_pb2.ObjectPropertiesValue],
         type_: Optional[Any],
     ) -> dict:
         hints = get_type_hints(type_) if get_origin(type_) is not dict and type_ is not None else {}
@@ -167,7 +167,7 @@ class _Grpc(Generic[Properties]):
         return result
 
     def __parse_ref_properties_result(
-        self, properties: "search_get_v1_pb2.PropertiesResult", type_: Optional[Type[T]]
+        self, properties: "search_get_pb2.PropertiesResult", type_: Optional[Type[T]]
     ) -> dict:
         hints = get_type_hints(type_) if get_origin(type_) is not dict and type_ is not None else {}
         result = {}
@@ -201,7 +201,7 @@ class _Grpc(Generic[Properties]):
         return result
 
     def __parse_result(
-        self, properties: "search_get_v1_pb2.PropertiesResult", type_: Optional[Type[T]]
+        self, properties: "search_get_pb2.PropertiesResult", type_: Optional[Type[T]]
     ) -> T:
         nonref_result = self.__parse_nonref_properties_result(properties, type_)
         ref_result = self.__parse_ref_properties_result(properties, type_)

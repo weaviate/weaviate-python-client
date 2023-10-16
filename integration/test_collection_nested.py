@@ -230,6 +230,29 @@ def client():
                 }
             ],
         ),
+        (
+            Property(
+                name="nested",
+                data_type=DataType.OBJECT,
+                nested_properties=Property(
+                    name="a",
+                    data_type=DataType.OBJECT,
+                    nested_properties=Property(
+                        name="b",
+                        data_type=DataType.OBJECT,
+                        nested_properties=Property(
+                            name="c",
+                            data_type=DataType.OBJECT,
+                            nested_properties=Property(
+                                name="d",
+                                data_type=DataType.TEXT,
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+            {"a": {"b": {"c": {"d": "e"}}}},
+        ),
     ],
 )
 def test_insert_nested_return_all_properties(
@@ -241,11 +264,10 @@ def test_insert_nested_return_all_properties(
         name=name,
         properties=[property_],
     )
-    collection.data.insert_many([{"nested": object_}])
-    result = collection.query.fetch_objects()
-    import json
+    res = collection.data.insert_many([{"nested": object_}])
+    assert res.has_errors is False
 
-    print(json.dumps(result.objects[0].properties["nested"], indent=4))
+    result = collection.query.fetch_objects()
     assert result.objects[0].properties["nested"] == object_
 
 
@@ -276,6 +298,20 @@ def test_insert_nested_return_all_properties(
                 name="nested", properties=[NestedProperty(name="objs", properties=["text"])]
             ),
             {"objs": [{"text": "Hello World"}, {"text": "Hello World"}]},
+        ),
+        (
+            NestedProperty(
+                name="nested",
+                properties=NestedProperty(
+                    name="a",
+                    properties=[
+                        NestedProperty(
+                            name="b", properties=[NestedProperty(name="c", properties=["d"])]
+                        )
+                    ],
+                ),
+            ),
+            {"a": {"b": {"c": {"d": "e"}}}},
         ),
     ],
 )
@@ -347,11 +383,27 @@ def test_insert_nested_return_specific_properties(
                             data_type=DataType.TEXT,
                         ),
                     ),
+                    Property(
+                        name="a",
+                        data_type=DataType.OBJECT,
+                        nested_properties=Property(
+                            name="b",
+                            data_type=DataType.OBJECT,
+                            nested_properties=Property(
+                                name="c",
+                                data_type=DataType.OBJECT,
+                                nested_properties=Property(
+                                    name="d",
+                                    data_type=DataType.TEXT,
+                                ),
+                            ),
+                        ),
+                    ),
                 ],
             ),
         ],
     )
-    collection.data.insert_many(
+    res = collection.data.insert_many(
         [
             {
                 "nested": {
@@ -367,9 +419,11 @@ def test_insert_nested_return_specific_properties(
                     "dates": ["2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z"],
                     "obj": {"text": "Hello World"},
                     "objs": [{"text": "Hello World"}, {"text": "Hello World"}],
+                    "a": {"b": {"c": {"d": "e"}}},
                 }
             }
         ]
     )
+    assert res.has_errors is False
     result = collection.query.fetch_objects(return_properties=return_properties)
     assert result.objects[0].properties["nested"] == expected

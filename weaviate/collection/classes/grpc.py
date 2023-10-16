@@ -127,4 +127,4 @@ class NestedProperty(_WeaviateInput):
 PROPERTY = Union[str, FromReference, NestedProperty]
 PROPERTIES = Union[List[PROPERTY], PROPERTY]
 
-NestedProperties = Union[List[Union[str, NestedProperty]], Union[str, NestedProperty]]
+NestedProperties = Union[List[Union[str, NestedProperty]], str, NestedProperty]

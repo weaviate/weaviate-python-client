@@ -64,7 +64,7 @@ from weaviate.collection.queries.near_video import (
 from weaviate.connect import Connection
 from weaviate.types import UUID
 
-from weaviate_grpc import search_get_v1_pb2
+from proto.v1 import search_get_pb2
 
 
 class _QueryCollection(
@@ -153,7 +153,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc[Any]):
 
     def __parse_result(
         self,
-        properties: "search_get_v1_pb2.PropertiesResult",
+        properties: "search_get_pb2.PropertiesResult",
         type_: Type[Model],
     ) -> Model:
         hints = get_type_hints(type_)
