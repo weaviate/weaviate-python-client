@@ -38,11 +38,8 @@ from weaviate.util import (
 from weaviate.warnings import _Warnings
 
 try:
-    import grpc  # type: ignore
-except ImportError:
-    pass
-try:
     from proto.v1 import search_get_pb2
+    import grpc  # type: ignore
 except ImportError:
     pass
 
@@ -1908,7 +1905,7 @@ class GetBuilder(GraphQL):
             return super().do()
 
     def _extract_additional_properties(
-        self, props: search_get_pb2.MetadataResult
+        self, props: "search_get_pb2.MetadataResult"
     ) -> Dict[str, str]:
         additional_props: Dict[str, Any] = {}
         if self._additional_dataclass is None:
@@ -1941,7 +1938,7 @@ class GetBuilder(GraphQL):
         return additional_props
 
     def _convert_references_to_grpc_result(
-        self, properties: search_get_pb2.PropertiesResult
+        self, properties: "search_get_pb2.PropertiesResult"
     ) -> Dict:
         result: Dict[str, Any] = {}
         for name, non_ref_prop in properties.non_ref_properties.items():
@@ -1956,7 +1953,7 @@ class GetBuilder(GraphQL):
 
     def _convert_references_to_grpc(
         self, properties: List[Union[LinkTo, str]]
-    ) -> search_get_pb2.PropertiesRequest:
+    ) -> "search_get_pb2.PropertiesRequest":
         return search_get_pb2.PropertiesRequest(
             non_ref_properties=[prop for prop in properties if isinstance(prop, str)],
             ref_properties=[
