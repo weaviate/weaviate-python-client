@@ -38,8 +38,11 @@ from weaviate.util import (
 from weaviate.warnings import _Warnings
 
 try:
-    from proto.v1 import search_get_pb2
     import grpc  # type: ignore
+except ImportError:
+    pass
+try:
+    from proto.v1 import search_get_pb2
 except ImportError:
     pass
 
