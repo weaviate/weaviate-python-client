@@ -35,9 +35,5 @@ warn_unused_ignores = true
 exclude = ["proto", "docs", "mock_tests", "test", "integration"]
 
 [[tool.mypy.overrides]]
-module = "proto.v0.*"
-ignore_errors = true
-
-[[tool.mypy.overrides]]
 module = "proto.v1.*"
 ignore_errors = true
