@@ -2,8 +2,8 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from v1 import batch_pb2 as v1_dot_batch__pb2
-from v1 import search_get_pb2 as v1_dot_search__get__pb2
+from proto.v1 import batch_pb2 as v1_dot_batch__pb2
+from proto.v1 import search_get_pb2 as v1_dot_search__get__pb2
 
 
 class WeaviateStub(object):
