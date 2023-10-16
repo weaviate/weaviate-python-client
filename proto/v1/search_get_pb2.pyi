@@ -1,4 +1,4 @@
-import base_pb2 as _base_pb2
+from v1 import base_pb2 as _base_pb2
 from google.protobuf import struct_pb2 as _struct_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
@@ -8,7 +8,7 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
-class SearchRequestV1(_message.Message):
+class SearchRequest(_message.Message):
     __slots__ = ["collection", "tenant", "consistency_level", "properties", "metadata", "group_by", "limit", "offset", "autocut", "after", "sort_by", "filters", "hybrid_search", "bm25_search", "near_vector", "near_object", "near_text", "near_image", "near_audio", "near_video", "generative"]
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     TENANT_FIELD_NUMBER: _ClassVar[int]
@@ -307,7 +307,7 @@ class NearObject(_message.Message):
     distance: float
     def __init__(self, id: _Optional[str] = ..., certainty: _Optional[float] = ..., distance: _Optional[float] = ...) -> None: ...
 
-class SearchReplyV1(_message.Message):
+class SearchReply(_message.Message):
     __slots__ = ["took", "results", "generative_grouped_result", "group_by_results"]
     TOOK_FIELD_NUMBER: _ClassVar[int]
     RESULTS_FIELD_NUMBER: _ClassVar[int]

@@ -38,7 +38,7 @@ from weaviate.util import (
 from weaviate.warnings import _Warnings
 
 try:
-    from weaviate_grpc import search_get_v1_pb2
+    from proto.v1 import search_get_pb2
     import grpc  # type: ignore
 except ImportError:
     pass
@@ -1837,11 +1837,11 @@ class GetBuilder(GraphQL):
                 metadata = (("authorization", access_token),)
 
             try:
-                res, _ = self._connection.grpc_stub.SearchV1.with_call(  # type: ignore
-                    search_get_v1_pb2.SearchRequestV1(
+                res, _ = self._connection.grpc_stub.Search.with_call(  # type: ignore
+                    search_get_pb2.SearchRequest(
                         collection=self._class_name,
                         limit=self._limit,
-                        near_vector=search_get_v1_pb2.NearVector(
+                        near_vector=search_get_pb2.NearVector(
                             vector=self._near_clause.content["vector"],
                             certainty=self._near_clause.content.get("certainty", None),
                             distance=self._near_clause.content.get("distance", None),
@@ -1849,7 +1849,7 @@ class GetBuilder(GraphQL):
                         if self._near_clause is not None
                         and isinstance(self._near_clause, NearVector)
                         else None,
-                        near_object=search_get_v1_pb2.NearObject(
+                        near_object=search_get_pb2.NearObject(
                             id=self._near_clause.content["id"],
                             certainty=self._near_clause.content.get("certainty", None),
                             distance=self._near_clause.content.get("distance", None),
@@ -1858,7 +1858,7 @@ class GetBuilder(GraphQL):
                         and isinstance(self._near_clause, NearObject)
                         else None,
                         properties=self._convert_references_to_grpc(self._properties),
-                        metadata=search_get_v1_pb2.MetadataRequest(
+                        metadata=search_get_pb2.MetadataRequest(
                             uuid=self._additional_dataclass.uuid,
                             vector=self._additional_dataclass.vector,
                             creation_time_unix=self._additional_dataclass.creationTimeUnix,
@@ -1869,12 +1869,12 @@ class GetBuilder(GraphQL):
                         )
                         if self._additional_dataclass is not None
                         else None,
-                        bm25_search=search_get_v1_pb2.BM25(
+                        bm25_search=search_get_pb2.BM25(
                             properties=self._bm25.properties, query=self._bm25.query
                         )
                         if self._bm25 is not None
                         else None,
-                        hybrid_search=search_get_v1_pb2.Hybrid(
+                        hybrid_search=search_get_pb2.Hybrid(
                             properties=self._hybrid.properties,
                             query=self._hybrid.query,
                             alpha=self._hybrid.alpha,
@@ -1905,7 +1905,7 @@ class GetBuilder(GraphQL):
             return super().do()
 
     def _extract_additional_properties(
-        self, props: "search_get_v1_pb2.MetadataResult"
+        self, props: search_get_pb2.MetadataResult
     ) -> Dict[str, str]:
         additional_props: Dict[str, Any] = {}
         if self._additional_dataclass is None:
@@ -1938,7 +1938,7 @@ class GetBuilder(GraphQL):
         return additional_props
 
     def _convert_references_to_grpc_result(
-        self, properties: "search_get_v1_pb2.PropertiesResult"
+        self, properties: search_get_pb2.PropertiesResult
     ) -> Dict:
         result: Dict[str, Any] = {}
         for name, non_ref_prop in properties.non_ref_properties.items():
@@ -1953,11 +1953,11 @@ class GetBuilder(GraphQL):
 
     def _convert_references_to_grpc(
         self, properties: List[Union[LinkTo, str]]
-    ) -> "search_get_v1_pb2.PropertiesRequest":
-        return search_get_v1_pb2.PropertiesRequest(
+    ) -> search_get_pb2.PropertiesRequest:
+        return search_get_pb2.PropertiesRequest(
             non_ref_properties=[prop for prop in properties if isinstance(prop, str)],
             ref_properties=[
-                search_get_v1_pb2.RefPropertiesRequest(
+                search_get_pb2.RefPropertiesRequest(
                     target_collection=prop.linked_class,
                     reference_property=prop.link_on,
                     properties=self._convert_references_to_grpc(prop.properties),

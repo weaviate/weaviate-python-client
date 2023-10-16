@@ -1,4 +1,4 @@
-import base_pb2 as _base_pb2
+from v0 import base_pb2 as _base_pb2
 from google.protobuf import struct_pb2 as _struct_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
