@@ -4,7 +4,7 @@ from typing import Dict, List, Union
 from typing import TYPE_CHECKING
 
 import requests
-from authlib.integrations.requests_client import OAuth2Session
+from authlib.integrations.requests_client import OAuth2Session  # type: ignore
 
 from weaviate.auth import (
     AuthCredentials,

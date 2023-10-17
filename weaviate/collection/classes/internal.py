@@ -1,6 +1,7 @@
 import sys
 from dataclasses import dataclass
 from typing import Any, Dict, Generic, List, Optional, Tuple, Type, Union, cast
+from typing_extensions import TypeAlias
 
 import uuid as uuid_package
 
@@ -17,11 +18,11 @@ from weaviate.collection.classes.grpc import (
     PROPERTIES,
     Generate,
 )
-from weaviate.collection.classes.types import Properties, P
+from weaviate.collection.classes.types import Properties, P, TProperties
 from weaviate.util import _to_beacons
 from weaviate.types import UUIDS
 
-from weaviate_grpc import weaviate_pb2
+from proto.v1 import search_get_pb2
 
 
 @dataclass
@@ -106,6 +107,13 @@ class _QueryReturn(Generic[P]):
     objects: List[_Object[P]]
 
 
+QueryReturn: TypeAlias = Union[_QueryReturn[Properties], _QueryReturn[TProperties]]
+GenerativeReturn: TypeAlias = Union[_GenerativeReturn[Properties], _GenerativeReturn[TProperties]]
+GroupByReturn: TypeAlias = Union[_GroupByReturn[Properties], _GroupByReturn[TProperties]]
+
+ReturnProperties: TypeAlias = Union[PROPERTIES, Type[TProperties]]
+
+
 class _Generative:
     single: Optional[str]
     grouped: Optional[str]
@@ -121,8 +129,8 @@ class _Generative:
         self.grouped = grouped
         self.grouped_properties = grouped_properties
 
-    def to_grpc(self) -> weaviate_pb2.GenerativeSearch:
-        return weaviate_pb2.GenerativeSearch(
+    def to_grpc(self) -> search_get_pb2.GenerativeSearch:
+        return search_get_pb2.GenerativeSearch(
             single_response_prompt=self.single,
             grouped_response_task=self.grouped,
             grouped_properties=self.grouped_properties,
@@ -151,8 +159,8 @@ class _GroupBy:
         self.number_of_groups = number_of_groups
         self.objects_per_group = objects_per_group
 
-    def to_grpc(self) -> weaviate_pb2.GroupBy:
-        return weaviate_pb2.GroupBy(
+    def to_grpc(self) -> search_get_pb2.GroupBy:
+        return search_get_pb2.GroupBy(
             path=[self.prop],
             number_of_groups=self.number_of_groups,
             objects_per_group=self.objects_per_group,

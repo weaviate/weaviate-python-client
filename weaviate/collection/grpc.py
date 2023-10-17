@@ -1,4 +1,5 @@
 from typing import (
+    Any,
     Generic,
     List,
     Optional,
@@ -63,13 +64,13 @@ from weaviate.collection.queries.near_video import (
 from weaviate.connect import Connection
 from weaviate.types import UUID
 
-from weaviate_grpc import weaviate_pb2
+from proto.v1 import search_get_pb2
 
 
 class _QueryCollection(
     Generic[TProperties],
-    _BM25Query,
-    _FetchObjectsQuery,
+    _BM25Query[TProperties],
+    _FetchObjectsQuery[TProperties],
     _HybridQuery,
     _NearAudioQuery,
     _NearImageQuery,
@@ -85,8 +86,9 @@ class _QueryCollection(
         rest_query: _DataCollection[TProperties],
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
+        type_: Optional[Type[TProperties]],
     ):
-        super().__init__(connection, name, consistency_level, tenant)
+        super().__init__(connection, name, consistency_level, tenant, type_)
         self.__data = rest_query
 
     def fetch_object_by_id(
@@ -137,7 +139,7 @@ class _GroupByCollection(
     pass
 
 
-class _GrpcCollectionModel(Generic[Model], _Grpc):
+class _GrpcCollectionModel(Generic[Model], _Grpc[Any]):
     def __init__(
         self,
         connection: Connection,
@@ -146,12 +148,12 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
         tenant: Optional[str] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
     ):
-        super().__init__(connection, name, consistency_level, tenant)
+        super().__init__(connection, name, consistency_level, tenant, type_=model)
         self.model = model
 
     def __parse_result(
         self,
-        properties: "weaviate_pb2.ResultProperties",
+        properties: "search_get_pb2.PropertiesResult",
         type_: Type[Model],
     ) -> Model:
         hints = get_type_hints(type_)
@@ -183,7 +185,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc):
 
     def __result_to_object(self, res: SearchResult) -> _Object[Model]:
         properties = self.__parse_result(res.properties, self.model)
-        metadata = self._extract_metadata_for_object(res.additional_properties)._to_return()
+        metadata = self._extract_metadata_for_object(res.metadata)._to_return()
         return _Object[Model](properties=properties, metadata=metadata)
 
     def get(

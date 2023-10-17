@@ -11,7 +11,7 @@ from typing import (
 
 from typing_extensions import TypeAlias
 
-import grpc
+import grpc  # type: ignore
 import uuid as uuid_lib
 from google.protobuf import struct_pb2
 
@@ -37,7 +37,7 @@ from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGRPCException
 from weaviate.types import UUID
 
-from weaviate_grpc import weaviate_pb2
+from proto.v1 import search_get_pb2
 
 
 # Can be found in the google.protobuf.internal.well_known_types.pyi stub file but is defined explicitly here for clarity.
@@ -73,8 +73,8 @@ _PyValue: TypeAlias = Union[
 class SearchResult:
     """Represents a single search result from Weaviate."""
 
-    properties: weaviate_pb2.ResultProperties
-    additional_properties: weaviate_pb2.ResultAdditionalProps
+    properties: search_get_pb2.PropertiesResult
+    metadata: search_get_pb2.MetadataResult
 
 
 @dataclass
@@ -143,8 +143,8 @@ class _QueryGRPC(_BaseGRPC):
         self._near_vector_vec: Optional[List[float]] = None
         self._near_object_obj: Optional[UUID] = None
         self._near_text: Optional[List[str]] = None
-        self._near_text_move_away: Optional[weaviate_pb2.NearTextSearchParams.Move] = None
-        self._near_text_move_to: Optional[weaviate_pb2.NearTextSearchParams.Move] = None
+        self._near_text_move_away: Optional[search_get_pb2.NearTextSearch.Move] = None
+        self._near_text_move_to: Optional[search_get_pb2.NearTextSearch.Move] = None
 
         self._near_certainty: Optional[float] = None
         self._near_distance: Optional[float] = None
@@ -209,7 +209,7 @@ class _QueryGRPC(_BaseGRPC):
         self._hybrid_vector = vector
         self._hybrid_properties = properties
         self._hybrid_fusion_type = (
-            weaviate_pb2.HybridSearchParams.FusionType.Value(fusion_type.value)
+            search_get_pb2.Hybrid.FusionType.Value(fusion_type.value)
             if fusion_type is not None
             else None
         )
@@ -321,13 +321,13 @@ class _QueryGRPC(_BaseGRPC):
         self._autocut = autocut
         self._filters = filters
         if move_away is not None:
-            self._near_text_move_away = weaviate_pb2.NearTextSearchParams.Move(
+            self._near_text_move_away = search_get_pb2.NearTextSearch.Move(
                 force=move_away.force,
                 concepts=move_away._concepts_list,
                 uuids=move_away._objects_list,
             )
         if move_to is not None:
-            self._near_text_move_to = weaviate_pb2.NearTextSearchParams.Move(
+            self._near_text_move_to = search_get_pb2.NearTextSearch.Move(
                 force=move_to.force, concepts=move_to._concepts_list, uuids=move_to._objects_list
             )
 
@@ -440,20 +440,20 @@ class _QueryGRPC(_BaseGRPC):
             assert self._connection.grpc_stub is not None
             res: SearchResponse  # According to PEP-0526
             res, _ = self._connection.grpc_stub.Search.with_call(
-                weaviate_pb2.SearchRequest(
-                    class_name=self._name,
+                search_get_pb2.SearchRequest(
+                    collection=self._name,
                     limit=self._limit,
                     offset=self._offset,
                     after=str(self._after) if self._after is not None else "",
                     autocut=self._autocut,
-                    near_vector=weaviate_pb2.NearVectorParams(
+                    near_vector=search_get_pb2.NearVector(
                         vector=self._near_vector_vec,
                         certainty=self._near_certainty,
                         distance=self._near_distance,
                     )
                     if self._near_vector_vec is not None
                     else None,
-                    near_object=weaviate_pb2.NearObjectParams(
+                    near_object=search_get_pb2.NearObject(
                         id=str(self._near_object_obj),
                         certainty=self._near_certainty,
                         distance=self._near_distance,
@@ -461,28 +461,28 @@ class _QueryGRPC(_BaseGRPC):
                     if self._near_object_obj is not None
                     else None,
                     properties=self._convert_references_to_grpc(self._default_props),
-                    additional_properties=self._metadata_to_grpc(self._metadata)
+                    metadata=self._metadata_to_grpc(self._metadata)
                     if self._metadata is not None
                     else None,
-                    bm25_search=weaviate_pb2.BM25SearchParams(
+                    bm25_search=search_get_pb2.BM25(
                         properties=self._bm25_properties, query=self._bm25_query
                     )
                     if self._bm25_query is not None
                     else None,
-                    hybrid_search=weaviate_pb2.HybridSearchParams(
+                    hybrid_search=search_get_pb2.Hybrid(
                         properties=self._hybrid_properties,
                         query=self._hybrid_query,
                         alpha=self._hybrid_alpha,
                         vector=self._hybrid_vector,
                         fusion_type=cast(
-                            weaviate_pb2.HybridSearchParams.FusionType, self._hybrid_fusion_type
+                            search_get_pb2.Hybrid.FusionType, self._hybrid_fusion_type
                         ),
                     )
                     if self._hybrid_query is not None
                     else None,
                     tenant=self._tenant,
                     filters=_FilterToGRPC.convert(self._filters),
-                    near_text=weaviate_pb2.NearTextSearchParams(
+                    near_text=search_get_pb2.NearTextSearch(
                         query=self._near_text,
                         certainty=self._near_certainty,
                         distance=self._near_distance,
@@ -491,21 +491,21 @@ class _QueryGRPC(_BaseGRPC):
                     )
                     if self._near_text is not None
                     else None,
-                    near_image=weaviate_pb2.NearImageSearchParams(
+                    near_image=search_get_pb2.NearImageSearch(
                         image=self._near_image,
                         distance=self._near_distance,
                         certainty=self._near_certainty,
                     )
                     if self._near_image is not None
                     else None,
-                    near_video=weaviate_pb2.NearVideoSearchParams(
+                    near_video=search_get_pb2.NearVideoSearch(
                         video=self._near_video,
                         distance=self._near_distance,
                         certainty=self._near_certainty,
                     )
                     if self._near_video is not None
                     else None,
-                    near_audio=weaviate_pb2.NearAudioSearchParams(
+                    near_audio=search_get_pb2.NearAudioSearch(
                         audio=self._near_audio,
                         distance=self._near_distance,
                         certainty=self._near_certainty,
@@ -514,7 +514,7 @@ class _QueryGRPC(_BaseGRPC):
                     else None,
                     consistency_level=self._consistency_level,
                     sort_by=[
-                        weaviate_pb2.SortBy(ascending=sort.ascending, path=[sort.prop])
+                        search_get_pb2.SortBy(ascending=sort.ascending, path=[sort.prop])
                         for sort in self._sort
                     ]
                     if self._sort is not None
@@ -530,26 +530,28 @@ class _QueryGRPC(_BaseGRPC):
         except grpc.RpcError as e:
             raise WeaviateGRPCException(e.details())
 
-    def _metadata_to_grpc(self, metadata: MetadataQuery) -> weaviate_pb2.AdditionalProperties:
-        return weaviate_pb2.AdditionalProperties(
+    def _metadata_to_grpc(self, metadata: MetadataQuery) -> search_get_pb2.MetadataRequest:
+        return search_get_pb2.MetadataRequest(
             uuid=metadata.uuid,
             vector=metadata.vector,
-            creationTimeUnix=metadata.creation_time_unix,
-            lastUpdateTimeUnix=metadata.last_update_time_unix,
+            creation_time_unix=metadata.creation_time_unix,
+            last_update_time_unix=metadata.last_update_time_unix,
             distance=metadata.distance,
             certainty=metadata.certainty,
-            explainScore=metadata.explain_score,
+            explain_score=metadata.explain_score,
             score=metadata.score,
             is_consistent=metadata.is_consistent,
         )
 
-    def _convert_references_to_grpc(self, properties: Set[PROPERTY]) -> weaviate_pb2.Properties:
-        return weaviate_pb2.Properties(
+    def _convert_references_to_grpc(
+        self, properties: Set[PROPERTY]
+    ) -> search_get_pb2.PropertiesRequest:
+        return search_get_pb2.PropertiesRequest(
             non_ref_properties=[prop for prop in properties if isinstance(prop, str)],
             ref_properties=[
-                weaviate_pb2.RefProperties(
+                search_get_pb2.RefPropertiesRequest(
                     reference_property=prop.link_on,
-                    linked_properties=self._convert_references_to_grpc(
+                    properties=self._convert_references_to_grpc(
                         self.__convert_properties_to_set(prop.return_properties)
                     )
                     if prop.return_properties is not None
@@ -557,7 +559,7 @@ class _QueryGRPC(_BaseGRPC):
                     metadata=self._metadata_to_grpc(prop.return_metadata)
                     if prop.return_metadata is not None
                     else None,
-                    which_collection=prop.target_collection
+                    target_collection=prop.target_collection
                     if isinstance(prop, FromReferenceMultiTarget)
                     else None,
                 )

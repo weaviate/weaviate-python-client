@@ -1,6 +1,6 @@
 from io import BufferedReader
 from pathlib import Path
-from typing import List, Optional, Type, Union
+from typing import Generic, List, Optional, Type, Union, overload
 
 from weaviate.collection.classes.filters import (
     _Filters,
@@ -12,14 +12,20 @@ from weaviate.collection.classes.internal import (
     _GroupBy,
     _GroupByReturn,
     _QueryReturn,
+    GenerativeReturn,
+    GroupByReturn,
+    QueryReturn,
+    ReturnProperties,
 )
 from weaviate.collection.classes.types import (
     Properties,
+    TProperties,
 )
 from weaviate.collection.queries.base import _Grpc
 
 
-class _NearImageQuery(_Grpc):
+class _NearImageQuery(Generic[Properties], _Grpc[Properties]):
+    @overload
     def near_image(
         self,
         near_image: Union[str, Path, BufferedReader],
@@ -29,8 +35,36 @@ class _NearImageQuery(_Grpc):
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
-        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+        return_properties: Optional[PROPERTIES] = None,
     ) -> _QueryReturn[Properties]:
+        ...
+
+    @overload
+    def near_image(
+        self,
+        near_image: Union[str, Path, BufferedReader],
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        *,
+        return_properties: Type[TProperties],
+    ) -> _QueryReturn[TProperties]:
+        ...
+
+    def near_image(
+        self,
+        near_image: Union[str, Path, BufferedReader],
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[ReturnProperties[TProperties]] = None,
+    ) -> QueryReturn[Properties, TProperties]:
         """Search for objects in this collection by an image using an image-capable vectorisation module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/image) for a more detailed explanation.
@@ -63,7 +97,7 @@ class _NearImageQuery(_Grpc):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().near_image(
             image=self._parse_media(near_image),
             certainty=certainty,
@@ -71,13 +105,14 @@ class _NearImageQuery(_Grpc):
             filters=filters,
             limit=limit,
             autocut=auto_limit,
-            return_metadata=return_metadata,
+            return_metadata=return_metadata or ret_metadata,
             return_properties=ret_properties,
         )
-        return self._result_to_query_return(res, ret_type)
+        return self._result_to_query_return(res, return_properties)
 
 
-class _NearImageGenerate(_Grpc):
+class _NearImageGenerate(Generic[Properties], _Grpc[Properties]):
+    @overload
     def near_image(
         self,
         near_image: Union[str, Path, BufferedReader],
@@ -90,8 +125,42 @@ class _NearImageGenerate(_Grpc):
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
-        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+        return_properties: Optional[PROPERTIES] = None,
     ) -> _GenerativeReturn[Properties]:
+        ...
+
+    @overload
+    def near_image(
+        self,
+        near_image: Union[str, Path, BufferedReader],
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        *,
+        return_properties: Type[TProperties],
+    ) -> _GenerativeReturn[TProperties]:
+        ...
+
+    def near_image(
+        self,
+        near_image: Union[str, Path, BufferedReader],
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[ReturnProperties[TProperties]] = None,
+    ) -> GenerativeReturn[Properties, TProperties]:
         """Perform retrieval-augmented generation (RaG) on the results of a by-image object search in this collection using the image-capable vectorisation module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/image) for a more detailed explanation.
@@ -130,7 +199,7 @@ class _NearImageGenerate(_Grpc):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().near_image(
             image=self._parse_media(near_image),
             certainty=certainty,
@@ -143,13 +212,14 @@ class _NearImageGenerate(_Grpc):
             ),
             limit=limit,
             autocut=auto_limit,
-            return_metadata=return_metadata,
+            return_metadata=return_metadata or ret_metadata,
             return_properties=ret_properties,
         )
-        return self._result_to_generative_return(res, ret_type)
+        return self._result_to_generative_return(res, return_properties)
 
 
-class _NearImageGroupBy(_Grpc):
+class _NearImageGroupBy(Generic[Properties], _Grpc[Properties]):
+    @overload
     def near_image(
         self,
         near_image: Union[str, Path, BufferedReader],
@@ -162,8 +232,42 @@ class _NearImageGroupBy(_Grpc):
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
-        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+        return_properties: Optional[PROPERTIES] = None,
     ) -> _GroupByReturn[Properties]:
+        ...
+
+    @overload
+    def near_image(
+        self,
+        near_image: Union[str, Path, BufferedReader],
+        group_by_property: str,
+        number_of_groups: int,
+        objects_per_group: int,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        *,
+        return_properties: Type[TProperties],
+    ) -> _GroupByReturn[TProperties]:
+        ...
+
+    def near_image(
+        self,
+        near_image: Union[str, Path, BufferedReader],
+        group_by_property: str,
+        number_of_groups: int,
+        objects_per_group: int,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[ReturnProperties[TProperties]] = None,
+    ) -> GroupByReturn[Properties, TProperties]:
         """Group the results of a by-image object search in this collection using an image-capable vectorisation module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/image) for a more detailed explanation.
@@ -202,7 +306,7 @@ class _NearImageGroupBy(_Grpc):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().near_image(
             image=self._parse_media(near_image),
             certainty=certainty,
@@ -215,7 +319,7 @@ class _NearImageGroupBy(_Grpc):
             ),
             limit=limit,
             autocut=auto_limit,
-            return_metadata=return_metadata,
+            return_metadata=return_metadata or ret_metadata,
             return_properties=ret_properties,
         )
-        return self._result_to_groupby_return(res, ret_type)
+        return self._result_to_groupby_return(res, return_properties)

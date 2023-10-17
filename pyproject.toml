@@ -21,7 +21,7 @@ exclude = '''
   | build
   | dist
   | docs
-  | weaviate_grpc
+  | proto
 )/
 '''
 
@@ -32,20 +32,8 @@ show_error_codes = true
 no_implicit_optional = true
 warn_return_any = true
 warn_unused_ignores = true
-exclude = ["weaviate_grpc", "docs", "mock_tests", "test", "integration"]
+exclude = ["proto", "docs", "mock_tests", "test", "integration"]
 
 [[tool.mypy.overrides]]
-module = "weaviate_grpc.*"
+module = "proto.v1.*"
 ignore_errors = true
-
-[[tool.mypy.overrides]]
-module = "grpc.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "validators.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "authlib.integrations.requests_client.*"
-ignore_missing_imports = true

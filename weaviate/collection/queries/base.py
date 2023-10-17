@@ -6,10 +6,12 @@ import sys
 from typing import (
     Any,
     Dict,
+    Generic,
     List,
     Optional,
     Tuple,
     Type,
+    TypeVar,
     Union,
     cast,
 )
@@ -41,29 +43,38 @@ from weaviate.collection.classes.internal import (
     _GroupByResult,
     _GroupByReturn,
     _QueryReturn,
+    GenerativeReturn,
+    GroupByReturn,
+    QueryReturn,
+    ReturnProperties,
 )
 from weaviate.collection.classes.types import (
     Properties,
+    TProperties,
 )
 from weaviate.collection.grpc_query import _QueryGRPC, GroupByResult, SearchResponse, SearchResult
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGrpcUnavailable
 from weaviate.util import file_encoder_b64
-from weaviate_grpc import weaviate_pb2
+from proto.v1 import search_get_pb2
+
+T = TypeVar("T")
 
 
-class _Grpc:
+class _Grpc(Generic[Properties]):
     def __init__(
         self,
         connection: Connection,
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
+        type_: Optional[Type[Properties]],
     ):
         self.__connection = connection
         self.__name = name
         self.__tenant = tenant
         self.__consistency_level = consistency_level
+        self._type = type_
 
     def _query(self) -> _QueryGRPC:
         if not self.__connection._grpc_available:
@@ -72,7 +83,7 @@ class _Grpc:
 
     @staticmethod
     def _extract_metadata_for_object(
-        add_props: "weaviate_pb2.ResultAdditionalProps",
+        add_props: "search_get_pb2.MetadataResult",
     ) -> _MetadataResult:
         return _MetadataResult(
             uuid=uuid_lib.UUID(add_props.id) if len(add_props.id) > 0 else None,
@@ -103,8 +114,8 @@ class _Grpc:
         return value
 
     def __parse_result(
-        self, properties: "weaviate_pb2.ResultProperties", type_: Optional[Type[Properties]]
-    ) -> Properties:
+        self, properties: "search_get_pb2.PropertiesResult", type_: Optional[Type[T]]
+    ) -> T:
         hints = get_type_hints(type_) if get_origin(type_) is not dict and type_ is not None else {}
         result = {}
 
@@ -155,69 +166,24 @@ class _Grpc:
                     ]
                 )
 
-        return cast(Properties, result)
+        return cast(T, result)
 
-    def __result_to_query_object(
-        self, res: SearchResult, type_: Optional[Type[Properties]]
-    ) -> _Object[Properties]:
+    def __result_to_query_object(self, res: SearchResult, type_: Optional[Type[T]]) -> _Object[T]:
         properties = self.__parse_result(res.properties, type_)
-        metadata = self._extract_metadata_for_object(res.additional_properties)
-        return _Object[Properties](properties=properties, metadata=metadata._to_return())
+        metadata = self._extract_metadata_for_object(res.metadata)
+        return _Object[T](properties=properties, metadata=metadata._to_return())
 
     def __result_to_generative_object(
-        self, res: SearchResult, type_: Optional[Type[Properties]]
-    ) -> _GenerativeObject[Properties]:
+        self, res: SearchResult, type_: Optional[Type[T]]
+    ) -> _GenerativeObject[T]:
         properties = self.__parse_result(res.properties, type_)
-        metadata = self._extract_metadata_for_object(res.additional_properties)
-        return _GenerativeObject[Properties](
+        metadata = self._extract_metadata_for_object(res.metadata)
+        return _GenerativeObject[T](
             properties=properties, metadata=metadata._to_return(), generated=metadata.generative
         )
 
-    def _result_to_query_return(
-        self,
-        res: SearchResponse,
-        type_: Optional[Type[Properties]],
-    ) -> _QueryReturn[Properties]:
-        objects = [self.__result_to_query_object(obj, type_=type_) for obj in res.results]
-        return _QueryReturn[Properties](objects=objects)
-
-    def _result_to_generative_return(
-        self,
-        res: SearchResponse,
-        type_: Optional[Type[Properties]],
-    ) -> _GenerativeReturn[Properties]:
-        objects = [self.__result_to_generative_object(obj, type_=type_) for obj in res.results]
-        grouped_results = (
-            res.generative_grouped_result if res.generative_grouped_result != "" else None
-        )
-        return _GenerativeReturn[Properties](
-            objects=objects,
-            generated=grouped_results,
-        )
-
-    def _result_to_groupby_return(
-        self,
-        res: SearchResponse,
-        type_: Optional[Type[Properties]],
-    ) -> _GroupByReturn[Properties]:
-        groups = {
-            group.name: self.__result_to_group(group, type_) for group in res.group_by_results
-        }
-
-        objects_group_by = [
-            _GroupByObject[Properties](
-                properties=obj.properties, metadata=obj.metadata, belongs_to_group=group.name
-            )
-            for group in groups.values()
-            for obj in group.objects
-        ]
-
-        return _GroupByReturn[Properties](objects=objects_group_by, groups=groups)
-
-    def __result_to_group(
-        self, res: GroupByResult, type_: Optional[Type[Properties]]
-    ) -> _GroupByResult[Properties]:
-        return _GroupByResult[Properties](
+    def __result_to_group(self, res: GroupByResult, type_: Optional[Type[T]]) -> _GroupByResult[T]:
+        return _GroupByResult[T](
             objects=[self.__result_to_query_object(obj, type_) for obj in res.objects],
             name=res.name,
             number_of_objects=res.number_of_objects,
@@ -225,26 +191,107 @@ class _Grpc:
             max_distance=res.max_distance,
         )
 
+    def _result_to_query_return(
+        self,
+        res: SearchResponse,
+        type_: Optional[ReturnProperties[TProperties]],
+    ) -> QueryReturn[Properties, TProperties]:
+        if is_typeddict(type_):
+            type_ = cast(Type[TProperties], type_)  # we know it's a typeddict
+            return _QueryReturn[TProperties](
+                objects=[self.__result_to_query_object(obj, type_=type_) for obj in res.results]
+            )
+        else:
+            return _QueryReturn[Properties](
+                objects=[
+                    self.__result_to_query_object(obj, type_=self._type) for obj in res.results
+                ]
+            )
+
+    def _result_to_generative_return(
+        self,
+        res: SearchResponse,
+        type_: Optional[ReturnProperties[TProperties]],
+    ) -> GenerativeReturn[Properties, TProperties]:
+        if is_typeddict(type_):
+            type_ = cast(Type[TProperties], type_)  # we know it's a typeddict
+            return _GenerativeReturn[TProperties](
+                objects=[
+                    self.__result_to_generative_object(obj, type_=type_) for obj in res.results
+                ],
+                generated=res.generative_grouped_result
+                if res.generative_grouped_result != ""
+                else None,
+            )
+        else:
+            return _GenerativeReturn[Properties](
+                objects=[
+                    self.__result_to_generative_object(obj, type_=self._type) for obj in res.results
+                ],
+                generated=res.generative_grouped_result
+                if res.generative_grouped_result != ""
+                else None,
+            )
+
+    def _result_to_groupby_return(
+        self,
+        res: SearchResponse,
+        type_: Optional[ReturnProperties[TProperties]],
+    ) -> GroupByReturn[Properties, TProperties]:
+        if is_typeddict(type_):
+            type_ = cast(Type[TProperties], type_)  # we know it's a typeddict
+            groups = {
+                group.name: self.__result_to_group(group, type_) for group in res.group_by_results
+            }
+            objects_group_by = [
+                _GroupByObject[TProperties](
+                    properties=obj.properties, metadata=obj.metadata, belongs_to_group=group.name
+                )
+                for group in groups.values()
+                for obj in group.objects
+            ]
+            return _GroupByReturn[TProperties](objects=objects_group_by, groups=groups)
+        else:
+            groupss = {
+                group.name: self.__result_to_group(group, self._type)
+                for group in res.group_by_results
+            }
+            objects_group_byy = [
+                _GroupByObject[Properties](
+                    properties=obj.properties, metadata=obj.metadata, belongs_to_group=group.name
+                )
+                for group in groupss.values()
+                for obj in group.objects
+            ]
+            return _GroupByReturn[Properties](objects=objects_group_byy, groups=groupss)
+
+    def __parse_generic_properties(
+        self, generic_properties: Type[TProperties]
+    ) -> Optional[PROPERTIES]:
+        if not is_typeddict(generic_properties):
+            raise TypeError(
+                f"return_properties must only be a TypedDict or PROPERTIES within this context but is {type(generic_properties)}"
+            )
+        return _extract_properties_from_data_model(generic_properties)
+
+    def __parse_properties(self, return_properties: Optional[PROPERTIES]) -> Optional[PROPERTIES]:
+        return _PropertiesParser().parse(return_properties)
+
     def _parse_return_properties(
-        self, return_properties: Optional[Union[PROPERTIES, Type[Properties]]]
-    ) -> Tuple[Optional[PROPERTIES], Type[Properties]]:
+        self, return_properties: Optional[ReturnProperties[TProperties]]
+    ) -> Tuple[Optional[PROPERTIES], Optional[MetadataQuery]]:
         if (
             isinstance(return_properties, list)
             or isinstance(return_properties, str)
             or isinstance(return_properties, FromReference)
-            or return_properties is None
+            or (return_properties is None and self._type is None)
         ):
-            ret_properties = _PropertiesParser().parse(return_properties)
-            ret_type = cast(Type[Properties], Dict[str, Any])
+            return self.__parse_properties(return_properties), None
+        elif return_properties is None and self._type is not None:
+            return self.__parse_generic_properties(self._type), MetadataQuery._full()
         else:
-            if not is_typeddict(return_properties):
-                raise TypeError(
-                    f"return_properties must only be a TypedDict or PROPERTIES within this context but is {type(return_properties)}"
-                )
-            return_properties = cast(Type[Properties], return_properties)
-            ret_properties = _extract_properties_from_data_model(return_properties)
-            ret_type = return_properties
-        return ret_properties, ret_type
+            assert return_properties is not None
+            return self.__parse_generic_properties(return_properties), None
 
     @staticmethod
     def _parse_media(media: Union[str, pathlib.Path, io.BufferedReader]) -> str:

@@ -1,6 +1,6 @@
 from io import BufferedReader
 from pathlib import Path
-from typing import List, Optional, Type, Union
+from typing import Generic, List, Optional, Type, Union, overload
 
 from weaviate.collection.classes.filters import (
     _Filters,
@@ -15,14 +15,20 @@ from weaviate.collection.classes.internal import (
     _GroupBy,
     _GroupByReturn,
     _QueryReturn,
+    GenerativeReturn,
+    GroupByReturn,
+    QueryReturn,
+    ReturnProperties,
 )
 from weaviate.collection.classes.types import (
     Properties,
+    TProperties,
 )
 from weaviate.collection.queries.base import _Grpc
 
 
-class _NearAudioQuery(_Grpc):
+class _NearAudioQuery(Generic[Properties], _Grpc[Properties]):
+    @overload
     def near_audio(
         self,
         near_audio: Union[str, Path, BufferedReader],
@@ -32,8 +38,36 @@ class _NearAudioQuery(_Grpc):
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
-        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+        return_properties: Optional[PROPERTIES] = None,
     ) -> _QueryReturn[Properties]:
+        ...
+
+    @overload
+    def near_audio(
+        self,
+        near_audio: Union[str, Path, BufferedReader],
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        *,
+        return_properties: Type[TProperties],
+    ) -> _QueryReturn[TProperties]:
+        ...
+
+    def near_audio(
+        self,
+        near_audio: Union[str, Path, BufferedReader],
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[ReturnProperties[TProperties]] = None,
+    ) -> QueryReturn[Properties, TProperties]:
         """Search for objects by audio in this collection using an audio-capable vectorisation module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind) for a more detailed explanation.
@@ -66,7 +100,7 @@ class _NearAudioQuery(_Grpc):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().near_audio(
             audio=self._parse_media(near_audio),
             certainty=certainty,
@@ -74,13 +108,14 @@ class _NearAudioQuery(_Grpc):
             filters=filters,
             limit=limit,
             autocut=auto_limit,
-            return_metadata=return_metadata,
+            return_metadata=return_metadata or ret_metadata,
             return_properties=ret_properties,
         )
-        return self._result_to_query_return(res, ret_type)
+        return self._result_to_query_return(res, return_properties)
 
 
-class _NearAudioGenerate(_Grpc):
+class _NearAudioGenerate(Generic[Properties], _Grpc[Properties]):
+    @overload
     def near_audio(
         self,
         near_audio: Union[str, Path, BufferedReader],
@@ -93,8 +128,42 @@ class _NearAudioGenerate(_Grpc):
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
-        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+        return_properties: Optional[PROPERTIES] = None,
     ) -> _GenerativeReturn[Properties]:
+        ...
+
+    @overload
+    def near_audio(
+        self,
+        near_audio: Union[str, Path, BufferedReader],
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        *,
+        return_properties: Type[TProperties],
+    ) -> _GenerativeReturn[TProperties]:
+        ...
+
+    def near_audio(
+        self,
+        near_audio: Union[str, Path, BufferedReader],
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[ReturnProperties[TProperties]] = None,
+    ) -> GenerativeReturn[Properties, TProperties]:
         """Perform retrieval-augmented generation (RaG) on the results of a by-audio object search in this collection using an audio-capable vectorisation module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind) for a more detailed explanation.
@@ -128,7 +197,7 @@ class _NearAudioGenerate(_Grpc):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().near_audio(
             audio=self._parse_media(near_audio),
             certainty=certainty,
@@ -141,13 +210,14 @@ class _NearAudioGenerate(_Grpc):
             ),
             limit=limit,
             autocut=auto_limit,
-            return_metadata=return_metadata,
+            return_metadata=return_metadata or ret_metadata,
             return_properties=ret_properties,
         )
-        return self._result_to_generative_return(res, ret_type)
+        return self._result_to_generative_return(res, return_properties)
 
 
-class _NearAudioGroupBy(_Grpc):
+class _NearAudioGroupBy(Generic[Properties], _Grpc[Properties]):
+    @overload
     def near_audio(
         self,
         near_audio: Union[str, Path, BufferedReader],
@@ -160,8 +230,42 @@ class _NearAudioGroupBy(_Grpc):
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         return_metadata: Optional[MetadataQuery] = None,
-        return_properties: Optional[Union[PROPERTIES, Type[Properties]]] = None,
+        return_properties: Optional[PROPERTIES] = None,
     ) -> _GroupByReturn[Properties]:
+        ...
+
+    @overload
+    def near_audio(
+        self,
+        near_audio: Union[str, Path, BufferedReader],
+        group_by_property: str,
+        number_of_groups: int,
+        objects_per_group: int,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        *,
+        return_properties: Type[TProperties],
+    ) -> _GroupByReturn[TProperties]:
+        ...
+
+    def near_audio(
+        self,
+        near_audio: Union[str, Path, BufferedReader],
+        group_by_property: str,
+        number_of_groups: int,
+        objects_per_group: int,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[MetadataQuery] = None,
+        return_properties: Optional[ReturnProperties[TProperties]] = None,
+    ) -> GroupByReturn[Properties, TProperties]:
         """Group the results of a by-audio object search in this collection using an audio-capable vectorisation module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind) for a more detailed explanation.
@@ -200,7 +304,7 @@ class _NearAudioGroupBy(_Grpc):
             `weaviate.exceptions.WeaviateGrpcError`:
                 If the request to the Weaviate server fails.
         """
-        ret_properties, ret_type = self._parse_return_properties(return_properties)
+        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().near_audio(
             audio=self._parse_media(near_audio),
             certainty=certainty,
@@ -213,7 +317,7 @@ class _NearAudioGroupBy(_Grpc):
             ),
             limit=limit,
             autocut=auto_limit,
-            return_metadata=return_metadata,
+            return_metadata=return_metadata or ret_metadata,
             return_properties=ret_properties,
         )
-        return self._result_to_groupby_return(res, ret_type)
+        return self._result_to_groupby_return(res, return_properties)
