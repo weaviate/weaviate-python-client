@@ -158,7 +158,7 @@ class _ClientBase:
             embedded_db.start()
             return (
                 ConnectionParams.from_url(
-                    f"http://localhost:{embedded_db.options.port}", grpc_port
+                    f"http://localhost:{embedded_options.port}", embedded_options.grpc_port
                 ),
                 embedded_db,
             )
