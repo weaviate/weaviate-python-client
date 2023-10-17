@@ -57,7 +57,7 @@ class Client:
 
     def __init__(
         self,
-        connection_params: Optional[ConnectionParams] = None,
+        url: Optional[str] = None,
         auth_client_secret: Optional[AuthCredentials] = None,
         timeout_config: TIMEOUT_TYPE = (10, 60),
         proxies: Union[dict, str, None] = None,
@@ -117,13 +117,13 @@ class Client:
             `TypeError`
                 If arguments are of a wrong data type.
         """
-        connection_params, embedded_db = self.__parse_connection_params_and_embedded_db(
-            connection_params, embedded_options
-        )
         config = Config() if additional_config is None else additional_config
+        url, embedded_db = self.__parse_url_and_embedded_db(url, embedded_options)
 
         self._connection = Connection(
-            connection_params=connection_params,
+            connection_params=ConnectionParams.from_connection_string(
+                url, config.grpc_port_experimental
+            ),
             auth_client_secret=auth_client_secret,
             timeout_config=_get_valid_timeout_config(timeout_config),
             proxies=proxies,
@@ -249,35 +249,24 @@ class Client:
         self._connection.timeout_config = _get_valid_timeout_config(timeout_config)
 
     @staticmethod
-    def __parse_connection_params_and_embedded_db(
-        connection_params: Optional[ConnectionParams], embedded_options: Optional[EmbeddedOptions]
-    ) -> Tuple[ConnectionParams, Optional[EmbeddedDB]]:
-        if connection_params is None and embedded_options is None:
-            raise TypeError("Either connection_params or embedded_options must be present.")
-        elif connection_params is not None and embedded_options is not None:
+    def __parse_url_and_embedded_db(
+        url: Optional[str], embedded_options: Optional[EmbeddedOptions]
+    ) -> Tuple[str, Optional[EmbeddedDB]]:
+        if embedded_options is None and url is None:
+            raise TypeError("Either url or embedded options must be present.")
+        elif embedded_options is not None and url is not None:
             raise TypeError(
-                f"connection_params is not expected to be set when using embedded_options but connection_params was {connection_params}"
+                f"URL is not expected to be set when using embedded_options but URL was {url}"
             )
 
         if embedded_options is not None:
             embedded_db = EmbeddedDB(options=embedded_options)
             embedded_db.start()
-            return (
-                ConnectionParams(
-                    scheme="http",
-                    host="localhost",
-                    port=embedded_db.options.port,
-                    grpc_port=50051,
-                ),
-                embedded_db,
-            )
+            return f"http://localhost:{embedded_db.options.port}", embedded_db
 
-        if not isinstance(connection_params, ConnectionParams):
-            raise TypeError(
-                f"connection_params is expected to be a ConnectionParams object but is {type(connection_params)}"
-            )
-
-        return connection_params, None
+        if not isinstance(url, str):
+            raise TypeError(f"URL is expected to be string but is {type(url)}")
+        return url.strip("/"), None
 
     def __del__(self) -> None:
         # in case an exception happens before definition of these members

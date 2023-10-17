@@ -3,7 +3,7 @@ from http.server import HTTPServer
 import pytest as pytest
 
 import weaviate
-from mock_tests.conftest import MOCK_SERVER_CONNECTION_PARAMS
+from mock_tests.conftest import MOCK_SERVER_URL
 
 
 @pytest.mark.parametrize(
@@ -11,7 +11,7 @@ from mock_tests.conftest import MOCK_SERVER_CONNECTION_PARAMS
 )
 def test_warning_old_weaviate(recwarn, ready_mock: HTTPServer, version: str, warning: bool):
     ready_mock.expect_request("/v1/meta").respond_with_json({"version": version})
-    client = weaviate.Client(connection_params=MOCK_SERVER_CONNECTION_PARAMS)
+    client = weaviate.Client(MOCK_SERVER_URL)
 
     client.query.get("Class", ["Property"]).with_generate(single_prompt="something")
 
