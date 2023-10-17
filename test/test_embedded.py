@@ -137,6 +137,7 @@ def test_embedded_multiple_instances(tmp_path_factory: pytest.TempPathFactory):
             persistence_data_path=tmp_path_factory.mktemp("data"),
             binary_path=tmp_path_factory.mktemp("bin"),
             additional_env_vars={"GRPC_PORT": "50053"},
+            grpc_port=50053,
         )
     )
     embedded_db2 = EmbeddedDB(
@@ -145,6 +146,7 @@ def test_embedded_multiple_instances(tmp_path_factory: pytest.TempPathFactory):
             persistence_data_path=tmp_path_factory.mktemp("data"),
             binary_path=tmp_path_factory.mktemp("bin"),
             additional_env_vars={"GRPC_PORT": "50054"},
+            grpc_port=50054,
         )
     )
     embedded_db.ensure_running()
@@ -200,6 +202,7 @@ def test_weaviate_state(tmp_path_factory: pytest.TempPathFactory):
             port=port,
             persistence_data_path=data_path,
             additional_env_vars={"GRPC_PORT": "50058"},
+            grpc_port=50058,
         ),
         startup_period=10,
     )
@@ -218,6 +221,7 @@ def test_weaviate_state(tmp_path_factory: pytest.TempPathFactory):
             port=port,
             persistence_data_path=data_path,
             additional_env_vars={"GRPC_PORT": "50059"},
+            grpc_port=50059,
         ),
         startup_period=10,
     )
@@ -246,6 +250,7 @@ def test_latest(tmp_path_factory: pytest.TempPathFactory):
             version="latest",
             port=30668,
             additional_env_vars={"GRPC_PORT": "50060"},
+            grpc_port=50060,
         )
     )
     meta = client.get_meta()
