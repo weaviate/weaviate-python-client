@@ -8,7 +8,7 @@ from requests import ReadTimeout
 from werkzeug.wrappers import Request, Response
 
 import weaviate
-from mock_tests.conftest import MOCK_SERVER_CONNECTION_PARAMS
+from mock_tests.conftest import MOCK_SERVER_URL
 
 
 def test_no_retry_on_timeout(weaviate_no_auth_mock):
@@ -20,7 +20,7 @@ def test_no_retry_on_timeout(weaviate_no_auth_mock):
 
     weaviate_no_auth_mock.expect_request("/v1/batch/objects").respond_with_handler(handler)
 
-    client = weaviate.Client(connection_params=MOCK_SERVER_CONNECTION_PARAMS, timeout_config=(1, 1))
+    client = weaviate.Client(MOCK_SERVER_URL, timeout_config=(1, 1))
 
     n = 10
     with pytest.raises(ReadTimeout):
@@ -84,7 +84,7 @@ def test_retry_on_timeout(weaviate_no_auth_mock):
         re.compile("^/v1/objects/Test/"), method="GET"
     ).respond_with_handler(handler_get_object)
 
-    client = weaviate.Client(connection_params=MOCK_SERVER_CONNECTION_PARAMS, timeout_config=(1, 1))
+    client = weaviate.Client(MOCK_SERVER_URL, timeout_config=(1, 1))
     with client.batch(batch_size=n, timeout_retries=1, dynamic=False) as batch:
         for _ in range(n):
             added_uuids.append(str(uuid.uuid4()))
@@ -115,7 +115,7 @@ def test_retry_on_timeout_all_succesfull(weaviate_no_auth_mock):
         re.compile("^/v1/objects/Test/"), method="GET"
     ).respond_with_json({"properties": {"name": "test"}})
 
-    client = weaviate.Client(connection_params=MOCK_SERVER_CONNECTION_PARAMS, timeout_config=(1, 1))
+    client = weaviate.Client(MOCK_SERVER_URL, timeout_config=(1, 1))
     with client.batch(batch_size=n, timeout_retries=1, dynamic=False) as batch:
         for _ in range(n):
             batch.add_data_object({"name": "test"}, "test", uuid.uuid4())

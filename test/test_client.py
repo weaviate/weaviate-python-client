@@ -5,20 +5,20 @@ from unittest.mock import patch, Mock
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from test.util import mock_connection_func, check_error_message
-from weaviate import Client, ConnectionConfig, ConnectionParams
+from weaviate import Client, ConnectionConfig, ConnectionParams, ProtocolParams
 from weaviate.embedded import EmbeddedOptions, EmbeddedDB
 from weaviate.exceptions import UnexpectedStatusCodeException
 
 
 @patch("weaviate.client.Connection", Mock)
-class TestWeaviateClient(unittest.TestCase):
+class TestClient(unittest.TestCase):
     @patch("weaviate.client.Client.get_meta", return_value={"version": "1.13.2"})
     def test___init__(self, mock_get_meta_method):
         """
         Test the `__init__` method.
         """
 
-        type_error_message = "Either connection_params or embedded_options must be present."
+        type_error_message = "Either url or embedded options must be present."
         # test invalid calls
         with self.assertRaises(TypeError) as error:
             Client(None)
@@ -28,7 +28,7 @@ class TestWeaviateClient(unittest.TestCase):
         check_error_message(
             self,
             error,
-            "connection_params is expected to be a ConnectionParams object but is " + str(int),
+            "URL is expected to be string but is " + str(int),
         )
 
         # test valid calls
@@ -44,7 +44,13 @@ class TestWeaviateClient(unittest.TestCase):
                 startup_period=None,
             )
             mock_obj.assert_called_with(
-                "http://localhost:8080",
+                connection_params=ConnectionParams(
+                    http=ProtocolParams(
+                        host="localhost",
+                        port=8080,
+                        secure=False,
+                    )
+                ),
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 proxies=None,
@@ -67,7 +73,13 @@ class TestWeaviateClient(unittest.TestCase):
                 startup_period=None,
             )
             mock_obj.assert_called_with(
-                "http://localhost:8080",
+                connection_params=ConnectionParams(
+                    http=ProtocolParams(
+                        host="localhost",
+                        port=8080,
+                        secure=False,
+                    )
+                ),
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 proxies=None,
@@ -89,7 +101,13 @@ class TestWeaviateClient(unittest.TestCase):
                 startup_period=None,
             )
             mock_obj.assert_called_with(
-                "http://localhost:8080",
+                connection_params=ConnectionParams(
+                    http=ProtocolParams(
+                        host="localhost",
+                        port=8080,
+                        secure=False,
+                    )
+                ),
                 auth_client_secret=None,
                 timeout_config=(5, 20),
                 proxies=None,
@@ -114,7 +132,13 @@ class TestWeaviateClient(unittest.TestCase):
                 startup_period=None,
             )
             mock_obj.assert_called_with(
-                "http://localhost:8080",
+                connection_params=ConnectionParams(
+                    http=ProtocolParams(
+                        host="localhost",
+                        port=8080,
+                        secure=False,
+                    )
+                ),
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 proxies={"http": "test"},

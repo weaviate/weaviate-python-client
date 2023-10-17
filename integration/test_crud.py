@@ -979,9 +979,7 @@ def test_tenants():
     ],
 )
 def test_nested_object_datatype(prop_defs: dict, props: dict):
-    client = weaviate.Client(
-        weaviate.ConnectionParams.from_connection_string("http://localhost:8080")
-    )
+    client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create_class(
         {

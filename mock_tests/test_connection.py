@@ -7,7 +7,7 @@ from pytest_httpserver import HTTPServer
 from werkzeug import Request, Response
 
 import weaviate
-from mock_tests.conftest import MOCK_SERVER_CONNECTION_PARAMS, MOCK_IP, MOCK_PORT
+from mock_tests.conftest import MOCK_SERVER_URL, MOCK_IP, MOCK_PORT
 
 
 @pytest.mark.parametrize(
@@ -29,9 +29,7 @@ def test_additional_headers(weaviate_mock, header: Dict[str, str]):
 
     weaviate_mock.expect_request("/v1/schema").respond_with_handler(handler)
 
-    client = weaviate.Client(
-        connection_params=MOCK_SERVER_CONNECTION_PARAMS, additional_headers=header
-    )
+    client = weaviate.Client(MOCK_SERVER_URL, additional_headers=header)
     client.schema.delete_all()  # some call that includes headers
 
 
@@ -39,7 +37,7 @@ def test_additional_headers(weaviate_mock, header: Dict[str, str]):
 def test_warning_old_weaviate(recwarn, ready_mock: HTTPServer, version: str, warning: bool):
     """Test that we warn if a new client version is using an old weaviate server."""
     ready_mock.expect_request("/v1/meta").respond_with_json({"version": version})
-    weaviate.Client(connection_params=MOCK_SERVER_CONNECTION_PARAMS)
+    weaviate.Client(MOCK_SERVER_URL)
 
     if warning:
         assert len(recwarn) == 2
@@ -68,7 +66,7 @@ def test_wait_for_weaviate(httpserver: HTTPServer):
     httpserver.expect_request("/v1/meta").respond_with_handler(handler_meta)
     httpserver.expect_request("/v1/.well-known/ready").respond_with_handler(handler)
     start_time = time.time()
-    weaviate.Client(connection_params=MOCK_SERVER_CONNECTION_PARAMS, startup_period=30)
+    weaviate.Client(MOCK_SERVER_URL, startup_period=30)
 
 
 def test_user_pw_in_url(weaviate_mock):
