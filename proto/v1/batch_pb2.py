@@ -21,6 +21,7 @@ _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'v1.batch_pb2', _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
+
   DESCRIPTOR._options = None
   DESCRIPTOR._serialized_options = b'\n\034io.weaviate.grpc.protocol.v1B\022WeaviateProtoBatchZ4github.com/weaviate/weaviate/grpc/generated;protocol'
   _globals['_BATCHOBJECTSREQUEST']._serialized_start=77
