@@ -9,7 +9,7 @@ services:
       - '8086'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-nested-objects-4dc2c30
+    image: semitechnologies/weaviate:preview-split-protos-into-v0-and-v1-packages-for-clear-api-break-b4b08ad
     ports:
       - 8086:8086
     restart: on-failure:0

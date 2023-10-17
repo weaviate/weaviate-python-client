@@ -41,7 +41,7 @@ from weaviate.warnings import _Warnings
 
 try:
     import grpc  # type: ignore
-    from weaviate_grpc import weaviate_pb2_grpc
+    from proto.v1 import weaviate_pb2_grpc
 
     has_grpc = True
 
