@@ -60,7 +60,6 @@ DATE3 = datetime.datetime.strptime("2019-06-10", "%Y-%m-%d").replace(tzinfo=date
 @pytest.fixture(scope="module")
 def client():
     connection_params = weaviate.ConnectionParams.from_url("http://localhost:8080", 50051)
-    print(connection_params, connection_params._http_url, connection_params._grpc_target)
     client = weaviate.WeaviateClient(connection_params)
     client.schema.delete_all()
     yield client

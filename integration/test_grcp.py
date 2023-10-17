@@ -55,7 +55,7 @@ def test_grcp(
     with_limit: bool, additional_props, search: Dict[str, Any], properties, grpc_port: Optional[int]
 ):
     client = weaviate.Client(
-        "http://localhost:8080", weaviate.Config(grpc_port_experimental=grpc_port)
+        "http://localhost:8080", additional_config=weaviate.Config(grpc_port_experimental=grpc_port)
     )
     client.schema.delete_all()
 
