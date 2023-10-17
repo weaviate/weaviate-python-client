@@ -144,8 +144,8 @@ class _ClientBase:
 
     @staticmethod
     def _parse_url_and_embedded_db(
-        url: Optional[str], embedded_options: Optional[EmbeddedOptions]
-    ) -> Tuple[str, Optional[EmbeddedDB]]:
+        url: Optional[str], grpc_port: Optional[int], embedded_options: Optional[EmbeddedOptions]
+    ) -> Tuple[ConnectionParams, Optional[EmbeddedDB]]:
         if embedded_options is None and url is None:
             raise TypeError("Either url or embedded options must be present.")
         elif embedded_options is not None and url is not None:
@@ -156,11 +156,16 @@ class _ClientBase:
         if embedded_options is not None:
             embedded_db = EmbeddedDB(options=embedded_options)
             embedded_db.start()
-            return f"http://localhost:{embedded_db.options.port}", embedded_db
+            return (
+                ConnectionParams.from_url(
+                    f"http://localhost:{embedded_db.options.port}", grpc_port
+                ),
+                embedded_db,
+            )
 
         if not isinstance(url, str):
             raise TypeError(f"URL is expected to be string but is {type(url)}")
-        return url.strip("/"), None
+        return ConnectionParams.from_url(url, grpc_port), None
 
     def __del__(self) -> None:
         # in case an exception happens before definition of these members
@@ -294,12 +299,12 @@ class Client(_ClientBase):
                 If arguments are of a wrong data type.
         """
         config = Config() if additional_config is None else additional_config
-        url, embedded_db = self._parse_url_and_embedded_db(url, embedded_options)
+        connection_params, embedded_db = self._parse_url_and_embedded_db(
+            url, config.grpc_port_experimental, embedded_options
+        )
 
         self._connection = Connection(
-            connection_params=ConnectionParams.from_url(
-                url, config.grpc_port_experimental, config.grpc_secure_experimental
-            ),
+            connection_params=connection_params,
             auth_client_secret=auth_client_secret,
             timeout_config=_get_valid_timeout_config(timeout_config),
             proxies=proxies,
