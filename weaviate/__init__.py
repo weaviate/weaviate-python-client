@@ -35,6 +35,7 @@ __version__ : str
 __all__ = [
     "Client",
     "WeaviateClient",
+    "ClientFactory",
     "AuthClientCredentials",
     "AuthClientPassword",
     "AuthBearerToken",
@@ -68,7 +69,7 @@ except PackageNotFoundError:
 
 from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken, AuthApiKey
 from .batch.crud_batch import WeaviateErrorRetryConf
-from .client import Client, WeaviateClient
+from .client import Client, WeaviateClient, ClientFactory
 from .connect.connection import ConnectionParams, ProtocolParams
 from .data.replication import ConsistencyLevel
 from .schema.crud_schema import Tenant, TenantActivityStatus

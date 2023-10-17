@@ -79,8 +79,7 @@ articles = [
 
 @pytest.fixture(scope="module")
 def client():
-    connection_params = weaviate.ConnectionParams.from_url("http://localhost:8080")
-    client = weaviate.Client(connection_params)
+    client = weaviate.Client("http://localhost:8080")
     client.schema.create(schema)
     for para in paragraphs:
         client.data_object.create(para["properties"], "Paragraph", para["id"])
@@ -156,7 +155,7 @@ def test_create_and_restore_backup_with_waiting(client, tmp_path):
     _check_response(resp, backup_id, ["SUCCESS"])
 
 
-def test_create_and_restore_backup_without_waiting(client):
+def test_create_and_restore_backup_without_waiting(client: weaviate.Client):
     """Create and restore backup without waiting."""
     backup_id = _create_backup_id()
 
@@ -197,7 +196,7 @@ def test_create_and_restore_backup_without_waiting(client):
     _assert_objects_exist(client, "Article", len(articles))
 
 
-def test_create_and_restore_1_of_2_classes(client):
+def test_create_and_restore_1_of_2_classes(client: weaviate.Client):
     """Create and restore 1 of 2 classes."""
     backup_id = _create_backup_id()
 
@@ -232,7 +231,7 @@ def test_create_and_restore_1_of_2_classes(client):
     _check_response(resp, backup_id, ["SUCCESS"])
 
 
-def test_fail_on_non_existing_backend(client):
+def test_fail_on_non_existing_backend(client: weaviate.Client):
     """Fail backup functions on non-existing backend"""
     backup_id = _create_backup_id()
     backend = "non-existing-backend"
@@ -242,7 +241,7 @@ def test_fail_on_non_existing_backend(client):
             assert backend in str(excinfo.value)
 
 
-def test_fail_on_non_existing_class(client):
+def test_fail_on_non_existing_class(client: weaviate.Client):
     """Fail backup functions on non-existing class"""
     backup_id = _create_backup_id()
     class_name = "NonExistingClass"
@@ -253,7 +252,7 @@ def test_fail_on_non_existing_class(client):
             assert "422" in str(excinfo.value)
 
 
-def test_fail_restoring_backup_for_existing_class(client):
+def test_fail_restoring_backup_for_existing_class(client: weaviate.Client):
     """Fail restoring backup for existing class."""
     backup_id = _create_backup_id()
     class_name = ["Article"]
@@ -274,7 +273,7 @@ def test_fail_restoring_backup_for_existing_class(client):
         assert "already exists" in str(excinfo.value)
 
 
-def test_fail_creating_existing_backup(client):
+def test_fail_creating_existing_backup(client: weaviate.Client):
     """Fail creating existing backup"""
     backup_id = _create_backup_id()
     class_name = ["Article"]
@@ -295,7 +294,7 @@ def test_fail_creating_existing_backup(client):
         assert "422" in str(excinfo.value)
 
 
-def test_fail_restoring_non_existing_backup(client):
+def test_fail_restoring_non_existing_backup(client: weaviate.Client):
     """fail restoring non-existing backup"""
     backup_id = _create_backup_id()
     with pytest.raises(UnexpectedStatusCodeException) as excinfo:
@@ -304,7 +303,7 @@ def test_fail_restoring_non_existing_backup(client):
         assert "404" in str(excinfo.value)
 
 
-def test_fail_checking_status_for_non_existing_restore(client):
+def test_fail_checking_status_for_non_existing_restore(client: weaviate.Client):
     """Fail checking restore status for non-existing restore."""
     backup_id = _create_backup_id()
     for func in [client.backup.get_restore_status, client.backup.get_create_status]:
@@ -317,7 +316,7 @@ def test_fail_checking_status_for_non_existing_restore(client):
             assert "404" in str(excinfo)
 
 
-def test_fail_creating_backup_for_both_include_and_exclude_classes(client):
+def test_fail_creating_backup_for_both_include_and_exclude_classes(client: weaviate.Client):
     """fail creating backup for both include and exclude classes"""
     backup_id = _create_backup_id()
 

@@ -21,6 +21,7 @@ class ConnectionConfig:
 @dataclass
 class Config:
     grpc_port_experimental: Optional[int] = None
+    grpc_secure_experimental: bool = False
     connection_config: ConnectionConfig = field(default_factory=ConnectionConfig)
 
     def __post_init__(self) -> None:
@@ -29,4 +30,8 @@ class Config:
         ):
             raise TypeError(
                 f"grpc_port_experimental must be {int}, received {type(self.grpc_port_experimental)}"
+            )
+        if not isinstance(self.grpc_secure_experimental, bool):
+            raise TypeError(
+                f"grpc_secure_experimental must be {bool}, received {type(self.grpc_secure_experimental)}"
             )

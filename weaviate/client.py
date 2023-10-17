@@ -140,6 +140,26 @@ class _ClientBase:
 
         return connection_params, None
 
+    @staticmethod
+    def _parse_url_and_embedded_db(
+        url: Optional[str], embedded_options: Optional[EmbeddedOptions]
+    ) -> Tuple[str, Optional[EmbeddedDB]]:
+        if embedded_options is None and url is None:
+            raise TypeError("Either url or embedded options must be present.")
+        elif embedded_options is not None and url is not None:
+            raise TypeError(
+                f"URL is not expected to be set when using embedded_options but URL was {url}"
+            )
+
+        if embedded_options is not None:
+            embedded_db = EmbeddedDB(options=embedded_options)
+            embedded_db.start()
+            return f"http://localhost:{embedded_db.options.port}", embedded_db
+
+        if not isinstance(url, str):
+            raise TypeError(f"URL is expected to be string but is {type(url)}")
+        return url.strip("/"), None
+
     def __del__(self) -> None:
         # in case an exception happens before definition of these members
         if hasattr(self, "_connection"):
@@ -207,13 +227,11 @@ class Client(_ClientBase):
         A Schema object instance connected to the same Weaviate instance as the Client.
     query : weaviate.gql.Query
         A Query object instance connected to the same Weaviate instance as the Client.
-    collection: weaviate.collection.Collection
-        A Collection object instance connected to the same Weaviate instance as the Client.
     """
 
     def __init__(
         self,
-        connection_params: Optional[ConnectionParams] = None,
+        url: Optional[str] = None,
         auth_client_secret: Optional[AuthCredentials] = None,
         timeout_config: TIMEOUT_TYPE = (10, 60),
         proxies: Union[dict, str, None] = None,
@@ -227,8 +245,8 @@ class Client(_ClientBase):
 
         Arguments:
         ----------
-        connection_params : ConnectionParams or None, optional
-            The connection parameters to use when connecting to Weaviate.
+        url : str or None, optional
+            The connection string to the REST API of Weaviate.
         auth_client_secret : weaviate.AuthCredentials or None, optional
         # fmt: off
             Authenticate to weaviate by using one of the given authentication modes:
@@ -273,13 +291,13 @@ class Client(_ClientBase):
             `TypeError`
                 If arguments are of a wrong data type.
         """
-        connection_params, embedded_db = self._parse_connection_params_and_embedded_db(
-            connection_params, embedded_options
-        )
         config = Config() if additional_config is None else additional_config
+        url, embedded_db = self._parse_url_and_embedded_db(url, embedded_options)
 
         self._connection = Connection(
-            connection_params=connection_params,
+            connection_params=ConnectionParams.from_url(
+                url, config.grpc_port_experimental, config.grpc_secure_experimental
+            ),
             auth_client_secret=auth_client_secret,
             timeout_config=_get_valid_timeout_config(timeout_config),
             proxies=proxies,
@@ -358,41 +376,62 @@ class ClientFactory:
         cls, cluster_id: str, api_key: str, version: Literal["v3", "v4"] = "v4"
     ) -> Union[Client, WeaviateClient]:
         """
-        Connect to your own Weaviate Cluster Service (WCS) instance.
+        Connect to your own Weaviate Cloud Service (WCS) instance.
 
         Arguments:
             `cluster_id`
                 The cluster id to connect to.
             `api_key`
                 The api key to use for authentication.
+            `version`
+                The version of the Weaviate Python Client to use. Defaults to v4.
 
         Returns
             `weaviate.Client`
                 The client connected to the cluster with the required parameters set appropriately.
         """
         if version == "v4":
-            client: Union[Type[Client], Type[WeaviateClient]] = WeaviateClient
+            return WeaviateClient(
+                connection_params=ConnectionParams(
+                    http=ProtocolParams(
+                        host=f"{cluster_id}.weaviate.network", port=443, secure=True
+                    ),
+                    grpc=ProtocolParams(
+                        host=f"{cluster_id}.weaviate.network", port=50051, secure=True
+                    ),
+                ),
+                auth_client_secret=AuthApiKey(api_key),
+            )
         else:
-            client = Client
-        return client(
-            connection_params=ConnectionParams(
-                http=ProtocolParams(host=f"{cluster_id}.weaviate.network", port=443, secure=True),
-                grpc=ProtocolParams(host=f"{cluster_id}.weaviate.network", port=50051, secure=True),
-            ),
-            auth_client_secret=AuthApiKey(api_key),
-        )
+            return Client(
+                f"https://{cluster_id}.weaviate.network",
+                additional_config=Config(
+                    grpc_port_experimental=50051,
+                    grpc_secure_experimental=True,
+                ),
+                auth_client_secret=AuthApiKey(api_key),
+            )
 
     @overload
     @classmethod
     def connect_to_local(
-        cls, host: str, port: int, grpc_port: int, version: Literal["v3"]
+        cls,
+        host: str = "localhost",
+        port: int = 8080,
+        grpc_port: int = 50051,
+        *,
+        version: Literal["v3"],
     ) -> Client:
         ...
 
     @overload
     @classmethod
     def connect_to_local(
-        cls, host: str, port: int, grpc_port: int, version: Literal["v4"]
+        cls,
+        host: str = "localhost",
+        port: int = 8080,
+        grpc_port: int = 50051,
+        version: Literal["v4"] = "v4",
     ) -> WeaviateClient:
         ...
 
@@ -416,31 +455,40 @@ class ClientFactory:
                 The port to use for the underlying REST & GraphQL API calls.
             `grpc_port`
                 The port to use for the underlying gRPC API.
+            `version`
+                The version of the Weaviate Python Client to use. Defaults to v4.
 
         Returns
             `weaviate.Client`
                 The client connected to the local instance with default parameters set as:
         """
         if version == "v4":
-            client: Union[Type[Client], Type[WeaviateClient]] = WeaviateClient
+            return WeaviateClient(
+                connection_params=ConnectionParams(
+                    http=ProtocolParams(host=host, port=port, secure=False),
+                    grpc=ProtocolParams(host=host, port=grpc_port, secure=False),
+                ),
+            )
         else:
-            client = Client
-        return client(
-            connection_params=ConnectionParams(
-                http=ProtocolParams(host=host, port=port, secure=False),
-                grpc=ProtocolParams(host=host, port=grpc_port, secure=False),
-            ),
-        )
+            return Client(
+                "http://localhost:8080",
+                additional_config=Config(
+                    grpc_port_experimental=50051,
+                    grpc_secure_experimental=False,
+                ),
+            )
 
     @overload
     @classmethod
-    def connect_to_embedded(cls, port: int, grpc_port: int, version: Literal["v3"]) -> Client:
+    def connect_to_embedded(
+        cls, port: int = 8079, grpc_port: int = 50051, *, version: Literal["v3"]
+    ) -> Client:
         ...
 
     @overload
     @classmethod
     def connect_to_embedded(
-        cls, port: int, grpc_port: int, version: Literal["v4"]
+        cls, port: int = 8079, grpc_port: int = 50051, version: Literal["v4"] = "v4"
     ) -> WeaviateClient:
         ...
 
@@ -456,6 +504,8 @@ class ClientFactory:
                 The port to use for the underlying REST & GraphQL API calls.
             `grpc_port`
                 The port to use for the underlying gRPC API.
+            `version`
+                The version of the Weaviate Python Client to use. Defaults to v4.
 
         Returns
             `weaviate.Client`
@@ -496,7 +546,7 @@ class ClientFactory:
         grpc_host: str,
         grpc_port: int,
         grpc_secure: bool,
-        version: Literal["v4"],
+        version: Literal["v4"] = "v4",
     ) -> WeaviateClient:
         ...
 
@@ -527,22 +577,33 @@ class ClientFactory:
                 The port to use for the underlying gRPC API.
             `grpc_secure`
                 Whether to use a secure channel for the underlying gRPC API.
+            `version`
+                The version of the Weaviate Python Client to use. Defaults to v4.
 
         Returns
             `weaviate.Client`
                 The client connected to the instance with the required parameters set appropriately.
         """
         if version == "v4":
-            client: Union[Type[Client], Type[WeaviateClient]] = WeaviateClient
+            return WeaviateClient(
+                ConnectionParams.from_params(
+                    http_host=http_host,
+                    http_port=http_port,
+                    http_secure=http_secure,
+                    grpc_host=grpc_host,
+                    grpc_port=grpc_port,
+                    grpc_secure=grpc_secure,
+                )
+            )
         else:
-            client = Client
-        return client(
-            connection_params=ConnectionParams.from_params(
-                http_host=http_host,
-                http_port=http_port,
-                http_secure=http_secure,
-                grpc_host=grpc_host,
-                grpc_port=grpc_port,
-                grpc_secure=grpc_secure,
-            ),
-        )
+            if grpc_host is not None and grpc_port != http_port:
+                raise ValueError(
+                    "When using the V3 client, grpc_host and http_host must be the same."
+                )
+            return Client(
+                url=f"{'https' if http_secure else 'http'}://{http_host}:{http_port}",
+                additional_config=Config(
+                    grpc_port_experimental=grpc_port,
+                    grpc_secure_experimental=grpc_secure,
+                ),
+            )

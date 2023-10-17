@@ -73,7 +73,4 @@ def test_wait_for_weaviate(httpserver: HTTPServer):
 
 def test_user_pw_in_url(weaviate_mock):
     """Test that user and pw can be in the url."""
-    connection_params = weaviate.ConnectionParams.from_url(
-        "http://user:pw@" + MOCK_IP + ":" + str(MOCK_PORT)
-    )
-    weaviate.Client(connection_params)  # no exception
+    weaviate.Client("http://user:pw@" + MOCK_IP + ":" + str(MOCK_PORT))  # no exception

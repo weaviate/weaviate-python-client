@@ -83,7 +83,9 @@ class ConnectionParams(BaseModel):
     grpc: Optional[ProtocolParams] = None
 
     @classmethod
-    def from_url(cls, url: str, grpc_port: Optional[int] = None) -> ConnectionParams:
+    def from_url(
+        cls, url: str, grpc_port: Optional[int] = None, grpc_secure: bool = False
+    ) -> ConnectionParams:
         parsed_url = urlparse(url)
         if parsed_url.scheme not in ["http", "https"]:
             raise ValueError(f"Unsupported scheme: {parsed_url.scheme}")
@@ -101,7 +103,7 @@ class ConnectionParams(BaseModel):
             grpc=ProtocolParams(
                 host=cast(str, parsed_url.hostname),
                 port=grpc_port,
-                secure=parsed_url.scheme == "https",
+                secure=grpc_secure or parsed_url.scheme == "https",
             )
             if grpc_port is not None
             else None,
@@ -150,7 +152,6 @@ class ConnectionParams(BaseModel):
             return None
         return f"{self.grpc.host}:{self.grpc.port}"
 
-    @property
     def _grpc_channel(self) -> Optional[Channel]:
         if self.grpc is None:
             return None
@@ -252,9 +253,9 @@ class Connection:
                 s.connect(connection_params._grpc_address)
                 s.shutdown(2)
                 s.close()
-                assert connection_params._grpc_channel is not None
-                channel = connection_params._grpc_channel
-                self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(channel)
+                grpc_channel = connection_params._grpc_channel()
+                assert grpc_channel is not None
+                self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(grpc_channel)
                 self._grpc_available = True
             except (
                 ConnectionRefusedError,
