@@ -118,12 +118,12 @@ class Client:
                 If arguments are of a wrong data type.
         """
         config = Config() if additional_config is None else additional_config
-        url, embedded_db = self.__parse_url_and_embedded_db(url, embedded_options)
+        connection_params, embedded_db = self.__parse_url_and_embedded_db(
+            url, config.grpc_port_experimental, embedded_options
+        )
 
         self._connection = Connection(
-            connection_params=ConnectionParams.from_connection_string(
-                url, config.grpc_port_experimental
-            ),
+            connection_params=connection_params,
             auth_client_secret=auth_client_secret,
             timeout_config=_get_valid_timeout_config(timeout_config),
             proxies=proxies,
@@ -250,8 +250,8 @@ class Client:
 
     @staticmethod
     def __parse_url_and_embedded_db(
-        url: Optional[str], embedded_options: Optional[EmbeddedOptions]
-    ) -> Tuple[str, Optional[EmbeddedDB]]:
+        url: Optional[str], grpc_port: Optional[int], embedded_options: Optional[EmbeddedOptions]
+    ) -> Tuple[ConnectionParams, Optional[EmbeddedDB]]:
         if embedded_options is None and url is None:
             raise TypeError("Either url or embedded options must be present.")
         elif embedded_options is not None and url is not None:
@@ -262,11 +262,19 @@ class Client:
         if embedded_options is not None:
             embedded_db = EmbeddedDB(options=embedded_options)
             embedded_db.start()
-            return f"http://localhost:{embedded_db.options.port}", embedded_db
+            return (
+                ConnectionParams(
+                    scheme="http",
+                    host="localhost",
+                    port=embedded_db.options.port,
+                    grpc_port=embedded_options.grpc_port,
+                ),
+                embedded_db,
+            )
 
         if not isinstance(url, str):
             raise TypeError(f"URL is expected to be string but is {type(url)}")
-        return url.strip("/"), None
+        return ConnectionParams.from_connection_string(url, grpc_port), None
 
     def __del__(self) -> None:
         # in case an exception happens before definition of these members
