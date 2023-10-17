@@ -629,7 +629,9 @@ def test_graphql_with_tenant():
 
 
 def test_graphql_with_nested_object():
-    client = weaviate.Client("http://localhost:8080")
+    client = weaviate.Client(
+        weaviate.ConnectionParams.from_connection_string("http://localhost:8080")
+    )
     client.schema.delete_all()
     client.schema.create_class(
         {
