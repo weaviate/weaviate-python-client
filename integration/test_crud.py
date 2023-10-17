@@ -82,8 +82,7 @@ def people_schema() -> str:
 
 
 def test_load_scheme(people_schema):
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
-    client = weaviate.Client(connection_params)
+    client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create(people_schema)
 
@@ -96,8 +95,7 @@ def test_load_scheme(people_schema):
 
 @pytest.fixture(scope="module")
 def client(people_schema):
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
-    client = weaviate.Client(connection_params)
+    client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create(people_schema)
 
@@ -108,14 +106,12 @@ def client(people_schema):
 @pytest.mark.parametrize("timeout, error", [(None, TypeError), ((5,), ValueError)])
 def test_timeout_error(timeout, error):
     with pytest.raises(error):
-        connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
-        weaviate.Client(connection_params, timeout_config=timeout)
+        weaviate.Client("http://localhost:8080", timeout_config=timeout)
 
 
 @pytest.mark.parametrize("timeout", [(5, 5), 5, 5.0, (5.0, 5.0), (5, 5.0)])
 def test_timeout(people_schema, timeout):
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
-    client = weaviate.Client(connection_params, timeout_config=timeout)
+    client = weaviate.Client("http://localhost:8080", timeout_config=timeout)
     client.schema.delete_all()
     client.schema.create(people_schema)
     expected_name = "Sophie Scholl"
@@ -130,8 +126,7 @@ def test_timeout(people_schema, timeout):
 
 @pytest.mark.parametrize("limit", [None, 1, 5, 20, 50])
 def test_query_get_with_limit(people_schema, limit: Optional[int]):
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
-    client = weaviate.Client(connection_params)
+    client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create(people_schema)
 
@@ -149,8 +144,7 @@ def test_query_get_with_limit(people_schema, limit: Optional[int]):
 
 
 def test_query_get_with_after(people_schema):
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
-    client = weaviate.Client(connection_params)
+    client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create(people_schema)
 
@@ -170,8 +164,7 @@ def test_query_get_with_after(people_schema):
 
 @pytest.mark.parametrize("offset", [None, 0, 1, 5, 20, 50])
 def test_query_get_with_offset(people_schema, offset: Optional[int]):
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
-    client = weaviate.Client(connection_params)
+    client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create(people_schema)
 
@@ -225,8 +218,7 @@ def test_query_get_with_offset(people_schema, offset: Optional[int]):
 def test_query_get_with_sort(
     sort: Optional[Dict[str, Union[str, bool, List[bool], List[str]]]], expected: List[str]
 ):
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
-    client = weaviate.Client(connection_params)
+    client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create(SHIP_SCHEMA)
 
@@ -268,8 +260,7 @@ def test_query_data(client: weaviate.Client):
 
 
 def test_create_schema():
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
-    client = weaviate.Client(connection_params)
+    client = weaviate.Client("http://localhost:8080")
     single_class = {
         "class": "Barbecue",
         "description": "Barbecue or BBQ where meat and vegetables get grilled",
@@ -490,8 +481,7 @@ def test_add_vector_and_vectorizer(client: weaviate.Client):
 
 
 def test_beacon_refs(people_schema: dict):
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
-    client = weaviate.Client(connection_params)
+    client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create(people_schema)
 
@@ -526,8 +516,7 @@ def test_beacon_refs(people_schema: dict):
 
 
 def test_beacon_refs_multiple(people_schema: dict):
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
-    client = weaviate.Client(connection_params)
+    client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create_class(
         {
@@ -594,8 +583,7 @@ def test_beacon_refs_multiple(people_schema: dict):
 
 
 def test_beacon_refs_nested():
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
-    client = weaviate.Client(connection_params)
+    client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create_class(
         {
@@ -682,8 +670,7 @@ def test_beacon_refs_nested():
 
 
 def test_tenants():
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
-    client = weaviate.Client(connection_params)
+    client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     tenants = [
         Tenant(name="tenantA"),
@@ -992,9 +979,7 @@ def test_tenants():
     ],
 )
 def test_nested_object_datatype(prop_defs: dict, props: dict):
-    client = weaviate.Client(
-        weaviate.ConnectionParams.from_connection_string("http://localhost:8080")
-    )
+    client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create_class(
         {
