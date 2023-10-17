@@ -9,7 +9,7 @@ services:
       - '8086'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-make-proto-naming-consistent-4b98dfa
+    image: semitechnologies/weaviate:1.21.7-f8c7f26
     ports:
       - 8086:8086
       - "50057:50051"

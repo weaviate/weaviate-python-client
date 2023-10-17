@@ -1,4 +1,4 @@
-exclude: ^weaviate_grpc/
+exclude: ^proto/
 repos:
 -   repo: https://github.com/psf/black
     rev: 23.9.1
