@@ -419,7 +419,7 @@ def test_add_ref_batch_with_tenant():
 
 
 def test_add_nested_object_with_batch():
-    client = weaviate.Client(weaviate.ConnectionParams.from_url("http://localhost:8080"))
+    client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
 
     client.schema.create_class(
