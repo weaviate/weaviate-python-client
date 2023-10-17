@@ -128,7 +128,9 @@ class _ClientBase:
                     http=ProtocolParams(
                         host="localhost", port=embedded_db.options.port, secure=False
                     ),
-                    grpc=ProtocolParams(host="localhost", port=50051, secure=False),
+                    grpc=ProtocolParams(
+                        host="localhost", port=embedded_options.grpc_port, secure=False
+                    ),
                 ),
                 embedded_db,
             )
