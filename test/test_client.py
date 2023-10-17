@@ -136,7 +136,7 @@ class TestClient(unittest.TestCase):
                     self.assertEqual(
                         kwargs["connection_params"],
                         ConnectionParams(
-                            scheme="http", host="localhost", port=8079, grpc_port=50051
+                            scheme="http", host="localhost", port=8079, grpc_port=50060
                         ),
                     )
                     self.assertTrue(isinstance(kwargs["embedded_db"], EmbeddedDB))
