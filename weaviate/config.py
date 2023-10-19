@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, Field
 
 
@@ -7,4 +8,5 @@ class ConnectionConfig(BaseModel):
 
 
 class Config(BaseModel):
+    grpc_port_experimental: Optional[int] = Field(default=None)
     connection_config: ConnectionConfig = Field(default_factory=ConnectionConfig)
