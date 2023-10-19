@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-implement-grpc-nested-objects-1bb18a1
+    image: semitechnologies/weaviate:1.22.0-rc.0
     ports:
       - 8083:8083
     restart: on-failure:0
