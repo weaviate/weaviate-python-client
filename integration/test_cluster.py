@@ -32,7 +32,7 @@ def client():
     client.schema.delete_all()
 
 
-def test_get_nodes_status_without_data(client):
+def test_get_nodes_status_without_data(client: weaviate.Client):
     """get nodes status without data"""
     resp = client.cluster.get_nodes_status()
     assert len(resp) == 1
@@ -45,7 +45,7 @@ def test_get_nodes_status_without_data(client):
     assert resp[0]["version"] == SERVER_VERSION
 
 
-def test_get_nodes_status_with_data(client):
+def test_get_nodes_status_with_data(client: weaviate.Client):
     """get nodes status with data"""
     class_name1 = "ClassA"
     uncap_class_name1 = "classA"

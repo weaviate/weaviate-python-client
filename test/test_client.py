@@ -5,7 +5,7 @@ from unittest.mock import patch, Mock
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from test.util import mock_connection_func, check_error_message
-from weaviate import Client, ConnectionConfig, ConnectionParams
+from weaviate import Client, ConnectionConfig, ConnectionParams, ProtocolParams
 from weaviate.embedded import EmbeddedOptions, EmbeddedDB
 from weaviate.exceptions import UnexpectedStatusCodeException
 
@@ -44,7 +44,13 @@ class TestClient(unittest.TestCase):
                 startup_period=None,
             )
             mock_obj.assert_called_with(
-                connection_params=ConnectionParams(scheme="http", host="localhost", port=8080),
+                connection_params=ConnectionParams(
+                    http=ProtocolParams(
+                        host="localhost",
+                        port=8080,
+                        secure=False,
+                    )
+                ),
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 proxies=None,
@@ -67,7 +73,13 @@ class TestClient(unittest.TestCase):
                 startup_period=None,
             )
             mock_obj.assert_called_with(
-                connection_params=ConnectionParams(scheme="http", host="localhost", port=8080),
+                connection_params=ConnectionParams(
+                    http=ProtocolParams(
+                        host="localhost",
+                        port=8080,
+                        secure=False,
+                    )
+                ),
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 proxies=None,
@@ -89,7 +101,13 @@ class TestClient(unittest.TestCase):
                 startup_period=None,
             )
             mock_obj.assert_called_with(
-                connection_params=ConnectionParams(scheme="http", host="localhost", port=8080),
+                connection_params=ConnectionParams(
+                    http=ProtocolParams(
+                        host="localhost",
+                        port=8080,
+                        secure=False,
+                    )
+                ),
                 auth_client_secret=None,
                 timeout_config=(5, 20),
                 proxies=None,
@@ -114,7 +132,13 @@ class TestClient(unittest.TestCase):
                 startup_period=None,
             )
             mock_obj.assert_called_with(
-                connection_params=ConnectionParams(scheme="http", host="localhost", port=8080),
+                connection_params=ConnectionParams(
+                    http=ProtocolParams(
+                        host="localhost",
+                        port=8080,
+                        secure=False,
+                    )
+                ),
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 proxies={"http": "test"},
@@ -135,9 +159,7 @@ class TestClient(unittest.TestCase):
                     args, kwargs = mock_obj.call_args_list[0]
                     self.assertEqual(
                         kwargs["connection_params"],
-                        ConnectionParams(
-                            scheme="http", host="localhost", port=8079, grpc_port=50060
-                        ),
+                        ConnectionParams.from_url("http://localhost:8079", 50060),
                     )
                     self.assertTrue(isinstance(kwargs["embedded_db"], EmbeddedDB))
                     self.assertTrue(kwargs["embedded_db"] is not None)
