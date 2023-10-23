@@ -15,13 +15,13 @@ class _NearImage(_Aggregate):
     def near_image(
         self,
         near_image: Union[str, Path, BufferedReader],
-        metrics: MetricsQuery,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         limit: Optional[int] = None,
         total_count: bool = False,
+        return_metrics: Optional[MetricsQuery] = None,
     ) -> _AggregateReturn:
         """Aggregate metrics over the objects returned by a near image vector search on this collection.
 
@@ -32,8 +32,6 @@ class _NearImage(_Aggregate):
         Arguments:
             `near_image`
                 The image to search on.
-            `metrics`
-                A list of metrics to aggregate after the image search.
             `certainty`
                 The minimum certainty of the image search.
             `distance`
@@ -46,6 +44,8 @@ class _NearImage(_Aggregate):
                 The maximum number of aggregated objects to return.
             `total_count`
                 Whether to include the total number of objects that match the query in the response.
+            `return_metrics`
+                A list of property metrics to aggregate together after the text search.
 
         Returns:
             A `_AggregateReturn` object that includes the aggregation objects.
@@ -54,17 +54,16 @@ class _NearImage(_Aggregate):
             `weaviate.exceptions.WeaviateQueryException`:
                 If an error occurs while performing the query against Weaviate.
         """
-        builder = self._base(metrics, filters, limit, total_count)
+        builder = self._base(return_metrics, filters, limit, total_count)
         builder = self._add_near_image(builder, near_image, certainty, distance, object_limit)
         res = self._do(builder)
-        return self._to_aggregate_result(res, metrics)
+        return self._to_aggregate_result(res, return_metrics)
 
 
 class _NearImageGroupBy(_Aggregate):
     def near_image(
         self,
         near_image: Union[str, Path, BufferedReader],
-        metrics: MetricsQuery,
         group_by: str,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
@@ -72,6 +71,7 @@ class _NearImageGroupBy(_Aggregate):
         filters: Optional[_Filters] = None,
         limit: Optional[int] = None,
         total_count: bool = False,
+        return_metrics: Optional[MetricsQuery] = None,
     ) -> List[_AggregateGroupByReturn]:
         """Aggregate metrics over the objects returned by a near image vector search on this collection grouping the results by a property.
 
@@ -82,8 +82,6 @@ class _NearImageGroupBy(_Aggregate):
         Arguments:
             `near_image`
                 The image to search on.
-            `metrics`
-                A list of metrics to aggregate after the image search.
             `group_by`
                 The property name to group the aggregation by.
             `certainty`
@@ -98,6 +96,8 @@ class _NearImageGroupBy(_Aggregate):
                 The maximum number of aggregated objects to return.
             `total_count`
                 Whether to include the total number of objects that match the query in the response.
+            `return_metrics`
+                A list of property metrics to aggregate together after the text search.
 
         Returns:
             A `_AggregateGroupByReturn` object that includes the aggregation objects.
@@ -107,10 +107,10 @@ class _NearImageGroupBy(_Aggregate):
                 If an error occurs while performing the query against Weaviate.
         """
         builder = (
-            self._base(metrics, filters, limit, total_count)
+            self._base(return_metrics, filters, limit, total_count)
             .with_group_by_filter([group_by])
             .with_fields(" groupedBy { path value } ")
         )
         builder = self._add_near_image(builder, near_image, certainty, distance, object_limit)
         res = self._do(builder)
-        return self._to_group_by_result(res, metrics)
+        return self._to_group_by_result(res, return_metrics)

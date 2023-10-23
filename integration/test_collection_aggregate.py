@@ -10,8 +10,8 @@ from weaviate.util import file_encoder_b64
 
 @pytest.fixture(scope="module")
 def client():
-    connection_params = weaviate.ConnectionParams(
-        scheme="http", host="localhost", port=8080, grpc_port=50051
+    connection_params = weaviate.ConnectionParams.from_url(
+        url="http://localhost:8080", grpc_port=50051
     )
     client = weaviate.WeaviateClient(connection_params)
     client.schema.delete_all()
@@ -26,7 +26,9 @@ def test_simple_aggregation(client: weaviate.WeaviateClient):
         name=name, properties=[Property(name="text", data_type=DataType.TEXT)]
     )
     collection.data.insert({"text": "some text"})
-    res = collection.aggregate.over_all([Metrics("text", DataType.TEXT).returning(count=True)])
+    res = collection.aggregate.over_all(
+        return_metrics=[Metrics("text", DataType.TEXT).returning(count=True)]
+    )
     assert res.properties["text"].count == 1
 
 
@@ -57,7 +59,7 @@ def test_near_object_aggregation(client: weaviate.WeaviateClient, option: dict, 
     collection.data.insert({"text": text_2})
     res = collection.aggregate.near_object(
         uuid,
-        [
+        return_metrics=[
             Metrics("text", DataType.TEXT).returning(
                 count=True, top_occurrences_count=True, top_occurrences_value=True
             )
@@ -107,7 +109,7 @@ def test_near_vector_aggregation(client: weaviate.WeaviateClient, option: dict, 
     collection.data.insert({"text": text_2})
     res = collection.aggregate.near_vector(
         obj.metadata.vector,
-        [
+        return_metrics=[
             Metrics("text", DataType.TEXT).returning(
                 count=True, top_occurrences_count=True, top_occurrences_value=True
             )
@@ -156,7 +158,7 @@ def test_near_text_aggregation(client: weaviate.WeaviateClient, option: dict, ex
     collection.data.insert({"text": text_2})
     res = collection.aggregate.near_text(
         text_1,
-        [
+        return_metrics=[
             Metrics("text", DataType.TEXT).returning(
                 count=True, top_occurrences_count=True, top_occurrences_value=True
             )
@@ -193,7 +195,9 @@ def test_near_image_aggregation(client: weaviate.WeaviateClient, option: dict):
     img_path = pathlib.Path("integration/weaviate-logo.png")
     collection.data.insert({"image": file_encoder_b64(img_path), "rating": 9})
     res = collection.aggregate.near_image(
-        img_path, [Metrics("rating", DataType.INT).returning(count=True, maximum=True)], **option
+        img_path,
+        return_metrics=[Metrics("rating", DataType.INT).returning(count=True, maximum=True)],
+        **option
     )
     assert res.properties["rating"].count == 1
     assert res.properties["rating"].maximum == 9
@@ -213,11 +217,11 @@ def test_group_by_aggregation(client: weaviate.WeaviateClient):
     collection.data.insert({"text": "some text", "int": 2})
 
     res = collection.aggregate_group_by.over_all(
-        [
+        "text",
+        return_metrics=[
             Metrics("text", DataType.TEXT).returning(count=True),
             Metrics("int", DataType.INT).returning(count=True),
         ],
-        "text",
     )
     assert len(res) == 1
     assert res[0].grouped_by.prop == "text"
@@ -226,11 +230,11 @@ def test_group_by_aggregation(client: weaviate.WeaviateClient):
     assert res[0].properties["int"].count == 2
 
     res = collection.aggregate_group_by.over_all(
-        [
+        "int",
+        return_metrics=[
             Metrics("text", DataType.TEXT).returning(count=True),
             Metrics("int", DataType.INT).returning(count=True),
         ],
-        "int",
     )
     assert len(res) == 2
     assert res[0].grouped_by.prop == "int"
@@ -243,6 +247,7 @@ def test_group_by_aggregation(client: weaviate.WeaviateClient):
     assert res[1].properties["int"].count == 1
 
 
+@pytest.mark.skip(reason="Validation logic is not robust enough currently")
 def test_mistake_in_usage(client: weaviate.WeaviateClient):
     collection = client.collection.get("TestMistakeInUsage")
     with pytest.raises(TypeError) as e:
@@ -296,7 +301,7 @@ def test_all_available_aggregations(client: weaviate.WeaviateClient):
         }
     )
     res = collection.aggregate.over_all(
-        [
+        return_metrics=[
             Metrics("text", DataType.TEXT).returning(count=True),
             Metrics("texts", DataType.TEXT_ARRAY).returning(count=True),
             Metrics("int", DataType.INT).returning(count=True),

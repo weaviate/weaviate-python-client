@@ -49,7 +49,7 @@ def validate(fn: Callable[P, T]) -> Callable[P, T]:
         try:
             aggregations = args[1]
         except IndexError:
-            aggregations = kwargs.get("aggregations")
+            aggregations = kwargs.get("return_metrics")
         if not isinstance(aggregations, list):
             raise TypeError(
                 f"The aggregations argument received an unexpected type: {type(aggregations)}. This argument must be a list!"
@@ -80,11 +80,13 @@ class _Aggregate:
     def _query(self) -> AggregateBuilder:
         return AggregateBuilder(self.__name, self.__connection)
 
-    def _to_aggregate_result(self, response: dict, metrics: MetricsQuery) -> _AggregateReturn:
+    def _to_aggregate_result(
+        self, response: dict, metrics: Optional[MetricsQuery]
+    ) -> _AggregateReturn:
         try:
             result: dict = response["data"]["Aggregate"][self.__name][0]
             return _AggregateReturn(
-                properties=self.__parse_properties(result, metrics),
+                properties=self.__parse_properties(result, metrics) if metrics is not None else {},
                 total_count=result["meta"]["count"] if result.get("meta") is not None else None,
             )
         except KeyError as e:
@@ -93,7 +95,7 @@ class _Aggregate:
             )
 
     def _to_group_by_result(
-        self, response: dict, metrics: MetricsQuery
+        self, response: dict, metrics: Optional[MetricsQuery]
     ) -> List[_AggregateGroupByReturn]:
         try:
             results: dict = response["data"]["Aggregate"][self.__name]
@@ -103,7 +105,9 @@ class _Aggregate:
                         prop=result["groupedBy"]["path"][0],
                         value=result["groupedBy"]["value"],
                     ),
-                    properties=self.__parse_properties(result, metrics),
+                    properties=self.__parse_properties(result, metrics)
+                    if metrics is not None
+                    else {},
                     total_count=result["meta"]["count"] if result.get("meta") is not None else None,
                 )
                 for result in results
@@ -178,21 +182,23 @@ class _Aggregate:
 
     def _base(
         self,
-        metrics: MetricsQuery,
+        metrics: Optional[MetricsQuery] = None,
         filters: Optional[_Filters] = None,
         limit: Optional[int] = None,
         total_count: bool = False,
     ) -> AggregateBuilder:
-        query = self._query().with_fields(" ".join([metric.to_gql() for metric in metrics]))
+        builder = self._query()
+        if metrics is not None:
+            builder = builder.with_fields(" ".join([metric.to_gql() for metric in metrics]))
         if filters is not None:
-            query = query.with_where(_FilterToREST.convert(filters))
+            builder = builder.with_where(_FilterToREST.convert(filters))
         if limit is not None:
-            query = query.with_limit(limit)
+            builder = builder.with_limit(limit)
         if total_count:
-            query = query.with_meta_count()
+            builder = builder.with_meta_count()
         if self._tenant is not None:
-            query = query.with_tenant(self._tenant)
-        return query
+            builder = builder.with_tenant(self._tenant)
+        return builder
 
     @staticmethod
     def _do(query: AggregateBuilder) -> dict:
