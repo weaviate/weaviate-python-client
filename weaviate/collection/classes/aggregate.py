@@ -234,7 +234,7 @@ _Metrics = Union[
     _MetricsRef,
 ]
 
-MetricsQuery = List[_Metrics]
+PropertiesMetrics = List[_Metrics]
 
 
 class SupportsReturningStr(Protocol):

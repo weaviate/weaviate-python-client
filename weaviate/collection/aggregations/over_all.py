@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from weaviate.collection.aggregations.base import _Aggregate
 from weaviate.collection.classes.aggregate import (
-    MetricsQuery,
+    PropertiesMetrics,
     _AggregateReturn,
     _AggregateGroupByReturn,
 )
@@ -15,7 +15,7 @@ class _OverAll(_Aggregate):
         filters: Optional[_Filters] = None,
         limit: Optional[int] = None,
         total_count: bool = False,
-        return_metrics: Optional[MetricsQuery] = None,
+        return_metrics: Optional[PropertiesMetrics] = None,
     ) -> _AggregateReturn:
         """Aggregate metrics over all the objects in this collection without any vector search.
 
@@ -48,7 +48,7 @@ class _OverAllGroupBy(_Aggregate):
         filters: Optional[_Filters] = None,
         limit: Optional[int] = None,
         total_count: bool = False,
-        return_metrics: Optional[MetricsQuery] = None,
+        return_metrics: Optional[PropertiesMetrics] = None,
     ) -> List[_AggregateGroupByReturn]:
         """Aggregate metrics over all the objects in this collection without any vector search grouping the results by a property.
 

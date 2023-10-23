@@ -4,7 +4,7 @@ from typing import List, Optional, Union
 
 from weaviate.collection.aggregations.base import _Aggregate
 from weaviate.collection.classes.aggregate import (
-    MetricsQuery,
+    PropertiesMetrics,
     _AggregateReturn,
     _AggregateGroupByReturn,
 )
@@ -21,7 +21,7 @@ class _NearImage(_Aggregate):
         filters: Optional[_Filters] = None,
         limit: Optional[int] = None,
         total_count: bool = False,
-        return_metrics: Optional[MetricsQuery] = None,
+        return_metrics: Optional[PropertiesMetrics] = None,
     ) -> _AggregateReturn:
         """Aggregate metrics over the objects returned by a near image vector search on this collection.
 
@@ -71,7 +71,7 @@ class _NearImageGroupBy(_Aggregate):
         filters: Optional[_Filters] = None,
         limit: Optional[int] = None,
         total_count: bool = False,
-        return_metrics: Optional[MetricsQuery] = None,
+        return_metrics: Optional[PropertiesMetrics] = None,
     ) -> List[_AggregateGroupByReturn]:
         """Aggregate metrics over the objects returned by a near image vector search on this collection grouping the results by a property.
 

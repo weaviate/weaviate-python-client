@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from weaviate.collection.aggregations.base import _Aggregate
 from weaviate.collection.classes.aggregate import (
-    MetricsQuery,
+    PropertiesMetrics,
     _AggregateReturn,
     _AggregateGroupByReturn,
 )
@@ -19,7 +19,7 @@ class _NearVector(_Aggregate):
         filters: Optional[_Filters] = None,
         limit: Optional[int] = None,
         total_count: bool = False,
-        return_metrics: Optional[MetricsQuery] = None,
+        return_metrics: Optional[PropertiesMetrics] = None,
     ) -> _AggregateReturn:
         """Aggregate metrics over the objects returned by a near vector search on this collection.
 
@@ -69,7 +69,7 @@ class _NearVectorGroupBy(_Aggregate):
         filters: Optional[_Filters] = None,
         limit: Optional[int] = None,
         total_count: bool = False,
-        return_metrics: Optional[MetricsQuery] = None,
+        return_metrics: Optional[PropertiesMetrics] = None,
     ) -> List[_AggregateGroupByReturn]:
         """Aggregate metrics over the objects returned by a near vector search on this collection and grouping the results grouping the results by a property.
 

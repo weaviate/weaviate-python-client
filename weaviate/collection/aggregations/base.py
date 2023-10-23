@@ -6,7 +6,7 @@ from typing import Callable, List, Optional, TypeVar, Union, cast
 from typing_extensions import ParamSpec
 
 from weaviate.collection.classes.aggregate import (
-    MetricsQuery,
+    PropertiesMetrics,
     AProperties,
     AggregateResult,
     AggregateBool,
@@ -81,7 +81,7 @@ class _Aggregate:
         return AggregateBuilder(self.__name, self.__connection)
 
     def _to_aggregate_result(
-        self, response: dict, metrics: Optional[MetricsQuery]
+        self, response: dict, metrics: Optional[PropertiesMetrics]
     ) -> _AggregateReturn:
         try:
             result: dict = response["data"]["Aggregate"][self.__name][0]
@@ -95,7 +95,7 @@ class _Aggregate:
             )
 
     def _to_group_by_result(
-        self, response: dict, metrics: Optional[MetricsQuery]
+        self, response: dict, metrics: Optional[PropertiesMetrics]
     ) -> List[_AggregateGroupByReturn]:
         try:
             results: dict = response["data"]["Aggregate"][self.__name]
@@ -117,7 +117,7 @@ class _Aggregate:
                 f"There was an error accessing the {e} key when parsing the GraphQL response: {response}"
             )
 
-    def __parse_properties(self, result: dict, metrics: MetricsQuery) -> AProperties:
+    def __parse_properties(self, result: dict, metrics: PropertiesMetrics) -> AProperties:
         props: AProperties = {}
         for metric in metrics:
             if metric.property_name in result:
@@ -182,10 +182,10 @@ class _Aggregate:
 
     def _base(
         self,
-        metrics: Optional[MetricsQuery] = None,
-        filters: Optional[_Filters] = None,
-        limit: Optional[int] = None,
-        total_count: bool = False,
+        metrics: Optional[PropertiesMetrics],
+        filters: Optional[_Filters],
+        limit: Optional[int],
+        total_count: bool,
     ) -> AggregateBuilder:
         builder = self._query()
         if metrics is not None:
@@ -213,9 +213,9 @@ class _Aggregate:
     def _add_near_image(
         builder: AggregateBuilder,
         near_image: Union[str, pathlib.Path, io.BufferedReader],
-        certainty: Optional[float] = None,
-        distance: Optional[float] = None,
-        object_limit: Optional[int] = None,
+        certainty: Optional[float],
+        distance: Optional[float],
+        object_limit: Optional[int],
     ) -> AggregateBuilder:
         payload: dict = {}
         payload["image"] = _parse_media(near_image)
@@ -232,9 +232,9 @@ class _Aggregate:
     def _add_near_object(
         builder: AggregateBuilder,
         near_object: UUID,
-        certainty: Optional[float] = None,
-        distance: Optional[float] = None,
-        object_limit: Optional[int] = None,
+        certainty: Optional[float],
+        distance: Optional[float],
+        object_limit: Optional[int],
     ) -> AggregateBuilder:
         payload: dict = {}
         payload["id"] = str(near_object)
@@ -251,11 +251,11 @@ class _Aggregate:
     def _add_near_text(
         builder: AggregateBuilder,
         query: Union[List[str], str],
-        certainty: Optional[float] = None,
-        distance: Optional[float] = None,
-        move_to: Optional[Move] = None,
-        move_away: Optional[Move] = None,
-        object_limit: Optional[int] = None,
+        certainty: Optional[float],
+        distance: Optional[float],
+        move_to: Optional[Move],
+        move_away: Optional[Move],
+        object_limit: Optional[int],
     ) -> AggregateBuilder:
         payload: dict = {}
         payload["concepts"] = query if isinstance(query, list) else [query]
@@ -276,9 +276,9 @@ class _Aggregate:
     def _add_near_vector(
         builder: AggregateBuilder,
         near_vector: List[float],
-        certainty: Optional[float] = None,
-        distance: Optional[float] = None,
-        object_limit: Optional[int] = None,
+        certainty: Optional[float],
+        distance: Optional[float],
+        object_limit: Optional[int],
     ) -> AggregateBuilder:
         payload: dict = {}
         payload["vector"] = near_vector
