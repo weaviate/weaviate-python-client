@@ -33,9 +33,8 @@ UUID3 = uuid.uuid4()
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.Client(
-        "http://localhost:8080", additional_config=weaviate.Config(grpc_port_experimental=50051)
-    )
+    connection_params = weaviate.ConnectionParams.from_url("http://localhost:8080", 50051)
+    client = weaviate.WeaviateClient(connection_params)
     client.schema.delete_all()
     yield client
     client.schema.delete_all()
@@ -49,7 +48,9 @@ def client():
         (Filter(path="name").like("*nana"), [0]),
     ],
 )
-def test_filters_text(client: weaviate.Client, weaviate_filter: _FilterValue, results: List[int]):
+def test_filters_text(
+    client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
+):
     client.collection.delete("TestFilterText")
     collection = client.collection.create(
         name="TestFilterText",
@@ -91,7 +92,7 @@ def test_filters_text(client: weaviate.Client, weaviate_filter: _FilterValue, re
     ],
 )
 def test_filters_nested(
-    client: weaviate.Client,
+    client: weaviate.WeaviateClient,
     weaviate_filter: _Filters,
     results: List[int],
 ):
@@ -119,7 +120,7 @@ def test_filters_nested(
     assert all(obj.metadata.uuid in uuids for obj in objects)
 
 
-def test_length_filter(client: weaviate.Client):
+def test_length_filter(client: weaviate.WeaviateClient):
     client.collection.delete("TestFilterNested")
     collection = client.collection.create(
         name="TestFilterNested",
@@ -151,7 +152,7 @@ def test_length_filter(client: weaviate.Client):
     ],
 )
 def test_filters_comparison(
-    client: weaviate.Client, weaviate_filter: _FilterValue, results: List[int]
+    client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
 ):
     client.collection.delete("TestFilterNumber")
     collection = client.collection.create(
@@ -213,7 +214,7 @@ def test_filters_comparison(
     ],
 )
 def test_filters_contains(
-    client: weaviate.Client, weaviate_filter: _FilterValue, results: List[int]
+    client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
 ):
     client.collection.delete("TestFilterContains")
     collection = client.collection.create(
@@ -315,7 +316,9 @@ def test_filters_contains(
         (Filter(path=["ref", "TestFilterRef2", "text"], length=True).less_than(6), [0]),
     ],
 )
-def test_ref_filters(client: weaviate.Client, weaviate_filter: _FilterValue, results: List[int]):
+def test_ref_filters(
+    client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
+):
     client.collection.delete("TestFilterRef")
     client.collection.delete("TestFilterRef2")
     to_collection = client.collection.create(
@@ -354,7 +357,7 @@ def test_ref_filters(client: weaviate.Client, weaviate_filter: _FilterValue, res
     assert all(obj.metadata.uuid in uuids for obj in objects)
 
 
-def test_ref_filters_multi_target(client: weaviate.Client):
+def test_ref_filters_multi_target(client: weaviate.WeaviateClient):
     target = "TestFilterRefMulti2"
     source = "TestFilterRefMulti"
     client.collection.delete(source)
@@ -731,7 +734,7 @@ def test_ref_filters_multi_target(client: weaviate.Client):
     ],
 )
 def test_delete_many_simple(
-    client: weaviate.Client,
+    client: weaviate.WeaviateClient,
     properties: List[Property],
     objects: List[DataObject],
     where: _FilterValue,
@@ -753,7 +756,7 @@ def test_delete_many_simple(
     assert len(objects) == expected_len
 
 
-def test_delete_many_and(client: weaviate.Client):
+def test_delete_many_and(client: weaviate.WeaviateClient):
     name = "TestDeleteManyAnd"
     collection = client.collection.create(
         name=name,
@@ -782,7 +785,7 @@ def test_delete_many_and(client: weaviate.Client):
     assert objects[0].properties["name"] == "Tommy"
 
 
-def test_delete_many_or(client: weaviate.Client):
+def test_delete_many_or(client: weaviate.WeaviateClient):
     name = "TestDeleteManyOr"
     collection = client.collection.create(
         name=name,
@@ -809,7 +812,7 @@ def test_delete_many_or(client: weaviate.Client):
     assert objects[0].properties["name"] == "Tim"
 
 
-def test_delete_many_return(client: weaviate.Client):
+def test_delete_many_return(client: weaviate.WeaviateClient):
     name = "TestDeleteManyReturn"
     collection = client.collection.create(
         name=name,

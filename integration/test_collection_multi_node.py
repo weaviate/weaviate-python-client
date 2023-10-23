@@ -13,9 +13,8 @@ from weaviate.collection.classes.grpc import MetadataQuery
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.Client(
-        "http://localhost:8087", additional_config=weaviate.Config(grpc_port_experimental=50058)
-    )
+    connection_params = weaviate.ConnectionParams.from_url("http://localhost:8087", 50058)
+    client = weaviate.WeaviateClient(connection_params)
     client.schema.delete_all()
     yield client
     client.schema.delete_all()
@@ -24,7 +23,7 @@ def client():
 @pytest.mark.parametrize(
     "level", [ConsistencyLevel.ONE, ConsistencyLevel.ALL, ConsistencyLevel.QUORUM]
 )
-def test_consistency_on_multinode(client: weaviate.Client, level: ConsistencyLevel):
+def test_consistency_on_multinode(client: weaviate.WeaviateClient, level: ConsistencyLevel):
     name = "TestConsistency"
     client.collection.delete(name)
     collection = client.collection.create(
