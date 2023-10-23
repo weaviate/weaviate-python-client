@@ -1335,18 +1335,6 @@ class Property(_ConfigCreateModel):
             raise ValueError(f"Property name '{v}' is reserved and cannot be used")
         return v
 
-    # @model_validator(mode="after")
-    # def _check_nested(self) -> "Property":
-    #     if self.dataType == DataType.OBJECT and self.nestedProperties is None:
-    #         raise ValueError(
-    #             "Nested properties must be specified if the data type is set to `DataType.OBJECT`"
-    #         )
-    #     if self.dataType == DataType.OBJECT_ARRAY and self.nestedProperties is None:
-    #         raise ValueError(
-    #             "Nested properties must be specified if the data type is set to `DataType.OBJECT_ARRAY`"
-    #         )
-    #     return self
-
     def _to_dict(self, vectorizer: Optional[Vectorizer] = None) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
         ret_dict["dataType"] = [ret_dict["dataType"]]
