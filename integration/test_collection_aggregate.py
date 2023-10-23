@@ -13,13 +13,13 @@ def client():
     connection_params = weaviate.ConnectionParams(
         scheme="http", host="localhost", port=8080, grpc_port=50051
     )
-    client = weaviate.Client(connection_params)
+    client = weaviate.WeaviateClient(connection_params)
     client.schema.delete_all()
     yield client
     client.schema.delete_all()
 
 
-def test_simple_aggregation(client: weaviate.Client):
+def test_simple_aggregation(client: weaviate.WeaviateClient):
     name = "TestSimpleAggregation"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -41,7 +41,7 @@ def test_simple_aggregation(client: weaviate.Client):
         ({"distance": 0.9}, 2),
     ],
 )
-def test_near_object_aggregation(client: weaviate.Client, option: dict, expected_len: int):
+def test_near_object_aggregation(client: weaviate.WeaviateClient, option: dict, expected_len: int):
     name = "TestNearObjectAggregation"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -90,7 +90,7 @@ def test_near_object_aggregation(client: weaviate.Client, option: dict, expected
         ({"distance": 0.9}, 2),
     ],
 )
-def test_near_vector_aggregation(client: weaviate.Client, option: dict, expected_len: int):
+def test_near_vector_aggregation(client: weaviate.WeaviateClient, option: dict, expected_len: int):
     name = "TestNearVectorAggregation"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -140,7 +140,7 @@ def test_near_vector_aggregation(client: weaviate.Client, option: dict, expected
         ({"distance": 0.9}, 2),
     ],
 )
-def test_near_text_aggregation(client: weaviate.Client, option: dict, expected_len: int):
+def test_near_text_aggregation(client: weaviate.WeaviateClient, option: dict, expected_len: int):
     name = "TestNearTextAggregation"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -179,7 +179,7 @@ def test_near_text_aggregation(client: weaviate.Client, option: dict, expected_l
 
 
 @pytest.mark.parametrize("option", [{"object_limit": 1}, {"certainty": 0.9}, {"distance": 0.1}])
-def test_near_image_aggregation(client: weaviate.Client, option: dict):
+def test_near_image_aggregation(client: weaviate.WeaviateClient, option: dict):
     name = "TestNearImageAggregation"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -199,7 +199,7 @@ def test_near_image_aggregation(client: weaviate.Client, option: dict):
     assert res.properties["rating"].maximum == 9
 
 
-def test_group_by_aggregation(client: weaviate.Client):
+def test_group_by_aggregation(client: weaviate.WeaviateClient):
     name = "TestGroupByAggregation"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -243,7 +243,7 @@ def test_group_by_aggregation(client: weaviate.Client):
     assert res[1].properties["int"].count == 1
 
 
-def test_mistake_in_usage(client: weaviate.Client):
+def test_mistake_in_usage(client: weaviate.WeaviateClient):
     collection = client.collection.get("TestMistakeInUsage")
     with pytest.raises(TypeError) as e:
         collection.aggregate.over_all([Metrics("text", DataType.TEXT)])
@@ -259,7 +259,7 @@ def test_mistake_in_usage(client: weaviate.Client):
     )
 
 
-def test_all_available_aggregations(client: weaviate.Client):
+def test_all_available_aggregations(client: weaviate.WeaviateClient):
     name = "TestAllAvailableAggregations"
     client.collection.delete(name)
     collection = client.collection.create(

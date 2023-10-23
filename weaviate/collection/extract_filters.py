@@ -21,7 +21,7 @@ class _FilterToGRPC:
 
     @overload
     @staticmethod
-    def convert(weav_filter: _Filters) -> search_get_v1_pb2.Filters:
+    def convert(weav_filter: _Filters) -> search_get_pb2.Filters:
         ...
 
     @staticmethod
