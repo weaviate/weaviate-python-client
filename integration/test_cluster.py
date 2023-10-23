@@ -4,8 +4,8 @@ import pytest
 
 import weaviate
 
-GIT_HASH = "4b98dfa"
-SERVER_VERSION = "1.21.3"
+GIT_HASH = "f8c7f26"
+SERVER_VERSION = "1.21.7"
 NODE_NAME = "node1"
 NUM_OBJECT = 10
 
@@ -26,14 +26,13 @@ def schema(class_name: str) -> Dict[str, Any]:
 
 @pytest.fixture(scope="module")
 def client():
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
-    client = weaviate.Client(connection_params)
+    client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     yield client
     client.schema.delete_all()
 
 
-def test_get_nodes_status_without_data(client):
+def test_get_nodes_status_without_data(client: weaviate.Client):
     """get nodes status without data"""
     resp = client.cluster.get_nodes_status()
     assert len(resp) == 1
@@ -46,7 +45,7 @@ def test_get_nodes_status_without_data(client):
     assert resp[0]["version"] == SERVER_VERSION
 
 
-def test_get_nodes_status_with_data(client):
+def test_get_nodes_status_with_data(client: weaviate.Client):
     """get nodes status with data"""
     class_name1 = "ClassA"
     uncap_class_name1 = "classA"

@@ -4,7 +4,7 @@ import grpc  # type: ignore
 
 from weaviate.collection.grpc_shared import _BaseGRPC
 from weaviate.exceptions import WeaviateGRPCException
-from weaviate_grpc import batch_pb2
+from proto.v1 import batch_pb2
 
 
 class _BatchGRPC(_BaseGRPC):

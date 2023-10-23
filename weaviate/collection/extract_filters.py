@@ -10,7 +10,7 @@ from weaviate.collection.classes.filters import (
 )
 from weaviate.util import _datetime_to_string
 from weaviate.types import TIME
-from weaviate_grpc import search_get_v1_pb2
+from proto.v1 import search_get_pb2
 
 
 class _FilterToGRPC:
@@ -25,7 +25,7 @@ class _FilterToGRPC:
         ...
 
     @staticmethod
-    def convert(weav_filter: Optional[_Filters]) -> Optional[search_get_v1_pb2.Filters]:
+    def convert(weav_filter: Optional[_Filters]) -> Optional[search_get_pb2.Filters]:
         if weav_filter is None:
             return None
         if isinstance(weav_filter, _FilterValue):
@@ -34,8 +34,8 @@ class _FilterToGRPC:
             return _FilterToGRPC.__and_or_filter(weav_filter)
 
     @staticmethod
-    def __value_filter(weav_filter: _FilterValue) -> search_get_v1_pb2.Filters:
-        return search_get_v1_pb2.Filters(
+    def __value_filter(weav_filter: _FilterValue) -> search_get_pb2.Filters:
+        return search_get_pb2.Filters(
             operator=weav_filter.operator._to_grpc(),
             value_text=_FilterToGRPC.__filter_to_text(weav_filter.value),
             value_int=weav_filter.value if isinstance(weav_filter.value, int) else None,
@@ -64,7 +64,7 @@ class _FilterToGRPC:
         return _datetime_to_string(value)
 
     @staticmethod
-    def __filter_to_text_list(value: FilterValues) -> Optional[search_get_v1_pb2.TextArray]:
+    def __filter_to_text_list(value: FilterValues) -> Optional[search_get_pb2.TextArray]:
         if not isinstance(value, list) or not (
             isinstance(value[0], TIME)
             or isinstance(value[0], str)
@@ -80,33 +80,33 @@ class _FilterToGRPC:
             dates = cast(List[TIME], value)
             value_list = [_datetime_to_string(date) for date in dates]
 
-        return search_get_v1_pb2.TextArray(values=cast(List[str], value_list))
+        return search_get_pb2.TextArray(values=cast(List[str], value_list))
 
     @staticmethod
-    def __filter_to_bool_list(value: FilterValues) -> Optional[search_get_v1_pb2.BooleanArray]:
+    def __filter_to_bool_list(value: FilterValues) -> Optional[search_get_pb2.BooleanArray]:
         if not isinstance(value, list) or not isinstance(value[0], bool):
             return None
 
-        return search_get_v1_pb2.BooleanArray(values=cast(List[bool], value))
+        return search_get_pb2.BooleanArray(values=cast(List[bool], value))
 
     @staticmethod
-    def __filter_to_float_list(value: FilterValues) -> Optional[search_get_v1_pb2.NumberArray]:
+    def __filter_to_float_list(value: FilterValues) -> Optional[search_get_pb2.NumberArray]:
         if not isinstance(value, list) or not isinstance(value[0], float):
             return None
 
-        return search_get_v1_pb2.NumberArray(values=cast(List[float], value))
+        return search_get_pb2.NumberArray(values=cast(List[float], value))
 
     @staticmethod
-    def __filter_to_int_list(value: FilterValues) -> Optional[search_get_v1_pb2.IntArray]:
+    def __filter_to_int_list(value: FilterValues) -> Optional[search_get_pb2.IntArray]:
         if not isinstance(value, list) or not isinstance(value[0], int):
             return None
 
-        return search_get_v1_pb2.IntArray(values=cast(List[int], value))
+        return search_get_pb2.IntArray(values=cast(List[int], value))
 
     @staticmethod
-    def __and_or_filter(weav_filter: _Filters) -> Optional[search_get_v1_pb2.Filters]:
+    def __and_or_filter(weav_filter: _Filters) -> Optional[search_get_pb2.Filters]:
         assert isinstance(weav_filter, _FilterAnd) or isinstance(weav_filter, _FilterOr)
-        return search_get_v1_pb2.Filters(
+        return search_get_pb2.Filters(
             operator=weav_filter.operator._to_grpc(),
             filters=[
                 filter_

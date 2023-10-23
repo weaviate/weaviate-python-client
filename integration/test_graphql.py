@@ -96,8 +96,7 @@ def client(request):
             for _, c in enumerate(schema["classes"]):
                 c["replicationConfig"] = {"factor": 2}
 
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=port)
-    client = weaviate.Client(connection_params)
+    client = weaviate.Client(f"http://localhost:{port}")
     client.schema.delete_all()
     client.schema.create(schema)
     with client.batch as batch:
@@ -532,8 +531,9 @@ def test_generative_openai(single: str, grouped: str):
     if api_key is None:
         pytest.skip("No OpenAI API key found.")
 
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8086)
-    client = weaviate.Client(connection_params, additional_headers={"X-OpenAI-Api-Key": api_key})
+    client = weaviate.Client(
+        "http://localhost:8086", additional_headers={"X-OpenAI-Api-Key": api_key}
+    )
     client.schema.delete_all()
     wine_class = {
         "class": "Wine",
@@ -571,8 +571,7 @@ def test_generative_openai(single: str, grouped: str):
 
 
 def test_graphql_with_tenant():
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
-    client = weaviate.Client(connection_params)
+    client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     schema_class = {
         "class": "GraphQlTenantClass",
@@ -626,3 +625,95 @@ def test_graphql_with_tenant():
         int(results["data"]["Aggregate"][schema_class["class"]][0]["meta"]["count"])
         == nr_objects // 2
     )
+
+
+def test_graphql_with_nested_object():
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+    client.schema.create_class(
+        {
+            "class": "NestedObjectClass",
+            "vectorizer": "none",
+            "properties": [
+                {
+                    "name": "nested",
+                    "dataType": ["object"],
+                    "nestedProperties": [
+                        {
+                            "name": "name",
+                            "dataType": ["text"],
+                        },
+                        {
+                            "name": "names",
+                            "dataType": ["text[]"],
+                        },
+                        {
+                            "name": "age",
+                            "dataType": ["int"],
+                        },
+                        {
+                            "name": "ages",
+                            "dataType": ["int[]"],
+                        },
+                        {
+                            "name": "weight",
+                            "dataType": ["number"],
+                        },
+                        {
+                            "name": "weights",
+                            "dataType": ["number[]"],
+                        },
+                        {
+                            "name": "isAlive",
+                            "dataType": ["boolean"],
+                        },
+                        {
+                            "name": "areAlive",
+                            "dataType": ["boolean[]"],
+                        },
+                        {
+                            "name": "date",
+                            "dataType": ["date"],
+                        },
+                        {
+                            "name": "dates",
+                            "dataType": ["date[]"],
+                        },
+                        {
+                            "name": "uuid",
+                            "dataType": ["uuid"],
+                        },
+                        {
+                            "name": "uuids",
+                            "dataType": ["uuid[]"],
+                        },
+                    ],
+                }
+            ],
+        }
+    )
+    data = {
+        "name": "nested object",
+        "names": ["nested", "object"],
+        "age": 42,
+        "ages": [42, 43],
+        "weight": 42.42,
+        "weights": [42.42, 43.43],
+        "isAlive": True,
+        "areAlive": [True, False],
+        "date": "2021-01-01T00:00:00Z",
+        "dates": ["2021-01-01T00:00:00Z", "2021-01-02T00:00:00Z"],
+        "uuid": "00000000-0000-0000-0000-000000000000",
+        "uuids": ["00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000001"],
+    }
+    uuid_ = client.data_object.create({"nested": data}, "NestedObjectClass")
+
+    results = client.query.get(
+        "NestedObjectClass",
+        [
+            "nested { name names age ages weight weights isAlive areAlive date dates uuid uuids } _additional { id }"
+        ],
+    ).do()
+    print(results)
+    assert results["data"]["Get"]["NestedObjectClass"][0]["nested"] == data
+    assert results["data"]["Get"]["NestedObjectClass"][0]["_additional"]["id"] == uuid_

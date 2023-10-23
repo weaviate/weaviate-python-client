@@ -50,8 +50,7 @@ class MockTensorFlow:
 
 @pytest.fixture(scope="function")
 def client():
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
-    client = weaviate.Client(connection_params)
+    client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create_class(
         {
@@ -274,8 +273,7 @@ def test_add_reference(
 
 
 def test_add_object_batch_with_tenant():
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
-    client = weaviate.Client(connection_params)
+    client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
 
     # create two classes and add 5 tenants each
@@ -349,8 +347,7 @@ def test_add_object_batch_with_tenant():
 
 
 def test_add_ref_batch_with_tenant():
-    connection_params = weaviate.ConnectionParams(scheme="http", host="localhost", port=8080)
-    client = weaviate.Client(connection_params)
+    client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
 
     # create two classes and add 5 tenants each
@@ -419,3 +416,36 @@ def test_add_ref_batch_with_tenant():
 
     for name in reversed(class_names):
         client.schema.delete_class(name)
+
+
+def test_add_nested_object_with_batch():
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+
+    client.schema.create_class(
+        {
+            "class": "BatchTestNested",
+            "vectorizer": "none",
+            "properties": [
+                {
+                    "name": "nested",
+                    "dataType": ["object"],
+                    "nestedProperties": [
+                        {"name": "name", "dataType": ["text"]},
+                        {"name": "names", "dataType": ["text[]"]},
+                    ],
+                }
+            ],
+        },
+    )
+
+    uuid_ = uuid.uuid4()
+    with client.batch as batch:
+        batch.add_data_object(
+            class_name="BatchTestNested",
+            data_object={"nested": {"name": "nested", "names": ["nested1", "nested2"]}},
+            uuid=uuid_,
+        )
+
+    obj = client.data_object.get_by_id(uuid_, class_name="BatchTestNested")
+    assert obj["properties"]["nested"] == {"name": "nested", "names": ["nested1", "nested2"]}

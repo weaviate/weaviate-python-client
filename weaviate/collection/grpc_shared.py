@@ -2,7 +2,7 @@ from typing import Optional, Tuple, List
 
 from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.connect import Connection
-from weaviate_grpc import base_pb2
+from proto.v1 import base_pb2
 
 
 class _BaseGRPC:
@@ -11,7 +11,6 @@ class _BaseGRPC:
         self._consistency_level = self._get_consistency_level(consistency_level)
 
     def _get_metadata(self) -> Optional[Tuple[Tuple[str, str], ...]]:
-
         metadata: Optional[Tuple[Tuple[str, str], ...]] = None
         access_token = self._connection.get_current_bearer_token()
 
