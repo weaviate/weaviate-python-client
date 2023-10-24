@@ -10,9 +10,9 @@ from weaviate.collection.classes.batch import (
     ErrorObject,
     ErrorReference,
     _BatchObject,
-    _BatchObjectReturn,
+    BatchObjectReturn,
     _BatchReference,
-    _BatchReferenceReturn,
+    BatchReferenceReturn,
 )
 from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.classes.internal import _get_consistency_level, Reference
@@ -33,7 +33,7 @@ class _BatchGRPC:
         self.__connection = connection
         self.__consistency_level = consistency_level
 
-    def objects(self, objects: List[_BatchObject]) -> _BatchObjectReturn:
+    def objects(self, objects: List[_BatchObject]) -> BatchObjectReturn:
         """Insert multiple objects into Weaviate through the gRPC API.
 
         Parameters:
@@ -74,7 +74,7 @@ class _BatchGRPC:
                 return_success[idx] = success
                 all_responses[idx] = success
 
-        return _BatchObjectReturn(
+        return BatchObjectReturn(
             uuids=return_success,
             errors=return_errors,
             has_errors=len(errors) > 0,
@@ -82,7 +82,7 @@ class _BatchGRPC:
             elapsed_seconds=elapsed_time,
         )
 
-    def references(self, references: List[_BatchReference]) -> _BatchReferenceReturn:
+    def references(self, references: List[_BatchReference]) -> BatchReferenceReturn:
         params: Dict[str, str] = {}
         if self.__consistency_level is not None:
             params["consistency_level"] = self.__consistency_level
@@ -107,7 +107,7 @@ class _BatchGRPC:
                 for idx, entry in enumerate(payload)
                 if entry["result"]["status"] == "FAILED"
             }
-            return _BatchReferenceReturn(
+            return BatchReferenceReturn(
                 elapsed_seconds=response.elapsed.total_seconds(),
                 errors=errors,
                 has_errors=len(errors) > 0,

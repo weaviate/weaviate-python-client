@@ -1,7 +1,7 @@
 import warnings
 from datetime import datetime
 from importlib.metadata import version, PackageNotFoundError
-from typing import Optional
+from typing import Literal, Optional
 
 try:
     __version__ = version("weaviate-client")
@@ -189,6 +189,15 @@ class _Warnings:
         warnings.warn(
             message=f"""Bat004: Attempts to retry failed objects and/or references have hit the hard limit of {limit}.
             The failed objects and references can be accessed in client.collection.batch.failed_objects and client.collection.batch.failed_references.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def batch_create_dynamic(type_: Literal["objects", "references"]) -> None:
+        warnings.warn(
+            message=f"""You are tying to manually create {type_} in a dynamic batching environment. If you want to do manual batching, you need to use
+            client.batch.configure() to return a new Batch object with `dynamic=False`.""",
             category=UserWarning,
             stacklevel=1,
         )

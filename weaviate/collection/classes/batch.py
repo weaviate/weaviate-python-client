@@ -65,7 +65,7 @@ class BatchReference(BaseModel):
     """
     A reference between two objects in Weaviate.
 
-    Performs validation on the class names and UUIDs, and automatically generates a UUID if one is not provided.
+    Performs validation on the class names and UUIDs.
 
     Converts provided data to an internal object containing beacons for insertion into Weaviate.
     """
@@ -129,16 +129,22 @@ class ErrorReference:
 
 
 @dataclass
-class _BatchObjectReturn:
+class BatchObjectReturn:
     """This class contains the results of a batch `insert_many` operation.
 
     Since the individual objects within the batch can error for differing reasons, the data is split up within this class for ease use when performing error checking, handling, and data revalidation.
 
     Attributes:
-        all_responses: A list of all the responses from the batch operation. Each response is either a `uuid_package.UUID` object or an `Error` object.
-        uuids: A dictionary of all the successful responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `uuid_package.UUID` objects.
-        errors: A dictionary of all the failed responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `Error` objects.
-        has_errors: A boolean indicating whether or not any of the objects in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry.
+        `all_responses`
+            A list of all the responses from the batch operation. Each response is either a `uuid_package.UUID` object or an `Error` object.
+        `uuids`
+            A dictionary of all the successful responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `uuid_package.UUID` objects.
+        `errors`
+            A dictionary of all the failed responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `Error` objects.
+        `elapsed_seconds`
+            The time taken to perform the batch operation.
+        `has_errors`
+            A boolean indicating whether or not any of the objects in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry.
     """
 
     all_responses: List[Union[uuid_package.UUID, ErrorObject]]
@@ -149,13 +155,18 @@ class _BatchObjectReturn:
 
 
 @dataclass
-class _BatchReferenceReturn:
+class BatchReferenceReturn:
     """This class contains the results of a batch `insert_many_references` operation.
 
     Since the individual references within the batch can error for differing reasons, the data is split up within this class for ease use when performing error checking, handling, and data revalidation.
 
     Attributes:
-
+        `elapsed_seconds`
+            The time taken to perform the batch operation.
+        `errors`
+            A dictionary of all the failed responses from the batch operation. The keys are the indices of the references in the batch, and the values are the `Error` objects.
+        `has_errors`
+            A boolean indicating whether or not any of the references in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry.
     """
 
     elapsed_seconds: float
