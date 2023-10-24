@@ -1,14 +1,21 @@
-from typing import Dict, Any, List, Optional, Type, Tuple, cast
+from typing import Dict, Any, List, Literal, Optional, Type, Tuple, Union, cast, overload
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collection.classes.config import (
-    CollectionConfigUpdate,
+    _CollectionConfigUpdate,
+    _InvertedIndexConfigUpdate,
+    _ReplicationConfigUpdate,
     PropertyType,
+    _VectorIndexConfigUpdate,
     _CollectionConfig,
+    _CollectionConfigSimple,
     _Property,
 )
-from weaviate.collection.classes.config_methods import _collection_config_from_json
+from weaviate.collection.classes.config_methods import (
+    _collection_config_from_json,
+    _collection_config_simple_from_json,
+)
 from weaviate.collection.classes.orm import Model
 from weaviate.connect import Connection
 from weaviate.exceptions import (
@@ -19,13 +26,6 @@ from weaviate.exceptions import (
 
 
 class _ConfigBase:
-    """
-    Represents all the CRUD methods available on a collection's configuration specification within Weaviate.
-
-    This class should not be instantiated directly, but is available as a property of the `Collection` class under
-    the `collection.config` class attribute.
-    """
-
     def __init__(self, connection: Connection, name: str) -> None:
         self.__connection = connection
         self._name = name
@@ -41,37 +41,65 @@ class _ConfigBase:
             raise UnexpectedStatusCodeException("Get collection configuration", response)
         return cast(Dict[str, Any], response.json())
 
-    def get(self) -> _CollectionConfig:
+    @overload
+    def get(self, simple: Literal[False] = ...) -> _CollectionConfig:
+        ...
+
+    @overload
+    def get(self, simple: Literal[True]) -> _CollectionConfigSimple:
+        ...
+
+    def get(self, simple: bool = False) -> Union[_CollectionConfig, _CollectionConfigSimple]:
         """Get the configuration for this collection from Weaviate.
 
+        Arguments:
+            simple : If True, return a simplified version of the configuration containing only name and properties.
+
         Raises:
-        - `requests.ConnectionError`
-            - If the network connection to Weaviate fails.
-        - `weaviate.UnexpectedStatusCodeException`
-            - If Weaviate reports a non-OK status.
+            `requests.ConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a non-OK status.
         """
         schema = self.__get()
+        if simple:
+            return _collection_config_simple_from_json(schema)
         return _collection_config_from_json(schema)
 
-    def update(self, config: CollectionConfigUpdate) -> None:
+    def update(
+        self,
+        description: Optional[str] = None,
+        inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
+        replication_config: Optional[_ReplicationConfigUpdate] = None,
+        vector_index_config: Optional[_VectorIndexConfigUpdate] = None,
+    ) -> None:
         """Update the configuration for this collection in Weaviate.
 
-        Parameters:
-        - config : The available options for updating a collection's configuration. If a property is not specified, it will
-            not be updated.
+        Use the `weaviate.classes.ConfigUpdateFactory` class to generate the necessary configuration objects for this method.
+
+        Arguments:
+            description: A description of the collection.
+            inverted_index_config: Configuration for the inverted index. Use `ConfigUpdateFactory.inverted_index` to generate one.
+            replication_config: Configuration for the replication. Use `ConfigUpdateFactory.replication` to generate one.
+            vector_index_config: Configuration for the vector index. Use `ConfigUpdateFactory.vector_index` to generate one.
 
         Raises:
-        - `requests.ConnectionError`:
-            - If the network connection to Weaviate fails.
-        - `weaviate.UnexpectedStatusCodeException`:
-            - If Weaviate reports a non-OK status.
+            `requests.ConnectionError`:
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`:
+                If Weaviate reports a non-OK status.
 
         NOTE:
-        - If you wish to update a specific option within the configuration and cannot find it in `CollectionConfigUpdate` then
-        it is an immutable option. To change it, you will have to delete the collection and recreate it with the
-        desired options.
-        - This is not the case of adding properties, which can be done with `collection.config.add_property()`.
+            - If you wish to update a specific option within the configuration and cannot find it in `CollectionConfigUpdate` then it is an immutable option.
+            - To change it, you will have to delete the collection and recreate it with the desired options.
+            - This is not the case of adding properties, which can be done with `collection.config.add_property()`.
         """
+        config = _CollectionConfigUpdate(
+            description=description,
+            inverted_index_config=inverted_index_config,
+            replication_config=replication_config,
+            vector_index_config=vector_index_config,
+        )
         schema = self.__get()
         schema = config.merge_with_existing(schema)
         try:
@@ -85,7 +113,7 @@ class _ConfigBase:
 
     def _add_property(self, additional_property: PropertyType) -> None:
         path = f"/schema/{self._name}/properties"
-        obj = additional_property.to_dict()
+        obj = additional_property._to_dict()
         try:
             response = self.__connection.post(path=path, weaviate_object=obj)
         except RequestsConnectionError as conn_err:
@@ -104,16 +132,16 @@ class _ConfigCollection(_ConfigBase):
     def add_property(self, additional_property: PropertyType) -> None:
         """Add a property to the collection in Weaviate.
 
-        Parameters:
-        - additional_property : The property to add to the collection.
+        Arguments:
+            additional_property : The property to add to the collection.
 
         Raises:
-        - `requests.ConnectionError`:
-            - If the network connection to Weaviate fails.
-        - `weaviate.UnexpectedStatusCodeException`:
-            - If Weaviate reports a non-OK status.
-        - `weaviate.ObjectAlreadyExistsException`:
-            - If the property already exists in the collection.
+            `requests.ConnectionError`:
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`:
+                If Weaviate reports a non-OK status.
+            `weaviate.ObjectAlreadyExistsException`:
+                If the property already exists in the collection.
         """
         if self._get_property_by_name(additional_property.name) is not None:
             raise ObjectAlreadyExistsException(
@@ -140,7 +168,7 @@ class _ConfigCollectionModel(_ConfigBase):
         for prop in model_props:
             try:
                 idx = schema_props_simple.index(
-                    {"name": prop.name, "dataType": prop.to_dict().get("dataType")}
+                    {"name": prop.name, "dataType": prop._to_dict().get("dataType")}
                 )
                 schema_props_simple.pop(idx)
                 only_in_schema.pop(idx)

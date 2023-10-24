@@ -1,6 +1,7 @@
 from typing import Optional
 
 import pytest
+import requests
 
 import weaviate
 from weaviate import Tenant, TenantActivityStatus
@@ -45,7 +46,7 @@ def test_create_class_with_implicit_and_explicit_replication_factor(
 
 
 @pytest.mark.parametrize("data_type", ["uuid", "uuid[]"])
-def test_uuid_datatype(client, data_type):
+def test_uuid_datatype(client: weaviate.Client, data_type: str):
     single_class = {"class": "UuidTest", "properties": [{"dataType": [data_type], "name": "heat"}]}
 
     client.schema.create_class(single_class)
@@ -55,8 +56,53 @@ def test_uuid_datatype(client, data_type):
     client.schema.delete_class("UuidTest")
 
 
+@pytest.mark.parametrize("object_", ["object", "object[]"])
+@pytest.mark.parametrize(
+    "nested",
+    [
+        {
+            "dataType": ["text"],
+            "name": "name",
+        },
+        {"dataType": ["text[]"], "name": "names"},
+        {"dataType": ["int"], "name": "age"},
+        {"dataType": ["int[]"], "name": "ages"},
+        {"dataType": ["number"], "name": "weight"},
+        {"dataType": ["number[]"], "name": "weights"},
+        {"dataType": ["boolean"], "name": "isAlive"},
+        {"dataType": ["boolean[]"], "name": "areAlive"},
+        {"dataType": ["date"], "name": "birthDate"},
+        {"dataType": ["date[]"], "name": "birthDates"},
+        {"dataType": ["uuid"], "name": "uuid"},
+        {"dataType": ["uuid[]"], "name": "uuids"},
+        {"dataType": ["blob"], "name": "blob"},
+        {
+            "dataType": ["object"],
+            "name": "object",
+            "nestedProperties": [{"dataType": ["text"], "name": "name"}],
+        },
+        {
+            "dataType": ["object[]"],
+            "name": "objects",
+            "nestedProperties": [{"dataType": ["text"], "name": "name"}],
+        },
+    ],
+)
+def test_object_datatype(client: weaviate.Client, object_: str, nested: dict):
+    single_class = {
+        "class": "ObjectTest",
+        "properties": [{"dataType": [object_], "name": "heat", "nestedProperties": [nested]}],
+    }
+
+    client.schema.create_class(single_class)
+    created_class = client.schema.get("ObjectTest")
+    assert created_class["class"] == "ObjectTest"
+
+    client.schema.delete_class("ObjectTest")
+
+
 @pytest.mark.parametrize("tokenization", ["word", "whitespace", "lowercase", "field"])
-def test_tokenization(client, tokenization):
+def test_tokenization(client: weaviate.Client, tokenization):
     single_class = {
         "class": "TokenTest",
         "properties": [{"dataType": ["text"], "name": "heat", "tokenization": tokenization}],
@@ -118,6 +164,19 @@ def test_class_tenants(client: weaviate.Client):
     client.schema.remove_class_tenants(uncap_class_name, ["Tenant1"])
     tenants_get = client.schema.get_class_tenants(uncap_class_name)
     assert len(tenants_get) == 1
+
+
+def test_update_schema_with_no_properties(client: weaviate.Client):
+    single_class = {"class": "NoProperties"}
+
+    requests.post("http://localhost:8080/v1/schema", json=single_class)
+    assert client.schema.exists("NoProperties")
+
+    client.schema.update_config("NoProperties", {"vectorIndexConfig": {"ef": 64}})
+    assert client.schema.exists("NoProperties")
+
+    client.schema.delete_class("NoProperties")
+    assert client.schema.exists("NoProperties") is False
 
 
 def test_class_tenants_activate_deactivate(client: weaviate.Client):

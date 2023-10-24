@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union, cast
 from pydantic import BaseModel, Field, field_validator
 
 from weaviate.util import _capitalize_first_letter, get_valid_uuid, get_vector
-from weaviate.weaviate_types import BEACON, UUID, WeaviateField
+from weaviate.types import BEACON, UUID, WeaviateField
 
 
 @dataclass
@@ -108,13 +108,9 @@ class BatchReference(BaseModel):
 
 
 @dataclass
-class BatchObjectRequestBody:
-    fields: List[str]
-    objects: List[_BatchObject]
-
-
-@dataclass
 class ErrorObject:
+    """This class contains the error information for a single object in a batch operation."""
+
     message: str
     object_: _BatchObject
     code: Optional[int] = None
@@ -123,6 +119,8 @@ class ErrorObject:
 
 @dataclass
 class ErrorReference:
+    """This class contains the error information for a single reference in a batch operation."""
+
     message: str
     reference: _BatchReference
     code: Optional[int] = None
@@ -172,3 +170,11 @@ class BatchReferenceReturn:
     elapsed_seconds: float
     errors: Dict[int, ErrorReference]
     has_errors: bool = False
+
+
+@dataclass
+class _BatchDeleteResult:
+    failed: int
+    matches: int
+    objects: Optional[List[Dict[str, Any]]]
+    successful: int

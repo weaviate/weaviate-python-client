@@ -1,77 +1,22 @@
-from dataclasses import dataclass
-from typing import Dict, Generic, List, Optional, Type, Union
+from typing import List, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
 
-from weaviate.collection.classes.filters import _Filters
-from weaviate.collection.classes.types import P
+from weaviate.collection.classes.types import _WeaviateInput
 from weaviate.util import BaseEnum
-from weaviate.weaviate_types import UUID
+from weaviate.types import UUID
 
 
 class HybridFusion(str, BaseEnum):
+    """Define how the query's hybrid fusion operation should be performed."""
+
     RANKED = "FUSION_TYPE_RANKED"
     RELATIVE_SCORE = "FUSION_TYPE_RELATIVE_SCORE"
 
 
-class Options(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    filters: Optional[_Filters] = Field(default=None)
-    limit: Optional[int] = Field(default=None)
-
-
-class HybridOptions(Options):
-    alpha: Optional[float] = Field(default=None)
-    vector: Optional[List[float]] = Field(default=None)
-    properties: Optional[List[str]] = Field(default=None)
-    fusion_type: Optional[HybridFusion] = Field(default=None)
-    auto_limit: Optional[int] = Field(default=None)
-
-
-class GetOptions(Options):
-    offset: Optional[int] = Field(default=None)
-    after: Optional[UUID] = Field(default=None)
-
-
-class BM25Options(Options):
-    properties: Optional[List[str]] = Field(default=None)
-    auto_limit: Optional[int] = Field(default=None)
-
-
-class NearMediaOptions(Options):
-    certainty: Optional[float] = Field(default=None)
-    distance: Optional[float] = Field(default=None)
-    auto_limit: Optional[int] = Field(default=None)
-
-
-class NearVectorOptions(NearMediaOptions):
-    pass
-
-
-class NearObjectOptions(NearMediaOptions):
-    pass
-
-
-class NearTextOptions(NearMediaOptions):
-    move_to: Optional["Move"] = Field(default=None)
-    move_away: Optional["Move"] = Field(default=None)
-    filters: Optional[_Filters] = Field(default=None)
-
-
-class NearImageOptions(NearMediaOptions):
-    pass
-
-
-class NearAudioOptions(NearMediaOptions):
-    pass
-
-
-class NearVideoOptions(NearMediaOptions):
-    pass
-
-
 class Move:
+    """Define how the query's move operation should be performed."""
+
     def __init__(
         self,
         force: float,
@@ -101,50 +46,73 @@ class Move:
             self.__concepts = concepts
 
     @property
-    def objects_list(self) -> Optional[List[str]]:
+    def _objects_list(self) -> Optional[List[str]]:
         return self.__objects
 
     @property
-    def concepts_list(self) -> Optional[List[str]]:
+    def _concepts_list(self) -> Optional[List[str]]:
         return self.__concepts
 
 
-@dataclass
-class MetadataQuery:
-    uuid: bool = False
-    vector: bool = False
-    creation_time_unix: bool = False
-    last_update_time_unix: bool = False
-    distance: bool = False
-    certainty: bool = False
-    score: bool = False
-    explain_score: bool = False
-    is_consistent: bool = False
+class MetadataQuery(_WeaviateInput):
+    """Define which metadata should be returned in the query's results."""
+
+    uuid: bool = Field(default=False)
+    vector: bool = Field(default=False)
+    creation_time_unix: bool = Field(default=False)
+    last_update_time_unix: bool = Field(default=False)
+    distance: bool = Field(default=False)
+    certainty: bool = Field(default=False)
+    score: bool = Field(default=False)
+    explain_score: bool = Field(default=False)
+    is_consistent: bool = Field(default=False)
+
+    @classmethod
+    def _full(cls) -> "MetadataQuery":
+        """Return a MetadataQuery with all fields set to True except for vector."""
+        return cls(
+            uuid=True,
+            creation_time_unix=True,
+            last_update_time_unix=True,
+            distance=True,
+            certainty=True,
+            score=True,
+            explain_score=True,
+            is_consistent=True,
+        )
 
 
-class LinkTo(BaseModel):
+class Generate(_WeaviateInput):
+    """Define how the query's RAG capabilities should be performed."""
+
+    single_prompt: Optional[str] = Field(default=None)
+    grouped_task: Optional[str] = Field(default=None)
+    grouped_properties: Optional[List[str]] = Field(default=None)
+
+
+class Sort(_WeaviateInput):
+    """Define how the query's sort operation should be performed."""
+
+    prop: str
+    ascending: bool = Field(default=True)
+
+
+class FromReference(_WeaviateInput):
+    """Define a query-time reference to a single-target property when querying through cross-references."""
+
     link_on: str
-    properties: "PROPERTIES"
-    metadata: MetadataQuery
+    return_properties: Optional["PROPERTIES"] = Field(default=None)
+    return_metadata: Optional[MetadataQuery] = Field(default=None)
 
     def __hash__(self) -> int:  # for set
         return hash(str(self))
 
 
-class LinkToMultiTarget(LinkTo):
+class FromReferenceMultiTarget(FromReference):
+    """Define a query-time reference to a multi-target property when querying through cross-references."""
+
     target_collection: str
 
 
-PROPERTIES = Union[List[Union[str, LinkTo]], str]
-
-
-@dataclass
-class ReturnValues(Generic[P]):
-    properties: Optional[Union[PROPERTIES, Type[P]]] = None
-    metadata: Optional[MetadataQuery] = None
-
-
-@dataclass
-class RefProps:
-    meta: MetadataQuery
-    refs: Dict[str, "RefProps"]
+PROPERTY = Union[str, FromReference]
+PROPERTIES = Union[List[PROPERTY], PROPERTY]

@@ -24,19 +24,21 @@ from weaviate.collection.classes.batch import (
 )
 from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.grpc_batch import _BatchGRPC
+from weaviate.collection.rest_batch import _BatchREST
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateBatchValidationError
 from weaviate.warnings import _Warnings
-from weaviate.weaviate_types import UUID, WeaviateField
+from weaviate.types import UUID, WeaviateField
 
 
 class BatchExecutor(ThreadPoolExecutor):
     """
     Weaviate Batch Executor to run batch requests in separate thread.
-    This class implements an additional method `is_shutdown` that is used by the context manager.
+
+    This class implements an additional method `_is_shutdown` that is used by the context manager.
     """
 
-    def is_shutdown(self) -> bool:
+    def _is_shutdown(self) -> bool:
         return self._shutdown
 
 
@@ -48,9 +50,7 @@ TBatchReturn = TypeVar("TBatchReturn")
 
 
 class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
-    """
-    `BatchRequest` abstract class used as a interface for batch requests.
-    """
+    """`BatchRequest` abstract class used as a interface for batch requests."""
 
     def __init__(self) -> None:
         self.__items: Deque[TBatchInput] = deque([])
@@ -59,23 +59,19 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
         return len(self.__items)
 
     def is_empty(self) -> bool:
-        """
-        Check if `BatchRequest` is empty.
+        """Check if `BatchRequest` is empty.
 
         Returns
             `bool` Whether the `BatchRequest` is empty.
         """
-
         return len(self.__items) == 0
 
     def clear(self) -> None:
-        """
-        Remove all the items from the BatchRequest.
-        """
-
+        """Remove all the items from the BatchRequest."""
         self.__items.clear()
 
     def add(self, item: TBatchInput) -> None:
+        """Add an item to the BatchRequest."""
         self.__items.append(item)
 
     @property
@@ -86,7 +82,6 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
         Returns
             `Deque[TBatchInput]` All items from the BatchRequest.
         """
-
         return self.__items
 
     @abstractmethod
@@ -98,18 +93,17 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
     ) -> None:
         """Add failed items from a weaviate response.
 
-        Parameters
-        ----------
-        response_item : BatchResponse
-            Weaviate response that contains the status for all objects.
-        errors_to_exclude : Optional[List[str]]
-            Which errors should NOT be retried.
-        errors_to_include : Optional[List[str]]
-            Which errors should be retried.
+        Arguments:
+            `response_item`
+                Weaviate response that contains the status for all objects.
+            `errors_to_exclude`
+                Which errors should NOT be retried.
+            `errors_to_include`
+                Which errors should be retried.
 
-        Returns
-        ------
-        BatchResponse: Contains responses form all successful object, eg. those that have not been added to this batch.
+        Returns:
+            `BatchResponse`
+                Contains responses form all successful object, eg. those that have not been added to this batch.
         """
 
     @staticmethod
@@ -143,6 +137,7 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
 class ReferencesBatchRequest(BatchRequest[_BatchReference, BatchReferenceReturn]):
     """
     Collect Weaviate-object references to add them in one request to Weaviate.
+
     Caution this request will miss some validations to be faster.
     """
 
@@ -165,6 +160,7 @@ class ReferencesBatchRequest(BatchRequest[_BatchReference, BatchReferenceReturn]
 class ObjectsBatchRequest(BatchRequest[_BatchObject, BatchObjectReturn]):
     """
     Collect objects for one batch request to weaviate.
+
     Caution this batch will not be validated through weaviate.
     """
 
@@ -196,7 +192,8 @@ class _Batch:
         self.__connection = connection
         self.__consistency_level: Optional[ConsistencyLevel] = None
         self.__creation_time = min(self.__connection.timeout_config[1] / 10, 2)
-        self.__batch = _BatchGRPC(connection, self.__consistency_level)
+        self.__batch_grpc = _BatchGRPC(connection, self.__consistency_level)
+        self.__batch_rest = _BatchREST(connection, self.__consistency_level)
         self.__executor: Optional[BatchExecutor] = None
         self.__failed_objects: List[_BatchObject] = []
         self.__failed_references: List[_BatchReference] = []
@@ -252,7 +249,6 @@ class _Batch:
             `int`
                 The number of objects in the batch.
         """
-
         return len(self.__batch_objects)
 
     def num_references(self) -> int:
@@ -263,7 +259,6 @@ class _Batch:
             `int`
                 The number of references in the batch.
         """
-
         return len(self.__batch_references)
 
     def failed_objects(self) -> List[_BatchObject]:
@@ -274,7 +269,6 @@ class _Batch:
             `List[_BatchObject]`
                 A list of all the failed objects from the batch.
         """
-
         return self.__failed_objects
 
     def failed_references(self) -> List[_BatchReference]:
@@ -285,7 +279,6 @@ class _Batch:
             `List[_BatchReference]`
                 A list of all the failed references from the batch.
         """
-
         return self.__failed_references
 
     def start(self) -> "_Batch":
@@ -296,8 +289,7 @@ class _Batch:
             `Batch`
                 The batch object with an open BatchExecutor and background running thread.
         """
-
-        if self.__executor is None or self.__executor.is_shutdown():
+        if self.__executor is None or self.__executor._is_shutdown():
             self.__executor = BatchExecutor(max_workers=self.__num_workers)
 
         if (
@@ -309,22 +301,15 @@ class _Batch:
         return self
 
     def shutdown(self) -> None:
-        """
-        Shutdown the BatchExecutor.
-        """
-        if not (self.__executor is None or self.__executor.is_shutdown()):
+        """Shutdown the BatchExecutor."""
+        if not (self.__executor is None or self.__executor._is_shutdown()):
             self.__executor.shutdown()
 
         if self.__shut_background_thread_down is not None:
             self.__shut_background_thread_down.set()
 
     def flush(self) -> None:
-        """
-        Flush both objects and references to the Weaviate server and call the callback function
-        if one is provided. (See the docs for `configure` or `__call__` for how to set one.)
-
-        This function is called when the context manager exits.
-        """
+        """Flush the batch queue to ensure all batches are sent."""
         self.__send_batch_requests(force_wait=True)
 
     def __enter__(self) -> "_Batch":
@@ -492,7 +477,7 @@ class _Batch:
     def __flush_objects(self, batch: List[_BatchObject]) -> Tuple[BatchObjectReturn, int, bool]:
         start = time.time()
         try:
-            return_ = self.__batch.objects(
+            return_ = self.__batch_grpc.objects(
                 objects=batch,
             )
             return return_, len(batch), False
@@ -518,7 +503,7 @@ class _Batch:
     ) -> Tuple[BatchReferenceReturn, int, bool]:
         start = time.time()
         try:
-            response = self.__batch.references(
+            response = self.__batch_rest.references(
                 references=batch,
             )
             return response, len(batch), False
@@ -540,7 +525,7 @@ class _Batch:
     def __send_batch_requests(self, force_wait: bool, how_many_recursions: int = 0) -> None:
         if self.__executor is None:
             self.start()
-        elif self.__executor.is_shutdown():
+        elif self.__executor._is_shutdown():
             _Warnings.batch_executor_is_shutdown()
             self.start()
 

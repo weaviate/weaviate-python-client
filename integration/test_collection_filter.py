@@ -5,23 +5,22 @@ from typing import List
 import pytest as pytest
 
 import weaviate
-from weaviate import Config
 from weaviate.collection.classes.config import (
-    CollectionConfig,
+    ConfigFactory,
     Property,
     DataType,
     ReferenceProperty,
     ReferencePropertyMultiTarget,
-    InvertedIndexConfigCreate,
-    VectorizerFactory,
+    Tokenization,
 )
+from weaviate.collection.classes.data import DataObject
 from weaviate.collection.classes.filters import (
     Filter,
     _Filters,
     _FilterValue,
 )
 from weaviate.collection.classes.grpc import MetadataQuery
-from weaviate.collection.classes.internal import Reference
+from weaviate.collection.classes.internal import ReferenceFactory
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
 LATER = NOW + datetime.timedelta(hours=1)
@@ -34,9 +33,8 @@ UUID3 = uuid.uuid4()
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.Client(
-        "http://localhost:8080", additional_config=Config(grpc_port_experimental=50051)
-    )
+    connection_params = weaviate.ConnectionParams.from_url("http://localhost:8080", 50051)
+    client = weaviate.WeaviateClient(connection_params)
     client.schema.delete_all()
     yield client
     client.schema.delete_all()
@@ -50,14 +48,14 @@ def client():
         (Filter(path="name").like("*nana"), [0]),
     ],
 )
-def test_filters_text(client: weaviate.Client, weaviate_filter: _FilterValue, results: List[int]):
+def test_filters_text(
+    client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
+):
     client.collection.delete("TestFilterText")
     collection = client.collection.create(
-        CollectionConfig(
-            name="TestFilterText",
-            vectorizer_config=VectorizerFactory.none(),
-            properties=[Property(name="name", data_type=DataType.TEXT)],
-        )
+        name="TestFilterText",
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        properties=[Property(name="name", data_type=DataType.TEXT)],
     )
 
     uuids = [
@@ -66,7 +64,7 @@ def test_filters_text(client: weaviate.Client, weaviate_filter: _FilterValue, re
         collection.data.insert({"name": "Mountain"}),
     ]
 
-    objects = collection.query.get_flat(filters=weaviate_filter)
+    objects = collection.query.fetch_objects(filters=weaviate_filter).objects
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
@@ -78,34 +76,32 @@ def test_filters_text(client: weaviate.Client, weaviate_filter: _FilterValue, re
     [
         (Filter(path="num").greater_than(1) & Filter(path="num").less_than(3), [1]),
         (
-            (Filter(path="num").less_than_equal(1)) | Filter(path="num").greater_than_equal(3),
+            (Filter(path="num").less_or_equal(1)) | Filter(path="num").greater_or_equal(3),
             [0, 2],
         ),
         (
-            Filter(path="num").less_than_equal(1) | Filter(path="num").greater_than_equal(3),
+            Filter(path="num").less_or_equal(1) | Filter(path="num").greater_or_equal(3),
             [0, 2],
         ),
         (
-            (Filter(path="num").less_than_equal(1) & Filter(path="num").greater_than_equal(1))
-            | Filter(path="num").greater_than_equal(3)
+            (Filter(path="num").less_or_equal(1) & Filter(path="num").greater_or_equal(1))
+            | Filter(path="num").greater_or_equal(3)
             | Filter(path="num").is_none(True),
             [0, 2, 3],
         ),
     ],
 )
 def test_filters_nested(
-    client: weaviate.Client,
+    client: weaviate.WeaviateClient,
     weaviate_filter: _Filters,
     results: List[int],
 ):
     client.collection.delete("TestFilterNested")
     collection = client.collection.create(
-        CollectionConfig(
-            name="TestFilterNested",
-            vectorizer_config=VectorizerFactory.none(),
-            properties=[Property(name="num", data_type=DataType.NUMBER)],
-            inverted_index_config=InvertedIndexConfigCreate(index_null_state=True),
-        )
+        name="TestFilterNested",
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        properties=[Property(name="num", data_type=DataType.NUMBER)],
+        inverted_index_config=ConfigFactory.inverted_index(index_null_state=True),
     )
 
     uuids = [
@@ -115,24 +111,22 @@ def test_filters_nested(
         collection.data.insert({"num": None}),
     ]
 
-    objects = collection.query.get_flat(
+    objects = collection.query.fetch_objects(
         filters=weaviate_filter, return_metadata=MetadataQuery(uuid=True)
-    )
+    ).objects
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
     assert all(obj.metadata.uuid in uuids for obj in objects)
 
 
-def test_length_filter(client: weaviate.Client):
+def test_length_filter(client: weaviate.WeaviateClient):
     client.collection.delete("TestFilterNested")
     collection = client.collection.create(
-        CollectionConfig(
-            name="TestFilterNested",
-            vectorizer_config=VectorizerFactory.none(),
-            properties=[Property(name="field", data_type=DataType.TEXT)],
-            inverted_index_config=InvertedIndexConfigCreate(index_property_length=True),
-        )
+        name="TestFilterNested",
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        properties=[Property(name="field", data_type=DataType.TEXT)],
+        inverted_index_config=ConfigFactory.inverted_index(index_property_length=True),
     )
     uuids = [
         collection.data.insert({"field": "one"}),
@@ -140,7 +134,9 @@ def test_length_filter(client: weaviate.Client):
         collection.data.insert({"field": "three"}),
         collection.data.insert({"field": "four"}),
     ]
-    objects = collection.query.get_flat(filters=Filter(path="field", length=True).equal(3))
+    objects = collection.query.fetch_objects(
+        filters=Filter(path="field", length=True).equal(3)
+    ).objects
 
     results = [0, 1]
     assert len(objects) == len(results)
@@ -156,16 +152,14 @@ def test_length_filter(client: weaviate.Client):
     ],
 )
 def test_filters_comparison(
-    client: weaviate.Client, weaviate_filter: _FilterValue, results: List[int]
+    client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
 ):
     client.collection.delete("TestFilterNumber")
     collection = client.collection.create(
-        CollectionConfig(
-            name="TestFilterNumber",
-            vectorizer_config=VectorizerFactory.none(),
-            properties=[Property(name="number", data_type=DataType.INT)],
-            inverted_index_config=InvertedIndexConfigCreate(index_null_state=True),
-        )
+        name="TestFilterNumber",
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        properties=[Property(name="number", data_type=DataType.INT)],
+        inverted_index_config=ConfigFactory.inverted_index(index_null_state=True),
     )
 
     uuids = [
@@ -175,7 +169,7 @@ def test_filters_comparison(
         collection.data.insert({"number": None}),
     ]
 
-    objects = collection.query.get_flat(filters=weaviate_filter)
+    objects = collection.query.fetch_objects(filters=weaviate_filter).objects
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
@@ -220,28 +214,26 @@ def test_filters_comparison(
     ],
 )
 def test_filters_contains(
-    client: weaviate.Client, weaviate_filter: _FilterValue, results: List[int]
+    client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
 ):
     client.collection.delete("TestFilterContains")
     collection = client.collection.create(
-        CollectionConfig(
-            name="TestFilterContains",
-            vectorizer_config=VectorizerFactory.none(),
-            properties=[
-                Property(name="text", data_type=DataType.TEXT),
-                Property(name="texts", data_type=DataType.TEXT_ARRAY),
-                Property(name="num", data_type=DataType.INT),
-                Property(name="nums", data_type=DataType.INT_ARRAY),
-                Property(name="float", data_type=DataType.NUMBER),
-                Property(name="floats", data_type=DataType.NUMBER_ARRAY),
-                Property(name="bool", data_type=DataType.BOOL),
-                Property(name="bools", data_type=DataType.BOOL_ARRAY),
-                Property(name="dates", data_type=DataType.DATE_ARRAY),
-                Property(name="date", data_type=DataType.DATE),
-                Property(name="uuids", data_type=DataType.UUID_ARRAY),
-                Property(name="uuid", data_type=DataType.UUID),
-            ],
-        )
+        name="TestFilterContains",
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+            Property(name="texts", data_type=DataType.TEXT_ARRAY),
+            Property(name="num", data_type=DataType.INT),
+            Property(name="nums", data_type=DataType.INT_ARRAY),
+            Property(name="float", data_type=DataType.NUMBER),
+            Property(name="floats", data_type=DataType.NUMBER_ARRAY),
+            Property(name="bool", data_type=DataType.BOOL),
+            Property(name="bools", data_type=DataType.BOOL_ARRAY),
+            Property(name="dates", data_type=DataType.DATE_ARRAY),
+            Property(name="date", data_type=DataType.DATE),
+            Property(name="uuids", data_type=DataType.UUID_ARRAY),
+            Property(name="uuid", data_type=DataType.UUID),
+        ],
     )
 
     uuids = [
@@ -308,9 +300,9 @@ def test_filters_contains(
         ),
     ]
 
-    objects = collection.query.get_flat(
+    objects = collection.query.fetch_objects(
         filters=weaviate_filter, return_metadata=MetadataQuery(uuid=True)
-    )
+    ).objects
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
@@ -324,106 +316,518 @@ def test_filters_contains(
         (Filter(path=["ref", "TestFilterRef2", "text"], length=True).less_than(6), [0]),
     ],
 )
-def test_ref_filters(client: weaviate.Client, weaviate_filter: _FilterValue, results: List[int]):
+def test_ref_filters(
+    client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
+):
     client.collection.delete("TestFilterRef")
     client.collection.delete("TestFilterRef2")
     to_collection = client.collection.create(
-        CollectionConfig(
-            name="TestFilterRef2",
-            vectorizer_config=VectorizerFactory.none(),
-            properties=[
-                Property(name="int", data_type=DataType.INT),
-                Property(name="text", data_type=DataType.TEXT),
-            ],
-            inverted_index_config=InvertedIndexConfigCreate(index_property_length=True),
-        )
+        name="TestFilterRef2",
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        properties=[
+            Property(name="int", data_type=DataType.INT),
+            Property(name="text", data_type=DataType.TEXT),
+        ],
+        inverted_index_config=ConfigFactory.inverted_index(index_property_length=True),
     )
     uuids_to = [
         to_collection.data.insert(properties={"int": 0, "text": "first"}),
         to_collection.data.insert(properties={"int": 15, "text": "second"}),
     ]
     from_collection = client.collection.create(
-        CollectionConfig(
-            name="TestFilterRef",
-            properties=[
-                ReferenceProperty(name="ref", target_collection="TestFilterRef2"),
-                Property(name="name", data_type=DataType.TEXT),
-            ],
-            vectorizer_config=VectorizerFactory.none(),
-        )
+        name="TestFilterRef",
+        properties=[
+            ReferenceProperty(name="ref", target_collection="TestFilterRef2"),
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
 
     uuids_from = [
-        from_collection.data.insert({"ref": Reference.to(uuids_to[0]), "name": "first"}),
-        from_collection.data.insert({"ref": Reference.to(uuids_to[1]), "name": "second"}),
+        from_collection.data.insert({"ref": ReferenceFactory.to(uuids_to[0]), "name": "first"}),
+        from_collection.data.insert({"ref": ReferenceFactory.to(uuids_to[1]), "name": "second"}),
     ]
 
-    objects = from_collection.query.get_flat(
+    objects = from_collection.query.fetch_objects(
         filters=weaviate_filter, return_metadata=MetadataQuery(uuid=True)
-    )
+    ).objects
     assert len(objects) == len(results)
 
     uuids = [uuids_from[result] for result in results]
     assert all(obj.metadata.uuid in uuids for obj in objects)
 
 
-def test_ref_filters_multi_target(client: weaviate.Client):
+def test_ref_filters_multi_target(client: weaviate.WeaviateClient):
     target = "TestFilterRefMulti2"
     source = "TestFilterRefMulti"
     client.collection.delete(source)
     client.collection.delete(target)
     to_collection = client.collection.create(
-        CollectionConfig(
-            name=target,
-            vectorizer_config=VectorizerFactory.none(),
-            properties=[Property(name="int", data_type=DataType.INT)],
-        )
+        name=target,
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        properties=[Property(name="int", data_type=DataType.INT)],
     )
     uuid_to = to_collection.data.insert(properties={"int": 0})
     uuid_to2 = to_collection.data.insert(properties={"int": 5})
     from_collection = client.collection.create(
-        CollectionConfig(
-            name=source,
-            properties=[
-                ReferencePropertyMultiTarget(
-                    name="ref", target_collections=[target, "TestFilterRefMulti"]
-                ),
-                Property(name="name", data_type=DataType.TEXT),
-            ],
-            vectorizer_config=VectorizerFactory.none(),
-        )
+        name=source,
+        properties=[
+            ReferencePropertyMultiTarget(
+                name="ref", target_collections=[target, "TestFilterRefMulti"]
+            ),
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
     )
 
     uuid_from_to_target1 = from_collection.data.insert(
-        {"ref": Reference.to_multi_target(uuids=uuid_to, target_collection=target), "name": "first"}
+        {
+            "ref": ReferenceFactory.to_multi_target(uuids=uuid_to, target_collection=target),
+            "name": "first",
+        }
     )
     uuid_from_to_target2 = from_collection.data.insert(
         {
-            "ref": Reference.to_multi_target(uuids=uuid_to2, target_collection=target),
+            "ref": ReferenceFactory.to_multi_target(uuids=uuid_to2, target_collection=target),
             "name": "second",
         }
     )
     from_collection.data.insert(
         {
-            "ref": Reference.to_multi_target(uuids=uuid_from_to_target1, target_collection=source),
+            "ref": ReferenceFactory.to_multi_target(
+                uuids=uuid_from_to_target1, target_collection=source
+            ),
             "name": "third",
         }
     )
     from_collection.data.insert(
         {
-            "ref": Reference.to_multi_target(uuids=uuid_from_to_target2, target_collection=source),
+            "ref": ReferenceFactory.to_multi_target(
+                uuids=uuid_from_to_target2, target_collection=source
+            ),
             "name": "fourth",
         }
     )
 
-    objects = from_collection.query.get_flat(
+    objects = from_collection.query.fetch_objects(
         filters=Filter(path=["ref", target, "int"]).greater_than(3)
-    )
+    ).objects
     assert len(objects) == 1
     assert objects[0].properties["name"] == "second"
 
-    objects = from_collection.query.get_flat(
+    objects = from_collection.query.fetch_objects(
         filters=Filter(path=["ref", source, "name"]).equal("first")
-    )
+    ).objects
     assert len(objects) == 1
     assert objects[0].properties["name"] == "third"
+
+
+@pytest.mark.parametrize(
+    "properties,objects,where,expected_len",
+    [
+        (
+            [
+                Property(name="text", data_type=DataType.TEXT),
+            ],
+            [
+                DataObject(properties={"text": "text"}, uuid=uuid.uuid4()),
+            ],
+            Filter("text").equal("text"),
+            0,
+        ),
+        (
+            [
+                Property(name="text", data_type=DataType.TEXT),
+            ],
+            [
+                DataObject(properties={"text": "there is some text in here"}, uuid=uuid.uuid4()),
+            ],
+            Filter("text").like("text"),
+            0,
+        ),
+        (
+            [
+                Property(name="text", data_type=DataType.TEXT),
+            ],
+            [
+                DataObject(properties={"text": "banana"}, uuid=uuid.uuid4()),
+            ],
+            Filter("text").like("ba*"),
+            0,
+        ),
+        (
+            [
+                Property(name="texts", data_type=DataType.TEXT_ARRAY),
+            ],
+            [
+                DataObject(properties={"texts": ["text1", "text2"]}, uuid=uuid.uuid4()),
+            ],
+            Filter("texts").contains_all(["text1", "text2"]),
+            0,
+        ),
+        (
+            [
+                Property(name="texts", data_type=DataType.TEXT_ARRAY),
+            ],
+            [
+                DataObject(properties={"texts": ["text1"]}, uuid=uuid.uuid4()),
+                DataObject(properties={"texts": ["text2"]}, uuid=uuid.uuid4()),
+            ],
+            Filter("texts").contains_any(["text1"]),
+            1,
+        ),
+        (
+            [Property(name="int", data_type=DataType.INT)],
+            [
+                DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
+            ],
+            Filter("int").equal(10),
+            0,
+        ),
+        (
+            [
+                Property(name="int", data_type=DataType.INT),
+            ],
+            [
+                DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
+            ],
+            Filter("int").greater_than(5),
+            0,
+        ),
+        (
+            [
+                Property(name="int", data_type=DataType.INT),
+            ],
+            [
+                DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
+            ],
+            Filter("int").less_than(15),
+            0,
+        ),
+        (
+            [
+                Property(name="int", data_type=DataType.INT),
+            ],
+            [
+                DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
+                DataObject(properties={"int": 15}, uuid=uuid.uuid4()),
+            ],
+            Filter("int").greater_or_equal(10),
+            0,
+        ),
+        (
+            [
+                Property(name="int", data_type=DataType.INT),
+            ],
+            [
+                DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
+                DataObject(properties={"int": 5}, uuid=uuid.uuid4()),
+            ],
+            Filter("int").less_or_equal(10),
+            0,
+        ),
+        (
+            [
+                Property(name="ints", data_type=DataType.INT_ARRAY),
+            ],
+            [
+                DataObject(properties={"ints": [1, 2]}, uuid=uuid.uuid4()),
+            ],
+            Filter("ints").contains_all([1, 2]),
+            0,
+        ),
+        (
+            [
+                Property(name="ints", data_type=DataType.INT_ARRAY),
+            ],
+            [
+                DataObject(properties={"ints": [1]}, uuid=uuid.uuid4()),
+                DataObject(properties={"ints": [2]}, uuid=uuid.uuid4()),
+            ],
+            Filter("ints").contains_any([1]),
+            1,
+        ),
+        (
+            [
+                Property(name="float", data_type=DataType.NUMBER),
+            ],
+            [
+                DataObject(properties={"float": 1.0}, uuid=uuid.uuid4()),
+            ],
+            Filter("float").equal(1.0),
+            0,
+        ),
+        (
+            [
+                Property(name="floats", data_type=DataType.NUMBER_ARRAY),
+            ],
+            [
+                DataObject(properties={"floats": [1.0, 2.0]}, uuid=uuid.uuid4()),
+            ],
+            Filter("floats").contains_all([1.0, 2.0]),
+            0,
+        ),
+        (
+            [
+                Property(name="floats", data_type=DataType.NUMBER_ARRAY),
+            ],
+            [
+                DataObject(properties={"floats": [1.0]}, uuid=uuid.uuid4()),
+                DataObject(properties={"floats": [2.0]}, uuid=uuid.uuid4()),
+            ],
+            Filter("floats").contains_any([1.0]),
+            1,
+        ),
+        (
+            [
+                Property(name="float", data_type=DataType.NUMBER),
+            ],
+            [
+                DataObject(properties={"float": 10.0}, uuid=uuid.uuid4()),
+                DataObject(properties={"float": 5.0}, uuid=uuid.uuid4()),
+            ],
+            Filter("float").greater_than(
+                5.0
+            ),  # issue here, doing .greater_than(5) interprets valueInt instead of valueNumber and fails the request
+            1,
+        ),
+        (
+            [
+                Property(name="bool", data_type=DataType.BOOL),
+            ],
+            [
+                DataObject(properties={"bool": True}, uuid=uuid.uuid4()),
+                DataObject(properties={"bool": False}, uuid=uuid.uuid4()),
+            ],
+            Filter("bool").equal(True),
+            1,
+        ),
+        (
+            [
+                Property(name="bools", data_type=DataType.BOOL_ARRAY),
+            ],
+            [
+                DataObject(properties={"bools": [True, False]}, uuid=uuid.uuid4()),
+            ],
+            Filter("bools").contains_all([True, False]),
+            0,
+        ),
+        (
+            [
+                Property(name="bools", data_type=DataType.BOOL_ARRAY),
+            ],
+            [
+                DataObject(properties={"bools": [True]}, uuid=uuid.uuid4()),
+                DataObject(properties={"bools": [False]}, uuid=uuid.uuid4()),
+            ],
+            Filter("bools").contains_any([True]),
+            1,
+        ),
+        (
+            [
+                Property(name="date", data_type=DataType.DATE),
+            ],
+            [
+                DataObject(properties={"date": NOW}, uuid=uuid.uuid4()),
+            ],
+            Filter("date").equal(NOW),
+            0,
+        ),
+        (
+            [
+                Property(name="dates", data_type=DataType.DATE_ARRAY),
+            ],
+            [
+                DataObject(properties={"dates": [NOW, LATER]}, uuid=uuid.uuid4()),
+            ],
+            Filter("dates").contains_all([NOW, LATER]),
+            0,
+        ),
+        (
+            [
+                Property(name="dates", data_type=DataType.DATE_ARRAY),
+            ],
+            [
+                DataObject(properties={"dates": [NOW]}, uuid=uuid.uuid4()),
+                DataObject(properties={"dates": [LATER]}, uuid=uuid.uuid4()),
+            ],
+            Filter("dates").contains_any([NOW]),
+            1,
+        ),
+        (
+            [
+                Property(name="uuid", data_type=DataType.UUID),
+            ],
+            [
+                DataObject(properties={"uuid": UUID1}, uuid=uuid.uuid4()),
+            ],
+            Filter("uuid").equal(UUID1),
+            0,
+        ),
+        (
+            [
+                Property(name="uuids", data_type=DataType.UUID_ARRAY),
+            ],
+            [
+                DataObject(properties={"uuids": [UUID1, UUID2]}, uuid=uuid.uuid4()),
+            ],
+            Filter("uuids").contains_all([UUID1, UUID2]),
+            0,
+        ),
+        (
+            [
+                Property(name="uuids", data_type=DataType.UUID_ARRAY),
+            ],
+            [
+                DataObject(properties={"uuids": [UUID1]}, uuid=uuid.uuid4()),
+                DataObject(properties={"uuids": [UUID2]}, uuid=uuid.uuid4()),
+            ],
+            Filter("uuids").contains_any([UUID1]),
+            1,
+        ),
+        (
+            [
+                Property(name="text", data_type=DataType.TEXT, tokenization=Tokenization.FIELD),
+            ],
+            [
+                DataObject(properties={"text": "some name"}, vector=[1, 2, 3]),
+                DataObject(properties={"text": "some other name"}, uuid=uuid.uuid4()),
+            ],
+            Filter("text").equal("some name"),
+            1,
+        ),
+        (
+            [
+                Property(name="text", data_type=DataType.TEXT, tokenization=Tokenization.FIELD),
+            ],
+            [
+                DataObject(properties={"text": "some name"}, vector=[1, 2, 3]),
+                DataObject(properties={"text": "some other name"}, uuid=uuid.uuid4()),
+            ],
+            Filter("text").equal("some other name"),
+            1,
+        ),
+        (
+            [
+                Property(name="text", data_type=DataType.TEXT),
+                Property(name="int", data_type=DataType.INT),
+            ],
+            [
+                DataObject(properties={"text": "Loads of money", "int": 60}, uuid=uuid.uuid4()),
+                DataObject(properties={"text": "Lots of money", "int": 40}, uuid=uuid.uuid4()),
+            ],
+            Filter("text").equal("money"),
+            0,
+        ),
+        (
+            [
+                Property(name="text", data_type=DataType.TEXT),
+                Property(name="int", data_type=DataType.INT),
+            ],
+            [
+                DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
+                DataObject(properties={"text": "I am ageless"}, uuid=uuid.uuid4()),
+            ],
+            Filter("int").is_none(True),
+            1,
+        ),
+    ],
+)
+def test_delete_many_simple(
+    client: weaviate.WeaviateClient,
+    properties: List[Property],
+    objects: List[DataObject],
+    where: _FilterValue,
+    expected_len: int,
+):
+    name = "TestDeleteManySimple"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        name=name,
+        properties=properties,
+        inverted_index_config=ConfigFactory.inverted_index(index_null_state=True),
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
+    )
+    collection.data.insert_many(objects)
+    assert len(collection.query.fetch_objects().objects) == len(objects)
+
+    collection.data.delete_many(where=where)
+    objects = collection.query.fetch_objects().objects
+    assert len(objects) == expected_len
+
+
+def test_delete_many_and(client: weaviate.WeaviateClient):
+    name = "TestDeleteManyAnd"
+    collection = client.collection.create(
+        name=name,
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+            Property(name="Age", data_type=DataType.INT),
+        ],
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
+    )
+    collection.data.insert_many(
+        [
+            DataObject(properties={"age": 10, "name": "Timmy"}, uuid=uuid.uuid4()),
+            DataObject(properties={"age": 10, "name": "Tommy"}, uuid=uuid.uuid4()),
+        ]
+    )
+    objects = collection.query.fetch_objects().objects
+    assert len(objects) == 2
+
+    collection.data.delete_many(
+        where=Filter(path="age").equal(10) & Filter(path="name").equal("Timmy")
+    )
+
+    objects = collection.query.fetch_objects().objects
+    assert len(objects) == 1
+    assert objects[0].properties["age"] == 10
+    assert objects[0].properties["name"] == "Tommy"
+
+
+def test_delete_many_or(client: weaviate.WeaviateClient):
+    name = "TestDeleteManyOr"
+    collection = client.collection.create(
+        name=name,
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+            Property(name="Age", data_type=DataType.INT),
+        ],
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
+    )
+    collection.data.insert_many(
+        [
+            DataObject(properties={"age": 10, "name": "Timmy"}, uuid=uuid.uuid4()),
+            DataObject(properties={"age": 20, "name": "Tim"}, uuid=uuid.uuid4()),
+            DataObject(properties={"age": 30, "name": "Timothy"}, uuid=uuid.uuid4()),
+        ]
+    )
+    objects = collection.query.fetch_objects().objects
+    assert len(objects) == 3
+
+    collection.data.delete_many(where=Filter(path="age").equal(10) | Filter(path="age").equal(30))
+    objects = collection.query.fetch_objects().objects
+    assert len(objects) == 1
+    assert objects[0].properties["age"] == 20
+    assert objects[0].properties["name"] == "Tim"
+
+
+def test_delete_many_return(client: weaviate.WeaviateClient):
+    name = "TestDeleteManyReturn"
+    collection = client.collection.create(
+        name=name,
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
+    )
+    collection.data.insert_many(
+        [
+            DataObject(properties={"name": "delet me"}, uuid=uuid.uuid4()),
+        ]
+    )
+    ret = collection.data.delete_many(where=Filter(path="name").equal("delet me"))
+    assert ret.failed == 0
+    assert ret.matches == 1
+    assert ret.objects is None
+    assert ret.successful == 1

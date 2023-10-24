@@ -9,8 +9,8 @@ else:
 import pytest as pytest
 
 from weaviate.collection.classes.config import PropertyConfig
-from weaviate.collection.classes.orm import BaseProperty, CrossReference
-from weaviate.weaviate_types import UUIDS
+from weaviate.collection.classes.orm import BaseProperty, Reference
+from weaviate.types import UUIDS
 
 
 class Group(BaseProperty):
@@ -44,8 +44,8 @@ def test_types(member_type, expected: str, optional: bool):
     "member_type, annotation ,expected",
     [
         (str, PropertyConfig(index_filterable=False), "text"),
-        (UUIDS, CrossReference(Group), "Group"),
-        (Optional[UUIDS], CrossReference(Group), "Group"),
+        (UUIDS, Reference(Group), "Group"),
+        (Optional[UUIDS], Reference(Group), "Group"),
     ],
 )
 def test_types_annotation(member_type, annotation, expected: str):

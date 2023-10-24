@@ -7,7 +7,7 @@ from typing import List, Sequence, Optional, Dict, Any, Union
 from uuid import uuid4
 
 from weaviate.util import get_valid_uuid, get_vector
-from weaviate.weaviate_types import UUID
+from weaviate.types import UUID
 
 BatchResponse = List[Dict[str, Any]]
 
@@ -330,5 +330,6 @@ class ObjectsBatchRequest(BatchRequest):
                 class_name=obj["class"],
                 uuid=obj["id"],
                 vector=obj.get("vector", None),
+                tenant=obj.get("tenant", None),
             )
         return successful_responses

@@ -2,7 +2,8 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from . import weaviate_pb2 as weaviate__pb2
+from proto.v1 import batch_pb2 as v1_dot_batch__pb2
+from proto.v1 import search_get_pb2 as v1_dot_search__get__pb2
 
 
 class WeaviateStub(object):
@@ -15,14 +16,14 @@ class WeaviateStub(object):
             channel: A grpc.Channel.
         """
         self.Search = channel.unary_unary(
-                '/weaviategrpc.Weaviate/Search',
-                request_serializer=weaviate__pb2.SearchRequest.SerializeToString,
-                response_deserializer=weaviate__pb2.SearchReply.FromString,
+                '/weaviate.v1.Weaviate/Search',
+                request_serializer=v1_dot_search__get__pb2.SearchRequest.SerializeToString,
+                response_deserializer=v1_dot_search__get__pb2.SearchReply.FromString,
                 )
         self.BatchObjects = channel.unary_unary(
-                '/weaviategrpc.Weaviate/BatchObjects',
-                request_serializer=weaviate__pb2.BatchObjectsRequest.SerializeToString,
-                response_deserializer=weaviate__pb2.BatchObjectsReply.FromString,
+                '/weaviate.v1.Weaviate/BatchObjects',
+                request_serializer=v1_dot_batch__pb2.BatchObjectsRequest.SerializeToString,
+                response_deserializer=v1_dot_batch__pb2.BatchObjectsReply.FromString,
                 )
 
 
@@ -46,17 +47,17 @@ def add_WeaviateServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Search': grpc.unary_unary_rpc_method_handler(
                     servicer.Search,
-                    request_deserializer=weaviate__pb2.SearchRequest.FromString,
-                    response_serializer=weaviate__pb2.SearchReply.SerializeToString,
+                    request_deserializer=v1_dot_search__get__pb2.SearchRequest.FromString,
+                    response_serializer=v1_dot_search__get__pb2.SearchReply.SerializeToString,
             ),
             'BatchObjects': grpc.unary_unary_rpc_method_handler(
                     servicer.BatchObjects,
-                    request_deserializer=weaviate__pb2.BatchObjectsRequest.FromString,
-                    response_serializer=weaviate__pb2.BatchObjectsReply.SerializeToString,
+                    request_deserializer=v1_dot_batch__pb2.BatchObjectsRequest.FromString,
+                    response_serializer=v1_dot_batch__pb2.BatchObjectsReply.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'weaviategrpc.Weaviate', rpc_method_handlers)
+            'weaviate.v1.Weaviate', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
@@ -75,9 +76,9 @@ class Weaviate(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/weaviategrpc.Weaviate/Search',
-            weaviate__pb2.SearchRequest.SerializeToString,
-            weaviate__pb2.SearchReply.FromString,
+        return grpc.experimental.unary_unary(request, target, '/weaviate.v1.Weaviate/Search',
+            v1_dot_search__get__pb2.SearchRequest.SerializeToString,
+            v1_dot_search__get__pb2.SearchReply.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -92,8 +93,8 @@ class Weaviate(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/weaviategrpc.Weaviate/BatchObjects',
-            weaviate__pb2.BatchObjectsRequest.SerializeToString,
-            weaviate__pb2.BatchObjectsReply.FromString,
+        return grpc.experimental.unary_unary(request, target, '/weaviate.v1.Weaviate/BatchObjects',
+            v1_dot_batch__pb2.BatchObjectsRequest.SerializeToString,
+            v1_dot_batch__pb2.BatchObjectsReply.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

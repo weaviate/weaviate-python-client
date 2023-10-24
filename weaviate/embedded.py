@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 import requests
-import validators
+import validators  # type: ignore
 
 from weaviate import exceptions
 from weaviate.exceptions import WeaviateStartUpError
@@ -25,15 +25,19 @@ DEFAULT_BINARY_PATH = str(Path.home() / ".cache/weaviate-embedded/")
 DEFAULT_PERSISTENCE_DATA_PATH = str(Path.home() / ".local/share/weaviate")
 GITHUB_RELEASE_DOWNLOAD_URL = "https://github.com/weaviate/weaviate/releases/download/"
 
+DEFAULT_PORT = 8079
+DEFAULT_GRPC_PORT = 50060
+
 
 @dataclass
 class EmbeddedOptions:
     persistence_data_path: str = os.environ.get("XDG_DATA_HOME", DEFAULT_PERSISTENCE_DATA_PATH)
     binary_path: str = os.environ.get("XDG_CACHE_HOME", DEFAULT_BINARY_PATH)
-    version: str = "1.21.1"
-    port: int = 6666
+    version: str = "1.21.4"
+    port: int = DEFAULT_PORT
     hostname: str = "127.0.0.1"
     additional_env_vars: Optional[Dict[str, str]] = None
+    grpc_port: int = DEFAULT_GRPC_PORT
 
 
 def get_random_port() -> int:
@@ -48,6 +52,7 @@ class EmbeddedDB:
     def __init__(self, options: EmbeddedOptions) -> None:
         self.data_bind_port = get_random_port()
         self.options = options
+        self.grpc_port: int = options.grpc_port
         self.process: Optional[subprocess.Popen[bytes]] = None
         self.ensure_paths_exist()
         self.check_supported_platform()
@@ -179,8 +184,8 @@ class EmbeddedDB:
     def check_supported_platform() -> None:
         if platform.system() in ["Windows"]:
             raise WeaviateStartUpError(
-                f"{platform.system()} is not supported with EmbeddedDB. Please upvote the feature request if "
-                f"you want this: https://github.com/weaviate/weaviate-python-client/issues/239"
+                f"{platform.system()} is not supported with EmbeddedDB. Please upvote this feature request if "
+                f"you want this: https://github.com/weaviate/weaviate/issues/3315"
             )
 
     def start(self) -> None:
@@ -196,6 +201,8 @@ class EmbeddedDB:
         my_env.setdefault("PERSISTENCE_DATA_PATH", self.options.persistence_data_path)
         # Bug with weaviate requires setting gossip and data bind port
         my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(get_random_port()))
+        my_env.setdefault("GRPC_PORT", str(self.grpc_port))
+
         my_env.setdefault(
             "ENABLE_MODULES",
             "text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,generative-openai,qna-openai,"

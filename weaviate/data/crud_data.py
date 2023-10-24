@@ -22,7 +22,7 @@ from weaviate.util import (
     _capitalize_first_letter,
     _check_positive_num,
 )
-from weaviate.weaviate_types import UUID
+from weaviate.types import UUID
 
 
 class DataObject:

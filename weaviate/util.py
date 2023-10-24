@@ -3,16 +3,17 @@ Helper functions!
 """
 import base64
 import datetime
+import io
 import json
 import os
 import re
-import uuid as uuid_lib
 from enum import Enum, EnumMeta
-from io import BufferedReader
-from typing import Union, Sequence, Any, Optional, List, Dict, Tuple, cast
+from pathlib import Path
+from typing import Union, Sequence, Any, Optional, List, Dict, Generator, Tuple, cast
 
 import requests
-import validators
+import uuid as uuid_lib
+import validators  # type: ignore
 from requests.exceptions import JSONDecodeError
 
 from weaviate.exceptions import (
@@ -21,13 +22,14 @@ from weaviate.exceptions import (
     ResponseCannotBeDecodedException,
 )
 from weaviate.warnings import _Warnings
-from weaviate.weaviate_types import NUMBER, UUIDS, TIME
+from weaviate.types import NUMBER, UUIDS, TIME
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"
 MAXIMUM_MINOR_VERSION_DELTA = 3  # The maximum delta between minor versions of Weaviate Client that will not trigger an upgrade warning.
 MINIMUM_NO_WARNING_VERSION = (
     "v1.16.0"  # The minimum version of Weaviate that will not trigger an upgrade warning.
 )
+BYTES_PER_CHUNK = 65535  # The number of bytes to read per chunk when encoding files ~ 64kb
 
 
 # MetaEnum and BaseEnum are required to support `in` statements:
@@ -47,7 +49,7 @@ class BaseEnum(Enum, metaclass=MetaEnum):
     pass
 
 
-def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
+def image_encoder_b64(image_or_image_path: Union[str, io.BufferedReader]) -> str:
     """
     Encode a image in a Weaviate understandable format from a binary read file or by providing
     the image path.
@@ -76,7 +78,7 @@ def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
         with open(image_or_image_path, "br") as file:
             content = file.read()
 
-    elif isinstance(image_or_image_path, BufferedReader):
+    elif isinstance(image_or_image_path, io.BufferedReader):
         content = image_or_image_path.read()
     else:
         raise TypeError(
@@ -86,14 +88,16 @@ def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
     return base64.b64encode(content).decode("utf-8")
 
 
-def file_encoder_b64(file_or_file_path: Union[str, BufferedReader]) -> str:
+def file_encoder_b64(file_or_file_path: Union[str, Path, io.BufferedReader]) -> str:
     """
-    Encode a file in a Weaviate understandable format from a binary read file or by providing
-    the file path.
+    Encode a file in a Weaviate understandable format from an io.BufferedReader binary read file or by providing
+    the file path as either a string of a pathlib.Path object
+
+    If you pass an io.BufferedReader object, it is your responsibility to close it after encoding.
 
     Parameters
     ----------
-    file_or_file_path : str, io.BufferedReader
+    file_or_file_path : str, pathlib.Path io.BufferedReader
         The binary read file or the path to the file.
 
     Returns
@@ -109,19 +113,45 @@ def file_encoder_b64(file_or_file_path: Union[str, BufferedReader]) -> str:
         If the argument is of a wrong data type.
     """
 
+    def _chunks(buffer: io.BufferedReader, chunk_size: int) -> Generator[bytes, Any, Any]:
+        while True:
+            data = buffer.read(chunk_size)
+            if not data:
+                break
+            yield data
+
+    should_close_file = False
+    use_buffering = True
+
     if isinstance(file_or_file_path, str):
         if not os.path.isfile(file_or_file_path):
             raise ValueError("No file found at location " + file_or_file_path)
-        with open(file_or_file_path, "br") as file:
-            content = file.read()
-
-    elif isinstance(file_or_file_path, BufferedReader):
-        content = file_or_file_path.read()
+        file = open(file_or_file_path, "br")
+        should_close_file = True
+        use_buffering = os.path.getsize(file_or_file_path) > BYTES_PER_CHUNK
+    elif isinstance(file_or_file_path, Path):
+        if not file_or_file_path.is_file():
+            raise ValueError("No file found at location " + str(file_or_file_path))
+        file = file_or_file_path.open("br")
+        should_close_file = True
+        use_buffering = file_or_file_path.stat().st_size > BYTES_PER_CHUNK
+    elif isinstance(file_or_file_path, io.BufferedReader):
+        file = file_or_file_path
     else:
         raise TypeError(
             '"file_or_file_path" should be a file path or a binary read file' " (io.BufferedReader)"
         )
-    return base64.b64encode(content).decode("utf-8")
+
+    if use_buffering:
+        encoded: str = ""
+        for chunk in _chunks(file, BYTES_PER_CHUNK):
+            encoded += base64.b64encode(chunk).decode("utf-8")
+    else:
+        encoded = base64.b64encode(file.read()).decode("utf-8")
+
+    if should_close_file:
+        file.close()
+    return encoded
 
 
 def image_decoder_b64(encoded_image: str) -> bytes:
@@ -804,7 +834,7 @@ def _decode_json_response_dict(
 
     if 200 <= response.status_code < 300:
         try:
-            json_response = cast(dict, response.json())
+            json_response = cast(Dict[str, Any], response.json())
             return json_response
         except JSONDecodeError:
             raise ResponseCannotBeDecodedException(location, response)

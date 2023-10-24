@@ -3,7 +3,6 @@ from typing import Any, Dict, Optional
 import pytest as pytest
 
 import weaviate
-from weaviate import Config
 
 CLASS1 = {
     "class": "Test",
@@ -56,8 +55,7 @@ def test_grcp(
     with_limit: bool, additional_props, search: Dict[str, Any], properties, grpc_port: Optional[int]
 ):
     client = weaviate.Client(
-        "http://localhost:8080",
-        additional_config=Config(grpc_port_experimental=grpc_port),
+        "http://localhost:8080", additional_config=weaviate.Config(grpc_port_experimental=grpc_port)
     )
     client.schema.delete_all()
 
@@ -102,14 +100,15 @@ def test_grcp(
 
 def test_additional():
     client_grpc = weaviate.Client(
-        "http://localhost:8080",
-        additional_config=Config(grpc_port_experimental=50051),
+        "http://localhost:8080", additional_config=weaviate.Config(grpc_port_experimental=50051)
     )
     client_grpc.schema.delete_all()
 
     client_grpc.schema.create_class(CLASS1)
     client_grpc.data_object.create({"test": "test"}, "Test", vector=VECTOR)
-    client_gql = weaviate.Client("http://localhost:8080")
+    client_gql = weaviate.Client(
+        "http://localhost:8080", additional_config=weaviate.Config(grpc_port_experimental=50052)
+    )
 
     results = []
     for client in [client_gql, client_grpc]:
@@ -137,8 +136,7 @@ def test_additional():
 
 def test_grpc_errors():
     client = weaviate.Client(
-        "http://localhost:8080",
-        additional_config=Config(grpc_port_experimental=50051),
+        "http://localhost:8080", additional_config=weaviate.Config(grpc_port_experimental=50051)
     )
     classname = CLASS1["class"]
     if client.schema.exists(classname):

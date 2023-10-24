@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass
-from typing import Union, Sequence, Optional
+from typing import List, Union, Sequence, Optional
 
 import pytest
 
@@ -58,6 +58,7 @@ def client():
             "properties": [
                 {"name": "test", "dataType": ["Test"]},
                 {"name": "name", "dataType": ["string"]},
+                {"name": "names", "dataType": ["string[]"]},
             ],
             "vectorizer": "none",
         }
@@ -83,55 +84,114 @@ def test_add_data_object(client: weaviate.Client, uuid: Optional[UUID], vector: 
     assert has_batch_errors(response) is False, str(response)
 
 
-def test_delete_objects(client: weaviate.Client):
-    with client.batch as batch:
-        batch.add_data_object(data_object={"name": "one"}, class_name="Test")
-        batch.add_data_object(data_object={"name": "two"}, class_name="test")
-        batch.add_data_object(data_object={"name": "three"}, class_name="Test")
-        batch.add_data_object(data_object={"name": "four"}, class_name="test")
-        batch.add_data_object(data_object={"name": "five"}, class_name="Test")
-
-    with client.batch as batch:
-        batch.delete_objects(
-            "Test",
-            where={
+@pytest.mark.parametrize(
+    "objs,where",
+    [
+        (
+            [
+                {"name": "zero"},
+            ],
+            {
+                "path": ["name"],
+                "operator": "NotEqual",
+                "valueText": "one",
+            },
+        ),
+        (
+            [
+                {"name": "one"},
+            ],
+            {
                 "path": ["name"],
                 "operator": "Equal",
                 "valueText": "one",
             },
-        )
-    res = client.data_object.get()
-    names = [obj["properties"]["name"] for obj in res["objects"]]
-    assert "one" not in names
-
-    with client.batch as batch:
-        batch.delete_objects(
-            "test",
-            where={
+        ),
+        (
+            [{"name": "two"}, {"name": "three"}],
+            {
                 "path": ["name"],
                 "operator": "ContainsAny",
                 "valueTextArray": ["two", "three"],
             },
-        )
-    res = client.data_object.get()
-    names = [obj["properties"]["name"] for obj in res["objects"]]
-    assert "two" not in names
-    assert "three" not in names
+        ),
+        (
+            [
+                {"names": ["Tim", "Tom"], "name": "four"},
+            ],
+            {
+                "path": ["names"],
+                "operator": "ContainsAll",
+                "valueTextArray": ["Tim", "Tom"],
+            },
+        ),
+        (
+            [
+                {"names": ["Tim", "Tom"], "name": "five"},
+            ],
+            {
+                "operator": "And",
+                "operands": [
+                    {
+                        "path": ["names"],
+                        "operator": "ContainsAll",
+                        "valueTextArray": ["Tim", "Tom"],
+                    },
+                    {
+                        "path": ["name"],
+                        "operator": "Equal",
+                        "valueText": "five",
+                    },
+                ],
+            },
+        ),
+        (
+            [{"name": "six"}, {"name": "seven"}],
+            {
+                "operator": "Or",
+                "operands": [
+                    {
+                        "path": ["name"],
+                        "operator": "Equal",
+                        "valueText": "six",
+                    },
+                    {
+                        "path": ["name"],
+                        "operator": "Equal",
+                        "valueText": "seven",
+                    },
+                ],
+            },
+        ),
+        (
+            [
+                {"name": "eight"},
+            ],
+            {
+                "path": ["name"],
+                "operator": "Like",
+                "valueText": "eig*",
+            },
+        ),
+    ],
+)
+def test_delete_objects_successes(client: weaviate.Client, objs: List[dict], where: dict):
+    with client.batch as batch:
+        for obj in objs:
+            batch.add_data_object(data_object=obj, class_name="Test")
 
     with client.batch as batch:
         batch.delete_objects(
             "Test",
-            where={
-                "path": ["name"],
-                "operator": "ContainsAll",
-                "valueTextArray": ["four", "five"],
-            },
+            where=where,
         )
     res = client.data_object.get()
     names = [obj["properties"]["name"] for obj in res["objects"]]
-    assert "four" in names
-    assert "five" in names
+    for obj in objs:
+        assert obj.get("name") not in names
 
+
+def test_delete_objects_errors(client: weaviate.Client):
     with pytest.raises(ValueError) as error:
         with client.batch as batch:
             batch.delete_objects(
@@ -356,3 +416,36 @@ def test_add_ref_batch_with_tenant():
 
     for name in reversed(class_names):
         client.schema.delete_class(name)
+
+
+def test_add_nested_object_with_batch():
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+
+    client.schema.create_class(
+        {
+            "class": "BatchTestNested",
+            "vectorizer": "none",
+            "properties": [
+                {
+                    "name": "nested",
+                    "dataType": ["object"],
+                    "nestedProperties": [
+                        {"name": "name", "dataType": ["text"]},
+                        {"name": "names", "dataType": ["text[]"]},
+                    ],
+                }
+            ],
+        },
+    )
+
+    uuid_ = uuid.uuid4()
+    with client.batch as batch:
+        batch.add_data_object(
+            class_name="BatchTestNested",
+            data_object={"nested": {"name": "nested", "names": ["nested1", "nested2"]}},
+            uuid=uuid_,
+        )
+
+    obj = client.data_object.get_by_id(uuid_, class_name="BatchTestNested")
+    assert obj["properties"]["nested"] == {"name": "nested", "names": ["nested1", "nested2"]}

@@ -249,7 +249,7 @@ def test_query_get_with_sort(
     client.schema.delete_all()
 
 
-def test_query_data(client):
+def test_query_data(client: weaviate.Client):
     expected_name = "Sophie Scholl"
     client.data_object.create(
         {"name": expected_name}, "Person", "594b7827-f795-40d0-aabb-5e0553953dad"
@@ -281,7 +281,7 @@ def test_create_schema():
     client.schema.delete_class("Barbecue")
 
 
-def test_replace_and_update(client):
+def test_replace_and_update(client: weaviate.Client):
     """Test updating an object with put (replace) and patch (update)."""
     uuid = "28954264-0449-57a2-ade5-e9e08d11f51a"
     client.data_object.create({"name": "Someone"}, "Person", uuid)
@@ -296,7 +296,7 @@ def test_replace_and_update(client):
     client.data_object.delete(uuid, class_name="Person")
 
 
-def test_crud(client):
+def test_crud(client: weaviate.Client):
     chemists: List[str] = []
     _create_objects_batch(client)
     _create_objects(client, chemists)
@@ -480,7 +480,7 @@ def test_add_vector_and_vectorizer(client: weaviate.Client):
     assert object_without_vector["vector"] != [1] * 300
 
 
-def test_beacon_refs(people_schema):
+def test_beacon_refs(people_schema: dict):
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create(people_schema)
@@ -515,7 +515,7 @@ def test_beacon_refs(people_schema):
     assert all("randomName" + str(i) in all_names for i in range(5))
 
 
-def test_beacon_refs_multiple(people_schema):
+def test_beacon_refs_multiple(people_schema: dict):
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
     client.schema.create_class(
@@ -881,3 +881,116 @@ def test_tenants():
             tenant=tenants[i].name,
         )
         assert not exists
+
+
+@pytest.mark.parametrize(
+    "prop_defs,props",
+    [
+        (
+            {
+                "dataType": ["text"],
+                "name": "name",
+            },
+            {
+                "name": "test",
+            },
+        ),
+        (
+            {
+                "dataType": ["text[]"],
+                "name": "names",
+            },
+            {
+                "names": ["test1", "test2"],
+            },
+        ),
+        (
+            {
+                "dataType": ["int"],
+                "name": "age",
+            },
+            {
+                "age": 42,
+            },
+        ),
+        (
+            {
+                "dataType": ["int[]"],
+                "name": "ages",
+            },
+            {
+                "ages": [42, 43],
+            },
+        ),
+        (
+            {
+                "dataType": ["number"],
+                "name": "height",
+            },
+            {
+                "height": 1.80,
+            },
+        ),
+        (
+            {
+                "dataType": ["number[]"],
+                "name": "heights",
+            },
+            {
+                "heights": [1.00, 1.80],
+            },
+        ),
+        (
+            {
+                "dataType": ["boolean"],
+                "name": "isTall",
+            },
+            {
+                "isTall": True,
+            },
+        ),
+        (
+            {
+                "dataType": ["boolean[]"],
+                "name": "areTall",
+            },
+            {
+                "areTall": [False, True],
+            },
+        ),
+        (
+            {
+                "dataType": ["date"],
+                "name": "birthday",
+            },
+            {
+                "birthday": "2021-01-01T00:00:00Z",
+            },
+        ),
+        (
+            {
+                "dataType": ["date[]"],
+                "name": "birthdays",
+            },
+            {
+                "birthdays": ["2021-01-01T00:00:00Z", "2021-01-02T00:00:00Z"],
+            },
+        ),
+    ],
+)
+def test_nested_object_datatype(prop_defs: dict, props: dict):
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+    client.schema.create_class(
+        {
+            "class": "A",
+            "properties": [
+                {"name": "nested", "dataType": ["object"], "nestedProperties": [prop_defs]},
+            ],
+            "vectorizer": "none",
+        }
+    )
+
+    uuid_ = client.data_object.create({"nested": props}, "A")
+    obj = client.data_object.get_by_id(uuid_, class_name="A")
+    assert obj["properties"]["nested"] == props

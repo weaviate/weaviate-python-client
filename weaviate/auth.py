@@ -1,7 +1,7 @@
 """
 Authentication class definitions.
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional, Union, List
 
 from weaviate.warnings import _Warnings
@@ -46,7 +46,7 @@ class AuthClientPassword:
 
     username: str
     password: str
-    scope: Optional[SCOPES] = field(default_factory=lambda: ["offline_access"])
+    scope: Optional[SCOPES] = None
 
     def __post_init__(self) -> None:
         if self.scope is None:

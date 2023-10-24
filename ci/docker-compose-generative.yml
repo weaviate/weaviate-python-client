@@ -9,14 +9,15 @@ services:
       - '8086'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-add-generative-search-to-grpc-71b2972
+    image: semitechnologies/weaviate:1.21.7-f8c7f26
     ports:
       - 8086:8086
+      - "50057:50051"
     restart: on-failure:0
     environment:
       QUERY_DEFAULTS_LIMIT: 25
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
       DEFAULT_VECTORIZER_MODULE: 'text2vec-openai'
-      ENABLE_MODULES: 'text2vec-openai,generative-openai'
+      ENABLE_MODULES: 'text2vec-openai,generative-openai,text2vec-cohere,generative-cohere'
       CLUSTER_HOSTNAME: 'node1'

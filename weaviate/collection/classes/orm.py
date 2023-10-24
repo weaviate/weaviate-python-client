@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field, field_validator
 from pydantic_core import PydanticUndefined
 
 from weaviate.collection.classes.config import (
-    CollectionConfigCreateBase,
+    _CollectionConfigCreateBase,
     PropertyConfig,
     Property,
     ReferenceProperty,
@@ -30,11 +30,11 @@ from weaviate.collection.classes.config import (
 )
 from weaviate.collection.classes.types import T
 from weaviate.util import _capitalize_first_letter, _to_beacons
-from weaviate.weaviate_types import PYTHON_TYPE_TO_DATATYPE, UUID
+from weaviate.types import PYTHON_TYPE_TO_DATATYPE, UUID
 
 
 @dataclass
-class CrossReference:
+class Reference:
     ref_type: Union[Type, str]
 
     @property
@@ -65,7 +65,7 @@ class BaseProperty(BaseModel):
             if (
                 field.metadata is not None
                 and len(field.metadata) > 0
-                and isinstance(field.metadata[0], CrossReference)
+                and isinstance(field.metadata[0], Reference)
             )
             and name not in BaseProperty.model_fields
         }
@@ -130,7 +130,7 @@ class BaseProperty(BaseModel):
             if metadata_list is not None and len(metadata_list) > 0:
                 metadata = metadata_list[0]
                 if isinstance(metadata, PropertyConfig):
-                    prop.update(metadata.to_dict())
+                    prop.update(metadata._to_dict())
 
             properties.append(prop)
 
@@ -166,7 +166,7 @@ class BaseProperty(BaseModel):
             if metadata_list is not None and len(metadata_list) > 0:
                 metadata = metadata_list[0]
                 if isinstance(metadata, PropertyConfig):
-                    prop.update(metadata.to_dict())
+                    prop.update(metadata._to_dict())
 
             properties.append(Property(name=name, data_type=DataType(data_type[0]), **prop))
 
@@ -217,11 +217,11 @@ class RefToObjectModel(BaseModel, Generic[Model]):
 UserModelType = Type[BaseProperty]
 
 
-class CollectionModelConfig(CollectionConfigCreateBase, Generic[Model]):
+class CollectionModelConfig(_CollectionConfigCreateBase, Generic[Model]):
     model: Type[Model]
 
-    def to_dict(self) -> Dict[str, Any]:
-        ret_dict = super().to_dict()
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
 
         ret_dict["class"] = _capitalize_first_letter(self.model.__name__)
 

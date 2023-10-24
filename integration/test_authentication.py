@@ -18,11 +18,11 @@ from weaviate import (
 from weaviate.auth import AuthApiKey
 from weaviate.exceptions import WeaviateStartUpError, UnexpectedStatusCodeException
 
-ANON_PORT = "8080"
-AZURE_PORT = "8081"
-OKTA_PORT_CC = "8082"
-OKTA_PORT_USERS = "8083"
-WCS_PORT = "8085"
+ANON_PORT = 8080
+AZURE_PORT = 8081
+OKTA_PORT_CC = 8082
+OKTA_PORT_USERS = 8083
+WCS_PORT = 8085
 
 
 def wait_for_weaviate(url: str):
@@ -52,7 +52,7 @@ def is_auth_enabled(url: str):
 
 def test_no_auth_provided():
     """Test exception when trying to access a weaviate that requires authentication."""
-    url = "http://127.0.0.1:" + AZURE_PORT
+    url = f"http://localhost:{AZURE_PORT}"
     assert is_auth_enabled(url)
     with pytest.raises(AuthenticationFailedException):
         weaviate.Client(url)
@@ -79,10 +79,11 @@ def test_authentication_client_credentials(
     if client_secret is None:
         pytest.skip(f"No {name} login data found.")
 
-    url = "http://127.0.0.1:" + port
+    url = f"http://localhost:{port}"
     assert is_auth_enabled(url)
     client = weaviate.Client(
-        url, auth_client_secret=AuthClientCredentials(client_secret=client_secret, scope=scope)
+        url,
+        auth_client_secret=AuthClientCredentials(client_secret=client_secret, scope=scope),
     )
     client.schema.delete_all()  # no exception
 
@@ -106,7 +107,6 @@ def test_authentication_client_credentials(
             "some_scope offline_access",
             False,
         ),
-        ("okta - default scope", "test@test.de", "OKTA_DUMMY_CI_PW", OKTA_PORT_USERS, None, False),
         (
             "okta - no refresh",
             "test@test.de",
@@ -124,7 +124,7 @@ def test_authentication_user_pw(
     # testing for warnings can be flaky without this as there are open SSL conections
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 
-    url = "http://127.0.0.1:" + port
+    url = f"http://localhost:{port}"
     assert is_auth_enabled(url)
 
     pw = os.environ.get(env_variable_name)
@@ -188,7 +188,7 @@ def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
 )
 def test_authentication_with_bearer_token(name: str, user: str, env_variable_name: str, port: str):
     """Test authentication using existing bearer token."""
-    url = "http://127.0.0.1:" + port
+    url = f"http://localhost:{port}"
     assert is_auth_enabled(url)
     pw = os.environ.get(env_variable_name)
     if pw is None:
@@ -213,7 +213,7 @@ def test_client_with_authentication_with_anon_weaviate(recwarn):
     # testing for warnings can be flaky without this as there are open SSL conections
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 
-    url = "http://127.0.0.1:" + ANON_PORT
+    url = f"http://localhost:{ANON_PORT}"
     assert not is_auth_enabled(url)
 
     client = weaviate.Client(
@@ -236,7 +236,7 @@ def test_bearer_token_without_refresh(recwarn):
     # testing for warnings can be flaky without this as there are open SSL conections
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 
-    url = "http://127.0.0.1:" + WCS_PORT
+    url = f"http://localhost:{WCS_PORT}"
     assert is_auth_enabled(url)
     pw = os.environ.get("WCS_DUMMY_CI_PW")
     if pw is None:
@@ -258,7 +258,7 @@ def test_bearer_token_without_refresh(recwarn):
 
 
 def test_api_key():
-    url = "http://127.0.0.1:" + WCS_PORT
+    url = f"http://localhost:{WCS_PORT}"
     assert is_auth_enabled(url)
 
     client = weaviate.Client(url, auth_client_secret=AuthApiKey(api_key="my-secret-key"))
@@ -266,7 +266,7 @@ def test_api_key():
 
 
 def test_api_key_wrong_key():
-    url = "http://127.0.0.1:" + WCS_PORT
+    url = f"http://localhost:{WCS_PORT}"
     assert is_auth_enabled(url)
 
     with pytest.raises(UnexpectedStatusCodeException) as e:

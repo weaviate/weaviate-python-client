@@ -1,12 +1,9 @@
 import pytest
 
 import weaviate
-from weaviate import Config
 from weaviate.collection.classes.config import (
-    CollectionConfig,
-    VectorizerFactory,
+    ConfigFactory,
     Property,
-    ReplicationConfigCreate,
     ConsistencyLevel,
     DataType,
 )
@@ -16,9 +13,8 @@ from weaviate.collection.classes.grpc import MetadataQuery
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.Client(
-        "http://localhost:8087", additional_config=Config(grpc_port_experimental=50058)
-    )
+    connection_params = weaviate.ConnectionParams.from_url("http://localhost:8087", 50058)
+    client = weaviate.WeaviateClient(connection_params)
     client.schema.delete_all()
     yield client
     client.schema.delete_all()
@@ -27,18 +23,16 @@ def client():
 @pytest.mark.parametrize(
     "level", [ConsistencyLevel.ONE, ConsistencyLevel.ALL, ConsistencyLevel.QUORUM]
 )
-def test_consistency_on_multinode(client: weaviate.Client, level: ConsistencyLevel):
+def test_consistency_on_multinode(client: weaviate.WeaviateClient, level: ConsistencyLevel):
     name = "TestConsistency"
     client.collection.delete(name)
     collection = client.collection.create(
-        CollectionConfig(
-            name=name,
-            vectorizer_config=VectorizerFactory.none(),
-            properties=[
-                Property(name="name", data_type=DataType.TEXT),
-            ],
-            replication_config=ReplicationConfigCreate(factor=2),
-        )
+        name=name,
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+        replication_config=ConfigFactory.replication(factor=2),
     ).with_consistency_level(level)
 
     collection.data.insert({"name": "first"})
@@ -47,6 +41,8 @@ def test_consistency_on_multinode(client: weaviate.Client, level: ConsistencyLev
     )
     assert not ret.has_errors
 
-    objects = collection.query.get_flat(return_metadata=MetadataQuery(is_consistent=True))
+    objects = collection.query.fetch_objects(
+        return_metadata=MetadataQuery(is_consistent=True)
+    ).objects
     for obj in objects:
         assert obj.metadata.is_consistent

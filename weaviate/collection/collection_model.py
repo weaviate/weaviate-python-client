@@ -10,7 +10,7 @@ from weaviate.collection.classes.orm import (
     Model,
     UserModelType,
 )
-from weaviate.collection.collection_base import CollectionBase
+from weaviate.collection.collection_base import _CollectionBase, _CollectionObjectBase
 from weaviate.collection.config import _ConfigCollectionModel
 from weaviate.collection.data import _DataCollectionModel
 from weaviate.collection.grpc import _GrpcCollectionModel
@@ -18,10 +18,10 @@ from weaviate.collection.tenants import _Tenants
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _capitalize_first_letter
-from weaviate.weaviate_types import PYTHON_TYPE_TO_DATATYPE
+from weaviate.types import PYTHON_TYPE_TO_DATATYPE
 
 
-class CollectionObjectModel(Generic[Model]):
+class _CollectionObjectModel(_CollectionObjectBase, Generic[Model]):
     def __init__(
         self,
         connection: Connection,
@@ -31,8 +31,9 @@ class CollectionObjectModel(Generic[Model]):
         consistency_level: Optional[ConsistencyLevel] = None,
         tenant: Optional[str] = None,
     ) -> None:
+        super().__init__(name)
+
         self._connection = connection
-        self.name = name
 
         self.config = config
         self.data = _DataCollectionModel[Model](connection, name, model, consistency_level, tenant)
@@ -47,24 +48,24 @@ class CollectionObjectModel(Generic[Model]):
     def model(self) -> Type[Model]:
         return self.__model
 
-    def with_tenant(self, tenant: Optional[str] = None) -> "CollectionObjectModel[Model]":
-        return CollectionObjectModel[Model](
+    def with_tenant(self, tenant: Optional[str] = None) -> "_CollectionObjectModel[Model]":
+        return _CollectionObjectModel[Model](
             self._connection, self.name, self.__model, self.config, self.__consistency_level, tenant
         )
 
     def with_consistency_level(
         self, consistency_level: Optional[ConsistencyLevel] = None
-    ) -> "CollectionObjectModel[Model]":
-        return CollectionObjectModel[Model](
+    ) -> "_CollectionObjectModel[Model]":
+        return _CollectionObjectModel[Model](
             self._connection, self.name, self.__model, self.config, consistency_level, self.__tenant
         )
 
 
-class CollectionModel(CollectionBase):
+class _CollectionModel(_CollectionBase):
     def __init__(self, connection: Connection):
         super().__init__(connection)
 
-    def create(self, config: CollectionModelConfig[Model]) -> CollectionObjectModel[Model]:
+    def create(self, config: CollectionModelConfig[Model]) -> _CollectionObjectModel[Model]:
         name = super()._create(config)
         config_name = _capitalize_first_letter(config.model.__name__)
         if config_name != name:
@@ -73,16 +74,16 @@ class CollectionModel(CollectionBase):
             )
         return self.get(config.model)
 
-    def get(self, model: Type[Model]) -> CollectionObjectModel[Model]:
+    def get(self, model: Type[Model]) -> _CollectionObjectModel[Model]:
         name = _capitalize_first_letter(model.__name__)
         config = _ConfigCollectionModel(self._connection, name)
         if config.is_invalid(model):
             raise TypeError(
                 f"Model {model.__name__} definition does not match collection {name} config"
             )
-        return CollectionObjectModel[Model](self._connection, name, model, config)
+        return _CollectionObjectModel[Model](self._connection, name, model, config)
 
-    def get_dynamic(self, name: str) -> Tuple[CollectionObjectModel[BaseProperty], UserModelType]:
+    def get_dynamic(self, name: str) -> Tuple[_CollectionObjectModel[BaseProperty], UserModelType]:
         path = f"/schema/{_capitalize_first_letter(name)}"
 
         try:
@@ -99,7 +100,7 @@ class CollectionModel(CollectionBase):
         }
         model = create_model(response_json["class"], **fields, __base__=BaseProperty)
         config = _ConfigCollectionModel(self._connection, name)
-        return CollectionObjectModel[BaseProperty](self._connection, name, model, config), model
+        return _CollectionObjectModel[BaseProperty](self._connection, name, model, config), model
 
     def delete(self, model: Type[Model]) -> None:
         """Use this method to delete a collection from the Weaviate instance by its ORM model.
@@ -117,8 +118,8 @@ class CollectionModel(CollectionBase):
         name = _capitalize_first_letter(model.__name__)
         return self._exists(name)
 
-    def update(self, model: Type[Model]) -> CollectionObjectModel[Model]:
+    def update(self, model: Type[Model]) -> _CollectionObjectModel[Model]:
         name = _capitalize_first_letter(model.__name__)
         config = _ConfigCollectionModel(self._connection, name)
         config.update_model(model)
-        return CollectionObjectModel[Model](self._connection, name, model, config)
+        return _CollectionObjectModel[Model](self._connection, name, model, config)

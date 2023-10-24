@@ -193,3 +193,19 @@ class WeaviateBatchValidationError(WeaviateBaseError):
         msg = f"""Batch validation error: {message}"""
         super().__init__(msg)
         self.message = message
+
+
+class WeaviateInsertInvalidPropertyError(WeaviateBaseError):
+    """Is raised when inserting an invalid property."""
+
+    def __init__(self, data: dict):
+        msg = f"""It is forbidden to insert `id` or `vector` inside properties: {data}. Only properties defined in your collection's config can be insterted as properties of the object, `id` is totally forbidden as it is reserved and `vector` is forbidden at this level. You should use the `DataObject` class if you wish to insert an object with a custom `vector` whilst inserting its properties."""
+        super().__init__(msg)
+
+
+class WeaviateGrpcUnavailable(WeaviateBaseError):
+    """Is raised when a gRPC-backed query is made with no gRPC connection present."""
+
+    def __init__(self) -> None:
+        msg = """gRPC is not available. Please make sure that gRPC is configured correctly in the client and on the server."""
+        super().__init__(msg)

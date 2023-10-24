@@ -12,11 +12,12 @@ from typing import Any, Dict, Optional, Tuple, Union, cast
 from urllib.parse import urlparse
 
 import requests
-from authlib.integrations.requests_client import OAuth2Session
+from authlib.integrations.requests_client import OAuth2Session  # type: ignore
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError, ReadTimeout
 from requests.exceptions import HTTPError as RequestsHTTPError
 from requests.exceptions import JSONDecodeError
+from pydantic import BaseModel, field_validator, model_validator
 
 from weaviate import __version__ as client_version
 from weaviate.auth import AuthCredentials, AuthClientCredentials, AuthApiKey
@@ -26,6 +27,7 @@ from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import (
     AuthenticationFailedException,
     WeaviateStartUpError,
+    WeaviateGRPCException,
 )
 from weaviate.util import (
     _check_positive_num,
@@ -36,21 +38,149 @@ from weaviate.util import (
     _decode_json_response_dict,
 )
 from weaviate.warnings import _Warnings
-from weaviate.weaviate_types import NUMBER
+from weaviate.types import NUMBER
+
 
 try:
-    import grpc
-    from weaviate_grpc import weaviate_pb2_grpc
+    import grpc  # type: ignore
+    from grpc import Channel
+    from proto.v1 import weaviate_pb2_grpc
 
     has_grpc = True
+
 except ImportError:
     has_grpc = False
+
 
 JSONPayload = Union[dict, list]
 Session = Union[requests.sessions.Session, OAuth2Session]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
-PYPI_TIMEOUT = 1
+PYPI_TIMEOUT = 0.1
 MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC server
+GRPC_OPTIONS = [
+    ("grpc.max_send_message_length", MAX_GRPC_MESSAGE_LENGTH),
+    ("grpc.max_receive_message_length", MAX_GRPC_MESSAGE_LENGTH),
+]
+
+
+class ProtocolParams(BaseModel):
+    host: str
+    port: int
+    secure: bool
+
+    @field_validator("host")
+    def _check_host(cls, v: str) -> str:
+        if v == "":
+            raise ValueError("host must not be empty")
+        return v
+
+    @field_validator("port")
+    def _check_port(cls, v: int) -> int:
+        if v < 0 or v > 65535:
+            raise ValueError("port must be between 0 and 65535")
+        return v
+
+
+class ConnectionParams(BaseModel):
+    http: ProtocolParams
+    grpc: Optional[ProtocolParams] = None
+
+    @classmethod
+    def from_url(
+        cls, url: str, grpc_port: Optional[int] = None, grpc_secure: bool = False
+    ) -> ConnectionParams:
+        parsed_url = urlparse(url)
+        if parsed_url.scheme not in ["http", "https"]:
+            raise ValueError(f"Unsupported scheme: {parsed_url.scheme}")
+        if parsed_url.port is None:
+            port = 443 if parsed_url.scheme == "https" else 80
+        else:
+            port = parsed_url.port
+
+        return cls(
+            http=ProtocolParams(
+                host=cast(str, parsed_url.hostname),
+                port=port,
+                secure=parsed_url.scheme == "https",
+            ),
+            grpc=ProtocolParams(
+                host=cast(str, parsed_url.hostname),
+                port=grpc_port,
+                secure=grpc_secure or parsed_url.scheme == "https",
+            )
+            if grpc_port is not None
+            else None,
+        )
+
+    @classmethod
+    def from_params(
+        cls,
+        http_host: str,
+        http_port: int,
+        http_secure: bool,
+        grpc_host: Optional[str] = None,
+        grpc_port: Optional[int] = None,
+        grpc_secure: Optional[bool] = None,
+    ) -> ConnectionParams:
+        return cls(
+            http=ProtocolParams(
+                host=http_host,
+                port=http_port,
+                secure=http_secure,
+            ),
+            grpc=ProtocolParams(
+                host=grpc_host,
+                port=grpc_port,
+                secure=grpc_secure,
+            )
+            if (grpc_host is not None and grpc_port is not None and grpc_secure is not None)
+            else None,
+        )
+
+    @model_validator(mode="after")
+    def _check_port_collision(self) -> ConnectionParams:
+        if self.grpc is not None and self.http.port == self.grpc.port:
+            raise ValueError("http.port and grpc.port must be different")
+        return self
+
+    @property
+    def _grpc_address(self) -> Optional[Tuple[str, int]]:
+        if self.grpc is None:
+            return None
+        return (self.grpc.host, self.grpc.port)
+
+    @property
+    def _grpc_target(self) -> Optional[str]:
+        if self.grpc is None:
+            return None
+        return f"{self.grpc.host}:{self.grpc.port}"
+
+    def _grpc_channel(self) -> Optional[Channel]:
+        if self.grpc is None:
+            return None
+        if self.grpc.secure:
+            return grpc.secure_channel(
+                target=self._grpc_target,
+                credentials=grpc.ssl_channel_credentials(),
+                options=GRPC_OPTIONS,
+            )
+        else:
+            return grpc.insecure_channel(
+                target=self._grpc_target,
+                options=GRPC_OPTIONS,
+            )
+
+    @property
+    def _http_scheme(self) -> str:
+        return "https" if self.http.secure else "http"
+
+    @property
+    def _http_url(self) -> str:
+        return f"{self._http_scheme}://{self.http.host}:{self.http.port}"
+
+    @property
+    def _has_grpc(self) -> bool:
+        return self.grpc is not None
 
 
 class Connection:
@@ -60,7 +190,7 @@ class Connection:
 
     def __init__(
         self,
-        url: str,
+        connection_params: ConnectionParams,
         auth_client_secret: Optional[AuthCredentials],
         timeout_config: TIMEOUT_TYPE_RETURN,
         proxies: Union[dict, str, None],
@@ -69,7 +199,6 @@ class Connection:
         startup_period: Optional[int],
         connection_config: ConnectionConfig,
         embedded_db: Optional[EmbeddedDB] = None,
-        grcp_port: Optional[int] = None,
     ):
         """
         Initialize a Connection class instance.
@@ -111,35 +240,33 @@ class Connection:
         """
 
         self._api_version_path = "/v1"
-        self.url = url  # e.g. http://localhost:80
+        self.url = connection_params._http_url  # e.g. http://localhost:80
         self.timeout_config: TIMEOUT_TYPE_RETURN = timeout_config
         self.embedded_db = embedded_db
 
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
+        self.__additional_headers: Dict[str, str] = {}
 
         # create GRPC channel. If weaviate does not support GRPC, fallback to GraphQL is used.
-        if has_grpc and grcp_port is not None:
-            parsed_url = urlparse(self.url)
+        if has_grpc and connection_params._has_grpc:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
                 s.settimeout(1.0)  # we're only pinging the port, 1s is plenty
-                s.connect((parsed_url.hostname, grcp_port))
+                assert connection_params._grpc_address is not None
+                s.connect(connection_params._grpc_address)
                 s.shutdown(2)
                 s.close()
-                channel = grpc.insecure_channel(
-                    f"{parsed_url.hostname}:{grcp_port}",
-                    options=[
-                        ("grpc.max_send_message_length", MAX_GRPC_MESSAGE_LENGTH),
-                        ("grpc.max_receive_message_length", MAX_GRPC_MESSAGE_LENGTH),
-                    ],
-                )
-                self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(channel)
+                grpc_channel = connection_params._grpc_channel()
+                assert grpc_channel is not None
+                self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(grpc_channel)
+                self._grpc_available = True
             except (
                 ConnectionRefusedError,
                 TimeoutError,
                 socket.timeout,
             ):  # self._grpc_stub stays None
                 s.close()
+                self._grpc_available = False
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:
@@ -147,6 +274,7 @@ class Connection:
                 raise TypeError(
                     f"'additional_headers' must be of type dict or None. Given type: {type(additional_headers)}."
                 )
+            self.__additional_headers = additional_headers
             for key, value in additional_headers.items():
                 self._headers[key.lower()] = value
 
@@ -184,8 +312,8 @@ class Connection:
             latest_version = pkg_info.get("version", "unknown version")
             if is_weaviate_client_too_old(client_version, latest_version):
                 _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
-        except (RequestsConnectionError, JSONDecodeError, ReadTimeout):
-            pass  # air-gaped environments
+        except requests.exceptions.RequestException:
+            pass  # ignore any errors related to requests, it is a best-effort warning
 
     def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
         """Creates a request session.
@@ -669,6 +797,10 @@ class Connection:
         """
         return self._server_version
 
+    @property
+    def additional_headers(self) -> Dict[str, str]:
+        return self.__additional_headers
+
     def get_meta(self) -> Dict[str, str]:
         """
         Returns the meta endpoint.
@@ -677,6 +809,40 @@ class Connection:
         res = _decode_json_response_dict(response, "Meta endpoint")
         assert res is not None
         return res
+
+
+class GRPCConnection(Connection):
+    def __init__(
+        self,
+        connection_params: ConnectionParams,
+        auth_client_secret: Optional[AuthCredentials],
+        timeout_config: TIMEOUT_TYPE_RETURN,
+        proxies: Union[dict, str, None],
+        trust_env: bool,
+        additional_headers: Optional[Dict[str, Any]],
+        startup_period: Optional[int],
+        connection_config: ConnectionConfig,
+        embedded_db: Optional[EmbeddedDB] = None,
+    ):
+        super().__init__(
+            connection_params,
+            auth_client_secret,
+            timeout_config,
+            proxies,
+            trust_env,
+            additional_headers,
+            startup_period,
+            connection_config,
+            embedded_db,
+        )
+        if self._server_version < "1.21" or self._grpc_stub is None:
+            raise WeaviateGRPCException(
+                f"GRPC is not enabled. Are you on the latest weaviate version? Current is {self._server_version}"
+            )
+
+    @property
+    def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
+        return self._grpc_stub
 
 
 def _get_epoch_time() -> int:

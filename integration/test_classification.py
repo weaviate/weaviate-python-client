@@ -48,7 +48,7 @@ def client():
     client.schema.delete_all()
 
 
-def test_contextual(client):
+def test_contextual(client: weaviate.Client):
     # Create labels
     client.data_object.create(
         {"name": "positive", "description": "A positive, good, happy or supporting message."},

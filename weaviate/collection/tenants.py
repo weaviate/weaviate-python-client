@@ -8,9 +8,9 @@ from weaviate.exceptions import UnexpectedStatusCodeException
 
 
 class _Tenants:
-    """
-    Represents all the CRUD methods available on a collection's multi-tenancy specification within Weaviate. The
-    collection must have been created with multi-tenancy enabled in order to use any of these methods. This class
+    """Represents all the CRUD methods available on a collection's multi-tenancy specification within Weaviate.
+
+    The collection must have been created with multi-tenancy enabled in order to use any of these methods. This class
     should not be instantiated directly, but is available as a property of the `Collection` class under
     the `collection.tenants` class attribute.
     """
@@ -19,21 +19,21 @@ class _Tenants:
         self.__connection = connection
         self.__name = name
 
-    def add(self, tenants: List[Tenant]) -> None:
-        """Add the specified tenants to a collection in Weaviate.
+    def create(self, tenants: List[Tenant]) -> None:
+        """Create the specified tenants for a collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
 
-        Parameters:
-        - `tenants`: List of `Tenant`.
+        Arguments:
+            `tenants`
+                List of tenants to add to the given collection.
 
         Raises:
-        - `requests.ConnectionError`
-            - If the network connection to Weaviate fails.
-        - `weaviate.UnexpectedStatusCodeException`
-            - If Weaviate reports a non-OK status.
+            `requests.ConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a non-OK status.
         """
-
         loaded_tenants = [tenant.model_dump() for tenant in tenants]
 
         path = "/schema/" + self.__name + "/tenants"
@@ -53,16 +53,15 @@ class _Tenants:
 
         The collection must have been created with multi-tenancy enabled.
 
-        Parameters:
-        - `tenants`: List of tenant names to remove from the given class.
+        Arguments:
+            `tenants`
+                List of tenant names to remove from the given class.
 
         Raises:
-        - `TypeError`
-            - If 'tenants' has not the correct type.
-        - `requests.ConnectionError`
-            - If the network connection to Weaviate fails.
-        - `weaviate.UnexpectedStatusCodeException`
-            - If Weaviate reports a non-OK status.
+            `requests.ConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a non-OK status.
         """
         path = "/schema/" + self.__name + "/tenants"
         try:
@@ -82,10 +81,10 @@ class _Tenants:
         The collection must have been created with multi-tenancy enabled.
 
         Raises:
-        - `requests.ConnectionError`
-            - If the network connection to Weaviate fails.
-        - `weaviate.UnexpectedStatusCodeException`
-            - If Weaviate reports a non-OK status.
+            `requests.ConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a non-OK status.
         """
         path = "/schema/" + self.__name + "/tenants"
         try:
@@ -103,6 +102,20 @@ class _Tenants:
         return {tenant["name"]: Tenant(**tenant) for tenant in tenant_resp}
 
     def update(self, tenants: List[Tenant]) -> None:
+        """Update the specified tenants for a collection in Weaviate.
+
+        The collection must have been created with multi-tenancy enabled.
+
+        Arguments:
+            `tenants`
+                List of tenants to update for the given collection.
+
+        Raises:
+            `requests.ConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a non-OK status.
+        """
         loaded_tenants = [tenant.model_dump() for tenant in tenants]
 
         path = "/schema/" + self.__name + "/tenants"
