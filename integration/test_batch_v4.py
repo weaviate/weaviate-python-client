@@ -1,7 +1,7 @@
 import uuid
 import warnings
 from dataclasses import dataclass
-from typing import Optional, Sequence, Union
+from typing import List, Optional, Sequence, Union
 
 import pytest
 
@@ -12,6 +12,7 @@ from weaviate.collection.classes.config import (
     Property,
     ReferenceProperty,
 )
+from weaviate.collection.classes.internal import FromReference
 from weaviate.collection.classes.tenants import Tenant
 
 UUID = Union[str, uuid.UUID]
@@ -240,6 +241,49 @@ def test_add_ten_thousand_data_objects(client: weaviate.WeaviateClient):
             )
     objs = client.collection.get("Test").query.fetch_objects(limit=nr_objects).objects
     assert len(objs) == nr_objects
+    client.collection.delete("Test")
+
+
+def test_add_one_hundred_objects_and_references_between_all(client: weaviate.WeaviateClient):
+    """Test adding one hundred objects and references between all of them"""
+
+    def make_refs(uuids: List[uuid.UUID]) -> List[dict]:
+        refs = []
+        for from_ in uuids:
+            tos = uuids.copy()
+            tos.remove(from_)
+            for to in tos:
+                refs.append(
+                    {
+                        "from_object_uuid": from_,
+                        "from_object_class_name": "Test",
+                        "from_property_name": "test",
+                        "to_object_uuid": to,
+                        "to_object_class_name": "Test",
+                    }
+                )
+        return refs
+
+    nr_objects = 100
+    client.batch_v4.configure(num_workers=4)
+    uuids: List[uuid.UUID] = []
+    with client.batch_v4 as batch:
+        for i in range(nr_objects):
+            uuid_ = batch.add_object(
+                class_name="Test",
+                properties={"name": "test" + str(i)},
+            )
+            uuids.append(uuid_)
+        for ref in make_refs(uuids):
+            batch.add_reference(**ref)
+    objs = (
+        client.collection.get("Test")
+        .query.fetch_objects(limit=nr_objects, return_properties=FromReference(link_on="test"))
+        .objects
+    )
+    assert len(objs) == nr_objects
+    for obj in objs:
+        assert len(obj.properties["test"].objects) == nr_objects - 1
     client.collection.delete("Test")
 
 
