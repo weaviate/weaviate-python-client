@@ -19,6 +19,7 @@ from weaviate.collection.classes.config import (
     _VectorIndexType,
 )
 from weaviate.collection.classes.grpc import MetadataQuery, PROPERTIES
+from weaviate.collection.classes.internal import _Object
 from weaviate.collection.classes.types import Properties, TProperties, _check_data_model
 from weaviate.collection.collection_base import _CollectionBase, _CollectionObjectBase
 from weaviate.collection.config import _ConfigCollection
@@ -27,6 +28,7 @@ from weaviate.collection.grpc import _GenerateCollection, _GroupByCollection, _Q
 from weaviate.collection.object_iterator import _ObjectIterator
 from weaviate.collection.tenants import _Tenants
 from weaviate.connect import Connection
+from weaviate.types import UUID
 from weaviate.util import _capitalize_first_letter
 
 
@@ -85,6 +87,24 @@ class _CollectionObject(_CollectionObjectBase, Generic[Properties]):
                 The consistency level to use.
         """
         return _CollectionObject(self._connection, self.name, consistency_level, self.__tenant)
+
+    def __len__(self) -> int:
+        length: int = 0
+        MAX = 10000
+
+        def get(after: Optional[UUID] = None) -> List[_Object[Properties]]:
+            return self.query.fetch_objects(
+                after=after, limit=MAX, return_metadata=MetadataQuery(uuid=True)
+            ).objects
+
+        objs = get()
+        length += len(objs)
+
+        while len(objs) == MAX:
+            objs = get(objs[-1].metadata.uuid)
+            length += len(objs)
+
+        return length
 
     @overload
     def iterator(

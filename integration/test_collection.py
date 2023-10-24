@@ -104,6 +104,19 @@ def test_delete_multiple(client: weaviate.WeaviateClient):
     assert not client.collection.exists(name2)
 
 
+@pytest.mark.parametrize("how_many", [1, 10000, 20000, 20001, 100000])
+def test_collection_length(client: weaviate.WeaviateClient, how_many: int):
+    name = "TestCollectionLength"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        name=name,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
+    )
+    collection.data.insert_many([{"Name": f"name {i}"} for i in range(how_many)])
+    assert len(collection) == how_many
+
+
 @pytest.mark.parametrize("use_typed_dict", [True, False])
 def test_get_with_dict_generic(client: weaviate.WeaviateClient, use_typed_dict: bool):
     name = "TestGetWithDictGeneric"
