@@ -93,6 +93,11 @@ class _CollectionObject(_CollectionObjectBase, Generic[Properties]):
         """
         return _CollectionObject(self._connection, self.name, consistency_level, self.__tenant)
 
+    def __len__(self) -> int:
+        total = self.aggregate.over_all(total_count=True).total_count
+        assert total is not None
+        return total
+
     @overload
     def iterator(
         self,
