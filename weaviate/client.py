@@ -168,6 +168,30 @@ class _ClientBase:
 
 
 class WeaviateClient(_ClientBase):
+    """
+    The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
+
+    WARNING: This client is only compatible with Weaviate v1.22.0 and higher!
+
+    A Client instance creates all the needed objects to interact with Weaviate, and connects all of
+    them to the same Weaviate instance. See below the Attributes of the Client instance. For the
+    per attribute functionality see that attribute's documentation.
+
+    Attributes:
+        `backup`
+            A `Backup` object instance connected to the same Weaviate instance as the Client.
+        `batch`
+            A `_Batch` object instance connected to the same Weaviate instance as the Client.
+        `classification`
+            A `Classification` object instance connected to the same Weaviate instance as the Client.
+        `cluster`
+            A `Cluster` object instance connected to the same Weaviate instance as the Client.
+        `collections`
+            A `_Collections` object instance connected to the same Weaviate instance as the Client.
+        `contextionary`
+            A `Contextionary` object instance connected to the same Weaviate instance as the Client.
+    """
+
     def __init__(
         self,
         connection_params: Optional[ConnectionParams] = None,
@@ -192,17 +216,27 @@ class WeaviateClient(_ClientBase):
             trust_env=config.trust_env,
             startup_period=config.startup_period,
         )
-        self.classification = Classification(self._connection)
-        self.contextionary = Contextionary(self._connection)
-        self.batch = _Batch(self._connection)
+
         self.backup = Backup(self._connection)
+        """This namespace contains all the functionality to backup and restore Weaviate instances."""
+        self.batch = _Batch(self._connection)
+        """This namespace contains all the functionality to upload data in batches to Weaviate."""
+        self.classification = Classification(self._connection)
+        """This namespace contains all the functionality to use Weaviate's classifcation capabilities."""
         self.cluster = Cluster(self._connection)
+        """This namespace contains all the functionality to manage Weaviate clusters."""
         self.collections = _Collections(self._connection)
+        """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
+
+        Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `client.collections.create("MyCollection", ...)`.
+        """
+        self.contextionary = Contextionary(self._connection)
+        """This namespace contains all the functionality to customise Weaviate's text2vec-contextionary capabilities."""
 
 
 class Client(_ClientBase):
     """
-    A python native Weaviate Client class that encapsulates Weaviate functionalities in one object.
+    The v3 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
     A Client instance creates all the needed objects to interact with Weaviate, and connects all of
     them to the same Weaviate instance. See below the Attributes of the Client instance. For the
     per attribute functionality see that attribute's documentation.
