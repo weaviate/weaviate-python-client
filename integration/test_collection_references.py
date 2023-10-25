@@ -4,7 +4,7 @@ from typing import TypedDict
 import pytest as pytest
 import uuid
 
-from weaviate.collection.classes.data import BatchReference, DataObject
+from weaviate.collection.classes.data import DataObject, DataReference
 from weaviate.collection.classes.grpc import FromReference, FromReferenceMultiTarget
 
 
@@ -373,14 +373,15 @@ def test_references_batch(client: weaviate.WeaviateClient):
     ).uuids.values()
 
     batch_return = collection.data.reference_add_many(
-        from_property="ref",
-        refs=[
-            BatchReference(from_uuid=list(uuids_from)[i], to_uuid=list(uuids_to)[i])
+        [
+            DataReference(
+                from_property="ref", from_uuid=list(uuids_from)[i], to_uuid=list(uuids_to)[i]
+            )
             for i in range(num_objects)
         ],
     )
 
-    assert batch_return is None
+    assert batch_return.has_errors is False
 
     objects = collection.query.fetch_objects(
         return_properties=[
@@ -415,13 +416,12 @@ def test_references_batch_with_errors(client: weaviate.WeaviateClient):
     )
 
     batch_return = collection.data.reference_add_many(
-        from_property="doesNotExist",
-        refs=[BatchReference(from_uuid=uuid.uuid4(), to_uuid=uuid.uuid4())],
+        [DataReference(from_property="doesNotExist", from_uuid=uuid.uuid4(), to_uuid=uuid.uuid4())],
     )
-    assert batch_return is not None
-    assert 0 in batch_return
+    assert batch_return.has_errors is True
+    assert 0 in batch_return.errors
     assert (
-        batch_return[0][0].message
+        batch_return.errors[0].message
         == "property doesNotExist does not exist for class TestBatchRefErrorFrom"
     )
 

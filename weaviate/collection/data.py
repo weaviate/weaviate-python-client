@@ -6,25 +6,27 @@ from typing import (
     Optional,
     List,
     Tuple,
-    Union,
     Generic,
     Type,
+    Union,
     cast,
     get_type_hints,
     get_origin,
 )
 
-from google.protobuf.struct_pb2 import Struct
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.collection.classes.batch import _BatchDeleteResult
+from weaviate.collection.classes.batch import (
+    _BatchObject,
+    BatchObjectReturn,
+    _BatchReference,
+    BatchReferenceReturn,
+    _BatchDeleteResult,
+)
 from weaviate.collection.classes.config import ConsistencyLevel
 from weaviate.collection.classes.data import (
-    BatchReference,
     DataObject,
-    Error,
-    _BatchReturn,
-    RefError,
+    DataReference,
 )
 from weaviate.collection.classes.internal import (
     _Object,
@@ -37,21 +39,18 @@ from weaviate.collection.classes.orm import (
 )
 from weaviate.collection.classes.types import Properties, TProperties, _check_data_model
 from weaviate.collection.classes.filters import _Filters
-from weaviate.collection.grpc_batch import _BatchGRPC
+from weaviate.collection.grpc_batch import _BatchGRPC, _validate_props
 from weaviate.collection.rest_batch import _BatchREST
 from weaviate.connect import Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     ObjectAlreadyExistsException,
-    WeaviateInsertInvalidPropertyError,
 )
 from weaviate.util import (
     _datetime_to_string,
     _decode_json_response_dict,
-    _decode_json_response_list,
 )
 from weaviate.types import BEACON, UUID
-from proto.v1 import batch_pb2, base_pb2
 
 
 class _Data:
@@ -67,30 +66,11 @@ class _Data:
         self._consistency_level = consistency_level
         self._tenant = tenant
         self._batch_grpc = _BatchGRPC(connection, consistency_level)
-        self._batch_rest = _BatchREST(connection)
-
-    def __validate_props(self, props: Dict[str, Any], clean_props: bool) -> None:
-        for value in props.values():
-            if isinstance(value, dict):
-                self.__validate_props(value, clean_props=clean_props)
-            else:
-                should_throw = False
-                if "id" in props:
-                    if clean_props:
-                        del props["id"]
-                    else:
-                        should_throw = True
-                if "vector" in props:
-                    if clean_props:
-                        del props["vector"]
-                    else:
-                        should_throw = True
-                if should_throw:
-                    raise WeaviateInsertInvalidPropertyError(props)
+        self._batch_rest = _BatchREST(connection, consistency_level)
 
     def _insert(self, weaviate_obj: Dict[str, Any], clean_props: bool) -> uuid_package.UUID:
         path = "/objects"
-        self.__validate_props(weaviate_obj["properties"], clean_props=clean_props)
+        _validate_props(weaviate_obj["properties"], clean_props=clean_props)
 
         params, weaviate_obj = self.__apply_context_to_params_and_object({}, weaviate_obj)
         try:
@@ -108,45 +88,6 @@ class _Data:
         except KeyError:
             pass
         raise UnexpectedStatusCodeException("Creating object", response)
-
-    def _insert_many(self, objects: List[Dict[str, Any]], clean_props: bool) -> _BatchReturn:
-        weaviate_objs: List[batch_pb2.BatchObject] = [
-            batch_pb2.BatchObject(
-                collection=self.name,
-                vector=obj["vector"] if obj["vector"] is not None else None,
-                uuid=str(obj["uuid"]) if obj["uuid"] is not None else str(uuid_package.uuid4()),
-                properties=self.__translate_properties_from_python_to_grpc(
-                    obj["properties"], clean_props
-                ),
-                tenant=self._tenant,
-            )
-            for obj in objects
-        ]
-
-        errors = self._batch_grpc.batch(weaviate_objs)
-
-        all_responses: List[Union[uuid_package.UUID, Error]] = cast(
-            List[Union[uuid_package.UUID, Error]], list(range(len(weaviate_objs)))
-        )
-        return_success: Dict[int, uuid_package.UUID] = {}
-        return_errors: Dict[int, Error] = {}
-
-        for idx, obj in enumerate(weaviate_objs):
-            if idx in errors:
-                error = Error(errors[idx], original_uuid=objects[idx].get("uuid"))
-                return_errors[idx] = error
-                all_responses[idx] = error
-            else:
-                success = uuid_package.UUID(obj.uuid)
-                return_success[idx] = success
-                all_responses[idx] = success
-
-        return _BatchReturn(
-            uuids=return_success,
-            errors=return_errors,
-            has_errors=len(errors) > 0,
-            all_responses=all_responses,
-        )
 
     def delete_by_id(self, uuid: UUID) -> bool:
         """Delete an object from the collection based on its UUID.
@@ -186,9 +127,7 @@ class _Data:
             `weaviate.UnexpectedStatusCodeException`:
                 If Weaviate reports a non-OK status.
         """
-        return self._batch_rest.delete(
-            self.name, where, verbose, dry_run, self._consistency_level, self._tenant
-        )
+        return self._batch_rest.delete(self.name, where, verbose, dry_run, self._tenant)
 
     def _replace(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
         path = f"/objects/{self.name}/{uuid}"
@@ -263,37 +202,17 @@ class _Data:
             if response.status_code != 200:
                 raise UnexpectedStatusCodeException("Add property reference to object", response)
 
-    def _reference_add_many(
-        self, refs: List[Dict[str, str]]
-    ) -> Optional[Dict[int, List[RefError]]]:
-        params: Dict[str, str] = {}
-        if self._consistency_level is not None:
-            params["consistency_level"] = self._consistency_level
-
-        if self._tenant is not None:
-            for ref in refs:
-                ref["tenant"] = self._tenant
-
-        response = self._connection.post(
-            path="/batch/references", weaviate_object=refs, params=params
+    def _reference_add_many(self, refs: List[DataReference]) -> BatchReferenceReturn:
+        return self._batch_rest.references(
+            [
+                _BatchReference(
+                    from_=f"{BEACON}{self.name}/{ref.from_uuid}/{ref.from_property}",
+                    to=f"{BEACON}{ref.to_uuid}",
+                    tenant=self._tenant,
+                )
+                for ref in refs
+            ]
         )
-
-        error_return: Dict[int, List[RefError]] = {}
-        if response.status_code == 200:
-            response_json = _decode_json_response_list(response, "batch references")
-            assert response_json is not None
-
-            for i, resp in enumerate(response_json):
-                if "errors" in resp["result"] and len(resp["result"]["errors"]["error"]) > 0:
-                    error_return[i] = [
-                        RefError(message=err["message"])
-                        for err in resp["result"]["errors"]["error"]
-                    ]
-
-            if len(error_return) > 0:
-                return error_return
-            return None
-        raise UnexpectedStatusCodeException("Send ref batch", response)
 
     def _reference_delete(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
         params: Dict[str, str] = {}
@@ -372,109 +291,6 @@ class _Data:
             ]
         return value
 
-    def __translate_properties_from_python_to_grpc(
-        self, data: Dict[str, Any], clean_props: bool
-    ) -> batch_pb2.BatchObject.Properties:
-        self.__validate_props(data, clean_props)
-
-        multi_target: List[batch_pb2.BatchObject.MultiTargetRefProps] = []
-        single_target: List[batch_pb2.BatchObject.SingleTargetRefProps] = []
-        non_ref_properties: Struct = Struct()
-        bool_arrays: List[base_pb2.BooleanArrayProperties] = []
-        text_arrays: List[base_pb2.TextArrayProperties] = []
-        int_arrays: List[base_pb2.IntArrayProperties] = []
-        float_arrays: List[base_pb2.NumberArrayProperties] = []
-        object_properties: List[base_pb2.ObjectProperties] = []
-        object_array_properties: List[base_pb2.ObjectArrayProperties] = []
-        for key, val in data.items():
-            if isinstance(val, _Reference):
-                if val.is_multi_target:
-                    multi_target.append(
-                        batch_pb2.BatchObject.MultiTargetRefProps(
-                            uuids=val.uuids_str,
-                            target_collection=val.target_collection,
-                            prop_name=key,
-                        )
-                    )
-                else:
-                    single_target.append(
-                        batch_pb2.BatchObject.SingleTargetRefProps(
-                            uuids=val.uuids_str, prop_name=key
-                        )
-                    )
-            elif isinstance(val, dict):
-                parsed = self.__translate_properties_from_python_to_grpc(val, clean_props)
-                object_properties.append(
-                    base_pb2.ObjectProperties(
-                        prop_name=key,
-                        value=base_pb2.ObjectPropertiesValue(
-                            non_ref_properties=parsed.non_ref_properties,
-                            int_array_properties=parsed.int_array_properties,
-                            text_array_properties=parsed.text_array_properties,
-                            number_array_properties=parsed.number_array_properties,
-                            boolean_array_properties=parsed.boolean_array_properties,
-                            object_properties=parsed.object_properties,
-                            object_array_properties=parsed.object_array_properties,
-                        ),
-                    )
-                )
-            elif isinstance(val, list) and isinstance(val[0], dict):
-                val = cast(List[Dict[str, Any]], val)
-                object_array_properties.append(
-                    base_pb2.ObjectArrayProperties(
-                        values=[
-                            base_pb2.ObjectPropertiesValue(
-                                non_ref_properties=parsed.non_ref_properties,
-                                int_array_properties=parsed.int_array_properties,
-                                text_array_properties=parsed.text_array_properties,
-                                number_array_properties=parsed.number_array_properties,
-                                boolean_array_properties=parsed.boolean_array_properties,
-                                object_properties=parsed.object_properties,
-                                object_array_properties=parsed.object_array_properties,
-                            )
-                            for v in val
-                            if (
-                                parsed := self.__translate_properties_from_python_to_grpc(
-                                    v, clean_props
-                                )
-                            )
-                        ],
-                        prop_name=key,
-                    )
-                )
-            elif isinstance(val, list) and isinstance(val[0], bool):
-                bool_arrays.append(base_pb2.BooleanArrayProperties(prop_name=key, values=val))
-            elif isinstance(val, list) and isinstance(val[0], str):
-                text_arrays.append(base_pb2.TextArrayProperties(prop_name=key, values=val))
-            elif isinstance(val, list) and isinstance(val[0], datetime.datetime):
-                text_arrays.append(
-                    base_pb2.TextArrayProperties(
-                        prop_name=key, values=[_datetime_to_string(x) for x in val]
-                    )
-                )
-            elif isinstance(val, list) and isinstance(val[0], uuid_package.UUID):
-                text_arrays.append(
-                    base_pb2.TextArrayProperties(prop_name=key, values=[str(x) for x in val])
-                )
-            elif isinstance(val, list) and isinstance(val[0], int):
-                int_arrays.append(base_pb2.IntArrayProperties(prop_name=key, values=val))
-            elif isinstance(val, list) and isinstance(val[0], float):
-                float_arrays.append(base_pb2.NumberArrayProperties(prop_name=key, values=val))
-            else:
-                non_ref_properties.update({key: self.__serialize_primitive(val)})
-
-        return batch_pb2.BatchObject.Properties(
-            non_ref_properties=non_ref_properties,
-            multi_target_ref_props=multi_target,
-            single_target_ref_props=single_target,
-            text_array_properties=text_arrays,
-            number_array_properties=float_arrays,
-            int_array_properties=int_arrays,
-            boolean_array_properties=bool_arrays,
-            object_properties=object_properties,
-            object_array_properties=object_array_properties,
-        )
-
 
 class _DataCollection(Generic[Properties], _Data):
     def __init__(
@@ -542,11 +358,11 @@ class _DataCollection(Generic[Properties], _Data):
     def insert_many(
         self,
         objects: List[Union[Properties, DataObject[Properties]]],
-    ) -> _BatchReturn:
+    ) -> BatchObjectReturn:
         """Insert multiple objects into the collection.
 
         Arguments:
-            `objects` REQUIRED
+            `objects`
                 The objects to insert. This can be either a list of `Properties` or `DataObject[Properties]`
                     If you didn't set `data_model` then `Properties` will be `Data[str, Any]` in which case you can insert simple dictionaries here.
                         If you want to insert vectors and UUIDs alongside your properties, you will have to use `DataObject` instead.
@@ -557,22 +373,25 @@ class _DataCollection(Generic[Properties], _Data):
             `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
                 If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
         """
-        return self._insert_many(
+        return self._batch_grpc.objects(
             [
-                {
-                    "properties": obj.properties,
-                    "vector": obj.vector,
-                    "uuid": obj.uuid,
-                }
-                if isinstance(obj, DataObject)
-                else {
-                    "properties": obj,
-                    "vector": None,
-                    "uuid": None,
-                }
+                _BatchObject(
+                    class_name=self.name,
+                    vector=obj.vector,
+                    uuid=obj.uuid,
+                    properties=obj.properties,
+                    tenant=self._tenant,
+                )
+                if isinstance(obj, DataObject) and isinstance(obj.properties, dict)
+                else _BatchObject(
+                    class_name=self.name,
+                    vector=None,
+                    uuid=None,
+                    properties=cast(dict, obj),
+                    tenant=None,
+                )
                 for obj in objects
-            ],
-            False,
+            ]
         )
 
     def replace(
@@ -654,31 +473,24 @@ class _DataCollection(Generic[Properties], _Data):
             ref=ref,
         )
 
-    def reference_add_many(
-        self, from_property: str, refs: List[BatchReference]
-    ) -> Optional[Dict[int, List[RefError]]]:
+    def reference_add_many(self, refs: List[DataReference]) -> BatchReferenceReturn:
         """Create multiple references on a property in batch between objects in this collection and any other object in Weaviate.
 
         Arguments:
-            `from_property`
-                The name of the property in the object in this collection, REQUIRED.
             `refs`
-                The references to add, REQUIRED.
+                The references to add including the prop name, from UUID, and to UUID.
+
+        Returns:
+            `BatchReferenceReturn`
+                A `BatchReferenceReturn` object containing the results of the batch operation.
 
         Raises:
             `requests.ConnectionError`:
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`:
+            `weaviate.UnexpectedStatusCodeException
                 If Weaviate reports a non-OK status.
         """
-        refs_dict = [
-            {
-                "from": BEACON + f"{self.name}/{ref.from_uuid}/{from_property}",
-                "to": BEACON + str(ref.to_uuid),
-            }
-            for ref in refs
-        ]
-        return self._reference_add_many(refs_dict)
+        return self._reference_add_many(refs)
 
     def reference_delete(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
         """Delete a reference from an object within the collection.
@@ -764,20 +576,22 @@ class _DataCollectionModel(Generic[Model], _Data):
         self._insert(weaviate_obj, False)
         return uuid_package.UUID(str(obj.uuid))
 
-    def insert_many(self, objects: List[Model]) -> _BatchReturn:
+    def insert_many(self, objects: List[Model]) -> BatchObjectReturn:
         for obj in objects:
             self.__model.model_validate(obj)
 
         data_objects = [
-            {
-                "properties": obj.props_to_dict(),
-                "uuid": obj.uuid,
-                "vector": obj.vector,
-            }
+            _BatchObject(
+                class_name=self.name,
+                properties=obj.props_to_dict(),
+                tenant=self._tenant,
+                uuid=obj.uuid,
+                vector=obj.vector,
+            )
             for obj in objects
         ]
 
-        return self._insert_many(data_objects, False)
+        return self._batch_grpc.objects(data_objects)
 
     def replace(self, obj: Model, uuid: UUID) -> None:
         self.__model.model_validate(obj)
@@ -827,12 +641,5 @@ class _DataCollectionModel(Generic[Model], _Data):
     def reference_replace(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
         self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_add_many(self, from_property: str, refs: List[BatchReference]) -> None:
-        refs_dict = [
-            {
-                "from": BEACON + f"{self.name}/{ref.from_uuid}/{from_property}",
-                "to": BEACON + str(ref.to_uuid),
-            }
-            for ref in refs
-        ]
-        self._reference_add_many(refs_dict)
+    def reference_add_many(self, refs: List[DataReference]) -> BatchReferenceReturn:
+        return self._reference_add_many(refs)

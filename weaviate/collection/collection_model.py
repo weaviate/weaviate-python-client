@@ -62,9 +62,6 @@ class _CollectionObjectModel(_CollectionObjectBase, Generic[Model]):
 
 
 class _CollectionModel(_CollectionBase):
-    def __init__(self, connection: Connection):
-        super().__init__(connection)
-
     def create(self, config: CollectionModelConfig[Model]) -> _CollectionObjectModel[Model]:
         name = super()._create(config)
         config_name = _capitalize_first_letter(config.model.__name__)

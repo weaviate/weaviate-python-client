@@ -1,7 +1,7 @@
 import warnings
 from datetime import datetime
 from importlib.metadata import version, PackageNotFoundError
-from typing import Optional
+from typing import Literal, Optional
 
 try:
     __version__ = version("weaviate-client")
@@ -153,6 +153,51 @@ class _Warnings:
             message="""Con003: You are setting the endpoint_url alongside model or passage_model & query_model in your Text2Vec-HuggingFace module configuration.
             The model definitions will be ignored in favour of endpoint_url.
             """,
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def batch_executor_is_shutdown() -> None:
+        warnings.warn(
+            message="""Bat001: The BatchExecutor was shutdown, most probably when it exited the `with` statement.
+                It will be initialized again. If you are not `batch` in the `with client.batch as batch`
+                please make sure to shut it down when done importing data: `client.batch.shutdown()`.
+                You can start it again using the `client.batch.start()` method.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def batch_weaviate_overloaded_sleeping(sleep: int) -> None:
+        warnings.warn(
+            message=f"""Bat002: Weaviate is currently overloaded. Sleeping for {sleep} seconds.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def batch_refresh_failed(err: str) -> None:
+        warnings.warn(
+            message=f"""Bat003: The dynamic batch-size could not be refreshed successfully. Algorithm backing off by 10 seconds. {err}""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def batch_retrying_failed_batches_hit_hard_limit(limit: int) -> None:
+        warnings.warn(
+            message=f"""Bat004: Attempts to retry failed objects and/or references have hit the hard limit of {limit}.
+            The failed objects and references can be accessed in client.collection.batch.failed_objects and client.collection.batch.failed_references.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def batch_create_dynamic(type_: Literal["objects", "references"]) -> None:
+        warnings.warn(
+            message=f"""You are tying to manually create {type_} in a dynamic batching environment. If you want to do manual batching, you need to use
+            client.batch.configure() to return a new Batch object with `dynamic=False`.""",
             category=UserWarning,
             stacklevel=1,
         )

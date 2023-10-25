@@ -8,6 +8,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from .auth import AuthCredentials, AuthApiKey
 from .backup import Backup
 from .batch import Batch
+from .collection.batch import _Batch
 from .classification import Classification
 from .cluster import Cluster
 from .collection import _Collection
@@ -205,8 +206,10 @@ class WeaviateClient(_ClientBase):
         self.query = Query(self._connection)
         self.backup = Backup(self._connection)
         self.cluster = Cluster(self._connection)
-        self.collection = _Collection(self._connection)
-        self._collection_model = _CollectionModel(self._connection)  # experimental
+        self.collection = _Collection(_Batch(self._connection), self._connection)
+        self._collection_model = _CollectionModel(
+            _Batch(self._connection), self._connection
+        )  # experimental
 
 
 class Client(_ClientBase):

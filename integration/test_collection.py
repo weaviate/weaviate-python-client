@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_ENCODED
+from weaviate.collection.classes.batch import ErrorObject
 
 from weaviate.collection.collection import _CollectionObject
 from weaviate.collection.classes.config import (
@@ -24,7 +25,6 @@ from weaviate.collection.classes.config import (
 )
 from weaviate.collection.classes.data import (
     DataObject,
-    Error,
 )
 from weaviate.collection.classes.grpc import (
     HybridFusion,
@@ -37,7 +37,7 @@ from weaviate.collection.classes.grpc import (
 from weaviate.collection.classes.internal import ReferenceFactory
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collection.classes.types import Properties
-from weaviate.collection.data import _DataCollection
+from weaviate.collection.data import _Data
 from weaviate.collection.object_iterator import ITERATOR_CACHE_SIZE
 from weaviate.exceptions import (
     InvalidDataModelException,
@@ -127,7 +127,7 @@ def test_data_with_data_model_with_dict_generic(client: weaviate.WeaviateClient)
     col = client.collection.get(name)
     assert isinstance(col, _CollectionObject)
     data = col.data.with_data_model(Right)
-    assert isinstance(data, _DataCollection)
+    assert isinstance(data, _Data)
 
 
 WRONG_GENERIC_ERROR_MSG = "data_model can only be a dict type, e.g. Dict[str, str], or a class that inherits from TypedDict"
@@ -427,7 +427,9 @@ def test_insert_many_error(client: weaviate.WeaviateClient):
     assert len(ret.errors) == 2
     assert 0 in ret.errors and 2 in ret.errors
 
-    assert isinstance(ret.all_responses[0], Error) and isinstance(ret.all_responses[2], Error)
+    assert isinstance(ret.all_responses[0], ErrorObject) and isinstance(
+        ret.all_responses[2], ErrorObject
+    )
     assert isinstance(ret.all_responses[1], uuid.UUID)
 
     client.collection.delete(name)

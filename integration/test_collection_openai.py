@@ -428,6 +428,8 @@ def test_openai_batch_upload(client: weaviate.WeaviateClient):
             DataObject(properties={"text": "bananas are small"}),
         ]
     )
+    if ret.has_errors:
+        print(ret.errors)
     assert not ret.has_errors
 
     objects = collection.query.fetch_objects(return_metadata=MetadataQuery(vector=True)).objects
