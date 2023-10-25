@@ -18,7 +18,7 @@ class BatchObjectsRequest(_message.Message):
 class BatchObject(_message.Message):
     __slots__ = ["uuid", "vector", "properties", "collection", "tenant"]
     class Properties(_message.Message):
-        __slots__ = ["non_ref_properties", "single_target_ref_props", "multi_target_ref_props", "number_array_properties", "int_array_properties", "text_array_properties", "boolean_array_properties"]
+        __slots__ = ["non_ref_properties", "single_target_ref_props", "multi_target_ref_props", "number_array_properties", "int_array_properties", "text_array_properties", "boolean_array_properties", "object_properties", "object_array_properties"]
         NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
         SINGLE_TARGET_REF_PROPS_FIELD_NUMBER: _ClassVar[int]
         MULTI_TARGET_REF_PROPS_FIELD_NUMBER: _ClassVar[int]
@@ -26,6 +26,8 @@ class BatchObject(_message.Message):
         INT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
         TEXT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
         BOOLEAN_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+        OBJECT_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+        OBJECT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
         non_ref_properties: _struct_pb2.Struct
         single_target_ref_props: _containers.RepeatedCompositeFieldContainer[BatchObject.SingleTargetRefProps]
         multi_target_ref_props: _containers.RepeatedCompositeFieldContainer[BatchObject.MultiTargetRefProps]
@@ -33,7 +35,9 @@ class BatchObject(_message.Message):
         int_array_properties: _containers.RepeatedCompositeFieldContainer[_base_pb2.IntArrayProperties]
         text_array_properties: _containers.RepeatedCompositeFieldContainer[_base_pb2.TextArrayProperties]
         boolean_array_properties: _containers.RepeatedCompositeFieldContainer[_base_pb2.BooleanArrayProperties]
-        def __init__(self, non_ref_properties: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., single_target_ref_props: _Optional[_Iterable[_Union[BatchObject.SingleTargetRefProps, _Mapping]]] = ..., multi_target_ref_props: _Optional[_Iterable[_Union[BatchObject.MultiTargetRefProps, _Mapping]]] = ..., number_array_properties: _Optional[_Iterable[_Union[_base_pb2.NumberArrayProperties, _Mapping]]] = ..., int_array_properties: _Optional[_Iterable[_Union[_base_pb2.IntArrayProperties, _Mapping]]] = ..., text_array_properties: _Optional[_Iterable[_Union[_base_pb2.TextArrayProperties, _Mapping]]] = ..., boolean_array_properties: _Optional[_Iterable[_Union[_base_pb2.BooleanArrayProperties, _Mapping]]] = ...) -> None: ...
+        object_properties: _containers.RepeatedCompositeFieldContainer[_base_pb2.ObjectProperties]
+        object_array_properties: _containers.RepeatedCompositeFieldContainer[_base_pb2.ObjectArrayProperties]
+        def __init__(self, non_ref_properties: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., single_target_ref_props: _Optional[_Iterable[_Union[BatchObject.SingleTargetRefProps, _Mapping]]] = ..., multi_target_ref_props: _Optional[_Iterable[_Union[BatchObject.MultiTargetRefProps, _Mapping]]] = ..., number_array_properties: _Optional[_Iterable[_Union[_base_pb2.NumberArrayProperties, _Mapping]]] = ..., int_array_properties: _Optional[_Iterable[_Union[_base_pb2.IntArrayProperties, _Mapping]]] = ..., text_array_properties: _Optional[_Iterable[_Union[_base_pb2.TextArrayProperties, _Mapping]]] = ..., boolean_array_properties: _Optional[_Iterable[_Union[_base_pb2.BooleanArrayProperties, _Mapping]]] = ..., object_properties: _Optional[_Iterable[_Union[_base_pb2.ObjectProperties, _Mapping]]] = ..., object_array_properties: _Optional[_Iterable[_Union[_base_pb2.ObjectArrayProperties, _Mapping]]] = ...) -> None: ...
     class SingleTargetRefProps(_message.Message):
         __slots__ = ["uuids", "prop_name"]
         UUIDS_FIELD_NUMBER: _ClassVar[int]

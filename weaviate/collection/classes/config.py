@@ -41,6 +41,8 @@ class DataType(str, Enum):
         GEO_COORDINATES: Geo coordinates data type.
         BLOB: Blob data type.
         PHONE_NUMBER: Phone number data type.
+        OBJECT: Object data type.
+        OBJECT_ARRAY: Object array data type.
     """
 
     TEXT = "text"
@@ -58,6 +60,8 @@ class DataType(str, Enum):
     GEO_COORDINATES = "geoCoordinates"
     BLOB = "blob"
     PHONE_NUMBER = "phoneNumber"
+    OBJECT = "object"
+    OBJECT_ARRAY = "object[]"
 
 
 class _VectorIndexType(str, Enum):
@@ -1318,6 +1322,9 @@ class Property(_ConfigCreateModel):
     indexFilterable: Optional[bool] = Field(default=None, alias="index_filterable")
     indexSearchable: Optional[bool] = Field(default=None, alias="index_searchable")
     description: Optional[str] = Field(default=None)
+    nestedProperties: Optional[Union["Property", List["Property"]]] = Field(
+        default=None, alias="nested_properties"
+    )
     skip_vectorization: bool = Field(default=False)
     tokenization: Optional[Tokenization] = Field(default=None)
     vectorize_property_name: bool = Field(default=True)
@@ -1340,6 +1347,12 @@ class Property(_ConfigCreateModel):
             }
         del ret_dict["skip_vectorization"]
         del ret_dict["vectorize_property_name"]
+        if self.nestedProperties is not None:
+            ret_dict["nestedProperties"] = (
+                [prop._to_dict() for prop in self.nestedProperties]
+                if isinstance(self.nestedProperties, list)
+                else [self.nestedProperties._to_dict()]
+            )
         return ret_dict
 
 

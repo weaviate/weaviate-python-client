@@ -10,4 +10,3 @@ python3 -m grpc_tools.protoc  -I ../../weaviate/grpc/proto --python_out=./ --pyi
 sed -i ''  's/from v1/from proto.v1/g' v1/*.py
 
 echo "done"
-

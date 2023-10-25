@@ -22,6 +22,7 @@ from weaviate.collection.classes.grpc import (
     HybridFusion,
     FromReference,
     FromReferenceMultiTarget,
+    FromNested,
     MetadataQuery,
     Move,
     PROPERTIES,
@@ -437,6 +438,9 @@ class _QueryGRPC(_BaseGRPC):
             metadata = tuple(metadata_list)
 
         try:
+            print(
+                self._translate_properties_from_python_to_grpc(self._default_props),
+            )
             assert self._connection.grpc_stub is not None
             res: SearchResponse  # According to PEP-0526
             res, _ = self._connection.grpc_stub.Search.with_call(
@@ -460,7 +464,7 @@ class _QueryGRPC(_BaseGRPC):
                     )
                     if self._near_object_obj is not None
                     else None,
-                    properties=self._convert_references_to_grpc(self._default_props),
+                    properties=self._translate_properties_from_python_to_grpc(self._default_props),
                     metadata=self._metadata_to_grpc(self._metadata)
                     if self._metadata is not None
                     else None,
@@ -543,15 +547,23 @@ class _QueryGRPC(_BaseGRPC):
             is_consistent=metadata.is_consistent,
         )
 
-    def _convert_references_to_grpc(
+    def _translate_properties_from_python_to_grpc(
         self, properties: Set[PROPERTY]
     ) -> search_get_pb2.PropertiesRequest:
+        def resolve_property(prop: FromNested) -> search_get_pb2.ObjectPropertiesRequest:
+            props = prop.properties if isinstance(prop.properties, list) else [prop.properties]
+            return search_get_pb2.ObjectPropertiesRequest(
+                prop_name=prop.name,
+                primitive_properties=[p for p in props if isinstance(p, str)],
+                object_properties=[resolve_property(p) for p in props if isinstance(p, FromNested)],
+            )
+
         return search_get_pb2.PropertiesRequest(
             non_ref_properties=[prop for prop in properties if isinstance(prop, str)],
             ref_properties=[
                 search_get_pb2.RefPropertiesRequest(
                     reference_property=prop.link_on,
-                    properties=self._convert_references_to_grpc(
+                    properties=self._translate_properties_from_python_to_grpc(
                         self.__convert_properties_to_set(prop.return_properties)
                     )
                     if prop.return_properties is not None
@@ -565,6 +577,9 @@ class _QueryGRPC(_BaseGRPC):
                 )
                 for prop in properties
                 if isinstance(prop, FromReference)
+            ],
+            object_properties=[
+                resolve_property(prop) for prop in properties if isinstance(prop, FromNested)
             ],
         )
 
