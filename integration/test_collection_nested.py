@@ -14,9 +14,7 @@ from weaviate.connect.connection import ConnectionParams
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.WeaviateClient(
-        ConnectionParams.from_url("http://localhost:8080", grpc_port=50051)
-    )
+    client = weaviate.ClientV4(ConnectionParams.from_url("http://localhost:8080", grpc_port=50051))
     client.schema.delete_all()
     yield client
     client.schema.delete_all()

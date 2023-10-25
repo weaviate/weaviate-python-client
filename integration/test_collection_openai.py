@@ -23,7 +23,7 @@ def client():
     connection_params = weaviate.ConnectionParams.from_url(
         "http://localhost:8086", 50057
     )  # ports with generative module
-    client = weaviate.WeaviateClient(
+    client = weaviate.ClientV4(
         connection_params,
         additional_headers={"X-OpenAI-Api-Key": api_key},
     )
@@ -33,7 +33,7 @@ def client():
 
 
 @pytest.mark.parametrize("parameter,answer", [("text", "Yes"), ("content", "No")])
-def test_generative_search_single(client: weaviate.WeaviateClient, parameter: str, answer: str):
+def test_generative_search_single(client: weaviate.ClientV4, parameter: str, answer: str):
     name = "TestGenerativeSearchOpenAISingle"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -64,7 +64,7 @@ def test_generative_search_single(client: weaviate.WeaviateClient, parameter: st
     "prop,answer", [(["text"], "apples bananas"), (["content"], "bananas apples")]
 )
 def test_fetch_objects_generate_search_grouped(
-    client: weaviate.WeaviateClient, prop: List[str], answer: str
+    client: weaviate.ClientV4, prop: List[str], answer: str
 ):
     name = "TestGenerativeSearchOpenAIGroup"
     client.collection.delete(name)
@@ -92,7 +92,7 @@ def test_fetch_objects_generate_search_grouped(
     assert res.generated == answer
 
 
-def test_fetch_objects_generate_search_grouped_all_props(client: weaviate.WeaviateClient):
+def test_fetch_objects_generate_search_grouped_all_props(client: weaviate.ClientV4):
     name = "TestGenerativeSearchOpenAIGroupWithProp"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -128,7 +128,7 @@ def test_fetch_objects_generate_search_grouped_all_props(client: weaviate.Weavia
     assert res.generated == "Teddy cats"
 
 
-def test_fetch_objects_generate_search_grouped_specified_prop(client: weaviate.WeaviateClient):
+def test_fetch_objects_generate_search_grouped_specified_prop(client: weaviate.ClientV4):
     name = "TestGenerativeSearchOpenAIGroupWithProp"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -165,7 +165,7 @@ def test_fetch_objects_generate_search_grouped_specified_prop(client: weaviate.W
     assert res.generated == "apples bananas"
 
 
-def test_fetch_objects_generate_with_everything(client: weaviate.WeaviateClient):
+def test_fetch_objects_generate_with_everything(client: weaviate.ClientV4):
     name = "TestGetGenerativeSearchOpenAI"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -204,7 +204,7 @@ def test_fetch_objects_generate_with_everything(client: weaviate.WeaviateClient)
         assert obj.generated == "Yes"
 
 
-def test_bm25_generate_with_everything(client: weaviate.WeaviateClient):
+def test_bm25_generate_with_everything(client: weaviate.ClientV4):
     name = "TestBM25GenerativeSearchOpenAI"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -245,7 +245,7 @@ def test_bm25_generate_with_everything(client: weaviate.WeaviateClient):
         assert obj.generated == "Yes"
 
 
-def test_hybrid_generate_with_everything(client: weaviate.WeaviateClient):
+def test_hybrid_generate_with_everything(client: weaviate.ClientV4):
     name = "TestHybridGenerativeSearchOpenAI"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -286,7 +286,7 @@ def test_hybrid_generate_with_everything(client: weaviate.WeaviateClient):
         assert obj.generated == "No"
 
 
-def test_near_text_generate_with_everything(client: weaviate.WeaviateClient):
+def test_near_text_generate_with_everything(client: weaviate.ClientV4):
     name = "TestNearTextGenerativeSearchOpenAI"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -327,7 +327,7 @@ def test_near_text_generate_with_everything(client: weaviate.WeaviateClient):
     assert res.objects[1].generated == "Yes"
 
 
-def test_near_vector_generate_with_everything(client: weaviate.WeaviateClient):
+def test_near_vector_generate_with_everything(client: weaviate.ClientV4):
     name = "TestNearTextGenerativeSearchOpenAI"
     client.collection.delete(name)
     collection = client.collection.create(
@@ -373,7 +373,7 @@ def test_openapi_invalid_key():
     connection_params = weaviate.ConnectionParams.from_url(
         "http://localhost:8086", 50057
     )  # ports with generative module
-    local_client = weaviate.WeaviateClient(
+    local_client = weaviate.ClientV4(
         connection_params,
         additional_headers={"X-OpenAI-Api-Key": "IamNotValid"},
     )
@@ -394,7 +394,7 @@ def test_openapi_no_module():
     connection_params = weaviate.ConnectionParams.from_url(
         "http://localhost:8080", 50051
     )  # ports without generative module
-    local_client = weaviate.WeaviateClient(
+    local_client = weaviate.ClientV4(
         connection_params,
         additional_headers={"X-OpenAI-Api-Key": "doesnt matter"},
     )
@@ -411,7 +411,7 @@ def test_openapi_no_module():
         collection.generate.fetch_objects(single_prompt="tell a joke based on {text}")
 
 
-def test_openai_batch_upload(client: weaviate.WeaviateClient):
+def test_openai_batch_upload(client: weaviate.ClientV4):
     name = "TestGenerativeSearchOpenAIBatch"
     client.collection.delete(name)
     collection = client.collection.create(

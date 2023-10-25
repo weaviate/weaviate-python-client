@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Tuple, Union
+
+from pydantic import BaseModel, Field
 
 
 @dataclass
@@ -35,3 +37,11 @@ class Config:
             raise TypeError(
                 f"grpc_secure_experimental must be {bool}, received {type(self.grpc_secure_experimental)}"
             )
+
+
+class AdditionalConfig(BaseModel):
+    connection: ConnectionConfig = Field(default_factory=ConnectionConfig)
+    proxies: Union[dict, str, None] = Field(default=None)
+    startup_period: int = Field(default=5)
+    timeout: Tuple[int, int] = Field(default_factory=lambda: (10, 60))
+    trust_env: bool = Field(default=False)

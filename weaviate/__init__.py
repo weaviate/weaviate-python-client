@@ -34,8 +34,8 @@ __version__ : str
 
 __all__ = [
     "Client",
+    "ClientV4",
     "WeaviateClient",
-    "ClientFactory",
     "AuthClientCredentials",
     "AuthClientPassword",
     "AuthBearerToken",
@@ -48,6 +48,7 @@ __all__ = [
     "ConsistencyLevel",
     "WeaviateErrorRetryConf",
     "EmbeddedOptions",
+    "AdditionalConfig",
     "Config",
     "ConnectionConfig",
     "ConnectionParams",
@@ -69,7 +70,7 @@ except PackageNotFoundError:
 
 from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken, AuthApiKey
 from .batch.crud_batch import WeaviateErrorRetryConf
-from .client import Client, WeaviateClient, ClientFactory
+from .client import Client, ClientV4, WeaviateClient
 from .connect.connection import ConnectionParams, ProtocolParams
 from .data.replication import ConsistencyLevel
 from .schema.crud_schema import Tenant, TenantActivityStatus
@@ -81,7 +82,7 @@ from .exceptions import (
     SchemaValidationException,
     WeaviateStartUpError,
 )
-from .config import Config, ConnectionConfig
+from .config import AdditionalConfig, Config, ConnectionConfig
 from .gql.get import AdditionalProperties, LinkTo
 
 if not sys.warnoptions:
