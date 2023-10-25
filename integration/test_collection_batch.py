@@ -38,8 +38,8 @@ class MockTensorFlow:
 
 
 @pytest.fixture(scope="function")
-def client() -> weaviate.ClientV4:
-    client = weaviate.WeaviateClient.connect_to_local()
+def client() -> weaviate.WeaviateClient:
+    client = weaviate.Connect.to_local()
     client.collections.delete_all()
     client.collections.create(
         name="Test",
@@ -58,7 +58,9 @@ def client() -> weaviate.ClientV4:
     [None, [1, 2, 3], MockNumpyTorch([1, 2, 3]), MockTensorFlow([1, 2, 3])],
 )
 @pytest.mark.parametrize("uuid", [None, uuid.uuid4(), str(uuid.uuid4()), uuid.uuid4().hex])
-def test_add_object(client: weaviate.ClientV4, uuid: Optional[UUID], vector: Optional[Sequence]):
+def test_add_object(
+    client: weaviate.WeaviateClient, uuid: Optional[UUID], vector: Optional[Sequence]
+):
     with client.batch as batch:
         batch.add_object(
             class_name="Test",
@@ -76,7 +78,7 @@ def test_add_object(client: weaviate.ClientV4, uuid: Optional[UUID], vector: Opt
 @pytest.mark.parametrize("to_object_uuid", [uuid.uuid4().hex, uuid.uuid4(), str(uuid.uuid4())])
 @pytest.mark.parametrize("to_object_class_name", [None, "Test"])
 def test_add_reference(
-    client: weaviate.ClientV4,
+    client: weaviate.WeaviateClient,
     from_object_uuid: UUID,
     to_object_uuid: UUID,
     to_object_class_name: Optional[str],
@@ -115,7 +117,9 @@ def test_add_reference(
 
 
 def test_add_object_batch_with_tenant():
-    client = weaviate.ClientV4(weaviate.ConnectionParams.from_url("http://localhost:8080", 50051))
+    client = weaviate.WeaviateClient(
+        weaviate.ConnectionParams.from_url("http://localhost:8080", 50051)
+    )
 
     # create two classes and add 5 tenants each
     class_names = ["BatchTestMultiTenant1", "BatchTestMultiTenant2"]
@@ -153,7 +157,9 @@ def test_add_object_batch_with_tenant():
 
 
 def test_add_ref_batch_with_tenant():
-    client = weaviate.ClientV4(weaviate.ConnectionParams.from_url("http://localhost:8080", 50051))
+    client = weaviate.WeaviateClient(
+        weaviate.ConnectionParams.from_url("http://localhost:8080", 50051)
+    )
     client.collections.delete_all()
 
     # create two classes and add 5 tenants each
@@ -224,7 +230,7 @@ def test_add_ref_batch_with_tenant():
         client.collections.delete(name)
 
 
-def test_add_ten_thousand_data_objects(client: weaviate.ClientV4):
+def test_add_ten_thousand_data_objects(client: weaviate.WeaviateClient):
     """Test adding ten thousand data objects"""
     nr_objects = 10000
     client.batch.configure(num_workers=4)
@@ -257,7 +263,7 @@ def make_refs(uuids: List[uuid.UUID]) -> List[dict]:
     return refs
 
 
-def test_add_one_hundred_objects_and_references_between_all(client: weaviate.ClientV4):
+def test_add_one_hundred_objects_and_references_between_all(client: weaviate.WeaviateClient):
     """Test adding one hundred objects and references between all of them"""
 
     nr_objects = 100
@@ -283,7 +289,7 @@ def test_add_one_hundred_objects_and_references_between_all(client: weaviate.Cli
     client.collections.delete("Test")
 
 
-def test_add_bad_prop(client: weaviate.ClientV4):
+def test_add_bad_prop(client: weaviate.WeaviateClient):
     """Test adding a data object with a bad property"""
     with warnings.catch_warnings():
         # Tests that no warning is emitted when the batch is not configured to retry failed objects
@@ -306,7 +312,7 @@ def test_add_bad_prop(client: weaviate.ClientV4):
         assert len(client.batch.failed_objects()) == 1
 
 
-def test_add_bad_ref(client: weaviate.ClientV4):
+def test_add_bad_ref(client: weaviate.WeaviateClient):
     """Test adding a reference with a bad property name"""
     with warnings.catch_warnings():
         # Tests that no warning is emitted when the batch is not configured to retry failed references
@@ -335,7 +341,7 @@ def test_add_bad_ref(client: weaviate.ClientV4):
         assert len(client.batch.failed_references()) == 1
 
 
-def test_manual_batching(client: weaviate.ClientV4):
+def test_manual_batching(client: weaviate.WeaviateClient):
     client.batch.configure(dynamic=False)
     uuids: List[uuid.UUID] = []
     for _ in range(10):

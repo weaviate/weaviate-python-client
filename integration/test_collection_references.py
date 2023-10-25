@@ -29,13 +29,13 @@ from weaviate.collection.grpc import MetadataQuery
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.WeaviateClient.connect_to_local()
+    client = weaviate.Connect.to_local()
     client.collections.delete_all()
     yield client
     client.collections.delete_all()
 
 
-def test_reference_add_delete_replace(client: weaviate.ClientV4):
+def test_reference_add_delete_replace(client: weaviate.WeaviateClient):
     ref_collection = client.collections.create(
         name="RefClass2", vectorizer_config=Configure.Vectorizer.none()
     )
@@ -73,7 +73,7 @@ def test_reference_add_delete_replace(client: weaviate.ClientV4):
     client.collections.delete("RefClass2")
 
 
-def test_mono_references_grpc(client: weaviate.ClientV4):
+def test_mono_references_grpc(client: weaviate.WeaviateClient):
     A = client.collections.create(
         name="A",
         vectorizer_config=Configure.Vectorizer.none(),
@@ -163,7 +163,7 @@ def test_mono_references_grpc(client: weaviate.ClientV4):
     )
 
 
-def test_mono_references_grpc_typed_dicts(client: weaviate.ClientV4):
+def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient):
     client.collections.delete("ATypedDicts")
     client.collections.delete("BTypedDicts")
     client.collections.delete("CTypedDicts")
@@ -255,7 +255,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.ClientV4):
     )
 
 
-def test_multi_references_grpc(client: weaviate.ClientV4):
+def test_multi_references_grpc(client: weaviate.WeaviateClient):
     client.collections.delete("A")
     client.collections.delete("B")
     client.collections.delete("C")
@@ -338,7 +338,7 @@ def test_multi_references_grpc(client: weaviate.ClientV4):
     client.collections.delete("C")
 
 
-def test_references_batch(client: weaviate.ClientV4):
+def test_references_batch(client: weaviate.WeaviateClient):
     name_ref_to = "TestBatchRefTo"
     name_ref_from = "TestBatchRefFrom"
 
@@ -389,7 +389,7 @@ def test_references_batch(client: weaviate.ClientV4):
         assert obj.properties["num"] == obj.properties["ref"].objects[0].properties["num"]
 
 
-def test_references_batch_with_errors(client: weaviate.ClientV4):
+def test_references_batch_with_errors(client: weaviate.WeaviateClient):
     name_ref_to = "TestBatchRefErrorTo"
     name_ref_from = "TestBatchRefErrorFrom"
 
@@ -421,7 +421,7 @@ def test_references_batch_with_errors(client: weaviate.ClientV4):
     )
 
 
-def test_references_with_string_syntax(client: weaviate.ClientV4):
+def test_references_with_string_syntax(client: weaviate.WeaviateClient):
     name1 = "TestReferencesWithStringSyntaxA"
     name2 = "TestReferencesWithStringSyntaxB"
     client.collections.delete(name1)

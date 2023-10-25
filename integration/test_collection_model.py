@@ -38,7 +38,7 @@ pytest.skip(allow_module_level=True)
 @pytest.fixture(scope="module")
 def client():
     connection_params = weaviate.ConnectionParams.from_url("http://localhost:8080", 50051)
-    client = weaviate.ClientV4(connection_params)
+    client = weaviate.WeaviateClient(connection_params)
     client._collection_model.delete(Group)
     collection = client._collection_model.create(
         CollectionModelConfig[Group](model=Group, vectorizer_config=Configure.Vectorizer.none())
@@ -48,7 +48,7 @@ def client():
     yield client
 
 
-def test_with_existing_collection(client: weaviate.ClientV4):
+def test_with_existing_collection(client: weaviate.WeaviateClient):
     obj = client._collection_model.get(Group).data.get_by_id(REF_TO_UUID)
     assert obj.properties.name == "Name"
 
@@ -65,7 +65,7 @@ def test_with_existing_collection(client: weaviate.ClientV4):
     ],
 )
 @pytest.mark.parametrize("optional", [True, False])
-def test_types(client: weaviate.ClientV4, member_type, value, optional: bool):
+def test_types(client: weaviate.WeaviateClient, member_type, value, optional: bool):
     if optional:
         member_type = Optional[member_type]
 
@@ -101,7 +101,9 @@ def test_types(client: weaviate.ClientV4, member_type, value, optional: bool):
         (Optional[UUIDS], Reference[Group], [str(REF_TO_UUID)], "Group"),
     ],
 )
-def test_types_annotates(client: weaviate.ClientV4, member_type, annotation, value, expected: str):
+def test_types_annotates(
+    client: weaviate.WeaviateClient, member_type, annotation, value, expected: str
+):
     class ModelTypes(BaseProperty):
         name: Annotated[member_type, annotation]
 
@@ -121,7 +123,7 @@ def test_types_annotates(client: weaviate.ClientV4, member_type, annotation, val
     assert object_get.properties.name == value
 
 
-def test_create_and_delete(client: weaviate.ClientV4):
+def test_create_and_delete(client: weaviate.WeaviateClient):
     class DeleteModel(BaseProperty):
         name: int
 
@@ -137,7 +139,7 @@ def test_create_and_delete(client: weaviate.ClientV4):
     assert not client._collection_model.exists(DeleteModel)
 
 
-def test_search(client: weaviate.ClientV4):
+def test_search(client: weaviate.WeaviateClient):
     class SearchTest(BaseProperty):
         name: str
 
@@ -156,7 +158,7 @@ def test_search(client: weaviate.ClientV4):
     assert objects[0].properties.name == "test name"
 
 
-def test_tenants(client: weaviate.ClientV4):
+def test_tenants(client: weaviate.WeaviateClient):
     class TenantsTest(BaseProperty):
         name: str
 
@@ -182,7 +184,7 @@ def test_tenants(client: weaviate.ClientV4):
     assert len(tenants) == 0
 
 
-def test_tenants_activity(client: weaviate.ClientV4):
+def test_tenants_activity(client: weaviate.WeaviateClient):
     class TenantsUpdateTest(BaseProperty):
         name: str
 
@@ -207,7 +209,7 @@ def test_tenants_activity(client: weaviate.ClientV4):
     assert tenants["3"].activity_status == TenantActivityStatus.HOT
 
 
-def test_tenants_update(client: weaviate.ClientV4):
+def test_tenants_update(client: weaviate.WeaviateClient):
     class TenantsUpdateTest(BaseProperty):
         name: str
 
@@ -228,7 +230,7 @@ def test_tenants_update(client: weaviate.ClientV4):
     assert tenants["1"].activity_status == TenantActivityStatus.COLD
 
 
-def test_multi_searches(client: weaviate.ClientV4):
+def test_multi_searches(client: weaviate.WeaviateClient):
     class TestMultiSearches(BaseProperty):
         name: str
 
@@ -259,7 +261,7 @@ def test_multi_searches(client: weaviate.ClientV4):
 
 
 @pytest.mark.skip(reason="ORM models do not support references yet")
-def test_multi_searches_with_references(client: weaviate.ClientV4):
+def test_multi_searches_with_references(client: weaviate.WeaviateClient):
     class TestMultiSearchesWithReferences(BaseProperty):
         name: Optional[str] = None
         group: Optional[Reference[Group]] = None
@@ -297,7 +299,7 @@ def test_multi_searches_with_references(client: weaviate.ClientV4):
     assert objects[0].metadata.last_update_time_unix is None
 
 
-def test_search_with_tenant(client: weaviate.ClientV4):
+def test_search_with_tenant(client: weaviate.WeaviateClient):
     class TestTenantSearch(BaseProperty):
         name: str
 
@@ -342,7 +344,7 @@ def make_list() -> List[int]:
     ],
 )
 def test_update_properties(
-    client: weaviate.ClientV4,
+    client: weaviate.WeaviateClient,
     member_type: type,
     value_to_add,
     default,
@@ -403,7 +405,7 @@ def test_update_properties(
         assert second.properties.number == value_to_add
 
 
-def test_empty_search_returns_everything(client: weaviate.ClientV4):
+def test_empty_search_returns_everything(client: weaviate.WeaviateClient):
     class TestReturnEverythingORM(BaseProperty):
         name: Optional[str] = None
 
@@ -426,7 +428,7 @@ def test_empty_search_returns_everything(client: weaviate.ClientV4):
 
 
 @pytest.mark.skip(reason="ORM models do not support empty properties in search yet")
-def test_empty_return_properties(client: weaviate.ClientV4):
+def test_empty_return_properties(client: weaviate.WeaviateClient):
     class TestEmptyProperties(BaseProperty):
         name: str
 
@@ -444,7 +446,7 @@ def test_empty_return_properties(client: weaviate.ClientV4):
 
 
 @pytest.mark.skip(reason="ORM models do not support updating reference properties yet")
-def test_update_reference_property(client: weaviate.ClientV4):
+def test_update_reference_property(client: weaviate.WeaviateClient):
     uuid_first: Optional[uuid.UUID] = None
 
     def create_original_collection():
@@ -470,7 +472,7 @@ def test_update_reference_property(client: weaviate.ClientV4):
     client._collection_model.update(TestRefPropUpdate)
 
 
-def test_model_with_datetime_property(client: weaviate.ClientV4):
+def test_model_with_datetime_property(client: weaviate.WeaviateClient):
     class TestDatetime(BaseProperty):
         name: str
         date: datetime

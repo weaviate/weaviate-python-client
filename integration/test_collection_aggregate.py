@@ -11,14 +11,14 @@ from weaviate.util import file_encoder_b64
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.WeaviateClient.connect_to_local()
+    client = weaviate.Connect.to_local()
     client.collections.delete_all()
     yield client
     client.collections.delete_all()
 
 
 @pytest.mark.parametrize("how_many", [1, 10000, 20000, 20001, 100000])
-def test_collection_length(client: weaviate.ClientV4, how_many: int):
+def test_collection_length(client: weaviate.WeaviateClient, how_many: int):
     """Uses .aggregate behind-the-scenes"""
     name = "TestCollectionLength"
     client.collections.delete(name)
@@ -31,7 +31,7 @@ def test_collection_length(client: weaviate.ClientV4, how_many: int):
     assert len(collection) == how_many
 
 
-def test_simple_aggregation(client: weaviate.ClientV4):
+def test_simple_aggregation(client: weaviate.WeaviateClient):
     name = "TestSimpleAggregation"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -55,7 +55,7 @@ def test_simple_aggregation(client: weaviate.ClientV4):
         ({"distance": 0.9}, 2),
     ],
 )
-def test_near_object_aggregation(client: weaviate.ClientV4, option: dict, expected_len: int):
+def test_near_object_aggregation(client: weaviate.WeaviateClient, option: dict, expected_len: int):
     name = "TestNearObjectAggregation"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -91,7 +91,7 @@ def test_near_object_aggregation(client: weaviate.ClientV4, option: dict, expect
         ]
 
 
-def test_near_object_missing_param(client: weaviate.ClientV4):
+def test_near_object_missing_param(client: weaviate.WeaviateClient):
     name = "TestNearVectorMissingParam"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -129,7 +129,7 @@ def test_near_object_missing_param(client: weaviate.ClientV4):
         ({"distance": 0.9}, 2),
     ],
 )
-def test_near_vector_aggregation(client: weaviate.ClientV4, option: dict, expected_len: int):
+def test_near_vector_aggregation(client: weaviate.WeaviateClient, option: dict, expected_len: int):
     name = "TestNearVectorAggregation"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -166,7 +166,7 @@ def test_near_vector_aggregation(client: weaviate.ClientV4, option: dict, expect
         ]
 
 
-def test_near_vector_missing_param(client: weaviate.ClientV4):
+def test_near_vector_missing_param(client: weaviate.WeaviateClient):
     name = "TestNearVectorMissingParam"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -202,7 +202,7 @@ def test_near_vector_missing_param(client: weaviate.ClientV4):
         ({"distance": 0.9}, 2),
     ],
 )
-def test_near_text_aggregation(client: weaviate.ClientV4, option: dict, expected_len: int):
+def test_near_text_aggregation(client: weaviate.WeaviateClient, option: dict, expected_len: int):
     name = "TestNearTextAggregation"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -238,7 +238,7 @@ def test_near_text_aggregation(client: weaviate.ClientV4, option: dict, expected
         ]
 
 
-def test_near_text_missing_param(client: weaviate.ClientV4):
+def test_near_text_missing_param(client: weaviate.WeaviateClient):
     name = "TestNearTextMissingParam"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -264,7 +264,7 @@ def test_near_text_missing_param(client: weaviate.ClientV4):
 
 
 @pytest.mark.parametrize("option", [{"object_limit": 1}, {"certainty": 0.9}, {"distance": 0.1}])
-def test_near_image_aggregation(client: weaviate.ClientV4, option: dict):
+def test_near_image_aggregation(client: weaviate.WeaviateClient, option: dict):
     name = "TestNearImageAggregation"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -286,7 +286,7 @@ def test_near_image_aggregation(client: weaviate.ClientV4, option: dict):
     assert res.properties["rating"].maximum == 9
 
 
-def test_near_image_missing_param(client: weaviate.ClientV4):
+def test_near_image_missing_param(client: weaviate.WeaviateClient):
     name = "TestNearImageMissingParam"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -314,7 +314,7 @@ def test_near_image_missing_param(client: weaviate.ClientV4):
     )
 
 
-def test_group_by_aggregation(client: weaviate.ClientV4):
+def test_group_by_aggregation(client: weaviate.WeaviateClient):
     name = "TestGroupByAggregation"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -359,7 +359,7 @@ def test_group_by_aggregation(client: weaviate.ClientV4):
 
 
 @pytest.mark.skip(reason="Validation logic is not robust enough currently")
-def test_mistake_in_usage(client: weaviate.ClientV4):
+def test_mistake_in_usage(client: weaviate.WeaviateClient):
     collection = client.collections.get("TestMistakeInUsage")
     with pytest.raises(TypeError) as e:
         collection.aggregate.over_all([Metrics("text", DataType.TEXT)])
@@ -375,7 +375,7 @@ def test_mistake_in_usage(client: weaviate.ClientV4):
     )
 
 
-def test_all_available_aggregations(client: weaviate.ClientV4):
+def test_all_available_aggregations(client: weaviate.WeaviateClient):
     name = "TestAllAvailableAggregations"
     client.collections.delete(name)
     collection = client.collections.create(

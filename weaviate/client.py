@@ -167,7 +167,7 @@ class _ClientBase:
             self._connection.close()
 
 
-class ClientV4(_ClientBase):
+class WeaviateClient(_ClientBase):
     def __init__(
         self,
         connection_params: Optional[ConnectionParams] = None,
@@ -345,12 +345,12 @@ class Client(_ClientBase):
         self._connection.timeout_config = _get_valid_timeout_config(timeout_config)
 
 
-class WeaviateClient:
-    """Use this factory class to create `weaviate.ClientV4` (v4) or `weaviate.Client` (v3) objects that are automatically
+class Connect:
+    """Use this factory class to create `weaviate.WeaviateClient` (v4) or `weaviate.Client` (v3) objects that are automatically
     configured to connect to your custom-deployed Weaviate instance.
 
     If you find that you need more fine-grained control over the connection parameters, you can
-    also instantiate a `weaviate.ClientV4` object directly yourself using the `weaviate.ConnectionParams.from_params`
+    also instantiate a `weaviate.WeaviateClient` object directly yourself using the `weaviate.ConnectionParams.from_params`
     method to specify your unique HTTP & gRPC setup.
 
     These factory methods are meant as short-cuts for the principal use-cases to ease friction
@@ -359,25 +359,25 @@ class WeaviateClient:
 
     @overload
     @staticmethod
-    def connect_to_wcs(
+    def to_wcs(
         cluster_id: str, api_key: str, headers: Optional[dict] = None, *, version: Literal["v3"]
     ) -> Client:
         ...
 
     @overload
     @staticmethod
-    def connect_to_wcs(
+    def to_wcs(
         cluster_id: str, api_key: str, headers: Optional[dict] = None, version: Literal["v4"] = "v4"
-    ) -> ClientV4:
+    ) -> WeaviateClient:
         ...
 
     @staticmethod
-    def connect_to_wcs(
+    def to_wcs(
         cluster_id: str,
         api_key: str,
         headers: Optional[dict] = None,
         version: Literal["v3", "v4"] = "v4",
-    ) -> Union[Client, ClientV4]:
+    ) -> Union[Client, WeaviateClient]:
         """
         Connect to your own Weaviate Cloud Service (WCS) instance.
 
@@ -396,7 +396,7 @@ class WeaviateClient:
                 The client connected to the cluster with the required parameters set appropriately.
         """
         if version == "v4":
-            return ClientV4(
+            return WeaviateClient(
                 connection_params=ConnectionParams(
                     http=ProtocolParams(
                         host=f"{cluster_id}.weaviate.network", port=443, secure=True
@@ -421,7 +421,7 @@ class WeaviateClient:
 
     @overload
     @staticmethod
-    def connect_to_local(
+    def to_local(
         host: str = "localhost",
         port: int = 8080,
         grpc_port: int = 50051,
@@ -433,23 +433,23 @@ class WeaviateClient:
 
     @overload
     @staticmethod
-    def connect_to_local(
+    def to_local(
         host: str = "localhost",
         port: int = 8080,
         grpc_port: int = 50051,
         headers: Optional[dict] = None,
         version: Literal["v4"] = "v4",
-    ) -> ClientV4:
+    ) -> WeaviateClient:
         ...
 
     @staticmethod
-    def connect_to_local(
+    def to_local(
         host: str = "localhost",
         port: int = 8080,
         grpc_port: int = 50051,
         headers: Optional[dict] = None,
         version: Literal["v3", "v4"] = "v4",
-    ) -> Union[Client, ClientV4]:
+    ) -> Union[Client, WeaviateClient]:
         """
         Connect to a local Weaviate instance deployed using Docker compose with standard port configurations.
 
@@ -472,7 +472,7 @@ class WeaviateClient:
                 The client connected to the local instance with default parameters set as:
         """
         if version == "v4":
-            return ClientV4(
+            return WeaviateClient(
                 connection_params=ConnectionParams(
                     http=ProtocolParams(host=host, port=port, secure=False),
                     grpc=ProtocolParams(host=host, port=grpc_port, secure=False),
@@ -491,7 +491,7 @@ class WeaviateClient:
 
     @overload
     @staticmethod
-    def connect_to_embedded(
+    def to_embedded(
         port: int = 8079,
         grpc_port: int = 50051,
         headers: Optional[dict] = None,
@@ -502,21 +502,21 @@ class WeaviateClient:
 
     @overload
     @staticmethod
-    def connect_to_embedded(
+    def to_embedded(
         port: int = 8079,
         grpc_port: int = 50051,
         headers: Optional[dict] = None,
         version: Literal["v4"] = "v4",
-    ) -> ClientV4:
+    ) -> WeaviateClient:
         ...
 
     @staticmethod
-    def connect_to_embedded(
+    def to_embedded(
         port: int = 8079,
         grpc_port: int = 50051,
         headers: Optional[dict] = None,
         version: Literal["v3", "v4"] = "v4",
-    ) -> Union[Client, ClientV4]:
+    ) -> Union[Client, WeaviateClient]:
         """
         Connect to an embedded Weaviate instance.
 
@@ -535,7 +535,7 @@ class WeaviateClient:
                 The client connected to the embedded instance with the required parameters set appropriately.
         """
         if version == "v4":
-            client: Union[Type[Client], Type[ClientV4]] = ClientV4
+            client: Union[Type[Client], Type[WeaviateClient]] = WeaviateClient
         else:
             client = Client
         return client(
@@ -548,7 +548,7 @@ class WeaviateClient:
 
     @overload
     @staticmethod
-    def connect(
+    def to_custom(
         http_host: str,
         http_port: int,
         http_secure: bool,
@@ -563,7 +563,7 @@ class WeaviateClient:
 
     @overload
     @staticmethod
-    def connect(
+    def to_custom(
         http_host: str,
         http_port: int,
         http_secure: bool,
@@ -572,11 +572,11 @@ class WeaviateClient:
         grpc_secure: bool,
         headers: Optional[dict] = None,
         version: Literal["v4"] = "v4",
-    ) -> ClientV4:
+    ) -> WeaviateClient:
         ...
 
     @staticmethod
-    def connect(
+    def to_custom(
         http_host: str,
         http_port: int,
         http_secure: bool,
@@ -585,7 +585,7 @@ class WeaviateClient:
         grpc_secure: bool,
         headers: Optional[dict] = None,
         version: Literal["v3", "v4"] = "v4",
-    ) -> Union[Client, ClientV4]:
+    ) -> Union[Client, WeaviateClient]:
         """
         Connect to a Weaviate instance with custom connection parameters.
 
@@ -612,7 +612,7 @@ class WeaviateClient:
                 The client connected to the instance with the required parameters set appropriately.
         """
         if version == "v4":
-            return ClientV4(
+            return WeaviateClient(
                 ConnectionParams.from_params(
                     http_host=http_host,
                     http_port=http_port,

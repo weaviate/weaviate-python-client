@@ -19,13 +19,13 @@ from weaviate.collection.classes.config import (
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.WeaviateClient.connect_to_local(port=8087)
+    client = weaviate.Connect.to_local(port=8087)
     client.collections.delete_all()
     yield client
     client.collections.delete_all()
 
 
-def test_collection_list(client: weaviate.ClientV4):
+def test_collection_list(client: weaviate.WeaviateClient):
     client.collections.create(
         name="TestCollectionList",
         vectorizer_config=Configure.Vectorizer.none(),
@@ -46,7 +46,7 @@ def test_collection_list(client: weaviate.ClientV4):
     client.collections.delete("TestCollectionList")
 
 
-def test_collection_get_simple(client: weaviate.ClientV4):
+def test_collection_get_simple(client: weaviate.WeaviateClient):
     client.collections.create(
         name="TestCollectionGetSimple",
         vectorizer_config=Configure.Vectorizer.none(),
@@ -63,7 +63,7 @@ def test_collection_get_simple(client: weaviate.ClientV4):
     client.collections.delete("TestCollectionGetSimple")
 
 
-def test_collection_config_empty(client: weaviate.ClientV4):
+def test_collection_config_empty(client: weaviate.WeaviateClient):
     collection = client.collections.create(
         name="TestCollectionConfigEmpty",
     )
@@ -113,7 +113,7 @@ def test_collection_config_empty(client: weaviate.ClientV4):
     client.collections.delete("TestCollectionConfigDefaults")
 
 
-def test_collection_config_defaults(client: weaviate.ClientV4):
+def test_collection_config_defaults(client: weaviate.WeaviateClient):
     collection = client.collections.create(
         name="TestCollectionConfigDefaults",
         inverted_index_config=Configure.inverted_index(),
@@ -166,7 +166,7 @@ def test_collection_config_defaults(client: weaviate.ClientV4):
     assert config.vector_index_type == _VectorIndexType.HNSW
 
 
-def test_collection_config_full(client: weaviate.ClientV4):
+def test_collection_config_full(client: weaviate.WeaviateClient):
     collection = client.collections.create(
         name="TestCollectionConfigFull",
         description="Test",
@@ -288,7 +288,7 @@ def test_collection_config_full(client: weaviate.ClientV4):
     client.collections.delete("TestCollectionConfigFull")
 
 
-def test_collection_config_update(client: weaviate.ClientV4):
+def test_collection_config_update(client: weaviate.WeaviateClient):
     collection = client.collections.create(
         name="TestCollectionConfigUpdate",
         vectorizer_config=Configure.Vectorizer.none(),
