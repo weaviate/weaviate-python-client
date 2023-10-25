@@ -5,6 +5,7 @@ import pytest
 import weaviate
 from weaviate.collection.classes.aggregate import Metrics
 from weaviate.collection.classes.config import DataType, Property, ReferenceProperty, ConfigFactory
+from weaviate.exceptions import WeaviateInvalidInputException
 from weaviate.util import file_encoder_b64
 
 
@@ -81,6 +82,35 @@ def test_near_object_aggregation(client: weaviate.WeaviateClient, option: dict, 
         ]
 
 
+def test_near_object_missing_param(client: weaviate.WeaviateClient):
+    name = "TestNearVectorMissingParam"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        name=name,
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=ConfigFactory.Vectorizer.text2vec_contextionary(
+            vectorize_class_name=False
+        ),
+    )
+    text_1 = "some text"
+    text_2 = "nothing like the other one at all, not even a little bit"
+    uuid = collection.data.insert({"text": text_1})
+    collection.data.insert({"text": text_2})
+    with pytest.raises(WeaviateInvalidInputException) as e:
+        collection.aggregate.near_object(
+            uuid,
+            return_metrics=[
+                Metrics("text", DataType.TEXT).returning(
+                    count=True, top_occurrences_count=True, top_occurrences_value=True
+                )
+            ],
+        )
+    assert (
+        "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
+        == e.value.message
+    )
+
+
 @pytest.mark.parametrize(
     "option,expected_len",
     [
@@ -129,6 +159,33 @@ def test_near_vector_aggregation(client: weaviate.WeaviateClient, option: dict, 
         assert text_2 not in [
             top_occurrence.value for top_occurrence in res.properties["text"].top_occurrences
         ]
+
+
+def test_near_vector_missing_param(client: weaviate.WeaviateClient):
+    name = "TestNearVectorMissingParam"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        name=name,
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=ConfigFactory.Vectorizer.text2vec_contextionary(
+            vectorize_class_name=False
+        ),
+    )
+    uuid_ = collection.data.insert({"text": "some text"})
+    obj = collection.query.fetch_object_by_id(uuid_, include_vector=True)
+    with pytest.raises(WeaviateInvalidInputException) as e:
+        collection.aggregate.near_vector(
+            obj.metadata.vector,
+            return_metrics=[
+                Metrics("text", DataType.TEXT).returning(
+                    count=True, top_occurrences_count=True, top_occurrences_value=True
+                )
+            ],
+        )
+    assert (
+        "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
+        == e.value.message
+    )
 
 
 @pytest.mark.parametrize(
@@ -180,6 +237,33 @@ def test_near_text_aggregation(client: weaviate.WeaviateClient, option: dict, ex
         ]
 
 
+def test_near_text_missing_param(client: weaviate.WeaviateClient):
+    name = "TestNearTextMissingParam"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        name=name,
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=ConfigFactory.Vectorizer.text2vec_contextionary(
+            vectorize_class_name=False
+        ),
+    )
+    text_1 = "some text"
+    collection.data.insert({"text": text_1})
+    with pytest.raises(WeaviateInvalidInputException) as e:
+        collection.aggregate.near_text(
+            text_1,
+            return_metrics=[
+                Metrics("text", DataType.TEXT).returning(
+                    count=True, top_occurrences_count=True, top_occurrences_value=True
+                )
+            ],
+        )
+    assert (
+        "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
+        == e.value.message
+    )
+
+
 @pytest.mark.parametrize("option", [{"object_limit": 1}, {"certainty": 0.9}, {"distance": 0.1}])
 def test_near_image_aggregation(client: weaviate.WeaviateClient, option: dict):
     name = "TestNearImageAggregation"
@@ -201,6 +285,34 @@ def test_near_image_aggregation(client: weaviate.WeaviateClient, option: dict):
     )
     assert res.properties["rating"].count == 1
     assert res.properties["rating"].maximum == 9
+
+
+def test_near_image_missing_param(client: weaviate.WeaviateClient):
+    name = "TestNearImageMissingParam"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        name=name,
+        properties=[
+            Property(name="rating", data_type=DataType.INT),
+            Property(name="image", data_type=DataType.BLOB),
+        ],
+        vectorizer_config=ConfigFactory.Vectorizer.img2vec_neural(image_fields=["image"]),
+    )
+    img_path = pathlib.Path("integration/weaviate-logo.png")
+    collection.data.insert({"image": file_encoder_b64(img_path), "rating": 9})
+    with pytest.raises(WeaviateInvalidInputException) as e:
+        collection.aggregate.near_image(
+            img_path,
+            return_metrics=[
+                Metrics("text", DataType.TEXT).returning(
+                    count=True, top_occurrences_count=True, top_occurrences_value=True
+                )
+            ],
+        )
+    assert (
+        "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
+        == e.value.message
+    )
 
 
 def test_group_by_aggregation(client: weaviate.WeaviateClient):

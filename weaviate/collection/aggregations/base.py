@@ -33,7 +33,7 @@ from weaviate.collection.classes.filters import _Filters
 from weaviate.collection.classes.grpc import Move
 from weaviate.connect import Connection
 from weaviate.collection.extract_filters import _FilterToREST
-from weaviate.exceptions import WeaviateQueryException
+from weaviate.exceptions import WeaviateInvalidInputException, WeaviateQueryException
 from weaviate.gql.aggregate import AggregateBuilder
 from weaviate.util import file_encoder_b64
 from weaviate.types import UUID
@@ -217,6 +217,10 @@ class _Aggregate:
         distance: Optional[float],
         object_limit: Optional[int],
     ) -> AggregateBuilder:
+        if all([certainty is None, distance is None, object_limit is None]):
+            raise WeaviateInvalidInputException(
+                "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
+            )
         payload: dict = {}
         payload["image"] = _parse_media(near_image)
         if certainty is not None:
@@ -236,6 +240,10 @@ class _Aggregate:
         distance: Optional[float],
         object_limit: Optional[int],
     ) -> AggregateBuilder:
+        if all([certainty is None, distance is None, object_limit is None]):
+            raise WeaviateInvalidInputException(
+                "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
+            )
         payload: dict = {}
         payload["id"] = str(near_object)
         if certainty is not None:
@@ -257,6 +265,10 @@ class _Aggregate:
         move_away: Optional[Move],
         object_limit: Optional[int],
     ) -> AggregateBuilder:
+        if all([certainty is None, distance is None, object_limit is None]):
+            raise WeaviateInvalidInputException(
+                "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
+            )
         payload: dict = {}
         payload["concepts"] = query if isinstance(query, list) else [query]
         if certainty is not None:
@@ -280,6 +292,10 @@ class _Aggregate:
         distance: Optional[float],
         object_limit: Optional[int],
     ) -> AggregateBuilder:
+        if all([certainty is None, distance is None, object_limit is None]):
+            raise WeaviateInvalidInputException(
+                "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
+            )
         payload: dict = {}
         payload["vector"] = near_vector
         if certainty is not None:
