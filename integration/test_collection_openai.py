@@ -27,9 +27,9 @@ def client():
         connection_params,
         additional_headers={"X-OpenAI-Api-Key": api_key},
     )
-    client.schema.delete_all()
+    client.collection.delete_all()
     yield client
-    client.schema.delete_all()
+    client.collection.delete_all()
 
 
 @pytest.mark.parametrize("parameter,answer", [("text", "Yes"), ("content", "No")])

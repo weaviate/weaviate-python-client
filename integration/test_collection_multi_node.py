@@ -15,9 +15,9 @@ from weaviate.collection.classes.grpc import MetadataQuery
 def client():
     connection_params = weaviate.ConnectionParams.from_url("http://localhost:8087", 50058)
     client = weaviate.ClientV4(connection_params)
-    client.schema.delete_all()
+    client.collection.delete_all()
     yield client
-    client.schema.delete_all()
+    client.collection.delete_all()
 
 
 @pytest.mark.parametrize(

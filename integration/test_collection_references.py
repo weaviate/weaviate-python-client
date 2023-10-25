@@ -31,9 +31,9 @@ from weaviate.collection.grpc import MetadataQuery
 def client():
     connection_params = weaviate.ConnectionParams.from_url("http://localhost:8080", 50051)
     client = weaviate.ClientV4(connection_params)
-    client.schema.delete_all()
+    client.collection.delete_all()
     yield client
-    client.schema.delete_all()
+    client.collection.delete_all()
 
 
 def test_reference_add_delete_replace(client: weaviate.ClientV4):

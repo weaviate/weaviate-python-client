@@ -288,7 +288,37 @@ class _Collection(_CollectionBase):
             for n in name:
                 self._delete(_capitalize_first_letter(n))
 
+    def delete_all(self) -> None:
+        """Use this method to delete all collections from the Weaviate instance.
+
+        WARNING: If you have instances of client.collection.get() or client.collection.create()
+        for these collections within your code, they will cease to function correctly after this operation.
+
+        Raises:
+            `requests.ConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a non-OK status.
+        """
+        for name in self.list_all().keys():
+            self.delete(name)
+
     def exists(self, name: str) -> bool:
+        """Use this method to check if a collection exists in the Weaviate instance.
+
+        Arguments:
+            `name`
+                The name of the collection to check.
+
+        Returns:
+            `True` if the collection exists, `False` otherwise.
+
+        Raises:
+            `requests.ConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a non-OK status.
+        """
         return self._exists(_capitalize_first_letter(name))
 
     @overload
