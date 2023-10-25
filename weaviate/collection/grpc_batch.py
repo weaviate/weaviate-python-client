@@ -42,7 +42,7 @@ class _BatchGRPC(_BaseGRPC):
                 collection=obj.class_name,
                 vector=obj.vector,
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
-                properties=self.__parse_properties_grpc(obj.properties, False),
+                properties=self.__translate_properties_from_python_to_grpc(obj.properties, False),
                 tenant=obj.tenant,
             )
             for obj in objects
@@ -96,7 +96,7 @@ class _BatchGRPC(_BaseGRPC):
         except grpc.RpcError as e:
             raise WeaviateGRPCException(e.details())
 
-    def __parse_properties_grpc(
+    def __translate_properties_from_python_to_grpc(
         self, data: Dict[str, Any], clean_props: bool
     ) -> batch_pb2.BatchObject.Properties:
         _validate_props(data, clean_props)
@@ -108,6 +108,8 @@ class _BatchGRPC(_BaseGRPC):
         text_arrays: List[base_pb2.TextArrayProperties] = []
         int_arrays: List[base_pb2.IntArrayProperties] = []
         float_arrays: List[base_pb2.NumberArrayProperties] = []
+        object_properties: List[base_pb2.ObjectProperties] = []
+        object_array_properties: List[base_pb2.ObjectArrayProperties] = []
         for key, val in data.items():
             if isinstance(val, _Reference):
                 if val.is_multi_target:
@@ -124,6 +126,46 @@ class _BatchGRPC(_BaseGRPC):
                             uuids=val.uuids_str, prop_name=key
                         )
                     )
+            elif isinstance(val, dict):
+                parsed = self.__translate_properties_from_python_to_grpc(val, clean_props)
+                object_properties.append(
+                    base_pb2.ObjectProperties(
+                        prop_name=key,
+                        value=base_pb2.ObjectPropertiesValue(
+                            non_ref_properties=parsed.non_ref_properties,
+                            int_array_properties=parsed.int_array_properties,
+                            text_array_properties=parsed.text_array_properties,
+                            number_array_properties=parsed.number_array_properties,
+                            boolean_array_properties=parsed.boolean_array_properties,
+                            object_properties=parsed.object_properties,
+                            object_array_properties=parsed.object_array_properties,
+                        ),
+                    )
+                )
+            elif isinstance(val, list) and isinstance(val[0], dict):
+                val = cast(List[Dict[str, Any]], val)
+                object_array_properties.append(
+                    base_pb2.ObjectArrayProperties(
+                        values=[
+                            base_pb2.ObjectPropertiesValue(
+                                non_ref_properties=parsed.non_ref_properties,
+                                int_array_properties=parsed.int_array_properties,
+                                text_array_properties=parsed.text_array_properties,
+                                number_array_properties=parsed.number_array_properties,
+                                boolean_array_properties=parsed.boolean_array_properties,
+                                object_properties=parsed.object_properties,
+                                object_array_properties=parsed.object_array_properties,
+                            )
+                            for v in val
+                            if (
+                                parsed := self.__translate_properties_from_python_to_grpc(
+                                    v, clean_props
+                                )
+                            )
+                        ],
+                        prop_name=key,
+                    )
+                )
             elif isinstance(val, list) and isinstance(val[0], bool):
                 bool_arrays.append(base_pb2.BooleanArrayProperties(prop_name=key, values=val))
             elif isinstance(val, list) and isinstance(val[0], str):
@@ -153,6 +195,8 @@ class _BatchGRPC(_BaseGRPC):
             number_array_properties=float_arrays,
             int_array_properties=int_arrays,
             boolean_array_properties=bool_arrays,
+            object_properties=object_properties,
+            object_array_properties=object_array_properties,
         )
 
 

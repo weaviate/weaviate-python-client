@@ -185,12 +185,24 @@ class MetadataRequest(_message.Message):
     def __init__(self, uuid: bool = ..., vector: bool = ..., creation_time_unix: bool = ..., last_update_time_unix: bool = ..., distance: bool = ..., certainty: bool = ..., score: bool = ..., explain_score: bool = ..., is_consistent: bool = ...) -> None: ...
 
 class PropertiesRequest(_message.Message):
-    __slots__ = ["non_ref_properties", "ref_properties"]
+    __slots__ = ["non_ref_properties", "ref_properties", "object_properties"]
     NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    OBJECT_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     non_ref_properties: _containers.RepeatedScalarFieldContainer[str]
     ref_properties: _containers.RepeatedCompositeFieldContainer[RefPropertiesRequest]
-    def __init__(self, non_ref_properties: _Optional[_Iterable[str]] = ..., ref_properties: _Optional[_Iterable[_Union[RefPropertiesRequest, _Mapping]]] = ...) -> None: ...
+    object_properties: _containers.RepeatedCompositeFieldContainer[ObjectPropertiesRequest]
+    def __init__(self, non_ref_properties: _Optional[_Iterable[str]] = ..., ref_properties: _Optional[_Iterable[_Union[RefPropertiesRequest, _Mapping]]] = ..., object_properties: _Optional[_Iterable[_Union[ObjectPropertiesRequest, _Mapping]]] = ...) -> None: ...
+
+class ObjectPropertiesRequest(_message.Message):
+    __slots__ = ["prop_name", "primitive_properties", "object_properties"]
+    PROP_NAME_FIELD_NUMBER: _ClassVar[int]
+    PRIMITIVE_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    OBJECT_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    prop_name: str
+    primitive_properties: _containers.RepeatedScalarFieldContainer[str]
+    object_properties: _containers.RepeatedCompositeFieldContainer[ObjectPropertiesRequest]
+    def __init__(self, prop_name: _Optional[str] = ..., primitive_properties: _Optional[_Iterable[str]] = ..., object_properties: _Optional[_Iterable[_Union[ObjectPropertiesRequest, _Mapping]]] = ...) -> None: ...
 
 class Hybrid(_message.Message):
     __slots__ = ["query", "properties", "vector", "alpha", "fusion_type"]
@@ -380,7 +392,7 @@ class MetadataResult(_message.Message):
     def __init__(self, id: _Optional[str] = ..., vector: _Optional[_Iterable[float]] = ..., creation_time_unix: _Optional[int] = ..., creation_time_unix_present: bool = ..., last_update_time_unix: _Optional[int] = ..., last_update_time_unix_present: bool = ..., distance: _Optional[float] = ..., distance_present: bool = ..., certainty: _Optional[float] = ..., certainty_present: bool = ..., score: _Optional[float] = ..., score_present: bool = ..., explain_score: _Optional[str] = ..., explain_score_present: bool = ..., is_consistent: bool = ..., generative: _Optional[str] = ..., generative_present: bool = ...) -> None: ...
 
 class PropertiesResult(_message.Message):
-    __slots__ = ["non_ref_properties", "ref_props", "target_collection", "metadata", "number_array_properties", "int_array_properties", "text_array_properties", "boolean_array_properties"]
+    __slots__ = ["non_ref_properties", "ref_props", "target_collection", "metadata", "number_array_properties", "int_array_properties", "text_array_properties", "boolean_array_properties", "object_properties", "object_array_properties"]
     NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     REF_PROPS_FIELD_NUMBER: _ClassVar[int]
     TARGET_COLLECTION_FIELD_NUMBER: _ClassVar[int]
@@ -389,6 +401,8 @@ class PropertiesResult(_message.Message):
     INT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     TEXT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     BOOLEAN_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    OBJECT_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    OBJECT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     non_ref_properties: _struct_pb2.Struct
     ref_props: _containers.RepeatedCompositeFieldContainer[RefPropertiesResult]
     target_collection: str
@@ -397,7 +411,9 @@ class PropertiesResult(_message.Message):
     int_array_properties: _containers.RepeatedCompositeFieldContainer[_base_pb2.IntArrayProperties]
     text_array_properties: _containers.RepeatedCompositeFieldContainer[_base_pb2.TextArrayProperties]
     boolean_array_properties: _containers.RepeatedCompositeFieldContainer[_base_pb2.BooleanArrayProperties]
-    def __init__(self, non_ref_properties: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., ref_props: _Optional[_Iterable[_Union[RefPropertiesResult, _Mapping]]] = ..., target_collection: _Optional[str] = ..., metadata: _Optional[_Union[MetadataResult, _Mapping]] = ..., number_array_properties: _Optional[_Iterable[_Union[_base_pb2.NumberArrayProperties, _Mapping]]] = ..., int_array_properties: _Optional[_Iterable[_Union[_base_pb2.IntArrayProperties, _Mapping]]] = ..., text_array_properties: _Optional[_Iterable[_Union[_base_pb2.TextArrayProperties, _Mapping]]] = ..., boolean_array_properties: _Optional[_Iterable[_Union[_base_pb2.BooleanArrayProperties, _Mapping]]] = ...) -> None: ...
+    object_properties: _containers.RepeatedCompositeFieldContainer[_base_pb2.ObjectProperties]
+    object_array_properties: _containers.RepeatedCompositeFieldContainer[_base_pb2.ObjectArrayProperties]
+    def __init__(self, non_ref_properties: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., ref_props: _Optional[_Iterable[_Union[RefPropertiesResult, _Mapping]]] = ..., target_collection: _Optional[str] = ..., metadata: _Optional[_Union[MetadataResult, _Mapping]] = ..., number_array_properties: _Optional[_Iterable[_Union[_base_pb2.NumberArrayProperties, _Mapping]]] = ..., int_array_properties: _Optional[_Iterable[_Union[_base_pb2.IntArrayProperties, _Mapping]]] = ..., text_array_properties: _Optional[_Iterable[_Union[_base_pb2.TextArrayProperties, _Mapping]]] = ..., boolean_array_properties: _Optional[_Iterable[_Union[_base_pb2.BooleanArrayProperties, _Mapping]]] = ..., object_properties: _Optional[_Iterable[_Union[_base_pb2.ObjectProperties, _Mapping]]] = ..., object_array_properties: _Optional[_Iterable[_Union[_base_pb2.ObjectArrayProperties, _Mapping]]] = ...) -> None: ...
 
 class RefPropertiesResult(_message.Message):
     __slots__ = ["properties", "prop_name"]
