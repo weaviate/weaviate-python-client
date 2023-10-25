@@ -20,7 +20,7 @@ from weaviate.collection.classes.config import (
     Configure,
     PropertyConfig,
 )
-from weaviate.collection.classes.internal import Reference, Refer
+from weaviate.collection.classes.internal import CrossReference, Reference
 from weaviate.collection.classes.orm import BaseProperty, CollectionModelConfig
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from pydantic import Field
@@ -97,8 +97,8 @@ def test_types(client: weaviate.WeaviateClient, member_type, value, optional: bo
     "member_type, annotation ,value,expected",
     [
         (str, PropertyConfig(index_filterable=False), "value", "text"),
-        (UUIDS, Reference[Group], [str(REF_TO_UUID)], "Group"),
-        (Optional[UUIDS], Reference[Group], [str(REF_TO_UUID)], "Group"),
+        (UUIDS, CrossReference[Group], [str(REF_TO_UUID)], "Group"),
+        (Optional[UUIDS], CrossReference[Group], [str(REF_TO_UUID)], "Group"),
     ],
 )
 def test_types_annotates(
@@ -264,7 +264,7 @@ def test_multi_searches(client: weaviate.WeaviateClient):
 def test_multi_searches_with_references(client: weaviate.WeaviateClient):
     class TestMultiSearchesWithReferences(BaseProperty):
         name: Optional[str] = None
-        group: Optional[Reference[Group]] = None
+        group: Optional[CrossReference[Group]] = None
 
     client._collection_model.delete(TestMultiSearchesWithReferences)
     collection = client._collection_model.create(
@@ -274,10 +274,10 @@ def test_multi_searches_with_references(client: weaviate.WeaviateClient):
     )
 
     collection.data.insert(
-        TestMultiSearchesWithReferences(name="some word", group=Refer.to(REF_TO_UUID, Group))
+        TestMultiSearchesWithReferences(name="some word", group=Reference.to(REF_TO_UUID, Group))
     )
     collection.data.insert(
-        TestMultiSearchesWithReferences(name="other", group=Refer.to(REF_TO_UUID, Group))
+        TestMultiSearchesWithReferences(name="other", group=Reference.to(REF_TO_UUID, Group))
     )
 
     objects = collection.query.bm25(
@@ -466,7 +466,7 @@ def test_update_reference_property(client: weaviate.WeaviateClient):
 
     class TestRefPropUpdate(BaseProperty):
         name: str
-        group: Reference[Group]
+        group: CrossReference[Group]
 
     create_original_collection()
     client._collection_model.update(TestRefPropUpdate)

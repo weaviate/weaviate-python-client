@@ -34,7 +34,7 @@ from weaviate.collection.classes.grpc import (
     Sort,
     PROPERTIES,
 )
-from weaviate.collection.classes.internal import Refer
+from weaviate.collection.classes.internal import Reference
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collection.classes.types import Properties
 from weaviate.collection.data import _Data
@@ -373,8 +373,8 @@ def test_insert_many_with_refs(client: weaviate.WeaviateClient):
             DataObject(
                 properties={
                     "name": "some name",
-                    "ref_single": Refer.to(uuids=[uuid_to1, uuid_to2]),
-                    "ref_many": Refer.to_multi_target(
+                    "ref_single": Reference.to(uuids=[uuid_to1, uuid_to2]),
+                    "ref_many": Reference.to_multi_target(
                         uuids=uuid_from, target_collection=collection
                     ),
                 },
@@ -383,8 +383,8 @@ def test_insert_many_with_refs(client: weaviate.WeaviateClient):
             DataObject(
                 properties={
                     "name": "some other name",
-                    "ref_single": Refer.to(uuids=uuid_to2),
-                    "ref_many": Refer.to_multi_target(
+                    "ref_single": Reference.to(uuids=uuid_to2),
+                    "ref_many": Reference.to_multi_target(
                         uuids=uuid_to1, target_collection=name_target
                     ),
                 },
@@ -1550,7 +1550,7 @@ def test_optional_ref_returns(client: weaviate.WeaviateClient):
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    collection.data.insert(properties={"ref": Refer.to(uuid_to1)})
+    collection.data.insert(properties={"ref": Reference.to(uuid_to1)})
 
     objects = collection.query.fetch_objects(
         return_properties=[FromReference(link_on="ref")]
@@ -1672,7 +1672,7 @@ def test_iterator_dict_hint(client: weaviate.WeaviateClient):
     )
 
 
-def test_iterator_with_default_generic(client: weaviate.Client):
+def test_iterator_with_default_generic(client: weaviate.WeaviateClient):
     name = "TestIteratorWithDefaultGeneric"
     client.collections.delete(name)
 

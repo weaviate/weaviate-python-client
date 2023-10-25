@@ -31,7 +31,6 @@ from weaviate.collection.classes.data import (
 from weaviate.collection.classes.internal import (
     _Object,
     _metadata_from_dict,
-    Reference,
     _Reference,
 )
 from weaviate.collection.classes.orm import (
@@ -186,7 +185,7 @@ class _Data:
             return None
         raise UnexpectedStatusCodeException("Get object/s", response)
 
-    def _reference_add(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
+    def _reference_add(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
@@ -214,7 +213,7 @@ class _Data:
             ]
         )
 
-    def _reference_delete(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
+    def _reference_delete(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
@@ -230,7 +229,7 @@ class _Data:
             if response.status_code != 204:
                 raise UnexpectedStatusCodeException("Add property reference to object", response)
 
-    def _reference_replace(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
+    def _reference_replace(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
@@ -450,7 +449,7 @@ class _DataCollection(Generic[Properties], _Data):
 
         self._update(weaviate_obj, uuid=uuid)
 
-    def reference_add(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
+    def reference_add(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         """Create a reference between an object in this collection and any other object in Weaviate.
 
         Arguments:
@@ -459,7 +458,7 @@ class _DataCollection(Generic[Properties], _Data):
             `from_property`
                 The name of the property in the object in this collection, REQUIRED.
             `ref`
-                The reference to add, REQUIRED. Use `Refer.to` to generate the correct type.
+                The reference to add, REQUIRED. Use `Reference.to` to generate the correct type.
 
         Raises:
             `requests.ConnectionError`:
@@ -492,7 +491,7 @@ class _DataCollection(Generic[Properties], _Data):
         """
         return self._reference_add_many(refs)
 
-    def reference_delete(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
+    def reference_delete(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         """Delete a reference from an object within the collection.
 
         Arguments:
@@ -501,11 +500,11 @@ class _DataCollection(Generic[Properties], _Data):
             `from_property`
                 The name of the property in the object in this collection from which the reference should be deleted, REQUIRED.
             `ref`
-                The reference to delete, REQUIRED. Use `Refer.to` to generate the correct type.
+                The reference to delete, REQUIRED. Use `Reference.to` to generate the correct type.
         """
         self._reference_delete(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_replace(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
+    def reference_replace(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         """Replace a reference of an object within the collection.
 
         Arguments:
@@ -514,7 +513,7 @@ class _DataCollection(Generic[Properties], _Data):
             `from_property`
                 The name of the property in the object in this collection from which the reference should be replaced, REQUIRED.
             `ref`
-                The reference to replace, REQUIRED. Use `Refer.to` to generate the correct type.
+                The reference to replace, REQUIRED. Use `Reference.to` to generate the correct type.
         """
         self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
@@ -632,13 +631,13 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         return [self._json_to_object(obj) for obj in ret["objects"]]
 
-    def reference_add(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
+    def reference_add(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         self._reference_add(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_delete(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
+    def reference_delete(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         self._reference_delete(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_replace(self, from_uuid: UUID, from_property: str, ref: Reference) -> None:
+    def reference_replace(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
     def reference_add_many(self, refs: List[DataReference]) -> BatchReferenceReturn:

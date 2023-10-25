@@ -239,10 +239,26 @@ class _Reference(Generic[P]):
         return self.__objects or []
 
 
-Reference = _Reference[P]
+CrossReference = _Reference[P]
+"""Use this TypeAlias when you want to type hint a cross reference within a generic data model.
+
+If you want to define a reference property when creating your collection, use `ReferenceProperty` or `ReferencePropertyMultiTarget` instead.
+
+If you want to create a reference when inserting an object, use `Reference.to()` or `Reference.to_multi_target()` instead.
+
+Example:
+    >>> from typing import TypedDict
+    >>> import weaviate.classes as wvc
+    >>>
+    >>> class One(TypedDict):
+    ...     prop: str
+    >>>
+    >>> class Two(TypedDict):
+    ...     one: wvc.CrossReference[One]
+"""
 
 
-class Refer:
+class Reference:
     """Factory class for cross references to other objects.
 
     Can be used with or without generics. If used with generics, the type of the cross reference can be defined from
@@ -251,13 +267,13 @@ class Refer:
     """
 
     @classmethod
-    def to(cls, uuids: UUIDS, data_model: Optional[Type[P]] = None) -> Reference[P]:
+    def to(cls, uuids: UUIDS, data_model: Optional[Type[P]] = None) -> CrossReference[P]:
         """Define cross references to other objects by their UUIDs.
 
         Can be made to be generic by supplying a type to the `data_model` argument.
 
         Arguments:
-            uuids
+            `uuids`
                 List of UUIDs of the objects to which the reference should point.
         """
         return _Reference[P](None, None, uuids)
@@ -268,15 +284,15 @@ class Refer:
         uuids: UUIDS,
         target_collection: Union[str, _CollectionBase],
         data_model: Optional[Type[P]] = None,
-    ) -> Reference[P]:
+    ) -> CrossReference[P]:
         """Define cross references to other objects by their UUIDs and the collection in which they are stored.
 
         Can be made to be generic by supplying a type to the `data_model` argument.
 
         Arguments:
-            uuids
+            `uuids`
                 List of UUIDs of the objects to which the reference should point.
-            target_collection
+            `target_collection`
                 The collection in which the objects are stored. Can be either the name of the collection or the collection object itself.
         """
         return _Reference[P](
@@ -383,7 +399,16 @@ def __create_link_to_from_reference(
     """Create FromReference from Reference[Properties]."""
     return FromReference(
         link_on=link_on,
-        return_metadata=MetadataQuery(),
+        return_metadata=MetadataQuery(
+            uuid=True,
+            creation_time_unix=True,
+            last_update_time_unix=True,
+            distance=True,
+            certainty=True,
+            score=True,
+            explain_score=True,
+            is_consistent=True,
+        ),
         return_properties=_extract_properties_from_data_model(
             _extract_property_type_from_reference(value)
         ),

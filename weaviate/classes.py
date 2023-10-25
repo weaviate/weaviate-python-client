@@ -20,12 +20,13 @@ from weaviate.collection.classes.grpc import (
     FromReferenceMultiTarget,
     MetadataQuery,
 )
-from weaviate.collection.classes.internal import Nested, Refer
+from weaviate.collection.classes.internal import Nested, CrossReference, Reference
 from weaviate.collection.classes.tenants import Tenant
 
 __all__ = [
     "Configure",
     "ConfigureUpdate",
+    "CrossReference",
     "DataObject",
     "DataType",
     "Filter",
@@ -37,7 +38,7 @@ __all__ = [
     "Multi2VecField",
     "Nested",
     "Property",
-    "Refer",
+    "Reference",
     "ReferenceProperty",
     "ReferencePropertyMultiTarget",
     "Tenant",
