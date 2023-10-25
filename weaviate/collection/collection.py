@@ -14,7 +14,7 @@ from weaviate.collection.classes.config import (
     _ReferencePropertyBase,
     _ReplicationConfigCreate,
     _VectorizerConfig,
-    _VectorizerFactory,
+    _Vectorizer,
     _VectorIndexConfigCreate,
     _VectorIndexType,
 )
@@ -185,7 +185,7 @@ class _Collection(_CollectionBase):
         """Use this method to create a collection in Weaviate and immediately return a collection object.
 
         This method takes several arguments that allow you to configure the collection to your liking. Each argument
-        can be produced by using the `ConfigFactory` class in `weaviate.classes` to generate the specific configuration
+        can be produced by using the `Configure` class in `weaviate.classes` to generate the specific configuration
         object that you require given your use case.
 
         Inspect [the docs](https://weaviate.io/developers/weaviate/configuration) for more information on the different
@@ -234,7 +234,7 @@ class _Collection(_CollectionBase):
             properties=properties,
             replication_config=replication_config,
             sharding_config=sharding_config,
-            vectorizer_config=vectorizer_config or _VectorizerFactory.none(),
+            vectorizer_config=vectorizer_config or _Vectorizer.none(),
             vector_index_config=vector_index_config,
             vector_index_type=vector_index_type,
         )

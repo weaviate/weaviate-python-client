@@ -5,7 +5,7 @@ import pytest
 
 import weaviate
 from weaviate.collection.classes.config import (
-    ConfigFactory,
+    Configure,
     DataType,
     Property,
 )
@@ -42,7 +42,7 @@ def test_generative_search_single(client: weaviate.ClientV4, parameter: str, ans
             Property(name="text", data_type=DataType.TEXT),
             Property(name="content", data_type=DataType.TEXT),
         ],
-        generative_config=ConfigFactory.Generative.openai(),
+        generative_config=Configure.Generative.openai(),
     )
 
     collection.data.insert_many(
@@ -75,7 +75,7 @@ def test_fetch_objects_generate_search_grouped(
             Property(name="content", data_type=DataType.TEXT),
             Property(name="extra", data_type=DataType.TEXT),
         ],
-        generative_config=ConfigFactory.Generative.openai(),
+        generative_config=Configure.Generative.openai(),
     )
 
     collection.data.insert_many(
@@ -102,7 +102,7 @@ def test_fetch_objects_generate_search_grouped_all_props(client: weaviate.Client
             Property(name="content", data_type=DataType.TEXT),
             Property(name="extra", data_type=DataType.TEXT),
         ],
-        generative_config=ConfigFactory.Generative.openai(),
+        generative_config=Configure.Generative.openai(),
     )
 
     collection.data.insert_many(
@@ -138,7 +138,7 @@ def test_fetch_objects_generate_search_grouped_specified_prop(client: weaviate.C
             Property(name="content", data_type=DataType.TEXT),
             Property(name="extra", data_type=DataType.TEXT),
         ],
-        generative_config=ConfigFactory.Generative.openai(),
+        generative_config=Configure.Generative.openai(),
     )
 
     collection.data.insert_many(
@@ -175,7 +175,7 @@ def test_fetch_objects_generate_with_everything(client: weaviate.ClientV4):
             Property(name="content", data_type=DataType.TEXT),
             Property(name="extra", data_type=DataType.TEXT),
         ],
-        generative_config=ConfigFactory.Generative.openai(),
+        generative_config=Configure.Generative.openai(),
     )
 
     collection.data.insert_many(
@@ -214,7 +214,7 @@ def test_bm25_generate_with_everything(client: weaviate.ClientV4):
             Property(name="content", data_type=DataType.TEXT),
             Property(name="extra", data_type=DataType.TEXT),
         ],
-        generative_config=ConfigFactory.Generative.openai(),
+        generative_config=Configure.Generative.openai(),
     )
 
     collection.data.insert_many(
@@ -255,7 +255,7 @@ def test_hybrid_generate_with_everything(client: weaviate.ClientV4):
             Property(name="content", data_type=DataType.TEXT),
             Property(name="extra", data_type=DataType.TEXT),
         ],
-        generative_config=ConfigFactory.Generative.openai(),
+        generative_config=Configure.Generative.openai(),
     )
 
     collection.data.insert_many(
@@ -296,8 +296,8 @@ def test_near_text_generate_with_everything(client: weaviate.ClientV4):
             Property(name="content", data_type=DataType.TEXT),
             Property(name="extra", data_type=DataType.TEXT),
         ],
-        generative_config=ConfigFactory.Generative.openai(),
-        vectorizer_config=ConfigFactory.Vectorizer.text2vec_openai(vectorize_class_name=False),
+        generative_config=Configure.Generative.openai(),
+        vectorizer_config=Configure.Vectorizer.text2vec_openai(vectorize_class_name=False),
     )
 
     collection.data.insert_many(
@@ -337,7 +337,7 @@ def test_near_vector_generate_with_everything(client: weaviate.ClientV4):
             Property(name="content", data_type=DataType.TEXT),
             Property(name="extra", data_type=DataType.TEXT),
         ],
-        generative_config=ConfigFactory.Generative.openai(),
+        generative_config=Configure.Generative.openai(),
     )
 
     collection.data.insert_many(
@@ -383,7 +383,7 @@ def test_openapi_invalid_key():
     collection = local_client.collection.create(
         name=name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        generative_config=ConfigFactory.Generative.openai(),
+        generative_config=Configure.Generative.openai(),
     )
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):
@@ -404,7 +404,7 @@ def test_openapi_no_module():
     collection = local_client.collection.create(
         name=name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        generative_config=ConfigFactory.Generative.openai(),
+        generative_config=Configure.Generative.openai(),
     )
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateGRPCException):
@@ -419,7 +419,7 @@ def test_openai_batch_upload(client: weaviate.ClientV4):
         properties=[
             Property(name="text", data_type=DataType.TEXT),
         ],
-        vectorizer_config=ConfigFactory.Vectorizer.text2vec_openai(),
+        vectorizer_config=Configure.Vectorizer.text2vec_openai(),
     )
 
     ret = collection.data.insert_many(

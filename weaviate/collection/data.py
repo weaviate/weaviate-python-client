@@ -459,7 +459,7 @@ class _DataCollection(Generic[Properties], _Data):
             `from_property`
                 The name of the property in the object in this collection, REQUIRED.
             `ref`
-                The reference to add, REQUIRED. Use `ReferenceFactory.to` to generate the correct type.
+                The reference to add, REQUIRED. Use `Refer.to` to generate the correct type.
 
         Raises:
             `requests.ConnectionError`:
@@ -501,7 +501,7 @@ class _DataCollection(Generic[Properties], _Data):
             `from_property`
                 The name of the property in the object in this collection from which the reference should be deleted, REQUIRED.
             `ref`
-                The reference to delete, REQUIRED. Use `ReferenceFactory.to` to generate the correct type.
+                The reference to delete, REQUIRED. Use `Refer.to` to generate the correct type.
         """
         self._reference_delete(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
@@ -514,7 +514,7 @@ class _DataCollection(Generic[Properties], _Data):
             `from_property`
                 The name of the property in the object in this collection from which the reference should be replaced, REQUIRED.
             `ref`
-                The reference to replace, REQUIRED. Use `ReferenceFactory.to` to generate the correct type.
+                The reference to replace, REQUIRED. Use `Refer.to` to generate the correct type.
         """
         self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
 

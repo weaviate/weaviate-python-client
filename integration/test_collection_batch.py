@@ -7,7 +7,7 @@ import pytest
 
 import weaviate
 from weaviate.collection.classes.config import (
-    ConfigFactory,
+    Configure,
     DataType,
     Property,
     ReferenceProperty,
@@ -127,7 +127,7 @@ def test_add_object_batch_with_tenant():
             properties=[
                 Property(name="tenantAsProp", data_type=DataType.TEXT),
             ],
-            multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
+            multi_tenancy_config=Configure.multi_tenancy(enabled=True),
         )
         client.collection.get(name).tenants.create(
             [Tenant(name="tenant" + str(i)) for i in range(5)]
@@ -162,7 +162,7 @@ def test_add_ref_batch_with_tenant():
     class_names = ["BatchRefTestMultiTenant0", "BatchRefTestMultiTenant1"]
     client.collection.create(
         name=class_names[0],
-        multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
 
     client.collection.create(
@@ -171,7 +171,7 @@ def test_add_ref_batch_with_tenant():
             Property(name="tenantAsProp", data_type=DataType.TEXT),
             ReferenceProperty(name="ref", target_collection=class_names[0]),
         ],
-        multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
 
     for name in class_names:

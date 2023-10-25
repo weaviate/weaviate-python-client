@@ -4,8 +4,8 @@ import weaviate
 from weaviate.collection.classes.config import (
     _CollectionConfig,
     _CollectionConfigSimple,
-    ConfigFactory,
-    ConfigUpdateFactory,
+    Configure,
+    ConfigureUpdate,
     Property,
     DataType,
     PQEncoderType,
@@ -29,7 +29,7 @@ def client():
 def test_collection_list(client: weaviate.ClientV4):
     client.collection.create(
         name="TestCollectionList",
-        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
@@ -50,7 +50,7 @@ def test_collection_list(client: weaviate.ClientV4):
 def test_collection_get_simple(client: weaviate.ClientV4):
     client.collection.create(
         name="TestCollectionGetSimple",
-        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
@@ -117,11 +117,11 @@ def test_collection_config_empty(client: weaviate.ClientV4):
 def test_collection_config_defaults(client: weaviate.ClientV4):
     collection = client.collection.create(
         name="TestCollectionConfigDefaults",
-        inverted_index_config=ConfigFactory.inverted_index(),
-        multi_tenancy_config=ConfigFactory.multi_tenancy(),
-        replication_config=ConfigFactory.replication(),
-        vector_index_config=ConfigFactory.vector_index(),
-        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(),
+        multi_tenancy_config=Configure.multi_tenancy(),
+        replication_config=Configure.replication(),
+        vector_index_config=Configure.vector_index(),
+        vectorizer_config=Configure.Vectorizer.none(),
     )
     config = collection.config.get()
 
@@ -171,7 +171,7 @@ def test_collection_config_full(client: weaviate.ClientV4):
     collection = client.collection.create(
         name="TestCollectionConfigFull",
         description="Test",
-        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="text", data_type=DataType.TEXT),
             Property(name="texts", data_type=DataType.TEXT_ARRAY),
@@ -186,7 +186,7 @@ def test_collection_config_full(client: weaviate.ClientV4):
             Property(name="geo", data_type=DataType.GEO_COORDINATES),
             Property(name="phone", data_type=DataType.PHONE_NUMBER),
         ],
-        inverted_index_config=ConfigFactory.inverted_index(
+        inverted_index_config=Configure.inverted_index(
             bm25_b=0.8,
             bm25_k1=1.3,
             cleanup_interval_seconds=10,
@@ -197,9 +197,9 @@ def test_collection_config_full(client: weaviate.ClientV4):
             stopwords_preset=StopwordsPreset.EN,
             stopwords_removals=["the"],
         ),
-        multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
-        replication_config=ConfigFactory.replication(factor=2),
-        vector_index_config=ConfigFactory.vector_index(
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+        replication_config=Configure.replication(factor=2),
+        vector_index_config=Configure.vector_index(
             cleanup_interval_seconds=10,
             distance_metric=VectorDistance.DOT,
             dynamic_ef_factor=6,
@@ -292,7 +292,7 @@ def test_collection_config_full(client: weaviate.ClientV4):
 def test_collection_config_update(client: weaviate.ClientV4):
     collection = client.collection.create(
         name="TestCollectionConfigUpdate",
-        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
@@ -304,7 +304,7 @@ def test_collection_config_update(client: weaviate.ClientV4):
 
     collection.config.update(
         description="Test",
-        inverted_index_config=ConfigUpdateFactory.inverted_index(
+        inverted_index_config=ConfigureUpdate.inverted_index(
             bm25_b=0.8,
             bm25_k1=1.25,
             cleanup_interval_seconds=10,
@@ -312,8 +312,8 @@ def test_collection_config_update(client: weaviate.ClientV4):
             stopwords_preset=StopwordsPreset.EN,
             stopwords_removals=["the"],
         ),
-        replication_config=ConfigUpdateFactory.replication(factor=2),
-        vector_index_config=ConfigUpdateFactory.vector_index(
+        replication_config=ConfigureUpdate.replication(factor=2),
+        vector_index_config=ConfigureUpdate.vector_index(
             skip=True,
             pq_bit_compression=True,
             pq_centroids=128,

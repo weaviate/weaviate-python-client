@@ -1,6 +1,6 @@
 from weaviate.collection.classes.config import (
-    ConfigFactory,
-    ConfigUpdateFactory,
+    Configure,
+    ConfigureUpdate,
     DataType,
     Multi2VecField,
     Property,
@@ -20,12 +20,12 @@ from weaviate.collection.classes.grpc import (
     FromReferenceMultiTarget,
     MetadataQuery,
 )
-from weaviate.collection.classes.internal import Nested, ReferenceFactory
+from weaviate.collection.classes.internal import Nested, Refer
 from weaviate.collection.classes.tenants import Tenant
 
 __all__ = [
-    "ConfigFactory",
-    "ConfigUpdateFactory",
+    "Configure",
+    "ConfigureUpdate",
     "DataObject",
     "DataType",
     "Filter",
@@ -37,7 +37,7 @@ __all__ = [
     "Multi2VecField",
     "Nested",
     "Property",
-    "ReferenceFactory",
+    "Refer",
     "ReferenceProperty",
     "ReferencePropertyMultiTarget",
     "Tenant",

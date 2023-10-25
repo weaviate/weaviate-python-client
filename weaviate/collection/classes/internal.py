@@ -242,7 +242,7 @@ class _Reference(Generic[P]):
 Reference = _Reference[P]
 
 
-class ReferenceFactory:
+class Refer:
     """Factory class for cross references to other objects.
 
     Can be used with or without generics. If used with generics, the type of the cross reference can be defined from

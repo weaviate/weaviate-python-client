@@ -17,10 +17,10 @@ import uuid
 
 import weaviate
 from weaviate.collection.classes.config import (
-    ConfigFactory,
+    Configure,
     PropertyConfig,
 )
-from weaviate.collection.classes.internal import Reference, ReferenceFactory
+from weaviate.collection.classes.internal import Reference, Refer
 from weaviate.collection.classes.orm import BaseProperty, CollectionModelConfig
 from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
 from pydantic import Field
@@ -38,7 +38,7 @@ def client():
     client = weaviate.ClientV4(connection_params)
     client._collection_model.delete(Group)
     collection = client._collection_model.create(
-        CollectionModelConfig[Group](model=Group, vectorizer_config=ConfigFactory.Vectorizer.none())
+        CollectionModelConfig[Group](model=Group, vectorizer_config=Configure.Vectorizer.none())
     )
     collection.data.insert(obj=Group(name="Name", uuid=REF_TO_UUID))
 
@@ -72,7 +72,7 @@ def test_types(client: weaviate.ClientV4, member_type, value, optional: bool):
     client._collection_model.delete(ModelTypes)
     collection = client._collection_model.create(
         CollectionModelConfig[ModelTypes](
-            model=ModelTypes, vectorizer_config=ConfigFactory.Vectorizer.none()
+            model=ModelTypes, vectorizer_config=Configure.Vectorizer.none()
         )
     )
     assert collection.model == ModelTypes
@@ -105,7 +105,7 @@ def test_types_annotates(client: weaviate.ClientV4, member_type, annotation, val
     client._collection_model.delete(ModelTypes)
     collection = client._collection_model.create(
         CollectionModelConfig[ModelTypes](
-            model=ModelTypes, vectorizer_config=ConfigFactory.Vectorizer.none()
+            model=ModelTypes, vectorizer_config=Configure.Vectorizer.none()
         )
     )
     assert collection.model == ModelTypes
@@ -125,7 +125,7 @@ def test_create_and_delete(client: weaviate.ClientV4):
     client._collection_model.delete(DeleteModel)
     client._collection_model.create(
         CollectionModelConfig[DeleteModel](
-            model=DeleteModel, vectorizer_config=ConfigFactory.Vectorizer.none()
+            model=DeleteModel, vectorizer_config=Configure.Vectorizer.none()
         )
     )
 
@@ -141,7 +141,7 @@ def test_search(client: weaviate.ClientV4):
     client._collection_model.delete(SearchTest)
     collection = client._collection_model.create(
         CollectionModelConfig[SearchTest](
-            model=SearchTest, vectorizer_config=ConfigFactory.Vectorizer.none()
+            model=SearchTest, vectorizer_config=Configure.Vectorizer.none()
         )
     )
 
@@ -160,8 +160,8 @@ def test_tenants(client: weaviate.ClientV4):
     client._collection_model.delete(TenantsTest)
     collection = client._collection_model.create(
         CollectionModelConfig[TenantsTest](
-            vectorizer_config=ConfigFactory.Vectorizer.none(),
-            multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
+            vectorizer_config=Configure.Vectorizer.none(),
+            multi_tenancy_config=Configure.multi_tenancy(enabled=True),
             model=TenantsTest,
         )
     )
@@ -186,8 +186,8 @@ def test_tenants_activity(client: weaviate.ClientV4):
     client._collection_model.delete(TenantsUpdateTest)
     collection = client._collection_model.create(
         CollectionModelConfig[TenantsUpdateTest](
-            vectorizer_config=ConfigFactory.Vectorizer.none(),
-            multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
+            vectorizer_config=Configure.Vectorizer.none(),
+            multi_tenancy_config=Configure.multi_tenancy(enabled=True),
             model=TenantsUpdateTest,
         )
     )
@@ -211,8 +211,8 @@ def test_tenants_update(client: weaviate.ClientV4):
     client._collection_model.delete(TenantsUpdateTest)
     collection = client._collection_model.create(
         CollectionModelConfig[TenantsUpdateTest](
-            vectorizer_config=ConfigFactory.Vectorizer.none(),
-            multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
+            vectorizer_config=Configure.Vectorizer.none(),
+            multi_tenancy_config=Configure.multi_tenancy(enabled=True),
             model=TenantsUpdateTest,
         )
     )
@@ -232,7 +232,7 @@ def test_multi_searches(client: weaviate.ClientV4):
     client._collection_model.delete(TestMultiSearches)
     collection = client._collection_model.create(
         CollectionModelConfig[TestMultiSearches](
-            model=TestMultiSearches, vectorizer_config=ConfigFactory.Vectorizer.none()
+            model=TestMultiSearches, vectorizer_config=Configure.Vectorizer.none()
         )
     )
 
@@ -264,17 +264,15 @@ def test_multi_searches_with_references(client: weaviate.ClientV4):
     client._collection_model.delete(TestMultiSearchesWithReferences)
     collection = client._collection_model.create(
         CollectionModelConfig[TestMultiSearchesWithReferences](
-            model=TestMultiSearchesWithReferences, vectorizer_config=ConfigFactory.Vectorizer.none()
+            model=TestMultiSearchesWithReferences, vectorizer_config=Configure.Vectorizer.none()
         )
     )
 
     collection.data.insert(
-        TestMultiSearchesWithReferences(
-            name="some word", group=ReferenceFactory.to(REF_TO_UUID, Group)
-        )
+        TestMultiSearchesWithReferences(name="some word", group=Refer.to(REF_TO_UUID, Group))
     )
     collection.data.insert(
-        TestMultiSearchesWithReferences(name="other", group=ReferenceFactory.to(REF_TO_UUID, Group))
+        TestMultiSearchesWithReferences(name="other", group=Refer.to(REF_TO_UUID, Group))
     )
 
     objects = collection.query.bm25(
@@ -304,8 +302,8 @@ def test_search_with_tenant(client: weaviate.ClientV4):
     collection = client._collection_model.create(
         CollectionModelConfig[TestTenantSearch](
             model=TestTenantSearch,
-            vectorizer_config=ConfigFactory.Vectorizer.none(),
-            multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
+            vectorizer_config=Configure.Vectorizer.none(),
+            multi_tenancy_config=Configure.multi_tenancy(enabled=True),
         )
     )
 
@@ -360,7 +358,7 @@ def test_update_properties(
         client._collection_model.delete(TestPropUpdate)
         collection_first = client._collection_model.create(
             CollectionModelConfig[TestPropUpdate](
-                model=TestPropUpdate, vectorizer_config=ConfigFactory.Vectorizer.none()
+                model=TestPropUpdate, vectorizer_config=Configure.Vectorizer.none()
             )
         )
         uuid_first = collection_first.data.insert(TestPropUpdate(name="first"))
@@ -410,7 +408,7 @@ def test_empty_search_returns_everything(client: weaviate.ClientV4):
     collection = client._collection_model.create(
         CollectionModelConfig[TestReturnEverythingORM](
             model=TestReturnEverythingORM,
-            vectorizer_config=ConfigFactory.Vectorizer.none(),
+            vectorizer_config=Configure.Vectorizer.none(),
         )
     )
     collection.data.insert(TestReturnEverythingORM(name="word"))
@@ -433,7 +431,7 @@ def test_empty_return_properties(client: weaviate.ClientV4):
     collection = client._collection_model.create(
         CollectionModelConfig[TestEmptyProperties](
             model=TestEmptyProperties,
-            vectorizer_config=ConfigFactory.Vectorizer.none(),
+            vectorizer_config=Configure.Vectorizer.none(),
         )
     )
     collection.data.insert(TestEmptyProperties(name="word"))
@@ -456,7 +454,7 @@ def test_update_reference_property(client: weaviate.ClientV4):
         client._collection_model.delete(TestRefPropUpdate)
         collection_first = client._collection_model.create(
             CollectionModelConfig[TestRefPropUpdate](
-                model=TestRefPropUpdate, vectorizer_config=ConfigFactory.Vectorizer.none()
+                model=TestRefPropUpdate, vectorizer_config=Configure.Vectorizer.none()
             )
         )
         uuid_first = collection_first.data.insert(TestRefPropUpdate(name="first"))
@@ -477,7 +475,7 @@ def test_model_with_datetime_property(client: weaviate.ClientV4):
     client._collection_model.delete(TestDatetime)
     collection = client._collection_model.create(
         CollectionModelConfig[TestDatetime](
-            model=TestDatetime, vectorizer_config=ConfigFactory.Vectorizer.none()
+            model=TestDatetime, vectorizer_config=Configure.Vectorizer.none()
         )
     )
     now = datetime.now(timezone.utc)

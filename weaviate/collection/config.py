@@ -75,13 +75,13 @@ class _ConfigBase:
     ) -> None:
         """Update the configuration for this collection in Weaviate.
 
-        Use the `weaviate.classes.ConfigUpdateFactory` class to generate the necessary configuration objects for this method.
+        Use the `weaviate.classes.ConfigureUpdate` class to generate the necessary configuration objects for this method.
 
         Arguments:
             description: A description of the collection.
-            inverted_index_config: Configuration for the inverted index. Use `ConfigUpdateFactory.inverted_index` to generate one.
-            replication_config: Configuration for the replication. Use `ConfigUpdateFactory.replication` to generate one.
-            vector_index_config: Configuration for the vector index. Use `ConfigUpdateFactory.vector_index` to generate one.
+            inverted_index_config: Configuration for the inverted index. Use `ConfigureUpdate.inverted_index` to generate one.
+            replication_config: Configuration for the replication. Use `ConfigureUpdate.replication` to generate one.
+            vector_index_config: Configuration for the vector index. Use `ConfigureUpdate.vector_index` to generate one.
 
         Raises:
             `requests.ConnectionError`:

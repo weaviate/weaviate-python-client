@@ -443,16 +443,15 @@ class _VectorizerConfig(_ConfigCreateModel):
     vectorizer: Vectorizer
 
 
-class _GenerativeFactory:
+class _Generative:
     """Use this factory class to create the correct object for the `generative_config` argument in the `collection.create()` method.
 
-    Each classmethod provides options specific to the named generative search module in the function's name. Under-the-hood data validation steps
+    Each staticmethod provides options specific to the named generative search module in the function's name. Under-the-hood data validation steps
     will ensure that any mis-specifications will be caught before the request is sent to Weaviate.
     """
 
-    @classmethod
+    @staticmethod
     def openai(
-        cls,
         model: Optional[str] = None,
         frequency_penalty: Optional[float] = None,
         max_tokens: Optional[int] = None,
@@ -469,9 +468,8 @@ class _GenerativeFactory:
             topPProperty=top_p,
         )
 
-    @classmethod
+    @staticmethod
     def azure_openai(
-        cls,
         resource_name: str,
         deployment_id: str,
         frequency_penalty: Optional[float] = None,
@@ -490,9 +488,8 @@ class _GenerativeFactory:
             topPProperty=top_p,
         )
 
-    @classmethod
+    @staticmethod
     def cohere(
-        cls,
         model: Optional[str] = None,
         k: Optional[int] = None,
         max_tokens: Optional[int] = None,
@@ -509,9 +506,8 @@ class _GenerativeFactory:
             temperatureProperty=temperature,
         )
 
-    @classmethod
+    @staticmethod
     def palm(
-        cls,
         project_id: str,
         api_endpoint: Optional[str] = None,
         max_output_tokens: Optional[int] = None,
@@ -712,21 +708,20 @@ class _Ref2VecCentroidConfig(_VectorizerConfig):
     method: Literal["mean"]
 
 
-class _VectorizerFactory:
+class _Vectorizer:
     """Use this factory class to create the correct object for the `vectorizer_config` argument in the `collection.create()` method.
 
-    Each classmethod provides options specific to the named vectorizer in the function's name. Under-the-hood data validation steps
+    Each staticmethod provides options specific to the named vectorizer in the function's name. Under-the-hood data validation steps
     will ensure that any mis-specifications will be caught before the request is sent to Weaviate.
     """
 
-    @classmethod
-    def none(cls) -> _VectorizerConfig:
+    @staticmethod
+    def none() -> _VectorizerConfig:
         """Create a `VectorizerConfig` object with the vectorizer set to `Vectorizer.NONE`."""
         return _VectorizerConfig(vectorizer=Vectorizer.NONE)
 
-    @classmethod
+    @staticmethod
     def img2vec_neural(
-        cls,
         image_fields: List[str],
     ) -> _VectorizerConfig:
         """Create a `Img2VecNeuralConfig` object for use when vectorizing using the `img2vec-neural` model.
@@ -744,9 +739,8 @@ class _VectorizerFactory:
         """
         return _Img2VecNeuralConfig(imageFields=image_fields)
 
-    @classmethod
+    @staticmethod
     def multi2vec_clip(
-        cls,
         image_fields: Optional[List[Multi2VecField]] = None,
         text_fields: Optional[List[Multi2VecField]] = None,
         vectorize_class_name: bool = True,
@@ -773,9 +767,8 @@ class _VectorizerFactory:
             vectorizeClassName=vectorize_class_name,
         )
 
-    @classmethod
+    @staticmethod
     def multi2vec_bind(
-        cls,
         audio_fields: Optional[List[Multi2VecField]] = None,
         depth_fields: Optional[List[Multi2VecField]] = None,
         image_fields: Optional[List[Multi2VecField]] = None,
@@ -822,9 +815,8 @@ class _VectorizerFactory:
             vectorizeClassName=vectorize_class_name,
         )
 
-    @classmethod
+    @staticmethod
     def ref2vec_centroid(
-        cls,
         reference_properties: List[str],
         method: Literal["mean"] = "mean",
     ) -> _VectorizerConfig:
@@ -847,8 +839,8 @@ class _VectorizerFactory:
             method=method,
         )
 
-    @classmethod
-    def text2vec_azure_openai(cls, resource_name: str, deployment_id: str) -> _VectorizerConfig:
+    @staticmethod
+    def text2vec_azure_openai(resource_name: str, deployment_id: str) -> _VectorizerConfig:
         """Create a `Text2VecAzureOpenAIConfig` object for use when vectorizing using the `text2vec-azure-openai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-azure-openai)
@@ -867,8 +859,8 @@ class _VectorizerFactory:
         """
         return _Text2VecAzureOpenAIConfig(resourceName=resource_name, deploymentId=deployment_id)
 
-    @classmethod
-    def text2vec_contextionary(cls, vectorize_class_name: bool = True) -> _VectorizerConfig:
+    @staticmethod
+    def text2vec_contextionary(vectorize_class_name: bool = True) -> _VectorizerConfig:
         """Create a `Text2VecContextionaryConfig` object for use when vectorizing using the `text2vec-contextionary` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-contextionary)
@@ -882,9 +874,8 @@ class _VectorizerFactory:
         """
         return _Text2VecContextionaryConfig(vectorizeClassName=vectorize_class_name)
 
-    @classmethod
+    @staticmethod
     def text2vec_cohere(
-        cls,
         model: Optional[CohereModel] = None,
         truncate: Optional[CohereTruncation] = None,
     ) -> _VectorizerConfig:
@@ -904,9 +895,8 @@ class _VectorizerFactory:
         """
         return _Text2VecCohereConfig(model=model, truncate=truncate)
 
-    @classmethod
+    @staticmethod
     def text2vec_gpt4all(
-        cls,
         vectorize_class_name: bool = True,
     ) -> _VectorizerConfig:
         """Create a `Text2VecGPT4AllConfig` object for use when vectorizing using the `text2vec-gpt4all` model.
@@ -923,9 +913,8 @@ class _VectorizerFactory:
         """
         return _Text2VecGPT4AllConfig(vectorizeClassName=vectorize_class_name)
 
-    @classmethod
+    @staticmethod
     def text2vec_huggingface(
-        cls,
         model: Optional[str] = None,
         passage_model: Optional[str] = None,
         query_model: Optional[str] = None,
@@ -970,9 +959,8 @@ class _VectorizerFactory:
             useCache=use_cache,
         )
 
-    @classmethod
+    @staticmethod
     def text2vec_openai(
-        cls,
         model: Optional[OpenAIModel] = None,
         model_version: Optional[str] = None,
         type_: Optional[OpenAIType] = None,
@@ -1003,9 +991,8 @@ class _VectorizerFactory:
             vectorizeClassName=vectorize_class_name,
         )
 
-    @classmethod
+    @staticmethod
     def text2vec_palm(
-        cls,
         project_id: str,
         api_endpoint: Optional[AnyHttpUrl] = None,
         model_id: Optional[str] = None,
@@ -1036,9 +1023,8 @@ class _VectorizerFactory:
             vectorizeClassName=vectorize_class_name,
         )
 
-    @classmethod
+    @staticmethod
     def text2vec_transformers(
-        cls,
         pooling_strategy: Literal["masked_mean", "cls"] = "masked_mean",
         vectorize_class_name: bool = True,
     ) -> _VectorizerConfig:
@@ -1080,9 +1066,7 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
     vectorIndexType: _VectorIndexType = Field(
         default=_VectorIndexType.HNSW, alias="vector_index_type"
     )
-    moduleConfig: _VectorizerConfig = Field(
-        default=_VectorizerFactory.none(), alias="vectorizer_config"
-    )
+    moduleConfig: _VectorizerConfig = Field(default=_Vectorizer.none(), alias="vectorizer_config")
     generativeSearch: Optional[_GenerativeConfig] = Field(default=None, alias="generative_config")
 
     def _to_dict(self) -> Dict[str, Any]:
@@ -1438,19 +1422,18 @@ class _CollectionConfigCreate(_CollectionConfigCreateBase):
         return ret_dict
 
 
-class ConfigFactory:
+class Configure:
     """Use this factory class to generate the correct object for use when using the `collection.create()` method. E.g., `.multi_tenancy()` will return a `MultiTenancyConfigCreate` object to be used in the `multi_tenancy_config` argument.
 
     Each class method provides options specific to the named configuration type in the function's name. Under-the-hood data validation steps
     will ensure that any mis-specifications are caught before the request is sent to Weaviate.
     """
 
-    Generative = _GenerativeFactory
-    Vectorizer = _VectorizerFactory
+    Generative = _Generative
+    Vectorizer = _Vectorizer
 
-    @classmethod
+    @staticmethod
     def inverted_index(
-        cls,
         bm25_b: float = 0.75,
         bm25_k1: float = 1.2,
         cleanup_interval_seconds: int = 60,
@@ -1479,8 +1462,8 @@ class ConfigFactory:
             ),
         )
 
-    @classmethod
-    def multi_tenancy(cls, enabled: bool = False) -> _MultiTenancyConfigCreate:
+    @staticmethod
+    def multi_tenancy(enabled: bool = False) -> _MultiTenancyConfigCreate:
         """Create a `MultiTenancyConfigCreate` object to be used when defining the multi-tenancy configuration of Weaviate.
 
         Arguments:
@@ -1489,8 +1472,8 @@ class ConfigFactory:
         """
         return _MultiTenancyConfigCreate(enabled=enabled)
 
-    @classmethod
-    def replication(cls, factor: int = 1) -> _ReplicationConfigCreate:
+    @staticmethod
+    def replication(factor: int = 1) -> _ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
         Arguments:
@@ -1499,9 +1482,8 @@ class ConfigFactory:
         """
         return _ReplicationConfigCreate(factor=factor)
 
-    @classmethod
+    @staticmethod
     def sharding(
-        cls,
         virtual_per_physical: int = 128,
         desired_count: int = 1,
         actual_count: int = 1,
@@ -1534,9 +1516,8 @@ class ConfigFactory:
             actualVirtualCount=actual_virtual_count,
         )
 
-    @classmethod
+    @staticmethod
     def vector_index(
-        cls,
         cleanup_interval_seconds: int = 300,
         distance_metric: VectorDistance = VectorDistance.COSINE,
         dynamic_ef_factor: int = 8,
@@ -1588,8 +1569,8 @@ class ConfigFactory:
             vectorCacheMaxObjects=vector_cache_max_objects,
         )
 
-    @classmethod
-    def vector_index_type(cls) -> _VectorIndexType:
+    @staticmethod
+    def vector_index_type() -> _VectorIndexType:
         """Create a `_VectorIndexType` object to be used when defining the vector index type of Weaviate.
 
         Use this method when defining the `vector_index_type` argument in `collection.create()`.
@@ -1597,18 +1578,17 @@ class ConfigFactory:
         return _VectorIndexType.HNSW
 
 
-class ConfigUpdateFactory:
+class ConfigureUpdate:
     """Use this factory class to generate the correct `xxxConfig` object for use when using the `collection.update()` method.
 
-    Each classmethod provides options specific to the named configuration type in the function's name. Under-the-hood data validation steps
+    Each staticmethod provides options specific to the named configuration type in the function's name. Under-the-hood data validation steps
     will ensure that any mis-specifications are caught before the request is sent to Weaviate. Only those configurations that are mutable are
     available in this class. If you wish to update the configuration of an immutable aspect of your collection then you will have to delete
     the collection and re-create it with the new configuration.
     """
 
-    @classmethod
+    @staticmethod
     def inverted_index(
-        cls,
         bm25_b: Optional[float] = None,
         bm25_k1: Optional[float] = None,
         cleanup_interval_seconds: Optional[int] = None,
@@ -1633,8 +1613,8 @@ class ConfigUpdateFactory:
             ),
         )
 
-    @classmethod
-    def replication(cls, factor: int = 1) -> _ReplicationConfigUpdate:
+    @staticmethod
+    def replication(factor: int = 1) -> _ReplicationConfigUpdate:
         """Create a `ReplicationConfigUpdate` object.
 
         Use this method when defining the `replication_config` argument in `collection.update()`.
@@ -1645,9 +1625,8 @@ class ConfigUpdateFactory:
         """
         return _ReplicationConfigUpdate(factor=factor)
 
-    @classmethod
+    @staticmethod
     def vector_index(
-        cls,
         dynamic_ef_factor: Optional[int] = None,
         dynamic_ef_min: Optional[int] = None,
         dynamic_ef_max: Optional[int] = None,

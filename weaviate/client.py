@@ -39,11 +39,10 @@ class _ClientBase:
         """
         Ping Weaviate's ready state
 
-        Returns
-        -------
-        bool
-            True if Weaviate is ready to accept requests,
-            False otherwise.
+        Returns:
+            `bool`
+                `True` if Weaviate is ready to accept requests,
+                `False` otherwise.
         """
 
         try:
@@ -58,11 +57,10 @@ class _ClientBase:
         """
         Ping Weaviate's live state.
 
-        Returns
-        --------
-        bool
-            True if weaviate is live and should not be killed,
-            False otherwise.
+        Returns:
+            `bool`
+                `True` if weaviate is live and should not be killed,
+                `False` otherwise.
         """
 
         response = self._connection.get(path="/.well-known/live")
@@ -74,15 +72,13 @@ class _ClientBase:
         """
         Get the meta endpoint description of weaviate.
 
-        Returns
-        -------
-        dict
-            The dict describing the weaviate configuration.
+        Returns:
+            `dict`
+                The `dict` describing the weaviate configuration.
 
-        Raises
-        ------
-        weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+        Raises:
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a none OK status.
         """
 
         return self._connection.get_meta()
@@ -92,14 +88,12 @@ class _ClientBase:
         Get the openid-configuration.
 
         Returns
-        -------
-        dict
-            The configuration or None if not configured.
+            `dict`
+                The configuration or `None` if not configured.
 
         Raises
-        ------
-        weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a none OK status.
         """
 
         response = self._connection.get(path="/.well-known/openid-configuration")
@@ -356,7 +350,7 @@ class WeaviateClient:
     configured to connect to your custom-deployed Weaviate instance.
 
     If you find that you need more fine-grained control over the connection parameters, you can
-    also instantiate a `weaviate.Client` object directly yourself using the `weaviate.ConnectionParams.from_params`
+    also instantiate a `weaviate.ClientV4` object directly yourself using the `weaviate.ConnectionParams.from_params`
     method to specify your unique HTTP & gRPC setup.
 
     These factory methods are meant as short-cuts for the principal use-cases to ease friction

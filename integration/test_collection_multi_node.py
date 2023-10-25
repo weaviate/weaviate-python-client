@@ -2,7 +2,7 @@ import pytest
 
 import weaviate
 from weaviate.collection.classes.config import (
-    ConfigFactory,
+    Configure,
     Property,
     ConsistencyLevel,
     DataType,
@@ -28,11 +28,11 @@ def test_consistency_on_multinode(client: weaviate.ClientV4, level: ConsistencyL
     client.collection.delete(name)
     collection = client.collection.create(
         name=name,
-        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
-        replication_config=ConfigFactory.replication(factor=2),
+        replication_config=Configure.replication(factor=2),
     ).with_consistency_level(level)
 
     collection.data.insert({"name": "first"})
