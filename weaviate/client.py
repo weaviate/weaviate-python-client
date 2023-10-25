@@ -202,13 +202,14 @@ class WeaviateClient(_ClientBase):
         self.schema = Schema(self._connection)
         self.contextionary = Contextionary(self._connection)
         self.batch = Batch(self._connection)
-        self.batch_v4 = _Batch(self._connection)
         self.data_object = DataObject(self._connection)
         self.query = Query(self._connection)
         self.backup = Backup(self._connection)
         self.cluster = Cluster(self._connection)
-        self.collection = _Collection(self._connection)
-        self._collection_model = _CollectionModel(self._connection)  # experimental
+        self.collection = _Collection(_Batch(self._connection), self._connection)
+        self._collection_model = _CollectionModel(
+            _Batch(self._connection), self._connection
+        )  # experimental
 
 
 class Client(_ClientBase):
