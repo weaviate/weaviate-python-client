@@ -449,3 +449,29 @@ def test_add_nested_object_with_batch():
 
     obj = client.data_object.get_by_id(uuid_, class_name="BatchTestNested")
     assert obj["properties"]["nested"] == {"name": "nested", "names": ["nested1", "nested2"]}
+
+
+def test_add_10000_objects_with_async_indexing_and_wait():
+    client = weaviate.Client("http://localhost:8079")
+    client.schema.delete_all()
+
+    client.schema.create_class(
+        {
+            "class": "BatchTestAsync",
+            "vectorizer": "text2vec-contextionary",
+            "properties": [
+                {
+                    "name": "text",
+                    "dataType": ["text"],
+                }
+            ],
+        },
+    )
+    with client.batch.configure(wait_for_async_indexing=True) as batch:
+        for i in range(10000):
+            batch.add_data_object(
+                class_name="BatchTestAsync", data_object={"text": "text" + str(i)}
+            )
+
+    res = client.query.aggregate("BatchTestAsync").with_meta_count().do()
+    assert res["data"]["Aggregate"]["BatchTestAsync"][0]["meta"]["count"] == 10000

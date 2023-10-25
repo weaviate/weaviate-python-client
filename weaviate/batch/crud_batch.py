@@ -286,6 +286,7 @@ class Batch:
         self._batching_type: Optional[str] = "dynamic"
         self._recommended_num_objects = self._batch_size
         self._recommended_num_references = self._batch_size
+        self.__wait_for_async_indexing = False
 
         self._num_workers = 1
         self._consistency_level: Optional[ConsistencyLevel] = None
@@ -351,6 +352,7 @@ class Batch:
         dynamic: bool = True,
         num_workers: int = 1,
         consistency_level: Optional[ConsistencyLevel] = None,
+        wait_for_async_indexing: bool = False,
     ) -> "Batch":
         """
         Warnings
@@ -401,6 +403,7 @@ class Batch:
         ValueError
             If the value of one of the arguments is wrong.
         """
+        self.__wait_for_async_indexing = wait_for_async_indexing
         self.consistency_level = consistency_level
         if creation_time is not None:
             _check_positive_num(creation_time, "creation_time", Real)
@@ -1631,6 +1634,22 @@ class Batch:
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.flush()
         self.shutdown()
+
+    def wait_for_async_indexing(self) -> None:
+        cluster = Cluster(self._connection)
+
+        def is_ready(how_many: int) -> bool:
+            try:
+                return cluster.get_global_indexing_status() == "READY"
+            except Exception as e:
+                print(
+                    f"Error while getting node status: {e}, trying again with 2**n exponential backoff with n={how_many}"
+                )
+                time.sleep(2**how_many)
+                return is_ready(how_many + 1)
+
+        while not is_ready(0):
+            print("Waiting for async indexing to finish...")
 
     @property
     def creation_time(self) -> Real:
