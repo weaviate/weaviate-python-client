@@ -1,5 +1,5 @@
 import uuid as uuid_lib
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Literal, Optional, cast, overload
 
 from weaviate.collection.classes.filters import (
     _Filters,
@@ -14,11 +14,20 @@ from proto.v1 import search_get_pb2
 
 
 class _FilterToGRPC:
+    @overload
+    @staticmethod
+    def convert(weav_filter: Literal[None]) -> None:
+        ...
+
+    @overload
+    @staticmethod
+    def convert(weav_filter: _Filters) -> search_get_pb2.Filters:
+        ...
+
     @staticmethod
     def convert(weav_filter: Optional[_Filters]) -> Optional[search_get_pb2.Filters]:
         if weav_filter is None:
             return None
-
         if isinstance(weav_filter, _FilterValue):
             return _FilterToGRPC.__value_filter(weav_filter)
         else:
@@ -108,6 +117,16 @@ class _FilterToGRPC:
 
 
 class _FilterToREST:
+    @overload
+    @staticmethod
+    def convert(weav_filter: Literal[None]) -> None:
+        ...
+
+    @overload
+    @staticmethod
+    def convert(weav_filter: _Filters) -> Dict[str, Any]:
+        ...
+
     @staticmethod
     def convert(weav_filter: Optional[_Filters]) -> Optional[Dict[str, Any]]:
         if weav_filter is None:

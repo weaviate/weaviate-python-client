@@ -167,6 +167,24 @@ class WeaviateEmbeddedInvalidVersion(WeaviateBaseError):
         super().__init__(msg)
 
 
+class WeaviateInvalidInputException(WeaviateBaseError):
+    """Is raised if the input to a function is invalid."""
+
+    def __init__(self, message: str):
+        msg = f"""Invalid input provided: {message}."""
+        super().__init__(msg)
+        self.message = message
+
+
+class WeaviateQueryException(WeaviateBaseError):
+    """Is raised if a query to Weaviate fails in any way."""
+
+    def __init__(self, message: str):
+        msg = f"""Query call failed with message {message}."""
+        super().__init__(msg)
+        self.message = message
+
+
 class WeaviateGRPCException(WeaviateBaseError):
     """Is raised if a gRPC call fails in any way."""
 

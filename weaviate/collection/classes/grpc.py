@@ -53,6 +53,14 @@ class Move:
     def _concepts_list(self) -> Optional[List[str]]:
         return self.__concepts
 
+    def _to_gql_payload(self) -> dict:
+        payload: dict = {"force": self.force}
+        if self.__objects is not None:
+            payload["objects"] = self.__objects
+        if self.__concepts is not None:
+            payload["concepts"] = self.__concepts
+        return payload
+
 
 class MetadataQuery(_WeaviateInput):
     """Define which metadata should be returned in the query's results."""
