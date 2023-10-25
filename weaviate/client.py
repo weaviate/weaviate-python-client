@@ -11,7 +11,7 @@ from .batch import Batch
 from .collection.batch import _Batch
 from .classification import Classification
 from .cluster import Cluster
-from .collection import _Collection
+from .collection import _Collections
 from .config import AdditionalConfig, Config
 from .connect.connection import (
     Connection,
@@ -197,7 +197,7 @@ class ClientV4(_ClientBase):
         self.batch = _Batch(self._connection)
         self.backup = Backup(self._connection)
         self.cluster = Cluster(self._connection)
-        self.collection = _Collection(self._connection)
+        self.collections = _Collections(self._connection)
 
 
 class Client(_ClientBase):

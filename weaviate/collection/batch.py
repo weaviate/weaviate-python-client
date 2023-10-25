@@ -223,9 +223,9 @@ class _Batch:
         """
         Configure your batch object.
 
-        Every time you run this command, the `client.collection.batch` object will
+        Every time you run this command, the `client.collections.batch` object will
         be updated with the new configuration. To enter the batching context manager, which handles automatically
-        sending batches dynamically, use `with client.collection.batch as batch`.
+        sending batches dynamically, use `with client.collections.batch as batch`.
 
         Arguments:
             `batch_size`

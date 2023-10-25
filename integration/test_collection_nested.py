@@ -15,9 +15,9 @@ from weaviate.connect.connection import ConnectionParams
 @pytest.fixture(scope="module")
 def client():
     client = weaviate.ClientV4(ConnectionParams.from_url("http://localhost:8080", grpc_port=50051))
-    client.collection.delete_all()
+    client.collections.delete_all()
     yield client
-    client.collection.delete_all()
+    client.collections.delete_all()
 
 
 @pytest.mark.parametrize(
@@ -258,8 +258,8 @@ def test_nested_return_all_properties(
     client: weaviate.Client, property_: Property, object_: Union[dict, List[dict]]
 ):
     name = "TestInsertNestedPropertiesAll"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[property_],
     )
@@ -312,8 +312,8 @@ def test_nested_return_specific_properties(
     client: weaviate.Client, return_properties: PROPERTIES, expected: dict
 ):
     name = "TestInsertNestedPropertiesSpecific"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[
             Property(
@@ -426,7 +426,7 @@ def test_nested_return_generic_properties(
     client: weaviate.Client,
 ):
     name = "TestInsertNestedPropertiesGeneric"
-    client.collection.delete(name)
+    client.collections.delete(name)
 
     class Child(TypedDict):
         name: str
@@ -435,7 +435,7 @@ def test_nested_return_generic_properties(
     class Parent(TypedDict):
         child: Nested[Child]
 
-    collection = client.collection.create(
+    collection = client.collections.create(
         name=name,
         properties=[
             Property(

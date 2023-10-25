@@ -35,9 +35,9 @@ UUID3 = uuid.uuid4()
 def client():
     connection_params = weaviate.ConnectionParams.from_url("http://localhost:8080", 50051)
     client = weaviate.ClientV4(connection_params)
-    client.collection.delete_all()
+    client.collections.delete_all()
     yield client
-    client.collection.delete_all()
+    client.collections.delete_all()
 
 
 @pytest.mark.parametrize(
@@ -49,8 +49,8 @@ def client():
     ],
 )
 def test_filters_text(client: weaviate.ClientV4, weaviate_filter: _FilterValue, results: List[int]):
-    client.collection.delete("TestFilterText")
-    collection = client.collection.create(
+    client.collections.delete("TestFilterText")
+    collection = client.collections.create(
         name="TestFilterText",
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
@@ -94,8 +94,8 @@ def test_filters_nested(
     weaviate_filter: _Filters,
     results: List[int],
 ):
-    client.collection.delete("TestFilterNested")
-    collection = client.collection.create(
+    client.collections.delete("TestFilterNested")
+    collection = client.collections.create(
         name="TestFilterNested",
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="num", data_type=DataType.NUMBER)],
@@ -119,8 +119,8 @@ def test_filters_nested(
 
 
 def test_length_filter(client: weaviate.ClientV4):
-    client.collection.delete("TestFilterNested")
-    collection = client.collection.create(
+    client.collections.delete("TestFilterNested")
+    collection = client.collections.create(
         name="TestFilterNested",
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="field", data_type=DataType.TEXT)],
@@ -152,8 +152,8 @@ def test_length_filter(client: weaviate.ClientV4):
 def test_filters_comparison(
     client: weaviate.ClientV4, weaviate_filter: _FilterValue, results: List[int]
 ):
-    client.collection.delete("TestFilterNumber")
-    collection = client.collection.create(
+    client.collections.delete("TestFilterNumber")
+    collection = client.collections.create(
         name="TestFilterNumber",
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="number", data_type=DataType.INT)],
@@ -214,8 +214,8 @@ def test_filters_comparison(
 def test_filters_contains(
     client: weaviate.ClientV4, weaviate_filter: _FilterValue, results: List[int]
 ):
-    client.collection.delete("TestFilterContains")
-    collection = client.collection.create(
+    client.collections.delete("TestFilterContains")
+    collection = client.collections.create(
         name="TestFilterContains",
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
@@ -315,9 +315,9 @@ def test_filters_contains(
     ],
 )
 def test_ref_filters(client: weaviate.ClientV4, weaviate_filter: _FilterValue, results: List[int]):
-    client.collection.delete("TestFilterRef")
-    client.collection.delete("TestFilterRef2")
-    to_collection = client.collection.create(
+    client.collections.delete("TestFilterRef")
+    client.collections.delete("TestFilterRef2")
+    to_collection = client.collections.create(
         name="TestFilterRef2",
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
@@ -330,7 +330,7 @@ def test_ref_filters(client: weaviate.ClientV4, weaviate_filter: _FilterValue, r
         to_collection.data.insert(properties={"int": 0, "text": "first"}),
         to_collection.data.insert(properties={"int": 15, "text": "second"}),
     ]
-    from_collection = client.collection.create(
+    from_collection = client.collections.create(
         name="TestFilterRef",
         properties=[
             ReferenceProperty(name="ref", target_collection="TestFilterRef2"),
@@ -356,16 +356,16 @@ def test_ref_filters(client: weaviate.ClientV4, weaviate_filter: _FilterValue, r
 def test_ref_filters_multi_target(client: weaviate.ClientV4):
     target = "TestFilterRefMulti2"
     source = "TestFilterRefMulti"
-    client.collection.delete(source)
-    client.collection.delete(target)
-    to_collection = client.collection.create(
+    client.collections.delete(source)
+    client.collections.delete(target)
+    to_collection = client.collections.create(
         name=target,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="int", data_type=DataType.INT)],
     )
     uuid_to = to_collection.data.insert(properties={"int": 0})
     uuid_to2 = to_collection.data.insert(properties={"int": 5})
-    from_collection = client.collection.create(
+    from_collection = client.collections.create(
         name=source,
         properties=[
             ReferencePropertyMultiTarget(
@@ -733,8 +733,8 @@ def test_delete_many_simple(
     expected_len: int,
 ):
     name = "TestDeleteManySimple"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=properties,
         inverted_index_config=Configure.inverted_index(index_null_state=True),
@@ -750,7 +750,7 @@ def test_delete_many_simple(
 
 def test_delete_many_and(client: weaviate.ClientV4):
     name = "TestDeleteManyAnd"
-    collection = client.collection.create(
+    collection = client.collections.create(
         name=name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
@@ -779,7 +779,7 @@ def test_delete_many_and(client: weaviate.ClientV4):
 
 def test_delete_many_or(client: weaviate.ClientV4):
     name = "TestDeleteManyOr"
-    collection = client.collection.create(
+    collection = client.collections.create(
         name=name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
@@ -806,7 +806,7 @@ def test_delete_many_or(client: weaviate.ClientV4):
 
 def test_delete_many_return(client: weaviate.ClientV4):
     name = "TestDeleteManyReturn"
-    collection = client.collection.create(
+    collection = client.collections.create(
         name=name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),

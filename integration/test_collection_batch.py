@@ -42,8 +42,8 @@ def client() -> weaviate.ClientV4:
     client = weaviate.ClientV4(
         weaviate.ConnectionParams.from_url("http://localhost:8080", grpc_port=50051)
     )
-    client.collection.delete_all()
-    client.collection.create(
+    client.collections.delete_all()
+    client.collections.create(
         name="Test",
         properties=[
             ReferenceProperty(name="test", target_collection="Test"),
@@ -52,7 +52,7 @@ def client() -> weaviate.ClientV4:
         ],
     )
     yield client
-    client.collection.delete_all()
+    client.collections.delete_all()
 
 
 @pytest.mark.parametrize(
@@ -70,7 +70,7 @@ def test_add_object(client: weaviate.ClientV4, uuid: Optional[UUID], vector: Opt
         )
         assert batch.num_objects() == 1
         assert batch.num_references() == 0
-    objs = client.collection.get("Test").query.fetch_objects().objects
+    objs = client.collections.get("Test").query.fetch_objects().objects
     assert len(objs) == 1
 
 
@@ -109,8 +109,8 @@ def test_add_reference(
         )
         assert batch.num_objects() == 2
         assert batch.num_references() == 1
-    objs = client.collection.get("Test").query.fetch_objects().objects
-    obj = client.collection.get("Test").query.fetch_object_by_id(from_object_uuid)
+    objs = client.collections.get("Test").query.fetch_objects().objects
+    obj = client.collections.get("Test").query.fetch_object_by_id(from_object_uuid)
     assert len(objs) == 2
     print(obj.properties)
     assert isinstance(obj.properties["test"][0]["beacon"], str)
@@ -122,14 +122,14 @@ def test_add_object_batch_with_tenant():
     # create two classes and add 5 tenants each
     class_names = ["BatchTestMultiTenant1", "BatchTestMultiTenant2"]
     for name in class_names:
-        client.collection.create(
+        client.collections.create(
             name=name,
             properties=[
                 Property(name="tenantAsProp", data_type=DataType.TEXT),
             ],
             multi_tenancy_config=Configure.multi_tenancy(enabled=True),
         )
-        client.collection.get(name).tenants.create(
+        client.collections.get(name).tenants.create(
             [Tenant(name="tenant" + str(i)) for i in range(5)]
         )
 
@@ -147,25 +147,25 @@ def test_add_object_batch_with_tenant():
             )
 
     for obj in objects:
-        retObj = client.collection.get(obj[1]).with_tenant(obj[2]).query.fetch_object_by_id(obj[0])
+        retObj = client.collections.get(obj[1]).with_tenant(obj[2]).query.fetch_object_by_id(obj[0])
         assert retObj.properties["tenantAsProp"] == obj[2]
 
     for name in class_names:
-        client.collection.delete(name)
+        client.collections.delete(name)
 
 
 def test_add_ref_batch_with_tenant():
     client = weaviate.ClientV4(weaviate.ConnectionParams.from_url("http://localhost:8080", 50051))
-    client.collection.delete_all()
+    client.collections.delete_all()
 
     # create two classes and add 5 tenants each
     class_names = ["BatchRefTestMultiTenant0", "BatchRefTestMultiTenant1"]
-    client.collection.create(
+    client.collections.create(
         name=class_names[0],
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
 
-    client.collection.create(
+    client.collections.create(
         name=class_names[1],
         properties=[
             Property(name="tenantAsProp", data_type=DataType.TEXT),
@@ -175,7 +175,7 @@ def test_add_ref_batch_with_tenant():
     )
 
     for name in class_names:
-        client.collection.get(name).tenants.create(
+        client.collections.get(name).tenants.create(
             [Tenant(name="tenant" + str(i)) for i in range(5)]
         )
 
@@ -212,7 +212,7 @@ def test_add_ref_batch_with_tenant():
 
     for i, obj in enumerate(objects_class1):
         ret_obj = (
-            client.collection.get(class_names[1])
+            client.collections.get(class_names[1])
             .with_tenant(obj[1])
             .query.fetch_object_by_id(obj[0])
         )
@@ -223,7 +223,7 @@ def test_add_ref_batch_with_tenant():
         )
 
     for name in reversed(class_names):
-        client.collection.delete(name)
+        client.collections.delete(name)
 
 
 def test_add_ten_thousand_data_objects(client: weaviate.ClientV4):
@@ -236,9 +236,9 @@ def test_add_ten_thousand_data_objects(client: weaviate.ClientV4):
                 class_name="Test",
                 properties={"name": "test" + str(i)},
             )
-    objs = client.collection.get("Test").query.fetch_objects(limit=nr_objects).objects
+    objs = client.collections.get("Test").query.fetch_objects(limit=nr_objects).objects
     assert len(objs) == nr_objects
-    client.collection.delete("Test")
+    client.collections.delete("Test")
 
 
 def make_refs(uuids: List[uuid.UUID]) -> List[dict]:
@@ -275,14 +275,14 @@ def test_add_one_hundred_objects_and_references_between_all(client: weaviate.Cli
         for ref in make_refs(uuids):
             batch.add_reference(**ref)
     objs = (
-        client.collection.get("Test")
+        client.collections.get("Test")
         .query.fetch_objects(limit=nr_objects, return_properties=FromReference(link_on="test"))
         .objects
     )
     assert len(objs) == nr_objects
     for obj in objs:
         assert len(obj.properties["test"].objects) == nr_objects - 1
-    client.collection.delete("Test")
+    client.collections.delete("Test")
 
 
 def test_add_bad_prop(client: weaviate.ClientV4):
@@ -356,5 +356,5 @@ def test_manual_batching(client: weaviate.ClientV4):
             ret = client.batch.create_references()
             assert ret.has_errors is False
 
-    objs = client.collection.get("Test").query.fetch_objects().objects
+    objs = client.collections.get("Test").query.fetch_objects().objects
     assert len(objs) == 10

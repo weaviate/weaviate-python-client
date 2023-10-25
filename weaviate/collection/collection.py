@@ -31,7 +31,7 @@ from weaviate.connect import Connection
 from weaviate.util import _capitalize_first_letter
 
 
-class _CollectionObject(_CollectionObjectBase, Generic[Properties]):
+class _Collection(_CollectionObjectBase, Generic[Properties]):
     def __init__(
         self,
         connection: Connection,
@@ -69,7 +69,7 @@ class _CollectionObject(_CollectionObjectBase, Generic[Properties]):
         self.__consistency_level = consistency_level
         self.__type = type_
 
-    def with_tenant(self, tenant: Optional[str] = None) -> "_CollectionObject":
+    def with_tenant(self, tenant: Optional[str] = None) -> "_Collection":
         """Use this method to return a collection object specific to a single tenant.
 
         If multi-tenancy is not configured for this collection then Weaviate will throw an error.
@@ -78,11 +78,11 @@ class _CollectionObject(_CollectionObjectBase, Generic[Properties]):
             `tenant`
                 The name of the tenant to use.
         """
-        return _CollectionObject(self._connection, self.name, self.__consistency_level, tenant)
+        return _Collection(self._connection, self.name, self.__consistency_level, tenant)
 
     def with_consistency_level(
         self, consistency_level: Optional[ConsistencyLevel] = None
-    ) -> "_CollectionObject":
+    ) -> "_Collection":
         """Use this method to return a collection object specific to a single consistency level.
 
         If replication is not configured for this collection then Weaviate will throw an error.
@@ -91,7 +91,7 @@ class _CollectionObject(_CollectionObjectBase, Generic[Properties]):
             `consistency_level`
                 The consistency level to use.
         """
-        return _CollectionObject(self._connection, self.name, consistency_level, self.__tenant)
+        return _Collection(self._connection, self.name, consistency_level, self.__tenant)
 
     def __len__(self) -> int:
         total = self.aggregate.over_all(total_count=True).total_count
@@ -178,7 +178,7 @@ class _CollectionObject(_CollectionObjectBase, Generic[Properties]):
         )
 
 
-class _Collection(_CollectionBase):
+class _Collections(_CollectionBase):
     def create(
         self,
         name: str,
@@ -193,7 +193,7 @@ class _Collection(_CollectionBase):
         vector_index_type: _VectorIndexType = _VectorIndexType.HNSW,
         vectorizer_config: Optional[_VectorizerConfig] = None,
         data_model: Optional[Type[Properties]] = None,
-    ) -> _CollectionObject[Properties]:
+    ) -> _Collection[Properties]:
         """Use this method to create a collection in Weaviate and immediately return a collection object.
 
         This method takes several arguments that allow you to configure the collection to your liking. Each argument
@@ -259,7 +259,7 @@ class _Collection(_CollectionBase):
 
     def get(
         self, name: str, data_model: Optional[Type[Properties]] = None
-    ) -> _CollectionObject[Properties]:
+    ) -> _Collection[Properties]:
         """Use this method to return a collection object to be used when interacting with your Weaviate collection.
 
         Arguments:
@@ -276,12 +276,12 @@ class _Collection(_CollectionBase):
         """
         _check_data_model(data_model)
         name = _capitalize_first_letter(name)
-        return _CollectionObject[Properties](self._connection, name, type_=data_model)
+        return _Collection[Properties](self._connection, name, type_=data_model)
 
     def delete(self, name: Union[str, List[str]]) -> None:
         """Use this method to delete collection(s) from the Weaviate instance by its/their name(s).
 
-        WARNING: If you have instances of client.collection.get() or client.collection.create()
+        WARNING: If you have instances of client.collections.get() or client.collections.create()
         for these collections within your code, they will cease to function correctly after this operation.
 
         Arguments:
@@ -303,7 +303,7 @@ class _Collection(_CollectionBase):
     def delete_all(self) -> None:
         """Use this method to delete all collections from the Weaviate instance.
 
-        WARNING: If you have instances of client.collection.get() or client.collection.create()
+        WARNING: If you have instances of client.collections.get() or client.collections.create()
         for these collections within your code, they will cease to function correctly after this operation.
 
         Raises:

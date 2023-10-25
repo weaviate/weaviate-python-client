@@ -27,16 +27,16 @@ def client():
         connection_params,
         additional_headers={"X-OpenAI-Api-Key": api_key},
     )
-    client.collection.delete_all()
+    client.collections.delete_all()
     yield client
-    client.collection.delete_all()
+    client.collections.delete_all()
 
 
 @pytest.mark.parametrize("parameter,answer", [("text", "Yes"), ("content", "No")])
 def test_generative_search_single(client: weaviate.ClientV4, parameter: str, answer: str):
     name = "TestGenerativeSearchOpenAISingle"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -67,8 +67,8 @@ def test_fetch_objects_generate_search_grouped(
     client: weaviate.ClientV4, prop: List[str], answer: str
 ):
     name = "TestGenerativeSearchOpenAIGroup"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -94,8 +94,8 @@ def test_fetch_objects_generate_search_grouped(
 
 def test_fetch_objects_generate_search_grouped_all_props(client: weaviate.ClientV4):
     name = "TestGenerativeSearchOpenAIGroupWithProp"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -130,8 +130,8 @@ def test_fetch_objects_generate_search_grouped_all_props(client: weaviate.Client
 
 def test_fetch_objects_generate_search_grouped_specified_prop(client: weaviate.ClientV4):
     name = "TestGenerativeSearchOpenAIGroupWithProp"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -167,8 +167,8 @@ def test_fetch_objects_generate_search_grouped_specified_prop(client: weaviate.C
 
 def test_fetch_objects_generate_with_everything(client: weaviate.ClientV4):
     name = "TestGetGenerativeSearchOpenAI"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -206,8 +206,8 @@ def test_fetch_objects_generate_with_everything(client: weaviate.ClientV4):
 
 def test_bm25_generate_with_everything(client: weaviate.ClientV4):
     name = "TestBM25GenerativeSearchOpenAI"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -247,8 +247,8 @@ def test_bm25_generate_with_everything(client: weaviate.ClientV4):
 
 def test_hybrid_generate_with_everything(client: weaviate.ClientV4):
     name = "TestHybridGenerativeSearchOpenAI"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -288,8 +288,8 @@ def test_hybrid_generate_with_everything(client: weaviate.ClientV4):
 
 def test_near_text_generate_with_everything(client: weaviate.ClientV4):
     name = "TestNearTextGenerativeSearchOpenAI"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -329,8 +329,8 @@ def test_near_text_generate_with_everything(client: weaviate.ClientV4):
 
 def test_near_vector_generate_with_everything(client: weaviate.ClientV4):
     name = "TestNearTextGenerativeSearchOpenAI"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -413,8 +413,8 @@ def test_openapi_no_module():
 
 def test_openai_batch_upload(client: weaviate.ClientV4):
     name = "TestGenerativeSearchOpenAIBatch"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
