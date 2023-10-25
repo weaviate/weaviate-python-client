@@ -13,8 +13,7 @@ from weaviate.collection.classes.grpc import MetadataQuery
 
 @pytest.fixture(scope="module")
 def client():
-    connection_params = weaviate.ConnectionParams.from_url("http://localhost:8087", 50058)
-    client = weaviate.ClientV4(connection_params)
+    client = weaviate.WeaviateClient.connect_to_local(port=8087, grpc_port=50058)
     client.collections.delete_all()
     yield client
     client.collections.delete_all()

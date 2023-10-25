@@ -20,12 +20,8 @@ def client():
     if api_key is None:
         pytest.skip("No OpenAI API key found.")
 
-    connection_params = weaviate.ConnectionParams.from_url(
-        "http://localhost:8086", 50057
-    )  # ports with generative module
-    client = weaviate.ClientV4(
-        connection_params,
-        additional_headers={"X-OpenAI-Api-Key": api_key},
+    client = weaviate.WeaviateClient.connect_to_local(
+        port=8086, grpc_port=50057, headers={"X-OpenAI-Api-Key": api_key}
     )
     client.collections.delete_all()
     yield client
@@ -370,17 +366,13 @@ def test_near_vector_generate_with_everything(client: weaviate.ClientV4):
 
 
 def test_openapi_invalid_key():
-    connection_params = weaviate.ConnectionParams.from_url(
-        "http://localhost:8086", 50057
-    )  # ports with generative module
-    local_client = weaviate.ClientV4(
-        connection_params,
-        additional_headers={"X-OpenAI-Api-Key": "IamNotValid"},
+    local_client = weaviate.WeaviateClient.connect_to_local(
+        port=8086, grpc_port=50057, headers={"X-OpenAI-Api-Key": "IamNotValid"}
     )
 
     name = "TestGenerativeSearchOpenAIError"
-    local_client.collection.delete(name)
-    collection = local_client.collection.create(
+    local_client.collections.delete(name)
+    collection = local_client.collections.create(
         name=name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
         generative_config=Configure.Generative.openai(),
@@ -391,17 +383,13 @@ def test_openapi_invalid_key():
 
 
 def test_openapi_no_module():
-    connection_params = weaviate.ConnectionParams.from_url(
-        "http://localhost:8080", 50051
-    )  # ports without generative module
-    local_client = weaviate.ClientV4(
-        connection_params,
-        additional_headers={"X-OpenAI-Api-Key": "doesnt matter"},
+    local_client = weaviate.WeaviateClient.connect_to_local(
+        port=8080, grpc_port=50051, headers={"X-OpenAI-Api-Key": "doesnt matter"}
     )
 
     name = "TestGenerativeSearchNoModule"
-    local_client.collection.delete(name)
-    collection = local_client.collection.create(
+    local_client.collections.delete(name)
+    collection = local_client.collections.create(
         name=name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
         generative_config=Configure.Generative.openai(),

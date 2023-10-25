@@ -359,17 +359,24 @@ class WeaviateClient:
 
     @overload
     @staticmethod
-    def connect_to_wcs(cluster_id: str, api_key: str, version: Literal["v3"]) -> Client:
+    def connect_to_wcs(
+        cluster_id: str, api_key: str, headers: Optional[dict] = None, *, version: Literal["v3"]
+    ) -> Client:
         ...
 
     @overload
     @staticmethod
-    def connect_to_wcs(cluster_id: str, api_key: str, version: Literal["v4"]) -> ClientV4:
+    def connect_to_wcs(
+        cluster_id: str, api_key: str, headers: Optional[dict] = None, version: Literal["v4"] = "v4"
+    ) -> ClientV4:
         ...
 
     @staticmethod
     def connect_to_wcs(
-        cluster_id: str, api_key: str, version: Literal["v3", "v4"] = "v4"
+        cluster_id: str,
+        api_key: str,
+        headers: Optional[dict] = None,
+        version: Literal["v3", "v4"] = "v4",
     ) -> Union[Client, ClientV4]:
         """
         Connect to your own Weaviate Cloud Service (WCS) instance.
@@ -379,6 +386,8 @@ class WeaviateClient:
                 The cluster id to connect to.
             `api_key`
                 The api key to use for authentication.
+            `headers`
+                Additional headers to include in the requests, e.g. API keys for Cloud vectorisation.
             `version`
                 The version of the Weaviate Python Client to use. Defaults to v4.
 
@@ -397,6 +406,7 @@ class WeaviateClient:
                     ),
                 ),
                 auth_client_secret=AuthApiKey(api_key),
+                additional_headers=headers,
             )
         else:
             return Client(
@@ -406,6 +416,7 @@ class WeaviateClient:
                     grpc_secure_experimental=True,
                 ),
                 auth_client_secret=AuthApiKey(api_key),
+                additional_headers=headers,
             )
 
     @overload
@@ -414,6 +425,7 @@ class WeaviateClient:
         host: str = "localhost",
         port: int = 8080,
         grpc_port: int = 50051,
+        headers: Optional[dict] = None,
         *,
         version: Literal["v3"],
     ) -> Client:
@@ -425,6 +437,7 @@ class WeaviateClient:
         host: str = "localhost",
         port: int = 8080,
         grpc_port: int = 50051,
+        headers: Optional[dict] = None,
         version: Literal["v4"] = "v4",
     ) -> ClientV4:
         ...
@@ -434,6 +447,7 @@ class WeaviateClient:
         host: str = "localhost",
         port: int = 8080,
         grpc_port: int = 50051,
+        headers: Optional[dict] = None,
         version: Literal["v3", "v4"] = "v4",
     ) -> Union[Client, ClientV4]:
         """
@@ -448,6 +462,8 @@ class WeaviateClient:
                 The port to use for the underlying REST & GraphQL API calls.
             `grpc_port`
                 The port to use for the underlying gRPC API.
+            `headers`
+                Additional headers to include in the requests, e.g. API keys for Cloud vectorisation.
             `version`
                 The version of the Weaviate Python Client to use. Defaults to v4.
 
@@ -461,6 +477,7 @@ class WeaviateClient:
                     http=ProtocolParams(host=host, port=port, secure=False),
                     grpc=ProtocolParams(host=host, port=grpc_port, secure=False),
                 ),
+                additional_headers=headers,
             )
         else:
             return Client(
@@ -469,25 +486,36 @@ class WeaviateClient:
                     grpc_port_experimental=50051,
                     grpc_secure_experimental=False,
                 ),
+                additional_headers=headers,
             )
 
     @overload
     @staticmethod
     def connect_to_embedded(
-        port: int = 8079, grpc_port: int = 50051, *, version: Literal["v3"]
+        port: int = 8079,
+        grpc_port: int = 50051,
+        headers: Optional[dict] = None,
+        *,
+        version: Literal["v3"],
     ) -> Client:
         ...
 
     @overload
     @staticmethod
     def connect_to_embedded(
-        port: int = 8079, grpc_port: int = 50051, version: Literal["v4"] = "v4"
+        port: int = 8079,
+        grpc_port: int = 50051,
+        headers: Optional[dict] = None,
+        version: Literal["v4"] = "v4",
     ) -> ClientV4:
         ...
 
     @staticmethod
     def connect_to_embedded(
-        port: int = 8079, grpc_port: int = 50051, version: Literal["v3", "v4"] = "v4"
+        port: int = 8079,
+        grpc_port: int = 50051,
+        headers: Optional[dict] = None,
+        version: Literal["v3", "v4"] = "v4",
     ) -> Union[Client, ClientV4]:
         """
         Connect to an embedded Weaviate instance.
@@ -497,6 +525,8 @@ class WeaviateClient:
                 The port to use for the underlying REST & GraphQL API calls.
             `grpc_port`
                 The port to use for the underlying gRPC API.
+            `headers`
+                Additional headers to include in the requests, e.g. API keys for Cloud vectorisation.
             `version`
                 The version of the Weaviate Python Client to use. Defaults to v4.
 
@@ -512,7 +542,8 @@ class WeaviateClient:
             embedded_options=EmbeddedOptions(
                 port=port,
                 grpc_port=grpc_port,
-            )
+            ),
+            additional_headers=headers,
         )
 
     @overload
@@ -524,6 +555,8 @@ class WeaviateClient:
         grpc_host: str,
         grpc_port: int,
         grpc_secure: bool,
+        headers: Optional[dict] = None,
+        *,
         version: Literal["v3"],
     ) -> Client:
         ...
@@ -537,6 +570,7 @@ class WeaviateClient:
         grpc_host: str,
         grpc_port: int,
         grpc_secure: bool,
+        headers: Optional[dict] = None,
         version: Literal["v4"] = "v4",
     ) -> ClientV4:
         ...
@@ -549,6 +583,7 @@ class WeaviateClient:
         grpc_host: str,
         grpc_port: int,
         grpc_secure: bool,
+        headers: Optional[dict] = None,
         version: Literal["v3", "v4"] = "v4",
     ) -> Union[Client, ClientV4]:
         """
@@ -567,6 +602,8 @@ class WeaviateClient:
                 The port to use for the underlying gRPC API.
             `grpc_secure`
                 Whether to use a secure channel for the underlying gRPC API.
+            `headers`
+                Additional headers to include in the requests, e.g. API keys for Cloud vectorisation.
             `version`
                 The version of the Weaviate Python Client to use. Defaults to v4.
 
@@ -583,7 +620,8 @@ class WeaviateClient:
                     grpc_host=grpc_host,
                     grpc_port=grpc_port,
                     grpc_secure=grpc_secure,
-                )
+                ),
+                additional_headers=headers,
             )
         else:
             if grpc_host is not None and grpc_port != http_port:
@@ -596,4 +634,5 @@ class WeaviateClient:
                     grpc_port_experimental=grpc_port,
                     grpc_secure_experimental=grpc_secure,
                 ),
+                additional_headers=headers,
             )

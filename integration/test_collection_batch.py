@@ -39,9 +39,7 @@ class MockTensorFlow:
 
 @pytest.fixture(scope="function")
 def client() -> weaviate.ClientV4:
-    client = weaviate.ClientV4(
-        weaviate.ConnectionParams.from_url("http://localhost:8080", grpc_port=50051)
-    )
+    client = weaviate.WeaviateClient.connect_to_local()
     client.collections.delete_all()
     client.collections.create(
         name="Test",

@@ -9,12 +9,11 @@ from weaviate.collection.classes.config import (
 )
 from weaviate.collection.classes.grpc import PROPERTIES, FromNested
 from weaviate.collection.classes.internal import Nested
-from weaviate.connect.connection import ConnectionParams
 
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.ClientV4(ConnectionParams.from_url("http://localhost:8080", grpc_port=50051))
+    client = weaviate.WeaviateClient.connect_to_local()
     client.collections.delete_all()
     yield client
     client.collections.delete_all()
