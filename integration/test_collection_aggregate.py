@@ -20,6 +20,20 @@ def client():
     client.schema.delete_all()
 
 
+@pytest.mark.parametrize("how_many", [1, 10000, 20000, 20001, 100000])
+def test_collection_length(client: weaviate.WeaviateClient, how_many: int):
+    """Uses .aggregate behind-the-scenes"""
+    name = "TestCollectionLength"
+    client.collection.delete(name)
+    collection = client.collection.create(
+        name=name,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=ConfigFactory.Vectorizer.none(),
+    )
+    collection.data.insert_many([{"Name": f"name {i}"} for i in range(how_many)])
+    assert len(collection) == how_many
+
+
 def test_simple_aggregation(client: weaviate.WeaviateClient):
     name = "TestSimpleAggregation"
     client.collection.delete(name)
@@ -65,7 +79,7 @@ def test_near_object_aggregation(client: weaviate.WeaviateClient, option: dict, 
                 count=True, top_occurrences_count=True, top_occurrences_value=True
             )
         ],
-        **option
+        **option,
     )
     assert res.properties["text"].count == expected_len
     assert len(res.properties["text"].top_occurrences) == expected_len
@@ -144,7 +158,7 @@ def test_near_vector_aggregation(client: weaviate.WeaviateClient, option: dict, 
                 count=True, top_occurrences_count=True, top_occurrences_value=True
             )
         ],
-        **option
+        **option,
     )
     assert res.properties["text"].count == expected_len
     assert len(res.properties["text"].top_occurrences) == expected_len
@@ -220,7 +234,7 @@ def test_near_text_aggregation(client: weaviate.WeaviateClient, option: dict, ex
                 count=True, top_occurrences_count=True, top_occurrences_value=True
             )
         ],
-        **option
+        **option,
     )
     assert res.properties["text"].count == expected_len
     assert len(res.properties["text"].top_occurrences) == expected_len
@@ -281,7 +295,7 @@ def test_near_image_aggregation(client: weaviate.WeaviateClient, option: dict):
     res = collection.aggregate.near_image(
         img_path,
         return_metrics=[Metrics("rating", DataType.INT).returning(count=True, maximum=True)],
-        **option
+        **option,
     )
     assert res.properties["rating"].count == 1
     assert res.properties["rating"].maximum == 9
