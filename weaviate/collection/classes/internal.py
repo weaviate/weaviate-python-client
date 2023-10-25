@@ -10,7 +10,7 @@ if sys.version_info < (3, 9):
 else:
     from typing import Annotated, get_type_hints, get_origin, get_args
 
-from weaviate.collection.collection_base import _CollectionObjectBase
+from weaviate.collection.collection_base import _CollectionBase
 from weaviate.collection.classes.grpc import (
     FromNested,
     FromReference,
@@ -266,7 +266,7 @@ class Refer:
     def to_multi_target(
         cls,
         uuids: UUIDS,
-        target_collection: Union[str, _CollectionObjectBase],
+        target_collection: Union[str, _CollectionBase],
         data_model: Optional[Type[P]] = None,
     ) -> Reference[P]:
         """Define cross references to other objects by their UUIDs and the collection in which they are stored.
@@ -282,7 +282,7 @@ class Refer:
         return _Reference[P](
             None,
             target_collection.name
-            if isinstance(target_collection, _CollectionObjectBase)
+            if isinstance(target_collection, _CollectionBase)
             else target_collection,
             uuids,
         )

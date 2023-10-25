@@ -20,7 +20,7 @@ from weaviate.collection.classes.config import (
 )
 from weaviate.collection.classes.grpc import MetadataQuery, PROPERTIES
 from weaviate.collection.classes.types import Properties, TProperties, _check_data_model
-from weaviate.collection.collection_base import _CollectionBase, _CollectionObjectBase
+from weaviate.collection.collection_base import _CollectionBase, _CollectionsBase
 from weaviate.collection.aggregate import _AggregateCollection, _AggregateGroupByCollection
 from weaviate.collection.config import _ConfigCollection
 from weaviate.collection.data import _DataCollection
@@ -31,7 +31,7 @@ from weaviate.connect import Connection
 from weaviate.util import _capitalize_first_letter
 
 
-class _Collection(_CollectionObjectBase, Generic[Properties]):
+class _Collection(_CollectionBase, Generic[Properties]):
     def __init__(
         self,
         connection: Connection,
@@ -178,7 +178,7 @@ class _Collection(_CollectionObjectBase, Generic[Properties]):
         )
 
 
-class _Collections(_CollectionBase):
+class _Collections(_CollectionsBase):
     def create(
         self,
         name: str,

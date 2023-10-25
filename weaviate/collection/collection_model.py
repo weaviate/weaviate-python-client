@@ -10,7 +10,7 @@ from weaviate.collection.classes.orm import (
     Model,
     UserModelType,
 )
-from weaviate.collection.collection_base import _CollectionBase, _CollectionObjectBase
+from weaviate.collection.collection_base import _CollectionBase, _CollectionsBase
 from weaviate.collection.config import _ConfigCollectionModel
 from weaviate.collection.data import _DataCollectionModel
 from weaviate.collection.grpc import _GrpcCollectionModel
@@ -21,7 +21,7 @@ from weaviate.util import _capitalize_first_letter
 from weaviate.types import PYTHON_TYPE_TO_DATATYPE
 
 
-class _CollectionObjectModel(_CollectionObjectBase, Generic[Model]):
+class _CollectionObjectModel(_CollectionBase, Generic[Model]):
     def __init__(
         self,
         connection: Connection,
@@ -61,7 +61,7 @@ class _CollectionObjectModel(_CollectionObjectBase, Generic[Model]):
         )
 
 
-class _CollectionModel(_CollectionBase):
+class _CollectionModel(_CollectionsBase):
     def create(self, config: CollectionModelConfig[Model]) -> _CollectionObjectModel[Model]:
         name = super()._create(config)
         config_name = _capitalize_first_letter(config.model.__name__)
