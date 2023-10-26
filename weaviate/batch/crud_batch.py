@@ -1695,7 +1695,7 @@ class Batch:
                 "Class shards' status could not be retrieved due to connection error."
             ) from conn_err
 
-        res = _decode_json_response_list(response, "Get shards' status")
+        res: List[dict] = response.json()
         assert res is not None
         return [cast(str, shard.get("status")) for shard in res]
 

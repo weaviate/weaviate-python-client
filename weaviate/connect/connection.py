@@ -11,9 +11,9 @@ from threading import Thread, Event
 from typing import Any, Dict, Optional, Tuple, Union, cast
 from urllib.parse import urlparse
 
-import httpx  # type: ignore
+import httpx
 import requests
-from authlib.integrations.httpx_client import OAuth2Client  # type: ignore
+from authlib.integrations.httpx_client import AsyncOAuth2Client  # type: ignore
 from authlib.integrations.requests_client import OAuth2Session  # type: ignore
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError, ReadTimeout
@@ -52,7 +52,7 @@ except ImportError:
 
 
 JSONPayload = Union[dict, list]
-AsyncClient = Union[httpx.AsyncClient, OAuth2Client]
+AsyncClient = Union[httpx.AsyncClient, AsyncOAuth2Client]
 Session = Union[requests.sessions.Session, OAuth2Session]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBERS, NUMBERS]
 PYPI_TIMEOUT = 0.1
@@ -299,6 +299,10 @@ class Connection:
                 try:
                     if "refresh_token" in cast(OAuth2Session, self._session).token:
                         assert isinstance(self._session, OAuth2Session)
+                        assert isinstance(self._aclient, AsyncOAuth2Client)
+                        self._aclient.token = self._aclient.refresh_token(
+                            self._session.metadata["token_endpoint"]
+                        )
                         self._session.token = self._session.refresh_token(
                             self._session.metadata["token_endpoint"]
                         )
@@ -308,7 +312,7 @@ class Connection:
                         # saved credentials
                         assert _auth is not None
                         new_httpx, new_requests = _auth.get_auth_sessions()
-                        self._aclient.token = new_httpx.fetch_token()
+                        self._aclient.token = new_httpx.fetch_token()  # type: ignore
                         self._session.token = new_requests.fetch_token()  # type: ignore
                 except (RequestsHTTPError, ReadTimeout) as exc:
                     # retry again after one second, might be an unstable connection
@@ -336,7 +340,7 @@ class Connection:
         if hasattr(self, "_session"):
             self._session.close()
         if hasattr(self, "_asession"):
-            await self._aclient.close()
+            await self._aclient.aclose()
 
     def _get_request_header(self) -> dict:
         """
@@ -596,7 +600,7 @@ class Connection:
             url=request_url,
             headers=self._get_request_header(),
             params=params,
-            timeout=self._timeout_config,
+            timeout=self._timeout_config[1],
         )
 
     def head(
