@@ -20,7 +20,7 @@ def client():
     if api_key is None:
         pytest.skip("No OpenAI API key found.")
 
-    client = weaviate.Connect.to_local(
+    client = weaviate.connect_to_local(
         port=8086, grpc_port=50057, headers={"X-OpenAI-Api-Key": api_key}
     )
     client.collections.delete_all()
@@ -366,7 +366,7 @@ def test_near_vector_generate_with_everything(client: weaviate.WeaviateClient):
 
 
 def test_openapi_invalid_key():
-    local_client = weaviate.Connect.to_local(
+    local_client = weaviate.connect_to_local(
         port=8086, grpc_port=50057, headers={"X-OpenAI-Api-Key": "IamNotValid"}
     )
 
@@ -383,7 +383,7 @@ def test_openapi_invalid_key():
 
 
 def test_openapi_no_module():
-    local_client = weaviate.Connect.to_local(
+    local_client = weaviate.connect_to_local(
         port=8080, grpc_port=50051, headers={"X-OpenAI-Api-Key": "doesnt matter"}
     )
 

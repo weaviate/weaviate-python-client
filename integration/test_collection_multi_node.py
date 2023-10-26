@@ -13,7 +13,7 @@ from weaviate.collection.classes.grpc import MetadataQuery
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.Connect.to_local(port=8087, grpc_port=50058)
+    client = weaviate.connect_to_local(port=8087, grpc_port=50058)
     client.collections.delete_all()
     yield client
     client.collections.delete_all()

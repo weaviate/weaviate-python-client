@@ -59,7 +59,7 @@ DATE3 = datetime.datetime.strptime("2019-06-10", "%Y-%m-%d").replace(tzinfo=date
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.Connect.to_local()
+    client = weaviate.connect_to_local()
     client.collections.delete_all()
     yield client
     client.collections.delete_all()

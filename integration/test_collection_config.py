@@ -19,7 +19,7 @@ from weaviate.collection.classes.config import (
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.Connect.to_local(port=8087)
+    client = weaviate.connect_to_local(port=8087)
     client.collections.delete_all()
     yield client
     client.collections.delete_all()

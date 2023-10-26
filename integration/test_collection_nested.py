@@ -13,7 +13,7 @@ from weaviate.collection.classes.internal import Nested
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.Connect.to_local()
+    client = weaviate.connect_to_local()
     client.collections.delete_all()
     yield client
     client.collections.delete_all()

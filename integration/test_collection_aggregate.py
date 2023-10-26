@@ -11,7 +11,7 @@ from weaviate.util import file_encoder_b64
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.Connect.to_local()
+    client = weaviate.connect_to_local()
     client.collections.delete_all()
     yield client
     client.collections.delete_all()

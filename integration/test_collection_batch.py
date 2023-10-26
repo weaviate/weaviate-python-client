@@ -39,7 +39,7 @@ class MockTensorFlow:
 
 @pytest.fixture(scope="function")
 def client() -> weaviate.WeaviateClient:
-    client = weaviate.Connect.to_local()
+    client = weaviate.connect_to_local()
     client.collections.delete_all()
     client.collections.create(
         name="Test",

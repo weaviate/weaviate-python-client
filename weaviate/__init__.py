@@ -57,6 +57,10 @@ __all__ = [
     "LinkTo",
     "Tenant",
     "TenantActivityStatus",
+    "connect_to_custom",
+    "connect_to_embedded",
+    "connect_to_local",
+    "connect_to_wcs",
 ]
 
 import sys
@@ -70,8 +74,14 @@ except PackageNotFoundError:
 
 from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken, AuthApiKey
 from .batch.crud_batch import WeaviateErrorRetryConf
-from .client import Client, Connect, WeaviateClient
+from .client import Client, WeaviateClient
 from .connect.connection import ConnectionParams, ProtocolParams
+from .connect.helpers import (
+    connect_to_custom,
+    connect_to_embedded,
+    connect_to_local,
+    connect_to_wcs,
+)
 from .data.replication import ConsistencyLevel
 from .schema.crud_schema import Tenant, TenantActivityStatus
 from .embedded import EmbeddedOptions
