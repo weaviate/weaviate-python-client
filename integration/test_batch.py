@@ -518,7 +518,7 @@ def test_add_1000_objects_with_async_indexing_and_wait():
     with client.batch as batch:
         for obj in objs:
             batch.add_data_object(**obj)
-    client.batch.wait_for_vector_indexing(0)
+    client.batch.wait_for_vector_indexing()
     res = client.query.aggregate("BatchTestAsync").with_meta_count().do()
     assert res["data"]["Aggregate"]["BatchTestAsync"][0]["meta"]["count"] == nr_objects
     assert client.schema.get_class_shards("BatchTestAsync")[0]["status"] == "READY"

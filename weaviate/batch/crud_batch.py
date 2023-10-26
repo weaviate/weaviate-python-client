@@ -1649,6 +1649,11 @@ class Batch:
     def wait_for_vector_indexing(
         self, shards: Optional[List[Shard]] = None, how_many_failures: int = 5
     ) -> None:
+        if shards is not None and not isinstance(shards, list):
+            raise TypeError(f"'shards' must be of type List[Shard]. Given type: {type(shards)}.")
+        if shards is not None and not isinstance(shards[0], Shard):
+            raise TypeError(f"'shards' must be of type List[Shard]. Given type: {type(shards)}.")
+
         def is_ready(how_many: int) -> bool:
             try:
                 return all(
@@ -1666,11 +1671,8 @@ class Batch:
                 time.sleep(2**how_many)
                 return is_ready(how_many + 1)
 
-        try:
-            while not is_ready(0):
-                print("Waiting for async indexing to finish...")
-        except Exception as e:
-            print(f"Error while waiting for async indexing to finish: {e}")
+        while not is_ready(0):
+            print("Waiting for async indexing to finish...")
 
     def _get_shard_statuses(self, shard: Shard) -> List[str]:
         if not isinstance(shard.class_name, str):
