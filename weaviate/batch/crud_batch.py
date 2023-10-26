@@ -1683,7 +1683,6 @@ class Batch:
 
         try:
             response = self._connection.get(path=path)
-            time.sleep(0.25)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
                 "Class shards' status could not be retrieved due to connection error."
