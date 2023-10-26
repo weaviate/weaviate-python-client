@@ -1657,7 +1657,7 @@ class Batch:
         def is_ready(how_many: int) -> bool:
             try:
                 return all(
-                    all(status == "READY" for status in self._get_shard_statuses(shard))
+                    all(self._get_shards_readiness(shard))
                     for shard in shards or self.__imported_shards
                 )
             except Exception as e:
@@ -1672,7 +1672,7 @@ class Batch:
         while not is_ready(0):
             print("Waiting for async indexing to finish...")
 
-    def _get_shard_statuses(self, shard: Shard) -> List[str]:
+    def _get_shards_readiness(self, shard: Shard) -> List[bool]:
         if not isinstance(shard.class_name, str):
             raise TypeError(
                 "'class_name' argument must be of type `str`! "
@@ -1691,7 +1691,11 @@ class Batch:
 
         res = _decode_json_response_list(response, "Get shards' status")
         assert res is not None
-        return [cast(str, shard.get("status")) for shard in res]
+        return [
+            (cast(str, shard.get("status")) == "READY")
+            & (cast(int, shard.get("vectorQueueSize")) == 0)
+            for shard in res
+        ]
 
     @property
     def creation_time(self) -> Real:

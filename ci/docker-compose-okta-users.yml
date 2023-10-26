@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-update-nodes-api-with-vectorindexingstatus-field-for-shards-5f2ea68
+    image: semitechnologies/weaviate:preview-add-vectorqueuesize-to-schema-classname-shards-response-afa42cb
     ports:
       - 8083:8083
     restart: on-failure:0

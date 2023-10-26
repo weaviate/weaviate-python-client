@@ -9,7 +9,7 @@ services:
       - '8090'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-update-nodes-api-with-vectorindexingstatus-field-for-shards-5f2ea68
+    image: semitechnologies/weaviate:preview-add-vectorqueuesize-to-schema-classname-shards-response-afa42cb
     ports:
       - "8090:8090"
     restart: on-failure:0
