@@ -84,8 +84,7 @@ def test_add_data_object(client: weaviate.Client, uuid: Optional[UUID], vector: 
     assert has_batch_errors(response) is False, str(response)
 
 
-@pytest.mark.asyncio
-async def test_add_data_object_and_async_get_class_shard_status(client: weaviate.Client):
+def test_add_data_object_and_get_class_shard_status(client: weaviate.Client):
     """Test the `add_data_object` method"""
     client.batch.add_data_object(
         data_object={},
@@ -93,13 +92,12 @@ async def test_add_data_object_and_async_get_class_shard_status(client: weaviate
     )
     response = client.batch.create_objects()
     assert has_batch_errors(response) is False, str(response)
-    statuses = await client.batch._get_shard_statuses(Shard(class_name="Test"))
+    statuses = client.batch._get_shard_statuses(Shard(class_name="Test"))
     assert len(statuses) == 1
     assert statuses[0] == "READY"
 
 
-@pytest.mark.asyncio
-async def test_add_data_object_with_tenant_and_async_get_class_shard_status():
+def test_add_data_object_with_tenant_and_get_class_shard_status():
     """Test the `add_data_object` method"""
     client = weaviate.Client("http://localhost:8080")
     client.schema.delete_all()
@@ -120,7 +118,7 @@ async def test_add_data_object_with_tenant_and_async_get_class_shard_status():
     )
     response = client.batch.create_objects()
     assert has_batch_errors(response) is False, str(response)
-    statuses = await client.batch._get_shard_statuses(Shard(class_name="Test", tenant="tenant1"))
+    statuses = client.batch._get_shard_statuses(Shard(class_name="Test", tenant="tenant1"))
     assert len(statuses) == 1
     assert statuses[0] == "READY"
 
@@ -520,7 +518,7 @@ def test_add_1000_objects_with_async_indexing_and_wait():
     with client.batch as batch:
         for obj in objs:
             batch.add_data_object(**obj)
-    client.batch.wait_for_vector_indexing()
+    client.batch.wait_for_vector_indexing(0)
     res = client.query.aggregate("BatchTestAsync").with_meta_count().do()
     assert res["data"]["Aggregate"]["BatchTestAsync"][0]["meta"]["count"] == nr_objects
     assert client.schema.get_class_shards("BatchTestAsync")[0]["status"] == "READY"

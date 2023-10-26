@@ -1,7 +1,6 @@
 """
 Batch class definitions.
 """
-import asyncio
 import datetime
 import sys
 import threading
@@ -1650,36 +1649,30 @@ class Batch:
     def wait_for_vector_indexing(
         self, shards: Optional[List[Shard]] = None, how_many_failures: int = 5
     ) -> None:
-        async def is_ready(how_many: int) -> bool:
-            statuses: List[bool] = []
+        def is_ready(how_many: int) -> bool:
             try:
-                futures = [
-                    self._get_shard_statuses(shard) for shard in shards or self.__imported_shards
-                ]
-                results: List[List[str]] = await asyncio.gather(*futures)
-                for result in results:
-                    statuses.extend([res == "READY" for res in result])
-                return all(statuses)
+                return all(
+                    [
+                        all([status == "READY" for status in self._get_shard_statuses(shard)])
+                        for shard in shards or self.__imported_shards
+                    ]
+                )
             except Exception as e:
                 print(
                     f"Error while getting class shards statuses: {e}, trying again with 2**n={2**how_many}s exponential backoff with n={how_many}"
                 )
                 if how_many_failures == how_many:
                     raise e
-                await asyncio.sleep(2**how_many)
-                return await is_ready(how_many + 1)
+                time.sleep(2**how_many)
+                return is_ready(how_many + 1)
 
-        async def wait() -> None:
-            try:
-                while not await is_ready(0):
-                    print("Waiting for async indexing to finish...")
-                    time.sleep(0.25)
-            except Exception as e:
-                print(f"Error while waiting for async indexing to finish: {e}")
+        try:
+            while not is_ready(0):
+                print("Waiting for async indexing to finish...")
+        except Exception as e:
+            print(f"Error while waiting for async indexing to finish: {e}")
 
-        asyncio.run(wait())
-
-    async def _get_shard_statuses(self, shard: Shard) -> List[str]:
+    def _get_shard_statuses(self, shard: Shard) -> List[str]:
         if not isinstance(shard.class_name, str):
             raise TypeError(
                 "'class_name' argument must be of type `str`! "
@@ -1689,13 +1682,14 @@ class Batch:
         path = f"/schema/{_capitalize_first_letter(shard.class_name)}/shards{'' if shard.tenant is None else f'?tenant={shard.tenant}'}"
 
         try:
-            response = await self._connection.aget(path=path)
+            response = self._connection.get(path=path)
+            time.sleep(0.25)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError(
                 "Class shards' status could not be retrieved due to connection error."
             ) from conn_err
 
-        res: List[dict] = response.json()
+        res = _decode_json_response_list(response, "Get shards' status")
         assert res is not None
         return [cast(str, shard.get("status")) for shard in res]
 

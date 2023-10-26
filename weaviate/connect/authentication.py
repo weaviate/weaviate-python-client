@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Union
 from typing import TYPE_CHECKING
 
 import requests
-from authlib.integrations.httpx_client import AsyncOAuth2Client as OAuth2Httpx  # type: ignore
-from authlib.integrations.requests_client import OAuth2Session as OAuth2Requests  # type: ignore
+from authlib.integrations.requests_client import OAuth2Session  # type: ignore
 
 from weaviate.auth import (
     AuthCredentials,
@@ -73,20 +72,18 @@ class _Auth:
         assert isinstance(token_endpoint, str)
         return token_endpoint
 
-    def get_auth_sessions(self) -> Tuple[OAuth2Httpx, OAuth2Requests]:
+    def get_auth_session(self) -> OAuth2Session:
         if isinstance(self._credentials, AuthBearerToken):
-            sessions = self._get_sessions_auth_bearer_token(self._credentials)
+            sessions = self._get_session_auth_bearer_token(self._credentials)
         elif isinstance(self._credentials, AuthClientCredentials):
-            sessions = self._get_sessions_client_credential(self._credentials)
+            sessions = self._get_session_client_credential(self._credentials)
         else:
             assert isinstance(self._credentials, AuthClientPassword)
-            sessions = self._get_sessions_user_pw(self._credentials)
+            sessions = self._get_session_user_pw(self._credentials)
 
         return sessions
 
-    def _get_sessions_auth_bearer_token(
-        self, config: AuthBearerToken
-    ) -> Tuple[OAuth2Httpx, OAuth2Requests]:
+    def _get_session_auth_bearer_token(self, config: AuthBearerToken) -> OAuth2Session:
         token: Dict[str, Union[str, int]] = {"access_token": config.access_token}
         if config.expires_in is not None:
             token["expires_in"] = config.expires_in
@@ -97,49 +94,30 @@ class _Auth:
             _Warnings.auth_no_refresh_token(config.expires_in)
 
         # token endpoint and clientId are needed for token refresh
-        return OAuth2Httpx(
-            token=token,
-            token_endpoint=self._token_endpoint,
-            client_id=self._client_id,
-            default_timeout=AUTH_DEFAULT_TIMEOUT,
-        ), OAuth2Requests(
+        return OAuth2Session(
             token=token,
             token_endpoint=self._token_endpoint,
             client_id=self._client_id,
             default_timeout=AUTH_DEFAULT_TIMEOUT,
         )
 
-    def _get_sessions_user_pw(
-        self, config: AuthClientPassword
-    ) -> Tuple[OAuth2Httpx, OAuth2Requests]:
+    def _get_session_user_pw(self, config: AuthClientPassword) -> OAuth2Session:
         scope: List[str] = self._default_scopes.copy()
         scope.extend(config.scope_list)
-        httpx_ = OAuth2Httpx(
+        session = OAuth2Session(
             client_id=self._client_id,
             token_endpoint=self._token_endpoint,
             grant_type="password",
             scope=scope,
             default_timeout=AUTH_DEFAULT_TIMEOUT,
         )
-        requests_ = OAuth2Requests(
-            client_id=self._client_id,
-            token_endpoint=self._token_endpoint,
-            grant_type="password",
-            scope=scope,
-            default_timeout=AUTH_DEFAULT_TIMEOUT,
-        )
-        httpx_token = httpx_.fetch_token(username=config.username, password=config.password)
-        if "refresh_token" not in httpx_token:
-            _Warnings.auth_no_refresh_token(httpx_token["expires_in"])
-        requests_token = requests_.fetch_token(username=config.username, password=config.password)
-        if "refresh_token" not in requests_token:
-            _Warnings.auth_no_refresh_token(requests_token["expires_in"])
+        token = session.fetch_token(username=config.username, password=config.password)
+        if "refresh_token" not in token:
+            _Warnings.auth_no_refresh_token(token["expires_in"])
 
-        return httpx_, requests_
+        return session
 
-    def _get_sessions_client_credential(
-        self, config: AuthClientCredentials
-    ) -> Tuple[OAuth2Httpx, OAuth2Requests]:
+    def _get_session_client_credential(self, config: AuthClientCredentials) -> OAuth2Session:
         scope: List[str] = self._default_scopes.copy()
 
         if config.scope_list is not None:
@@ -151,17 +129,7 @@ class _Auth:
             else:
                 raise MissingScopeException
 
-        httpx_ = OAuth2Httpx(
-            client_id=self._client_id,
-            client_secret=config.client_secret,
-            token_endpoint_auth_method="client_secret_post",
-            scope=scope,
-            token_endpoint=self._token_endpoint,
-            grant_type="client_credentials",
-            token={"access_token": None, "expires_in": -100},
-            default_timeout=AUTH_DEFAULT_TIMEOUT,
-        )
-        requests_ = OAuth2Requests(
+        session = OAuth2Session(
             client_id=self._client_id,
             client_secret=config.client_secret,
             token_endpoint_auth_method="client_secret_post",
@@ -172,6 +140,5 @@ class _Auth:
             default_timeout=AUTH_DEFAULT_TIMEOUT,
         )
         # explicitly fetch tokens. Otherwise, authlib will do it in the background and we might have race-conditions
-        httpx_.fetch_token()
-        requests_.fetch_token()
-        return httpx_, requests_
+        session.fetch_token()
+        return session
