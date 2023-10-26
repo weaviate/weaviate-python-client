@@ -1649,6 +1649,18 @@ class Batch:
     def wait_for_vector_indexing(
         self, shards: Optional[List[Shard]] = None, how_many_failures: int = 5
     ) -> None:
+        """Wait for the all the vectors of the batch imported objects to be indexed.
+
+        Upon network error, it will retry to get the shards' status for `how_many_failures` times
+        with exponential backoff (2**n seconds with n=0,1,2,...,how_many_failures).
+
+        Parameters
+        ----------
+            shards {Optional[List[Shard]]} -- The shards to check the status of. If None it will
+                check the status of all the shards of the imported objects in the batch.
+            how_many_failures {int} -- How many times to try to get the shards' status before
+                raising an exception. Default 5.
+        """
         if shards is not None and not isinstance(shards, list):
             raise TypeError(f"'shards' must be of type List[Shard]. Given type: {type(shards)}.")
         if shards is not None and not isinstance(shards[0], Shard):
@@ -1660,7 +1672,7 @@ class Batch:
                     all(self._get_shards_readiness(shard))
                     for shard in shards or self.__imported_shards
                 )
-            except Exception as e:
+            except RequestsConnectionError as e:
                 print(
                     f"Error while getting class shards statuses: {e}, trying again with 2**n={2**how_many}s exponential backoff with n={how_many}"
                 )
