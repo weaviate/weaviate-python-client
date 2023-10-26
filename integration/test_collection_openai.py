@@ -11,7 +11,7 @@ from weaviate.collection.classes.config import (
 )
 from weaviate.collection.classes.data import DataObject
 from weaviate.collection.classes.grpc import MetadataQuery
-from weaviate.exceptions import WeaviateGRPCException
+from weaviate.exceptions import WeaviateQueryException
 
 
 @pytest.fixture(scope="module")
@@ -378,7 +378,7 @@ def test_openapi_invalid_key():
         generative_config=Configure.Generative.openai(),
     )
     collection.data.insert(properties={"text": "test"})
-    with pytest.raises(WeaviateGRPCException):
+    with pytest.raises(WeaviateQueryException):
         collection.generate.fetch_objects(single_prompt="tell a joke based on {text}")
 
 
@@ -395,7 +395,7 @@ def test_openapi_no_module():
         generative_config=Configure.Generative.openai(),
     )
     collection.data.insert(properties={"text": "test"})
-    with pytest.raises(WeaviateGRPCException):
+    with pytest.raises(WeaviateQueryException):
         collection.generate.fetch_objects(single_prompt="tell a joke based on {text}")
 
 

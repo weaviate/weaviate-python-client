@@ -177,19 +177,10 @@ class WeaviateInvalidInputException(WeaviateBaseError):
 
 
 class WeaviateQueryException(WeaviateBaseError):
-    """Is raised if a query to Weaviate fails in any way."""
+    """Is raised if a query (either gRPC or GraphQL) to Weaviate fails in any way."""
 
     def __init__(self, message: str):
         msg = f"""Query call failed with message {message}."""
-        super().__init__(msg)
-        self.message = message
-
-
-class WeaviateGRPCException(WeaviateBaseError):
-    """Is raised if a gRPC call fails in any way."""
-
-    def __init__(self, message: str):
-        msg = f"""gRPC call failed with message {message}."""
         super().__init__(msg)
         self.message = message
 

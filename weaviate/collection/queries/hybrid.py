@@ -96,7 +96,7 @@ class _HybridQuery(Generic[Properties], _Grpc[Properties]):
             A `_QueryReturn` object that includes the searched objects.
 
         Raises:
-            `weaviate.exceptions.WeaviateGRPCException`:
+            `weaviate.exceptions.WeaviateQueryException`:
                 If the network connection to Weaviate fails.
         """
         ret_properties, ret_metadata = self._parse_return_properties(return_properties)
@@ -210,7 +210,7 @@ class _HybridGenerate(Generic[Properties], _Grpc[Properties]):
             A `_GenerativeReturn` object that includes the searched objects with per-object generated results and group generated results.
 
         Raises:
-            `weaviate.exceptions.WeaviateGRPCException`:
+            `weaviate.exceptions.WeaviateQueryException`:
                 If the network connection to Weaviate fails.
         """
         ret_properties, ret_metadata = self._parse_return_properties(return_properties)

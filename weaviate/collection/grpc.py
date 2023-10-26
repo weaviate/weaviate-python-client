@@ -103,7 +103,7 @@ class _QueryCollection(
                 Whether to include the vector in the returned object.
 
         Raises:
-            `weaviate.exceptions.WeaviateGRPCException`:
+            `weaviate.exceptions.WeaviateQueryException`:
                 If the network connection to Weaviate fails.
             `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
                 If a property is invalid. I.e., has name `id` or `vector`, which are reserved.

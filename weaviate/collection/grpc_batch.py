@@ -13,7 +13,7 @@ from weaviate.collection.classes.batch import (
 )
 from weaviate.collection.classes.internal import _Reference
 from weaviate.collection.grpc_shared import _BaseGRPC
-from weaviate.exceptions import WeaviateGRPCException, WeaviateInsertInvalidPropertyError
+from weaviate.exceptions import WeaviateQueryException, WeaviateInsertInvalidPropertyError
 from weaviate.util import _datetime_to_string
 from proto.v1 import batch_pb2, base_pb2
 
@@ -94,7 +94,7 @@ class _BatchGRPC(_BaseGRPC):
                 objects[result.index] = result.error
             return objects
         except grpc.RpcError as e:
-            raise WeaviateGRPCException(e.details())
+            raise WeaviateQueryException(e.details())
 
     def __translate_properties_from_python_to_grpc(
         self, data: Dict[str, Any], clean_props: bool

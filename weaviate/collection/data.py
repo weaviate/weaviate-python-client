@@ -367,7 +367,7 @@ class _DataCollection(Generic[Properties], _Data):
                         If you want to insert vectors and UUIDs alongside your properties, you will have to use `DataObject` instead.
 
         Raises:
-            `weaviate.exceptions.WeaviateGRPCException`:
+            `weaviate.exceptions.WeaviateQueryException`:
                 If the network connection to Weaviate fails.
             `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
                 If a property is invalid. I.e., has name `id` or `vector`, which are reserved.

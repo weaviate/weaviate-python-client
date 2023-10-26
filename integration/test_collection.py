@@ -41,7 +41,7 @@ from weaviate.collection.data import _Data
 from weaviate.collection.object_iterator import ITERATOR_CACHE_SIZE
 from weaviate.exceptions import (
     InvalidDataModelException,
-    WeaviateGRPCException,
+    WeaviateQueryException,
     WeaviateInsertInvalidPropertyError,
 )
 from weaviate.types import UUID
@@ -1381,7 +1381,7 @@ def test_return_properties_with_query_specific_typed_dict(
         class DataModel(TypedDict):
             non_existant: str
 
-        with pytest.raises(WeaviateGRPCException):
+        with pytest.raises(WeaviateQueryException):
             collection.query.fetch_objects(return_properties=DataModel).objects
 
 
