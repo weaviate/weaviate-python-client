@@ -1657,10 +1657,8 @@ class Batch:
         def is_ready(how_many: int) -> bool:
             try:
                 return all(
-                    [
-                        all([status == "READY" for status in self._get_shard_statuses(shard)])
-                        for shard in shards or self.__imported_shards
-                    ]
+                    all(status == "READY" for status in self._get_shard_statuses(shard))
+                    for shard in shards or self.__imported_shards
                 )
             except Exception as e:
                 print(
