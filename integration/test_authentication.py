@@ -58,6 +58,7 @@ def test_no_auth_provided():
         weaviate.Client(url)
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "name,env_variable_name,port,scope",
     [
@@ -71,7 +72,7 @@ def test_no_auth_provided():
         ("okta", "OKTA_CLIENT_SECRET", OKTA_PORT_CC, "some_scope"),
     ],
 )
-def test_authentication_client_credentials(
+async def test_authentication_client_credentials(
     name: str, env_variable_name: str, port: str, scope: Optional[str]
 ):
     """Test client credential flow with various providers."""
@@ -85,8 +86,10 @@ def test_authentication_client_credentials(
         url, auth_client_secret=AuthClientCredentials(client_secret=client_secret, scope=scope)
     )
     client.schema.delete_all()  # no exception
+    await client._connection.aget("/v1/.well-known/ready")  # no exception
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "name,user,env_variable_name,port,scope,warning",
     [
@@ -116,7 +119,7 @@ def test_authentication_client_credentials(
         ),
     ],
 )
-def test_authentication_user_pw(
+async def test_authentication_user_pw(
     recwarn, name: str, user: str, env_variable_name: str, port: str, scope: str, warning: bool
 ):
     """Test authentication using Resource Owner Password Credentials Grant (User + PW)."""
@@ -137,6 +140,7 @@ def test_authentication_user_pw(
 
     client = weaviate.Client(url, auth_client_secret=auth)
     client.schema.delete_all()  # no exception
+    await client._connection.aget("/v1/.well-known/ready")  # no exception
     if warning:
         assert len(recwarn) == 1
         w = recwarn.pop()
@@ -168,6 +172,7 @@ def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
     return response_post.json()
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "name,user,env_variable_name,port",
     [
@@ -185,7 +190,9 @@ def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
         ),
     ],
 )
-def test_authentication_with_bearer_token(name: str, user: str, env_variable_name: str, port: str):
+async def test_authentication_with_bearer_token(
+    name: str, user: str, env_variable_name: str, port: str
+):
     """Test authentication using existing bearer token."""
     url = "http://127.0.0.1:" + port
     assert is_auth_enabled(url)
@@ -205,9 +212,11 @@ def test_authentication_with_bearer_token(name: str, user: str, env_variable_nam
         ),
     )
     client.schema.delete_all()  # no exception
+    await client._connection.aget("/v1/.well-known/ready")  # no exception
 
 
-def test_client_with_authentication_with_anon_weaviate(recwarn):
+@pytest.mark.asyncio
+async def test_client_with_authentication_with_anon_weaviate(recwarn):
     """Test that we warn users when their client has auth enabled, but weaviate has only anon access."""
     # testing for warnings can be flaky without this as there are open SSL conections
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
@@ -227,9 +236,11 @@ def test_client_with_authentication_with_anon_weaviate(recwarn):
     assert str(w.message).startswith("Auth001")
 
     client.schema.delete_all()  # no exception, client works
+    await client._connection.aget("/v1/.well-known/ready")  # no exception, client works
 
 
-def test_bearer_token_without_refresh(recwarn):
+@pytest.mark.asyncio
+async def test_bearer_token_without_refresh(recwarn):
     """Test that the client warns users when only supplying an access token without refresh."""
 
     # testing for warnings can be flaky without this as there are open SSL conections
@@ -249,6 +260,7 @@ def test_bearer_token_without_refresh(recwarn):
         ),
     )
     client.schema.delete_all()  # no exception, client works
+    await client._connection.aget("/v1/.well-known/ready")  # no exception
 
     assert len(recwarn) == 1
     w = recwarn.pop()
@@ -256,12 +268,14 @@ def test_bearer_token_without_refresh(recwarn):
     assert str(w.message).startswith("Auth002")
 
 
-def test_api_key():
+@pytest.mark.asyncio
+async def test_api_key():
     url = "http://127.0.0.1:" + WCS_PORT
     assert is_auth_enabled(url)
 
     client = weaviate.Client(url, auth_client_secret=AuthApiKey(api_key="my-secret-key"))
     client.schema.delete_all()  # no exception, client works
+    await client._connection.aget("/v1/.well-known/ready")  # no exception
 
 
 def test_api_key_wrong_key():
