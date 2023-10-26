@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-update-nodes-api-with-indexingstatus-field-for-shard-aab729b
+    image: semitechnologies/weaviate:preview-update-nodes-api-with-vectorindexingstatus-field-for-shards-5f2ea68
     ports:
       - 8081:8081
     restart: on-failure:0

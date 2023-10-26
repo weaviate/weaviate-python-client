@@ -1,6 +1,7 @@
 """
 Batch class definitions.
 """
+import asyncio
 import datetime
 import sys
 import threading
@@ -8,7 +9,7 @@ import time
 import warnings
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed, Future
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from numbers import Real
 from typing import (
     Any,
@@ -18,6 +19,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Type,
     TypeVar,
@@ -51,6 +53,15 @@ from ..util import (
 from ..warnings import _Warnings
 
 BatchRequestType = Union[ObjectsBatchRequest, ReferenceBatchRequest]
+
+
+@dataclass
+class Shard:
+    class_name: str
+    tenant: Optional[str] = field(default=None)
+
+    def __hash__(self) -> int:
+        return hash((self.class_name, self.tenant))
 
 
 @dataclass()
@@ -286,7 +297,8 @@ class Batch:
         self._batching_type: Optional[str] = "dynamic"
         self._recommended_num_objects = self._batch_size
         self._recommended_num_references = self._batch_size
-        self.__wait_for_async_indexing = False
+
+        self.__imported_shards: Set[Shard] = set()
 
         self._num_workers = 1
         self._consistency_level: Optional[ConsistencyLevel] = None
@@ -352,7 +364,6 @@ class Batch:
         dynamic: bool = True,
         num_workers: int = 1,
         consistency_level: Optional[ConsistencyLevel] = None,
-        wait_for_async_indexing: bool = False,
     ) -> "Batch":
         """
         Warnings
@@ -403,7 +414,6 @@ class Batch:
         ValueError
             If the value of one of the arguments is wrong.
         """
-        self.__wait_for_async_indexing = wait_for_async_indexing
         self.consistency_level = consistency_level
         if creation_time is not None:
             _check_positive_num(creation_time, "creation_time", Real)
@@ -553,6 +563,8 @@ class Batch:
             vector=vector,
             tenant=tenant,
         )
+
+        self.__imported_shards.add(Shard(class_name, tenant))
 
         if self._batching_type:
             self._auto_create()
@@ -1635,21 +1647,57 @@ class Batch:
         self.flush()
         self.shutdown()
 
-    def wait_for_async_indexing(self) -> None:
-        cluster = Cluster(self._connection)
-
-        def is_ready(how_many: int) -> bool:
+    def wait_for_vector_indexing(
+        self, shards: Optional[List[Shard]] = None, how_many_failures: int = 5
+    ) -> None:
+        async def is_ready(how_many: int) -> bool:
+            statuses: List[bool] = []
             try:
-                return cluster.get_global_indexing_status() == "READY"
+                futures = [
+                    self._get_shard_statuses(shard) for shard in shards or self.__imported_shards
+                ]
+                results: List[List[str]] = await asyncio.gather(*futures)
+                for result in results:
+                    statuses.extend([res == "READY" for res in result])
+                return all(statuses)
             except Exception as e:
                 print(
-                    f"Error while getting node status: {e}, trying again with 2**n exponential backoff with n={how_many}"
+                    f"Error while getting class shards statuses: {e}, trying again with 2**n={2**how_many}s exponential backoff with n={how_many}"
                 )
-                time.sleep(2**how_many)
-                return is_ready(how_many + 1)
+                if how_many_failures == how_many:
+                    raise e
+                await asyncio.sleep(2**how_many)
+                return await is_ready(how_many + 1)
 
-        while not is_ready(0):
-            print("Waiting for async indexing to finish...")
+        async def wait() -> None:
+            try:
+                while not await is_ready(0):
+                    print("Waiting for async indexing to finish...")
+                    time.sleep(0.25)
+            except Exception as e:
+                print(f"Error while waiting for async indexing to finish: {e}")
+
+        asyncio.run(wait())
+
+    async def _get_shard_statuses(self, shard: Shard) -> List[str]:
+        if not isinstance(shard.class_name, str):
+            raise TypeError(
+                "'class_name' argument must be of type `str`! "
+                f"Given type: {type(shard.class_name)}."
+            )
+
+        path = f"/schema/{_capitalize_first_letter(shard.class_name)}/shards{'' if shard.tenant is None else f'?tenant={shard.tenant}'}"
+
+        try:
+            response = await self._connection.aget(path=path)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                "Class shards' status could not be retrieved due to connection error."
+            ) from conn_err
+
+        res = _decode_json_response_list(response, "Get shards' status")
+        assert res is not None
+        return [cast(str, shard.get("status")) for shard in res]
 
     @property
     def creation_time(self) -> Real:

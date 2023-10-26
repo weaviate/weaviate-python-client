@@ -1,6 +1,7 @@
 """
 Client class definition.
 """
+import asyncio
 from typing import Optional, Tuple, Union, Dict, Any
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -295,4 +296,11 @@ class Client:
     def __del__(self) -> None:
         # in case an exception happens before definition of these members
         if hasattr(self, "_connection"):
-            self._connection.close()
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    loop.create_task(self._connection.close())
+                else:
+                    loop.run_until_complete(self._connection.close())
+            except Exception:
+                pass

@@ -1,7 +1,7 @@
 """
 Cluster class definition.
 """
-from typing import List, Literal, Optional, cast
+from typing import Optional, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -69,30 +69,3 @@ class Cluster:
         if nodes is None or nodes == []:
             raise EmptyResponseException("Nodes status response returned empty")
         return cast(list, nodes)
-
-    def get_shard_indexing_status(
-        self, class_name: str
-    ) -> Literal["READY", "INDEXING", "READ-ONLY"]:
-        nodes = self.get_nodes_status(class_name)
-        for node in nodes:
-            shards: List[dict] = node.get("shards", [])
-            for shard in shards:
-                if shard["class"] == class_name:
-                    return shard.get("vectorIndexingStatus", "READY")
-        raise EmptyResponseException("Shard indexing status response returned empty")
-
-    def get_global_indexing_status(self) -> Literal["READY", "INDEXING", "READ-ONLY"]:
-        nodes = self.get_nodes_status()
-        statuses: List[Literal["READY", "INDEXING", "READ-ONLY"]] = []
-
-        for node in nodes:
-            shards: List[dict] = node.get("shards", [])
-            statuses.extend([shard.get("vectorIndexingStatus", "READY") for shard in shards])
-
-        if len(statuses) == 0:
-            return "READY"
-        if "INDEXING" in statuses:
-            return "INDEXING"
-        if "READ-ONLY" in statuses:
-            return "READ-ONLY"
-        return "READY"

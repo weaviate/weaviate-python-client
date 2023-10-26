@@ -11,7 +11,9 @@ from threading import Thread, Event
 from typing import Any, Dict, Optional, Tuple, Union, cast
 from urllib.parse import urlparse
 
+import httpx  # type: ignore
 import requests
+from authlib.integrations.httpx_client import OAuth2Client  # type: ignore
 from authlib.integrations.requests_client import OAuth2Session  # type: ignore
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError, ReadTimeout
@@ -50,6 +52,7 @@ except ImportError:
 
 
 JSONPayload = Union[dict, list]
+AsyncClient = Union[httpx.AsyncClient, OAuth2Client]
 Session = Union[requests.sessions.Session, OAuth2Session]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBERS, NUMBERS]
 PYPI_TIMEOUT = 0.1
@@ -158,6 +161,7 @@ class Connection:
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
             self._headers["authorization"] = "Bearer " + auth_client_secret.api_key
 
+        self._aclient: AsyncClient
         self._session: Session
         self._shutdown_background_event: Optional[Event] = None
 
@@ -165,7 +169,7 @@ class Connection:
             _check_positive_num(startup_period, "startup_period", int, include_zero=False)
             self.wait_for_weaviate(startup_period)
 
-        self._create_session(auth_client_secret)
+        self._create_sessions(auth_client_secret)
         self._add_adapter_to_session(connection_config)
 
         self._server_version = self.get_meta()["version"]
@@ -183,8 +187,8 @@ class Connection:
         except requests.exceptions.RequestException:
             pass  # ignore any errors related to requests, it is a best-effort warning
 
-    def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
-        """Creates a request session.
+    def _create_sessions(self, auth_client_secret: Optional[AuthCredentials]) -> None:
+        """Creates a async httpx session and a sync request session.
 
         Either through authlib.oauth2 if authentication is enabled or a normal request session otherwise.
 
@@ -195,11 +199,11 @@ class Connection:
         """
         # API keys are separate from OIDC and do not need any config from weaviate
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
-            self._session = requests.Session()
+            self._aclient, self._session = httpx.AsyncClient(), requests.Session()
             return
 
         if "authorization" in self._headers and auth_client_secret is None:
-            self._session = requests.Session()
+            self._aclient, self._session = httpx.AsyncClient(), requests.Session()
             return
 
         oidc_url = self.url + self._api_version_path + "/.well-known/openid-configuration"
@@ -222,7 +226,7 @@ class Connection:
 
             if auth_client_secret is not None and not isinstance(auth_client_secret, AuthApiKey):
                 _auth = _Auth(resp, auth_client_secret, self)
-                self._session = _auth.get_auth_session()
+                self._aclient, self._session = _auth.get_auth_sessions()
 
                 if isinstance(auth_client_secret, AuthClientCredentials):
                     # credentials should only be saved for client credentials, otherwise use refresh token
@@ -250,9 +254,9 @@ class Connection:
                 raise AuthenticationFailedException(msg)
         elif response.status_code == 404 and auth_client_secret is not None:
             _Warnings.auth_with_anon_weaviate()
-            self._session = requests.Session()
+            self._aclient, self._session = httpx.AsyncClient(), requests.Session()
         else:
-            self._session = requests.Session()
+            self._aclient, self._session = httpx.AsyncClient(), requests.Session()
 
     def get_current_bearer_token(self) -> str:
         if "authorization" in self._headers:
@@ -303,8 +307,9 @@ class Connection:
                         # client credentials usually does not contain a refresh token => get a new token using the
                         # saved credentials
                         assert _auth is not None
-                        new_session = _auth.get_auth_session()
-                        self._session.token = new_session.fetch_token()  # type: ignore
+                        new_httpx, new_requests = _auth.get_auth_sessions()
+                        self._aclient.token = new_httpx.fetch_token()
+                        self._session.token = new_requests.fetch_token()  # type: ignore
                 except (RequestsHTTPError, ReadTimeout) as exc:
                     # retry again after one second, might be an unstable connection
                     refresh_time = 1
@@ -320,7 +325,7 @@ class Connection:
         )
         demon.start()
 
-    def close(self) -> None:
+    async def close(self) -> None:
         """Shutdown connection class gracefully."""
         # in case an exception happens before definition of these members
         if (
@@ -330,6 +335,8 @@ class Connection:
             self._shutdown_background_event.set()
         if hasattr(self, "_session"):
             self._session.close()
+        if hasattr(self, "_asession"):
+            await self._aclient.close()
 
     def _get_request_header(self) -> dict:
         """
@@ -549,6 +556,47 @@ class Connection:
             timeout=self._timeout_config,
             params=params,
             proxies=self._proxies,
+        )
+
+    async def aget(
+        self, path: str, params: Optional[Dict[str, Any]] = None, external_url: bool = False
+    ) -> httpx.Response:
+        """Make an async GET request.
+
+        Parameters
+        ----------
+        path : str
+            Sub-path to the Weaviate resources. Must be a valid Weaviate sub-path.
+            e.g. '/meta' or '/objects', without version.
+        params : dict, optional
+            Additional request parameters, by default None
+        external_url: Is an external (non-weaviate) url called
+
+        Returns
+        -------
+        requests.Response
+            The response if request was successful.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the GET request could not be made.
+        """
+        if self.embedded_db is not None:
+            self.embedded_db.ensure_running()
+        if params is None:
+            params = {}
+
+        if external_url:
+            request_url = path
+        else:
+            request_url = self.url + self._api_version_path + path
+
+        return await self._aclient.get(
+            url=request_url,
+            headers=self._get_request_header(),
+            params=params,
+            timeout=self._timeout_config,
         )
 
     def head(
