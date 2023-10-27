@@ -1683,6 +1683,7 @@ class Batch:
 
         while not is_ready(0):
             print("Waiting for async indexing to finish...")
+            time.sleep(0.25)
 
     def _get_shards_readiness(self, shard: Shard) -> List[bool]:
         if not isinstance(shard.class_name, str):
