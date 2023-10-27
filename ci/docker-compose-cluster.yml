@@ -2,7 +2,7 @@
 version: '3.4'
 services:
   weaviate-node-1:
-    image: semitechnologies/weaviate:preview-split-protos-into-v0-and-v1-packages-for-clear-api-break-b4b08ad
+    image: semitechnologies/weaviate:preview-add-vectorqueuesize-to-schema-classname-shards-response-afa42cb
     restart: on-failure:0
     ports:
       - "8087:8080"
@@ -25,7 +25,7 @@ services:
       - '8080'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-split-protos-into-v0-and-v1-packages-for-clear-api-break-b4b08ad
+    image: semitechnologies/weaviate:preview-add-vectorqueuesize-to-schema-classname-shards-response-afa42cb
     ports:
       - 8088:8080
       - 6061:6060

@@ -8,7 +8,7 @@ import time
 import warnings
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed, Future
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from numbers import Real
 from typing import (
     Any,
@@ -18,6 +18,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Type,
     TypeVar,
@@ -51,6 +52,15 @@ from ..util import (
 from ..warnings import _Warnings
 
 BatchRequestType = Union[ObjectsBatchRequest, ReferenceBatchRequest]
+
+
+@dataclass
+class Shard:
+    class_name: str
+    tenant: Optional[str] = field(default=None)
+
+    def __hash__(self) -> int:
+        return hash((self.class_name, self.tenant))
 
 
 @dataclass()
@@ -286,6 +296,8 @@ class Batch:
         self._batching_type: Optional[str] = "dynamic"
         self._recommended_num_objects = self._batch_size
         self._recommended_num_references = self._batch_size
+
+        self.__imported_shards: Set[Shard] = set()
 
         self._num_workers = 1
         self._consistency_level: Optional[ConsistencyLevel] = None
@@ -550,6 +562,8 @@ class Batch:
             vector=vector,
             tenant=tenant,
         )
+
+        self.__imported_shards.add(Shard(class_name, tenant))
 
         if self._batching_type:
             self._auto_create()
@@ -1631,6 +1645,69 @@ class Batch:
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.flush()
         self.shutdown()
+
+    def wait_for_vector_indexing(
+        self, shards: Optional[List[Shard]] = None, how_many_failures: int = 5
+    ) -> None:
+        """Wait for the all the vectors of the batch imported objects to be indexed.
+
+        Upon network error, it will retry to get the shards' status for `how_many_failures` times
+        with exponential backoff (2**n seconds with n=0,1,2,...,how_many_failures).
+
+        Parameters
+        ----------
+            shards {Optional[List[Shard]]} -- The shards to check the status of. If None it will
+                check the status of all the shards of the imported objects in the batch.
+            how_many_failures {int} -- How many times to try to get the shards' status before
+                raising an exception. Default 5.
+        """
+        if shards is not None and not isinstance(shards, list):
+            raise TypeError(f"'shards' must be of type List[Shard]. Given type: {type(shards)}.")
+        if shards is not None and not isinstance(shards[0], Shard):
+            raise TypeError(f"'shards' must be of type List[Shard]. Given type: {type(shards)}.")
+
+        def is_ready(how_many: int) -> bool:
+            try:
+                return all(
+                    all(self._get_shards_readiness(shard))
+                    for shard in shards or self.__imported_shards
+                )
+            except RequestsConnectionError as e:
+                print(
+                    f"Error while getting class shards statuses: {e}, trying again with 2**n={2**how_many}s exponential backoff with n={how_many}"
+                )
+                if how_many_failures == how_many:
+                    raise e
+                time.sleep(2**how_many)
+                return is_ready(how_many + 1)
+
+        while not is_ready(0):
+            print("Waiting for async indexing to finish...")
+            time.sleep(0.25)
+
+    def _get_shards_readiness(self, shard: Shard) -> List[bool]:
+        if not isinstance(shard.class_name, str):
+            raise TypeError(
+                "'class_name' argument must be of type `str`! "
+                f"Given type: {type(shard.class_name)}."
+            )
+
+        path = f"/schema/{_capitalize_first_letter(shard.class_name)}/shards{'' if shard.tenant is None else f'?tenant={shard.tenant}'}"
+
+        try:
+            response = self._connection.get(path=path)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                "Class shards' status could not be retrieved due to connection error."
+            ) from conn_err
+
+        res = _decode_json_response_list(response, "Get shards' status")
+        assert res is not None
+        return [
+            (cast(str, shard.get("status")) == "READY")
+            & (cast(int, shard.get("vectorQueueSize")) == 0)
+            for shard in res
+        ]
 
     @property
     def creation_time(self) -> Real:
