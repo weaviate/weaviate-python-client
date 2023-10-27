@@ -1,19 +1,18 @@
 """
 Client class definition.
 """
-from typing import Literal, Optional, Tuple, Type, Union, Dict, Any, overload
+from typing import Optional, Tuple, Union, Dict, Any
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from .auth import AuthCredentials, AuthApiKey
+from .auth import AuthCredentials
 from .backup import Backup
 from .batch import Batch
-from .collection.batch import _Batch
+from .collections.batch import _Batch
 from .classification import Classification
 from .cluster import Cluster
-from .collection import _Collection
-from .collection.collection_model import _CollectionModel
-from .config import Config
+from .collections import _Collections
+from .config import AdditionalConfig, Config
 from .connect.connection import (
     Connection,
     ConnectionParams,
@@ -40,11 +39,10 @@ class _ClientBase:
         """
         Ping Weaviate's ready state
 
-        Returns
-        -------
-        bool
-            True if Weaviate is ready to accept requests,
-            False otherwise.
+        Returns:
+            `bool`
+                `True` if Weaviate is ready to accept requests,
+                `False` otherwise.
         """
 
         try:
@@ -59,11 +57,10 @@ class _ClientBase:
         """
         Ping Weaviate's live state.
 
-        Returns
-        --------
-        bool
-            True if weaviate is live and should not be killed,
-            False otherwise.
+        Returns:
+            `bool`
+                `True` if weaviate is live and should not be killed,
+                `False` otherwise.
         """
 
         response = self._connection.get(path="/.well-known/live")
@@ -75,15 +72,13 @@ class _ClientBase:
         """
         Get the meta endpoint description of weaviate.
 
-        Returns
-        -------
-        dict
-            The dict describing the weaviate configuration.
+        Returns:
+            `dict`
+                The `dict` describing the weaviate configuration.
 
-        Raises
-        ------
-        weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+        Raises:
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a none OK status.
         """
 
         return self._connection.get_meta()
@@ -93,14 +88,12 @@ class _ClientBase:
         Get the openid-configuration.
 
         Returns
-        -------
-        dict
-            The configuration or None if not configured.
+            `dict`
+                The configuration or `None` if not configured.
 
         Raises
-        ------
-        weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a none OK status.
         """
 
         response = self._connection.get(path="/.well-known/openid-configuration")
@@ -175,46 +168,92 @@ class _ClientBase:
 
 
 class WeaviateClient(_ClientBase):
+    """
+    The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
+
+    WARNING: This client is only compatible with Weaviate v1.22.0 and higher!
+
+    A Client instance creates all the needed objects to interact with Weaviate, and connects all of
+    them to the same Weaviate instance. See below the Attributes of the Client instance. For the
+    per attribute functionality see that attribute's documentation.
+
+    Attributes:
+        `backup`
+            A `Backup` object instance connected to the same Weaviate instance as the Client.
+        `batch`
+            A `_Batch` object instance connected to the same Weaviate instance as the Client.
+        `classification`
+            A `Classification` object instance connected to the same Weaviate instance as the Client.
+        `cluster`
+            A `Cluster` object instance connected to the same Weaviate instance as the Client.
+        `collections`
+            A `_Collections` object instance connected to the same Weaviate instance as the Client.
+        `contextionary`
+            A `Contextionary` object instance connected to the same Weaviate instance as the Client.
+    """
+
     def __init__(
         self,
         connection_params: Optional[ConnectionParams] = None,
-        auth_client_secret: Optional[AuthCredentials] = None,
-        additional_headers: Optional[Dict[str, Any]] = None,
         embedded_options: Optional[EmbeddedOptions] = None,
+        auth_client_secret: Optional[AuthCredentials] = None,
+        additional_headers: Optional[dict] = None,
+        additional_config: Optional[AdditionalConfig] = None,
     ) -> None:
+        """Initialise a WeaviateClient class instance to use when interacting with Weaviate.
+
+        Use this specific initialiser when you want to create a custom Client specific to your Weaviate setup.
+
+        If you want to get going quickly connecting to WCS or a local instance then use the `weaviate.connect_to_wcs` or
+        `weaviate.connect_to_local` helper functions instead.
+
+        Arguments:
+            - `connection_params`: `weaviate.ConnectionParams` or None, optional
+                - The connection parameters to use for the underlying HTTP requests.
+            - `embedded_options`: `weaviate.EmbeddedOptions` or None, optional
+                - The options to use when provisioning an embedded Weaviate instance.
+            - `auth_client_secret`: `weaviate.AuthCredentials` or None, optional
+                - Authenticate to weaviate by using one of the given authentication modes:
+                    - `weaviate.auth.AuthBearerToken` to use existing access and (optionally, but recommended) refresh tokens
+                    - `weaviate.auth.AuthClientPassword` to use username and password for oidc Resource Owner Password flow
+                    - `weaviate.auth.AuthClientCredentials` to use a client secret for oidc client credential flow
+            - `additional_headers`: `dict` or None, optional
+                - Additional headers to include in the requests.
+                    - Can be used to set OpenAI/HuggingFace/Cohere etc. keys.
+                    - [Here](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai#providing-the-key-to-weaviate) is an
+                    example of how to set API keys within this parameter.
+            - `additional_config`: `weaviate.AdditionalConfig` or None, optional
+                - Additional and advanced configuration options for Weaviate.
+        """
         connection_params, embedded_db = self._parse_connection_params_and_embedded_db(
             connection_params, embedded_options
         )
-        config = Config()
+        config = additional_config or AdditionalConfig()
 
         self._connection = GRPCConnection(
             connection_params=connection_params,
             auth_client_secret=auth_client_secret,
-            timeout_config=_get_valid_timeout_config((10, 60)),
+            timeout_config=_get_valid_timeout_config(config.timeout),
             additional_headers=additional_headers,
             embedded_db=embedded_db,
-            connection_config=config.connection_config,
-            proxies=None,
-            trust_env=False,
-            startup_period=5,
+            connection_config=config.connection,
+            proxies=config.proxies,
+            trust_env=config.trust_env,
+            startup_period=config.startup_period,
         )
-        self.classification = Classification(self._connection)
-        self.schema = Schema(self._connection)
-        self.contextionary = Contextionary(self._connection)
-        self.batch = Batch(self._connection)
-        self.data_object = DataObject(self._connection)
-        self.query = Query(self._connection)
-        self.backup = Backup(self._connection)
-        self.cluster = Cluster(self._connection)
-        self.collection = _Collection(_Batch(self._connection), self._connection)
-        self._collection_model = _CollectionModel(
-            _Batch(self._connection), self._connection
-        )  # experimental
+
+        self.batch = _Batch(self._connection)
+        """This namespace contains all the functionality to upload data in batches to Weaviate."""
+        self.collections = _Collections(self._connection)
+        """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
+
+        Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `client.collections.create("MyCollection", ...)`.
+        """
 
 
 class Client(_ClientBase):
     """
-    A python native Weaviate Client class that encapsulates Weaviate functionalities in one object.
+    The v3 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
     A Client instance creates all the needed objects to interact with Weaviate, and connects all of
     them to the same Weaviate instance. See below the Attributes of the Client instance. For the
     per attribute functionality see that attribute's documentation.
@@ -355,265 +394,3 @@ class Client(_ClientBase):
         """
 
         self._connection.timeout_config = _get_valid_timeout_config(timeout_config)
-
-
-class ClientFactory:
-    """Use this factory class to create `weaviate.WeaviateClient` (v4) or `weaviate.Client` (v3) objects that are automatically
-    configured to connect to your custom-deployed Weaviate instance.
-
-    If you find that you need more fine-grained control over the connection parameters, you can
-    also instantiate a `weaviate.Client` object directly yourself using the `weaviate.ConnectionParams.from_params`
-    method to specify your unique HTTP & gRPC setup.
-
-    These factory methods are meant as short-cuts for the principal use-cases to ease friction
-    when getting started with Weaviate.
-    """
-
-    @overload
-    @classmethod
-    def connect_to_wcs(cls, cluster_id: str, api_key: str, version: Literal["v3"]) -> Client:
-        ...
-
-    @overload
-    @classmethod
-    def connect_to_wcs(
-        cls, cluster_id: str, api_key: str, version: Literal["v4"]
-    ) -> WeaviateClient:
-        ...
-
-    @classmethod
-    def connect_to_wcs(
-        cls, cluster_id: str, api_key: str, version: Literal["v3", "v4"] = "v4"
-    ) -> Union[Client, WeaviateClient]:
-        """
-        Connect to your own Weaviate Cloud Service (WCS) instance.
-
-        Arguments:
-            `cluster_id`
-                The cluster id to connect to.
-            `api_key`
-                The api key to use for authentication.
-            `version`
-                The version of the Weaviate Python Client to use. Defaults to v4.
-
-        Returns
-            `weaviate.Client`
-                The client connected to the cluster with the required parameters set appropriately.
-        """
-        if version == "v4":
-            return WeaviateClient(
-                connection_params=ConnectionParams(
-                    http=ProtocolParams(
-                        host=f"{cluster_id}.weaviate.network", port=443, secure=True
-                    ),
-                    grpc=ProtocolParams(
-                        host=f"{cluster_id}.weaviate.network", port=50051, secure=True
-                    ),
-                ),
-                auth_client_secret=AuthApiKey(api_key),
-            )
-        else:
-            return Client(
-                f"https://{cluster_id}.weaviate.network",
-                additional_config=Config(
-                    grpc_port_experimental=50051,
-                    grpc_secure_experimental=True,
-                ),
-                auth_client_secret=AuthApiKey(api_key),
-            )
-
-    @overload
-    @classmethod
-    def connect_to_local(
-        cls,
-        host: str = "localhost",
-        port: int = 8080,
-        grpc_port: int = 50051,
-        *,
-        version: Literal["v3"],
-    ) -> Client:
-        ...
-
-    @overload
-    @classmethod
-    def connect_to_local(
-        cls,
-        host: str = "localhost",
-        port: int = 8080,
-        grpc_port: int = 50051,
-        version: Literal["v4"] = "v4",
-    ) -> WeaviateClient:
-        ...
-
-    @classmethod
-    def connect_to_local(
-        cls,
-        host: str = "localhost",
-        port: int = 8080,
-        grpc_port: int = 50051,
-        version: Literal["v3", "v4"] = "v4",
-    ) -> Union[Client, WeaviateClient]:
-        """
-        Connect to a local Weaviate instance deployed using Docker compose with standard port configurations.
-
-        Arguments:
-            `schema`
-                The schema to use for the underlying REST & GraphQL API calls.
-            `host`
-                The host to use for the underlying REST & GraphQL API calls.
-            `port`
-                The port to use for the underlying REST & GraphQL API calls.
-            `grpc_port`
-                The port to use for the underlying gRPC API.
-            `version`
-                The version of the Weaviate Python Client to use. Defaults to v4.
-
-        Returns
-            `weaviate.Client`
-                The client connected to the local instance with default parameters set as:
-        """
-        if version == "v4":
-            return WeaviateClient(
-                connection_params=ConnectionParams(
-                    http=ProtocolParams(host=host, port=port, secure=False),
-                    grpc=ProtocolParams(host=host, port=grpc_port, secure=False),
-                ),
-            )
-        else:
-            return Client(
-                "http://localhost:8080",
-                additional_config=Config(
-                    grpc_port_experimental=50051,
-                    grpc_secure_experimental=False,
-                ),
-            )
-
-    @overload
-    @classmethod
-    def connect_to_embedded(
-        cls, port: int = 8079, grpc_port: int = 50051, *, version: Literal["v3"]
-    ) -> Client:
-        ...
-
-    @overload
-    @classmethod
-    def connect_to_embedded(
-        cls, port: int = 8079, grpc_port: int = 50051, version: Literal["v4"] = "v4"
-    ) -> WeaviateClient:
-        ...
-
-    @classmethod
-    def connect_to_embedded(
-        cls, port: int = 8079, grpc_port: int = 50051, version: Literal["v3", "v4"] = "v4"
-    ) -> Union[Client, WeaviateClient]:
-        """
-        Connect to an embedded Weaviate instance.
-
-        Arguments:
-            `port`
-                The port to use for the underlying REST & GraphQL API calls.
-            `grpc_port`
-                The port to use for the underlying gRPC API.
-            `version`
-                The version of the Weaviate Python Client to use. Defaults to v4.
-
-        Returns
-            `weaviate.Client`
-                The client connected to the embedded instance with the required parameters set appropriately.
-        """
-        if version == "v4":
-            client: Union[Type[Client], Type[WeaviateClient]] = WeaviateClient
-        else:
-            client = Client
-        return client(
-            embedded_options=EmbeddedOptions(
-                port=port,
-                grpc_port=grpc_port,
-            )
-        )
-
-    @overload
-    @classmethod
-    def connect(
-        cls,
-        http_host: str,
-        http_port: int,
-        http_secure: bool,
-        grpc_host: str,
-        grpc_port: int,
-        grpc_secure: bool,
-        version: Literal["v3"],
-    ) -> Client:
-        ...
-
-    @overload
-    @classmethod
-    def connect(
-        cls,
-        http_host: str,
-        http_port: int,
-        http_secure: bool,
-        grpc_host: str,
-        grpc_port: int,
-        grpc_secure: bool,
-        version: Literal["v4"] = "v4",
-    ) -> WeaviateClient:
-        ...
-
-    @classmethod
-    def connect(
-        cls,
-        http_host: str,
-        http_port: int,
-        http_secure: bool,
-        grpc_host: str,
-        grpc_port: int,
-        grpc_secure: bool,
-        version: Literal["v3", "v4"] = "v4",
-    ) -> Union[Client, WeaviateClient]:
-        """
-        Connect to a Weaviate instance with custom connection parameters.
-
-        Arguments:
-            `http_host`
-                The host to use for the underlying REST & GraphQL API calls.
-            `http_port`
-                The port to use for the underlying REST & GraphQL API calls.
-            `http_secure`
-                Whether to use https for the underlying REST & GraphQL API calls.
-            `grpc_host`
-                The host to use for the underlying gRPC API.
-            `grpc_port`
-                The port to use for the underlying gRPC API.
-            `grpc_secure`
-                Whether to use a secure channel for the underlying gRPC API.
-            `version`
-                The version of the Weaviate Python Client to use. Defaults to v4.
-
-        Returns
-            `weaviate.Client`
-                The client connected to the instance with the required parameters set appropriately.
-        """
-        if version == "v4":
-            return WeaviateClient(
-                ConnectionParams.from_params(
-                    http_host=http_host,
-                    http_port=http_port,
-                    http_secure=http_secure,
-                    grpc_host=grpc_host,
-                    grpc_port=grpc_port,
-                    grpc_secure=grpc_secure,
-                )
-            )
-        else:
-            if grpc_host is not None and grpc_port != http_port:
-                raise ValueError(
-                    "When using the V3 client, grpc_host and http_host must be the same."
-                )
-            return Client(
-                url=f"{'https' if http_secure else 'http'}://{http_host}:{http_port}",
-                additional_config=Config(
-                    grpc_port_experimental=grpc_port,
-                    grpc_secure_experimental=grpc_secure,
-                ),
-            )

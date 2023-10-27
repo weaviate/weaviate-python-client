@@ -3,32 +3,29 @@ import pathlib
 import pytest
 
 import weaviate
-from weaviate.collection.classes.aggregate import Metrics
-from weaviate.collection.classes.config import DataType, Property, ReferenceProperty, ConfigFactory
+from weaviate.collections.classes.aggregate import Metrics
+from weaviate.collections.classes.config import DataType, Property, ReferenceProperty, Configure
 from weaviate.exceptions import WeaviateInvalidInputException
 from weaviate.util import file_encoder_b64
 
 
 @pytest.fixture(scope="module")
 def client():
-    connection_params = weaviate.ConnectionParams.from_url(
-        url="http://localhost:8080", grpc_port=50051
-    )
-    client = weaviate.WeaviateClient(connection_params)
-    client.schema.delete_all()
+    client = weaviate.connect_to_local()
+    client.collections.delete_all()
     yield client
-    client.schema.delete_all()
+    client.collections.delete_all()
 
 
 @pytest.mark.parametrize("how_many", [1, 10000, 20000, 20001, 100000])
 def test_collection_length(client: weaviate.WeaviateClient, how_many: int):
     """Uses .aggregate behind-the-scenes"""
     name = "TestCollectionLength"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.none(),
     )
     collection.data.insert_many([{"Name": f"name {i}"} for i in range(how_many)])
     assert len(collection) == how_many
@@ -36,8 +33,8 @@ def test_collection_length(client: weaviate.WeaviateClient, how_many: int):
 
 def test_simple_aggregation(client: weaviate.WeaviateClient):
     name = "TestSimpleAggregation"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name, properties=[Property(name="text", data_type=DataType.TEXT)]
     )
     collection.data.insert({"text": "some text"})
@@ -60,13 +57,11 @@ def test_simple_aggregation(client: weaviate.WeaviateClient):
 )
 def test_near_object_aggregation(client: weaviate.WeaviateClient, option: dict, expected_len: int):
     name = "TestNearObjectAggregation"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        vectorizer_config=ConfigFactory.Vectorizer.text2vec_contextionary(
-            vectorize_class_name=False
-        ),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
     )
     text_1 = "some text"
     text_2 = "nothing like the other one at all, not even a little bit"
@@ -98,13 +93,11 @@ def test_near_object_aggregation(client: weaviate.WeaviateClient, option: dict, 
 
 def test_near_object_missing_param(client: weaviate.WeaviateClient):
     name = "TestNearVectorMissingParam"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        vectorizer_config=ConfigFactory.Vectorizer.text2vec_contextionary(
-            vectorize_class_name=False
-        ),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
     )
     text_1 = "some text"
     text_2 = "nothing like the other one at all, not even a little bit"
@@ -138,13 +131,11 @@ def test_near_object_missing_param(client: weaviate.WeaviateClient):
 )
 def test_near_vector_aggregation(client: weaviate.WeaviateClient, option: dict, expected_len: int):
     name = "TestNearVectorAggregation"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        vectorizer_config=ConfigFactory.Vectorizer.text2vec_contextionary(
-            vectorize_class_name=False
-        ),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
     )
     text_1 = "some text"
     text_2 = "nothing like the other one at all, not even a little bit"
@@ -177,13 +168,11 @@ def test_near_vector_aggregation(client: weaviate.WeaviateClient, option: dict, 
 
 def test_near_vector_missing_param(client: weaviate.WeaviateClient):
     name = "TestNearVectorMissingParam"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        vectorizer_config=ConfigFactory.Vectorizer.text2vec_contextionary(
-            vectorize_class_name=False
-        ),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
     )
     uuid_ = collection.data.insert({"text": "some text"})
     obj = collection.query.fetch_object_by_id(uuid_, include_vector=True)
@@ -215,13 +204,11 @@ def test_near_vector_missing_param(client: weaviate.WeaviateClient):
 )
 def test_near_text_aggregation(client: weaviate.WeaviateClient, option: dict, expected_len: int):
     name = "TestNearTextAggregation"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        vectorizer_config=ConfigFactory.Vectorizer.text2vec_contextionary(
-            vectorize_class_name=False
-        ),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
     )
     text_1 = "some text"
     text_2 = "nothing like the other one at all, not even a little bit"
@@ -253,13 +240,11 @@ def test_near_text_aggregation(client: weaviate.WeaviateClient, option: dict, ex
 
 def test_near_text_missing_param(client: weaviate.WeaviateClient):
     name = "TestNearTextMissingParam"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        vectorizer_config=ConfigFactory.Vectorizer.text2vec_contextionary(
-            vectorize_class_name=False
-        ),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
     )
     text_1 = "some text"
     collection.data.insert({"text": text_1})
@@ -281,14 +266,14 @@ def test_near_text_missing_param(client: weaviate.WeaviateClient):
 @pytest.mark.parametrize("option", [{"object_limit": 1}, {"certainty": 0.9}, {"distance": 0.1}])
 def test_near_image_aggregation(client: weaviate.WeaviateClient, option: dict):
     name = "TestNearImageAggregation"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[
             Property(name="rating", data_type=DataType.INT),
             Property(name="image", data_type=DataType.BLOB),
         ],
-        vectorizer_config=ConfigFactory.Vectorizer.img2vec_neural(image_fields=["image"]),
+        vectorizer_config=Configure.Vectorizer.img2vec_neural(image_fields=["image"]),
     )
     img_path = pathlib.Path("integration/weaviate-logo.png")
     collection.data.insert({"image": file_encoder_b64(img_path), "rating": 9})
@@ -303,14 +288,14 @@ def test_near_image_aggregation(client: weaviate.WeaviateClient, option: dict):
 
 def test_near_image_missing_param(client: weaviate.WeaviateClient):
     name = "TestNearImageMissingParam"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[
             Property(name="rating", data_type=DataType.INT),
             Property(name="image", data_type=DataType.BLOB),
         ],
-        vectorizer_config=ConfigFactory.Vectorizer.img2vec_neural(image_fields=["image"]),
+        vectorizer_config=Configure.Vectorizer.img2vec_neural(image_fields=["image"]),
     )
     img_path = pathlib.Path("integration/weaviate-logo.png")
     collection.data.insert({"image": file_encoder_b64(img_path), "rating": 9})
@@ -331,8 +316,8 @@ def test_near_image_missing_param(client: weaviate.WeaviateClient):
 
 def test_group_by_aggregation(client: weaviate.WeaviateClient):
     name = "TestGroupByAggregation"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -375,7 +360,7 @@ def test_group_by_aggregation(client: weaviate.WeaviateClient):
 
 @pytest.mark.skip(reason="Validation logic is not robust enough currently")
 def test_mistake_in_usage(client: weaviate.WeaviateClient):
-    collection = client.collection.get("TestMistakeInUsage")
+    collection = client.collections.get("TestMistakeInUsage")
     with pytest.raises(TypeError) as e:
         collection.aggregate.over_all([Metrics("text", DataType.TEXT)])
     assert (
@@ -392,8 +377,8 @@ def test_mistake_in_usage(client: weaviate.WeaviateClient):
 
 def test_all_available_aggregations(client: weaviate.WeaviateClient):
     name = "TestAllAvailableAggregations"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),

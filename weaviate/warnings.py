@@ -188,7 +188,7 @@ class _Warnings:
     def batch_retrying_failed_batches_hit_hard_limit(limit: int) -> None:
         warnings.warn(
             message=f"""Bat004: Attempts to retry failed objects and/or references have hit the hard limit of {limit}.
-            The failed objects and references can be accessed in client.collection.batch.failed_objects and client.collection.batch.failed_references.""",
+            The failed objects and references can be accessed in client.collections.batch.failed_objects and client.collections.batch.failed_references.""",
             category=UserWarning,
             stacklevel=1,
         )

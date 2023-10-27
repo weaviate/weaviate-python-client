@@ -1,23 +1,22 @@
 import pytest
 
 import weaviate
-from weaviate.collection.classes.config import (
-    ConfigFactory,
+from weaviate.collections.classes.config import (
+    Configure,
     Property,
     ConsistencyLevel,
     DataType,
 )
-from weaviate.collection.classes.data import DataObject
-from weaviate.collection.classes.grpc import MetadataQuery
+from weaviate.collections.classes.data import DataObject
+from weaviate.collections.classes.grpc import MetadataQuery
 
 
 @pytest.fixture(scope="module")
 def client():
-    connection_params = weaviate.ConnectionParams.from_url("http://localhost:8087", 50058)
-    client = weaviate.WeaviateClient(connection_params)
-    client.schema.delete_all()
+    client = weaviate.connect_to_local(port=8087, grpc_port=50058)
+    client.collections.delete_all()
     yield client
-    client.schema.delete_all()
+    client.collections.delete_all()
 
 
 @pytest.mark.parametrize(
@@ -25,14 +24,14 @@ def client():
 )
 def test_consistency_on_multinode(client: weaviate.WeaviateClient, level: ConsistencyLevel):
     name = "TestConsistency"
-    client.collection.delete(name)
-    collection = client.collection.create(
+    client.collections.delete(name)
+    collection = client.collections.create(
         name=name,
-        vectorizer_config=ConfigFactory.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
-        replication_config=ConfigFactory.replication(factor=2),
+        replication_config=Configure.replication(factor=2),
     ).with_consistency_level(level)
 
     collection.data.insert({"name": "first"})

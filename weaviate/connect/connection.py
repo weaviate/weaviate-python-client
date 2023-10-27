@@ -27,7 +27,7 @@ from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import (
     AuthenticationFailedException,
     WeaviateStartUpError,
-    WeaviateGRPCException,
+    WeaviateQueryException,
 )
 from weaviate.util import (
     _check_positive_num,
@@ -836,8 +836,8 @@ class GRPCConnection(Connection):
             embedded_db,
         )
         if self._server_version < "1.21" or self._grpc_stub is None:
-            raise WeaviateGRPCException(
-                f"GRPC is not enabled. Are you on the latest weaviate version? Current is {self._server_version}"
+            raise WeaviateQueryException(
+                f"gRPC is not enabled. Is your Weaviate version at least 1.22 or higher? Current is {self._server_version}"
             )
 
     @property

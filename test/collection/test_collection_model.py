@@ -8,8 +8,8 @@ else:
 
 import pytest as pytest
 
-from weaviate.collection.classes.config import PropertyConfig
-from weaviate.collection.classes.orm import BaseProperty, Reference
+from weaviate.collections.classes.config import PropertyConfig
+from weaviate.collections.classes.orm import BaseProperty, Reference
 from weaviate.types import UUIDS
 
 

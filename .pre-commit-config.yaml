@@ -26,7 +26,7 @@ repos:
       additional_dependencies: [
         'flake8-docstrings==1.7.0'
       ]
-      files: '^weaviate/collection'
+      files: '^weaviate/collections'
 
 -   repo: local
     hooks:

@@ -6,14 +6,14 @@ from typing import List, Optional, Sequence, Union
 import pytest
 
 import weaviate
-from weaviate.collection.classes.config import (
-    ConfigFactory,
+from weaviate.collections.classes.config import (
+    Configure,
     DataType,
     Property,
     ReferenceProperty,
 )
-from weaviate.collection.classes.internal import FromReference
-from weaviate.collection.classes.tenants import Tenant
+from weaviate.collections.classes.internal import FromReference
+from weaviate.collections.classes.tenants import Tenant
 
 UUID = Union[str, uuid.UUID]
 
@@ -39,11 +39,9 @@ class MockTensorFlow:
 
 @pytest.fixture(scope="function")
 def client() -> weaviate.WeaviateClient:
-    client = weaviate.WeaviateClient(
-        weaviate.ConnectionParams.from_url("http://localhost:8080", grpc_port=50051)
-    )
-    client.schema.delete_all()
-    client.collection.create(
+    client = weaviate.connect_to_local()
+    client.collections.delete_all()
+    client.collections.create(
         name="Test",
         properties=[
             ReferenceProperty(name="test", target_collection="Test"),
@@ -52,7 +50,7 @@ def client() -> weaviate.WeaviateClient:
         ],
     )
     yield client
-    client.schema.delete_all()
+    client.collections.delete_all()
 
 
 @pytest.mark.parametrize(
@@ -63,7 +61,7 @@ def client() -> weaviate.WeaviateClient:
 def test_add_object(
     client: weaviate.WeaviateClient, uuid: Optional[UUID], vector: Optional[Sequence]
 ):
-    with client.collection.batch as batch:
+    with client.batch as batch:
         batch.add_object(
             class_name="Test",
             properties={},
@@ -72,7 +70,7 @@ def test_add_object(
         )
         assert batch.num_objects() == 1
         assert batch.num_references() == 0
-    objs = client.collection.get("Test").query.fetch_objects().objects
+    objs = client.collections.get("Test").query.fetch_objects().objects
     assert len(objs) == 1
 
 
@@ -87,7 +85,7 @@ def test_add_reference(
 ):
     """Test the `add_reference` method"""
 
-    with client.collection.batch as batch:
+    with client.batch as batch:
         batch.add_object(
             properties={},
             class_name="Test",
@@ -111,8 +109,8 @@ def test_add_reference(
         )
         assert batch.num_objects() == 2
         assert batch.num_references() == 1
-    objs = client.collection.get("Test").query.fetch_objects().objects
-    obj = client.collection.get("Test").query.fetch_object_by_id(from_object_uuid)
+    objs = client.collections.get("Test").query.fetch_objects().objects
+    obj = client.collections.get("Test").query.fetch_object_by_id(from_object_uuid)
     assert len(objs) == 2
     print(obj.properties)
     assert isinstance(obj.properties["test"][0]["beacon"], str)
@@ -126,20 +124,20 @@ def test_add_object_batch_with_tenant():
     # create two classes and add 5 tenants each
     class_names = ["BatchTestMultiTenant1", "BatchTestMultiTenant2"]
     for name in class_names:
-        client.collection.create(
+        client.collections.create(
             name=name,
             properties=[
                 Property(name="tenantAsProp", data_type=DataType.TEXT),
             ],
-            multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
+            multi_tenancy_config=Configure.multi_tenancy(enabled=True),
         )
-        client.collection.get(name).tenants.create(
+        client.collections.get(name).tenants.create(
             [Tenant(name="tenant" + str(i)) for i in range(5)]
         )
 
     nr_objects = 100
     objects = []
-    with client.collection.batch as batch:
+    with client.batch as batch:
         for i in range(nr_objects):
             obj_uuid = uuid.uuid4()
             objects.append((obj_uuid, class_names[i % 2], "tenant" + str(i % 5)))
@@ -151,44 +149,44 @@ def test_add_object_batch_with_tenant():
             )
 
     for obj in objects:
-        retObj = client.collection.get(obj[1]).with_tenant(obj[2]).query.fetch_object_by_id(obj[0])
+        retObj = client.collections.get(obj[1]).with_tenant(obj[2]).query.fetch_object_by_id(obj[0])
         assert retObj.properties["tenantAsProp"] == obj[2]
 
     for name in class_names:
-        client.collection.delete(name)
+        client.collections.delete(name)
 
 
 def test_add_ref_batch_with_tenant():
     client = weaviate.WeaviateClient(
         weaviate.ConnectionParams.from_url("http://localhost:8080", 50051)
     )
-    client.schema.delete_all()
+    client.collections.delete_all()
 
     # create two classes and add 5 tenants each
     class_names = ["BatchRefTestMultiTenant0", "BatchRefTestMultiTenant1"]
-    client.collection.create(
+    client.collections.create(
         name=class_names[0],
-        multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
 
-    client.collection.create(
+    client.collections.create(
         name=class_names[1],
         properties=[
             Property(name="tenantAsProp", data_type=DataType.TEXT),
             ReferenceProperty(name="ref", target_collection=class_names[0]),
         ],
-        multi_tenancy_config=ConfigFactory.multi_tenancy(enabled=True),
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
 
     for name in class_names:
-        client.collection.get(name).tenants.create(
+        client.collections.get(name).tenants.create(
             [Tenant(name="tenant" + str(i)) for i in range(5)]
         )
 
     nr_objects = 100
     objects_class0 = []
     objects_class1 = []
-    with client.collection.batch as batch:
+    with client.batch as batch:
         for i in range(nr_objects):
             tenant = "tenant" + str(i % 5)
             obj_uuid0 = uuid.uuid4()
@@ -218,7 +216,7 @@ def test_add_ref_batch_with_tenant():
 
     for i, obj in enumerate(objects_class1):
         ret_obj = (
-            client.collection.get(class_names[1])
+            client.collections.get(class_names[1])
             .with_tenant(obj[1])
             .query.fetch_object_by_id(obj[0])
         )
@@ -229,22 +227,22 @@ def test_add_ref_batch_with_tenant():
         )
 
     for name in reversed(class_names):
-        client.collection.delete(name)
+        client.collections.delete(name)
 
 
 def test_add_ten_thousand_data_objects(client: weaviate.WeaviateClient):
     """Test adding ten thousand data objects"""
     nr_objects = 10000
-    client.collection.batch.configure(num_workers=4)
-    with client.collection.batch as batch:
+    client.batch.configure(num_workers=4)
+    with client.batch as batch:
         for i in range(nr_objects):
             batch.add_object(
                 class_name="Test",
                 properties={"name": "test" + str(i)},
             )
-    objs = client.collection.get("Test").query.fetch_objects(limit=nr_objects).objects
+    objs = client.collections.get("Test").query.fetch_objects(limit=nr_objects).objects
     assert len(objs) == nr_objects
-    client.collection.delete("Test")
+    client.collections.delete("Test")
 
 
 def make_refs(uuids: List[uuid.UUID]) -> List[dict]:
@@ -269,9 +267,9 @@ def test_add_one_hundred_objects_and_references_between_all(client: weaviate.Wea
     """Test adding one hundred objects and references between all of them"""
 
     nr_objects = 100
-    client.collection.batch.configure(num_workers=4)
+    client.batch.configure(num_workers=4)
     uuids: List[uuid.UUID] = []
-    with client.collection.batch as batch:
+    with client.batch as batch:
         for i in range(nr_objects):
             uuid_ = batch.add_object(
                 class_name="Test",
@@ -281,45 +279,45 @@ def test_add_one_hundred_objects_and_references_between_all(client: weaviate.Wea
         for ref in make_refs(uuids):
             batch.add_reference(**ref)
     objs = (
-        client.collection.get("Test")
+        client.collections.get("Test")
         .query.fetch_objects(limit=nr_objects, return_properties=FromReference(link_on="test"))
         .objects
     )
     assert len(objs) == nr_objects
     for obj in objs:
         assert len(obj.properties["test"].objects) == nr_objects - 1
-    client.collection.delete("Test")
+    client.collections.delete("Test")
 
 
 def test_add_bad_prop(client: weaviate.WeaviateClient):
     """Test adding a data object with a bad property"""
     with warnings.catch_warnings():
         # Tests that no warning is emitted when the batch is not configured to retry failed objects
-        client.collection.batch.configure(retry_failed_objects=True)
-        with client.collection.batch as batch:
+        client.batch.configure(retry_failed_objects=True)
+        with client.batch as batch:
             batch.add_object(
                 class_name="Test",
                 properties={"bad": "test"},
             )
-        assert len(client.collection.batch.failed_objects()) == 1
+        assert len(client.batch.failed_objects()) == 1
 
     with pytest.warns(UserWarning):
         # Tests that a warning is emitted when the batch is configured to retry failed objects
-        client.collection.batch.configure(retry_failed_objects=True)
-        with client.collection.batch as batch:
+        client.batch.configure(retry_failed_objects=True)
+        with client.batch as batch:
             batch.add_object(
                 class_name="Test",
                 properties={"bad": "test"},
             )
-        assert len(client.collection.batch.failed_objects()) == 1
+        assert len(client.batch.failed_objects()) == 1
 
 
 def test_add_bad_ref(client: weaviate.WeaviateClient):
     """Test adding a reference with a bad property name"""
     with warnings.catch_warnings():
         # Tests that no warning is emitted when the batch is not configured to retry failed references
-        client.collection.batch.configure(retry_failed_references=True)
-        with client.collection.batch as batch:
+        client.batch.configure(retry_failed_references=True)
+        with client.batch as batch:
             batch.add_reference(
                 from_object_uuid=uuid.uuid4(),
                 from_object_class_name="Test",
@@ -327,12 +325,12 @@ def test_add_bad_ref(client: weaviate.WeaviateClient):
                 to_object_uuid=uuid.uuid4(),
                 to_object_class_name="Test",
             )
-        assert len(client.collection.batch.failed_references()) == 1
+        assert len(client.batch.failed_references()) == 1
 
     with pytest.warns(UserWarning):
         # Tests that a warning is emitted when the batch is configured to retry failed references
-        client.collection.batch.configure(retry_failed_references=True)
-        with client.collection.batch as batch:
+        client.batch.configure(retry_failed_references=True)
+        with client.batch as batch:
             batch.add_reference(
                 from_object_uuid=uuid.uuid4(),
                 from_object_class_name="Test",
@@ -340,27 +338,27 @@ def test_add_bad_ref(client: weaviate.WeaviateClient):
                 to_object_uuid=uuid.uuid4(),
                 to_object_class_name="Test",
             )
-        assert len(client.collection.batch.failed_references()) == 1
+        assert len(client.batch.failed_references()) == 1
 
 
 def test_manual_batching(client: weaviate.WeaviateClient):
-    client.collection.batch.configure(dynamic=False)
+    client.batch.configure(dynamic=False)
     uuids: List[uuid.UUID] = []
     for _ in range(10):
-        uuid_ = client.collection.batch.add_object(
+        uuid_ = client.batch.add_object(
             class_name="Test",
             properties={"name": "test"},
         )
         uuids.append(uuid_)
-        if client.collection.batch.num_objects() == 5:
-            ret = client.collection.batch.create_objects()
+        if client.batch.num_objects() == 5:
+            ret = client.batch.create_objects()
             assert ret.has_errors is False
 
     for ref in make_refs(uuids):
-        client.collection.batch.add_reference(**ref)
-        if client.collection.batch.num_references() == 5:
-            ret = client.collection.batch.create_references()
+        client.batch.add_reference(**ref)
+        if client.batch.num_references() == 5:
+            ret = client.batch.create_references()
             assert ret.has_errors is False
 
-    objs = client.collection.get("Test").query.fetch_objects().objects
+    objs = client.collections.get("Test").query.fetch_objects().objects
     assert len(objs) == 10
