@@ -4,13 +4,13 @@ from typing import List
 import pytest
 
 import weaviate
-from weaviate.collection.classes.config import (
+from weaviate.collections.classes.config import (
     Configure,
     DataType,
     Property,
 )
-from weaviate.collection.classes.data import DataObject
-from weaviate.collection.classes.grpc import MetadataQuery
+from weaviate.collections.classes.data import DataObject
+from weaviate.collections.classes.grpc import MetadataQuery
 from weaviate.exceptions import WeaviateQueryException
 
 

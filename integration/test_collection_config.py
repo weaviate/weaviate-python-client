@@ -1,7 +1,7 @@
 import pytest as pytest
 
 import weaviate
-from weaviate.collection.classes.config import (
+from weaviate.collections.classes.config import (
     _CollectionConfig,
     _CollectionConfigSimple,
     Configure,

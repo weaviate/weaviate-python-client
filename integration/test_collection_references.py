@@ -4,8 +4,8 @@ from typing import TypedDict
 import pytest as pytest
 import uuid
 
-from weaviate.collection.classes.data import DataObject, DataReference
-from weaviate.collection.classes.grpc import FromReference, FromReferenceMultiTarget
+from weaviate.collections.classes.data import DataObject, DataReference
+from weaviate.collections.classes.grpc import FromReference, FromReferenceMultiTarget
 
 
 if sys.version_info < (3, 9):
@@ -15,7 +15,7 @@ else:
 
 
 import weaviate
-from weaviate.collection.classes.config import (
+from weaviate.collections.classes.config import (
     Configure,
     Property,
     DataType,
@@ -23,8 +23,8 @@ from weaviate.collection.classes.config import (
     ReferencePropertyMultiTarget,
 )
 
-from weaviate.collection.classes.internal import CrossReference, Reference
-from weaviate.collection.grpc import MetadataQuery
+from weaviate.collections.classes.internal import CrossReference, Reference
+from weaviate.collections.grpc import MetadataQuery
 
 
 @pytest.fixture(scope="module")

@@ -3,7 +3,7 @@ from typing import List
 
 from pydantic import ValidationError
 
-from weaviate.collection.classes.config import (
+from weaviate.collections.classes.config import (
     _CollectionConfigCreate,
     DataType,
     Multi2VecField,

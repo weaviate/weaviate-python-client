@@ -2,13 +2,13 @@ from typing import List, Optional, Union
 
 import pytest
 
-from weaviate.collection.classes.grpc import (
+from weaviate.collections.classes.grpc import (
     PROPERTIES,
     FromReference,
     FromReferenceMultiTarget,
     MetadataQuery,
 )
-from weaviate.collection.queries.base import _PropertiesParser
+from weaviate.collections.queries.base import _PropertiesParser
 
 
 @pytest.mark.parametrize(

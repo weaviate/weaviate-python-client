@@ -12,10 +12,10 @@ from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_ENCODED
-from weaviate.collection.classes.batch import ErrorObject
+from weaviate.collections.classes.batch import ErrorObject
 
-from weaviate.collection.collection import _Collection
-from weaviate.collection.classes.config import (
+from weaviate.collections.collection import _Collection
+from weaviate.collections.classes.config import (
     Configure,
     DataType,
     Property,
@@ -23,10 +23,10 @@ from weaviate.collection.classes.config import (
     ReferencePropertyMultiTarget,
     Vectorizer,
 )
-from weaviate.collection.classes.data import (
+from weaviate.collections.classes.data import (
     DataObject,
 )
-from weaviate.collection.classes.grpc import (
+from weaviate.collections.classes.grpc import (
     HybridFusion,
     FromReference,
     MetadataQuery,
@@ -34,11 +34,11 @@ from weaviate.collection.classes.grpc import (
     Sort,
     PROPERTIES,
 )
-from weaviate.collection.classes.internal import Reference
-from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
-from weaviate.collection.classes.types import Properties
-from weaviate.collection.data import _Data
-from weaviate.collection.object_iterator import ITERATOR_CACHE_SIZE
+from weaviate.collections.classes.internal import Reference
+from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
+from weaviate.collections.classes.types import Properties
+from weaviate.collections.data import _Data
+from weaviate.collections.iterator import ITERATOR_CACHE_SIZE
 from weaviate.exceptions import (
     InvalidDataModelException,
     WeaviateQueryException,

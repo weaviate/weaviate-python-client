@@ -3,8 +3,8 @@ import pathlib
 import pytest
 
 import weaviate
-from weaviate.collection.classes.aggregate import Metrics
-from weaviate.collection.classes.config import DataType, Property, ReferenceProperty, Configure
+from weaviate.collections.classes.aggregate import Metrics
+from weaviate.collections.classes.config import DataType, Property, ReferenceProperty, Configure
 from weaviate.exceptions import WeaviateInvalidInputException
 from weaviate.util import file_encoder_b64
 

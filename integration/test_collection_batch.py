@@ -6,14 +6,14 @@ from typing import List, Optional, Sequence, Union
 import pytest
 
 import weaviate
-from weaviate.collection.classes.config import (
+from weaviate.collections.classes.config import (
     Configure,
     DataType,
     Property,
     ReferenceProperty,
 )
-from weaviate.collection.classes.internal import FromReference
-from weaviate.collection.classes.tenants import Tenant
+from weaviate.collections.classes.internal import FromReference
+from weaviate.collections.classes.tenants import Tenant
 
 UUID = Union[str, uuid.UUID]
 

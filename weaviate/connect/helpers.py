@@ -9,7 +9,7 @@ from weaviate.embedded import EmbeddedOptions
 
 def connect_to_wcs(
     cluster_id: str,
-    api_key: str,
+    api_key: Optional[str],
     headers: Optional[dict] = None,
     timeout: Tuple[int, int] = (10, 60),
 ) -> WeaviateClient:
@@ -18,11 +18,11 @@ def connect_to_wcs(
 
     Arguments:
         `cluster_id`
-            The cluster id to connect to.
+            The WCS cluster id to connect to.
         `api_key`
-            The api key to use for authentication.
+            The api key to use for authentication with your WCS instance.
         `headers`
-            Additional headers to include in the requests, e.g. API keys for Cloud vectorisation.
+            Additional headers to include in the requests, e.g. API keys for third-party Cloud vectorisation.
         `timeout`
             The timeout to use for the underlying HTTP calls. Accepts a tuple of integers, where the first integer
             represents the connect timeout and the second integer represents the read timeout.
@@ -36,7 +36,7 @@ def connect_to_wcs(
             http=ProtocolParams(host=f"{cluster_id}.weaviate.network", port=443, secure=True),
             grpc=ProtocolParams(host=f"{cluster_id}.weaviate.network", port=50051, secure=True),
         ),
-        auth_client_secret=AuthApiKey(api_key),
+        auth_client_secret=AuthApiKey(api_key) if api_key is not None else None,
         additional_headers=headers,
         additional_config=AdditionalConfig(timeout=timeout),
     )
@@ -127,6 +127,8 @@ def connect_to_custom(
 ) -> WeaviateClient:
     """
     Connect to a Weaviate instance with custom connection parameters.
+
+    If this is not sufficient for your customisation needs then instantiate a `weaviate.WeaviateClient` directly.
 
     Arguments:
         `http_host`

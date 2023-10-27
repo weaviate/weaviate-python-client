@@ -8,10 +8,10 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from .auth import AuthCredentials
 from .backup import Backup
 from .batch import Batch
-from .collection.batch import _Batch
+from .collections.batch import _Batch
 from .classification import Classification
 from .cluster import Cluster
-from .collection import _Collections
+from .collections import _Collections
 from .config import AdditionalConfig, Config
 from .connect.connection import (
     Connection,
@@ -197,9 +197,34 @@ class WeaviateClient(_ClientBase):
         connection_params: Optional[ConnectionParams] = None,
         embedded_options: Optional[EmbeddedOptions] = None,
         auth_client_secret: Optional[AuthCredentials] = None,
-        additional_headers: Optional[Dict[str, Any]] = None,
+        additional_headers: Optional[dict] = None,
         additional_config: Optional[AdditionalConfig] = None,
     ) -> None:
+        """Initialise a WeaviateClient class instance to use when interacting with Weaviate.
+
+        Use this specific initialiser when you want to create a custom Client specific to your Weaviate setup.
+
+        If you want to get going quickly connecting to WCS or a local instance then use the `weaviate.connect_to_wcs` or
+        `weaviate.connect_to_local` helper functions instead.
+
+        Arguments:
+            - `connection_params`: `weaviate.ConnectionParams` or None, optional
+                - The connection parameters to use for the underlying HTTP requests.
+            - `embedded_options`: `weaviate.EmbeddedOptions` or None, optional
+                - The options to use when provisioning an embedded Weaviate instance.
+            - `auth_client_secret`: `weaviate.AuthCredentials` or None, optional
+                - Authenticate to weaviate by using one of the given authentication modes:
+                    - `weaviate.auth.AuthBearerToken` to use existing access and (optionally, but recommended) refresh tokens
+                    - `weaviate.auth.AuthClientPassword` to use username and password for oidc Resource Owner Password flow
+                    - `weaviate.auth.AuthClientCredentials` to use a client secret for oidc client credential flow
+            - `additional_headers`: `dict` or None, optional
+                - Additional headers to include in the requests.
+                    - Can be used to set OpenAI/HuggingFace/Cohere etc. keys.
+                    - [Here](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai#providing-the-key-to-weaviate) is an
+                    example of how to set API keys within this parameter.
+            - `additional_config`: `weaviate.AdditionalConfig` or None, optional
+                - Additional and advanced configuration options for Weaviate.
+        """
         connection_params, embedded_db = self._parse_connection_params_and_embedded_db(
             connection_params, embedded_options
         )
@@ -217,21 +242,13 @@ class WeaviateClient(_ClientBase):
             startup_period=config.startup_period,
         )
 
-        self.backup = Backup(self._connection)
-        """This namespace contains all the functionality to backup and restore Weaviate instances."""
         self.batch = _Batch(self._connection)
         """This namespace contains all the functionality to upload data in batches to Weaviate."""
-        self.classification = Classification(self._connection)
-        """This namespace contains all the functionality to use Weaviate's classifcation capabilities."""
-        self.cluster = Cluster(self._connection)
-        """This namespace contains all the functionality to manage Weaviate clusters."""
         self.collections = _Collections(self._connection)
         """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
 
         Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `client.collections.create("MyCollection", ...)`.
         """
-        self.contextionary = Contextionary(self._connection)
-        """This namespace contains all the functionality to customise Weaviate's text2vec-contextionary capabilities."""
 
 
 class Client(_ClientBase):

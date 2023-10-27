@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from pydantic_core._pydantic_core import PydanticUndefined
 
-from weaviate.collection.classes.grpc import MetadataQuery
+from weaviate.collections.classes.grpc import MetadataQuery
 from weaviate.exceptions import WeaviateAddInvalidPropertyError
 from weaviate.types import UUIDS
 
@@ -16,13 +16,13 @@ import pytest as pytest
 import uuid
 
 import weaviate
-from weaviate.collection.classes.config import (
+from weaviate.collections.classes.config import (
     Configure,
     PropertyConfig,
 )
-from weaviate.collection.classes.internal import CrossReference, Reference
-from weaviate.collection.classes.orm import BaseProperty, CollectionModelConfig
-from weaviate.collection.classes.tenants import Tenant, TenantActivityStatus
+from weaviate.collections.classes.internal import CrossReference, Reference
+from weaviate.collections.classes.orm import BaseProperty, CollectionModelConfig
+from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from pydantic import Field
 
 REF_TO_UUID = uuid.uuid4()

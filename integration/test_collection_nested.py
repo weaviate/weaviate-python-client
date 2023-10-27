@@ -3,12 +3,12 @@ from typing import List, TypedDict, Union
 import pytest
 
 import weaviate
-from weaviate.collection.classes.config import (
+from weaviate.collections.classes.config import (
     DataType,
     Property,
 )
-from weaviate.collection.classes.grpc import PROPERTIES, FromNested
-from weaviate.collection.classes.internal import Nested
+from weaviate.collections.classes.grpc import PROPERTIES, FromNested
+from weaviate.collections.classes.internal import Nested
 
 
 @pytest.fixture(scope="module")

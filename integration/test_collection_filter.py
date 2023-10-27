@@ -5,7 +5,7 @@ from typing import List
 import pytest as pytest
 
 import weaviate
-from weaviate.collection.classes.config import (
+from weaviate.collections.classes.config import (
     Configure,
     Property,
     DataType,
@@ -13,14 +13,14 @@ from weaviate.collection.classes.config import (
     ReferencePropertyMultiTarget,
     Tokenization,
 )
-from weaviate.collection.classes.data import DataObject
-from weaviate.collection.classes.filters import (
+from weaviate.collections.classes.data import DataObject
+from weaviate.collections.classes.filters import (
     Filter,
     _Filters,
     _FilterValue,
 )
-from weaviate.collection.classes.grpc import MetadataQuery
-from weaviate.collection.classes.internal import Reference
+from weaviate.collections.classes.grpc import MetadataQuery
+from weaviate.collections.classes.internal import Reference
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
 LATER = NOW + datetime.timedelta(hours=1)

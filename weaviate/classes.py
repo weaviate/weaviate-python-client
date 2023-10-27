@@ -1,4 +1,4 @@
-from weaviate.collection.classes.config import (
+from weaviate.collections.classes.config import (
     Configure,
     ConfigureUpdate,
     DataType,
@@ -9,19 +9,19 @@ from weaviate.collection.classes.config import (
     Tokenization,
     VectorDistance,
 )
-from weaviate.collection.classes.data import (
+from weaviate.collections.classes.data import (
     DataObject,
 )
-from weaviate.collection.classes.filters import Filter
-from weaviate.collection.classes.grpc import (
+from weaviate.collections.classes.filters import Filter
+from weaviate.collections.classes.grpc import (
     HybridFusion,
     FromNested,
     FromReference,
     FromReferenceMultiTarget,
     MetadataQuery,
 )
-from weaviate.collection.classes.internal import Nested, CrossReference, Reference
-from weaviate.collection.classes.tenants import Tenant
+from weaviate.collections.classes.internal import Nested, CrossReference, Reference
+from weaviate.collections.classes.tenants import Tenant
 
 __all__ = [
     "Configure",
