@@ -16,12 +16,18 @@ __all__ = [
     "AuthenticationFailedException",
     "SchemaValidationException",
     "WeaviateStartUpError",
+    "ConsistencyLevel",
+    "WeaviateErrorRetryConf",
     "EmbeddedOptions",
     "AdditionalConfig",
     "Config",
     "ConnectionConfig",
     "ConnectionParams",
     "ProtocolParams",
+    "AdditionalProperties",
+    "LinkTo",
+    "Tenant",
+    "TenantActivityStatus",
     "connect_to_custom",
     "connect_to_embedded",
     "connect_to_local",
@@ -38,8 +44,11 @@ except PackageNotFoundError:
     __version__ = "unknown version"
 
 from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken, AuthApiKey
+from .batch.crud_batch import WeaviateErrorRetryConf
 from .client import Client, WeaviateClient
 from .connect.connection import ConnectionParams, ProtocolParams
+from .data.replication import ConsistencyLevel
+from .schema.crud_schema import Tenant, TenantActivityStatus
 from .connect.helpers import (
     connect_to_custom,
     connect_to_embedded,

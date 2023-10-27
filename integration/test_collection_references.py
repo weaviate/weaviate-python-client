@@ -5,7 +5,7 @@ import pytest as pytest
 import uuid
 
 from weaviate.collections.classes.data import DataObject, DataReference
-from weaviate.collections.classes.grpc import FromReference, FromReferenceMultiTarget
+from weaviate.collections.classes.grpc import FromReference, FromReferenceMultiTarget, MetadataQuery
 
 
 if sys.version_info < (3, 9):
@@ -24,7 +24,6 @@ from weaviate.collections.classes.config import (
 )
 
 from weaviate.collections.classes.internal import CrossReference, Reference
-from weaviate.collections.grpc import MetadataQuery
 
 
 @pytest.fixture(scope="module")
