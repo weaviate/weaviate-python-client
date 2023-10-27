@@ -1,5 +1,11 @@
 Changelog
 =========
+Version 3.25.1
+--------------
+This patch version includes:
+
+- Bump default embedded version to 1.22.0
+
 Version 3.25.0
 --------------
 This minor version includes:
