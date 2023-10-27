@@ -10,6 +10,7 @@ This minor version includes:
 - Updates to use Weaviate's v1 gRPC API
 - Support for batching with Weaviate>1.22.0 version and async vector indexing
 - Addition of the `client.batch.wait_for_async_indexing()` method to force block until async indexing is complete
+- Add tests for Python 3.12 to ensure compatibility
 
 Version 3.24.2
 --------------
