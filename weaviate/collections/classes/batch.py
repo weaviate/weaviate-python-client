@@ -61,6 +61,16 @@ class BatchObject(BaseModel):
         return _capitalize_first_letter(v)
 
 
+class Shard(BaseModel):
+    """Use this class when defining a shard whose vector indexing process will be awaited for in a sync blocking fashion."""
+
+    class_name: str
+    tenant: Optional[str] = Field(default=None)
+
+    def __hash__(self) -> int:
+        return hash((self.class_name, self.tenant))
+
+
 class BatchReference(BaseModel):
     """
     A reference between two objects in Weaviate.

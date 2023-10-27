@@ -4,6 +4,7 @@ set -eou pipefail
 
 echo "Run Docker compose"
 nohup docker-compose -f ci/docker-compose.yml up -d
+nohup docker-compose -f ci/docker-compose-async.yml up -d
 nohup docker-compose -f ci/docker-compose-azure.yml up -d
 nohup docker-compose -f ci/docker-compose-okta-cc.yml up -d
 nohup docker-compose -f ci/docker-compose-okta-users.yml up -d
