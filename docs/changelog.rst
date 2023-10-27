@@ -1,5 +1,16 @@
 Changelog
 =========
+Version 3.25.0
+--------------
+This minor version includes:
+
+- Support for new Weaviate nested objects on insert and query
+    - ``client.data_object.create()`` now supports nested objects
+    - ``client.query.get()`` now supports nested objects
+- Updates to use Weaviate's v1 gRPC API
+- Support for batching with Weaviate>1.22.0 version and async vector indexing
+- Addition of the `client.batch.wait_for_async_indexing()` method to force block until async indexing is complete
+
 Version 3.24.2
 --------------
 This patch version includes:
