@@ -64,6 +64,7 @@ from .exceptions import (
     WeaviateStartUpError,
 )
 from .config import AdditionalConfig, Config, ConnectionConfig
+from .gql.get import AdditionalProperties, LinkTo
 
 if not sys.warnoptions:
     import warnings
