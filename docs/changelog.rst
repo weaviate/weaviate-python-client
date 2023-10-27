@@ -1,5 +1,10 @@
 Changelog
 =========
+Version 3.24.2
+--------------
+This patch version includes:
+
+- Small fix to the batching process to ensure that failed multi-tenant objects are re-added to the batch with their tenant attached
 
 Version 3.24.1
 --------------
