@@ -79,8 +79,19 @@ class _Warnings:
     def manual_batching() -> None:
         warnings.warn(
             message="""Dep002: You are batching manually. This means you are NOT using the client's built-in
-            multi-threading. Setting `batch_size` in `client.batch.configure()`  to an int value will enabled automatic
+            multi-threading. Setting `batch_size` in `client.batch.configure()` to an int value will enable automatic
             batching. See:
+            https://weaviate.io/developers/weaviate/current/restful-api-references/batch.html#example-request-1""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def manual_batching_when_dynamic_enabled() -> None:
+        warnings.warn(
+            message="""Dep003: You are trying to use manual batching while dynamic batching is enabled by default.
+            Setting `batch_size` and `dynamic` in `client.batch.configure()` to None value will switch batching to
+            manual mode, but this also means you are NOT using the client's built-in multi-threading. See:
             https://weaviate.io/developers/weaviate/current/restful-api-references/batch.html#example-request-1""",
             category=DeprecationWarning,
             stacklevel=1,

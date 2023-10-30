@@ -951,6 +951,10 @@ class Batch:
             If weaviate reports a none OK status.
         """
 
+        if self._batch_size is not None and self.dynamic:
+            _Warnings.manual_batching_when_dynamic_enabled()
+            return []
+
         if len(self._objects_batch) != 0:
             _Warnings.manual_batching()
 
@@ -1047,6 +1051,9 @@ class Batch:
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
+        if self._batch_size is not None and self.dynamic:
+            _Warnings.manual_batching_when_dynamic_enabled()
+            return []
 
         if len(self._reference_batch) != 0:
             _Warnings.manual_batching()
