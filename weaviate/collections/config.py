@@ -11,6 +11,7 @@ from weaviate.collections.classes.config import (
     _CollectionConfig,
     _CollectionConfigSimple,
     _Property,
+    _ShardStatus,
 )
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
@@ -23,12 +24,14 @@ from weaviate.exceptions import (
     ObjectAlreadyExistsException,
     WeaviateAddInvalidPropertyError,
 )
+from weaviate.util import _decode_json_response_list
 
 
 class _ConfigBase:
-    def __init__(self, connection: Connection, name: str) -> None:
+    def __init__(self, connection: Connection, name: str, tenant: Optional[str]) -> None:
         self.__connection = connection
         self._name = name
+        self.__tenant = tenant
 
     def __get(self) -> Dict[str, Any]:
         try:
@@ -126,6 +129,40 @@ class _ConfigBase:
             if prop.name == property_name:
                 return prop
         return None
+
+    def get_shards(self) -> List[_ShardStatus]:
+        """Get the statuses of the shards of this collection.
+
+        If the collection is multi-tenancy and you did not call `.with_tenant` then you
+        will receive the statuses of all the tenants within the collection. Otherwise, call
+        `.with_tenant` on the collection first and you will receive only that single shard.
+
+        Returns:
+            `List[_ShardStatus]`:
+                A list of objects containing the statuses of the shards.
+
+        Raises:
+            `requests.ConnectionError`:
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`:
+                If Weaviate reports a non-OK status.
+        """
+        try:
+            response = self.__connection.get(
+                path=f"/schema/{self._name}/shards{f'?tenant={self.__tenant}' if self.__tenant else ''}"
+            )
+            shards = _decode_json_response_list(response, "get shards")
+            assert shards is not None
+            return [
+                _ShardStatus(
+                    name=shard["name"],
+                    status=shard["status"],
+                    vector_queue_size=shard["vectorQueueSize"],
+                )
+                for shard in shards
+            ]
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Shard statuses could not be retrieved.") from conn_err
 
 
 class _ConfigCollection(_ConfigBase):

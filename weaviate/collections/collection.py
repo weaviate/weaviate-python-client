@@ -28,25 +28,31 @@ class _Collection(_CollectionBase, Generic[Properties]):
         super().__init__(name)
         self._connection = connection
 
-        self.aggregate = _AggregateCollection(self._connection, name, consistency_level, tenant)
+        self.aggregate = _AggregateCollection(
+            self._connection, self.name, consistency_level, tenant
+        )
         """This namespace includes all the querying methods available to you when using Weaviate's standard aggregation capabilities."""
         self.aggregate_group_by = _AggregateGroupByCollection(
-            self._connection, name, consistency_level, tenant
+            self._connection, self.name, consistency_level, tenant
         )
         """This namespace includes all the aggregate methods available to you when using Weaviate's aggregation group-by capabilities."""
-        self.config = _ConfigCollection(self._connection, name)
+        self.config = _ConfigCollection(self._connection, self.name, tenant)
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
-        self.data = _DataCollection[Properties](connection, name, consistency_level, tenant, type_)
+        self.data = _DataCollection[Properties](
+            connection, self.name, consistency_level, tenant, type_
+        )
         """This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate."""
-        self.generate = _GenerateCollection(connection, name, consistency_level, tenant, type_)
+        self.generate = _GenerateCollection(connection, self.name, consistency_level, tenant, type_)
         """This namespace includes all the querying methods available to you when using Weaviate's generative capabilities."""
-        self.query_group_by = _GroupByCollection(connection, name, consistency_level, tenant, type_)
+        self.query_group_by = _GroupByCollection(
+            connection, self.name, consistency_level, tenant, type_
+        )
         """This namespace includes all the querying methods available to you when using Weaviate's querying group-by capabilities."""
         self.query = _QueryCollection[Properties](
-            connection, name, self.data, consistency_level, tenant, type_
+            connection, self.name, self.data, consistency_level, tenant, type_
         )
         """This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities."""
-        self.tenants = _Tenants(connection, name)
+        self.tenants = _Tenants(connection, self.name)
         """This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate."""
 
         self.__tenant = tenant
@@ -128,7 +134,7 @@ class _Collection(_CollectionBase, Generic[Properties]):
         if is_typeddict(return_properties):
             return_properties = cast(Type[TProperties], return_properties)
             return _ObjectIterator[TProperties](
-                lambda limit, alpha, meta: self.query.fetch_objects(
+                lambda limit, alpha, meta: self.query.fetch_objects(  # type: ignore # shouldn't be needed but mypy complains
                     limit=limit,
                     after=alpha,
                     return_metadata=meta,
