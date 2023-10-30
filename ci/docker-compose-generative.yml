@@ -9,7 +9,7 @@ services:
       - '8086'
       - --scheme
       - http
-    image: semitechnologies/weaviate:1.22.0
+    image: semitechnologies/weaviate:preview-implement-fix-259de81
     ports:
       - 8086:8086
       - "50057:50051"

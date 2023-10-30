@@ -13,11 +13,12 @@ from weaviate.collections.classes.config_methods import (
     _collection_configs_simple_from_json,
 )
 from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.util import _capitalize_first_letter
 
 
 class _CollectionBase:
     def __init__(self, name: str) -> None:
-        self.name = name
+        self.name = _capitalize_first_letter(name)
 
 
 class _CollectionsBase:

@@ -198,8 +198,8 @@ class _Batch:
         self.__batch_grpc = _BatchGRPC(connection, self.__consistency_level)
         self.__batch_rest = _BatchREST(connection, self.__consistency_level)
         self.__executor: Optional[BatchExecutor] = None
-        self.__failed_objects: List[_BatchObject] = []
-        self.__failed_references: List[_BatchReference] = []
+        self.__failed_objects: List[ErrorObject] = []
+        self.__failed_references: List[ErrorReference] = []
         self.__future_pool_objects: Deque[Future[Tuple[BatchObjectReturn, int, bool]]] = deque([])
         self.__future_pool_references: Deque[
             Future[Tuple[BatchReferenceReturn, int, bool]]
@@ -265,22 +265,22 @@ class _Batch:
         """
         return len(self.__batch_references)
 
-    def failed_objects(self) -> List[_BatchObject]:
+    def failed_objects(self) -> List[ErrorObject]:
         """
         Get all failed objects from the batch manager.
 
         Returns:
-            `List[_BatchObject]`
+            `List[ErrorObject]`
                 A list of all the failed objects from the batch.
         """
         return self.__failed_objects
 
-    def failed_references(self) -> List[_BatchReference]:
+    def failed_references(self) -> List[ErrorReference]:
         """
         Get all failed references from the batch manager.
 
         Returns:
-            `List[_BatchReference]`
+            `List[ErrorReference]`
                 A list of all the failed references from the batch.
         """
         return self.__failed_references
@@ -544,7 +544,7 @@ class _Batch:
                 )
             )
         if len(self.__batch_references) > 0:
-            # convert deque to list to ensure data is copied before being clearer below
+            # convert deque to list to ensure data is copied before being cleared below
             self.__reference_batch_queue.append(list(self.__batch_references.items))
 
         self.__batch_objects.clear()
@@ -559,12 +559,12 @@ class _Batch:
 
         for done_obj_future in as_completed(self.__future_pool_objects):
             ret_objs, nr_objs, exception_raised = done_obj_future.result()
+            self.__failed_objects.extend(ret_objs.errors.values())
             if self.__retry_failed_objects and (exception_raised or ret_objs.has_errors):
                 self.__batch_objects._add_failed_objects_from_response(ret_objs)
                 self.__backoff_recommended_object_batch_size(True)
             else:
                 self.__objects_throughput_frame.append(nr_objs / ret_objs.elapsed_seconds)
-                self.__failed_objects.extend([err.object_ for err in ret_objs.errors.values()])
 
         for ref_batch_items in self.__reference_batch_queue:
             self.__future_pool_references.append(
@@ -576,12 +576,12 @@ class _Batch:
 
         for done_ref_future in as_completed(self.__future_pool_references):
             ret_refs, nr_refs, exception_raised = done_ref_future.result()
+            self.__failed_references.extend(ret_refs.errors.values())
             if self.__retry_failed_references and (exception_raised or ret_refs.has_errors):
                 self.__batch_references._add_failed_objects_from_response(ret_refs)
                 self.__backoff_recommended_reference_batch_size(True)
             else:
                 self.__references_throughput_frame.append(nr_refs / ret_refs.elapsed_seconds)
-                self.__failed_references.extend([err.reference for err in ret_refs.errors.values()])
 
         # Clear futures before checking if we need to retry
         self.__future_pool_objects.clear()
@@ -591,9 +591,9 @@ class _Batch:
         if len(self.__batch_objects) > 0 or len(self.__batch_references) > 0:
             if how_many_recursions == 4:
                 _Warnings.batch_retrying_failed_batches_hit_hard_limit(5)
-                self.__failed_objects = list(self.__batch_objects.items)
-                self.__failed_references = list(self.__batch_references.items)
             else:
+                self.__failed_objects.clear()
+                self.__failed_references.clear()
                 self.__send_batch_requests(
                     force_wait=True, how_many_recursions=how_many_recursions + 1
                 )

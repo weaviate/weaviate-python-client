@@ -15,6 +15,7 @@ from weaviate.collections.classes.config import (
     _VectorIndexType,
     Vectorizer,
 )
+from weaviate.collections.classes.tenants import Tenant
 
 
 @pytest.fixture(scope="module")
@@ -359,3 +360,46 @@ def test_collection_config_update(client: weaviate.WeaviateClient):
     assert config.vector_index_type == _VectorIndexType.HNSW
 
     client.collections.delete("TestCollectionSchemaUpdate")
+
+
+def test_collection_config_get_shards(client: weaviate.WeaviateClient):
+    collection = client.collections.create(
+        name="TestCollectionConfigGetShards",
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+            Property(name="age", data_type=DataType.INT),
+        ],
+    )
+    shards = collection.config.get_shards()
+    assert len(shards)
+    assert shards[0].status == "READY"
+    assert shards[0].vector_queue_size == 0
+
+    client.collections.delete("TestCollectionConfigGetShards")
+
+
+def test_collection_config_get_shards_multi_tenancy(client: weaviate.WeaviateClient):
+    collection = client.collections.create(
+        name="TestCollectionConfigGetShardsMultiTenancy",
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+            Property(name="age", data_type=DataType.INT),
+        ],
+    )
+    collection.tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
+    shards = collection.config.get_shards()
+    assert len(shards) == 2
+
+    assert shards[0].status == "READY"
+    assert shards[0].vector_queue_size == 0
+
+    assert shards[1].status == "READY"
+    assert shards[1].vector_queue_size == 0
+
+    assert "tenant1" in [shard.name for shard in shards]
+    assert "tenant2" in [shard.name for shard in shards]
+
+    client.collections.delete("TestCollectionConfigGetShardsMultiTenancy")
