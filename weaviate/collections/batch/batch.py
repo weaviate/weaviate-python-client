@@ -225,19 +225,28 @@ class _Batch:
         retry_failed_references: bool = False,
     ) -> None:
         """
-        Configure your batch object.
+        Configure your batch manager.
 
-        Every time you run this command, the `client.collections.batch` object will
+        Every time you run this command, the `client.batch` object will
         be updated with the new configuration. To enter the batching context manager, which handles automatically
-        sending batches dynamically, use `with client.collections.batch as batch`.
+        sending batches dynamically, use `with client.batch as batch` and then loop through your data within the context manager
+        adding objects and references to the batch.
+
+        Batches are constructed automatically and sent dynamically depending on Weaviate's load.
+        When you exit the context manager, the final batch will be sent automatically.
 
         Arguments:
-            `batch_size`
-                The number of objects and references to be sent in one batch. If not provided, the default value is 50.
+            `dynamic`
+                Whether to use dynamic batching or not. If not provided, the default value is True.
             `consistency_level`
                 The consistency level to be used to send the batch. If not provided, the default value is None.
             `num_workers`
-                The number of workers to be used to send the batch. If not provided, the default value is 1.
+                The number of workers to be used when sending the batches. If not provided, the default value is 1.
+                This controls the number of concurrent requests made to Weaviate and not the speed of batch creation within Python.
+            `retry_failed_objects`
+                Whether to retry failed objects or not. If not provided, the default value is False.
+            `retry_failed_references`
+                Whether to retry failed references or not. If not provided, the default value is False.
         """
         self.__consistency_level = consistency_level or self.__consistency_level
         self.__dynamic_batching = dynamic
@@ -352,19 +361,21 @@ class _Batch:
         replaced by the new object.
 
         Arguments:
-            `properties`
-                The data properties of the object to be added as a dictionary.
             `class_name`
                 The name of the class this object belongs to.
+            `properties`
+                The data properties of the object to be added as a dictionary.
             `uuid`:
                 The UUID of the object as an uuid.UUID object or str. It can be a Weaviate beacon or Weaviate href.
                 If it is None an UUIDv4 will generated, by default None
             `vector`:
                 The embedding of the object that should be validated. Can be used when a class does not have a vectorization module or the given vector was generated using the _identical_ vectorization module that is configured for the class. In this case this vector takes precedence. Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
+            `tenant`
+                Name of the tenant.
 
         Returns:
             `str`
-                The UUID of the added object. If one was not provided a UUIDv4 will be auto-generated.
+                The UUID of the added object. If one was not provided a UUIDv4 will be auto-generated for you and returned here.
 
         Raises:
             `WeaviateBatchValidationError`
@@ -562,7 +573,7 @@ class _Batch:
             self.__failed_objects.extend(ret_objs.errors.values())
             if self.__retry_failed_objects and (exception_raised or ret_objs.has_errors):
                 self.__batch_objects._add_failed_objects_from_response(ret_objs)
-                self.__backoff_recommended_object_batch_size(True)
+                self.__backoff_recommended_object_batch_size(exception_raised)
             else:
                 self.__objects_throughput_frame.append(nr_objs / ret_objs.elapsed_seconds)
 
@@ -579,7 +590,7 @@ class _Batch:
             self.__failed_references.extend(ret_refs.errors.values())
             if self.__retry_failed_references and (exception_raised or ret_refs.has_errors):
                 self.__batch_references._add_failed_objects_from_response(ret_refs)
-                self.__backoff_recommended_reference_batch_size(True)
+                self.__backoff_recommended_reference_batch_size(exception_raised)
             else:
                 self.__references_throughput_frame.append(nr_refs / ret_refs.elapsed_seconds)
 
@@ -602,9 +613,7 @@ class _Batch:
         if exception_occurred and self.__recommended_num_objects is not None:
             self.__recommended_num_objects = max(self.__recommended_num_objects // 2, 1)
         elif (
-            len(self.__objects_throughput_frame) != 0
-            and self.__recommended_num_objects is not None
-            and not self.__dynamic_batching
+            len(self.__objects_throughput_frame) != 0 and self.__recommended_num_objects is not None
         ):
             obj_per_second = (
                 sum(self.__objects_throughput_frame) / len(self.__objects_throughput_frame) * 0.75
