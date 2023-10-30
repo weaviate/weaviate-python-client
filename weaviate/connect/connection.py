@@ -41,7 +41,7 @@ from weaviate.warnings import _Warnings
 
 try:
     import grpc  # type: ignore
-    from weaviate_grpc import weaviate_pb2_grpc
+    from proto.v1 import weaviate_pb2_grpc
 
     has_grpc = True
 
@@ -165,7 +165,7 @@ class Connection:
             _check_positive_num(startup_period, "startup_period", int, include_zero=False)
             self.wait_for_weaviate(startup_period)
 
-        self._create_session(auth_client_secret)
+        self._create_sessions(auth_client_secret)
         self._add_adapter_to_session(connection_config)
 
         self._server_version = self.get_meta()["version"]
@@ -183,8 +183,8 @@ class Connection:
         except requests.exceptions.RequestException:
             pass  # ignore any errors related to requests, it is a best-effort warning
 
-    def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
-        """Creates a request session.
+    def _create_sessions(self, auth_client_secret: Optional[AuthCredentials]) -> None:
+        """Creates a async httpx session and a sync request session.
 
         Either through authlib.oauth2 if authentication is enabled or a normal request session otherwise.
 

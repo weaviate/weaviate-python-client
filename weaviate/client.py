@@ -144,8 +144,8 @@ class Client:
         TypeError
             If arguments are of a wrong data type.
         """
-        url, embedded_db = self.__parse_url_and_embedded_db(url, embedded_options)
         config = Config() if additional_config is None else additional_config
+        url, embedded_db = self.__parse_url_and_embedded_db(url, embedded_options)
 
         self._connection = Connection(
             url=url,

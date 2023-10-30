@@ -330,5 +330,6 @@ class ObjectsBatchRequest(BatchRequest):
                 class_name=obj["class"],
                 uuid=obj["id"],
                 vector=obj.get("vector", None),
+                tenant=obj.get("tenant", None),
             )
         return successful_responses

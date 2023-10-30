@@ -24,7 +24,7 @@ if platform != "linux" and platform != "darwin":
 
 def test_embedded__init__(tmp_path):
     assert (
-        EmbeddedDB(EmbeddedOptions(port=6666, persistence_data_path=tmp_path)).options.port == 6666
+        EmbeddedDB(EmbeddedOptions(port=8079, persistence_data_path=tmp_path)).options.port == 8079
     )
 
 
@@ -205,6 +205,7 @@ def test_weaviate_state(tmp_path_factory: pytest.TempPathFactory):
     )
     client.data_object.create({"name": "Name"}, "Person", uuid.uuid4())
     assert sock.connect_ex(("127.0.0.1", port)) == 0  # running
+
     client._connection.embedded_db.stop()
     del client
     time.sleep(5)  # give weaviate time to shut down
@@ -270,3 +271,38 @@ def test_invalid_version(tmp_path_factory: pytest.TempPathFactory, version):
                 version=version,
             )
         )
+
+
+def test_embedded_with_grpc_port(tmp_path_factory: pytest.TempPathFactory):
+    client = weaviate.Client(
+        embedded_options=EmbeddedOptions(
+            persistence_data_path=tmp_path_factory.mktemp("data"),
+            binary_path=tmp_path_factory.mktemp("bin"),
+            version="latest",
+            port=30668,
+            grpc_port=50061,
+        ),
+    )
+
+    assert client.is_ready()
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(1.0)  # we're only pinging the port, 1s is plenty
+
+    assert sock.connect_ex(("127.0.0.1", 50061)) == 0  # running
+
+
+def test_embedded_with_grpc_port_default(tmp_path_factory: pytest.TempPathFactory):
+    client = weaviate.Client(
+        embedded_options=EmbeddedOptions(
+            persistence_data_path=tmp_path_factory.mktemp("data"),
+            binary_path=tmp_path_factory.mktemp("bin"),
+            version="latest",
+            port=30669,
+        )
+    )
+
+    assert client.is_ready()
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(1.0)  # we're only pinging the port, 1s is plenty
+
+    assert sock.connect_ex(("127.0.0.1", 50060)) == 0  # running

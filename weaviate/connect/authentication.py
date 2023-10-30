@@ -74,14 +74,14 @@ class _Auth:
 
     def get_auth_session(self) -> OAuth2Session:
         if isinstance(self._credentials, AuthBearerToken):
-            session = self._get_session_auth_bearer_token(self._credentials)
+            sessions = self._get_session_auth_bearer_token(self._credentials)
         elif isinstance(self._credentials, AuthClientCredentials):
-            session = self._get_session_client_credential(self._credentials)
+            sessions = self._get_session_client_credential(self._credentials)
         else:
             assert isinstance(self._credentials, AuthClientPassword)
-            session = self._get_session_user_pw(self._credentials)
+            sessions = self._get_session_user_pw(self._credentials)
 
-        return session
+        return sessions
 
     def _get_session_auth_bearer_token(self, config: AuthBearerToken) -> OAuth2Session:
         token: Dict[str, Union[str, int]] = {"access_token": config.access_token}

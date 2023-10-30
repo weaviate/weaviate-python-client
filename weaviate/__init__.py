@@ -50,6 +50,7 @@ __all__ = [
     "ConnectionConfig",
     "AdditionalProperties",
     "LinkTo",
+    "Shard",
     "Tenant",
     "TenantActivityStatus",
 ]
@@ -64,7 +65,7 @@ except PackageNotFoundError:
     __version__ = "unknown version"
 
 from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken, AuthApiKey
-from .batch.crud_batch import WeaviateErrorRetryConf
+from .batch.crud_batch import WeaviateErrorRetryConf, Shard
 from .client import Client
 from .data.replication import ConsistencyLevel
 from .schema.crud_schema import Tenant, TenantActivityStatus

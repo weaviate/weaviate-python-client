@@ -61,6 +61,8 @@ _PRIMITIVE_WEAVIATE_TYPES_SET = {
     "phoneNumber",
     "uuid",
     "uuid[]",
+    "object",
+    "object[]",
 }
 
 
