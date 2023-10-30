@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-async-introduce-async-indexing-f23a22a
+    image: semitechnologies/weaviate:1.22.0
     ports:
       - "8080:8080"
       - "50051:50051"
