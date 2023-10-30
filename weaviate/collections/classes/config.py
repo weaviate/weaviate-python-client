@@ -1251,6 +1251,13 @@ class _CollectionConfigSimple:
     vectorizer: Vectorizer
 
 
+@dataclass
+class _ShardStatus:
+    name: str
+    status: Literal["READONLY", "READY", "INDEXING"]
+    vector_queue_size: int
+
+
 # class PropertyConfig(ConfigCreateModel):
 #     indexFilterable: Optional[bool] = Field(None, alias="index_filterable")
 #     indexSearchable: Optional[bool] = Field(None, alias="index_searchable")

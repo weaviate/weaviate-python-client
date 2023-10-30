@@ -36,9 +36,13 @@ class _CollectionObjectModel(_CollectionBase, Generic[Model]):
         self._connection = connection
 
         self.config = config
-        self.data = _DataCollectionModel[Model](connection, name, model, consistency_level, tenant)
-        self.query = _GrpcCollectionModel[Model](connection, name, model, tenant, consistency_level)
-        self.tenants = _Tenants(connection, name)
+        self.data = _DataCollectionModel[Model](
+            connection, self.name, model, consistency_level, tenant
+        )
+        self.query = _GrpcCollectionModel[Model](
+            connection, self.name, model, tenant, consistency_level
+        )
+        self.tenants = _Tenants(connection, self.name)
 
         self.__consistency_level = consistency_level
         self.__model: Type[Model] = model
@@ -73,7 +77,7 @@ class _CollectionModel(_CollectionsBase):
 
     def get(self, model: Type[Model]) -> _CollectionObjectModel[Model]:
         name = _capitalize_first_letter(model.__name__)
-        config = _ConfigCollectionModel(self._connection, name)
+        config = _ConfigCollectionModel(self._connection, name, None)
         if config.is_invalid(model):
             raise TypeError(
                 f"Model {model.__name__} definition does not match collection {name} config"
@@ -96,7 +100,7 @@ class _CollectionModel(_CollectionsBase):
             for prop in response_json["properties"]
         }
         model = create_model(response_json["class"], **fields, __base__=BaseProperty)
-        config = _ConfigCollectionModel(self._connection, name)
+        config = _ConfigCollectionModel(self._connection, name, None)
         return _CollectionObjectModel[BaseProperty](self._connection, name, model, config), model
 
     def delete(self, model: Type[Model]) -> None:
@@ -117,6 +121,6 @@ class _CollectionModel(_CollectionsBase):
 
     def update(self, model: Type[Model]) -> _CollectionObjectModel[Model]:
         name = _capitalize_first_letter(model.__name__)
-        config = _ConfigCollectionModel(self._connection, name)
+        config = _ConfigCollectionModel(self._connection, name, None)
         config.update_model(model)
         return _CollectionObjectModel[Model](self._connection, name, model, config)
