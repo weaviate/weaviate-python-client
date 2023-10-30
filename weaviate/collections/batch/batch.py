@@ -4,11 +4,12 @@ from abc import ABC, abstractmethod
 from collections import deque
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from threading import Event, Thread
-from typing import Any, Deque, Dict, Generic, List, Optional, Sequence, Tuple, TypeVar
+from typing import Any, Deque, Dict, Generic, List, Optional, Sequence, Set, Tuple, TypeVar, cast
 
 from pydantic import ValidationError
 
 from requests import ReadTimeout
+from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests.exceptions import HTTPError as RequestsHTTPError
 
 from weaviate.cluster import Cluster
@@ -21,12 +22,14 @@ from weaviate.collections.classes.batch import (
     BatchObjectReturn,
     _BatchReference,
     BatchReferenceReturn,
+    Shard,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.batch.grpc import _BatchGRPC
 from weaviate.collections.batch.rest import _BatchREST
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateBatchValidationError
+from weaviate.util import _capitalize_first_letter, _decode_json_response_list
 from weaviate.warnings import _Warnings
 from weaviate.types import UUID, WeaviateField
 
@@ -211,6 +214,7 @@ class _Batch:
         self.__retry_failed_objects: bool = False
         self.__retry_failed_references: bool = False
         self.__shut_background_thread_down: Optional[Event] = None
+        self.__imported_shards: Set[Shard] = set()
 
     def configure(
         self,
@@ -374,6 +378,7 @@ class _Batch:
                 vector=vector,
                 tenant=tenant,
             )
+            self.__imported_shards.add(Shard(class_name=class_name, tenant=tenant))
         except ValidationError as e:
             raise WeaviateBatchValidationError(repr(e))
         self.__batch_objects.add(batch_object._to_internal())
@@ -685,3 +690,66 @@ class _Batch:
             name="batchSizeRefresh",
         )
         demon.start()
+
+    def wait_for_vector_indexing(
+        self, shards: Optional[List[Shard]] = None, how_many_failures: int = 5
+    ) -> None:
+        """Wait for the all the vectors of the batch imported objects to be indexed.
+
+        Upon network error, it will retry to get the shards' status for `how_many_failures` times
+        with exponential backoff (2**n seconds with n=0,1,2,...,how_many_failures).
+
+        Parameters
+        ----------
+            shards {Optional[List[Shard]]} -- The shards to check the status of. If None it will
+                check the status of all the shards of the imported objects in the batch.
+            how_many_failures {int} -- How many times to try to get the shards' status before
+                raising an exception. Default 5.
+        """
+        if shards is not None and not isinstance(shards, list):
+            raise TypeError(f"'shards' must be of type List[Shard]. Given type: {type(shards)}.")
+        if shards is not None and not isinstance(shards[0], Shard):
+            raise TypeError(f"'shards' must be of type List[Shard]. Given type: {type(shards)}.")
+
+        def is_ready(how_many: int) -> bool:
+            try:
+                return all(
+                    all(self._get_shards_readiness(shard))
+                    for shard in shards or self.__imported_shards
+                )
+            except RequestsConnectionError as e:
+                print(
+                    f"Error while getting class shards statuses: {e}, trying again with 2**n={2**how_many}s exponential backoff with n={how_many}"
+                )
+                if how_many_failures == how_many:
+                    raise e
+                time.sleep(2**how_many)
+                return is_ready(how_many + 1)
+
+        while not is_ready(0):
+            print("Waiting for async indexing to finish...")
+            time.sleep(0.25)
+
+    def _get_shards_readiness(self, shard: Shard) -> List[bool]:
+        if not isinstance(shard.class_name, str):
+            raise TypeError(
+                "'class_name' argument must be of type `str`! "
+                f"Given type: {type(shard.class_name)}."
+            )
+
+        path = f"/schema/{_capitalize_first_letter(shard.class_name)}/shards{'' if shard.tenant is None else f'?tenant={shard.tenant}'}"
+
+        try:
+            response = self.__connection.get(path=path)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                "Class shards' status could not be retrieved due to connection error."
+            ) from conn_err
+
+        res = _decode_json_response_list(response, "Get shards' status")
+        assert res is not None
+        return [
+            (cast(str, shard.get("status")) == "READY")
+            & (cast(int, shard.get("vectorQueueSize")) == 0)
+            for shard in res
+        ]
