@@ -1,5 +1,48 @@
 Changelog
 =========
+Version 4.0.b1
+--------------
+This beta version includes:
+
+- Introduction of the new beta Python collections client API
+    - Streamlined and simplified client API for mutating and querying your data
+    - Full support for gRPC batching and searching
+    - End-to-end generics support for type safety
+    - Python-native dataclasses for easy data manipulation
+    - No more builder methods or raw dictionaries
+- Join the discussion and contribute your feedback `here <https://forum.weaviate.io/t/python-v4-client-feedback-megathread/892>`_
+
+
+Version 3.25.2
+--------------
+This patch version includes
+
+- Fixes to the codebase naming convention and directory structure to prevent collision with Google's proto-plus library
+- Fixes to the build method so that readthedocs.io builds the documentation correctly again
+
+Version 3.25.1
+--------------
+This patch version includes:
+
+- Bump default embedded version to 1.22.0
+
+Version 3.25.0
+--------------
+This minor version includes:
+
+- Support for new Weaviate nested objects on insert and query
+    - ``client.data_object.create()`` now supports nested objects
+    - ``client.query.get()`` now supports nested objects
+- Updates to use Weaviate's v1 gRPC API
+- Support for batching with Weaviate>1.22.0 version and async vector indexing
+- Addition of the `client.batch.wait_for_async_indexing()` method to force block until async indexing is complete
+- Add tests for Python 3.12 to ensure compatibility
+
+Version 3.24.2
+--------------
+This patch version includes:
+
+- Small fix to the batching process to ensure that failed multi-tenant objects are re-added to the batch with their tenant attached
 
 Version 3.24.1
 --------------
