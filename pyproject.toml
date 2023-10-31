@@ -21,7 +21,6 @@ exclude = '''
   | build
   | dist
   | docs
-  | proto
 )/
 '''
 
@@ -32,8 +31,8 @@ show_error_codes = true
 no_implicit_optional = true
 warn_return_any = true
 warn_unused_ignores = true
-exclude = ["proto", "docs", "mock_tests", "test", "integration"]
+exclude = ["weaviate/proto", "docs", "mock_tests", "test", "integration"]
 
 [[tool.mypy.overrides]]
-module = "proto.v1.*"
+module = "weaviate.proto.v1.*"
 ignore_errors = true

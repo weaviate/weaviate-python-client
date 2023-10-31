@@ -59,7 +59,7 @@ from weaviate.collections.grpc.query import _QueryGRPC, GroupByResult, SearchRes
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGrpcUnavailable
 from weaviate.util import file_encoder_b64
-from proto.v1 import base_pb2, search_get_pb2
+from weaviate.proto.v1 import base_pb2, search_get_pb2
 
 T = TypeVar("T")
 
