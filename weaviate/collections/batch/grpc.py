@@ -15,7 +15,7 @@ from weaviate.collections.classes.internal import _Reference
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.exceptions import WeaviateQueryException, WeaviateInsertInvalidPropertyError
 from weaviate.util import _datetime_to_string
-from proto.v1 import batch_pb2, base_pb2
+from weaviate.proto.v1 import batch_pb2, base_pb2
 
 
 class _BatchGRPC(_BaseGRPC):

@@ -23,7 +23,7 @@ from weaviate.collections.classes.types import Properties, P, TProperties
 from weaviate.util import _to_beacons
 from weaviate.types import UUIDS
 
-from proto.v1 import search_get_pb2
+from weaviate.proto.v1 import search_get_pb2
 
 
 @dataclass

@@ -2,7 +2,7 @@ from typing import Optional, Tuple, List
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.connect import Connection
-from proto.v1 import base_pb2
+from weaviate.proto.v1 import base_pb2
 
 
 class _BaseGRPC:

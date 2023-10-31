@@ -38,7 +38,7 @@ from weaviate.warnings import _Warnings
 from weaviate.types import UUID
 
 try:
-    from proto.v1 import search_get_pb2
+    from weaviate.proto.v1 import search_get_pb2
     import grpc  # type: ignore
 except ImportError:
     pass

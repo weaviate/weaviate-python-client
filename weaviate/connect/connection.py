@@ -44,7 +44,7 @@ from weaviate.types import NUMBER
 try:
     import grpc  # type: ignore
     from grpc import Channel
-    from proto.v1 import weaviate_pb2_grpc
+    from weaviate.proto.v1 import weaviate_pb2_grpc
 
     has_grpc = True
 

@@ -10,7 +10,7 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.util import _datetime_to_string
 from weaviate.types import TIME
-from proto.v1 import search_get_pb2
+from weaviate.proto.v1 import search_get_pb2
 
 
 class _FilterToGRPC:

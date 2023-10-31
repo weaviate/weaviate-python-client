@@ -38,7 +38,7 @@ from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateQueryException
 from weaviate.types import UUID
 
-from proto.v1 import search_get_pb2
+from weaviate.proto.v1 import search_get_pb2
 
 
 # Can be found in the google.protobuf.internal.well_known_types.pyi stub file but is defined explicitly here for clarity.
