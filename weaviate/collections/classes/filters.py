@@ -4,7 +4,7 @@ from enum import Enum
 from typing import List, Union
 
 from weaviate.types import UUID
-from proto.v1 import search_get_pb2
+from weaviate.proto.v1 import search_get_pb2
 
 
 class _Operator(str, Enum):

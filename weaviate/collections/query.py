@@ -64,7 +64,7 @@ from weaviate.collections.queries.near_video import (
 from weaviate.connect import Connection
 from weaviate.types import UUID
 
-from proto.v1 import search_get_pb2
+from weaviate.proto.v1 import search_get_pb2
 
 
 class _QueryCollection(
