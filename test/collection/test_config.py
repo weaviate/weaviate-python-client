@@ -51,16 +51,29 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
             "text2vec-openai": {
                 "resourceName": "resource",
                 "deploymentId": "deployment",
+                "vectorizeClassName": True,
             }
         },
     ),
     (
         Configure.Vectorizer.text2vec_cohere(),
-        {"text2vec-cohere": {}},
+        {
+            "text2vec-cohere": {
+                "vectorizeClassName": True,
+            }
+        },
     ),
     (
-        Configure.Vectorizer.text2vec_cohere(model="embed-multilingual-v2.0", truncate="NONE"),
-        {"text2vec-cohere": {"model": "embed-multilingual-v2.0", "truncate": "NONE"}},
+        Configure.Vectorizer.text2vec_cohere(
+            model="embed-multilingual-v2.0", truncate="NONE", vectorize_class_name=False
+        ),
+        {
+            "text2vec-cohere": {
+                "model": "embed-multilingual-v2.0",
+                "truncate": "NONE",
+                "vectorizeClassName": False,
+            }
+        },
     ),
     (
         Configure.Vectorizer.text2vec_gpt4all(),
@@ -92,6 +105,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
                     "useCache": False,
                 },
                 "model": "model",
+                "vectorizeClassName": True,
             }
         },
     ),
@@ -102,6 +116,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
             wait_for_model=True,
             use_gpu=True,
             use_cache=True,
+            vectorize_class_name=False,
         ),
         {
             "text2vec-huggingface": {
@@ -112,6 +127,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
                 },
                 "passageModel": "passageModel",
                 "queryModel": "queryModel",
+                "vectorizeClassName": False,
             }
         },
     ),
@@ -122,6 +138,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         {
             "text2vec-huggingface": {
                 "endpointURL": "endpoint",
+                "vectorizeClassName": True,
             }
         },
     ),
