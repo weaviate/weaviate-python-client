@@ -1,119 +1,110 @@
-weaviate.collections
-============
+weaviate.collections package
+============================
 
 .. automodule:: weaviate.collections
    :members:
    :undoc-members:
    :show-inheritance:
 
-weaviate.collections.aggregations
-============
+Subpackages
+-----------
 
-.. automodule:: weaviate.collections.aggregations
+.. toctree::
+   :maxdepth: 4
+
+   weaviate.collections.aggregations
+   weaviate.collections.batch
+   weaviate.collections.classes
+   weaviate.collections.grpc
+   weaviate.collections.queries
+
+Submodules
+----------
+
+weaviate.collections.aggregate module
+-------------------------------------
+
+.. automodule:: weaviate.collections.aggregate
    :members:
    :undoc-members:
    :show-inheritance:
 
-weaviate.collections.batch
-============
+weaviate.collections.base module
+--------------------------------
 
-.. automodule:: weaviate.collections.batch
+.. automodule:: weaviate.collections.base
    :members:
    :undoc-members:
    :show-inheritance:
 
-weaviate.collections.classes
-============
+weaviate.collections.collection module
+--------------------------------------
 
-.. automodule:: weaviate.collections.classes
+.. automodule:: weaviate.collections.collection
    :members:
    :undoc-members:
    :show-inheritance:
 
-weaviate.collections.grpc
-============
+weaviate.collections.collections module
+---------------------------------------
 
-.. automodule:: weaviate.collections.grpc
+.. automodule:: weaviate.collections.collections
    :members:
    :undoc-members:
    :show-inheritance:
 
-weaviate.collections.queries
-============
+weaviate.collections.config module
+----------------------------------
 
-.. automodule:: weaviate.collections.queries
+.. automodule:: weaviate.collections.config
    :members:
    :undoc-members:
    :show-inheritance:
 
-weaviate.collections.queries.bm25
-============
+weaviate.collections.data module
+--------------------------------
 
-.. automodule:: weaviate.collections.queries.bm25
+.. automodule:: weaviate.collections.data
    :members:
    :undoc-members:
    :show-inheritance:
 
-weaviate.collections.queries.fetch_objects
-============
+weaviate.collections.filters module
+-----------------------------------
 
-.. automodule:: weaviate.collections.queries.fetch_objects
+.. automodule:: weaviate.collections.filters
    :members:
    :undoc-members:
    :show-inheritance:
 
-weaviate.collections.queries.hybrid
-============
+weaviate.collections.iterator module
+------------------------------------
 
-.. automodule:: weaviate.collections.queries.hybrid
+.. automodule:: weaviate.collections.iterator
    :members:
    :undoc-members:
    :show-inheritance:
 
-weaviate.collections.queries.near_audio
-============
+weaviate.collections.orm module
+-------------------------------
 
-.. automodule:: weaviate.collections.queries.near_audio
+.. automodule:: weaviate.collections.orm
    :members:
    :undoc-members:
    :show-inheritance:
 
-weaviate.collections.queries.near_image
-============
+weaviate.collections.query module
+---------------------------------
 
-.. automodule:: weaviate.collections.queries.near_image
+.. automodule:: weaviate.collections.query
    :members:
    :undoc-members:
    :show-inheritance:
 
-weaviate.collections.queries.near_object
-============
+weaviate.collections.tenants module
+-----------------------------------
 
-.. automodule:: weaviate.collections.queries.near_object
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-weaviate.collections.queries.near_text
-============
-
-.. automodule:: weaviate.collections.queries.near_text
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-weaviate.collections.queries.near_vector
-============
-
-.. automodule:: weaviate.collections.queries.near_vector
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-weaviate.collections.queries.near_video
-============
-
-.. automodule:: weaviate.collections.queries.near_video
+.. automodule:: weaviate.collections.tenants
    :members:
    :undoc-members:
    :show-inheritance:
