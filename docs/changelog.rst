@@ -12,7 +12,6 @@ This beta version includes:
     - No more builder methods or raw dictionaries
 - Join the discussion and contribute your feedback `here <https://forum.weaviate.io/t/python-v4-client-feedback-megathread/892>`_
 
-
 Version 3.25.2
 --------------
 This patch version includes
