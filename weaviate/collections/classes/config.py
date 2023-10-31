@@ -1585,7 +1585,7 @@ class Configure:
         return _VectorIndexType.HNSW
 
 
-class ConfigureUpdate:
+class Reconfigure:
     """Use this factory class to generate the correct `xxxConfig` object for use when using the `collection.update()` method.
 
     Each staticmethod provides options specific to the named configuration type in the function's name. Under-the-hood data validation steps
