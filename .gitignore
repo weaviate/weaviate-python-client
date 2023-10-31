@@ -21,3 +21,6 @@ coverage.xml
 image.png
 .vscode/
 scratch/
+
+int-test.sh
+unit-test.sh
