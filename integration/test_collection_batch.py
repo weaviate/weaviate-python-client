@@ -397,7 +397,7 @@ def test_add_bad_ref(client_sync_indexing: weaviate.WeaviateClient):
 
 
 def test_manual_batching(client_sync_indexing: weaviate.WeaviateClient):
-    client_sync_indexing.batch.configure(dynamic=False)
+    client_sync_indexing.batch.configure(dynamic=False, batch_size=None)
     uuids: List[uuid.UUID] = []
     for _ in range(10):
         uuid_ = client_sync_indexing.batch.add_object(
