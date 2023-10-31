@@ -1,5 +1,12 @@
 Changelog
 =========
+Version 3.25.2
+--------------
+This patch version includes
+
+- Fixes to the codebase naming convention and directory structure to prevent collision with Google's proto-plus library
+- Fixes to the build method so that readthedocs.io builds the documentation correctly again
+
 Version 3.25.1
 --------------
 This patch version includes:
