@@ -1,6 +1,6 @@
 from typing import Optional, Tuple
 
-from weaviate.auth import AuthApiKey
+from weaviate.auth import AuthCredentials
 from weaviate.client import WeaviateClient
 from weaviate.config import AdditionalConfig
 from weaviate.connect.connection import ConnectionParams, ProtocolParams
@@ -9,7 +9,7 @@ from weaviate.embedded import EmbeddedOptions
 
 def connect_to_wcs(
     cluster_id: str,
-    api_key: Optional[str],
+    auth_credentials: Optional[AuthCredentials],
     headers: Optional[dict] = None,
     timeout: Tuple[int, int] = (10, 60),
 ) -> WeaviateClient:
@@ -36,7 +36,7 @@ def connect_to_wcs(
             http=ProtocolParams(host=f"{cluster_id}.weaviate.network", port=443, secure=True),
             grpc=ProtocolParams(host=f"{cluster_id}.weaviate.network", port=50051, secure=True),
         ),
-        auth_client_secret=AuthApiKey(api_key) if api_key is not None else None,
+        auth_client_secret=auth_credentials,
         additional_headers=headers,
         additional_config=AdditionalConfig(timeout=timeout),
     )
