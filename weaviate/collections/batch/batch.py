@@ -192,6 +192,7 @@ class _Batch:
     ) -> None:
         self.__batch_objects = objects_ or ObjectsBatchRequest()
         self.__batch_references = references or ReferencesBatchRequest()
+        self.__batch_size: Optional[int] = None
         self.__connection = connection
         self.__consistency_level: Optional[ConsistencyLevel] = None
         self.__creation_time = min(self.__connection.timeout_config[1] / 10, 2)
@@ -207,8 +208,8 @@ class _Batch:
         self.__dynamic_batching = True
         self.__num_workers: int = 1
         self.__objects_throughput_frame: Deque[float] = deque(maxlen=5)
-        self.__recommended_num_objects = 50
-        self.__recommended_num_references = 50
+        self.__recommended_num_objects: Optional[int] = 50
+        self.__recommended_num_references: Optional[int] = 50
         self.__reference_batch_queue: Deque[List[_BatchReference]] = deque([])
         self.__references_throughput_frame: Deque[float] = deque(maxlen=5)
         self.__retry_failed_objects: bool = False
@@ -219,6 +220,7 @@ class _Batch:
     def configure(
         self,
         dynamic: bool = True,
+        batch_size: Optional[int] = 100,
         consistency_level: Optional[ConsistencyLevel] = None,
         num_workers: Optional[int] = None,
         retry_failed_objects: bool = False,
@@ -238,6 +240,11 @@ class _Batch:
         Arguments:
             `dynamic`
                 Whether to use dynamic batching or not. If not provided, the default value is True.
+            `batch_size`
+                The number of objects/references to be sent in one batch. If not provided, the default value is 100.
+                If `dynamic` is set to `True`, this value will be used as the initial batch size but will be updated
+                dynamically based on Weaviate's load. If `dynamic` is set to `False`, this value will be used as the
+                batch size for all batches.
             `consistency_level`
                 The consistency level to be used to send the batch. If not provided, the default value is None.
             `num_workers`
@@ -248,11 +255,17 @@ class _Batch:
             `retry_failed_references`
                 Whether to retry failed references or not. If not provided, the default value is False.
         """
+        self.__batch_size = 100 if dynamic else batch_size
         self.__consistency_level = consistency_level or self.__consistency_level
         self.__dynamic_batching = dynamic
         self.__num_workers = num_workers or self.__num_workers
+        self.__recommended_num_objects = batch_size
+        self.__recommended_num_references = batch_size
         self.__retry_failed_objects = retry_failed_objects
         self.__retry_failed_references = retry_failed_references
+
+    def __is_auto(self) -> bool:
+        return self.__dynamic_batching or self.__batch_size is not None
 
     def num_objects(self) -> int:
         """
@@ -305,7 +318,7 @@ class _Batch:
         if self.__executor is None or self.__executor._is_shutdown():
             self.__executor = BatchExecutor(max_workers=self.__num_workers)
 
-        if (
+        if self.__dynamic_batching and (
             self.__shut_background_thread_down is None
             or self.__shut_background_thread_down.is_set()
         ):
@@ -326,7 +339,7 @@ class _Batch:
         self.__send_batch_requests(force_wait=True)
 
     def __enter__(self) -> "_Batch":
-        if not self.__dynamic_batching:
+        if not self.__dynamic_batching and self.__batch_size is None:
             raise WeaviateBatchValidationError(
                 "Cannot use the batch context manager without dynamic batching. If you are doing manual batching, you must create them manually outside of the context manager with create_objects()"
             )
@@ -393,7 +406,8 @@ class _Batch:
         except ValidationError as e:
             raise WeaviateBatchValidationError(repr(e))
         self.__batch_objects.add(batch_object._to_internal())
-        self.__auto_create()
+        if self.__is_auto():
+            self.__auto_create()
         assert batch_object.uuid is not None
         return batch_object.uuid
 
@@ -441,7 +455,8 @@ class _Batch:
         except ValidationError as e:
             raise WeaviateBatchValidationError(repr(e))
         self.__batch_references.add(batch_reference._to_internal())
-        self.__auto_create()
+        if self.__is_auto():
+            self.__auto_create()
 
     def create_objects(self) -> BatchObjectReturn:
         """
@@ -449,8 +464,8 @@ class _Batch:
 
         This function will do nothing unless you set `dynamic` to `False` in `configure`.
         """
-        if self.__dynamic_batching:
-            _Warnings.batch_create_dynamic("objects")
+        if self.__dynamic_batching or self.__batch_size is not None:
+            _Warnings.batch_create_automatic("objects")
             return BatchObjectReturn(
                 all_responses=[],
                 uuids={},
@@ -468,8 +483,8 @@ class _Batch:
 
         This function will do nothing unless you set `dynamic` to `False` in `configure`.
         """
-        if self.__dynamic_batching:
-            _Warnings.batch_create_dynamic("references")
+        if self.__dynamic_batching or self.__batch_size is not None:
+            _Warnings.batch_create_automatic("references")
             return BatchReferenceReturn(
                 elapsed_seconds=0,
                 errors={},
@@ -480,6 +495,8 @@ class _Batch:
         return res[0]
 
     def __auto_create(self) -> None:
+        assert self.__recommended_num_objects is not None
+        assert self.__recommended_num_references is not None
         if (
             self.num_objects() >= self.__recommended_num_objects
             or self.num_references() >= self.__recommended_num_references
@@ -647,6 +664,10 @@ class _Batch:
 
         def periodic_check() -> None:
             cluster = Cluster(self.__connection)
+
+            assert self.__recommended_num_objects is not None
+            assert self.__recommended_num_references is not None
+
             while (
                 self.__shut_background_thread_down is not None
                 and not self.__shut_background_thread_down.is_set()

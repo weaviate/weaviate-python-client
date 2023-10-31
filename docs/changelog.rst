@@ -1,5 +1,19 @@
 Changelog
 =========
+Version 4.0.b3
+--------------
+This patch beta version includes:
+
+- Addition of ``batch_size`` to ``client.batch.configure`` for users who want automatic non-dynamic batching
+- Renaming of ``ConfigureUpdate`` to ``Reconfigure``
+- Fixing of missing arguments to ``Configure.Vectorizer.text2vec_`` methods
+
+Version 4.0.b2
+--------------
+This patch beta version includes:
+
+- Fixes to the readthedocs documentation appearance
+
 Version 4.0.b1
 --------------
 This beta version includes:

@@ -194,10 +194,10 @@ class _Warnings:
         )
 
     @staticmethod
-    def batch_create_dynamic(type_: Literal["objects", "references"]) -> None:
+    def batch_create_automatic(type_: Literal["objects", "references"]) -> None:
         warnings.warn(
-            message=f"""You are tying to manually create {type_} in a dynamic batching environment. If you want to do manual batching, you need to use
-            client.batch.configure() to return a new Batch object with `dynamic=False`.""",
+            message=f"""You are tying to manually create {type_} in an automatic batching environment. If you want to do manual batching, you need to use
+            client.batch.configure() to return a new Batch object with `dynamic=False` and `batch_size=None`.""",
             category=UserWarning,
             stacklevel=1,
         )

@@ -1,6 +1,6 @@
 from weaviate.collections.classes.config import (
     Configure,
-    ConfigureUpdate,
+    Reconfigure,
     DataType,
     Multi2VecField,
     Property,
@@ -25,7 +25,7 @@ from weaviate.collections.classes.tenants import Tenant
 
 __all__ = [
     "Configure",
-    "ConfigureUpdate",
+    "Reconfigure",
     "CrossReference",
     "DataObject",
     "DataType",

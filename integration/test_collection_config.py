@@ -5,7 +5,7 @@ from weaviate.collections.classes.config import (
     _CollectionConfig,
     _CollectionConfigSimple,
     Configure,
-    ConfigureUpdate,
+    Reconfigure,
     Property,
     DataType,
     PQEncoderType,
@@ -304,7 +304,7 @@ def test_collection_config_update(client: weaviate.WeaviateClient):
 
     collection.config.update(
         description="Test",
-        inverted_index_config=ConfigureUpdate.inverted_index(
+        inverted_index_config=Reconfigure.inverted_index(
             bm25_b=0.8,
             bm25_k1=1.25,
             cleanup_interval_seconds=10,
@@ -312,8 +312,8 @@ def test_collection_config_update(client: weaviate.WeaviateClient):
             stopwords_preset=StopwordsPreset.EN,
             stopwords_removals=["the"],
         ),
-        replication_config=ConfigureUpdate.replication(factor=2),
-        vector_index_config=ConfigureUpdate.vector_index(
+        replication_config=Reconfigure.replication(factor=2),
+        vector_index_config=Reconfigure.vector_index(
             skip=True,
             pq_bit_compression=True,
             pq_centroids=128,
