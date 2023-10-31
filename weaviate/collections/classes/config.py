@@ -550,6 +550,7 @@ class _Text2VecCohereConfig(_VectorizerConfig):
     vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_COHERE, frozen=True, exclude=True)
     model: Optional[CohereModel]
     truncate: Optional[CohereTruncation]
+    vectorizeClassName: bool
 
 
 class _Text2VecHuggingFaceConfig(_VectorizerConfig):
@@ -563,6 +564,7 @@ class _Text2VecHuggingFaceConfig(_VectorizerConfig):
     waitForModel: Optional[bool]
     useGPU: Optional[bool]
     useCache: Optional[bool]
+    vectorizeClassName: bool
 
     def validate_mutually_exclusive_fields(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         if "passageModel" in values and "queryModel" not in values:
@@ -627,6 +629,7 @@ class _Text2VecAzureOpenAIConfig(_VectorizerConfig):
     vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
     resourceName: str
     deploymentId: str
+    vectorizeClassName: bool
 
 
 class _Text2VecPalmConfig(_VectorizerConfig):
@@ -840,7 +843,9 @@ class _Vectorizer:
         )
 
     @staticmethod
-    def text2vec_azure_openai(resource_name: str, deployment_id: str) -> _VectorizerConfig:
+    def text2vec_azure_openai(
+        resource_name: str, deployment_id: str, vectorize_class_name: bool = True
+    ) -> _VectorizerConfig:
         """Create a `Text2VecAzureOpenAIConfig` object for use when vectorizing using the `text2vec-azure-openai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-azure-openai)
@@ -857,7 +862,11 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if `resource_name` or `deployment_id` are not `str`.
         """
-        return _Text2VecAzureOpenAIConfig(resourceName=resource_name, deploymentId=deployment_id)
+        return _Text2VecAzureOpenAIConfig(
+            resourceName=resource_name,
+            deploymentId=deployment_id,
+            vectorizeClassName=vectorize_class_name,
+        )
 
     @staticmethod
     def text2vec_contextionary(vectorize_class_name: bool = True) -> _VectorizerConfig:
@@ -867,10 +876,11 @@ class _Vectorizer:
         for detailed usage.
 
         Arguments:
-            vectorize_class_name: Whether to vectorize the class name. Defaults to `True`.
+            `vectorize_class_name`
+                Whether to vectorize the class name. Defaults to `True`.
 
         Raises:
-            pydantic.ValidationError` if `vectorize_class_name` is not a `bool`.
+            `pydantic.ValidationError`` if `vectorize_class_name` is not a `bool`.
         """
         return _Text2VecContextionaryConfig(vectorizeClassName=vectorize_class_name)
 
@@ -878,6 +888,7 @@ class _Vectorizer:
     def text2vec_cohere(
         model: Optional[CohereModel] = None,
         truncate: Optional[CohereTruncation] = None,
+        vectorize_class_name: bool = True,
     ) -> _VectorizerConfig:
         """Create a `Text2VecCohereConfig` object for use when vectorizing using the `text2vec-cohere` model.
 
@@ -889,11 +900,15 @@ class _Vectorizer:
                 The model to use. Defaults to `None`. If `None`, the default model is used.
             `truncate`
                 The truncation strategy to use. Defaults to `None`. If `None`, the default truncation strategy is used.
+            `vectorize_class_name`
+                Whether to vectorize the class name. Defaults to `True`.
 
         Raises:
             `pydantic.ValidationError` if `model` or `truncate` are not valid values from the `CohereModel` and `CohereTruncate` types.
         """
-        return _Text2VecCohereConfig(model=model, truncate=truncate)
+        return _Text2VecCohereConfig(
+            model=model, truncate=truncate, vectorizeClassName=vectorize_class_name
+        )
 
     @staticmethod
     def text2vec_gpt4all(
@@ -922,6 +937,7 @@ class _Vectorizer:
         wait_for_model: Optional[bool] = None,
         use_gpu: Optional[bool] = None,
         use_cache: Optional[bool] = None,
+        vectorize_class_name: bool = True,
     ) -> _VectorizerConfig:
         """Create a `Text2VecHuggingFaceConfig` object for use when vectorizing using the `text2vec-huggingface` model.
 
@@ -943,6 +959,8 @@ class _Vectorizer:
                 Whether to use the GPU. Defaults to `None`.
             `use_cache`
                 Whether to use the cache. Defaults to `None`.
+            `vectorize_class_name`
+                Whether to vectorize the class name. Defaults to `True`.
 
         Raises:
             `pydantic.ValidationError` if the arguments passed to the function are invalid.
@@ -957,6 +975,7 @@ class _Vectorizer:
             waitForModel=wait_for_model,
             useGPU=use_gpu,
             useCache=use_cache,
+            vectorizeClassName=vectorize_class_name,
         )
 
     @staticmethod
