@@ -19,8 +19,10 @@ def connect_to_wcs(
     Arguments:
         `cluster_id`
             The WCS cluster id to connect to.
-        `api_key`
-            The api key to use for authentication with your WCS instance.
+        `auth_credentials`
+            The credentials to use for authentication with your WCS instance. This can be an API key, in which case use `weaviate.auth.AuthApiKey`,
+            a bearer token, in which case use `weaviate.auth.AuthBearerToken`, a client secret, in which case use `weaviate.auth.AuthClientCredentials`
+            or a username and password, in which case use `weaviate.auth.AuthClientPassword`.
         `headers`
             Additional headers to include in the requests, e.g. API keys for third-party Cloud vectorisation.
         `timeout`
