@@ -16,7 +16,34 @@ from weaviate.collections.tenants import _Tenants
 from weaviate.connect import Connection
 
 
-class _Collection(_CollectionBase, Generic[Properties]):
+class Collection(_CollectionBase, Generic[Properties]):
+    """The collection class is the main entry point for interacting with a collection in Weaviate.
+
+    This class is returned by the `client.collections.create` and `client.collections.get` methods. It provides
+    access to all the methods available to you when interacting with a collection in Weaviate.
+
+    You should not need to instantiate this class yourself but it may be useful to import this as a type when
+    performing type hinting of functions that depend on a collection object.
+
+    Attributes:
+        `aggregate`
+            This namespace includes all the querying methods available to you when using Weaviate's standard aggregation capabilities.
+        `aggregate_group_by`
+            This namespace includes all the aggregate methods available to you when using Weaviate's aggregation group-by capabilities.
+        `config`
+            This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate.
+        `data`
+            This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate.
+        `generate`
+            This namespace includes all the querying methods available to you when using Weaviate's generative capabilities.
+        `query_group_by`
+            This namespace includes all the querying methods available to you when using Weaviate's querying group-by capabilities.
+        `query`
+            This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities.
+        `tenants`
+            This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate.
+    """
+
     def __init__(
         self,
         connection: Connection,
@@ -59,7 +86,7 @@ class _Collection(_CollectionBase, Generic[Properties]):
         self.__consistency_level = consistency_level
         self.__type = type_
 
-    def with_tenant(self, tenant: Optional[str] = None) -> "_Collection":
+    def with_tenant(self, tenant: Optional[str] = None) -> "Collection[Properties]":
         """Use this method to return a collection object specific to a single tenant.
 
         If multi-tenancy is not configured for this collection then Weaviate will throw an error.
@@ -68,11 +95,11 @@ class _Collection(_CollectionBase, Generic[Properties]):
             `tenant`
                 The name of the tenant to use.
         """
-        return _Collection(self._connection, self.name, self.__consistency_level, tenant)
+        return Collection[Properties](self._connection, self.name, self.__consistency_level, tenant)
 
     def with_consistency_level(
         self, consistency_level: Optional[ConsistencyLevel] = None
-    ) -> "_Collection":
+    ) -> "Collection[Properties]":
         """Use this method to return a collection object specific to a single consistency level.
 
         If replication is not configured for this collection then Weaviate will throw an error.
@@ -81,7 +108,7 @@ class _Collection(_CollectionBase, Generic[Properties]):
             `consistency_level`
                 The consistency level to use.
         """
-        return _Collection(self._connection, self.name, consistency_level, self.__tenant)
+        return Collection[Properties](self._connection, self.name, consistency_level, self.__tenant)
 
     def __len__(self) -> int:
         total = self.aggregate.over_all(total_count=True).total_count

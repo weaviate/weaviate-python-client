@@ -18,7 +18,7 @@ from weaviate.collections.classes.config import (
     _VectorIndexType,
 )
 from weaviate.collections.classes.types import Properties, _check_data_model
-from weaviate.collections.collection import _Collection
+from weaviate.collections.collection import Collection
 from weaviate.util import _capitalize_first_letter
 
 
@@ -37,7 +37,7 @@ class _Collections(_CollectionsBase):
         vector_index_type: _VectorIndexType = _VectorIndexType.HNSW,
         vectorizer_config: Optional[_VectorizerConfig] = None,
         data_model: Optional[Type[Properties]] = None,
-    ) -> _Collection[Properties]:
+    ) -> Collection[Properties]:
         """Use this method to create a collection in Weaviate and immediately return a collection object.
 
         This method takes several arguments that allow you to configure the collection to your liking. Each argument
@@ -103,7 +103,7 @@ class _Collections(_CollectionsBase):
 
     def get(
         self, name: str, data_model: Optional[Type[Properties]] = None
-    ) -> _Collection[Properties]:
+    ) -> Collection[Properties]:
         """Use this method to return a collection object to be used when interacting with your Weaviate collection.
 
         Arguments:
@@ -120,7 +120,7 @@ class _Collections(_CollectionsBase):
         """
         _check_data_model(data_model)
         name = _capitalize_first_letter(name)
-        return _Collection[Properties](self._connection, name, type_=data_model)
+        return Collection[Properties](self._connection, name, type_=data_model)
 
     def delete(self, name: Union[str, List[str]]) -> None:
         """Use this method to delete collection(s) from the Weaviate instance by its/their name(s).
