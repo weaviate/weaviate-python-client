@@ -33,7 +33,7 @@ def connect_to_wcs(
         `weaviate.WeaviateClient`
             The client connected to the cluster with the required parameters set appropriately.
     """
-    raise NotImplementedError("😭 WCS doesn't fully support gRPC yet 😭")
+    raise NotImplementedError("😭 WCS doesn't support gRPC yet 😭")
     # return WeaviateClient(
     #     connection_params=ConnectionParams(
     #         http=ProtocolParams(host=f"{cluster_id}.weaviate.network", port=443, secure=True),
