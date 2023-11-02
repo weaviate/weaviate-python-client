@@ -438,9 +438,6 @@ class _QueryGRPC(_BaseGRPC):
             metadata = tuple(metadata_list)
 
         try:
-            print(
-                self._translate_properties_from_python_to_grpc(self._default_props),
-            )
             assert self._connection.grpc_stub is not None
             res: SearchResponse  # According to PEP-0526
             res, _ = self._connection.grpc_stub.Search.with_call(
