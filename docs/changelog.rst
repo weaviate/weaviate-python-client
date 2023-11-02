@@ -1,5 +1,13 @@
 Changelog
 =========
+Version 4.0.b4
+--------------
+This patch beta version includes:
+
+- A small bug fix to remove a redundant print
+- Raising an exception from ``connect_to_wcs`` as gRPC support is not ready
+- Making ``_Collection`` a public class as ``Collection`` to be used in type hinting
+
 Version 4.0.b3
 --------------
 This patch beta version includes:
