@@ -33,15 +33,16 @@ def connect_to_wcs(
         `weaviate.WeaviateClient`
             The client connected to the cluster with the required parameters set appropriately.
     """
-    return WeaviateClient(
-        connection_params=ConnectionParams(
-            http=ProtocolParams(host=f"{cluster_id}.weaviate.network", port=443, secure=True),
-            grpc=ProtocolParams(host=f"{cluster_id}.weaviate.network", port=50051, secure=True),
-        ),
-        auth_client_secret=auth_credentials,
-        additional_headers=headers,
-        additional_config=AdditionalConfig(timeout=timeout),
-    )
+    raise NotImplementedError("😭 WCS doesn't fully support gRPC yet 😭")
+    # return WeaviateClient(
+    #     connection_params=ConnectionParams(
+    #         http=ProtocolParams(host=f"{cluster_id}.weaviate.network", port=443, secure=True),
+    #         grpc=ProtocolParams(host=f"{cluster_id}.weaviate.network", port=50051, secure=True),
+    #     ),
+    #     auth_client_secret=auth_credentials,
+    #     additional_headers=headers,
+    #     additional_config=AdditionalConfig(timeout=timeout),
+    # )
 
 
 def connect_to_local(
