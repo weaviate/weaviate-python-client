@@ -14,7 +14,7 @@ from pydantic.dataclasses import dataclass as pydantic_dataclass
 from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_ENCODED
 from weaviate.collections.classes.batch import ErrorObject
 
-from weaviate.collections.collection import _Collection
+from weaviate.collections.collection import Collection
 from weaviate.collections.classes.config import (
     Configure,
     DataType,
@@ -73,10 +73,10 @@ def test_create_get_and_delete(client: weaviate.WeaviateClient):
         vectorizer_config=Configure.Vectorizer.none(),
     )
     assert client.collections.exists(name)
-    assert isinstance(col, _Collection)
+    assert isinstance(col, Collection)
 
     col = client.collections.get(name)
-    assert isinstance(col, _Collection)
+    assert isinstance(col, Collection)
 
     client.collections.delete(name)
     assert not client.collections.exists(name)
@@ -114,7 +114,7 @@ def test_get_with_dict_generic(client: weaviate.WeaviateClient, use_typed_dict: 
         col = client.collections.get(name, Right)
     else:
         col = client.collections.get(name, Dict[str, str])
-    assert isinstance(col, _Collection)
+    assert isinstance(col, Collection)
 
 
 def test_data_with_data_model_with_dict_generic(client: weaviate.WeaviateClient):
@@ -124,7 +124,7 @@ def test_data_with_data_model_with_dict_generic(client: weaviate.WeaviateClient)
         name: str
 
     col = client.collections.get(name)
-    assert isinstance(col, _Collection)
+    assert isinstance(col, Collection)
     data = col.data.with_data_model(Right)
     assert isinstance(data, _Data)
 
