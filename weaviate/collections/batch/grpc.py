@@ -14,7 +14,7 @@ from weaviate.collections.classes.batch import (
 from weaviate.collections.classes.internal import _Reference
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.exceptions import WeaviateQueryException, WeaviateInsertInvalidPropertyError
-from weaviate.util import _datetime_to_string
+from weaviate.util import _datetime_to_string, get_vector
 from weaviate.proto.v1 import batch_pb2, base_pb2
 
 
@@ -40,7 +40,7 @@ class _BatchGRPC(_BaseGRPC):
         weaviate_objs: List[batch_pb2.BatchObject] = [
             batch_pb2.BatchObject(
                 collection=obj.collection,
-                vector=obj.vector,
+                vector=get_vector(obj.vector) if obj.vector is not None else None,
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
                 properties=self.__translate_properties_from_python_to_grpc(obj.properties, False),
                 tenant=obj.tenant,

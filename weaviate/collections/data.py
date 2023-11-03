@@ -45,10 +45,7 @@ from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     ObjectAlreadyExistsException,
 )
-from weaviate.util import (
-    _datetime_to_string,
-    _decode_json_response_dict,
-)
+from weaviate.util import _datetime_to_string, _decode_json_response_dict, get_vector
 from weaviate.types import BEACON, UUID
 
 
@@ -350,7 +347,7 @@ class _DataCollection(Generic[Properties], _Data):
         }
 
         if vector is not None:
-            weaviate_obj["vector"] = vector
+            weaviate_obj["vector"] = get_vector(vector)
 
         return self._insert(weaviate_obj, False)
 
