@@ -39,7 +39,7 @@ class _BatchGRPC(_BaseGRPC):
         """
         weaviate_objs: List[batch_pb2.BatchObject] = [
             batch_pb2.BatchObject(
-                collection=obj.class_name,
+                collection=obj.collection,
                 vector=obj.vector,
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
                 properties=self.__translate_properties_from_python_to_grpc(obj.properties, False),

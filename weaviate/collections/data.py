@@ -375,7 +375,7 @@ class _DataCollection(Generic[Properties], _Data):
         return self._batch_grpc.objects(
             [
                 _BatchObject(
-                    class_name=self.name,
+                    collection=self.name,
                     vector=obj.vector,
                     uuid=obj.uuid,
                     properties=obj.properties,
@@ -383,7 +383,7 @@ class _DataCollection(Generic[Properties], _Data):
                 )
                 if isinstance(obj, DataObject) and isinstance(obj.properties, dict)
                 else _BatchObject(
-                    class_name=self.name,
+                    collection=self.name,
                     vector=None,
                     uuid=None,
                     properties=cast(dict, obj),
@@ -581,7 +581,7 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         data_objects = [
             _BatchObject(
-                class_name=self.name,
+                collection=self.name,
                 properties=obj.props_to_dict(),
                 tenant=self._tenant,
                 uuid=obj.uuid,
