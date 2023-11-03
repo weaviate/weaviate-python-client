@@ -203,9 +203,13 @@ class _Aggregate:
     @staticmethod
     def _do(query: AggregateBuilder) -> dict:
         res = query.do()
-        if res.get("errors") is not None:
+        if (errs := res.get("errors")) is not None:
+            if "Unexpected empty IN" in errs[0]["message"]:
+                raise WeaviateQueryException(
+                    "The query that you sent had no body so GraphQL was unable to parse it. You must provide at least one option to the aggregation method in order to build a valid query."
+                )
             raise WeaviateQueryException(
-                f"Error in GraphQL response: {json.dumps(res['errors'], indent=2)}, for the following query: {query.build()}"
+                f"Error in GraphQL response: {json.dumps(errs, indent=2)}, for the following query: {query.build()}"
             )
         return res
 

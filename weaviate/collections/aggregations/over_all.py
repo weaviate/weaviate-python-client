@@ -14,7 +14,7 @@ class _OverAll(_Aggregate):
         self,
         filters: Optional[_Filters] = None,
         limit: Optional[int] = None,
-        total_count: bool = False,
+        total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> _AggregateReturn:
         """Aggregate metrics over all the objects in this collection without any vector search.
@@ -47,7 +47,7 @@ class _OverAllGroupBy(_Aggregate):
         group_by: str,
         filters: Optional[_Filters] = None,
         limit: Optional[int] = None,
-        total_count: bool = False,
+        total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> List[_AggregateGroupByReturn]:
         """Aggregate metrics over all the objects in this collection without any vector search grouping the results by a property.

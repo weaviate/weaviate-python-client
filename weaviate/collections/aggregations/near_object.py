@@ -19,7 +19,7 @@ class _NearObject(_Aggregate):
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         limit: Optional[int] = None,
-        total_count: bool = False,
+        total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> _AggregateReturn:
         """Aggregate metrics over the objects returned by a near object search on this collection.
@@ -69,7 +69,7 @@ class _NearObjectGroupBy(_Aggregate):
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         limit: Optional[int] = None,
-        total_count: bool = False,
+        total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> List[_AggregateGroupByReturn]:
         """Aggregate metrics over the objects returned by a near object vector search on this collection grouping the results by a property.
