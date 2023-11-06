@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-implement-fix-259de81
+    image: semitechnologies/weaviate:preview-undo-premature-optimisation-of-grpc-message-parsing-e82a2e8
     ports:
       - 8083:8083
     restart: on-failure:0
