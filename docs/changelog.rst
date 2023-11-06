@@ -1,5 +1,21 @@
 Changelog
 =========
+Version v4.1.b0
+--------------
+This minor beta version includes:
+
+- Makes ``total_count=True`` the default in aggregation queries to avoid unintentional GraphQL errors
+- Catches empty GraphQL errors in aggregation queries in case of user error
+- Renames ``class_name`` to ``collections`` within the ``collections.batch`` namespace
+- Adds ``get_vector`` to the ``collections.data`` namespace so that users can supply numpy and pytorch vectors
+- Adds ``__str__`` magic method to ``Collections`` class so that ``print(collection)`` outputs the collection's schema as pretty JSON
+
+Version v4.0.b5
+--------------
+This patch beta version includes:
+
+- Update changelog
+
 Version 4.0.b4
 --------------
 This patch beta version includes:
