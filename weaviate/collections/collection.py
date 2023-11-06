@@ -117,7 +117,7 @@ class Collection(_CollectionBase, Generic[Properties]):
         assert total is not None
         return total
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         config = self.config.get()
         json_ = json.dumps(asdict(config), indent=2)
         return f"<weaviate.Collection config={json_}>"
