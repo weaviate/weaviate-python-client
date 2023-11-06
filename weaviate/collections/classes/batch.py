@@ -10,7 +10,7 @@ from weaviate.types import BEACON, UUID, WeaviateField
 
 @dataclass
 class _BatchObject:
-    class_name: str
+    collection: str
     vector: Optional[List[float]]
     uuid: Optional[UUID]
     properties: Dict[str, WeaviateField]
@@ -32,7 +32,7 @@ class BatchObject(BaseModel):
     Also converts the vector to a list of floats if it is provided as a numpy array.
     """
 
-    class_name: str
+    collection: str
     properties: Dict[str, Any]
     uuid: Optional[UUID] = Field(default=None)
     vector: Optional[Sequence] = Field(default=None)
@@ -47,28 +47,28 @@ class BatchObject(BaseModel):
 
     def _to_internal(self) -> _BatchObject:
         return _BatchObject(
-            class_name=self.class_name,
+            collection=self.collection,
             vector=cast(list, self.vector),
             uuid=self.uuid,
             properties=self.properties,
             tenant=self.tenant,
         )
 
-    @field_validator("class_name")
-    def _validate_class_name(cls, v: str) -> str:
+    @field_validator("collection")
+    def _validate_collection(cls, v: str) -> str:
         if len(v) == 0:
-            raise ValueError("class_name must not be empty")
+            raise ValueError("collection must not be empty")
         return _capitalize_first_letter(v)
 
 
 class Shard(BaseModel):
     """Use this class when defining a shard whose vector indexing process will be awaited for in a sync blocking fashion."""
 
-    class_name: str
+    collection: str
     tenant: Optional[str] = Field(default=None)
 
     def __hash__(self) -> int:
-        return hash((self.class_name, self.tenant))
+        return hash((self.collection, self.tenant))
 
 
 class BatchReference(BaseModel):
@@ -80,25 +80,25 @@ class BatchReference(BaseModel):
     Converts provided data to an internal object containing beacons for insertion into Weaviate.
     """
 
-    from_object_class_name: str
+    from_object_collection: str
     from_object_uuid: UUID
     from_property_name: str
     to_object_uuid: UUID
-    to_object_class_name: Optional[str] = None
+    to_object_collection: Optional[str] = None
     tenant: Optional[str] = None
 
-    @field_validator("from_object_class_name")
-    def _validate_from_object_class_name(cls, v: str) -> str:
+    @field_validator("from_object_collection")
+    def _validate_from_object_collection(cls, v: str) -> str:
         if len(v) == 0:
-            raise ValueError("from_object_class_name must not be empty")
+            raise ValueError("from_object_collection must not be empty")
         return _capitalize_first_letter(v)
 
-    @field_validator("to_object_class_name")
-    def _validate_to_object_class_name(cls, v: Optional[str]) -> Optional[str]:
+    @field_validator("to_object_collection")
+    def _validate_to_object_collection(cls, v: Optional[str]) -> Optional[str]:
         if v is None:
             return v
         if v is not None and len(v) == 0:
-            raise ValueError("to_object_class_name must not be empty if provided")
+            raise ValueError("to_object_collection must not be empty if provided")
         return _capitalize_first_letter(v)
 
     @field_validator("to_object_uuid", "from_object_uuid")
@@ -106,13 +106,13 @@ class BatchReference(BaseModel):
         return get_valid_uuid(v)
 
     def _to_internal(self) -> _BatchReference:
-        if self.to_object_class_name is None:
-            self.to_object_class_name = ""
+        if self.to_object_collection is None:
+            self.to_object_collection = ""
         else:
-            self.to_object_class_name = self.to_object_class_name + "/"
+            self.to_object_collection = self.to_object_collection + "/"
         return _BatchReference(
-            from_=f"{BEACON}{self.from_object_class_name}/{self.from_object_uuid}/{self.from_property_name}",
-            to=f"{BEACON}{self.to_object_class_name}{str(self.to_object_uuid)}",
+            from_=f"{BEACON}{self.from_object_collection}/{self.from_object_uuid}/{self.from_property_name}",
+            to=f"{BEACON}{self.to_object_collection}{str(self.to_object_uuid)}",
             tenant=self.tenant,
         )
 

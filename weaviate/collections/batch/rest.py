@@ -24,11 +24,11 @@ class _BatchREST:
         self.__consistency_level = consistency_level
 
     def delete(
-        self, class_name: str, where: _Filters, verbose: bool, dry_run: bool, tenant: Optional[str]
+        self, collection: str, where: _Filters, verbose: bool, dry_run: bool, tenant: Optional[str]
     ) -> _BatchDeleteResult:
         payload: Dict[str, Any] = {
             "match": {
-                "class": class_name,
+                "class": collection,
                 "where": _FilterToREST.convert(where),
             }
         }

@@ -5,7 +5,7 @@ import pytest
 import weaviate
 from weaviate.collections.classes.aggregate import Metrics
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty, Configure
-from weaviate.exceptions import WeaviateInvalidInputException
+from weaviate.exceptions import WeaviateInvalidInputException, WeaviateQueryException
 from weaviate.util import file_encoder_b64
 
 
@@ -31,6 +31,16 @@ def test_collection_length(client: weaviate.WeaviateClient, how_many: int):
     assert len(collection) == how_many
 
 
+def test_empty_aggregation(client: weaviate.WeaviateClient):
+    name = "TestEmptyAggregation"
+    client.collections.delete(name)
+    collection = client.collections.create(
+        name=name, properties=[Property(name="text", data_type=DataType.TEXT)]
+    )
+    res = collection.aggregate.over_all()
+    assert res.total_count == 0
+
+
 def test_simple_aggregation(client: weaviate.WeaviateClient):
     name = "TestSimpleAggregation"
     client.collections.delete(name)
@@ -42,6 +52,20 @@ def test_simple_aggregation(client: weaviate.WeaviateClient):
         return_metrics=[Metrics("text", DataType.TEXT).returning(count=True)]
     )
     assert res.properties["text"].count == 1
+
+
+def test_wrong_aggregation(client: weaviate.WeaviateClient):
+    name = "TestEmptyAggregation"
+    client.collections.delete(name)
+    collection = client.collections.create(
+        name=name, properties=[Property(name="text", data_type=DataType.TEXT)]
+    )
+    with pytest.raises(WeaviateQueryException) as e:
+        collection.aggregate.over_all(total_count=False)
+    assert (
+        e.value.message
+        == "The query that you sent had no body so GraphQL was unable to parse it. You must provide at least one option to the aggregation method in order to build a valid query."
+    )
 
 
 @pytest.mark.parametrize(

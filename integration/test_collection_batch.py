@@ -79,7 +79,7 @@ def test_add_object(
 ):
     with client_sync_indexing.batch as batch:
         batch.add_object(
-            class_name="Test",
+            collection="Test",
             properties={},
             uuid=uuid,
             vector=vector,
@@ -92,36 +92,36 @@ def test_add_object(
 
 @pytest.mark.parametrize("from_object_uuid", [uuid.uuid4(), str(uuid.uuid4()), uuid.uuid4().hex])
 @pytest.mark.parametrize("to_object_uuid", [uuid.uuid4().hex, uuid.uuid4(), str(uuid.uuid4())])
-@pytest.mark.parametrize("to_object_class_name", [None, "Test"])
+@pytest.mark.parametrize("to_object_collection", [None, "Test"])
 def test_add_reference(
     client_sync_indexing: weaviate.WeaviateClient,
     from_object_uuid: UUID,
     to_object_uuid: UUID,
-    to_object_class_name: Optional[str],
+    to_object_collection: Optional[str],
 ):
     """Test the `add_reference` method"""
 
     with client_sync_indexing.batch as batch:
         batch.add_object(
             properties={},
-            class_name="Test",
+            collection="Test",
             uuid=from_object_uuid,
         )
         assert batch.num_objects() == 1
         assert batch.num_references() == 0
         batch.add_object(
             properties={},
-            class_name="Test",
+            collection="Test",
             uuid=to_object_uuid,
         )
         assert batch.num_objects() == 2
         assert batch.num_references() == 0
         batch.add_reference(
             from_object_uuid=from_object_uuid,
-            from_object_class_name="Test",
+            from_object_collection="Test",
             from_property_name="test",
             to_object_uuid=to_object_uuid,
-            to_object_class_name=to_object_class_name,
+            to_object_collection=to_object_collection,
         )
         assert batch.num_objects() == 2
         assert batch.num_references() == 1
@@ -138,10 +138,10 @@ def test_add_data_object_and_get_class_shards_readiness(
     """Test the `add_data_object` method"""
     client_sync_indexing.batch.add_object(
         properties={},
-        class_name="Test",
+        collection="Test",
     )
     client_sync_indexing.batch.create_objects()
-    statuses = client_sync_indexing.batch._get_shards_readiness(Shard(class_name="Test"))
+    statuses = client_sync_indexing.batch._get_shards_readiness(Shard(collection="Test"))
     assert len(statuses) == 1
     assert statuses[0]
 
@@ -159,12 +159,12 @@ def test_add_data_object_with_tenant_and_get_class_shards_readiness(
     test.tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
     client_sync_indexing.batch.add_object(
         properties={},
-        class_name="Test",
+        collection="Test",
         tenant="tenant1",
     )
     client_sync_indexing.batch.create_objects()
     statuses = client_sync_indexing.batch._get_shards_readiness(
-        Shard(class_name="Test", tenant="tenant1")
+        Shard(collection="Test", tenant="tenant1")
     )
     assert len(statuses) == 1
     assert statuses[0]
@@ -172,8 +172,8 @@ def test_add_data_object_with_tenant_and_get_class_shards_readiness(
 
 def test_add_object_batch_with_tenant(client_sync_indexing: weaviate.WeaviateClient):
     # create two classes and add 5 tenants each
-    class_names = ["BatchTestMultiTenant1", "BatchTestMultiTenant2"]
-    for name in class_names:
+    collections = ["BatchTestMultiTenant1", "BatchTestMultiTenant2"]
+    for name in collections:
         client_sync_indexing.collections.create(
             name=name,
             properties=[
@@ -190,9 +190,9 @@ def test_add_object_batch_with_tenant(client_sync_indexing: weaviate.WeaviateCli
     with client_sync_indexing.batch as batch:
         for i in range(nr_objects):
             obj_uuid = uuid.uuid4()
-            objects.append((obj_uuid, class_names[i % 2], "tenant" + str(i % 5)))
+            objects.append((obj_uuid, collections[i % 2], "tenant" + str(i % 5)))
             batch.add_object(
-                class_name=class_names[i % 2],
+                collection=collections[i % 2],
                 tenant="tenant" + str(i % 5),
                 properties={"tenantAsProp": "tenant" + str(i % 5)},
                 uuid=obj_uuid,
@@ -206,7 +206,7 @@ def test_add_object_batch_with_tenant(client_sync_indexing: weaviate.WeaviateCli
         )
         assert retObj.properties["tenantAsProp"] == obj[2]
 
-    for name in class_names:
+    for name in collections:
         client_sync_indexing.collections.delete(name)
 
 
@@ -214,22 +214,22 @@ def test_add_ref_batch_with_tenant(client_sync_indexing: weaviate.WeaviateClient
     client_sync_indexing.collections.delete_all()
 
     # create two classes and add 5 tenants each
-    class_names = ["BatchRefTestMultiTenant0", "BatchRefTestMultiTenant1"]
+    collections = ["BatchRefTestMultiTenant0", "BatchRefTestMultiTenant1"]
     client_sync_indexing.collections.create(
-        name=class_names[0],
+        name=collections[0],
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
 
     client_sync_indexing.collections.create(
-        name=class_names[1],
+        name=collections[1],
         properties=[
             Property(name="tenantAsProp", data_type=DataType.TEXT),
-            ReferenceProperty(name="ref", target_collection=class_names[0]),
+            ReferenceProperty(name="ref", target_collection=collections[0]),
         ],
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
 
-    for name in class_names:
+    for name in collections:
         client_sync_indexing.collections.get(name).tenants.create(
             [Tenant(name="tenant" + str(i)) for i in range(5)]
         )
@@ -243,13 +243,13 @@ def test_add_ref_batch_with_tenant(client_sync_indexing: weaviate.WeaviateClient
             obj_uuid0 = uuid.uuid4()
             objects_class0.append(obj_uuid0)
             batch.add_object(
-                class_name=class_names[0], tenant=tenant, properties={}, uuid=obj_uuid0
+                collection=collections[0], tenant=tenant, properties={}, uuid=obj_uuid0
             )
 
             obj_uuid1 = uuid.uuid4()
             objects_class1.append((obj_uuid1, "tenant" + str(i % 5)))
             batch.add_object(
-                class_name=class_names[1],
+                collection=collections[1],
                 tenant=tenant,
                 properties={"tenantAsProp": tenant},
                 uuid=obj_uuid1,
@@ -258,26 +258,26 @@ def test_add_ref_batch_with_tenant(client_sync_indexing: weaviate.WeaviateClient
             # add refs between classes for all tenants
             batch.add_reference(
                 from_property_name="ref",
-                from_object_class_name=class_names[1],
+                from_object_collection=collections[1],
                 from_object_uuid=obj_uuid1,
-                to_object_class_name=class_names[0],
+                to_object_collection=collections[0],
                 to_object_uuid=obj_uuid0,
                 tenant=tenant,
             )
 
     for i, obj in enumerate(objects_class1):
         ret_obj = (
-            client_sync_indexing.collections.get(class_names[1])
+            client_sync_indexing.collections.get(collections[1])
             .with_tenant(obj[1])
             .query.fetch_object_by_id(obj[0])
         )
         assert ret_obj.properties["tenantAsProp"] == obj[1]
         assert (
             ret_obj.properties["ref"][0]["beacon"]
-            == f"weaviate://localhost/{class_names[0]}/{objects_class0[i]}"
+            == f"weaviate://localhost/{collections[0]}/{objects_class0[i]}"
         )
 
-    for name in reversed(class_names):
+    for name in reversed(collections):
         client_sync_indexing.collections.delete(name)
 
 
@@ -288,7 +288,7 @@ def test_add_ten_thousand_data_objects(client_sync_indexing: weaviate.WeaviateCl
     with client_sync_indexing.batch as batch:
         for i in range(nr_objects):
             batch.add_object(
-                class_name="Test",
+                collection="Test",
                 properties={"name": "test" + str(i)},
             )
     objs = (
@@ -307,10 +307,10 @@ def make_refs(uuids: List[uuid.UUID]) -> List[dict]:
             refs.append(
                 {
                     "from_object_uuid": from_,
-                    "from_object_class_name": "Test",
+                    "from_object_collection": "Test",
                     "from_property_name": "test",
                     "to_object_uuid": to,
-                    "to_object_class_name": "Test",
+                    "to_object_collection": "Test",
                 }
             )
     return refs
@@ -327,7 +327,7 @@ def test_add_one_hundred_objects_and_references_between_all(
     with client_sync_indexing.batch as batch:
         for i in range(nr_objects):
             uuid_ = batch.add_object(
-                class_name="Test",
+                collection="Test",
                 properties={"name": "test" + str(i)},
             )
             uuids.append(uuid_)
@@ -351,7 +351,7 @@ def test_add_bad_prop(client_sync_indexing: weaviate.WeaviateClient):
         client_sync_indexing.batch.configure(retry_failed_objects=True)
         with client_sync_indexing.batch as batch:
             batch.add_object(
-                class_name="Test",
+                collection="Test",
                 properties={"bad": "test"},
             )
         assert len(client_sync_indexing.batch.failed_objects()) == 1
@@ -361,7 +361,7 @@ def test_add_bad_prop(client_sync_indexing: weaviate.WeaviateClient):
         client_sync_indexing.batch.configure(retry_failed_objects=True)
         with client_sync_indexing.batch as batch:
             batch.add_object(
-                class_name="Test",
+                collection="Test",
                 properties={"bad": "test"},
             )
         assert len(client_sync_indexing.batch.failed_objects()) == 1
@@ -375,10 +375,10 @@ def test_add_bad_ref(client_sync_indexing: weaviate.WeaviateClient):
         with client_sync_indexing.batch as batch:
             batch.add_reference(
                 from_object_uuid=uuid.uuid4(),
-                from_object_class_name="Test",
+                from_object_collection="Test",
                 from_property_name="bad",
                 to_object_uuid=uuid.uuid4(),
-                to_object_class_name="Test",
+                to_object_collection="Test",
             )
         assert len(client_sync_indexing.batch.failed_references()) == 1
 
@@ -388,10 +388,10 @@ def test_add_bad_ref(client_sync_indexing: weaviate.WeaviateClient):
         with client_sync_indexing.batch as batch:
             batch.add_reference(
                 from_object_uuid=uuid.uuid4(),
-                from_object_class_name="Test",
+                from_object_collection="Test",
                 from_property_name="bad",
                 to_object_uuid=uuid.uuid4(),
-                to_object_class_name="Test",
+                to_object_collection="Test",
             )
         assert len(client_sync_indexing.batch.failed_references()) == 1
 
@@ -401,7 +401,7 @@ def test_manual_batching(client_sync_indexing: weaviate.WeaviateClient):
     uuids: List[uuid.UUID] = []
     for _ in range(10):
         uuid_ = client_sync_indexing.batch.add_object(
-            class_name="Test",
+            collection="Test",
             properties={"name": "test"},
         )
         uuids.append(uuid_)
@@ -434,7 +434,7 @@ def test_add_1000_objects_with_async_indexing_and_wait(
     nr_objects = 1000
     objs = [
         {
-            "class_name": name,
+            "collection": name,
             "properties": {"text": "text" + str(i)},
             "vector": list(range(1000)),
         }
@@ -468,7 +468,7 @@ def test_add_10000_objects_with_async_indexing_and_dont_wait(
     nr_objects = 10000
     objs = [
         {
-            "class_name": name,
+            "collection": name,
             "properties": {"text": "text" + str(i)},
             "vector": list(range(1000)),
         }
@@ -504,7 +504,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
     nr_objects = 1000
     objs = [
         {
-            "class_name": name,
+            "collection": name,
             "properties": {"text": "text" + str(i)},
             "vector": list(range(1000)),
             "tenant": tenants[i % 5].name,
@@ -543,7 +543,7 @@ def test_add_10000_tenant_objects_with_async_indexing_and_wait_for_only_one(
     nr_objects = 10000
     objs = [
         {
-            "class_name": name,
+            "collection": name,
             "properties": {"text": "text" + str(i)},
             "vector": list(range(1000)),
             "tenant": tenants[0].name if i < 100 else tenants[1].name,
@@ -555,7 +555,7 @@ def test_add_10000_tenant_objects_with_async_indexing_and_wait_for_only_one(
             batch.add_object(**obj)
     assert len(client_async_indexing.batch.failed_objects()) == 0
     client_async_indexing.batch.wait_for_vector_indexing(
-        shards=[Shard(class_name=name, tenant="tenant0")]
+        shards=[Shard(collection=name, tenant="tenant0")]
     )
     for tenant in tenants:
         ret = test.with_tenant(tenant.name).aggregate.over_all(total_count=True)

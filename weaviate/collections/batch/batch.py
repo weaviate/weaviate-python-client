@@ -361,7 +361,7 @@ class _Batch:
 
     def add_object(
         self,
-        class_name: str,
+        collection: str,
         properties: Dict[str, WeaviateField],
         uuid: Optional[UUID] = None,
         vector: Optional[Sequence] = None,
@@ -374,15 +374,15 @@ class _Batch:
         replaced by the new object.
 
         Arguments:
-            `class_name`
-                The name of the class this object belongs to.
+            `collection`
+                The name of the collection this object belongs to.
             `properties`
                 The data properties of the object to be added as a dictionary.
             `uuid`:
                 The UUID of the object as an uuid.UUID object or str. It can be a Weaviate beacon or Weaviate href.
                 If it is None an UUIDv4 will generated, by default None
             `vector`:
-                The embedding of the object that should be validated. Can be used when a class does not have a vectorization module or the given vector was generated using the _identical_ vectorization module that is configured for the class. In this case this vector takes precedence. Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
+                The embedding of the object that should be validated. Can be used when a collection does not have a vectorization module or the given vector was generated using the _identical_ vectorization module that is configured for the class. In this case this vector takes precedence. Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
             `tenant`
                 Name of the tenant.
 
@@ -396,13 +396,13 @@ class _Batch:
         """
         try:
             batch_object = BatchObject(
-                class_name=class_name,
+                collection=collection,
                 properties=properties,
                 uuid=uuid,
                 vector=vector,
                 tenant=tenant,
             )
-            self.__imported_shards.add(Shard(class_name=class_name, tenant=tenant))
+            self.__imported_shards.add(Shard(collection=collection, tenant=tenant))
         except ValidationError as e:
             raise WeaviateBatchValidationError(repr(e))
         self.__batch_objects.add(batch_object._to_internal())
@@ -414,10 +414,10 @@ class _Batch:
     def add_reference(
         self,
         from_object_uuid: UUID,
-        from_object_class_name: str,
+        from_object_collection: str,
         from_property_name: str,
         to_object_uuid: UUID,
-        to_object_class_name: Optional[str] = None,
+        to_object_collection: Optional[str] = None,
         tenant: Optional[str] = None,
     ) -> None:
         """
@@ -427,15 +427,15 @@ class _Batch:
             `from_object_uuid`
                 The UUID of the object, as an uuid.UUID object or str, that should reference another object.
                 It can be a Weaviate beacon or Weaviate href.
-            `from_object_class_name`
-                The name of the class that should reference another object.
+            `from_object_collection`
+                The name of the collection that should reference another object.
             `from_property_name`
                 The name of the property that contains the reference.
             `to_object_uuid`
                 The UUID of the object, as an uuid.UUID object or str, that is actually referenced.
                 It can be a Weaviate beacon or Weaviate href.
-            `to_object_class_name`
-                The referenced object class name to which to add the reference (with UUID `to_object_uuid`).
+            `to_object_collection`
+                The referenced object collection to which to add the reference (with UUID `to_object_uuid`).
             `tenant`
                 Name of the tenant.
 
@@ -445,10 +445,10 @@ class _Batch:
         """
         try:
             batch_reference = BatchReference(
-                from_object_class_name=from_object_class_name,
+                from_object_collection=from_object_collection,
                 from_object_uuid=from_object_uuid,
                 from_property_name=from_property_name,
-                to_object_class_name=to_object_class_name,
+                to_object_collection=to_object_collection,
                 to_object_uuid=to_object_uuid,
                 tenant=tenant,
             )
@@ -761,13 +761,13 @@ class _Batch:
             time.sleep(0.25)
 
     def _get_shards_readiness(self, shard: Shard) -> List[bool]:
-        if not isinstance(shard.class_name, str):
+        if not isinstance(shard.collection, str):
             raise TypeError(
-                "'class_name' argument must be of type `str`! "
-                f"Given type: {type(shard.class_name)}."
+                "'collection' argument must be of type `str`! "
+                f"Given type: {type(shard.collection)}."
             )
 
-        path = f"/schema/{_capitalize_first_letter(shard.class_name)}/shards{'' if shard.tenant is None else f'?tenant={shard.tenant}'}"
+        path = f"/schema/{_capitalize_first_letter(shard.collection)}/shards{'' if shard.tenant is None else f'?tenant={shard.tenant}'}"
 
         try:
             response = self.__connection.get(path=path)

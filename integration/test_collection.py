@@ -1175,11 +1175,15 @@ def test_return_list_properties(client: weaviate.WeaviateClient):
 @pytest.mark.parametrize("query", ["cake", ["cake"]])
 @pytest.mark.parametrize("objects", [UUID1, str(UUID1), [UUID1], [str(UUID1)]])
 @pytest.mark.parametrize("concepts", ["hiking", ["hiking"]])
+@pytest.mark.parametrize(
+    "return_properties", [["value"], None]
+)  # Passing none here causes a server-side bug with <=1.22.2
 def test_near_text(
     client: weaviate.WeaviateClient,
     query: Union[str, List[str]],
     objects: Union[UUID, List[UUID]],
     concepts: Union[str, List[str]],
+    return_properties: Optional[PROPERTIES],
 ):
     name = "TestNearText"
     client.collections.delete(name)
@@ -1202,14 +1206,16 @@ def test_near_text(
         query=query,
         move_to=Move(force=1.0, objects=objects),
         move_away=Move(force=0.5, concepts=concepts),
-        return_metadata=MetadataQuery(uuid=True),
-        return_properties=["value"],
+        return_metadata=MetadataQuery(uuid=True, vector=True),
+        return_properties=return_properties,
     ).objects
 
     assert len(objs) == 4
 
     assert objs[0].metadata.uuid == batch_return.uuids[2]
-    assert objs[0].properties["value"] == "apple cake"
+    assert objs[0].metadata.vector is not None
+    if return_properties is not None:
+        assert objs[0].properties["value"] == "apple cake"
 
 
 def test_near_text_error(client: weaviate.WeaviateClient):
@@ -1247,14 +1253,16 @@ def test_near_text_group_by(client: weaviate.WeaviateClient):
         group_by_property="value",
         number_of_groups=2,
         objects_per_group=100,
-        return_metadata=MetadataQuery(uuid=True),
+        return_metadata=MetadataQuery(uuid=True, vector=True),
         return_properties=["value"],
     )
 
     assert len(ret.objects) == 2
     assert ret.objects[0].metadata.uuid == batch_return.uuids[2]
+    assert ret.objects[0].metadata.vector is not None
     assert ret.objects[0].belongs_to_group == "apple cake"
     assert ret.objects[1].metadata.uuid == batch_return.uuids[3]
+    assert ret.objects[1].metadata.vector is not None
     assert ret.objects[1].belongs_to_group == "cake"
 
 

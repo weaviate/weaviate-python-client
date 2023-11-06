@@ -1,3 +1,5 @@
+import json
+from dataclasses import asdict
 from typing import Generic, Optional, Type, Union, cast, overload
 from typing_extensions import is_typeddict
 
@@ -114,6 +116,11 @@ class Collection(_CollectionBase, Generic[Properties]):
         total = self.aggregate.over_all(total_count=True).total_count
         assert total is not None
         return total
+
+    def __str__(self) -> str:
+        config = self.config.get()
+        json_ = json.dumps(asdict(config), indent=2)
+        return f"<weaviate.Collection config={json_}>"
 
     @overload
     def iterator(
