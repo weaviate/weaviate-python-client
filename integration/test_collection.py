@@ -1175,7 +1175,9 @@ def test_return_list_properties(client: weaviate.WeaviateClient):
 @pytest.mark.parametrize("query", ["cake", ["cake"]])
 @pytest.mark.parametrize("objects", [UUID1, str(UUID1), [UUID1], [str(UUID1)]])
 @pytest.mark.parametrize("concepts", ["hiking", ["hiking"]])
-# @pytest.mark.parametrize("return_properties", [["value"], None]) # Passing none here causes a server-side bug with <=1.22.2
+@pytest.mark.parametrize(
+    "return_properties", [["value"], None]
+)  # Passing none here causes a server-side bug with <=1.22.2
 def test_near_text(
     client: weaviate.WeaviateClient,
     query: Union[str, List[str]],
