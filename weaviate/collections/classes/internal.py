@@ -100,7 +100,7 @@ class _GroupByResult(Generic[P]):
 @dataclass
 class _GroupByReturn(Generic[P]):
     objects: List[_GroupByObject[P]]
-    groups: Dict[str, _GroupByResult]
+    groups: Dict[str, _GroupByResult[P]]
 
 
 @dataclass
