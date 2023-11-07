@@ -239,7 +239,7 @@ class TestWeaviateClient(unittest.TestCase):
         Test the `set_timeout_config` method.
         """
 
-        client = Client("http://some_url.com", auth_client_secret=None, timeout_config=(1, 2))
+        client = Client("http://localhost:8080", auth_client_secret=None, timeout_config=(1, 2))
         self.assertEqual(client.timeout_config, (1, 2))
         client.timeout_config = (4, 20)  # ;)
         self.assertEqual(client.timeout_config, (4, 20))

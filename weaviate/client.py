@@ -297,7 +297,13 @@ class Client:
         if hasattr(self, "_connection"):
             self._connection.close()
 
-    def set_apikey(self, openai_key: Optional[str] = None, cohere_key: Optional[str] = None, huggingface_key: Optional[str] = None, palm_key: Optional[str] = None) -> None:
+    def set_apikey(
+        self,
+        openai_key: Optional[str] = None,
+        cohere_key: Optional[str] = None,
+        huggingface_key: Optional[str] = None,
+        palm_key: Optional[str] = None,
+    ) -> None:
         """
         Set the external API key.
 
@@ -314,7 +320,7 @@ class Client:
 
         Returns
         -------
-        None    
+        None
         """
         if openai_key:
             self._connection._headers["x-openai-api-key"] = openai_key
