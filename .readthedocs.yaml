@@ -12,4 +12,4 @@ build:
 
 python:
   install:
-  - requirements: requirements.txt
+  - requirements: requirements-devel.txt
