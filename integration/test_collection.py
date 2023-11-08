@@ -1026,23 +1026,70 @@ def test_collection_config_get(client: weaviate.WeaviateClient):
     client.collections.delete("TestCollectionSchemaGet")
 
 
-def test_empty_search_returns_everything(client: weaviate.WeaviateClient):
+@pytest.mark.parametrize("return_properties", [None, [], ["name"]])
+@pytest.mark.parametrize(
+    "return_metadata",
+    [None, MetadataQuery(uuid=True), MetadataQuery._full(), MetadataQuery._full(True)],
+)
+def test_return_properties_and_return_metadata_combos(
+    client: weaviate.WeaviateClient,
+    return_properties: Optional[PROPERTIES],
+    return_metadata: Optional[MetadataQuery],
+):
     collection = client.collections.create(
         name="TestReturnEverything",
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(),
-        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+            Property(name="age", data_type=DataType.INT),
+        ],
     )
 
-    collection.data.insert(properties={"name": "word"})
+    collection.data.insert(
+        uuid=UUID1, properties={"name": "Graham", "age": 42}, vector=[1, 2, 3, 4]
+    )
 
-    objects = collection.query.bm25(query="word").objects
-    assert "name" in objects[0].properties
-    assert objects[0].properties["name"] == "word"
-    assert objects[0].metadata.uuid is not None
-    assert objects[0].metadata.score is not None
-    assert objects[0].metadata.last_update_time_unix is not None
-    assert objects[0].metadata.creation_time_unix is not None
-    assert objects[0].metadata.vector is None
+    objects = collection.query.fetch_objects(
+        return_properties=return_properties, return_metadata=return_metadata
+    ).objects
+
+    if return_properties is None:
+        assert "name" in objects[0].properties
+        assert "age" in objects[0].properties
+        assert objects[0].properties["name"] == "Graham"
+        assert objects[0].properties["age"] == 42
+    elif len(return_properties) == 0:
+        assert "name" not in objects[0].properties
+        assert "age" not in objects[0].properties
+    else:
+        assert "name" in objects[0].properties
+        assert "age" not in objects[0].properties
+        assert objects[0].properties["name"] == "Graham"
+
+    if return_metadata is None:
+        assert objects[0].metadata.uuid is not None
+        assert objects[0].metadata.score is not None
+        assert objects[0].metadata.last_update_time_unix is not None
+        assert objects[0].metadata.creation_time_unix is not None
+        assert objects[0].metadata.vector is None
+    elif return_metadata == MetadataQuery(uuid=True):
+        assert objects[0].metadata.uuid is not None
+        assert objects[0].metadata.score is None
+        assert objects[0].metadata.last_update_time_unix is None
+        assert objects[0].metadata.creation_time_unix is None
+        assert objects[0].metadata.vector is None
+    elif return_metadata == MetadataQuery._full():
+        assert objects[0].metadata.uuid is not None
+        assert objects[0].metadata.score is not None
+        assert objects[0].metadata.last_update_time_unix is not None
+        assert objects[0].metadata.creation_time_unix is not None
+        assert objects[0].metadata.vector is None
+    elif return_metadata == MetadataQuery._full(True):
+        assert objects[0].metadata.uuid is not None
+        assert objects[0].metadata.score is not None
+        assert objects[0].metadata.last_update_time_unix is not None
+        assert objects[0].metadata.creation_time_unix is not None
+        assert objects[0].metadata.vector is not None
 
     client.collections.delete("TestReturnEverything")
 
@@ -1347,7 +1394,7 @@ def test_near_image(
     assert objects[0].metadata.uuid == uuid1
 
 
-@pytest.mark.parametrize("which_case", [0, 1, 2, 3])
+@pytest.mark.parametrize("which_case", [0, 1, 2, 3, 4])
 def test_return_properties_with_query_specific_typed_dict(
     client: weaviate.WeaviateClient, which_case: int
 ):
@@ -1398,6 +1445,14 @@ def test_return_properties_with_query_specific_typed_dict(
 
         with pytest.raises(WeaviateQueryException):
             collection.query.fetch_objects(return_properties=DataModel).objects
+    elif which_case == 4:
+
+        class DataModel(TypedDict):
+            pass
+
+        objects = collection.query.fetch_objects(return_properties=DataModel).objects
+        assert len(objects) == 1
+        assert objects[0].properties == {}
 
 
 def test_return_properties_with_general_typed_dict(client: weaviate.WeaviateClient):
