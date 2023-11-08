@@ -120,11 +120,11 @@ class _QueryGRPC(_BaseGRPC):
         self._tenant = tenant
 
         if default_properties is not None:
-            self._default_props: Set[PROPERTY] = self.__convert_properties_to_set(
+            self._default_props: Optional[Set[PROPERTY]] = self.__convert_properties_to_set(
                 default_properties
             )
         else:
-            self._default_props = set()
+            self._default_props = None
         self._metadata: Optional[MetadataQuery] = None
 
         self._limit: Optional[int] = None
@@ -545,8 +545,8 @@ class _QueryGRPC(_BaseGRPC):
         )
 
     def _translate_properties_from_python_to_grpc(
-        self, properties: Set[PROPERTY]
-    ) -> search_get_pb2.PropertiesRequest:
+        self, properties: Optional[Set[PROPERTY]]
+    ) -> Optional[search_get_pb2.PropertiesRequest]:
         def resolve_property(prop: FromNested) -> search_get_pb2.ObjectPropertiesRequest:
             props = prop.properties if isinstance(prop.properties, list) else [prop.properties]
             return search_get_pb2.ObjectPropertiesRequest(
@@ -555,38 +555,46 @@ class _QueryGRPC(_BaseGRPC):
                 object_properties=[resolve_property(p) for p in props if isinstance(p, FromNested)],
             )
 
-        return search_get_pb2.PropertiesRequest(
-            non_ref_properties=[prop for prop in properties if isinstance(prop, str)],
-            ref_properties=[
-                search_get_pb2.RefPropertiesRequest(
-                    reference_property=prop.link_on,
-                    properties=self._translate_properties_from_python_to_grpc(
-                        self.__convert_properties_to_set(prop.return_properties)
+        return (
+            None
+            if properties is None
+            else search_get_pb2.PropertiesRequest(
+                non_ref_properties=[prop for prop in properties if isinstance(prop, str)],
+                ref_properties=[
+                    search_get_pb2.RefPropertiesRequest(
+                        reference_property=prop.link_on,
+                        properties=self._translate_properties_from_python_to_grpc(
+                            self.__convert_properties_to_set(prop.return_properties)
+                        )
+                        if prop.return_properties is not None
+                        else None,
+                        metadata=self._metadata_to_grpc(prop.return_metadata)
+                        if prop.return_metadata is not None
+                        else None,
+                        target_collection=prop.target_collection
+                        if isinstance(prop, FromReferenceMultiTarget)
+                        else None,
                     )
-                    if prop.return_properties is not None
-                    else None,
-                    metadata=self._metadata_to_grpc(prop.return_metadata)
-                    if prop.return_metadata is not None
-                    else None,
-                    target_collection=prop.target_collection
-                    if isinstance(prop, FromReferenceMultiTarget)
-                    else None,
-                )
-                for prop in properties
-                if isinstance(prop, FromReference)
-            ],
-            object_properties=[
-                resolve_property(prop) for prop in properties if isinstance(prop, FromNested)
-            ],
+                    for prop in properties
+                    if isinstance(prop, FromReference)
+                ],
+                object_properties=[
+                    resolve_property(prop) for prop in properties if isinstance(prop, FromNested)
+                ],
+            )
         )
 
     def __merge_default_and_return_properties(
         self, return_properties: Optional[PROPERTIES]
     ) -> None:
-        if return_properties is not None:
+        if return_properties is None:
+            return
+        if self._default_props is not None:
             self._default_props = self._default_props.union(
                 self.__convert_properties_to_set(return_properties)
             )
+        else:
+            self._default_props = self.__convert_properties_to_set(return_properties)
 
     @staticmethod
     def __convert_properties_to_set(properties: PROPERTIES) -> Set[PROPERTY]:

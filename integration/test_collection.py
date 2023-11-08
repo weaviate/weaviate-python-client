@@ -878,6 +878,13 @@ def test_multi_searches(client: weaviate.WeaviateClient):
     assert objects[0].metadata.last_update_time_unix is not None
 
     objects = collection.query.bm25(query="other", return_metadata=MetadataQuery(uuid=True)).objects
+    assert "name" in objects[0].properties
+    assert objects[0].metadata.uuid is not None
+    assert objects[0].metadata.last_update_time_unix is None
+
+    objects = collection.query.bm25(
+        query="other", return_properties=[], return_metadata=MetadataQuery(uuid=True)
+    ).objects
     assert "name" not in objects[0].properties
     assert objects[0].metadata.uuid is not None
     assert objects[0].metadata.last_update_time_unix is None
