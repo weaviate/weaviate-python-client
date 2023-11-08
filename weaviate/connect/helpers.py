@@ -89,6 +89,7 @@ def connect_to_embedded(
     grpc_port: int = 50051,
     headers: Optional[dict] = None,
     timeout: Tuple[int, int] = (10, 60),
+    version: str = "1.22.3",
 ) -> WeaviateClient:
     """
     Connect to an embedded Weaviate instance.
@@ -112,6 +113,7 @@ def connect_to_embedded(
         embedded_options=EmbeddedOptions(
             port=port,
             grpc_port=grpc_port,
+            version=version,
         ),
         additional_headers=headers,
         additional_config=AdditionalConfig(timeout=timeout),
