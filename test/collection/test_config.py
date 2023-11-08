@@ -46,12 +46,14 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         Configure.Vectorizer.text2vec_azure_openai(
             resource_name="resource",
             deployment_id="deployment",
+            base_url="https://api.openai.com",
         ),
         {
             "text2vec-openai": {
                 "resourceName": "resource",
                 "deploymentId": "deployment",
                 "vectorizeClassName": True,
+                "baseURL": "https://api.openai.com/",
             }
         },
     ),
@@ -65,13 +67,17 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
     ),
     (
         Configure.Vectorizer.text2vec_cohere(
-            model="embed-multilingual-v2.0", truncate="NONE", vectorize_class_name=False
+            model="embed-multilingual-v2.0",
+            truncate="NONE",
+            vectorize_class_name=False,
+            base_url="https://api.cohere.ai",
         ),
         {
             "text2vec-cohere": {
                 "model": "embed-multilingual-v2.0",
                 "truncate": "NONE",
                 "vectorizeClassName": False,
+                "baseURL": "https://api.cohere.ai/",
             }
         },
     ),
@@ -133,11 +139,11 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
     ),
     (
         Configure.Vectorizer.text2vec_huggingface(
-            endpoint_url="endpoint",
+            endpoint_url="https://api.huggingface.co",
         ),
         {
             "text2vec-huggingface": {
-                "endpointURL": "endpoint",
+                "endpointURL": "https://api.huggingface.co/",
                 "vectorizeClassName": True,
             }
         },
@@ -156,6 +162,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
             model="ada",
             model_version="002",
             type_="text",
+            base_url="https://api.openai.com",
         ),
         {
             "text2vec-openai": {
@@ -163,6 +170,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
                 "model": "ada",
                 "modelVersion": "002",
                 "type": "text",
+                "baseURL": "https://api.openai.com/",
             }
         },
     ),
@@ -180,14 +188,14 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
     (
         Configure.Vectorizer.text2vec_palm(
             project_id="project",
-            api_endpoint="https://weaviate.io",
+            api_endpoint="https://api.google.com",
             model_id="model",
             vectorize_class_name=False,
         ),
         {
             "text2vec-palm": {
                 "projectId": "project",
-                "apiEndpoint": "https://weaviate.io/",
+                "apiEndpoint": "https://api.google.com/",
                 "modelId": "model",
                 "vectorizeClassName": False,
             }
@@ -419,6 +427,7 @@ TEST_CONFIG_WITH_GENERATIVE_MODULE = [
             presence_penalty=0.5,
             temperature=0.5,
             top_p=0.5,
+            base_url="https://api.openai.com",
         ),
         {
             "generative-openai": {
@@ -428,6 +437,7 @@ TEST_CONFIG_WITH_GENERATIVE_MODULE = [
                 "presencePenaltyProperty": 0.5,
                 "temperatureProperty": 0.5,
                 "topPProperty": 0.5,
+                "baseURL": "https://api.openai.com/",
             }
         },
     ),
@@ -440,6 +450,7 @@ TEST_CONFIG_WITH_GENERATIVE_MODULE = [
             return_likelihoods="ALL",
             stop_sequences=["stop"],
             temperature=0.5,
+            base_url="https://api.cohere.ai",
         ),
         {
             "generative-cohere": {
@@ -449,6 +460,7 @@ TEST_CONFIG_WITH_GENERATIVE_MODULE = [
                 "returnLikelihoodsProperty": "ALL",
                 "stopSequencesProperty": ["stop"],
                 "temperatureProperty": 0.5,
+                "baseURL": "https://api.cohere.ai/",
             }
         },
     ),
@@ -463,7 +475,7 @@ TEST_CONFIG_WITH_GENERATIVE_MODULE = [
     (
         Configure.Generative.palm(
             project_id="project",
-            api_endpoint="https://weaviate.io",
+            api_endpoint="https://api.google.com",
             max_output_tokens=100,
             model_id="model",
             temperature=0.5,
@@ -473,7 +485,7 @@ TEST_CONFIG_WITH_GENERATIVE_MODULE = [
         {
             "generative-palm": {
                 "projectId": "project",
-                "apiEndpoint": "https://weaviate.io",
+                "apiEndpoint": "https://api.google.com/",
                 "maxOutputTokens": 100,
                 "modelId": "model",
                 "temperature": 0.5,

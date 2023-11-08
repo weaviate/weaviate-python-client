@@ -398,11 +398,18 @@ class _GenerativeOpenAIConfigBase(_GenerativeConfig):
     generative: GenerativeSearches = Field(
         default=GenerativeSearches.OPENAI, frozen=True, exclude=True
     )
+    baseURL: Optional[AnyHttpUrl]
     frequencyPenaltyProperty: Optional[float]
     presencePenaltyProperty: Optional[float]
     maxTokensProperty: Optional[int]
     temperatureProperty: Optional[float]
     topPProperty: Optional[float]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
 
 
 class _GenerativeOpenAIConfig(_GenerativeOpenAIConfigBase):
@@ -418,6 +425,7 @@ class _GenerativeCohereConfig(_GenerativeConfig):
     generative: GenerativeSearches = Field(
         default=GenerativeSearches.COHERE, frozen=True, exclude=True
     )
+    baseURL: Optional[AnyHttpUrl]
     kProperty: Optional[int]
     model: Optional[str]
     maxTokensProperty: Optional[int]
@@ -425,18 +433,30 @@ class _GenerativeCohereConfig(_GenerativeConfig):
     stopSequencesProperty: Optional[List[str]]
     temperatureProperty: Optional[float]
 
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
 
 class _GenerativePaLMConfig(_GenerativeConfig):
     generative: GenerativeSearches = Field(
         default=GenerativeSearches.PALM, frozen=True, exclude=True
     )
-    apiEndpoint: Optional[str]
+    apiEndpoint: Optional[AnyHttpUrl]
     maxOutputTokens: Optional[int]
     modelId: Optional[str]
     projectId: str
     temperature: Optional[float]
     topK: Optional[int]
     topP: Optional[float]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.apiEndpoint is not None:
+            ret_dict["apiEndpoint"] = self.apiEndpoint.unicode_string()
+        return ret_dict
 
 
 class _VectorizerConfig(_ConfigCreateModel):
@@ -458,8 +478,31 @@ class _Generative:
         presence_penalty: Optional[float] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
+        base_url: Optional[AnyHttpUrl] = None,
     ) -> _GenerativeConfig:
+        """Create a `_GenerativeOpenAIConfig` object for use when performing AI generation using the `generative-openai` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+            `frequency_penalty`
+                The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            `max_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            `presence_penalty`
+                The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `top_p`
+                The top P to use. Defaults to `None`, which uses the server-defined default
+            `base_url`
+                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+        """
         return _GenerativeOpenAIConfig(
+            baseURL=base_url,
             frequencyPenaltyProperty=frequency_penalty,
             maxTokensProperty=max_tokens,
             model=model,
@@ -477,8 +520,33 @@ class _Generative:
         presence_penalty: Optional[float] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
+        base_url: Optional[AnyHttpUrl] = None,
     ) -> _GenerativeConfig:
+        """Create a `_GenerativeAzureOpenAIConfig` object for use when performing AI generation using the `generative-openai` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai)
+        for detailed usage.
+
+        Arguments:
+            `resource_name`
+                The name of the Azure OpenAI resource to use.
+            `deployment_id`
+                The Azure OpenAI deployment ID to use.
+            `frequency_penalty`
+                The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            `max_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            `presence_penalty`
+                The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `top_p`
+                The top P to use. Defaults to `None`, which uses the server-defined default
+            `base_url`
+                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+        """
         return _GenerativeAzureOpenAIConfig(
+            baseURL=base_url,
             deploymentId=deployment_id,
             frequencyPenaltyProperty=frequency_penalty,
             maxTokensProperty=max_tokens,
@@ -496,8 +564,31 @@ class _Generative:
         return_likelihoods: Optional[str] = None,
         stop_sequences: Optional[List[str]] = None,
         temperature: Optional[float] = None,
+        base_url: Optional[AnyHttpUrl] = None,
     ) -> _GenerativeConfig:
+        """Create a `_GenerativeCohereConfig` object for use when performing AI generation using the `generative-cohere` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-cohere)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+            `k`
+                The number of sequences to generate. Defaults to `None`, which uses the server-defined default
+            `max_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            `return_likelihoods`
+                Whether to return the likelihoods. Defaults to `None`, which uses the server-defined default
+            `stop_sequences`
+                The stop sequences to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `base_url`
+                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+        """
         return _GenerativeCohereConfig(
+            baseURL=base_url,
             kProperty=k,
             maxTokensProperty=max_tokens,
             model=model,
@@ -509,13 +600,34 @@ class _Generative:
     @staticmethod
     def palm(
         project_id: str,
-        api_endpoint: Optional[str] = None,
+        api_endpoint: Optional[AnyHttpUrl] = None,
         max_output_tokens: Optional[int] = None,
         model_id: Optional[str] = None,
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
     ) -> _GenerativeConfig:
+        """Create a `_GenerativePaLMConfig` object for use when performing AI generation using the `generative-palm` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-palm)
+        for detailed usage.
+
+        Arguments:
+            `project_id`
+                The PalM project ID to use.
+            `api_endpoint`
+                The API endpoint to use. Defaults to `None`, which uses the server-defined default
+            `max_output_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            `model_id`
+                The model ID to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `top_k`
+                The top K to use. Defaults to `None`, which uses the server-defined default
+            `top_p`
+                The top P to use. Defaults to `None`, which uses the server-defined default
+        """
         return _GenerativePaLMConfig(
             apiEndpoint=api_endpoint,
             maxOutputTokens=max_output_tokens,
@@ -527,6 +639,20 @@ class _Generative:
         )
 
 
+class _Text2VecAzureOpenAIConfig(_VectorizerConfig):
+    vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
+    baseURL: Optional[AnyHttpUrl]
+    resourceName: str
+    deploymentId: str
+    vectorizeClassName: bool
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
 class _Text2VecContextionaryConfig(_VectorizerConfig):
     vectorizer: Vectorizer = Field(
         default=Vectorizer.TEXT2VEC_CONTEXTIONARY, frozen=True, exclude=True
@@ -536,6 +662,7 @@ class _Text2VecContextionaryConfig(_VectorizerConfig):
 
 CohereModel = Literal[
     "embed-multilingual-v2.0",
+    "embed-multilingual-v3.0",
     "small",
     "medium",
     "large",
@@ -548,9 +675,16 @@ CohereTruncation = Literal["RIGHT", "NONE"]
 
 class _Text2VecCohereConfig(_VectorizerConfig):
     vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_COHERE, frozen=True, exclude=True)
+    baseURL: Optional[AnyHttpUrl]
     model: Optional[CohereModel]
     truncate: Optional[CohereTruncation]
     vectorizeClassName: bool
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
 
 
 class _Text2VecHuggingFaceConfig(_VectorizerConfig):
@@ -560,7 +694,7 @@ class _Text2VecHuggingFaceConfig(_VectorizerConfig):
     model: Optional[str]
     passageModel: Optional[str]
     queryModel: Optional[str]
-    endpointURL: Optional[str]
+    endpointURL: Optional[AnyHttpUrl]
     waitForModel: Optional[bool]
     useGPU: Optional[bool]
     useCache: Optional[bool]
@@ -604,6 +738,8 @@ class _Text2VecHuggingFaceConfig(_VectorizerConfig):
             options["useCache"] = ret_dict.pop("useCache")
         if len(options) > 0:
             ret_dict["options"] = options
+        if self.endpointURL is not None:
+            ret_dict["endpointURL"] = self.endpointURL.unicode_string()
         return ret_dict
 
 
@@ -613,6 +749,7 @@ OpenAIType = Literal["text", "code"]
 
 class _Text2VecOpenAIConfig(_VectorizerConfig):
     vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
+    baseURL: Optional[AnyHttpUrl]
     model: Optional[OpenAIModel]
     modelVersion: Optional[str]
     type_: Optional[OpenAIType]
@@ -622,14 +759,9 @@ class _Text2VecOpenAIConfig(_VectorizerConfig):
         ret_dict = super()._to_dict()
         if self.type_ is not None:
             ret_dict["type"] = ret_dict.pop("type_")
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
         return ret_dict
-
-
-class _Text2VecAzureOpenAIConfig(_VectorizerConfig):
-    vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
-    resourceName: str
-    deploymentId: str
-    vectorizeClassName: bool
 
 
 class _Text2VecPalmConfig(_VectorizerConfig):
@@ -642,7 +774,7 @@ class _Text2VecPalmConfig(_VectorizerConfig):
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
         if self.apiEndpoint is not None:
-            ret_dict["apiEndpoint"] = str(self.apiEndpoint)
+            ret_dict["apiEndpoint"] = self.apiEndpoint.unicode_string()
         return ret_dict
 
 
@@ -844,7 +976,10 @@ class _Vectorizer:
 
     @staticmethod
     def text2vec_azure_openai(
-        resource_name: str, deployment_id: str, vectorize_class_name: bool = True
+        resource_name: str,
+        deployment_id: str,
+        vectorize_class_name: bool = True,
+        base_url: Optional[AnyHttpUrl] = None,
     ) -> _VectorizerConfig:
         """Create a `Text2VecAzureOpenAIConfig` object for use when vectorizing using the `text2vec-azure-openai` model.
 
@@ -858,11 +993,14 @@ class _Vectorizer:
                 The deployment ID to use, REQUIRED.
             `vectorize_class_name`
                 Whether to vectorize the class name. Defaults to `True`.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             `pydantic.ValidationError` if `resource_name` or `deployment_id` are not `str`.
         """
         return _Text2VecAzureOpenAIConfig(
+            baseURL=base_url,
             resourceName=resource_name,
             deploymentId=deployment_id,
             vectorizeClassName=vectorize_class_name,
@@ -889,6 +1027,7 @@ class _Vectorizer:
         model: Optional[CohereModel] = None,
         truncate: Optional[CohereTruncation] = None,
         vectorize_class_name: bool = True,
+        base_url: Optional[AnyHttpUrl] = None,
     ) -> _VectorizerConfig:
         """Create a `Text2VecCohereConfig` object for use when vectorizing using the `text2vec-cohere` model.
 
@@ -897,17 +1036,22 @@ class _Vectorizer:
 
         Arguments:
             `model`
-                The model to use. Defaults to `None`. If `None`, the default model is used.
+                The model to use. Defaults to `None`, which uses the server-defined default.
             `truncate`
-                The truncation strategy to use. Defaults to `None`. If `None`, the default truncation strategy is used.
+                The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
             `vectorize_class_name`
                 Whether to vectorize the class name. Defaults to `True`.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             `pydantic.ValidationError` if `model` or `truncate` are not valid values from the `CohereModel` and `CohereTruncate` types.
         """
         return _Text2VecCohereConfig(
-            model=model, truncate=truncate, vectorizeClassName=vectorize_class_name
+            baseURL=base_url,
+            model=model,
+            truncate=truncate,
+            vectorizeClassName=vectorize_class_name,
         )
 
     @staticmethod
@@ -933,7 +1077,7 @@ class _Vectorizer:
         model: Optional[str] = None,
         passage_model: Optional[str] = None,
         query_model: Optional[str] = None,
-        endpoint_url: Optional[str] = None,
+        endpoint_url: Optional[AnyHttpUrl] = None,
         wait_for_model: Optional[bool] = None,
         use_gpu: Optional[bool] = None,
         use_cache: Optional[bool] = None,
@@ -946,19 +1090,19 @@ class _Vectorizer:
 
         Arguments:
             `model`
-                The model to use. Defaults to `None`.
+                The model to use. Defaults to `None`, which uses the server-defined default.
             `passage_model`
-                The passage model to use. Defaults to `None`.
+                The passage model to use. Defaults to `None`, which uses the server-defined default.
             `query_model`
-                The query model to use. Defaults to `None`.
+                The query model to use. Defaults to `None`, which uses the server-defined default.
             `endpoint_url`
-                The endpoint URL to use. Defaults to `None`.
+                The endpoint URL to use. Defaults to `None`, which uses the server-defined default.
             `wait_for_model`
-                Whether to wait for the model to be loaded. Defaults to `None`.
+                Whether to wait for the model to be loaded. Defaults to `None`, which uses the server-defined default.
             `use_gpu`
-                Whether to use the GPU. Defaults to `None`.
+                Whether to use the GPU. Defaults to `None`, which uses the server-defined default.
             `use_cache`
-                Whether to use the cache. Defaults to `None`.
+                Whether to use the cache. Defaults to `None`, which uses the server-defined default.
             `vectorize_class_name`
                 Whether to vectorize the class name. Defaults to `True`.
 
@@ -984,6 +1128,7 @@ class _Vectorizer:
         model_version: Optional[str] = None,
         type_: Optional[OpenAIType] = None,
         vectorize_class_name: bool = True,
+        base_url: Optional[AnyHttpUrl] = None,
     ) -> _VectorizerConfig:
         """Create a `Text2VecOpenAIConfig` object for use when vectorizing using the `text2vec-openai` model.
 
@@ -992,18 +1137,21 @@ class _Vectorizer:
 
         Arguments:
             `model`
-                The model to use. Defaults to `None`. If `None`, the default model is used.
+                The model to use. Defaults to `None`, which uses the server-defined default.
             `model_version`
-                The model version to use. Defaults to `None`.
+                The model version to use. Defaults to `None`, which uses the server-defined default.
             `type_`
-                The type of model to use. Defaults to `None`. If `None`, the default type is used.
+                The type of model to use. Defaults to `None`, which uses the server-defined default.
             `vectorize_class_name`
                 Whether to vectorize the class name. Defaults to `True`.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             `pydantic.ValidationError` if `model` or `type_` are not valid values from the `OpenAIModel` and `OpenAIType` types.
         """
         return _Text2VecOpenAIConfig(
+            baseURL=base_url,
             model=model,
             modelVersion=model_version,
             type_=type_,
@@ -1026,9 +1174,9 @@ class _Vectorizer:
             `project_id`
                 The project ID to use, REQUIRED.
             `api_endpoint`
-                The API endpoint to use. Defaults to `None`.
+                The API endpoint to use. Defaults to `None`, which uses the server-defined default.
             `model_id`
-                The model ID to use. Defaults to `None`.
+                The model ID to use. Defaults to `None`, which uses the server-defined default.
             `vectorize_class_name`
                 Whether to vectorize the class name. Defaults to `True`.
 
