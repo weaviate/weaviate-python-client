@@ -76,10 +76,11 @@ class MetadataQuery(_WeaviateInput):
     is_consistent: bool = Field(default=False)
 
     @classmethod
-    def _full(cls) -> "MetadataQuery":
-        """Return a MetadataQuery with all fields set to True except for vector."""
+    def _full(cls, include_vector: bool = False) -> "MetadataQuery":
+        """Return a MetadataQuery with all fields set to True."""
         return cls(
             uuid=True,
+            vector=include_vector,
             creation_time_unix=True,
             last_update_time_unix=True,
             distance=True,

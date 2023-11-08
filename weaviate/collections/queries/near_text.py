@@ -103,7 +103,7 @@ class _NearTextQuery(Generic[Properties], _Grpc[Properties]):
             A `_QueryReturn` object containing the results of the query.
 
         Raises:
-            `weaviate.exceptions.WeaviateGrpcError`:
+            `weaviate.exceptions.WeaviateQueryException`:
                 If the request to the Weaviate server fails.
         """
         ret_properties, ret_metadata = self._parse_return_properties(return_properties)
@@ -217,7 +217,7 @@ class _NearTextGenerate(Generic[Properties], _Grpc[Properties]):
             A `_GenerativeReturn` object that includes the searched objects with per-object generated results and group generated results.
 
         Raises:
-            `weaviate.exceptions.WeaviateGrpcError`:
+            `weaviate.exceptions.WeaviateQueryException`:
                 If the request to the Weaviate server fails.
         """
         ret_properties, ret_metadata = self._parse_return_properties(return_properties)
@@ -336,7 +336,7 @@ class _NearTextGroupBy(Generic[Properties], _Grpc[Properties]):
             A `_GroupByReturn` object that includes the searched objects grouped by the specified property.
 
         Raises:
-            `weaviate.exceptions.WeaviateGrpcError`:
+            `weaviate.exceptions.WeaviateQueryException`:
                 If the request to the Weaviate server fails.
         """
         ret_properties, ret_metadata = self._parse_return_properties(return_properties)

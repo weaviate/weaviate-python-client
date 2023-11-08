@@ -92,7 +92,7 @@ class _NearVectorQuery(Generic[Properties], _Grpc[Properties]):
             A `_QueryReturn` object that includes the searched objects.
 
         Raises:
-            `weaviate.exceptions.WeaviateGrpcError`:
+            `weaviate.exceptions.WeaviateQueryException`:
                 If the request to the Weaviate server fails.
         """
         ret_properties, ret_metadata = self._parse_return_properties(return_properties)
@@ -191,7 +191,7 @@ class _NearVectorGenerate(Generic[Properties], _Grpc[Properties]):
             A `_GenerativeReturn` object that includes the searched objects with per-object generated results and group generated results.
 
         Raises:
-            `weaviate.exceptions.WeaviateGrpcError`:
+            `weaviate.exceptions.WeaviateQueryException`:
                 If the request to the Weaviate server fails.
         """
         ret_properties, ret_metadata = self._parse_return_properties(return_properties)
@@ -295,7 +295,7 @@ class _NearVectorGroupBy(Generic[Properties], _Grpc[Properties]):
             A `_GroupByReturn` object that includes the searched objects grouped by the specified property.
 
         Raises:
-            `weaviate.exceptions.WeaviateGrpcError`:
+            `weaviate.exceptions.WeaviateQueryException`:
                 If the request to the Weaviate server fails.
         """
         ret_properties, ret_metadata = self._parse_return_properties(return_properties)

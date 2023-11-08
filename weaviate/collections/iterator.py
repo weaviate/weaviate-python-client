@@ -1,8 +1,7 @@
 from typing import Callable, Generic, Iterable, Iterator, List, Optional, TypeVar
 from uuid import UUID
 
-from weaviate.collections.classes.grpc import MetadataQuery
-from weaviate.collections.classes.internal import _Object, ReturnProperties
+from weaviate.collections.classes.internal import _Object
 from weaviate.collections.classes.types import Properties
 
 
@@ -13,21 +12,9 @@ P = TypeVar("P")
 
 class _ObjectIterator(Generic[Properties], Iterable[_Object[Properties]]):
     def __init__(
-        self,
-        fetch_objects_query: Callable[
-            [int, Optional[UUID], Optional[MetadataQuery]], List[_Object[Properties]]
-        ],
-        return_metadata: Optional[MetadataQuery],
-        return_properties: Optional[ReturnProperties[Properties]],
+        self, fetch_objects_query: Callable[[int, Optional[UUID]], List[_Object[Properties]]]
     ) -> None:
         self.__query = fetch_objects_query
-
-        self.__meta = return_metadata
-
-        if self.__meta is not None:
-            self.__meta.uuid = True
-        elif return_properties is not None:
-            self.__meta = MetadataQuery(uuid=True)
 
         self.__iter_object_cache: List[_Object[Properties]] = []
         self.__iter_object_last_uuid: Optional[UUID] = None
@@ -42,7 +29,6 @@ class _ObjectIterator(Generic[Properties], Iterable[_Object[Properties]]):
             objects = self.__query(
                 ITERATOR_CACHE_SIZE,
                 self.__iter_object_last_uuid,
-                self.__meta,
             )
             self.__iter_object_cache = objects
             if len(self.__iter_object_cache) == 0:

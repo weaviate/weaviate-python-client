@@ -1608,8 +1608,8 @@ class Data(TypedDict):
 
 
 @pytest.mark.parametrize(
-    "return_metadata",
-    [None, MetadataQuery(creation_time_unix=True)],
+    "include_vector",
+    [False, True],
 )
 @pytest.mark.parametrize(
     "return_properties",
@@ -1617,7 +1617,7 @@ class Data(TypedDict):
 )
 def test_iterator_arguments(
     client: weaviate.WeaviateClient,
-    return_metadata: Optional[MetadataQuery],
+    include_vector: bool,
     return_properties: Optional[Union[PROPERTIES, Type[Properties]]],
 ):
     name = "TestIteratorTypedDict"
@@ -1625,38 +1625,47 @@ def test_iterator_arguments(
 
     collection = client.collections.create(
         name=name,
-        properties=[Property(name="data", data_type=DataType.INT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="data", data_type=DataType.INT),
+            Property(name="text", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(),
     )
 
-    collection.data.insert_many([DataObject(properties={"data": i}) for i in range(10)])
-
-    iter_ = collection.iterator(
-        return_metadata=return_metadata, return_properties=return_properties
+    collection.data.insert_many(
+        [DataObject(properties={"data": i, "text": "hi"}) for i in range(10)]
     )
+
+    iter_ = collection.iterator(return_properties, include_vector)
 
     # Expect everything back
-    if return_metadata is None and return_properties is None:
+    if include_vector and return_properties is None:
         all_data: list[int] = sorted([int(obj.properties["data"]) for obj in iter_])
         assert all_data == list(range(10))
+        assert all("text" in obj.properties for obj in iter_)
+        assert all(obj.metadata.vector is not None for obj in iter_)
         assert all(obj.metadata.creation_time_unix is not None for obj in iter_)
         assert all(obj.metadata.score is not None for obj in iter_)
-    # Expect only metadata with only creation_time_unix
-    elif return_metadata is not None and return_properties is None:
-        assert all(obj.properties == {} for obj in iter_)
-        assert all(obj.metadata.creation_time_unix is not None for obj in iter_)
-        assert all(obj.metadata.score is None for obj in iter_)
-    # Expect only properties
-    elif return_metadata is None and return_properties is not None:
+    # Expect everything back except vector
+    elif not include_vector and return_properties is None:
         all_data: list[int] = sorted([int(obj.properties["data"]) for obj in iter_])
         assert all_data == list(range(10))
-        assert all(obj.metadata.creation_time_unix is None for obj in iter_)
+        assert all("text" in obj.properties for obj in iter_)
+        assert all(obj.metadata.vector is None for obj in iter_)
+        assert all(obj.metadata.creation_time_unix is not None for obj in iter_)
+        assert all(obj.metadata.score is not None for obj in iter_)
+    # Expect specified properties and vector
+    elif include_vector and return_properties is not None:
+        all_data: list[int] = sorted([int(obj.properties["data"]) for obj in iter_])
+        assert all_data == list(range(10))
+        assert all("text" not in obj.properties for obj in iter_)
+        assert all(obj.metadata.vector is not None for obj in iter_)
     # Expect properties and metadata with only creation_time_unix
-    else:
+    elif not include_vector and return_properties is not None:
         all_data: list[int] = sorted([int(obj.properties["data"]) for obj in iter_])
         assert all_data == list(range(10))
-        assert all(obj.metadata.creation_time_unix is not None for obj in iter_)
-        assert all(obj.metadata.score is None for obj in iter_)
+        assert all("text" not in obj.properties for obj in iter_)
+        assert all(obj.metadata.vector is None for obj in iter_)
 
 
 def test_iterator_dict_hint(client: weaviate.WeaviateClient):

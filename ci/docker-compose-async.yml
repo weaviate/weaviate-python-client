@@ -9,7 +9,7 @@ services:
       - '8090'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-undo-premature-optimisation-of-grpc-message-parsing-e82a2e8
+    image: semitechnologies/weaviate:preview-refactor-implicit-grpc-message-parsing-821fe77
     ports:
       - "8090:8090"
       - "50060:50051"
