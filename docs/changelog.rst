@@ -1,5 +1,18 @@
 Changelog
 =========
+Version v4.1.b2
+--------------
+This patch beta version incldues:
+
+- Correctly exporting ``weaviate.collections.classes.aggregate.Metrics`` from ``weaviate.classes``
+
+Version v4.1.b1
+--------------
+This patch beta version incldues:
+
+- Bumping the default embedded version to Weaviate latest
+- Adding the ``version`` argument to ``weaviate.connect_to_embedded`` to allow users to specify the embedded version
+
 Version v4.1.b0
 --------------
 This minor beta version includes:

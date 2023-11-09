@@ -1,3 +1,4 @@
+from weaviate.collections.classes.aggregate import Metrics
 from weaviate.collections.classes.config import (
     Configure,
     Reconfigure,
@@ -35,6 +36,7 @@ __all__ = [
     "FromReference",
     "FromReferenceMultiTarget",
     "MetadataQuery",
+    "Metrics",
     "Multi2VecField",
     "Nested",
     "Property",
