@@ -111,7 +111,7 @@ class FromReference(_WeaviateInput):
 
     link_on: str
     return_properties: Optional["PROPERTIES"] = Field(default=None)
-    return_metadata: Optional[MetadataQuery] = Field(default=None)
+    return_metadata: Optional[MetadataQuery] = Field(default_factory=MetadataQuery._full)
 
     def __hash__(self) -> int:  # for set
         return hash(str(self))

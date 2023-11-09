@@ -26,7 +26,7 @@ from weaviate.collections.data import _DataCollection
 
 from weaviate.collections.grpc.query import SearchResult
 
-from weaviate.collections.queries.base import _Grpc
+from weaviate.collections.queries.base import _Grpc, METADATA_QUERY_DEFAULT
 from weaviate.collections.queries.bm25 import _BM25Generate, _BM25Query
 from weaviate.collections.queries.fetch_objects import _FetchObjectsGenerate, _FetchObjectsQuery
 from weaviate.collections.queries.hybrid import _HybridGenerate, _HybridQuery
@@ -194,7 +194,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc[Any]):
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object[Model]]:
         return [
@@ -221,7 +221,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc[Any]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object[Model]]:
         return [
@@ -249,7 +249,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc[Any]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object[Model]]:
         return [
@@ -274,7 +274,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc[Any]):
         distance: Optional[float] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object[Model]]:
         return [
@@ -299,7 +299,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc[Any]):
         distance: Optional[float] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object[Model]]:
         return [
@@ -326,7 +326,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc[Any]):
         move_away: Optional[Move] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object[Model]]:
         return [
@@ -353,7 +353,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc[Any]):
         distance: Optional[float] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object[Model]]:
         return [
@@ -378,7 +378,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc[Any]):
         distance: Optional[float] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object[Model]]:
         return [
@@ -403,7 +403,7 @@ class _GrpcCollectionModel(Generic[Model], _Grpc[Any]):
         distance: Optional[float] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[PROPERTIES] = None,
     ) -> List[_Object[Model]]:
         return [

@@ -17,7 +17,7 @@ from weaviate.collections.classes.internal import (
     ReturnProperties,
 )
 from weaviate.collections.classes.types import Properties, TProperties
-from weaviate.collections.queries.base import _Grpc
+from weaviate.collections.queries.base import _Grpc, METADATA_QUERY_DEFAULT
 from weaviate.types import UUID
 
 
@@ -30,7 +30,7 @@ class _FetchObjectsQuery(Generic[Properties], _Grpc[Properties]):
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
         sort: Optional[Union[Sort, List[Sort]]] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         *,
         return_properties: Optional[PROPERTIES] = None,
     ) -> _QueryReturn[Properties]:
@@ -44,7 +44,7 @@ class _FetchObjectsQuery(Generic[Properties], _Grpc[Properties]):
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
         sort: Optional[Union[Sort, List[Sort]]] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         *,
         return_properties: Type[TProperties],
     ) -> _QueryReturn[TProperties]:
@@ -57,7 +57,7 @@ class _FetchObjectsQuery(Generic[Properties], _Grpc[Properties]):
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
         sort: Optional[Union[Sort, List[Sort]]] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
     ) -> QueryReturn[Properties, TProperties]:
         """Retrieve the objects in this collection without any search.
@@ -74,7 +74,7 @@ class _FetchObjectsQuery(Generic[Properties], _Grpc[Properties]):
             `sort`
                 The sorting to apply to the retrieval.
             `return_metadata`
-                The metadata to return for each object.
+                The metadata to return for each object, defaults to `MetadataQuery._full()` returning all metadata except for the vector.
             `return_properties`
                 The properties to return for each object.
 
@@ -113,7 +113,7 @@ class _FetchObjectsGenerate(Generic[Properties], _Grpc[Properties]):
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
         sort: Optional[Union[Sort, List[Sort]]] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[PROPERTIES] = None,
     ) -> _GenerativeReturn[Properties]:
         ...
@@ -129,7 +129,7 @@ class _FetchObjectsGenerate(Generic[Properties], _Grpc[Properties]):
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
         sort: Optional[Union[Sort, List[Sort]]] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         *,
         return_properties: Type[TProperties],
     ) -> _GenerativeReturn[TProperties]:
@@ -145,7 +145,7 @@ class _FetchObjectsGenerate(Generic[Properties], _Grpc[Properties]):
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
         sort: Optional[Union[Sort, List[Sort]]] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
     ) -> GenerativeReturn[Properties, TProperties]:
         """Perform retrieval-augmented generation (RaG) on the results of a simple get query of objects in this collection.
@@ -168,7 +168,7 @@ class _FetchObjectsGenerate(Generic[Properties], _Grpc[Properties]):
             `sort`
                 The sorting to apply to the retrieval.
             `return_metadata`
-                The metadata to return for each object.
+                The metadata to return for each object, defaults to `MetadataQuery._full()` returning all metadata except for the vector.
             `return_properties`
                 The properties to return for each object.
 

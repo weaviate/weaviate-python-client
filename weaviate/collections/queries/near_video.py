@@ -21,7 +21,7 @@ from weaviate.collections.classes.internal import (
     ReturnProperties,
 )
 from weaviate.collections.classes.types import Properties, TProperties
-from weaviate.collections.queries.base import _Grpc
+from weaviate.collections.queries.base import _Grpc, METADATA_QUERY_DEFAULT
 
 
 class _NearVideoQuery(Generic[Properties], _Grpc[Properties]):
@@ -34,7 +34,7 @@ class _NearVideoQuery(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[PROPERTIES] = None,
     ) -> _QueryReturn[Properties]:
         ...
@@ -48,7 +48,7 @@ class _NearVideoQuery(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         *,
         return_properties: Type[TProperties],
     ) -> _QueryReturn[TProperties]:
@@ -62,7 +62,7 @@ class _NearVideoQuery(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
     ) -> QueryReturn[Properties, TProperties]:
         """Search for objects by video in this collection using a video-capable vectorisation module and vector-based similarity search.
@@ -86,7 +86,7 @@ class _NearVideoQuery(Generic[Properties], _Grpc[Properties]):
             `filters`
                 The filters to apply to the search.
             `return_metadata`
-                The metadata to return for each object.
+                The metadata to return for each object, defaults to `MetadataQuery._full()` returning all metadata except for the vector.
             `return_properties`
                 The properties to return for each object.
 
@@ -124,7 +124,7 @@ class _NearVideoGenerate(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[PROPERTIES] = None,
     ) -> _GenerativeReturn[Properties]:
         ...
@@ -141,7 +141,7 @@ class _NearVideoGenerate(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         *,
         return_properties: Type[TProperties],
     ) -> _GenerativeReturn[TProperties]:
@@ -158,7 +158,7 @@ class _NearVideoGenerate(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
     ) -> GenerativeReturn[Properties, TProperties]:
         """Perform retrieval-augmented generation (RaG) on the results of a by-video object search in this collection using the video-capable vectorisation module and vector-based similarity search.
@@ -185,7 +185,7 @@ class _NearVideoGenerate(Generic[Properties], _Grpc[Properties]):
             `filters`
                 The filters to apply to the search.
             `return_metadata`
-                The metadata to return for each object.
+                The metadata to return for each object, defaults to `MetadataQuery._full()` returning all metadata except for the vector.
             `return_properties`
                 The properties to return for each object.
 
@@ -228,7 +228,7 @@ class _NearVideoGroupBy(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[PROPERTIES] = None,
     ) -> _GroupByReturn[Properties]:
         ...
@@ -245,7 +245,7 @@ class _NearVideoGroupBy(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         *,
         return_properties: Type[TProperties],
     ) -> _GroupByReturn[TProperties]:
@@ -262,7 +262,7 @@ class _NearVideoGroupBy(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
     ) -> GroupByReturn[Properties, TProperties]:
         """Group the results of a by-video object search in this collection using the video-capable vectorisation module and vector-based similarity search.
@@ -289,7 +289,7 @@ class _NearVideoGroupBy(Generic[Properties], _Grpc[Properties]):
             `filters`
                 The filters to apply to the search.
             `return_metadata`
-                The metadata to return for each object.
+                The metadata to return for each object, defaults to `MetadataQuery._full()` returning all metadata except for the vector.
             `return_properties`
                 The properties to return for each object.
 

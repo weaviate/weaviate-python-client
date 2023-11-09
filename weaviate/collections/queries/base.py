@@ -63,6 +63,8 @@ from weaviate.proto.v1 import base_pb2, search_get_pb2
 
 T = TypeVar("T")
 
+METADATA_QUERY_DEFAULT: MetadataQuery = MetadataQuery._full()
+
 
 class _Grpc(Generic[Properties]):
     def __init__(

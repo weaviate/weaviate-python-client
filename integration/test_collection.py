@@ -1067,10 +1067,10 @@ def test_return_properties_and_return_metadata_combos(
         assert objects[0].properties["name"] == "Graham"
 
     if return_metadata is None:
-        assert objects[0].metadata.uuid is not None
-        assert objects[0].metadata.score is not None
-        assert objects[0].metadata.last_update_time_unix is not None
-        assert objects[0].metadata.creation_time_unix is not None
+        assert objects[0].metadata.uuid is None
+        assert objects[0].metadata.score is None
+        assert objects[0].metadata.last_update_time_unix is None
+        assert objects[0].metadata.creation_time_unix is None
         assert objects[0].metadata.vector is None
     elif return_metadata == MetadataQuery(uuid=True):
         assert objects[0].metadata.uuid is not None
