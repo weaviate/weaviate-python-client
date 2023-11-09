@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-refactor-implicit-grpc-message-parsing-2a16160
+    image: semitechnologies/weaviate:preview-refactor-implicit-grpc-message-parsing-4508567
     ports:
       - "8080:8080"
       - "50051:50051"

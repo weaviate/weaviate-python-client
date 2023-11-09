@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import List, Optional
 
 import pytest
 
@@ -49,7 +49,7 @@ def test_generative_search_single(client: weaviate.WeaviateClient, parameter: st
     )
 
     res = collection.generate.fetch_objects(
-        single_prompt=f"is it good or bad based on {{{parameter}}}? Just answer with yes or no without punctuation"
+        single_prompt=f"is it good or bad based on {{{parameter}}}? Just answer with yes or no without punctuation",
     )
     for obj in res.objects:
         assert obj.generated == answer
@@ -161,7 +161,10 @@ def test_fetch_objects_generate_search_grouped_specified_prop(client: weaviate.W
     assert res.generated == "apples bananas"
 
 
-def test_fetch_objects_generate_with_everything(client: weaviate.WeaviateClient):
+@pytest.mark.parametrize("return_metadata", [None, MetadataQuery(), MetadataQuery._full()])
+def test_fetch_objects_generate_with_everything(
+    client: weaviate.WeaviateClient, return_metadata: Optional[MetadataQuery]
+):
     name = "TestGetGenerativeSearchOpenAI"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -194,10 +197,18 @@ def test_fetch_objects_generate_with_everything(client: weaviate.WeaviateClient)
     res = collection.generate.fetch_objects(
         single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
         grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
+        return_metadata=return_metadata,
     )
     assert res.generated == "Teddy cats"
     for obj in res.objects:
         assert obj.generated == "Yes"
+
+    if return_metadata is None:
+        assert res.objects[0].metadata.uuid is None
+    if return_metadata == MetadataQuery():
+        assert res.objects[0].metadata.uuid is None
+    if return_metadata == MetadataQuery._full():
+        assert res.objects[0].metadata.uuid is not None
 
 
 def test_bm25_generate_with_everything(client: weaviate.WeaviateClient):
