@@ -533,6 +533,7 @@ class Metrics(
         maximum: bool = False,
         mean: bool = False,
         median: bool = False,
+        minimum: bool = False,
         mode: bool = False,
         sum_: bool = False,
     ) -> _MetricsInt:
@@ -542,6 +543,7 @@ class Metrics(
             maximum=maximum,
             mean=mean,
             median=median,
+            minimum=minimum,
             mode=mode,
             sum_=sum_,
         )
@@ -552,6 +554,7 @@ class Metrics(
         maximum: bool = False,
         mean: bool = False,
         median: bool = False,
+        minimum: bool = False,
         mode: bool = False,
         sum_: bool = False,
     ) -> _MetricsFloat:
@@ -561,6 +564,7 @@ class Metrics(
             maximum=maximum,
             mean=mean,
             median=median,
+            minimum=minimum,
             mode=mode,
             sum_=sum_,
         )
