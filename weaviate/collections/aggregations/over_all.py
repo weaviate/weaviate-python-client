@@ -36,6 +36,11 @@ class _OverAll(_Aggregate):
             `weaviate.exceptions.WeaviateQueryException`:
                 If an error occurs while performing the query against Weaviate.
         """
+        return_metrics = (
+            return_metrics
+            if (return_metrics is None or isinstance(return_metrics, list))
+            else [return_metrics]
+        )
         builder = self._base(return_metrics, filters, limit, total_count)
         res = self._do(builder)
         return self._to_aggregate_result(res, return_metrics)
@@ -71,6 +76,11 @@ class _OverAllGroupBy(_Aggregate):
             `weaviate.exceptions.WeaviateQueryException`:
                 If an error occurs while performing the query against Weaviate.
         """
+        return_metrics = (
+            return_metrics
+            if (return_metrics is None or isinstance(return_metrics, list))
+            else [return_metrics]
+        )
         builder = (
             self._base(return_metrics, filters, limit, total_count)
             .with_group_by_filter([group_by])

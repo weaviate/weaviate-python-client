@@ -48,9 +48,7 @@ def test_simple_aggregation(client: weaviate.WeaviateClient):
         name=name, properties=[Property(name="text", data_type=DataType.TEXT)]
     )
     collection.data.insert({"text": "some text"})
-    res = collection.aggregate.over_all(
-        return_metrics=[Metrics("text", DataType.TEXT).returning(count=True)]
-    )
+    res = collection.aggregate.over_all(return_metrics=[Metrics("text").text(count=True)])
     assert res.properties["text"].count == 1
 
 
@@ -94,9 +92,7 @@ def test_near_object_aggregation(client: weaviate.WeaviateClient, option: dict, 
     res = collection.aggregate.near_object(
         uuid,
         return_metrics=[
-            Metrics("text", DataType.TEXT).returning(
-                count=True, top_occurrences_count=True, top_occurrences_value=True
-            )
+            Metrics("text").text(count=True, top_occurrences_count=True, top_occurrences_value=True)
         ],
         **option,
     )
@@ -131,7 +127,7 @@ def test_near_object_missing_param(client: weaviate.WeaviateClient):
         collection.aggregate.near_object(
             uuid,
             return_metrics=[
-                Metrics("text", DataType.TEXT).returning(
+                Metrics("text").text(
                     count=True, top_occurrences_count=True, top_occurrences_value=True
                 )
             ],
@@ -169,9 +165,7 @@ def test_near_vector_aggregation(client: weaviate.WeaviateClient, option: dict, 
     res = collection.aggregate.near_vector(
         obj.metadata.vector,
         return_metrics=[
-            Metrics("text", DataType.TEXT).returning(
-                count=True, top_occurrences_count=True, top_occurrences_value=True
-            )
+            Metrics("text").text(count=True, top_occurrences_count=True, top_occurrences_value=True)
         ],
         **option,
     )
@@ -204,7 +198,7 @@ def test_near_vector_missing_param(client: weaviate.WeaviateClient):
         collection.aggregate.near_vector(
             obj.metadata.vector,
             return_metrics=[
-                Metrics("text", DataType.TEXT).returning(
+                Metrics("text").text(
                     count=True, top_occurrences_count=True, top_occurrences_value=True
                 )
             ],
@@ -241,9 +235,7 @@ def test_near_text_aggregation(client: weaviate.WeaviateClient, option: dict, ex
     res = collection.aggregate.near_text(
         text_1,
         return_metrics=[
-            Metrics("text", DataType.TEXT).returning(
-                count=True, top_occurrences_count=True, top_occurrences_value=True
-            )
+            Metrics("text").text(count=True, top_occurrences_count=True, top_occurrences_value=True)
         ],
         **option,
     )
@@ -276,7 +268,7 @@ def test_near_text_missing_param(client: weaviate.WeaviateClient):
         collection.aggregate.near_text(
             text_1,
             return_metrics=[
-                Metrics("text", DataType.TEXT).returning(
+                Metrics("text").text(
                     count=True, top_occurrences_count=True, top_occurrences_value=True
                 )
             ],
@@ -303,7 +295,7 @@ def test_near_image_aggregation(client: weaviate.WeaviateClient, option: dict):
     collection.data.insert({"image": file_encoder_b64(img_path), "rating": 9})
     res = collection.aggregate.near_image(
         img_path,
-        return_metrics=[Metrics("rating", DataType.INT).returning(count=True, maximum=True)],
+        return_metrics=[Metrics("rating").integer(count=True, maximum=True)],
         **option,
     )
     assert res.properties["rating"].count == 1
@@ -327,7 +319,7 @@ def test_near_image_missing_param(client: weaviate.WeaviateClient):
         collection.aggregate.near_image(
             img_path,
             return_metrics=[
-                Metrics("text", DataType.TEXT).returning(
+                Metrics("text").text(
                     count=True, top_occurrences_count=True, top_occurrences_value=True
                 )
             ],
@@ -354,8 +346,8 @@ def test_group_by_aggregation(client: weaviate.WeaviateClient):
     res = collection.aggregate_group_by.over_all(
         "text",
         return_metrics=[
-            Metrics("text", DataType.TEXT).returning(count=True),
-            Metrics("int", DataType.INT).returning(count=True),
+            Metrics("text").text(count=True),
+            Metrics("int").integer(count=True),
         ],
     )
     assert len(res) == 1
@@ -367,8 +359,8 @@ def test_group_by_aggregation(client: weaviate.WeaviateClient):
     res = collection.aggregate_group_by.over_all(
         "int",
         return_metrics=[
-            Metrics("text", DataType.TEXT).returning(count=True),
-            Metrics("int", DataType.INT).returning(count=True),
+            Metrics("text").text(count=True),
+            Metrics("int").integer(count=True),
         ],
     )
     assert len(res) == 2
@@ -386,16 +378,16 @@ def test_group_by_aggregation(client: weaviate.WeaviateClient):
 def test_mistake_in_usage(client: weaviate.WeaviateClient):
     collection = client.collections.get("TestMistakeInUsage")
     with pytest.raises(TypeError) as e:
-        collection.aggregate.over_all([Metrics("text", DataType.TEXT)])
+        collection.aggregate.over_all([Metrics("text")])
     assert (
         e.value.args[0]
-        == "One of the aggregations is an unexpected type: <class 'weaviate.collection.classes.aggregate.Metrics'>. Did you forget to append .returning() to .with_()?"
+        == "One of the aggregations is an unexpected type: <class 'weaviate.collection.classes.aggregate.Metrics'>. Did you forget to append a method call? E.g. .text(count=True)"
     )
     with pytest.raises(TypeError) as e:
-        collection.aggregate.over_all(aggregations=[Metrics("text", DataType.TEXT)])
+        collection.aggregate.over_all(aggregations=[Metrics("text")])
     assert (
         e.value.args[0]
-        == "One of the aggregations is an unexpected type: <class 'weaviate.collection.classes.aggregate.Metrics'>. Did you forget to append .returning() to .with_()?"
+        == "One of the aggregations is an unexpected type: <class 'weaviate.collection.classes.aggregate.Metrics'>. Did you forget to append a method call?  E.g. .text(count=True)"
     )
 
 
@@ -437,16 +429,16 @@ def test_all_available_aggregations(client: weaviate.WeaviateClient):
     )
     res = collection.aggregate.over_all(
         return_metrics=[
-            Metrics("text", DataType.TEXT).returning(count=True),
-            Metrics("texts", DataType.TEXT_ARRAY).returning(count=True),
-            Metrics("int", DataType.INT).returning(count=True),
-            Metrics("ints", DataType.INT_ARRAY).returning(count=True),
-            Metrics("float", DataType.NUMBER).returning(count=True),
-            Metrics("floats", DataType.NUMBER_ARRAY).returning(count=True),
-            Metrics("bool", DataType.BOOL).returning(count=True),
-            Metrics("bools", DataType.BOOL_ARRAY).returning(count=True),
-            Metrics("date", DataType.DATE).returning(count=True),
-            Metrics("dates", DataType.DATE_ARRAY).returning(count=True),
+            Metrics("text").text(count=True),
+            Metrics("texts").text(count=True),
+            Metrics("int").integer(count=True),
+            Metrics("ints").integer(count=True),
+            Metrics("float").number(count=True),
+            Metrics("floats").number(count=True),
+            Metrics("bool").boolean(count=True),
+            Metrics("bools").boolean(count=True),
+            Metrics("date").date_(count=True),
+            Metrics("dates").date_(count=True),
         ]
     )
     assert res.properties["text"].count == 1
