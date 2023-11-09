@@ -1,5 +1,14 @@
 Changelog
 =========
+Version v4.2.b0
+--------------
+This minor beta version includes:
+
+- A refactoring of the ``collection.aggregate`` namepsace methods
+- Change ``Metrics`` to no longer accept the ``type_`` argument
+- Instead, ``Metrics`` has multiple methods, e.g. ``.text()``, for each type of metric
+- Allow ``return_metrics`` to be a single metric object or a list of metric objects in each aggregate query
+
 Version v4.1.b2
 --------------
 This patch beta version incldues:
