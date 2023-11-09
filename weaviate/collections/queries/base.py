@@ -357,7 +357,13 @@ class _PropertiesParser:
         ):
             if isinstance(properties, str) and properties.startswith("__"):
                 self.__parse_reference_property_string(properties)
-                return list(self.__from_references_by_prop_name.values())
+                # if the user has not specified any return metadata for a reference, we want to return all
+                from_references: List[FromReference] = []
+                for ref in self.__from_references_by_prop_name.values():
+                    if ref.return_metadata is None:
+                        ref.return_metadata = MetadataQuery._full()
+                    from_references.append(ref)
+                return cast(PROPERTIES, from_references)
             else:
                 return properties
         elif isinstance(properties, list):
@@ -371,7 +377,13 @@ class _PropertiesParser:
                         self.__non_ref_properties.append(prop)
                 elif isinstance(prop, FromReference):
                     self.__from_references_by_prop_name[prop.link_on] = prop
-            return [*self.__non_ref_properties, *self.__from_references_by_prop_name.values()]
+            # if the user has not specified any return metadata for a reference, we want to return all
+            from_references = []
+            for ref in self.__from_references_by_prop_name.values():
+                if ref.return_metadata is None:
+                    ref.return_metadata = MetadataQuery._full()
+                from_references.append(ref)
+            return [*self.__non_ref_properties, *from_references]
         else:
             raise TypeError(
                 f"return_properties must be a list of strings and/or FromReferences, a string, or a FromReference but is {type(properties)}"
@@ -387,7 +399,9 @@ class _PropertiesParser:
             prop_name = match.group(1)
             existing_from_reference = self.__from_references_by_prop_name.get(prop_name)
             if existing_from_reference is None:
-                self.__from_references_by_prop_name[prop_name] = FromReference(link_on=prop_name)
+                self.__from_references_by_prop_name[prop_name] = FromReference(
+                    link_on=prop_name, return_properties=None, return_metadata=None
+                )
 
     def __parse_reference_property_string(self, ref_prop: str) -> None:
         match_ = re.search(r"__([^_]+)__([^_]+)__([\w_]+)", ref_prop)
