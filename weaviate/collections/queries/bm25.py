@@ -3,10 +3,7 @@ from typing import Generic, List, Optional, Type, overload
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import (
-    MetadataQuery,
-    PROPERTIES,
-)
+from weaviate.collections.classes.grpc import PROPERTIES, METADATA
 from weaviate.collections.classes.internal import (
     _GenerativeReturn,
     _QueryReturn,
@@ -28,7 +25,7 @@ class _BM25Query(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
+        return_metadata: Optional[METADATA] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[PROPERTIES] = None,
     ) -> _QueryReturn[Properties]:
         ...
@@ -41,7 +38,7 @@ class _BM25Query(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
+        return_metadata: Optional[METADATA] = METADATA_QUERY_DEFAULT,
         *,
         return_properties: Type[TProperties]
     ) -> _QueryReturn[TProperties]:
@@ -54,7 +51,7 @@ class _BM25Query(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
+        return_metadata: Optional[METADATA] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
     ) -> QueryReturn[Properties, TProperties]:
         """Search for objects in this collection using the keyword-based BM25 algorithm.
@@ -87,15 +84,14 @@ class _BM25Query(Generic[Properties], _Grpc[Properties]):
             `weaviate.exceptions.WeaviateQueryException`:
                 If the network connection to Weaviate fails.
         """
-        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().bm25(
             query=query,
             properties=query_properties,
             limit=limit,
             autocut=auto_limit,
             filters=filters,
-            return_metadata=return_metadata or ret_metadata,
-            return_properties=ret_properties,
+            return_metadata=self._parse_return_metadata(return_metadata),
+            return_properties=self._parse_return_properties(return_properties),
         )
         return self._result_to_query_return(res, return_properties)
 
@@ -112,7 +108,7 @@ class _BM25Generate(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
+        return_metadata: Optional[METADATA] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[PROPERTIES] = None,
     ) -> _GenerativeReturn[Properties]:
         ...
@@ -128,7 +124,7 @@ class _BM25Generate(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
+        return_metadata: Optional[METADATA] = METADATA_QUERY_DEFAULT,
         *,
         return_properties: Type[TProperties]
     ) -> _GenerativeReturn[TProperties]:
@@ -144,7 +140,7 @@ class _BM25Generate(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
+        return_metadata: Optional[METADATA] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
     ) -> GenerativeReturn[Properties, TProperties]:
         """Perform retrieval-augmented generation (RaG) on the results of a keyword-based BM25 search of objects in this collection.
@@ -183,15 +179,14 @@ class _BM25Generate(Generic[Properties], _Grpc[Properties]):
             `weaviate.exceptions.WeaviateQueryException`:
                 If the network connection to Weaviate fails.
         """
-        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().bm25(
             query=query,
             properties=query_properties,
             limit=limit,
             autocut=auto_limit,
             filters=filters,
-            return_metadata=return_metadata or ret_metadata,
-            return_properties=ret_properties,
+            return_metadata=self._parse_return_metadata(return_metadata),
+            return_properties=self._parse_return_properties(return_properties),
             generative=_Generative(
                 single=single_prompt,
                 grouped=grouped_task,

@@ -9,7 +9,6 @@ from typing import (
     Generic,
     List,
     Optional,
-    Tuple,
     Type,
     TypeVar,
     Union,
@@ -31,6 +30,7 @@ from weaviate.collections.classes.grpc import (
     FromReference,
     MetadataQuery,
     FromNested,
+    METADATA,
     PROPERTIES,
 )
 from weaviate.collections.classes.internal import (
@@ -320,7 +320,7 @@ class _Grpc(Generic[Properties]):
 
     def _parse_return_properties(
         self, return_properties: Optional[ReturnProperties[TProperties]]
-    ) -> Tuple[Optional[PROPERTIES], Optional[MetadataQuery]]:
+    ) -> Optional[PROPERTIES]:
         if (
             isinstance(return_properties, list)
             or isinstance(return_properties, str)
@@ -328,12 +328,22 @@ class _Grpc(Generic[Properties]):
             or isinstance(return_properties, FromNested)
             or (return_properties is None and self._type is None)
         ):
-            return self.__parse_properties(return_properties), None
+            return self.__parse_properties(return_properties)
         elif return_properties is None and self._type is not None:
-            return self.__parse_generic_properties(self._type), MetadataQuery._full()
+            return self.__parse_generic_properties(self._type)
         else:
             assert return_properties is not None
-            return self.__parse_generic_properties(return_properties), None
+            return self.__parse_generic_properties(return_properties)
+
+    def _parse_return_metadata(
+        self, return_metadata: Optional[METADATA]
+    ) -> Optional[MetadataQuery]:
+        if return_metadata is None:
+            return return_metadata
+        elif isinstance(return_metadata, list):
+            return MetadataQuery(**{str(prop): True for prop in return_metadata})
+        else:
+            return return_metadata
 
     @staticmethod
     def _parse_media(media: Union[str, pathlib.Path, io.BufferedReader]) -> str:

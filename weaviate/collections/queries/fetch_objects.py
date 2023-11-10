@@ -4,7 +4,7 @@ from weaviate.collections.classes.filters import (
     _Filters,
 )
 from weaviate.collections.classes.grpc import (
-    MetadataQuery,
+    METADATA,
     PROPERTIES,
     Sort,
 )
@@ -30,7 +30,7 @@ class _FetchObjectsQuery(Generic[Properties], _Grpc[Properties]):
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
         sort: Optional[Union[Sort, List[Sort]]] = None,
-        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
+        return_metadata: Optional[METADATA] = METADATA_QUERY_DEFAULT,
         *,
         return_properties: Optional[PROPERTIES] = None,
     ) -> _QueryReturn[Properties]:
@@ -44,7 +44,7 @@ class _FetchObjectsQuery(Generic[Properties], _Grpc[Properties]):
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
         sort: Optional[Union[Sort, List[Sort]]] = None,
-        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
+        return_metadata: Optional[METADATA] = METADATA_QUERY_DEFAULT,
         *,
         return_properties: Type[TProperties],
     ) -> _QueryReturn[TProperties]:
@@ -57,7 +57,7 @@ class _FetchObjectsQuery(Generic[Properties], _Grpc[Properties]):
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
         sort: Optional[Union[Sort, List[Sort]]] = None,
-        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
+        return_metadata: Optional[METADATA] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
     ) -> QueryReturn[Properties, TProperties]:
         """Retrieve the objects in this collection without any search.
@@ -88,15 +88,14 @@ class _FetchObjectsQuery(Generic[Properties], _Grpc[Properties]):
             `weaviate.exceptions.WeaviateQueryException`:
                 If the network connection to Weaviate fails.
         """
-        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().get(
             limit=limit,
             offset=offset,
             after=after,
             filters=filters,
             sort=sort,
-            return_metadata=return_metadata or ret_metadata,
-            return_properties=ret_properties,
+            return_metadata=self._parse_return_metadata(return_metadata),
+            return_properties=self._parse_return_properties(return_properties),
         )
         return self._result_to_query_return(res, return_properties)
 
@@ -113,7 +112,7 @@ class _FetchObjectsGenerate(Generic[Properties], _Grpc[Properties]):
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
         sort: Optional[Union[Sort, List[Sort]]] = None,
-        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
+        return_metadata: Optional[METADATA] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[PROPERTIES] = None,
     ) -> _GenerativeReturn[Properties]:
         ...
@@ -129,7 +128,7 @@ class _FetchObjectsGenerate(Generic[Properties], _Grpc[Properties]):
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
         sort: Optional[Union[Sort, List[Sort]]] = None,
-        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
+        return_metadata: Optional[METADATA] = METADATA_QUERY_DEFAULT,
         *,
         return_properties: Type[TProperties],
     ) -> _GenerativeReturn[TProperties]:
@@ -145,7 +144,7 @@ class _FetchObjectsGenerate(Generic[Properties], _Grpc[Properties]):
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
         sort: Optional[Union[Sort, List[Sort]]] = None,
-        return_metadata: Optional[MetadataQuery] = METADATA_QUERY_DEFAULT,
+        return_metadata: Optional[METADATA] = METADATA_QUERY_DEFAULT,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
     ) -> GenerativeReturn[Properties, TProperties]:
         """Perform retrieval-augmented generation (RaG) on the results of a simple get query of objects in this collection.
@@ -182,15 +181,14 @@ class _FetchObjectsGenerate(Generic[Properties], _Grpc[Properties]):
             `weaviate.exceptions.WeaviateQueryException`:
                 If the network connection to Weaviate fails.
         """
-        ret_properties, ret_metadata = self._parse_return_properties(return_properties)
         res = self._query().get(
             limit=limit,
             offset=offset,
             after=after,
             filters=filters,
             sort=sort,
-            return_metadata=return_metadata or ret_metadata,
-            return_properties=ret_properties,
+            return_metadata=self._parse_return_metadata(return_metadata),
+            return_properties=self._parse_return_properties(return_properties),
             generative=_Generative(
                 single=single_prompt,
                 grouped=grouped_task,

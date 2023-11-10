@@ -1029,13 +1029,41 @@ def test_collection_config_get(client: weaviate.WeaviateClient):
 @pytest.mark.parametrize("return_properties", [None, [], ["name"]])
 @pytest.mark.parametrize(
     "return_metadata",
-    [None, MetadataQuery(uuid=True), MetadataQuery._full(), MetadataQuery._full(True)],
+    [
+        None,
+        ["uuid"],
+        MetadataQuery(uuid=True),
+        [
+            "uuid",
+            "creation_time_unix",
+            "last_update_time_unix",
+            "distance",
+            "certainty",
+            "score",
+            "explain_score",
+            "is_consistent",
+        ],
+        MetadataQuery._full(),
+        [
+            "uuid",
+            "vector",
+            "creation_time_unix",
+            "last_update_time_unix",
+            "distance",
+            "certainty",
+            "score",
+            "explain_score",
+            "is_consistent",
+        ],
+        MetadataQuery._full(True),
+    ],
 )
 def test_return_properties_and_return_metadata_combos(
     client: weaviate.WeaviateClient,
     return_properties: Optional[PROPERTIES],
     return_metadata: Optional[MetadataQuery],
 ):
+    client.collections.delete("TestReturnEverything")
     collection = client.collections.create(
         name="TestReturnEverything",
         vectorizer_config=Configure.Vectorizer.none(),
@@ -1072,7 +1100,7 @@ def test_return_properties_and_return_metadata_combos(
         assert objects[0].metadata.last_update_time_unix is None
         assert objects[0].metadata.creation_time_unix is None
         assert objects[0].metadata.vector is None
-    elif return_metadata == MetadataQuery(uuid=True):
+    elif return_metadata == ["uuid"] or return_metadata == MetadataQuery(uuid=True):
         assert objects[0].metadata.uuid is not None
         assert objects[0].metadata.score is None
         assert objects[0].metadata.last_update_time_unix is None
@@ -1090,8 +1118,6 @@ def test_return_properties_and_return_metadata_combos(
         assert objects[0].metadata.last_update_time_unix is not None
         assert objects[0].metadata.creation_time_unix is not None
         assert objects[0].metadata.vector is not None
-
-    client.collections.delete("TestReturnEverything")
 
 
 @pytest.mark.parametrize("hours,minutes,sign", [(0, 0, 1), (1, 20, -1), (2, 0, 1), (3, 40, -1)])

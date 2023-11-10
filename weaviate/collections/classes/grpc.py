@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Literal, Optional, Union
 
 from pydantic import Field
 
@@ -89,6 +89,24 @@ class MetadataQuery(_WeaviateInput):
             explain_score=True,
             is_consistent=True,
         )
+
+
+METADATA = Union[
+    List[
+        Literal[
+            "uuid",
+            "vector",
+            "creation_time_unix",
+            "last_update_time_unix",
+            "distance",
+            "certainty",
+            "score",
+            "explain_score",
+            "is_consistent",
+        ]
+    ],
+    MetadataQuery,
+]
 
 
 class Generate(_WeaviateInput):
