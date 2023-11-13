@@ -52,10 +52,13 @@ def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionCo
             schema["vectorizer"], None
         )
         assert vec_config is not None
-        vectorizer_config = _VectorizerConfig(
-            vectorize_class_name=vec_config.pop("vectorizeClassName"),
-            model_specific_options=vec_config,
-        )
+        if vec_config == {}:
+            vectorizer_config = None
+        else:
+            vectorizer_config = _VectorizerConfig(
+                vectorize_class_name=vec_config.pop("vectorizeClassName"),
+                model_specific_options=vec_config,
+            )
     else:
         vectorizer_config = None
 
@@ -106,10 +109,13 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
             schema["vectorizer"], None
         )
         assert vec_config is not None
-        vectorizer_config = _VectorizerConfig(
-            vectorize_class_name=vec_config.pop("vectorizeClassName"),
-            model_specific_options=vec_config,
-        )
+        if vec_config == {}:
+            vectorizer_config = None
+        else:
+            vectorizer_config = _VectorizerConfig(
+                vectorize_class_name=vec_config.pop("vectorizeClassName"),
+                model_specific_options=vec_config,
+            )
     else:
         vectorizer_config = None
 
