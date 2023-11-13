@@ -1451,7 +1451,9 @@ class _CollectionConfig:
 class _CollectionConfigSimple:
     name: str
     description: Optional[str]
+    generative_config: Optional[_GenerativeConfig]
     properties: List[_Property]
+    vectorizer_config: Optional[_VectorizerConfig]
     vectorizer: Vectorizer
 
 

@@ -47,9 +47,30 @@ def _property_data_type_from_weaviate_data_type(
 
 
 def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionConfigSimple:
+    if schema["vectorizer"] != "none":
+        vec_config: Optional[Dict[str, Any]] = schema["moduleConfig"].pop(
+            schema["vectorizer"], None
+        )
+        assert vec_config is not None
+        vectorizer_config = _VectorizerConfig(
+            vectorize_class_name=vec_config.pop("vectorizeClassName"),
+            model_specific_options=vec_config,
+        )
+    else:
+        vectorizer_config = None
+
+    if len(generators := list(schema.get("moduleConfig", {}).keys())) == 1:
+        generative_config = _GenerativeConfig(
+            generator=GenerativeSearches(generators[0]),
+            model_specific_options=schema["moduleConfig"][generators[0]],
+        )
+    else:
+        generative_config = None
+
     return _CollectionConfigSimple(
         name=schema["class"],
         description=schema.get("description"),
+        generative_config=generative_config,
         properties=[
             _Property(
                 data_type=_property_data_type_from_weaviate_data_type(prop["dataType"]),
@@ -74,13 +95,16 @@ def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionCo
         ]
         if schema.get("properties") is not None
         else [],
+        vectorizer_config=vectorizer_config,
         vectorizer=Vectorizer(schema["vectorizer"]),
     )
 
 
 def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
     if schema["vectorizer"] != "none":
-        vec_config: Optional[dict] = schema["moduleConfig"].pop(schema["vectorizer"], None)
+        vec_config: Optional[Dict[str, Any]] = schema["moduleConfig"].pop(
+            schema["vectorizer"], None
+        )
         assert vec_config is not None
         vectorizer_config = _VectorizerConfig(
             vectorize_class_name=vec_config.pop("vectorizeClassName"),

@@ -105,6 +105,10 @@ def test_collection_vectorizer_config(client: weaviate.WeaviateClient):
     assert config.properties[1].vectorizer_config.skip is True
     assert config.properties[1].vectorizer_config.vectorize_property_name is False
 
+    assert config.vectorizer_config is not None
+    assert config.vectorizer_config.vectorize_class_name is False
+    assert config.vectorizer_config.model_specific_options is None
+
     client.collections.delete("TestCollectionVectorizerConfig")
 
 
