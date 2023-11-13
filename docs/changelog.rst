@@ -1,5 +1,15 @@
 Changelog
 =========
+Version v4.2.b1
+--------------
+This patch beta version includes:
+
+- Bug fix of the default ``alpha`` argument to ``query.hybrid``
+- Extend the ``Configure.Vectorizer.multi2vec_`` methods to accept lists of strings
+- Correctly export ``StopwordsPreset`` from ``weaviate.classes``
+- Add ``generative_config`` and ``vectorizer_config`` to ``_CollectionConfig``
+- Add ``skip_vectorization`` and ``vectorize_class_name`` to ``_PropertyConfig``
+
 Version v4.2.b0
 --------------
 This minor beta version includes:
