@@ -107,7 +107,7 @@ def test_collection_vectorizer_config(client: weaviate.WeaviateClient):
 
     assert config.vectorizer_config is not None
     assert config.vectorizer_config.vectorize_class_name is False
-    assert config.vectorizer_config.model_specific_options is None
+    assert config.vectorizer_config.model is None
 
     client.collections.delete("TestCollectionVectorizerConfig")
 
@@ -128,7 +128,7 @@ def test_collection_generative_config(generative_client: weaviate.WeaviateClient
 
     assert config.properties[0].vectorizer == "none"
     assert config.generative_config.generator == GenerativeSearches.OPENAI
-    assert config.generative_config.model_specific_options is not None
+    assert config.generative_config.model is not None
 
     generative_client.collections.delete("TestCollectionGenerativeConfig")
 
