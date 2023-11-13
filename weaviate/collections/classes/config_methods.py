@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 from weaviate.collections.classes.config import (
     _CollectionConfig,
@@ -24,6 +24,9 @@ from weaviate.collections.classes.config import (
     Tokenization,
     _PQEncoderConfig,
     _PropertyVectorizerConfig,
+    _VectorizerConfig,
+    _GenerativeConfig,
+    GenerativeSearches,
 )
 
 
@@ -76,12 +79,28 @@ def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionCo
 
 
 def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
-    import json
+    if schema["vectorizer"] != "none":
+        vec_config: Optional[dict] = schema["moduleConfig"].pop(schema["vectorizer"], None)
+        assert vec_config is not None
+        vectorizer_config = _VectorizerConfig(
+            vectorize_class_name=vec_config.pop("vectorizeClassName"),
+            model_specific_options=vec_config,
+        )
+    else:
+        vectorizer_config = None
 
-    print(json.dumps(schema["moduleConfig"], indent=2))
+    if len(generators := list(schema.get("moduleConfig", {}).keys())) == 1:
+        generative_config = _GenerativeConfig(
+            generator=GenerativeSearches(generators[0]),
+            model_specific_options=schema["moduleConfig"][generators[0]],
+        )
+    else:
+        generative_config = None
+
     return _CollectionConfig(
         name=schema["class"],
         description=schema.get("description"),
+        generative_config=generative_config,
         inverted_index_config=_InvertedIndexConfig(
             bm25=_BM25Config(
                 b=schema["invertedIndexConfig"]["bm25"]["b"],
@@ -165,6 +184,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
             vector_cache_max_objects=schema["vectorIndexConfig"]["vectorCacheMaxObjects"],
         ),
         vector_index_type=_VectorIndexType(schema["vectorIndexType"]),
+        vectorizer_config=vectorizer_config,
         vectorizer=Vectorizer(schema["vectorizer"]),
     )
 

@@ -1,3 +1,4 @@
+import os
 import pytest as pytest
 
 import weaviate
@@ -14,6 +15,7 @@ from weaviate.collections.classes.config import (
     VectorDistance,
     _VectorIndexType,
     Vectorizer,
+    GenerativeSearches,
 )
 from weaviate.collections.classes.tenants import Tenant
 
@@ -21,6 +23,20 @@ from weaviate.collections.classes.tenants import Tenant
 @pytest.fixture(scope="module")
 def client():
     client = weaviate.connect_to_local(port=8087)
+    client.collections.delete_all()
+    yield client
+    client.collections.delete_all()
+
+
+@pytest.fixture(scope="module")
+def generative_client():
+    api_key = os.environ.get("OPENAI_APIKEY")
+    if api_key is None:
+        pytest.skip("No OpenAI API key found.")
+
+    client = weaviate.connect_to_local(
+        port=8086, grpc_port=50057, headers={"X-OpenAI-Api-Key": api_key}
+    )
     client.collections.delete_all()
     yield client
     client.collections.delete_all()
@@ -66,8 +82,8 @@ def test_collection_get_simple(client: weaviate.WeaviateClient):
 
 def test_collection_vectorizer_config(client: weaviate.WeaviateClient):
     client.collections.create(
-        name="TestCollectionModuleConfig",
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(),
+        name="TestCollectionVectorizerConfig",
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(
@@ -79,7 +95,7 @@ def test_collection_vectorizer_config(client: weaviate.WeaviateClient):
         ],
     )
 
-    collection = client.collections.get("TestCollectionModuleConfig")
+    collection = client.collections.get("TestCollectionVectorizerConfig")
     config = collection.config.get(True)
 
     assert config.properties[0].vectorizer == "text2vec-contextionary"
@@ -89,7 +105,28 @@ def test_collection_vectorizer_config(client: weaviate.WeaviateClient):
     assert config.properties[1].vectorizer_config.skip is True
     assert config.properties[1].vectorizer_config.vectorize_property_name is False
 
-    client.collections.delete("TestCollectionModuleConfig")
+    client.collections.delete("TestCollectionVectorizerConfig")
+
+
+def test_collection_generative_config(generative_client: weaviate.WeaviateClient):
+    generative_client.collections.create(
+        name="TestCollectionGenerativeConfig",
+        generative_config=Configure.Generative.openai(),
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+            Property(name="age", data_type=DataType.INT),
+        ],
+    )
+
+    collection = generative_client.collections.get("TestCollectionGenerativeConfig")
+    config = collection.config.get()
+
+    assert config.properties[0].vectorizer == "none"
+    assert config.generative_config.generator == GenerativeSearches.OPENAI
+    assert config.generative_config.model_specific_options is not None
+
+    generative_client.collections.delete("TestCollectionGenerativeConfig")
 
 
 def test_collection_config_empty(client: weaviate.WeaviateClient):
