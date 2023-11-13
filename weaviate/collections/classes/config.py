@@ -1430,12 +1430,12 @@ class _VectorIndexConfig:
 @dataclass
 class _GenerativeConfig:
     generator: GenerativeSearches
-    model_specific_options: Dict[str, Any]
+    model: Dict[str, Any]
 
 
 @dataclass
 class _VectorizerConfig:
-    model_specific_options: Dict[str, Any]
+    model: Dict[str, Any]
     vectorize_class_name: bool
 
 
