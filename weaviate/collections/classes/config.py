@@ -1322,6 +1322,12 @@ class _ReferenceDataTypeMultiTarget:
 
 
 @dataclass
+class _PropertyVectorizerConfig:
+    skip: bool
+    vectorize_property_name: bool
+
+
+@dataclass
 class _Property:
     data_type: Union[DataType, _ReferenceDataType, _ReferenceDataTypeMultiTarget]
     description: Optional[str]
@@ -1329,6 +1335,8 @@ class _Property:
     index_searchable: bool
     name: str
     tokenization: Optional[Tokenization]
+    vectorizer_config: Optional[_PropertyVectorizerConfig]
+    vectorizer: Optional[str]
 
     def to_weaviate_dict(self) -> Dict[str, Any]:
         if isinstance(self.data_type, DataType):
@@ -1337,11 +1345,22 @@ class _Property:
             data_type = [self.data_type.target_collection]
         else:
             data_type = self.data_type.target_collections
+
+        if self.vectorizer is not None:
+            module_config: Dict[str, Any] = {self.vectorizer: {}}
+        if self.vectorizer_config is not None:
+            assert self.vectorizer is not None
+            module_config[self.vectorizer] = {
+                "skip": self.vectorizer_config.skip,
+                "vectorizePropertyName": self.vectorizer_config.vectorize_property_name,
+            }
+
         return {
             "dataType": data_type,
             "description": self.description,
             "indexFilterable": self.index_filterable,
             "indexVector": self.index_searchable,
+            "moduleConfig": module_config,
             "name": self.name,
             "tokenizer": self.tokenization.value if self.tokenization else None,
         }

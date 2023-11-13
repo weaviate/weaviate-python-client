@@ -64,6 +64,34 @@ def test_collection_get_simple(client: weaviate.WeaviateClient):
     client.collections.delete("TestCollectionGetSimple")
 
 
+def test_collection_vectorizer_config(client: weaviate.WeaviateClient):
+    client.collections.create(
+        name="TestCollectionModuleConfig",
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+            Property(
+                name="age",
+                data_type=DataType.INT,
+                skip_vectorization=True,
+                vectorize_property_name=False,
+            ),
+        ],
+    )
+
+    collection = client.collections.get("TestCollectionModuleConfig")
+    config = collection.config.get(True)
+
+    assert config.properties[0].vectorizer == "text2vec-contextionary"
+    assert config.properties[0].vectorizer_config.skip is False
+    assert config.properties[0].vectorizer_config.vectorize_property_name is True
+    assert config.properties[1].vectorizer == "text2vec-contextionary"
+    assert config.properties[1].vectorizer_config.skip is True
+    assert config.properties[1].vectorizer_config.vectorize_property_name is False
+
+    client.collections.delete("TestCollectionModuleConfig")
+
+
 def test_collection_config_empty(client: weaviate.WeaviateClient):
     collection = client.collections.create(
         name="TestCollectionConfigEmpty",

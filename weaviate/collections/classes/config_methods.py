@@ -23,24 +23,27 @@ from weaviate.collections.classes.config import (
     Vectorizer,
     Tokenization,
     _PQEncoderConfig,
+    _PropertyVectorizerConfig,
 )
 
 
+def _is_primitive(d_type: str) -> bool:
+    return d_type[0][0].lower() == d_type[0][0]
+
+
+def _property_data_type_from_weaviate_data_type(
+    data_type: List[str],
+) -> Union[DataType, _ReferenceDataType, _ReferenceDataTypeMultiTarget]:
+    if len(data_type) == 1 and _is_primitive(data_type[0]):
+        return DataType(data_type[0])
+
+    if len(data_type) == 1:
+        return _ReferenceDataType(target_collection=data_type[0])
+
+    return _ReferenceDataTypeMultiTarget(target_collections=data_type)
+
+
 def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionConfigSimple:
-    def _is_primitive(d_type: str) -> bool:
-        return d_type[0][0].lower() == d_type[0][0]
-
-    def _property_data_type_from_weaviate_data_type(
-        data_type: List[str],
-    ) -> Union[DataType, _ReferenceDataType, _ReferenceDataTypeMultiTarget]:
-        if len(data_type) == 1 and _is_primitive(data_type[0]):
-            return DataType(data_type[0])
-
-        if len(data_type) == 1:
-            return _ReferenceDataType(target_collection=data_type[0])
-
-        return _ReferenceDataTypeMultiTarget(target_collections=data_type)
-
     return _CollectionConfigSimple(
         name=schema["class"],
         description=schema.get("description"),
@@ -54,6 +57,15 @@ def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionCo
                 tokenization=Tokenization(prop["tokenization"])
                 if prop.get("tokenization") is not None
                 else None,
+                vectorizer_config=_PropertyVectorizerConfig(
+                    skip=prop["moduleConfig"][schema["vectorizer"]]["skip"],
+                    vectorize_property_name=prop["moduleConfig"][schema["vectorizer"]][
+                        "vectorizePropertyName"
+                    ],
+                )
+                if schema["vectorizer"] != "none"
+                else None,
+                vectorizer=schema["vectorizer"],
             )
             for prop in schema["properties"]
         ]
@@ -64,20 +76,9 @@ def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionCo
 
 
 def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
-    def _is_primitive(d_type: str) -> bool:
-        return d_type[0][0].lower() == d_type[0][0]
+    import json
 
-    def _property_data_type_from_weaviate_data_type(
-        data_type: List[str],
-    ) -> Union[DataType, _ReferenceDataType, _ReferenceDataTypeMultiTarget]:
-        if len(data_type) == 1 and _is_primitive(data_type[0]):
-            return DataType(data_type[0])
-
-        if len(data_type) == 1:
-            return _ReferenceDataType(target_collection=data_type[0])
-
-        return _ReferenceDataTypeMultiTarget(target_collections=data_type)
-
+    print(json.dumps(schema["moduleConfig"], indent=2))
     return _CollectionConfig(
         name=schema["class"],
         description=schema.get("description"),
@@ -112,6 +113,15 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
                 tokenization=Tokenization(prop["tokenization"])
                 if prop.get("tokenization") is not None
                 else None,
+                vectorizer_config=_PropertyVectorizerConfig(
+                    skip=prop["moduleConfig"][schema["vectorizer"]]["skip"],
+                    vectorize_property_name=prop["moduleConfig"][schema["vectorizer"]][
+                        "vectorizePropertyName"
+                    ],
+                )
+                if schema["vectorizer"] != "none"
+                else None,
+                vectorizer=schema["vectorizer"],
             )
             for prop in schema["properties"]
         ]
