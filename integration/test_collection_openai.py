@@ -273,6 +273,7 @@ def test_hybrid_generate_with_everything(client: weaviate.WeaviateClient):
 
     res = collection.generate.hybrid(
         query="cats",
+        alpha=0,
         query_properties=["text"],
         single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
         grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space from biggest to smallest",
