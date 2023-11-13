@@ -107,7 +107,7 @@ def test_collection_vectorizer_config(client: weaviate.WeaviateClient):
 
     assert config.vectorizer_config is not None
     assert config.vectorizer_config.vectorize_class_name is False
-    assert config.vectorizer_config.model is None
+    assert config.vectorizer_config.model == {}
 
     client.collections.delete("TestCollectionVectorizerConfig")
 
