@@ -843,6 +843,14 @@ class _Ref2VecCentroidConfig(_VectorizerConfigCreate):
     method: Literal["mean"]
 
 
+def _map_multi2vec_fields(
+    fields: Optional[Union[List[str], List[Multi2VecField]]]
+) -> Optional[List[Multi2VecField]]:
+    if fields is None:
+        return None
+    return [Multi2VecField(name=field) if isinstance(field, str) else field for field in fields]
+
+
 class _Vectorizer:
     """Use this factory class to create the correct object for the `vectorizer_config` argument in the `collection.create()` method.
 
@@ -876,8 +884,8 @@ class _Vectorizer:
 
     @staticmethod
     def multi2vec_clip(
-        image_fields: Optional[List[Multi2VecField]] = None,
-        text_fields: Optional[List[Multi2VecField]] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vectorize_class_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `Multi2VecClipConfig` object for use when vectorizing using the `multi2vec-clip` model.
@@ -897,20 +905,20 @@ class _Vectorizer:
             `pydantic.ValidationError` if `image_fields` or `text_fields` are not `None` or a `list`.
         """
         return _Multi2VecClipConfig(
-            imageFields=image_fields,
-            textFields=text_fields,
+            imageFields=_map_multi2vec_fields(image_fields),
+            textFields=_map_multi2vec_fields(text_fields),
             vectorizeClassName=vectorize_class_name,
         )
 
     @staticmethod
     def multi2vec_bind(
-        audio_fields: Optional[List[Multi2VecField]] = None,
-        depth_fields: Optional[List[Multi2VecField]] = None,
-        image_fields: Optional[List[Multi2VecField]] = None,
-        imu_fields: Optional[List[Multi2VecField]] = None,
-        text_fields: Optional[List[Multi2VecField]] = None,
-        thermal_fields: Optional[List[Multi2VecField]] = None,
-        video_fields: Optional[List[Multi2VecField]] = None,
+        audio_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        depth_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        imu_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        thermal_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vectorize_class_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `Multi2VecClipConfig` object for use when vectorizing using the `multi2vec-clip` model.
@@ -940,13 +948,13 @@ class _Vectorizer:
             `pydantic.ValidationError` if any of the `*_fields` are not `None` or a `list`.
         """
         return _Multi2VecBindConfig(
-            audioFields=audio_fields,
-            depthFields=depth_fields,
-            imageFields=image_fields,
-            IMUFields=imu_fields,
-            textFields=text_fields,
-            thermalFields=thermal_fields,
-            videoFields=video_fields,
+            audioFields=_map_multi2vec_fields(audio_fields),
+            depthFields=_map_multi2vec_fields(depth_fields),
+            imageFields=_map_multi2vec_fields(image_fields),
+            IMUFields=_map_multi2vec_fields(imu_fields),
+            textFields=_map_multi2vec_fields(text_fields),
+            thermalFields=_map_multi2vec_fields(thermal_fields),
+            videoFields=_map_multi2vec_fields(video_fields),
             vectorizeClassName=vectorize_class_name,
         )
 
