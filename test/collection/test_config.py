@@ -7,8 +7,8 @@ from weaviate.collections.classes.config import (
     _CollectionConfigCreate,
     DataType,
     Multi2VecField,
-    _GenerativeConfig,
-    _VectorizerConfig,
+    _GenerativeConfigCreate,
+    _VectorizerConfigCreate,
     Configure,
     Property,
     ReferenceProperty,
@@ -234,6 +234,19 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
     ),
     (
         Configure.Vectorizer.multi2vec_clip(
+            image_fields=["image"],
+            text_fields=["text"],
+        ),
+        {
+            "multi2vec-clip": {
+                "imageFields": ["image"],
+                "textFields": ["text"],
+                "vectorizeClassName": True,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.multi2vec_clip(
             image_fields=[Multi2VecField(name="image")],
             text_fields=[Multi2VecField(name="text")],
         ),
@@ -260,6 +273,27 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
                     "imageFields": [0.5],
                     "textFields": [0.5],
                 },
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.multi2vec_bind(
+            audio_fields=["audio"],
+            depth_fields=["depth"],
+            image_fields=["image"],
+            imu_fields=["imu"],
+            text_fields=["text"],
+            thermal_fields=["thermal"],
+        ),
+        {
+            "multi2vec-bind": {
+                "audioFields": ["audio"],
+                "depthFields": ["depth"],
+                "imageFields": ["image"],
+                "IMUFields": ["imu"],
+                "textFields": ["text"],
+                "thermalFields": ["thermal"],
+                "vectorizeClassName": True,
             }
         },
     ),
@@ -322,7 +356,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
 
 
 @pytest.mark.parametrize("vectorizer_config,expected", TEST_CONFIG_WITH_MODULE_PARAMETERS)
-def test_config_with_module(vectorizer_config: _VectorizerConfig, expected: dict):
+def test_config_with_module(vectorizer_config: _VectorizerConfigCreate, expected: dict):
     config = _CollectionConfigCreate(name="test", vectorizer_config=vectorizer_config)
     assert config._to_dict() == {
         **DEFAULTS,
@@ -397,7 +431,7 @@ TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
     TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS,
 )
 def test_config_with_module_and_properties(
-    vectorizer_config: _VectorizerConfig,
+    vectorizer_config: _VectorizerConfigCreate,
     properties: List[Property],
     expected_mc: dict,
     expected_props: dict,
@@ -502,7 +536,7 @@ TEST_CONFIG_WITH_GENERATIVE_MODULE = [
     TEST_CONFIG_WITH_GENERATIVE_MODULE,
 )
 def test_config_with_generative_module(
-    generative_config: _GenerativeConfig,
+    generative_config: _GenerativeConfigCreate,
     expected_mc: dict,
 ):
     config = _CollectionConfigCreate(name="test", generative_config=generative_config)

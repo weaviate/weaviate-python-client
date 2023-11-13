@@ -7,6 +7,7 @@ from weaviate.collections.classes.config import (
     Property,
     ReferenceProperty,
     ReferencePropertyMultiTarget,
+    StopwordsPreset,
     Tokenization,
     VectorDistance,
 )
@@ -43,6 +44,7 @@ __all__ = [
     "Reference",
     "ReferenceProperty",
     "ReferencePropertyMultiTarget",
+    "StopwordsPreset",
     "Tenant",
     "Tokenization",
     "VectorDistance",
