@@ -375,10 +375,10 @@ class _DataCollection(Generic[Properties], _Data):
                     collection=self.name,
                     vector=obj.vector,
                     uuid=obj.uuid,
-                    properties=obj.properties,
+                    properties=cast(dict, obj.properties),
                     tenant=self._tenant,
                 )
-                if isinstance(obj, DataObject) and isinstance(obj.properties, dict)
+                if isinstance(obj, DataObject)
                 else _BatchObject(
                     collection=self.name,
                     vector=None,

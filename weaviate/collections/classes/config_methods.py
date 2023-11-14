@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 from weaviate.collections.classes.config import (
     _CollectionConfig,
@@ -23,27 +23,54 @@ from weaviate.collections.classes.config import (
     Vectorizer,
     Tokenization,
     _PQEncoderConfig,
+    _PropertyVectorizerConfig,
+    _VectorizerConfig,
+    _GenerativeConfig,
+    GenerativeSearches,
 )
 
 
+def _is_primitive(d_type: str) -> bool:
+    return d_type[0][0].lower() == d_type[0][0]
+
+
+def _property_data_type_from_weaviate_data_type(
+    data_type: List[str],
+) -> Union[DataType, _ReferenceDataType, _ReferenceDataTypeMultiTarget]:
+    if len(data_type) == 1 and _is_primitive(data_type[0]):
+        return DataType(data_type[0])
+
+    if len(data_type) == 1:
+        return _ReferenceDataType(target_collection=data_type[0])
+
+    return _ReferenceDataTypeMultiTarget(target_collections=data_type)
+
+
 def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionConfigSimple:
-    def _is_primitive(d_type: str) -> bool:
-        return d_type[0][0].lower() == d_type[0][0]
+    if schema["vectorizer"] != "none":
+        vec_config: Optional[Dict[str, Any]] = schema["moduleConfig"].pop(
+            schema["vectorizer"], None
+        )
+        assert vec_config is not None
+        vectorizer_config = _VectorizerConfig(
+            vectorize_class_name=vec_config.pop("vectorizeClassName", False),
+            model=vec_config,
+        )
+    else:
+        vectorizer_config = None
 
-    def _property_data_type_from_weaviate_data_type(
-        data_type: List[str],
-    ) -> Union[DataType, _ReferenceDataType, _ReferenceDataTypeMultiTarget]:
-        if len(data_type) == 1 and _is_primitive(data_type[0]):
-            return DataType(data_type[0])
-
-        if len(data_type) == 1:
-            return _ReferenceDataType(target_collection=data_type[0])
-
-        return _ReferenceDataTypeMultiTarget(target_collections=data_type)
+    if len(generators := list(schema.get("moduleConfig", {}).keys())) == 1:
+        generative_config = _GenerativeConfig(
+            generator=GenerativeSearches(generators[0]),
+            model=schema["moduleConfig"][generators[0]],
+        )
+    else:
+        generative_config = None
 
     return _CollectionConfigSimple(
         name=schema["class"],
         description=schema.get("description"),
+        generative_config=generative_config,
         properties=[
             _Property(
                 data_type=_property_data_type_from_weaviate_data_type(prop["dataType"]),
@@ -54,33 +81,50 @@ def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionCo
                 tokenization=Tokenization(prop["tokenization"])
                 if prop.get("tokenization") is not None
                 else None,
+                vectorizer_config=_PropertyVectorizerConfig(
+                    skip=prop["moduleConfig"][schema["vectorizer"]]["skip"],
+                    vectorize_property_name=prop["moduleConfig"][schema["vectorizer"]][
+                        "vectorizePropertyName"
+                    ],
+                )
+                if schema["vectorizer"] != "none"
+                else None,
+                vectorizer=schema["vectorizer"],
             )
             for prop in schema["properties"]
         ]
         if schema.get("properties") is not None
         else [],
+        vectorizer_config=vectorizer_config,
         vectorizer=Vectorizer(schema["vectorizer"]),
     )
 
 
 def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
-    def _is_primitive(d_type: str) -> bool:
-        return d_type[0][0].lower() == d_type[0][0]
+    if schema["vectorizer"] != "none":
+        vec_config: Optional[Dict[str, Any]] = schema["moduleConfig"].pop(
+            schema["vectorizer"], None
+        )
+        assert vec_config is not None
+        vectorizer_config = _VectorizerConfig(
+            vectorize_class_name=vec_config.pop("vectorizeClassName", False),
+            model=vec_config,
+        )
+    else:
+        vectorizer_config = None
 
-    def _property_data_type_from_weaviate_data_type(
-        data_type: List[str],
-    ) -> Union[DataType, _ReferenceDataType, _ReferenceDataTypeMultiTarget]:
-        if len(data_type) == 1 and _is_primitive(data_type[0]):
-            return DataType(data_type[0])
-
-        if len(data_type) == 1:
-            return _ReferenceDataType(target_collection=data_type[0])
-
-        return _ReferenceDataTypeMultiTarget(target_collections=data_type)
+    if len(generators := list(schema.get("moduleConfig", {}).keys())) == 1:
+        generative_config = _GenerativeConfig(
+            generator=GenerativeSearches(generators[0]),
+            model=schema["moduleConfig"][generators[0]],
+        )
+    else:
+        generative_config = None
 
     return _CollectionConfig(
         name=schema["class"],
         description=schema.get("description"),
+        generative_config=generative_config,
         inverted_index_config=_InvertedIndexConfig(
             bm25=_BM25Config(
                 b=schema["invertedIndexConfig"]["bm25"]["b"],
@@ -112,6 +156,15 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
                 tokenization=Tokenization(prop["tokenization"])
                 if prop.get("tokenization") is not None
                 else None,
+                vectorizer_config=_PropertyVectorizerConfig(
+                    skip=prop["moduleConfig"][schema["vectorizer"]]["skip"],
+                    vectorize_property_name=prop["moduleConfig"][schema["vectorizer"]][
+                        "vectorizePropertyName"
+                    ],
+                )
+                if schema["vectorizer"] != "none"
+                else None,
+                vectorizer=schema["vectorizer"],
             )
             for prop in schema["properties"]
         ]
@@ -155,6 +208,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
             vector_cache_max_objects=schema["vectorIndexConfig"]["vectorCacheMaxObjects"],
         ),
         vector_index_type=_VectorIndexType(schema["vectorIndexType"]),
+        vectorizer_config=vectorizer_config,
         vectorizer=Vectorizer(schema["vectorizer"]),
     )
 

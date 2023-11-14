@@ -1,6 +1,44 @@
 Changelog
 =========
-Version v4.1.b0
+Version 4.2.b2
+--------------
+This patch beta version includes:
+
+- Allow ``None`` when batch inserting using ``DataObject`` and ``BatchObject``
+
+Version 4.2.b1
+--------------
+This patch beta version includes:
+
+- Bug fix of the default ``alpha`` argument to ``query.hybrid``
+- Extend the ``Configure.Vectorizer.multi2vec_`` methods to accept lists of strings
+- Correctly export ``StopwordsPreset`` from ``weaviate.classes``
+- Add ``generative_config`` and ``vectorizer_config`` to ``_CollectionConfig``
+- Add ``skip_vectorization`` and ``vectorize_class_name`` to ``_PropertyConfig``
+
+Version 4.2.b0
+--------------
+This minor beta version includes:
+
+- A refactoring of the ``collection.aggregate`` namepsace methods
+- Change ``Metrics`` to no longer accept the ``type_`` argument
+- Instead, ``Metrics`` has multiple methods, e.g. ``.text()``, for each type of metric
+- Allow ``return_metrics`` to be a single metric object or a list of metric objects in each aggregate query
+
+Version 4.1.b2
+--------------
+This patch beta version incldues:
+
+- Correctly exporting ``weaviate.collections.classes.aggregate.Metrics`` from ``weaviate.classes``
+
+Version 4.1.b1
+--------------
+This patch beta version incldues:
+
+- Bumping the default embedded version to Weaviate latest
+- Adding the ``version`` argument to ``weaviate.connect_to_embedded`` to allow users to specify the embedded version
+
+Version 4.1.b0
 --------------
 This minor beta version includes:
 
@@ -10,7 +48,7 @@ This minor beta version includes:
 - Adds ``get_vector`` to the ``collections.data`` namespace so that users can supply numpy and pytorch vectors
 - Adds ``__str__`` magic method to ``Collections`` class so that ``print(collection)`` outputs the collection's schema as pretty JSON
 
-Version v4.0.b5
+Version 4.0.b5
 --------------
 This patch beta version includes:
 

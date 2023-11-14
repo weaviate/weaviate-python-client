@@ -34,6 +34,7 @@ repos:
       name: mypy
       entry: ./run-mypy.sh
       language: python
+      language_version: 3.11.4
       # use require_serial so that script
       # is only called once per commit
       require_serial: true

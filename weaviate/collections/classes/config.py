@@ -390,19 +390,26 @@ class _MultiTenancyConfigUpdate(_ConfigUpdateModel):
     enabled: Optional[bool] = None
 
 
-class _GenerativeConfig(_ConfigCreateModel):
+class _GenerativeConfigCreate(_ConfigCreateModel):
     generative: GenerativeSearches
 
 
-class _GenerativeOpenAIConfigBase(_GenerativeConfig):
+class _GenerativeOpenAIConfigBase(_GenerativeConfigCreate):
     generative: GenerativeSearches = Field(
         default=GenerativeSearches.OPENAI, frozen=True, exclude=True
     )
+    baseURL: Optional[AnyHttpUrl]
     frequencyPenaltyProperty: Optional[float]
     presencePenaltyProperty: Optional[float]
     maxTokensProperty: Optional[int]
     temperatureProperty: Optional[float]
     topPProperty: Optional[float]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
 
 
 class _GenerativeOpenAIConfig(_GenerativeOpenAIConfigBase):
@@ -414,10 +421,11 @@ class _GenerativeAzureOpenAIConfig(_GenerativeOpenAIConfigBase):
     deploymentId: str
 
 
-class _GenerativeCohereConfig(_GenerativeConfig):
+class _GenerativeCohereConfig(_GenerativeConfigCreate):
     generative: GenerativeSearches = Field(
         default=GenerativeSearches.COHERE, frozen=True, exclude=True
     )
+    baseURL: Optional[AnyHttpUrl]
     kProperty: Optional[int]
     model: Optional[str]
     maxTokensProperty: Optional[int]
@@ -425,12 +433,18 @@ class _GenerativeCohereConfig(_GenerativeConfig):
     stopSequencesProperty: Optional[List[str]]
     temperatureProperty: Optional[float]
 
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
 
-class _GenerativePaLMConfig(_GenerativeConfig):
+
+class _GenerativePaLMConfig(_GenerativeConfigCreate):
     generative: GenerativeSearches = Field(
         default=GenerativeSearches.PALM, frozen=True, exclude=True
     )
-    apiEndpoint: Optional[str]
+    apiEndpoint: Optional[AnyHttpUrl]
     maxOutputTokens: Optional[int]
     modelId: Optional[str]
     projectId: str
@@ -438,8 +452,14 @@ class _GenerativePaLMConfig(_GenerativeConfig):
     topK: Optional[int]
     topP: Optional[float]
 
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.apiEndpoint is not None:
+            ret_dict["apiEndpoint"] = self.apiEndpoint.unicode_string()
+        return ret_dict
 
-class _VectorizerConfig(_ConfigCreateModel):
+
+class _VectorizerConfigCreate(_ConfigCreateModel):
     vectorizer: Vectorizer
 
 
@@ -458,8 +478,31 @@ class _Generative:
         presence_penalty: Optional[float] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeConfig:
+        base_url: Optional[AnyHttpUrl] = None,
+    ) -> _GenerativeConfigCreate:
+        """Create a `_GenerativeOpenAIConfig` object for use when performing AI generation using the `generative-openai` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+            `frequency_penalty`
+                The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            `max_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            `presence_penalty`
+                The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `top_p`
+                The top P to use. Defaults to `None`, which uses the server-defined default
+            `base_url`
+                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+        """
         return _GenerativeOpenAIConfig(
+            baseURL=base_url,
             frequencyPenaltyProperty=frequency_penalty,
             maxTokensProperty=max_tokens,
             model=model,
@@ -477,8 +520,33 @@ class _Generative:
         presence_penalty: Optional[float] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeConfig:
+        base_url: Optional[AnyHttpUrl] = None,
+    ) -> _GenerativeConfigCreate:
+        """Create a `_GenerativeAzureOpenAIConfig` object for use when performing AI generation using the `generative-openai` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai)
+        for detailed usage.
+
+        Arguments:
+            `resource_name`
+                The name of the Azure OpenAI resource to use.
+            `deployment_id`
+                The Azure OpenAI deployment ID to use.
+            `frequency_penalty`
+                The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            `max_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            `presence_penalty`
+                The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `top_p`
+                The top P to use. Defaults to `None`, which uses the server-defined default
+            `base_url`
+                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+        """
         return _GenerativeAzureOpenAIConfig(
+            baseURL=base_url,
             deploymentId=deployment_id,
             frequencyPenaltyProperty=frequency_penalty,
             maxTokensProperty=max_tokens,
@@ -496,8 +564,31 @@ class _Generative:
         return_likelihoods: Optional[str] = None,
         stop_sequences: Optional[List[str]] = None,
         temperature: Optional[float] = None,
-    ) -> _GenerativeConfig:
+        base_url: Optional[AnyHttpUrl] = None,
+    ) -> _GenerativeConfigCreate:
+        """Create a `_GenerativeCohereConfig` object for use when performing AI generation using the `generative-cohere` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-cohere)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+            `k`
+                The number of sequences to generate. Defaults to `None`, which uses the server-defined default
+            `max_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            `return_likelihoods`
+                Whether to return the likelihoods. Defaults to `None`, which uses the server-defined default
+            `stop_sequences`
+                The stop sequences to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `base_url`
+                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+        """
         return _GenerativeCohereConfig(
+            baseURL=base_url,
             kProperty=k,
             maxTokensProperty=max_tokens,
             model=model,
@@ -509,13 +600,34 @@ class _Generative:
     @staticmethod
     def palm(
         project_id: str,
-        api_endpoint: Optional[str] = None,
+        api_endpoint: Optional[AnyHttpUrl] = None,
         max_output_tokens: Optional[int] = None,
         model_id: Optional[str] = None,
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeConfig:
+    ) -> _GenerativeConfigCreate:
+        """Create a `_GenerativePaLMConfig` object for use when performing AI generation using the `generative-palm` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-palm)
+        for detailed usage.
+
+        Arguments:
+            `project_id`
+                The PalM project ID to use.
+            `api_endpoint`
+                The API endpoint to use. Defaults to `None`, which uses the server-defined default
+            `max_output_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            `model_id`
+                The model ID to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `top_k`
+                The top K to use. Defaults to `None`, which uses the server-defined default
+            `top_p`
+                The top P to use. Defaults to `None`, which uses the server-defined default
+        """
         return _GenerativePaLMConfig(
             apiEndpoint=api_endpoint,
             maxOutputTokens=max_output_tokens,
@@ -527,7 +639,21 @@ class _Generative:
         )
 
 
-class _Text2VecContextionaryConfig(_VectorizerConfig):
+class _Text2VecAzureOpenAIConfig(_VectorizerConfigCreate):
+    vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
+    baseURL: Optional[AnyHttpUrl]
+    resourceName: str
+    deploymentId: str
+    vectorizeClassName: bool
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
+class _Text2VecContextionaryConfig(_VectorizerConfigCreate):
     vectorizer: Vectorizer = Field(
         default=Vectorizer.TEXT2VEC_CONTEXTIONARY, frozen=True, exclude=True
     )
@@ -536,6 +662,7 @@ class _Text2VecContextionaryConfig(_VectorizerConfig):
 
 CohereModel = Literal[
     "embed-multilingual-v2.0",
+    "embed-multilingual-v3.0",
     "small",
     "medium",
     "large",
@@ -546,21 +673,28 @@ CohereModel = Literal[
 CohereTruncation = Literal["RIGHT", "NONE"]
 
 
-class _Text2VecCohereConfig(_VectorizerConfig):
+class _Text2VecCohereConfig(_VectorizerConfigCreate):
     vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_COHERE, frozen=True, exclude=True)
+    baseURL: Optional[AnyHttpUrl]
     model: Optional[CohereModel]
     truncate: Optional[CohereTruncation]
     vectorizeClassName: bool
 
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
 
-class _Text2VecHuggingFaceConfig(_VectorizerConfig):
+
+class _Text2VecHuggingFaceConfig(_VectorizerConfigCreate):
     vectorizer: Vectorizer = Field(
         default=Vectorizer.TEXT2VEC_HUGGINGFACE, frozen=True, exclude=True
     )
     model: Optional[str]
     passageModel: Optional[str]
     queryModel: Optional[str]
-    endpointURL: Optional[str]
+    endpointURL: Optional[AnyHttpUrl]
     waitForModel: Optional[bool]
     useGPU: Optional[bool]
     useCache: Optional[bool]
@@ -604,6 +738,8 @@ class _Text2VecHuggingFaceConfig(_VectorizerConfig):
             options["useCache"] = ret_dict.pop("useCache")
         if len(options) > 0:
             ret_dict["options"] = options
+        if self.endpointURL is not None:
+            ret_dict["endpointURL"] = self.endpointURL.unicode_string()
         return ret_dict
 
 
@@ -611,8 +747,9 @@ OpenAIModel = Literal["ada", "babbage", "curie", "davinci"]
 OpenAIType = Literal["text", "code"]
 
 
-class _Text2VecOpenAIConfig(_VectorizerConfig):
+class _Text2VecOpenAIConfig(_VectorizerConfigCreate):
     vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
+    baseURL: Optional[AnyHttpUrl]
     model: Optional[OpenAIModel]
     modelVersion: Optional[str]
     type_: Optional[OpenAIType]
@@ -622,17 +759,12 @@ class _Text2VecOpenAIConfig(_VectorizerConfig):
         ret_dict = super()._to_dict()
         if self.type_ is not None:
             ret_dict["type"] = ret_dict.pop("type_")
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
         return ret_dict
 
 
-class _Text2VecAzureOpenAIConfig(_VectorizerConfig):
-    vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
-    resourceName: str
-    deploymentId: str
-    vectorizeClassName: bool
-
-
-class _Text2VecPalmConfig(_VectorizerConfig):
+class _Text2VecPalmConfig(_VectorizerConfigCreate):
     vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_PALM, frozen=True, exclude=True)
     projectId: str
     apiEndpoint: Optional[AnyHttpUrl]
@@ -642,11 +774,11 @@ class _Text2VecPalmConfig(_VectorizerConfig):
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
         if self.apiEndpoint is not None:
-            ret_dict["apiEndpoint"] = str(self.apiEndpoint)
+            ret_dict["apiEndpoint"] = self.apiEndpoint.unicode_string()
         return ret_dict
 
 
-class _Text2VecTransformersConfig(_VectorizerConfig):
+class _Text2VecTransformersConfig(_VectorizerConfigCreate):
     vectorizer: Vectorizer = Field(
         default=Vectorizer.TEXT2VEC_TRANSFORMERS, frozen=True, exclude=True
     )
@@ -654,12 +786,12 @@ class _Text2VecTransformersConfig(_VectorizerConfig):
     vectorizeClassName: bool
 
 
-class _Text2VecGPT4AllConfig(_VectorizerConfig):
+class _Text2VecGPT4AllConfig(_VectorizerConfigCreate):
     vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_GPT4ALL, frozen=True, exclude=True)
     vectorizeClassName: bool
 
 
-class _Img2VecNeuralConfig(_VectorizerConfig):
+class _Img2VecNeuralConfig(_VectorizerConfigCreate):
     vectorizer: Vectorizer = Field(default=Vectorizer.IMG2VEC_NEURAL, frozen=True, exclude=True)
     imageFields: List[str]
 
@@ -671,7 +803,7 @@ class Multi2VecField(BaseModel):
     weight: Optional[float] = Field(default=None, exclude=True)
 
 
-class _Multi2VecBase(_VectorizerConfig):
+class _Multi2VecBase(_VectorizerConfigCreate):
     imageFields: Optional[List[Multi2VecField]]
     textFields: Optional[List[Multi2VecField]]
     vectorizeClassName: bool
@@ -705,10 +837,18 @@ class _Multi2VecBindConfig(_Multi2VecBase):
     videoFields: Optional[List[Multi2VecField]]
 
 
-class _Ref2VecCentroidConfig(_VectorizerConfig):
+class _Ref2VecCentroidConfig(_VectorizerConfigCreate):
     vectorizer: Vectorizer = Field(default=Vectorizer.REF2VEC_CENTROID, frozen=True, exclude=True)
     referenceProperties: List[str]
     method: Literal["mean"]
+
+
+def _map_multi2vec_fields(
+    fields: Optional[Union[List[str], List[Multi2VecField]]]
+) -> Optional[List[Multi2VecField]]:
+    if fields is None:
+        return None
+    return [Multi2VecField(name=field) if isinstance(field, str) else field for field in fields]
 
 
 class _Vectorizer:
@@ -719,14 +859,14 @@ class _Vectorizer:
     """
 
     @staticmethod
-    def none() -> _VectorizerConfig:
+    def none() -> _VectorizerConfigCreate:
         """Create a `VectorizerConfig` object with the vectorizer set to `Vectorizer.NONE`."""
-        return _VectorizerConfig(vectorizer=Vectorizer.NONE)
+        return _VectorizerConfigCreate(vectorizer=Vectorizer.NONE)
 
     @staticmethod
     def img2vec_neural(
         image_fields: List[str],
-    ) -> _VectorizerConfig:
+    ) -> _VectorizerConfigCreate:
         """Create a `Img2VecNeuralConfig` object for use when vectorizing using the `img2vec-neural` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/img2vec-neural)
@@ -744,10 +884,10 @@ class _Vectorizer:
 
     @staticmethod
     def multi2vec_clip(
-        image_fields: Optional[List[Multi2VecField]] = None,
-        text_fields: Optional[List[Multi2VecField]] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vectorize_class_name: bool = True,
-    ) -> _VectorizerConfig:
+    ) -> _VectorizerConfigCreate:
         """Create a `Multi2VecClipConfig` object for use when vectorizing using the `multi2vec-clip` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-clip)
@@ -765,22 +905,22 @@ class _Vectorizer:
             `pydantic.ValidationError` if `image_fields` or `text_fields` are not `None` or a `list`.
         """
         return _Multi2VecClipConfig(
-            imageFields=image_fields,
-            textFields=text_fields,
+            imageFields=_map_multi2vec_fields(image_fields),
+            textFields=_map_multi2vec_fields(text_fields),
             vectorizeClassName=vectorize_class_name,
         )
 
     @staticmethod
     def multi2vec_bind(
-        audio_fields: Optional[List[Multi2VecField]] = None,
-        depth_fields: Optional[List[Multi2VecField]] = None,
-        image_fields: Optional[List[Multi2VecField]] = None,
-        imu_fields: Optional[List[Multi2VecField]] = None,
-        text_fields: Optional[List[Multi2VecField]] = None,
-        thermal_fields: Optional[List[Multi2VecField]] = None,
-        video_fields: Optional[List[Multi2VecField]] = None,
+        audio_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        depth_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        imu_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        thermal_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vectorize_class_name: bool = True,
-    ) -> _VectorizerConfig:
+    ) -> _VectorizerConfigCreate:
         """Create a `Multi2VecClipConfig` object for use when vectorizing using the `multi2vec-clip` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind)
@@ -808,13 +948,13 @@ class _Vectorizer:
             `pydantic.ValidationError` if any of the `*_fields` are not `None` or a `list`.
         """
         return _Multi2VecBindConfig(
-            audioFields=audio_fields,
-            depthFields=depth_fields,
-            imageFields=image_fields,
-            IMUFields=imu_fields,
-            textFields=text_fields,
-            thermalFields=thermal_fields,
-            videoFields=video_fields,
+            audioFields=_map_multi2vec_fields(audio_fields),
+            depthFields=_map_multi2vec_fields(depth_fields),
+            imageFields=_map_multi2vec_fields(image_fields),
+            IMUFields=_map_multi2vec_fields(imu_fields),
+            textFields=_map_multi2vec_fields(text_fields),
+            thermalFields=_map_multi2vec_fields(thermal_fields),
+            videoFields=_map_multi2vec_fields(video_fields),
             vectorizeClassName=vectorize_class_name,
         )
 
@@ -822,7 +962,7 @@ class _Vectorizer:
     def ref2vec_centroid(
         reference_properties: List[str],
         method: Literal["mean"] = "mean",
-    ) -> _VectorizerConfig:
+    ) -> _VectorizerConfigCreate:
         """Create a `Ref2VecCentroidConfig` object for use when vectorizing using the `ref2vec-centroid` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/ref2vec-centroid)
@@ -844,8 +984,11 @@ class _Vectorizer:
 
     @staticmethod
     def text2vec_azure_openai(
-        resource_name: str, deployment_id: str, vectorize_class_name: bool = True
-    ) -> _VectorizerConfig:
+        resource_name: str,
+        deployment_id: str,
+        vectorize_class_name: bool = True,
+        base_url: Optional[AnyHttpUrl] = None,
+    ) -> _VectorizerConfigCreate:
         """Create a `Text2VecAzureOpenAIConfig` object for use when vectorizing using the `text2vec-azure-openai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-azure-openai)
@@ -858,18 +1001,21 @@ class _Vectorizer:
                 The deployment ID to use, REQUIRED.
             `vectorize_class_name`
                 Whether to vectorize the class name. Defaults to `True`.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             `pydantic.ValidationError` if `resource_name` or `deployment_id` are not `str`.
         """
         return _Text2VecAzureOpenAIConfig(
+            baseURL=base_url,
             resourceName=resource_name,
             deploymentId=deployment_id,
             vectorizeClassName=vectorize_class_name,
         )
 
     @staticmethod
-    def text2vec_contextionary(vectorize_class_name: bool = True) -> _VectorizerConfig:
+    def text2vec_contextionary(vectorize_class_name: bool = True) -> _VectorizerConfigCreate:
         """Create a `Text2VecContextionaryConfig` object for use when vectorizing using the `text2vec-contextionary` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-contextionary)
@@ -889,7 +1035,8 @@ class _Vectorizer:
         model: Optional[CohereModel] = None,
         truncate: Optional[CohereTruncation] = None,
         vectorize_class_name: bool = True,
-    ) -> _VectorizerConfig:
+        base_url: Optional[AnyHttpUrl] = None,
+    ) -> _VectorizerConfigCreate:
         """Create a `Text2VecCohereConfig` object for use when vectorizing using the `text2vec-cohere` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-cohere)
@@ -897,23 +1044,28 @@ class _Vectorizer:
 
         Arguments:
             `model`
-                The model to use. Defaults to `None`. If `None`, the default model is used.
+                The model to use. Defaults to `None`, which uses the server-defined default.
             `truncate`
-                The truncation strategy to use. Defaults to `None`. If `None`, the default truncation strategy is used.
+                The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
             `vectorize_class_name`
                 Whether to vectorize the class name. Defaults to `True`.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             `pydantic.ValidationError` if `model` or `truncate` are not valid values from the `CohereModel` and `CohereTruncate` types.
         """
         return _Text2VecCohereConfig(
-            model=model, truncate=truncate, vectorizeClassName=vectorize_class_name
+            baseURL=base_url,
+            model=model,
+            truncate=truncate,
+            vectorizeClassName=vectorize_class_name,
         )
 
     @staticmethod
     def text2vec_gpt4all(
         vectorize_class_name: bool = True,
-    ) -> _VectorizerConfig:
+    ) -> _VectorizerConfigCreate:
         """Create a `Text2VecGPT4AllConfig` object for use when vectorizing using the `text2vec-gpt4all` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-gpt4all)
@@ -933,12 +1085,12 @@ class _Vectorizer:
         model: Optional[str] = None,
         passage_model: Optional[str] = None,
         query_model: Optional[str] = None,
-        endpoint_url: Optional[str] = None,
+        endpoint_url: Optional[AnyHttpUrl] = None,
         wait_for_model: Optional[bool] = None,
         use_gpu: Optional[bool] = None,
         use_cache: Optional[bool] = None,
         vectorize_class_name: bool = True,
-    ) -> _VectorizerConfig:
+    ) -> _VectorizerConfigCreate:
         """Create a `Text2VecHuggingFaceConfig` object for use when vectorizing using the `text2vec-huggingface` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-huggingface)
@@ -946,19 +1098,19 @@ class _Vectorizer:
 
         Arguments:
             `model`
-                The model to use. Defaults to `None`.
+                The model to use. Defaults to `None`, which uses the server-defined default.
             `passage_model`
-                The passage model to use. Defaults to `None`.
+                The passage model to use. Defaults to `None`, which uses the server-defined default.
             `query_model`
-                The query model to use. Defaults to `None`.
+                The query model to use. Defaults to `None`, which uses the server-defined default.
             `endpoint_url`
-                The endpoint URL to use. Defaults to `None`.
+                The endpoint URL to use. Defaults to `None`, which uses the server-defined default.
             `wait_for_model`
-                Whether to wait for the model to be loaded. Defaults to `None`.
+                Whether to wait for the model to be loaded. Defaults to `None`, which uses the server-defined default.
             `use_gpu`
-                Whether to use the GPU. Defaults to `None`.
+                Whether to use the GPU. Defaults to `None`, which uses the server-defined default.
             `use_cache`
-                Whether to use the cache. Defaults to `None`.
+                Whether to use the cache. Defaults to `None`, which uses the server-defined default.
             `vectorize_class_name`
                 Whether to vectorize the class name. Defaults to `True`.
 
@@ -984,7 +1136,8 @@ class _Vectorizer:
         model_version: Optional[str] = None,
         type_: Optional[OpenAIType] = None,
         vectorize_class_name: bool = True,
-    ) -> _VectorizerConfig:
+        base_url: Optional[AnyHttpUrl] = None,
+    ) -> _VectorizerConfigCreate:
         """Create a `Text2VecOpenAIConfig` object for use when vectorizing using the `text2vec-openai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-openai)
@@ -992,18 +1145,21 @@ class _Vectorizer:
 
         Arguments:
             `model`
-                The model to use. Defaults to `None`. If `None`, the default model is used.
+                The model to use. Defaults to `None`, which uses the server-defined default.
             `model_version`
-                The model version to use. Defaults to `None`.
+                The model version to use. Defaults to `None`, which uses the server-defined default.
             `type_`
-                The type of model to use. Defaults to `None`. If `None`, the default type is used.
+                The type of model to use. Defaults to `None`, which uses the server-defined default.
             `vectorize_class_name`
                 Whether to vectorize the class name. Defaults to `True`.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             `pydantic.ValidationError` if `model` or `type_` are not valid values from the `OpenAIModel` and `OpenAIType` types.
         """
         return _Text2VecOpenAIConfig(
+            baseURL=base_url,
             model=model,
             modelVersion=model_version,
             type_=type_,
@@ -1016,7 +1172,7 @@ class _Vectorizer:
         api_endpoint: Optional[AnyHttpUrl] = None,
         model_id: Optional[str] = None,
         vectorize_class_name: bool = True,
-    ) -> _VectorizerConfig:
+    ) -> _VectorizerConfigCreate:
         """Create a `Text2VecPalmConfig` object for use when vectorizing using the `text2vec-palm` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-palm)
@@ -1026,9 +1182,9 @@ class _Vectorizer:
             `project_id`
                 The project ID to use, REQUIRED.
             `api_endpoint`
-                The API endpoint to use. Defaults to `None`.
+                The API endpoint to use. Defaults to `None`, which uses the server-defined default.
             `model_id`
-                The model ID to use. Defaults to `None`.
+                The model ID to use. Defaults to `None`, which uses the server-defined default.
             `vectorize_class_name`
                 Whether to vectorize the class name. Defaults to `True`.
 
@@ -1046,7 +1202,7 @@ class _Vectorizer:
     def text2vec_transformers(
         pooling_strategy: Literal["masked_mean", "cls"] = "masked_mean",
         vectorize_class_name: bool = True,
-    ) -> _VectorizerConfig:
+    ) -> _VectorizerConfigCreate:
         """Create a `Text2VecTransformersConfig` object for use when vectorizing using the `text2vec-transformers` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-transformers)
@@ -1085,8 +1241,12 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
     vectorIndexType: _VectorIndexType = Field(
         default=_VectorIndexType.HNSW, alias="vector_index_type"
     )
-    moduleConfig: _VectorizerConfig = Field(default=_Vectorizer.none(), alias="vectorizer_config")
-    generativeSearch: Optional[_GenerativeConfig] = Field(default=None, alias="generative_config")
+    moduleConfig: _VectorizerConfigCreate = Field(
+        default=_Vectorizer.none(), alias="vectorizer_config"
+    )
+    generativeSearch: Optional[_GenerativeConfigCreate] = Field(
+        default=None, alias="generative_config"
+    )
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
@@ -1099,9 +1259,9 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
                 ret_dict[cls_field] = str(val.value)
             elif isinstance(val, (bool, float, str, int)):
                 ret_dict[cls_field] = str(val)
-            elif isinstance(val, _GenerativeConfig):
+            elif isinstance(val, _GenerativeConfigCreate):
                 self.__add_to_module_config(ret_dict, val.generative.value, val._to_dict())
-            elif isinstance(val, _VectorizerConfig):
+            elif isinstance(val, _VectorizerConfigCreate):
                 ret_dict["vectorizer"] = val.vectorizer.value
                 if val.vectorizer != Vectorizer.NONE:
                     self.__add_to_module_config(ret_dict, val.vectorizer.value, val._to_dict())
@@ -1174,6 +1334,12 @@ class _ReferenceDataTypeMultiTarget:
 
 
 @dataclass
+class _PropertyVectorizerConfig:
+    skip: bool
+    vectorize_property_name: bool
+
+
+@dataclass
 class _Property:
     data_type: Union[DataType, _ReferenceDataType, _ReferenceDataTypeMultiTarget]
     description: Optional[str]
@@ -1181,6 +1347,8 @@ class _Property:
     index_searchable: bool
     name: str
     tokenization: Optional[Tokenization]
+    vectorizer_config: Optional[_PropertyVectorizerConfig]
+    vectorizer: Optional[str]
 
     def to_weaviate_dict(self) -> Dict[str, Any]:
         if isinstance(self.data_type, DataType):
@@ -1189,11 +1357,22 @@ class _Property:
             data_type = [self.data_type.target_collection]
         else:
             data_type = self.data_type.target_collections
+
+        if self.vectorizer is not None:
+            module_config: Dict[str, Any] = {self.vectorizer: {}}
+        if self.vectorizer_config is not None:
+            assert self.vectorizer is not None
+            module_config[self.vectorizer] = {
+                "skip": self.vectorizer_config.skip,
+                "vectorizePropertyName": self.vectorizer_config.vectorize_property_name,
+            }
+
         return {
             "dataType": data_type,
             "description": self.description,
             "indexFilterable": self.index_filterable,
             "indexVector": self.index_searchable,
+            "moduleConfig": module_config,
             "name": self.name,
             "tokenizer": self.tokenization.value if self.tokenization else None,
         }
@@ -1249,9 +1428,22 @@ class _VectorIndexConfig:
 
 
 @dataclass
+class _GenerativeConfig:
+    generator: GenerativeSearches
+    model: Dict[str, Any]
+
+
+@dataclass
+class _VectorizerConfig:
+    model: Dict[str, Any]
+    vectorize_class_name: bool
+
+
+@dataclass
 class _CollectionConfig:
     name: str
     description: Optional[str]
+    generative_config: Optional[_GenerativeConfig]
     inverted_index_config: _InvertedIndexConfig
     multi_tenancy_config: _MultiTenancyConfig
     properties: List[_Property]
@@ -1259,6 +1451,7 @@ class _CollectionConfig:
     sharding_config: _ShardingConfig
     vector_index_config: _VectorIndexConfig
     vector_index_type: _VectorIndexType
+    vectorizer_config: Optional[_VectorizerConfig]
     vectorizer: Vectorizer
 
 
@@ -1266,7 +1459,9 @@ class _CollectionConfig:
 class _CollectionConfigSimple:
     name: str
     description: Optional[str]
+    generative_config: Optional[_GenerativeConfig]
     properties: List[_Property]
+    vectorizer_config: Optional[_VectorizerConfig]
     vectorizer: Vectorizer
 
 
@@ -1291,7 +1486,7 @@ class PropertyConfig:  # noqa
     index_searchable: Optional[bool] = None
     tokenization: Optional[Tokenization] = None
     description: Optional[str] = None
-    vectorizer_config: Optional[_VectorizerConfig] = None
+    vectorizer_config: Optional[_VectorizerConfigCreate] = None
 
     # tmp solution. replace with a pydantic BaseModel, see bugreport: https://github.com/pydantic/pydantic/issues/6948
     # bugreport was closed as not planned :( so dataclasses must stay

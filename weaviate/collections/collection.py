@@ -165,7 +165,7 @@ class Collection(_CollectionBase, Generic[Properties]):
         if is_typeddict(return_properties):
             return_properties = cast(Type[TProperties], return_properties)
             return _ObjectIterator[TProperties](
-                lambda limit, alpha: self.query.fetch_objects(  # type: ignore # shouldn't be needed but mypy complains
+                lambda limit, alpha: self.query.fetch_objects(
                     limit=limit,
                     after=alpha,
                     return_metadata=MetadataQuery._full(include_vector),

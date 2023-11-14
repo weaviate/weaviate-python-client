@@ -2,17 +2,12 @@ from dataclasses import dataclass
 from typing import (
     Dict,
     List,
-    Literal,
     Optional,
-    Protocol,
     Union,
-    overload,
 )
 from typing_extensions import TypeVar
 
 from pydantic import BaseModel, Field
-
-from weaviate.collections.classes.config import DataType
 
 N = TypeVar("N", int, float)
 
@@ -118,7 +113,7 @@ class _MetricsBase(BaseModel):
     type_: bool = Field(default=False)
 
 
-class _MetricsStr(_MetricsBase):
+class _MetricsText(_MetricsBase):
     top_occurrences_count: bool = Field(default=False)
     top_occurrences_value: bool = Field(default=False)
 
@@ -138,7 +133,7 @@ class _MetricsStr(_MetricsBase):
         return f"{self.property_name} {{ {body} }}"
 
 
-class _MetricsNumber(_MetricsBase):
+class _MetricsNum(_MetricsBase):
     maximum: bool = Field(default=False)
     mean: bool = Field(default=False)
     median: bool = Field(default=False)
@@ -162,15 +157,15 @@ class _MetricsNumber(_MetricsBase):
         return f"{self.property_name} {{ {body} }}"
 
 
-class _MetricsInt(_MetricsNumber):
+class _MetricsInteger(_MetricsNum):
     pass
 
 
-class _MetricsFloat(_MetricsNumber):
+class _MetricsNumber(_MetricsNum):
     pass
 
 
-class _MetricsBool(_MetricsBase):
+class _MetricsBoolean(_MetricsBase):
     percentage_false: bool = Field(default=False)
     percentage_true: bool = Field(default=False)
     total_false: bool = Field(default=False)
@@ -210,7 +205,7 @@ class _MetricsDate(_MetricsBase):
         return f"{self.property_name} {{ {body} }}"
 
 
-class _MetricsRef(BaseModel):
+class _MetricsReference(BaseModel):
     property_name: str
     pointing_to: bool = Field(default=False)
     type_: bool = Field(default=False)
@@ -226,27 +221,36 @@ class _MetricsRef(BaseModel):
 
 
 _Metrics = Union[
-    _MetricsStr,
-    _MetricsInt,
-    _MetricsFloat,
+    _MetricsText,
+    _MetricsInteger,
+    _MetricsNumber,
     _MetricsDate,
-    _MetricsBool,
-    _MetricsRef,
+    _MetricsBoolean,
+    _MetricsReference,
 ]
 
-PropertiesMetrics = List[_Metrics]
+PropertiesMetrics = Union[_Metrics, List[_Metrics]]
 
 
-class SupportsReturningStr(Protocol):
-    """An interface for the `returning` method of the `Metrics` class for string properties."""
+class Metrics:
+    """Define the metrics to be returned based on a property when aggregating over a collection.
 
-    def returning(
+    Use the `__init__` method to define the name to the property to be aggregated on.
+    Then use the `text`, `integer`, `number`, `boolean`, `date_`, or `reference` methods to define the metrics to be returned.
+
+    See [the docs](https://weaviate.io/developers/weaviate/search/aggregate) for more details!
+    """
+
+    def __init__(self, property_: str) -> None:
+        self.__property = property_
+
+    def text(
         self,
         count: bool = False,
         top_occurrences_count: bool = False,
         top_occurrences_value: bool = False,
-    ) -> _MetricsStr:
-        """Define the metrics to be returned for a string property when aggregating over a collection.
+    ) -> _MetricsText:
+        """Define the metrics to be returned for a TEXT or TEXT_ARRAY property when aggregating over a collection.
 
         Arguments:
             `count`
@@ -259,13 +263,14 @@ class SupportsReturningStr(Protocol):
         Returns:
             A `_MetricsStr` object that includes the metrics to be returned.
         """
-        ...
+        return _MetricsText(
+            property_name=self.__property,
+            count=count,
+            top_occurrences_count=top_occurrences_count,
+            top_occurrences_value=top_occurrences_value,
+        )
 
-
-class SupportsReturningInt(Protocol):
-    """An interface for the `returning` method of the `Metrics` class for integer properties."""
-
-    def returning(
+    def integer(
         self,
         count: bool = False,
         maximum: bool = False,
@@ -274,8 +279,8 @@ class SupportsReturningInt(Protocol):
         minimum: bool = False,
         mode: bool = False,
         sum_: bool = False,
-    ) -> _MetricsInt:
-        """Define the metrics to be returned for an integer property when aggregating over a collection.
+    ) -> _MetricsInteger:
+        """Define the metrics to be returned for an INT or INT_ARRAY property when aggregating over a collection.
 
         Arguments:
             `count`
@@ -294,15 +299,20 @@ class SupportsReturningInt(Protocol):
                 Whether to include the sum of this property.
 
         Returns:
-            A `_MetricsInt` object that includes the metrics to be returned.
+            A `_MetricsInteger` object that includes the metrics to be returned.
         """
-        ...
+        return _MetricsInteger(
+            property_name=self.__property,
+            count=count,
+            maximum=maximum,
+            mean=mean,
+            median=median,
+            minimum=minimum,
+            mode=mode,
+            sum_=sum_,
+        )
 
-
-class SupportsReturningFloat(Protocol):
-    """An interface for the `returning` method of the `Metrics` class for float properties."""
-
-    def returning(
+    def number(
         self,
         count: bool = False,
         maximum: bool = False,
@@ -311,8 +321,8 @@ class SupportsReturningFloat(Protocol):
         minimum: bool = False,
         mode: bool = False,
         sum_: bool = False,
-    ) -> _MetricsFloat:
-        """Define the metrics to be returned for a float property when aggregating over a collection.
+    ) -> _MetricsNumber:
+        """Define the metrics to be returned for a NUMBER or NUMBER_ARRAY property when aggregating over a collection.
 
         Arguments:
             `count`
@@ -331,23 +341,28 @@ class SupportsReturningFloat(Protocol):
                 Whether to include the sum of this property.
 
         Returns:
-            A `_MetricsFloat` object that includes the metrics to be returned.
+            A `_MetricsNumber` object that includes the metrics to be returned.
         """
-        ...
+        return _MetricsNumber(
+            property_name=self.__property,
+            count=count,
+            maximum=maximum,
+            mean=mean,
+            median=median,
+            minimum=minimum,
+            mode=mode,
+            sum_=sum_,
+        )
 
-
-class SupportsReturningBool(Protocol):
-    """An interface for the `returning` method of the `Metrics` class for boolean properties."""
-
-    def returning(
+    def boolean(
         self,
         count: bool = False,
         percentage_false: bool = False,
         percentage_true: bool = False,
         total_false: bool = False,
         total_true: bool = False,
-    ) -> _MetricsBool:
-        """Define the metrics to be returned for a boolean property when aggregating over a collection.
+    ) -> _MetricsBoolean:
+        """Define the metrics to be returned for a BOOL or BOOL_ARRAY property when aggregating over a collection.
 
         Arguments:
             `count`
@@ -362,15 +377,18 @@ class SupportsReturningBool(Protocol):
                 Whether to include the total number of objects that have a true value for this property.
 
         Returns:
-            A `_MetricsBool` object that includes the metrics to be returned.
+            A `_MetricsBoolean` object that includes the metrics to be returned.
         """
-        ...
+        return _MetricsBoolean(
+            property_name=self.__property,
+            count=count,
+            percentage_false=percentage_false,
+            percentage_true=percentage_true,
+            total_false=total_false,
+            total_true=total_true,
+        )
 
-
-class SupportsReturningDate(Protocol):
-    """An interface for the `returning` method of the `Metrics` class for date properties."""
-
-    def returning(
+    def date_(
         self,
         count: bool = False,
         maximum: bool = False,
@@ -378,7 +396,7 @@ class SupportsReturningDate(Protocol):
         minimum: bool = False,
         mode: bool = False,
     ) -> _MetricsDate:
-        """Define the metrics to be returned for a date property when aggregating over a collection.
+        """Define the metrics to be returned for a DATE or DATE_ARRAY property when aggregating over a collection.
 
         Arguments:
             `count`
@@ -395,201 +413,6 @@ class SupportsReturningDate(Protocol):
         Returns:
             A `_MetricsDate` object that includes the metrics to be returned.
         """
-        ...
-
-
-class SupportsReturningRef(Protocol):
-    """An interface for the `returning` method of the `Metrics` class for cross-reference properties."""
-
-    def returning(
-        self,
-        pointing_to: bool = False,
-    ) -> _MetricsRef:
-        """Define the metrics to be returned for a cross-reference property when aggregating over a collection.
-
-        Arguments:
-            `pointing_to`
-                Whether to include the collection names that this property references.
-
-        Returns:
-            A `_MetricsRef` object that includes the metrics to be returned.
-        """
-        ...
-
-
-# type ignore all the overloads of __new__ here because mypy is not capable of understanding that the return type is a protocol (interface)
-# that the class (type) implements since Aggregate inherits from all the returned protocols
-class Metrics(
-    SupportsReturningStr,
-    SupportsReturningInt,
-    SupportsReturningFloat,
-    SupportsReturningBool,
-    SupportsReturningDate,
-    SupportsReturningRef,
-):
-    """Define the metrics to be returned based on a property when aggregating over a collection.
-
-    Use the `__init__` method to define the name to the property to be aggregated on and
-    its data type using `weaviate.classes.DataType` or `"cref"` if the property is a cross-reference
-    then use the methods of this class to define the specific available metrics to be returned.
-
-    See [the docs](https://weaviate.io/developers/weaviate/search/aggregate) for more details!
-    """
-
-    @overload
-    def __new__(cls, property_: str, type_: Literal[DataType.TEXT]) -> SupportsReturningStr:  # type: ignore
-        ...
-
-    @overload
-    def __new__(cls, property_: str, type_: Literal[DataType.TEXT_ARRAY]) -> SupportsReturningStr:  # type: ignore
-        ...
-
-    @overload
-    def __new__(cls, property_: str, type_: Literal[DataType.INT]) -> SupportsReturningInt:  # type: ignore
-        ...
-
-    @overload
-    def __new__(cls, property_: str, type_: Literal[DataType.INT_ARRAY]) -> SupportsReturningInt:  # type: ignore
-        ...
-
-    @overload
-    def __new__(cls, property_: str, type_: Literal[DataType.NUMBER]) -> SupportsReturningFloat:  # type: ignore
-        ...
-
-    @overload
-    def __new__(cls, property_: str, type_: Literal[DataType.NUMBER_ARRAY]) -> SupportsReturningFloat:  # type: ignore
-        ...
-
-    @overload
-    def __new__(cls, property_: str, type_: Literal[DataType.BOOL]) -> SupportsReturningBool:  # type: ignore
-        ...
-
-    @overload
-    def __new__(cls, property_: str, type_: Literal[DataType.BOOL_ARRAY]) -> SupportsReturningBool:  # type: ignore
-        ...
-
-    @overload
-    def __new__(cls, property_: str, type_: Literal[DataType.DATE]) -> SupportsReturningDate:  # type: ignore
-        ...
-
-    @overload
-    def __new__(cls, property_: str, type_: Literal[DataType.DATE_ARRAY]) -> SupportsReturningDate:  # type: ignore
-        ...
-
-    @overload
-    def __new__(cls, property_: str, type_: Literal["cref"]) -> SupportsReturningRef:  # type: ignore
-        ...
-
-    def __new__(cls, property_: str, type_: Union[DataType, Literal["cref"]]) -> "Metrics":
-        """Create a new `Metrics` object."""
-        return super().__new__(cls)
-
-    def __init__(self, property_: str, type_: Union[DataType, Literal["cref"]]) -> None:
-        self.__property = property_
-        self.__type = type_
-
-    def returning(self, **kwargs) -> _Metrics:  # type: ignore
-        """Define the metrics to be returned for a property when aggregating over a collection.
-
-        If you're seeing this docstring then you've likely forgotten to define the data type of the property.
-
-        Example:
-            ```python
-            import weaviate.classes as wvc
-            wvc.Metrics("myProperty", DataType.TEXT).returning(count=True)
-            ```
-        """
-        if self.__type == DataType.TEXT or self.__type == DataType.TEXT_ARRAY:
-            return self.__str(**kwargs)
-        elif self.__type == DataType.INT or self.__type == DataType.INT_ARRAY:
-            return self.__int(**kwargs)
-        elif self.__type == DataType.NUMBER or self.__type == DataType.NUMBER_ARRAY:
-            return self.__float(**kwargs)
-        elif self.__type == DataType.BOOL or self.__type == DataType.BOOL_ARRAY:
-            return self.__bool(**kwargs)
-        elif self.__type == DataType.DATE or self.__type == DataType.DATE_ARRAY:
-            return self.__date(**kwargs)
-        elif self.__type == "ref":
-            return self.__ref(**kwargs)
-        else:
-            raise ValueError(f"Unknown type {self.__type}")
-
-    def __str(
-        self,
-        count: bool = False,
-        top_occurrences_count: bool = False,
-        top_occurrences_value: bool = False,
-    ) -> _MetricsStr:
-        return _MetricsStr(
-            property_name=self.__property,
-            count=count,
-            top_occurrences_count=top_occurrences_count,
-            top_occurrences_value=top_occurrences_value,
-        )
-
-    def __int(
-        self,
-        count: bool = False,
-        maximum: bool = False,
-        mean: bool = False,
-        median: bool = False,
-        mode: bool = False,
-        sum_: bool = False,
-    ) -> _MetricsInt:
-        return _MetricsInt(
-            property_name=self.__property,
-            count=count,
-            maximum=maximum,
-            mean=mean,
-            median=median,
-            mode=mode,
-            sum_=sum_,
-        )
-
-    def __float(
-        self,
-        count: bool = False,
-        maximum: bool = False,
-        mean: bool = False,
-        median: bool = False,
-        mode: bool = False,
-        sum_: bool = False,
-    ) -> _MetricsFloat:
-        return _MetricsFloat(
-            property_name=self.__property,
-            count=count,
-            maximum=maximum,
-            mean=mean,
-            median=median,
-            mode=mode,
-            sum_=sum_,
-        )
-
-    def __bool(
-        self,
-        count: bool = False,
-        percentage_false: bool = False,
-        percentage_true: bool = False,
-        total_false: bool = False,
-        total_true: bool = False,
-    ) -> _MetricsBool:
-        return _MetricsBool(
-            property_name=self.__property,
-            count=count,
-            percentage_false=percentage_false,
-            percentage_true=percentage_true,
-            total_false=total_false,
-            total_true=total_true,
-        )
-
-    def __date(
-        self,
-        count: bool = False,
-        maximum: bool = False,
-        median: bool = False,
-        minimum: bool = False,
-        mode: bool = False,
-    ) -> _MetricsDate:
         return _MetricsDate(
             property_name=self.__property,
             count=count,
@@ -599,11 +422,20 @@ class Metrics(
             mode=mode,
         )
 
-    def __ref(
+    def reference(
         self,
         pointing_to: bool = False,
-    ) -> _MetricsRef:
-        return _MetricsRef(
+    ) -> _MetricsReference:
+        """Define the metrics to be returned for a cross-reference property when aggregating over a collection.
+
+        Arguments:
+            `pointing_to`
+                Whether to include the collection names that this property references.
+
+        Returns:
+            A `_MetricsReference` object that includes the metrics to be returned.
+        """
+        return _MetricsReference(
             property_name=self.__property,
             pointing_to=pointing_to,
         )

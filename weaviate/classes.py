@@ -1,3 +1,4 @@
+from weaviate.collections.classes.aggregate import Metrics
 from weaviate.collections.classes.config import (
     Configure,
     Reconfigure,
@@ -6,6 +7,7 @@ from weaviate.collections.classes.config import (
     Property,
     ReferenceProperty,
     ReferencePropertyMultiTarget,
+    StopwordsPreset,
     Tokenization,
     VectorDistance,
 )
@@ -35,12 +37,14 @@ __all__ = [
     "FromReference",
     "FromReferenceMultiTarget",
     "MetadataQuery",
+    "Metrics",
     "Multi2VecField",
     "Nested",
     "Property",
     "Reference",
     "ReferenceProperty",
     "ReferencePropertyMultiTarget",
+    "StopwordsPreset",
     "Tenant",
     "Tokenization",
     "VectorDistance",

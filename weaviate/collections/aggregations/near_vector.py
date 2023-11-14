@@ -52,6 +52,11 @@ class _NearVector(_Aggregate):
             `weaviate.exceptions.WeaviateQueryException`:
                 If an error occurs while performing the query against Weaviate.
         """
+        return_metrics = (
+            return_metrics
+            if (return_metrics is None or isinstance(return_metrics, list))
+            else [return_metrics]
+        )
         builder = self._base(return_metrics, filters, limit, total_count)
         builder = self._add_near_vector(builder, near_vector, certainty, distance, object_limit)
         res = self._do(builder)
@@ -104,6 +109,11 @@ class _NearVectorGroupBy(_Aggregate):
             `weaviate.exceptions.WeaviateQueryException`:
                 If an error occurs while performing the query against Weaviate.
         """
+        return_metrics = (
+            return_metrics
+            if (return_metrics is None or isinstance(return_metrics, list))
+            else [return_metrics]
+        )
         builder = (
             self._base(return_metrics, filters, limit, total_count)
             .with_group_by_filter([group_by])

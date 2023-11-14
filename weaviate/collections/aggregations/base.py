@@ -6,7 +6,6 @@ from typing import Callable, List, Optional, TypeVar, Union, cast
 from typing_extensions import ParamSpec
 
 from weaviate.collections.classes.aggregate import (
-    PropertiesMetrics,
     AProperties,
     AggregateResult,
     AggregateBool,
@@ -19,12 +18,12 @@ from weaviate.collections.classes.aggregate import (
     _AggregateReturn,
     _Metrics,
     _MetricsBase,
-    _MetricsBool,
+    _MetricsBoolean,
     _MetricsDate,
-    _MetricsFloat,
-    _MetricsInt,
-    _MetricsRef,
-    _MetricsStr,
+    _MetricsNumber,
+    _MetricsInteger,
+    _MetricsReference,
+    _MetricsText,
     _GroupedBy,
     TopOccurrence,
 )
@@ -57,7 +56,7 @@ def validate(fn: Callable[P, T]) -> Callable[P, T]:
         for aggregation in aggregations:
             if not isinstance(aggregation, _MetricsBase):
                 raise TypeError(
-                    f"One of the aggregations is an unexpected type: {type(aggregation)}. Did you forget to append .returning() to .with_()?"
+                    f"One of the aggregations is an unexpected type: {type(aggregation)}. Did you forget to append a method call?  E.g. .text(count=True)"
                 )
         return fn(*args, **kwargs)
 
@@ -81,7 +80,7 @@ class _Aggregate:
         return AggregateBuilder(self.__name, self.__connection)
 
     def _to_aggregate_result(
-        self, response: dict, metrics: Optional[PropertiesMetrics]
+        self, response: dict, metrics: Optional[List[_Metrics]]
     ) -> _AggregateReturn:
         try:
             result: dict = response["data"]["Aggregate"][self.__name][0]
@@ -95,7 +94,7 @@ class _Aggregate:
             )
 
     def _to_group_by_result(
-        self, response: dict, metrics: Optional[PropertiesMetrics]
+        self, response: dict, metrics: Optional[List[_Metrics]]
     ) -> List[_AggregateGroupByReturn]:
         try:
             results: dict = response["data"]["Aggregate"][self.__name]
@@ -117,7 +116,7 @@ class _Aggregate:
                 f"There was an error accessing the {e} key when parsing the GraphQL response: {response}"
             )
 
-    def __parse_properties(self, result: dict, metrics: PropertiesMetrics) -> AProperties:
+    def __parse_properties(self, result: dict, metrics: List[_Metrics]) -> AProperties:
         props: AProperties = {}
         for metric in metrics:
             if metric.property_name in result:
@@ -128,7 +127,7 @@ class _Aggregate:
 
     @staticmethod
     def __parse_property(property_: dict, metric: _Metrics) -> AggregateResult:
-        if isinstance(metric, _MetricsStr):
+        if isinstance(metric, _MetricsText):
             return AggregateStr(
                 count=property_.get("count"),
                 top_occurrences=[
@@ -139,7 +138,7 @@ class _Aggregate:
                     for top_occurence in property_.get("topOccurrences", [])
                 ],
             )
-        elif isinstance(metric, _MetricsInt):
+        elif isinstance(metric, _MetricsInteger):
             return AggregateInt(
                 count=property_.get("count"),
                 maximum=property_.get("maximum"),
@@ -148,7 +147,7 @@ class _Aggregate:
                 mode=property_.get("mode"),
                 sum_=property_.get("sum"),
             )
-        elif isinstance(metric, _MetricsFloat):
+        elif isinstance(metric, _MetricsNumber):
             return AggregateFloat(
                 count=property_.get("count"),
                 maximum=property_.get("maximum"),
@@ -157,7 +156,7 @@ class _Aggregate:
                 mode=property_.get("mode"),
                 sum_=property_.get("sum"),
             )
-        elif isinstance(metric, _MetricsBool):
+        elif isinstance(metric, _MetricsBoolean):
             return AggregateBool(
                 count=property_.get("count"),
                 percentage_false=property_.get("percentageFalse"),
@@ -173,7 +172,7 @@ class _Aggregate:
                 minimum=property_.get("minimum"),
                 mode=property_.get("mode"),
             )
-        elif isinstance(metric, _MetricsRef):
+        elif isinstance(metric, _MetricsReference):
             return AggregateRef(pointing_to=property_.get("pointingTo"))
         else:
             raise ValueError(
@@ -182,7 +181,7 @@ class _Aggregate:
 
     def _base(
         self,
-        metrics: Optional[PropertiesMetrics],
+        metrics: Optional[List[_Metrics]],
         filters: Optional[_Filters],
         limit: Optional[int],
         total_count: bool,

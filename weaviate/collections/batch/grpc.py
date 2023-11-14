@@ -1,7 +1,7 @@
 import datetime
 import uuid as uuid_package
 import time
-from typing import Any, List, Dict, Union, cast
+from typing import Any, Dict, List, Union, cast
 
 import grpc  # type: ignore
 from google.protobuf.struct_pb2 import Struct
@@ -42,7 +42,9 @@ class _BatchGRPC(_BaseGRPC):
                 collection=obj.collection,
                 vector=get_vector(obj.vector) if obj.vector is not None else None,
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
-                properties=self.__translate_properties_from_python_to_grpc(obj.properties, False),
+                properties=self.__translate_properties_from_python_to_grpc(obj.properties, False)
+                if obj.properties is not None
+                else None,
                 tenant=obj.tenant,
             )
             for obj in objects
@@ -99,6 +101,9 @@ class _BatchGRPC(_BaseGRPC):
     def __translate_properties_from_python_to_grpc(
         self, data: Dict[str, Any], clean_props: bool
     ) -> batch_pb2.BatchObject.Properties:
+        if data is None:
+            return None
+
         _validate_props(data, clean_props)
 
         multi_target: List[batch_pb2.BatchObject.MultiTargetRefProps] = []
