@@ -232,7 +232,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient):
     assert (
         objects[0].properties["name"] == "find me"
     )  # happy path (in type and in return_properties)
-    assert objects[0].metadata.uuid is None
+    assert objects[0].metadata.uuid is not None
     assert (
         objects[0].properties.get("not_specified") is None
     )  # type is str but instance is None (in type but not in return_properties)

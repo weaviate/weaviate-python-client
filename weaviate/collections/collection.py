@@ -125,78 +125,69 @@ class Collection(_CollectionBase, Generic[Properties]):
     @overload
     def iterator(
         self,
-        return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
+        include_vector: bool = False,
     ) -> _ObjectIterator[Properties]:
         ...
 
     @overload
     def iterator(
         self,
-        return_metadata: Optional[MetadataQuery] = None,
-        *,
         return_properties: Type[TProperties],
+        include_vector: bool = False,
     ) -> _ObjectIterator[TProperties]:
         ...
 
     def iterator(
         self,
-        return_metadata: Optional[MetadataQuery] = None,
         return_properties: Optional[Union[PROPERTIES, Type[TProperties]]] = None,
+        include_vector: bool = False,
     ) -> Union[_ObjectIterator[Properties], _ObjectIterator[TProperties]]:
         """Use this method to return an iterator over the objects in the collection.
 
         This iterator keeps a record of the last object that it returned to be used in each subsequent call to
         Weaviate. Once the collection is exhausted, the iterator exits.
 
-        If `return_metadata` and `return_properties` are not provided, all the data of each object will be
-        requested from Weaviate except for its vector as this is an expensive operation. Specify `return_metadata`
-        and `return_properties` to only request the data that you need.
+        If `return_properties` is not provided, all the properties of each object will be
+        requested from Weaviate except for its vector as this is an expensive operation. Specify `include_vector`
+        to request the vector back as well.
 
         Arguments:
-            `return_metadata`
-                The metadata to return with each object.
             `return_properties`
                 The properties to return with each object.
+            `include_vector`
+                Whether to include the vector in the metadata of the returned objects.
 
         Raises:
-            `requests.ConnectionError`
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`
-                If Weaviate reports a non-OK status.
+            `weaviate.exceptions.WeaviateQueryException`:
+                If the request to the Weaviate server fails.
         """
         if is_typeddict(return_properties):
             return_properties = cast(Type[TProperties], return_properties)
             return _ObjectIterator[TProperties](
-                lambda limit, alpha, meta: self.query.fetch_objects(
+                lambda limit, alpha: self.query.fetch_objects(
                     limit=limit,
                     after=alpha,
-                    return_metadata=meta,
+                    return_metadata=MetadataQuery._full(include_vector),
                     return_properties=return_properties,
                 ).objects,
-                return_metadata,
-                return_properties,
             )
         if return_properties is None and self.__type is not None:
             _type = cast(Type[Properties], self.__type)
             return _ObjectIterator[Properties](
-                lambda limit, alpha, meta: self.query.fetch_objects(
+                lambda limit, alpha: self.query.fetch_objects(
                     limit=limit,
                     after=alpha,
-                    return_metadata=meta,
+                    return_metadata=MetadataQuery._full(include_vector),
                     return_properties=_type,
                 ).objects,
-                return_metadata,
-                _type,
             )
         props = cast(PROPERTIES, return_properties)
         return _ObjectIterator[Properties](
-            lambda limit, alpha, meta: self.query.fetch_objects(
+            lambda limit, alpha: self.query.fetch_objects(
                 limit=limit,
                 after=alpha,
-                return_metadata=meta,
+                return_metadata=MetadataQuery._full(include_vector),
                 return_properties=props,
             ).objects,
-            return_metadata,
-            props,
         )

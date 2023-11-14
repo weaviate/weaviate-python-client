@@ -9,7 +9,7 @@ services:
       - '8086'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-undo-premature-optimisation-of-grpc-message-parsing-e82a2e8
+    image: semitechnologies/weaviate:preview-refactor-implicit-grpc-message-parsing-4508567
     ports:
       - 8086:8086
       - "50057:50051"

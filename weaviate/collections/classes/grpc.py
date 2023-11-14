@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Literal, Optional, Union
 
 from pydantic import Field
 
@@ -76,10 +76,11 @@ class MetadataQuery(_WeaviateInput):
     is_consistent: bool = Field(default=False)
 
     @classmethod
-    def _full(cls) -> "MetadataQuery":
-        """Return a MetadataQuery with all fields set to True except for vector."""
+    def _full(cls, include_vector: bool = False) -> "MetadataQuery":
+        """Return a MetadataQuery with all fields set to True."""
         return cls(
             uuid=True,
+            vector=include_vector,
             creation_time_unix=True,
             last_update_time_unix=True,
             distance=True,
@@ -88,6 +89,24 @@ class MetadataQuery(_WeaviateInput):
             explain_score=True,
             is_consistent=True,
         )
+
+
+METADATA = Union[
+    List[
+        Literal[
+            "uuid",
+            "vector",
+            "creation_time_unix",
+            "last_update_time_unix",
+            "distance",
+            "certainty",
+            "score",
+            "explain_score",
+            "is_consistent",
+        ]
+    ],
+    MetadataQuery,
+]
 
 
 class Generate(_WeaviateInput):
@@ -110,7 +129,7 @@ class FromReference(_WeaviateInput):
 
     link_on: str
     return_properties: Optional["PROPERTIES"] = Field(default=None)
-    return_metadata: Optional[MetadataQuery] = Field(default=None)
+    return_metadata: Optional[MetadataQuery] = Field(default_factory=MetadataQuery._full)
 
     def __hash__(self) -> int:  # for set
         return hash(str(self))
