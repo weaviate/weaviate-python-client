@@ -32,6 +32,7 @@ from weaviate.collections.classes.grpc import (
     MetadataQuery,
     Move,
     Sort,
+    METADATA,
     PROPERTIES,
 )
 from weaviate.collections.classes.internal import Reference
@@ -500,12 +501,12 @@ def test_replace_overwrites_vector(client: weaviate.WeaviateClient):
     uuid = collection.data.insert(properties={"name": "some name"}, vector=[1, 2, 3])
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
     assert obj.properties["name"] == "some name"
-    assert obj.metadata.vector == [1, 2, 3]
+    assert obj.vector == [1, 2, 3]
 
     collection.data.replace(properties={"name": "other name"}, uuid=uuid)
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
     assert obj.properties["name"] == "other name"
-    assert obj.metadata.vector is None
+    assert obj.vector is None
 
     client.collections.delete(name)
 
@@ -650,9 +651,9 @@ def test_search_after(client: weaviate.WeaviateClient):
     for i in range(nr_objects):
         collection.data.insert({"Name": str(i)})
 
-    objects = collection.query.fetch_objects(return_metadata=MetadataQuery(uuid=True)).objects
+    objects = collection.query.fetch_objects().objects
     for i, obj in enumerate(objects):
-        objects_after = collection.query.fetch_objects(after=obj.metadata.uuid).objects
+        objects_after = collection.query.fetch_objects(after=obj.uuid).objects
         assert len(objects_after) == nr_objects - 1 - i
 
     client.collections.delete("TestOffset")
@@ -736,17 +737,17 @@ def test_near_vector(client: weaviate.WeaviateClient):
     banana = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
 
     full_objects = collection.query.near_vector(
-        banana.metadata.vector, return_metadata=MetadataQuery(distance=True, certainty=True)
+        banana.vector, return_metadata=MetadataQuery(distance=True, certainty=True)
     ).objects
     assert len(full_objects) == 4
 
     objects_distance = collection.query.near_vector(
-        banana.metadata.vector, distance=full_objects[2].metadata.distance
+        banana.vector, distance=full_objects[2].metadata.distance
     ).objects
     assert len(objects_distance) == 3
 
     objects_distance = collection.query.near_vector(
-        banana.metadata.vector, certainty=full_objects[2].metadata.certainty
+        banana.vector, certainty=full_objects[2].metadata.certainty
     ).objects
     assert len(objects_distance) == 3
 
@@ -769,9 +770,9 @@ def test_near_vector_group_by(client: weaviate.WeaviateClient):
 
     banana1 = collection.query.fetch_object_by_id(uuid_banana1, include_vector=True)
 
-    assert banana1.metadata.vector is not None
+    assert banana1.vector is not None
     ret = collection.query_group_by.near_vector(
-        banana1.metadata.vector,
+        banana1.vector,
         group_by_property="name",
         number_of_groups=4,
         objects_per_group=10,
@@ -889,17 +890,15 @@ def test_multi_searches(client: weaviate.WeaviateClient):
     assert "name" in objects[0].properties
     assert objects[0].metadata.last_update_time_unix is not None
 
-    objects = collection.query.bm25(query="other", return_metadata=MetadataQuery(uuid=True)).objects
+    objects = collection.query.bm25(query="other").objects
     assert "name" in objects[0].properties
-    assert objects[0].metadata.uuid is not None
-    assert objects[0].metadata.last_update_time_unix is None
+    assert objects[0].uuid is not None
+    assert objects[0].metadata is None
 
-    objects = collection.query.bm25(
-        query="other", return_properties=[], return_metadata=MetadataQuery(uuid=True)
-    ).objects
+    objects = collection.query.bm25(query="other", return_properties=[]).objects
     assert "name" not in objects[0].properties
-    assert objects[0].metadata.uuid is not None
-    assert objects[0].metadata.last_update_time_unix is None
+    assert objects[0].uuid is not None
+    assert objects[0].metadata is None
 
     client.collections.delete("TestMultiSearches")
 
@@ -916,11 +915,11 @@ def test_search_with_tenant(client: weaviate.WeaviateClient):
     tenant1 = collection.with_tenant("Tenant1")
     tenant2 = collection.with_tenant("Tenant2")
     uuid1 = tenant1.data.insert({"name": "some name"})
-    objects1 = tenant1.query.bm25(query="some", return_metadata=MetadataQuery(uuid=True)).objects
+    objects1 = tenant1.query.bm25(query="some").objects
     assert len(objects1) == 1
-    assert objects1[0].metadata.uuid == uuid1
+    assert objects1[0].uuid == uuid1
 
-    objects2 = tenant2.query.bm25(query="some", return_metadata=MetadataQuery(uuid=True)).objects
+    objects2 = tenant2.query.bm25(query="some").objects
     assert len(objects2) == 0
 
     client.collections.delete("TestTenantSearch")
@@ -1043,10 +1042,9 @@ def test_collection_config_get(client: weaviate.WeaviateClient):
     "return_metadata",
     [
         None,
-        ["uuid"],
-        MetadataQuery(uuid=True),
+        [],
+        MetadataQuery(),
         [
-            "uuid",
             "creation_time_unix",
             "last_update_time_unix",
             "distance",
@@ -1056,24 +1054,14 @@ def test_collection_config_get(client: weaviate.WeaviateClient):
             "is_consistent",
         ],
         MetadataQuery._full(),
-        [
-            "uuid",
-            "vector",
-            "creation_time_unix",
-            "last_update_time_unix",
-            "distance",
-            "certainty",
-            "score",
-            "explain_score",
-            "is_consistent",
-        ],
-        MetadataQuery._full(True),
     ],
 )
+@pytest.mark.parametrize("include_vector", [False, True])
 def test_return_properties_and_return_metadata_combos(
     client: weaviate.WeaviateClient,
     return_properties: Optional[PROPERTIES],
     return_metadata: Optional[MetadataQuery],
+    include_vector: bool,
 ):
     client.collections.delete("TestReturnEverything")
     collection = client.collections.create(
@@ -1090,8 +1078,12 @@ def test_return_properties_and_return_metadata_combos(
     )
 
     objects = collection.query.fetch_objects(
-        return_properties=return_properties, return_metadata=return_metadata
+        include_vector=include_vector,
+        return_properties=return_properties,
+        return_metadata=return_metadata,
     ).objects
+
+    assert objects[0].uuid is not None
 
     if return_properties is None:
         assert "name" in objects[0].properties
@@ -1106,30 +1098,21 @@ def test_return_properties_and_return_metadata_combos(
         assert "age" not in objects[0].properties
         assert objects[0].properties["name"] == "Graham"
 
-    if return_metadata is None:
-        assert objects[0].metadata.uuid is None
-        assert objects[0].metadata.score is None
-        assert objects[0].metadata.last_update_time_unix is None
-        assert objects[0].metadata.creation_time_unix is None
-        assert objects[0].metadata.vector is None
-    elif return_metadata == ["uuid"] or return_metadata == MetadataQuery(uuid=True):
-        assert objects[0].metadata.uuid is not None
-        assert objects[0].metadata.score is None
-        assert objects[0].metadata.last_update_time_unix is None
-        assert objects[0].metadata.creation_time_unix is None
-        assert objects[0].metadata.vector is None
-    elif return_metadata == MetadataQuery._full():
-        assert objects[0].metadata.uuid is not None
-        assert objects[0].metadata.score is not None
+    if (
+        return_metadata is None
+        or return_metadata == MetadataQuery()
+        or (isinstance(return_metadata, list) and len(return_metadata) == 0)
+    ):
+        assert objects[0].metadata is None
+    else:
         assert objects[0].metadata.last_update_time_unix is not None
         assert objects[0].metadata.creation_time_unix is not None
-        assert objects[0].metadata.vector is None
-    elif return_metadata == MetadataQuery._full(True):
-        assert objects[0].metadata.uuid is not None
-        assert objects[0].metadata.score is not None
-        assert objects[0].metadata.last_update_time_unix is not None
-        assert objects[0].metadata.creation_time_unix is not None
-        assert objects[0].metadata.vector is not None
+        assert objects[0].metadata.explain_score is not None
+
+    if include_vector:
+        assert objects[0].vector == [1, 2, 3, 4]
+    else:
+        assert objects[0].vector is None
 
 
 @pytest.mark.parametrize("hours,minutes,sign", [(0, 0, 1), (1, 20, -1), (2, 0, 1), (3, 40, -1)])
@@ -1298,14 +1281,14 @@ def test_near_text(
         query=query,
         move_to=Move(force=1.0, objects=objects),
         move_away=Move(force=0.5, concepts=concepts),
-        return_metadata=MetadataQuery(uuid=True, vector=True),
+        include_vector=True,
         return_properties=return_properties,
     ).objects
 
     assert len(objs) == 4
 
-    assert objs[0].metadata.uuid == batch_return.uuids[2]
-    assert objs[0].metadata.vector is not None
+    assert objs[0].uuid == batch_return.uuids[2]
+    assert objs[0].vector is not None
     if return_properties is not None:
         assert objs[0].properties["value"] == "apple cake"
 
@@ -1345,16 +1328,16 @@ def test_near_text_group_by(client: weaviate.WeaviateClient):
         group_by_property="value",
         number_of_groups=2,
         objects_per_group=100,
-        return_metadata=MetadataQuery(uuid=True, vector=True),
+        include_vector=True,
         return_properties=["value"],
     )
 
     assert len(ret.objects) == 2
-    assert ret.objects[0].metadata.uuid == batch_return.uuids[2]
-    assert ret.objects[0].metadata.vector is not None
+    assert ret.objects[0].uuid == batch_return.uuids[2]
+    assert ret.objects[0].vector is not None
     assert ret.objects[0].belongs_to_group == "apple cake"
-    assert ret.objects[1].metadata.uuid == batch_return.uuids[3]
-    assert ret.objects[1].metadata.vector is not None
+    assert ret.objects[1].uuid == batch_return.uuids[3]
+    assert ret.objects[1].vector is not None
     assert ret.objects[1].belongs_to_group == "cake"
 
 
@@ -1379,14 +1362,13 @@ def test_near_text_limit(client: weaviate.WeaviateClient):
     objects = collection.query.near_text(
         query="cake",
         limit=2,
-        return_metadata=MetadataQuery(uuid=True),
         return_properties=["value"],
     ).objects
 
     assert len(objects) == 2
-    assert objects[0].metadata.uuid == batch_return.uuids[2]
+    assert objects[0].uuid == batch_return.uuids[2]
     assert objects[0].properties["value"] == "apple cake"
-    assert objects[1].metadata.uuid == batch_return.uuids[3]
+    assert objects[1].uuid == batch_return.uuids[3]
     assert objects[1].properties["value"] == "cake"
 
 
@@ -1429,7 +1411,7 @@ def test_near_image(
         image.close()
 
     assert len(objects) == 2
-    assert objects[0].metadata.uuid == uuid1
+    assert objects[0].uuid == uuid1
 
 
 @pytest.mark.parametrize("which_case", [0, 1, 2, 3, 4])
@@ -1561,8 +1543,8 @@ def test_batch_with_arrays(client: weaviate.WeaviateClient):
         ],
     )
 
-    objects_in: List[DataObject] = [
-        DataObject(
+    objects_in: List[DataObject[dict]] = [
+        DataObject[dict](
             {
                 "texts": ["first", "second"],
                 "ints": [1, 2],
@@ -1572,7 +1554,7 @@ def test_batch_with_arrays(client: weaviate.WeaviateClient):
                 "uuids": [UUID1, UUID3],
             }
         ),
-        DataObject(
+        DataObject[dict](
             {
                 "texts": ["third", "fourth"],
                 "ints": [3, 4, 5],
@@ -1634,7 +1616,7 @@ def test_sort(client: weaviate.WeaviateClient, sort: Union[Sort, List[Sort]], ex
     assert len(objects) == len(expected)
 
     expected_uuids = [uuids_from[result] for result in expected]
-    object_uuids = [obj.metadata.uuid for obj in objects]
+    object_uuids = [obj.uuid for obj in objects]
     assert object_uuids == expected_uuids
 
 
@@ -1665,7 +1647,7 @@ def test_optional_ref_returns(client: weaviate.WeaviateClient):
     ).objects
 
     assert objects[0].properties["ref"].objects[0].properties["text"] == "ref text"
-    assert objects[0].properties["ref"].objects[0].metadata.uuid is not None
+    assert objects[0].properties["ref"].objects[0].uuid is not None
 
 
 @pytest.mark.parametrize(
@@ -1711,6 +1693,7 @@ class Data(TypedDict):
     "include_vector",
     [False, True],
 )
+@pytest.mark.parametrize("return_metadata", [None, MetadataQuery._full()])
 @pytest.mark.parametrize(
     "return_properties",
     [None, Data, ["data"]],
@@ -1718,6 +1701,7 @@ class Data(TypedDict):
 def test_iterator_arguments(
     client: weaviate.WeaviateClient,
     include_vector: bool,
+    return_metadata: Optional[METADATA],
     return_properties: Optional[Union[PROPERTIES, Type[Properties]]],
 ):
     name = "TestIteratorTypedDict"
@@ -1736,22 +1720,26 @@ def test_iterator_arguments(
         [DataObject(properties={"data": i, "text": "hi"}) for i in range(10)]
     )
 
-    iter_ = collection.iterator(return_properties, include_vector)
+    iter_ = collection.iterator(include_vector, return_metadata, return_properties)
 
     # Expect everything back
-    if include_vector and return_properties is None:
+    if include_vector and return_properties is None and return_metadata == MetadataQuery._full():
         all_data: list[int] = sorted([int(obj.properties["data"]) for obj in iter_])
         assert all_data == list(range(10))
         assert all("text" in obj.properties for obj in iter_)
-        assert all(obj.metadata.vector is not None for obj in iter_)
+        assert all(obj.vector is not None for obj in iter_)
         assert all(obj.metadata.creation_time_unix is not None for obj in iter_)
         assert all(obj.metadata.score is not None for obj in iter_)
     # Expect everything back except vector
-    elif not include_vector and return_properties is None:
+    elif (
+        not include_vector
+        and return_properties is None
+        and return_metadata == MetadataQuery._full()
+    ):
         all_data: list[int] = sorted([int(obj.properties["data"]) for obj in iter_])
         assert all_data == list(range(10))
         assert all("text" in obj.properties for obj in iter_)
-        assert all(obj.metadata.vector is None for obj in iter_)
+        assert all(obj.vector is None for obj in iter_)
         assert all(obj.metadata.creation_time_unix is not None for obj in iter_)
         assert all(obj.metadata.score is not None for obj in iter_)
     # Expect specified properties and vector
@@ -1759,13 +1747,23 @@ def test_iterator_arguments(
         all_data: list[int] = sorted([int(obj.properties["data"]) for obj in iter_])
         assert all_data == list(range(10))
         assert all("text" not in obj.properties for obj in iter_)
-        assert all(obj.metadata.vector is not None for obj in iter_)
-    # Expect properties and metadata with only creation_time_unix
+        assert all(obj.vector is not None for obj in iter_)
+        if return_metadata is not None:
+            assert all(obj.metadata.creation_time_unix is not None for obj in iter_)
+            assert all(obj.metadata.score is not None for obj in iter_)
+        else:
+            assert all(obj.metadata is None for obj in iter_)
+    # Expect specified properties and no vector
     elif not include_vector and return_properties is not None:
         all_data: list[int] = sorted([int(obj.properties["data"]) for obj in iter_])
         assert all_data == list(range(10))
         assert all("text" not in obj.properties for obj in iter_)
-        assert all(obj.metadata.vector is None for obj in iter_)
+        assert all(obj.vector is None for obj in iter_)
+        if return_metadata is not None:
+            assert all(obj.metadata.creation_time_unix is not None for obj in iter_)
+            assert all(obj.metadata.score is not None for obj in iter_)
+        else:
+            assert all(obj.metadata is None for obj in iter_)
 
 
 def test_iterator_dict_hint(client: weaviate.WeaviateClient):

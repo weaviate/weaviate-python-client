@@ -254,7 +254,7 @@ def client():
     ],
 )
 def test_nested_return_all_properties(
-    client: weaviate.Client, property_: Property, object_: Union[dict, List[dict]]
+    client: weaviate.WeaviateClient, property_: Property, object_: Union[dict, List[dict]]
 ):
     name = "TestInsertNestedPropertiesAll"
     client.collections.delete(name)
@@ -308,7 +308,7 @@ def test_nested_return_all_properties(
     ],
 )
 def test_nested_return_specific_properties(
-    client: weaviate.Client, return_properties: PROPERTIES, expected: dict
+    client: weaviate.WeaviateClient, return_properties: PROPERTIES, expected: dict
 ):
     name = "TestInsertNestedPropertiesSpecific"
     client.collections.delete(name)
@@ -422,7 +422,7 @@ def test_nested_return_specific_properties(
 
 
 def test_nested_return_generic_properties(
-    client: weaviate.Client,
+    client: weaviate.WeaviateClient,
 ):
     name = "TestInsertNestedPropertiesGeneric"
     client.collections.delete(name)

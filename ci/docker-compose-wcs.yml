@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-refactor-implicit-grpc-message-parsing-4508567
+    image: semitechnologies/weaviate:preview-pass-isconsistentpresent-bool-in-grpc-reply-87ad07b
     ports:
       - 8085:8085
     restart: on-failure:0

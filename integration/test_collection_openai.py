@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional
+from typing import List
 
 import pytest
 
@@ -10,7 +10,6 @@ from weaviate.collections.classes.config import (
     Property,
 )
 from weaviate.collections.classes.data import DataObject
-from weaviate.collections.classes.grpc import MetadataQuery
 from weaviate.exceptions import WeaviateQueryException
 
 
@@ -161,10 +160,7 @@ def test_fetch_objects_generate_search_grouped_specified_prop(client: weaviate.W
     assert res.generated == "apples bananas"
 
 
-@pytest.mark.parametrize("return_metadata", [None, MetadataQuery(), MetadataQuery._full()])
-def test_fetch_objects_generate_with_everything(
-    client: weaviate.WeaviateClient, return_metadata: Optional[MetadataQuery]
-):
+def test_fetch_objects_generate_with_everything(client: weaviate.WeaviateClient):
     name = "TestGetGenerativeSearchOpenAI"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -197,18 +193,10 @@ def test_fetch_objects_generate_with_everything(
     res = collection.generate.fetch_objects(
         single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
         grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
-        return_metadata=return_metadata,
     )
     assert res.generated == "Teddy cats"
     for obj in res.objects:
         assert obj.generated == "Yes"
-
-    if return_metadata is None:
-        assert res.objects[0].metadata.uuid is None
-    if return_metadata == MetadataQuery():
-        assert res.objects[0].metadata.uuid is None
-    if return_metadata == MetadataQuery._full():
-        assert res.objects[0].metadata.uuid is not None
 
 
 def test_bm25_generate_with_everything(client: weaviate.WeaviateClient):
@@ -432,6 +420,6 @@ def test_openai_batch_upload(client: weaviate.WeaviateClient):
         print(ret.errors)
     assert not ret.has_errors
 
-    objects = collection.query.fetch_objects(return_metadata=MetadataQuery(vector=True)).objects
-    assert objects[0].metadata.vector is not None
-    assert len(objects[0].metadata.vector) > 0
+    objects = collection.query.fetch_objects(include_vector=True).objects
+    assert objects[0].vector is not None
+    assert len(objects[0].vector) > 0

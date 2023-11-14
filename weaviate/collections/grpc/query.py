@@ -23,7 +23,7 @@ from weaviate.collections.classes.grpc import (
     FromReference,
     FromReferenceMultiTarget,
     FromNested,
-    MetadataQuery,
+    _MetadataQuery,
     Move,
     PROPERTIES,
     PROPERTY,
@@ -125,7 +125,7 @@ class _QueryGRPC(_BaseGRPC):
             )
         else:
             self._default_props = None
-        self._metadata: Optional[MetadataQuery] = None
+        self._metadata: Optional[_MetadataQuery] = None
 
         self._limit: Optional[int] = None
         self._offset: Optional[int] = None
@@ -177,7 +177,7 @@ class _QueryGRPC(_BaseGRPC):
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
         sort: Optional[Union[Sort, List[Sort]]] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         generative: Optional[_Generative] = None,
     ) -> SearchResponse:
@@ -201,7 +201,7 @@ class _QueryGRPC(_BaseGRPC):
         limit: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         generative: Optional[_Generative] = None,
     ) -> SearchResponse:
@@ -231,7 +231,7 @@ class _QueryGRPC(_BaseGRPC):
         limit: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         generative: Optional[_Generative] = None,
     ) -> SearchResponse:
@@ -257,7 +257,7 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> SearchResponse:
         self._near_vector_vec = near_vector
@@ -283,7 +283,7 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> SearchResponse:
         self._near_object_obj = near_object
@@ -310,7 +310,7 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> SearchResponse:
         if isinstance(near_text, str):
@@ -350,7 +350,7 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> SearchResponse:
         self._near_image = image
@@ -377,7 +377,7 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> SearchResponse:
         self._near_video = video
@@ -404,7 +404,7 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
-        return_metadata: Optional[MetadataQuery] = None,
+        return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> SearchResponse:
         self._near_audio = audio
@@ -531,7 +531,7 @@ class _QueryGRPC(_BaseGRPC):
         except grpc.RpcError as e:
             raise WeaviateQueryException(e.details())
 
-    def _metadata_to_grpc(self, metadata: MetadataQuery) -> search_get_pb2.MetadataRequest:
+    def _metadata_to_grpc(self, metadata: _MetadataQuery) -> search_get_pb2.MetadataRequest:
         return search_get_pb2.MetadataRequest(
             uuid=metadata.uuid,
             vector=metadata.vector,
@@ -568,8 +568,8 @@ class _QueryGRPC(_BaseGRPC):
                         )
                         if prop.return_properties is not None
                         else None,
-                        metadata=self._metadata_to_grpc(prop.return_metadata)
-                        if prop.return_metadata is not None
+                        metadata=self._metadata_to_grpc(prop._return_metadata)
+                        if prop._return_metadata is not None
                         else None,
                         target_collection=prop.target_collection
                         if isinstance(prop, FromReferenceMultiTarget)

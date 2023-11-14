@@ -19,7 +19,6 @@ from weaviate.collections.classes.filters import (
     _Filters,
     _FilterValue,
 )
-from weaviate.collections.classes.grpc import MetadataQuery
 from weaviate.collections.classes.internal import Reference
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
@@ -67,7 +66,7 @@ def test_filters_text(
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
-    assert all(obj.metadata.uuid in uuids for obj in objects)
+    assert all(obj.uuid in uuids for obj in objects)
 
 
 @pytest.mark.parametrize(
@@ -110,13 +109,11 @@ def test_filters_nested(
         collection.data.insert({"num": None}),
     ]
 
-    objects = collection.query.fetch_objects(
-        filters=weaviate_filter, return_metadata=MetadataQuery(uuid=True)
-    ).objects
+    objects = collection.query.fetch_objects(filters=weaviate_filter).objects
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
-    assert all(obj.metadata.uuid in uuids for obj in objects)
+    assert all(obj.uuid in uuids for obj in objects)
 
 
 def test_length_filter(client: weaviate.WeaviateClient):
@@ -140,7 +137,7 @@ def test_length_filter(client: weaviate.WeaviateClient):
     results = [0, 1]
     assert len(objects) == len(results)
     uuids = [uuids[result] for result in results]
-    assert all(obj.metadata.uuid in uuids for obj in objects)
+    assert all(obj.uuid in uuids for obj in objects)
 
 
 @pytest.mark.parametrize(
@@ -172,7 +169,7 @@ def test_filters_comparison(
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
-    assert all(obj.metadata.uuid in uuids for obj in objects)
+    assert all(obj.uuid in uuids for obj in objects)
 
 
 @pytest.mark.parametrize(
@@ -299,13 +296,11 @@ def test_filters_contains(
         ),
     ]
 
-    objects = collection.query.fetch_objects(
-        filters=weaviate_filter, return_metadata=MetadataQuery(uuid=True)
-    ).objects
+    objects = collection.query.fetch_objects(filters=weaviate_filter).objects
     assert len(objects) == len(results)
 
     uuids = [uuids[result] for result in results]
-    assert all(obj.metadata.uuid in uuids for obj in objects)
+    assert all(obj.uuid in uuids for obj in objects)
 
 
 @pytest.mark.parametrize(
@@ -347,13 +342,11 @@ def test_ref_filters(
         from_collection.data.insert({"ref": Reference.to(uuids_to[1]), "name": "second"}),
     ]
 
-    objects = from_collection.query.fetch_objects(
-        filters=weaviate_filter, return_metadata=MetadataQuery(uuid=True)
-    ).objects
+    objects = from_collection.query.fetch_objects(filters=weaviate_filter).objects
     assert len(objects) == len(results)
 
     uuids = [uuids_from[result] for result in results]
-    assert all(obj.metadata.uuid in uuids for obj in objects)
+    assert all(obj.uuid in uuids for obj in objects)
 
 
 def test_ref_filters_multi_target(client: weaviate.WeaviateClient):

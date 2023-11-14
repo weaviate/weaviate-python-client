@@ -163,7 +163,7 @@ def test_near_vector_aggregation(client: weaviate.WeaviateClient, option: dict, 
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
     collection.data.insert({"text": text_2})
     res = collection.aggregate.near_vector(
-        obj.metadata.vector,
+        obj.vector,
         return_metrics=[
             Metrics("text").text(count=True, top_occurrences_count=True, top_occurrences_value=True)
         ],
@@ -196,7 +196,7 @@ def test_near_vector_missing_param(client: weaviate.WeaviateClient):
     obj = collection.query.fetch_object_by_id(uuid_, include_vector=True)
     with pytest.raises(WeaviateInvalidInputException) as e:
         collection.aggregate.near_vector(
-            obj.metadata.vector,
+            obj.vector,
             return_metrics=[
                 Metrics("text").text(
                     count=True, top_occurrences_count=True, top_occurrences_value=True

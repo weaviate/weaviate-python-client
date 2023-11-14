@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import List, Literal, Optional, Union
 
 from pydantic import Field
@@ -65,8 +66,6 @@ class Move:
 class MetadataQuery(_WeaviateInput):
     """Define which metadata should be returned in the query's results."""
 
-    uuid: bool = Field(default=False)
-    vector: bool = Field(default=False)
     creation_time_unix: bool = Field(default=False)
     last_update_time_unix: bool = Field(default=False)
     distance: bool = Field(default=False)
@@ -76,11 +75,9 @@ class MetadataQuery(_WeaviateInput):
     is_consistent: bool = Field(default=False)
 
     @classmethod
-    def _full(cls, include_vector: bool = False) -> "MetadataQuery":
+    def _full(cls) -> "MetadataQuery":
         """Return a MetadataQuery with all fields set to True."""
         return cls(
-            uuid=True,
-            vector=include_vector,
             creation_time_unix=True,
             last_update_time_unix=True,
             distance=True,
@@ -91,11 +88,41 @@ class MetadataQuery(_WeaviateInput):
         )
 
 
+@dataclass
+class _MetadataQuery:
+    vector: bool
+    uuid: bool = True
+    creation_time_unix: bool = False
+    last_update_time_unix: bool = False
+    distance: bool = False
+    certainty: bool = False
+    score: bool = False
+    explain_score: bool = False
+    is_consistent: bool = False
+
+    @classmethod
+    def from_public(cls, public: Optional[MetadataQuery], include_vector: bool) -> "_MetadataQuery":
+        return (
+            cls(
+                vector=include_vector,
+            )
+            if public is None
+            else cls(
+                vector=include_vector,
+                creation_time_unix=public.creation_time_unix,
+                last_update_time_unix=public.last_update_time_unix,
+                distance=public.distance,
+                certainty=public.certainty,
+                score=public.score,
+                explain_score=public.explain_score,
+                is_consistent=public.is_consistent,
+            )
+        )
+
+
 METADATA = Union[
     List[
         Literal[
-            "uuid",
-            "vector",
             "creation_time_unix",
             "last_update_time_unix",
             "distance",
@@ -129,10 +156,14 @@ class FromReference(_WeaviateInput):
 
     link_on: str
     return_properties: Optional["PROPERTIES"] = Field(default=None)
-    return_metadata: Optional[MetadataQuery] = Field(default_factory=MetadataQuery._full)
+    return_metadata: Optional[MetadataQuery] = Field(default=None)
 
     def __hash__(self) -> int:  # for set
         return hash(str(self))
+
+    @property
+    def _return_metadata(self) -> _MetadataQuery:
+        return _MetadataQuery.from_public(self.return_metadata, False)
 
 
 class FromReferenceMultiTarget(FromReference):

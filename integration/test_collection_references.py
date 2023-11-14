@@ -1,4 +1,3 @@
-import sys
 from typing import TypedDict
 
 import pytest as pytest
@@ -6,13 +5,6 @@ import uuid
 
 from weaviate.collections.classes.data import DataObject, DataReference
 from weaviate.collections.classes.grpc import FromReference, FromReferenceMultiTarget, MetadataQuery
-
-
-if sys.version_info < (3, 9):
-    from typing_extensions import Annotated
-else:
-    from typing import Annotated
-
 
 import weaviate
 from weaviate.collections.classes.config import (
@@ -113,14 +105,13 @@ def test_mono_references_grpc(client: weaviate.WeaviateClient):
             FromReference(
                 link_on="ref",
                 return_properties=["name"],
-                return_metadata=MetadataQuery(uuid=True),
             )
         ],
     ).objects
     assert objects[0].properties["ref"].objects[0].properties["name"] == "A1"
-    assert objects[0].properties["ref"].objects[0].metadata.uuid == uuid_A1
+    assert objects[0].properties["ref"].objects[0].uuid == uuid_A1
     assert objects[0].properties["ref"].objects[1].properties["name"] == "A2"
-    assert objects[0].properties["ref"].objects[1].metadata.uuid == uuid_A2
+    assert objects[0].properties["ref"].objects[1].uuid == uuid_A2
 
     C = client.collections.create(
         name="C",
@@ -143,15 +134,15 @@ def test_mono_references_grpc(client: weaviate.WeaviateClient):
                     FromReference(
                         link_on="ref",
                         return_properties=["name"],
-                        return_metadata=MetadataQuery(uuid=True),
                     ),
                 ],
-                return_metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
+                return_metadata=MetadataQuery(last_update_time_unix=True),
             ),
         ],
     ).objects
     assert objects[0].properties["name"] == "find me"
     assert objects[0].properties["ref"].objects[0].properties["name"] == "B"
+    assert objects[0].properties["ref"].objects[0].metadata.last_update_time_unix is not None
     assert (
         objects[0].properties["ref"].objects[0].properties["ref"].objects[0].properties["name"]
         == "A1"
@@ -176,7 +167,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient):
 
     class CProps(TypedDict):
         name: str
-        ref: Annotated[CrossReference[BProps], MetadataQuery(uuid=True)]
+        ref: CrossReference[BProps]
 
     client.collections.create(
         name="ATypedDicts",
@@ -232,28 +223,22 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient):
     assert (
         objects[0].properties["name"] == "find me"
     )  # happy path (in type and in return_properties)
-    assert objects[0].metadata.uuid is not None
+    assert objects[0].uuid is not None
     assert (
         objects[0].properties.get("not_specified") is None
     )  # type is str but instance is None (in type but not in return_properties)
     assert objects[0].properties["ref"].objects[0].properties["name"] == "B"
-    assert objects[0].properties["ref"].objects[0].metadata.uuid == uuid_B
+    assert objects[0].properties["ref"].objects[0].uuid == uuid_B
     assert (
         objects[0].properties["ref"].objects[0].properties["ref"].objects[0].properties["name"]
         == "A1"
     )
-    assert (
-        objects[0].properties["ref"].objects[0].properties["ref"].objects[0].metadata.uuid
-        == uuid_A1
-    )
+    assert objects[0].properties["ref"].objects[0].properties["ref"].objects[0].uuid == uuid_A1
     assert (
         objects[0].properties["ref"].objects[0].properties["ref"].objects[1].properties["name"]
         == "A2"
     )
-    assert (
-        objects[0].properties["ref"].objects[0].properties["ref"].objects[1].metadata.uuid
-        == uuid_A2
-    )
+    assert objects[0].properties["ref"].objects[0].properties["ref"].objects[1].uuid == uuid_A2
 
 
 def test_multi_references_grpc(client: weaviate.WeaviateClient):
@@ -308,13 +293,14 @@ def test_multi_references_grpc(client: weaviate.WeaviateClient):
                 link_on="ref",
                 target_collection="A",
                 return_properties=["name"],
-                return_metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
+                return_metadata=MetadataQuery(last_update_time_unix=True),
             ),
         ],
     ).objects
     assert objects[0].properties["name"] == "first"
     assert len(objects[0].properties["ref"].objects) == 1
     assert objects[0].properties["ref"].objects[0].properties["name"] == "A"
+    assert objects[0].properties["ref"].objects[0].metadata.last_update_time_unix is not None
 
     objects = C.query.bm25(
         query="second",
@@ -326,13 +312,14 @@ def test_multi_references_grpc(client: weaviate.WeaviateClient):
                 return_properties=[
                     "name",
                 ],
-                return_metadata=MetadataQuery(uuid=True, last_update_time_unix=True),
+                return_metadata=MetadataQuery(last_update_time_unix=True),
             ),
         ],
     ).objects
     assert objects[0].properties["name"] == "second"
     assert len(objects[0].properties["ref"].objects) == 1
     assert objects[0].properties["ref"].objects[0].properties["name"] == "B"
+    assert objects[0].properties["ref"].objects[0].metadata.last_update_time_unix is not None
 
     client.collections.delete("A")
     client.collections.delete("B")
@@ -464,7 +451,6 @@ def test_references_with_string_syntax(client: weaviate.WeaviateClient):
                 "__ref__properties__Name",
                 "__ref__properties__Age",
                 "__ref__properties__Weird__Name",
-                "__ref__metadata__uuid",
                 "__ref__metadata__last_update_time_unix",
             ],
         )
@@ -475,5 +461,5 @@ def test_references_with_string_syntax(client: weaviate.WeaviateClient):
     assert objects[0].properties["ref"].objects[0].properties["name"] == "A"
     assert objects[0].properties["ref"].objects[0].properties["age"] == 1
     assert objects[0].properties["ref"].objects[0].properties["weird__Name"] == 2
-    assert objects[0].properties["ref"].objects[0].metadata.uuid == uuid_A
+    assert objects[0].properties["ref"].objects[0].uuid == uuid_A
     assert objects[0].properties["ref"].objects[0].metadata.last_update_time_unix is not None

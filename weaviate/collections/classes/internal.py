@@ -20,6 +20,7 @@ from weaviate.collections.classes.grpc import (
     Generate,
 )
 from weaviate.collections.classes.types import Properties, P, TProperties
+from weaviate.exceptions import WeaviateQueryException
 from weaviate.util import _to_beacons
 from weaviate.types import UUIDS
 
@@ -39,24 +40,30 @@ class _MetadataResult:
     is_consistent: Optional[bool]
     generative: Optional[str]
 
-    def _to_return(self) -> "_MetadataReturn":
-        return _MetadataReturn(
-            uuid=self.uuid,
-            vector=self.vector,
-            creation_time_unix=self.creation_time_unix,
-            last_update_time_unix=self.last_update_time_unix,
-            distance=self.distance,
-            certainty=self.certainty,
-            score=self.score,
-            explain_score=self.explain_score,
-            is_consistent=self.is_consistent,
-        )
+
+def _metadata_from_dict(
+    metadata: Dict[str, Any]
+) -> Tuple[uuid_package.UUID, Optional[List[float]], "_MetadataReturn"]:
+    uuid = uuid_package.UUID(metadata["id"]) if "id" in metadata else None
+    if uuid is None:
+        raise WeaviateQueryException("The query returned an object with an empty ID string")
+    return (
+        uuid,
+        metadata.get("vector"),
+        _MetadataReturn(
+            creation_time_unix=metadata.get("creationTimeUnix"),
+            last_update_time_unix=metadata.get("lastUpdateTimeUnix"),
+            distance=metadata.get("distance"),
+            certainty=metadata.get("certainty"),
+            explain_score=metadata.get("explainScore"),
+            score=metadata.get("score"),
+            is_consistent=metadata.get("isConsistent"),
+        ),
+    )
 
 
 @dataclass
 class _MetadataReturn:
-    uuid: Optional[uuid_package.UUID]
-    vector: Optional[List[float]]
     creation_time_unix: Optional[int]
     last_update_time_unix: Optional[int]
     distance: Optional[float]
@@ -65,11 +72,26 @@ class _MetadataReturn:
     explain_score: Optional[str]
     is_consistent: Optional[bool]
 
+    def _is_empty(self) -> bool:
+        return all(
+            [
+                self.creation_time_unix is None,
+                self.last_update_time_unix is None,
+                self.distance is None,
+                self.certainty is None,
+                self.score is None,
+                self.explain_score is None,
+                self.is_consistent is None,
+            ]
+        )
+
 
 @dataclass
 class _Object(Generic[P]):
+    uuid: uuid_package.UUID
+    metadata: Optional[_MetadataReturn]
     properties: P
-    metadata: _MetadataReturn
+    vector: Optional[List[float]]
 
 
 @dataclass
@@ -304,20 +326,6 @@ class Reference:
         )
 
 
-def _metadata_from_dict(metadata: Dict[str, Any]) -> _MetadataReturn:
-    return _MetadataReturn(
-        uuid=uuid_package.UUID(metadata["id"]) if "id" in metadata else None,
-        vector=metadata.get("vector"),
-        creation_time_unix=metadata.get("creationTimeUnix"),
-        last_update_time_unix=metadata.get("lastUpdateTimeUnix"),
-        distance=metadata.get("distance"),
-        certainty=metadata.get("certainty"),
-        explain_score=metadata.get("explainScore"),
-        score=metadata.get("score"),
-        is_consistent=metadata.get("isConsistent"),
-    )
-
-
 def _extract_property_type_from_reference(type_: _Reference[P]) -> Type[P]:
     """Extract inner type from Reference[Properties]."""
     if getattr(type_, "__origin__", None) == _Reference:
@@ -399,16 +407,7 @@ def __create_link_to_from_reference(
     """Create FromReference from Reference[Properties]."""
     return FromReference(
         link_on=link_on,
-        return_metadata=MetadataQuery(
-            uuid=True,
-            creation_time_unix=True,
-            last_update_time_unix=True,
-            distance=True,
-            certainty=True,
-            score=True,
-            explain_score=True,
-            is_consistent=True,
-        ),
+        return_metadata=None,
         return_properties=_extract_properties_from_data_model(
             _extract_property_type_from_reference(value)
         ),
