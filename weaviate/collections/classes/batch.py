@@ -33,7 +33,7 @@ class BatchObject(BaseModel):
     """
 
     collection: str
-    properties: Optional[Dict[str, WeaviateField]] = Field(default=None)
+    properties: Optional[Dict[str, Any]] = Field(default=None)
     uuid: Optional[UUID] = Field(default=None)
     vector: Optional[Sequence] = Field(default=None)
     tenant: Optional[str] = Field(default=None)
