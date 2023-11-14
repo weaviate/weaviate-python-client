@@ -6,11 +6,11 @@ from weaviate.collections.classes.grpc import (
     PROPERTIES,
     FromReference,
     FromReferenceMultiTarget,
-    MetadataQuery,
 )
 from weaviate.collections.queries.base import _PropertiesParser
 
 
+@pytest.mark.skip(reason="string syntax has been temporarily removed from the API")
 @pytest.mark.parametrize(
     "properties,output",
     [
@@ -29,30 +29,10 @@ from weaviate.collections.queries.base import _PropertiesParser
             ["__article__properties__name", "name", "__article__properties__age"],
             ["name", FromReference(link_on="article", return_properties=["name", "age"])],
         ),
-        (
-            ["__article__metadata__uuid"],
-            [FromReference(link_on="article", return_metadata=MetadataQuery(uuid=True))],
-        ),
-        (
-            ["__article__metadata__uuid", "__article__metadata__vector"],
-            [
-                FromReference(
-                    link_on="article", return_metadata=MetadataQuery(uuid=True, vector=True)
-                )
-            ],
-        ),
         (["__article"], [FromReference(link_on="article")]),
-        (
-            ["__article", "__article__metadata__uuid"],
-            [FromReference(link_on="article", return_metadata=MetadataQuery(uuid=True))],
-        ),
         (
             ["__article", "__article__properties__name"],
             [FromReference(link_on="article", return_properties=["name"])],
-        ),
-        (
-            ["__article__metadata__uuid", "__article"],
-            [FromReference(link_on="article", return_metadata=MetadataQuery(uuid=True))],
         ),
         (
             ["__article__properties__name", "__article"],
@@ -74,6 +54,7 @@ ERROR_MESSAGE = (
 )
 
 
+@pytest.mark.skip(reason="string syntax has been temporarily removed from the API")
 @pytest.mark.parametrize(
     "wrong",
     [

@@ -409,6 +409,7 @@ def test_references_batch_with_errors(client: weaviate.WeaviateClient):
     )
 
 
+@pytest.mark.skip(reason="string syntax has been temporarily removed from the API")
 def test_references_with_string_syntax(client: weaviate.WeaviateClient):
     name1 = "TestReferencesWithStringSyntaxA"
     name2 = "TestReferencesWithStringSyntaxB"
