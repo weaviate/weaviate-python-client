@@ -24,7 +24,7 @@ class RefError:
 class DataObject(Generic[P]):
     """This class represents an entire object within a collection to be used when batching."""
 
-    properties: P
+    properties: Optional[P] = None
     uuid: Optional[UUID] = None
     vector: Optional[List[float]] = None
 

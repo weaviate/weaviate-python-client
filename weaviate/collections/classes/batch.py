@@ -13,7 +13,7 @@ class _BatchObject:
     collection: str
     vector: Optional[List[float]]
     uuid: Optional[UUID]
-    properties: Dict[str, WeaviateField]
+    properties: Optional[Dict[str, WeaviateField]]
     tenant: Optional[str]
 
 
@@ -33,7 +33,7 @@ class BatchObject(BaseModel):
     """
 
     collection: str
-    properties: Dict[str, Any]
+    properties: Optional[Dict[str, WeaviateField]] = Field(default=None)
     uuid: Optional[UUID] = Field(default=None)
     vector: Optional[Sequence] = Field(default=None)
     tenant: Optional[str] = Field(default=None)

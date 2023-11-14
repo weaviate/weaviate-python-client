@@ -362,7 +362,7 @@ class _Batch:
     def add_object(
         self,
         collection: str,
-        properties: Dict[str, WeaviateField],
+        properties: Optional[Dict[str, WeaviateField]],
         uuid: Optional[UUID] = None,
         vector: Optional[Sequence] = None,
         tenant: Optional[str] = None,

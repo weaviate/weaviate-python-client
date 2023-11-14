@@ -257,6 +257,15 @@ def test_delete_by_id(client: weaviate.WeaviateClient):
         ),
         (
             [
+                DataObject(),
+                DataObject(vector=[1, 2, 3]),
+                DataObject(uuid=uuid.uuid4()),
+                DataObject(vector=[1, 2, 3], uuid=uuid.uuid4()),
+            ],
+            False,
+        ),
+        (
+            [
                 {"name": "some name", "vector": [1, 2, 3]},
             ],
             True,
@@ -301,11 +310,14 @@ def test_insert_many(
         ret = collection.data.insert_many(objects)
         for idx, uuid_ in ret.uuids.items():
             obj1 = collection.query.fetch_object_by_id(uuid_)
-            assert (
-                obj1.properties["name"] == objects[idx].properties["name"]
-                if isinstance(objects[idx], DataObject)
-                else objects[idx]["name"]
-            )
+            if isinstance(objects[idx], DataObject) and objects[idx].properties is None:
+                assert obj1.properties == {}
+            else:
+                assert (
+                    obj1.properties["name"] == objects[idx].properties["name"]
+                    if isinstance(objects[idx], DataObject)
+                    else objects[idx]["name"]
+                )
     else:
         with pytest.raises(WeaviateInsertInvalidPropertyError) as e:
             collection.data.insert_many(objects)
