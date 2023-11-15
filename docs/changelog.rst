@@ -1,5 +1,11 @@
 Changelog
 =========
+Version 4.3.b1
+--------------
+This patch beta version includes:
+
+- Bump default Weaviate embedded version
+
 Version 4.3.b0
 --------------
 This minor beta version includes:
