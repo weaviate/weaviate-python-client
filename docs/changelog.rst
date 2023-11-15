@@ -1,5 +1,19 @@
 Changelog
 =========
+Version 4.3.b0
+--------------
+This minor beta version includes:
+
+- Refactoring of the ``_Object`` class
+    - ``_Object.metadata.uuid`` moved to ``_Object.uuid`` and is not ``Optional``
+    - ``_Object.metadata.vector`` moved to ``_Object.vector``
+- Addition of ``include_vector`` argument to all queries
+    - ``include_vector`` is ``False`` by default
+- ``return_metadata`` in queries is now ``Optional`` and defaults to ``None``
+    - ``_Object.metadata`` is now ``Optional`` as a result
+- Addition of ``include_vector`` to ``FromReference``
+- Addition of ``ReferenceAnnotation`` for use when defining generic annotated cross references
+
 Version 4.2.b2
 --------------
 This patch beta version includes:
