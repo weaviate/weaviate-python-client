@@ -269,13 +269,13 @@ If you want to define a reference property when creating your collection, use `R
 If you want to create a reference when inserting an object, use `Reference.to()` or `Reference.to_multi_target()` instead.
 
 Example:
-    >>> from typing import TypedDict
+    >>> import typing
     >>> import weaviate.classes as wvc
     >>>
-    >>> class One(TypedDict):
+    >>> class One(typing.TypedDict):
     ...     prop: str
     >>>
-    >>> class Two(TypedDict):
+    >>> class Two(typing.TypedDict):
     ...     one: wvc.CrossReference[One]
 """
 
@@ -328,7 +328,21 @@ class Reference:
 
 @dataclass
 class ReferenceAnnotation:
-    """Dataclass to be used when annotating a generic cross reference property with options for retrieving data from the cross referenced object when querying."""
+    """Dataclass to be used when annotating a generic cross reference property with options for retrieving data from the cross referenced object when querying.
+
+    Example:
+        >>> import typing
+        >>> import weaviate.classes as wvc
+        >>>
+        >>> class One(typing.TypedDict):
+        ...     prop: str
+        >>>
+        >>> class Two(typing.TypedDict):
+        ...     one: typing.Annotated[
+        ...         wvc.CrossReference[One],
+        ...         wvc.ReferenceAnnotation(include_vector=True)
+        ...     ]
+    """
 
     include_vector: bool = False
     metadata: Optional[MetadataQuery] = None
