@@ -319,9 +319,12 @@ class _DataCollection(Generic[Properties], _Data):
 
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Properties]:
         props = self.__deserialize_properties(obj["properties"])
-        return _Object(
+        uuid, vector, metadata = _metadata_from_dict(obj)
+        return _Object[Properties](
+            metadata=None if metadata._is_empty() else metadata,
             properties=cast(Properties, props),
-            metadata=_metadata_from_dict(obj),
+            uuid=uuid,
+            vector=vector,
         )
 
     def insert(
@@ -546,16 +549,18 @@ class _DataCollectionModel(Generic[Model], _Data):
             if prop not in obj["properties"]:
                 obj["properties"][prop] = None
 
-        metadata = _metadata_from_dict(obj)
+        uuid, vector, metadata = _metadata_from_dict(obj)
         model_object = _Object[Model](
             properties=self.__model.model_validate(
                 {
                     **obj["properties"],
-                    "uuid": metadata.uuid,
-                    "vector": metadata.vector,
+                    "uuid": uuid,
+                    "vector": vector,
                 }
             ),
             metadata=metadata,
+            uuid=uuid,
+            vector=vector,
         )
         return model_object
 

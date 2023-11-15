@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-refactor-implicit-grpc-message-parsing-4508567
+    image: semitechnologies/weaviate:1.22.4
     ports:
       - 8082:8082
     restart: on-failure:0

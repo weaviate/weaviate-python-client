@@ -13,7 +13,7 @@ from weaviate.collections.classes.internal import (
     ReturnProperties,
 )
 from weaviate.collections.classes.types import Properties, TProperties
-from weaviate.collections.queries.base import _Grpc, METADATA_QUERY_DEFAULT
+from weaviate.collections.queries.base import _Grpc
 
 
 class _HybridQuery(Generic[Properties], _Grpc[Properties]):
@@ -28,7 +28,8 @@ class _HybridQuery(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[METADATA] = METADATA_QUERY_DEFAULT,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> _QueryReturn[Properties]:
         ...
@@ -44,7 +45,8 @@ class _HybridQuery(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[METADATA] = METADATA_QUERY_DEFAULT,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
         *,
         return_properties: Type[TProperties],
     ) -> _QueryReturn[TProperties]:
@@ -60,7 +62,8 @@ class _HybridQuery(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[METADATA] = METADATA_QUERY_DEFAULT,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
     ) -> QueryReturn[Properties, TProperties]:
         """Search for objects in this collection using the hybrid algorithm blending keyword-based BM25 and vector-based similarity.
@@ -84,8 +87,10 @@ class _HybridQuery(Generic[Properties], _Grpc[Properties]):
                 The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
             `filters`
                 The filters to apply to the search.
+            `include_vector`
+                Whether to include the vector in the results. If not specified, this is set to False.
             `return_metadata`
-                The metadata to return for each object, defaults to `METADATA._full()` returning all metadata except for the vector.
+                The metadata to return for each object, defaults to `None`.
             `return_properties`
                 The properties to return for each object.
 
@@ -108,7 +113,7 @@ class _HybridQuery(Generic[Properties], _Grpc[Properties]):
             limit=limit,
             autocut=auto_limit,
             filters=filters,
-            return_metadata=self._parse_return_metadata(return_metadata),
+            return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
         )
         return self._result_to_query_return(res, return_properties)
@@ -129,7 +134,8 @@ class _HybridGenerate(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[METADATA] = METADATA_QUERY_DEFAULT,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
     ) -> _GenerativeReturn[Properties]:
         ...
@@ -148,7 +154,8 @@ class _HybridGenerate(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[METADATA] = METADATA_QUERY_DEFAULT,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
         *,
         return_properties: Type[TProperties],
     ) -> _GenerativeReturn[TProperties]:
@@ -167,7 +174,8 @@ class _HybridGenerate(Generic[Properties], _Grpc[Properties]):
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        return_metadata: Optional[METADATA] = METADATA_QUERY_DEFAULT,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
     ) -> GenerativeReturn[Properties, TProperties]:
         """Perform retrieval-augmented generation (RaG) on the results of an object search in this collection using the hybrid algorithm blending keyword-based BM25 and vector-based similarity.
@@ -197,8 +205,10 @@ class _HybridGenerate(Generic[Properties], _Grpc[Properties]):
                 The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
             `filters`
                 The filters to apply to the search.
+            `include_vector`
+                Whether to include the vector in the results. If not specified, this is set to False.
             `return_metadata`
-                The metadata to return for each object, defaults to `METADATA._full()` returning all metadata except for the vector.
+                The metadata to return for each object, defaults to `None`.
             `return_properties`
                 The properties to return for each object.
 
@@ -221,7 +231,7 @@ class _HybridGenerate(Generic[Properties], _Grpc[Properties]):
             limit=limit,
             autocut=auto_limit,
             filters=filters,
-            return_metadata=self._parse_return_metadata(return_metadata),
+            return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
             generative=_Generative(
                 single=single_prompt,

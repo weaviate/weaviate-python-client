@@ -35,7 +35,7 @@ class _ObjectIterator(Generic[Properties], Iterable[_Object[Properties]]):
                 raise StopIteration
 
         ret_object = self.__iter_object_cache.pop(0)
-        self.__iter_object_last_uuid = ret_object.metadata.uuid
+        self.__iter_object_last_uuid = ret_object.uuid
         assert (
             self.__iter_object_last_uuid is not None
         )  # if this is None the iterator will never stop

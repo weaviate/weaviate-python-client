@@ -13,7 +13,8 @@ from weaviate.collections.classes.orm import (
 )
 from weaviate.collections.config import _ConfigCollectionModel
 from weaviate.collections.data import _DataCollectionModel
-from weaviate.collections.query import _GrpcCollectionModel
+
+# from weaviate.collections.query import _GrpcCollectionModel
 from weaviate.collections.tenants import _Tenants
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
@@ -39,9 +40,9 @@ class _CollectionObjectModel(_CollectionBase, Generic[Model]):
         self.data = _DataCollectionModel[Model](
             connection, self.name, model, consistency_level, tenant
         )
-        self.query = _GrpcCollectionModel[Model](
-            connection, self.name, model, tenant, consistency_level
-        )
+        # self.query = _GrpcCollectionModel[Model](
+        #     connection, self.name, model, tenant, consistency_level
+        # )
         self.tenants = _Tenants(connection, self.name)
 
         self.__consistency_level = consistency_level

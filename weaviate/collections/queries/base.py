@@ -29,13 +29,14 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
     FromReference,
     MetadataQuery,
+    _MetadataQuery,
     FromNested,
     METADATA,
     PROPERTIES,
 )
 from weaviate.collections.classes.internal import (
     _GroupByObject,
-    _MetadataResult,
+    _MetadataReturn,
     _GenerativeObject,
     _Object,
     _Reference,
@@ -55,15 +56,13 @@ from weaviate.collections.classes.types import (
     Properties,
     TProperties,
 )
-from weaviate.collections.grpc.query import _QueryGRPC, GroupByResult, SearchResponse, SearchResult
+from weaviate.collections.grpc.query import _QueryGRPC, GroupByResult, SearchResponse
 from weaviate.connect import Connection
-from weaviate.exceptions import WeaviateGrpcUnavailable
+from weaviate.exceptions import WeaviateGrpcUnavailable, WeaviateQueryException
 from weaviate.util import file_encoder_b64
 from weaviate.proto.v1 import base_pb2, search_get_pb2
 
 T = TypeVar("T")
-
-METADATA_QUERY_DEFAULT: MetadataQuery = MetadataQuery._full()
 
 
 class _Grpc(Generic[Properties]):
@@ -86,13 +85,11 @@ class _Grpc(Generic[Properties]):
             raise WeaviateGrpcUnavailable()
         return _QueryGRPC(self.__connection, self.__name, self.__tenant, self.__consistency_level)
 
-    @staticmethod
-    def _extract_metadata_for_object(
+    def __extract_metadata_for_object(
+        self,
         add_props: "search_get_pb2.MetadataResult",
-    ) -> _MetadataResult:
-        return _MetadataResult(
-            uuid=uuid_lib.UUID(add_props.id) if len(add_props.id) > 0 else None,
-            vector=[float(num) for num in add_props.vector] if len(add_props.vector) > 0 else None,
+    ) -> Optional[_MetadataReturn]:
+        meta = _MetadataReturn(
             distance=add_props.distance if add_props.distance_present else None,
             certainty=add_props.certainty if add_props.certainty_present else None,
             creation_time_unix=add_props.creation_time_unix
@@ -103,18 +100,39 @@ class _Grpc(Generic[Properties]):
             else None,
             score=add_props.score if add_props.score_present else None,
             explain_score=add_props.explain_score if add_props.explain_score_present else None,
-            is_consistent=add_props.is_consistent,
-            generative=add_props.generative if add_props.generative_present else None,
+            is_consistent=add_props.is_consistent if add_props.is_consistent_present else None,
         )
+        return None if meta._is_empty() else meta
 
-    def _deserialize_primitive(self, value: Any, type_value: Any) -> Any:
+    def __extract_id_for_object(
+        self,
+        add_props: "search_get_pb2.MetadataResult",
+    ) -> uuid_lib.UUID:
+        if not len(add_props.id) > 0:
+            raise WeaviateQueryException("The query returned an object with an empty ID string")
+        return uuid_lib.UUID(add_props.id)
+
+    def __extract_vector_for_object(
+        self,
+        add_props: "search_get_pb2.MetadataResult",
+    ) -> Optional[List[float]]:
+        # return [float(num) for num in add_props.vector] if len(add_props.vector) > 0 else None
+        return list(add_props.vector) if len(add_props.vector) > 0 else None
+
+    def __extract_generated_for_object(
+        self,
+        add_props: "search_get_pb2.MetadataResult",
+    ) -> Optional[str]:
+        return add_props.generative if add_props.generative_present else None
+
+    def __deserialize_primitive(self, value: Any, type_value: Any) -> Any:
         if type_value == uuid_lib.UUID:
             return uuid_lib.UUID(value)
         if type_value == datetime.datetime:
             return datetime.datetime.fromisoformat(value)
         if isinstance(type_value, list):
             return [
-                self._deserialize_primitive(val, type_value[idx]) for idx, val in enumerate(value)
+                self.__deserialize_primitive(val, type_value[idx]) for idx, val in enumerate(value)
             ]
         if isinstance(value, struct_pb2.Struct):
             raise ValueError(
@@ -131,7 +149,7 @@ class _Grpc(Generic[Properties]):
         result = {}
 
         for name, non_ref_prop in properties.non_ref_properties.items():
-            result[name] = self._deserialize_primitive(non_ref_prop, hints.get(name))
+            result[name] = self.__deserialize_primitive(non_ref_prop, hints.get(name))
 
         for number_array_property in properties.number_array_properties:
             result[number_array_property.prop_name] = [
@@ -183,20 +201,14 @@ class _Grpc(Generic[Properties]):
                     referenced_property_type = _extract_property_type_from_reference(hint)
                 result[ref_prop.prop_name] = _Reference._from(
                     [
-                        _Object(
-                            properties=self.__parse_result(prop, referenced_property_type),
-                            metadata=self._extract_metadata_for_object(prop.metadata)._to_return(),
-                        )
+                        self.__result_to_query_object(prop, prop.metadata, referenced_property_type)
                         for prop in ref_prop.properties
                     ]
                 )
             else:
                 result[ref_prop.prop_name] = _Reference._from(
                     [
-                        _Object(
-                            properties=self.__parse_result(prop, Dict[str, Any]),
-                            metadata=self._extract_metadata_for_object(prop.metadata)._to_return(),
-                        )
+                        self.__result_to_query_object(prop, prop.metadata, Dict[str, Any])
                         for prop in ref_prop.properties
                     ]
                 )
@@ -209,23 +221,39 @@ class _Grpc(Generic[Properties]):
         ref_result = self.__parse_ref_properties_result(properties, type_)
         return cast(T, {**nonref_result, **ref_result})
 
-    def __result_to_query_object(self, res: SearchResult, type_: Optional[Type[T]]) -> _Object[T]:
-        properties = self.__parse_result(res.properties, type_)
-        metadata = self._extract_metadata_for_object(res.metadata)
-        return _Object[T](properties=properties, metadata=metadata._to_return())
+    def __result_to_query_object(
+        self,
+        props: search_get_pb2.PropertiesResult,
+        meta: search_get_pb2.MetadataResult,
+        type_: Optional[Type[T]],
+    ) -> _Object[T]:
+        return _Object[T](
+            properties=self.__parse_result(props, type_),
+            metadata=self.__extract_metadata_for_object(meta),
+            uuid=self.__extract_id_for_object(meta),
+            vector=self.__extract_vector_for_object(meta),
+        )
 
     def __result_to_generative_object(
-        self, res: SearchResult, type_: Optional[Type[T]]
+        self,
+        props: search_get_pb2.PropertiesResult,
+        meta: search_get_pb2.MetadataResult,
+        type_: Optional[Type[T]],
     ) -> _GenerativeObject[T]:
-        properties = self.__parse_result(res.properties, type_)
-        metadata = self._extract_metadata_for_object(res.metadata)
         return _GenerativeObject[T](
-            properties=properties, metadata=metadata._to_return(), generated=metadata.generative
+            properties=self.__parse_result(props, type_),
+            metadata=self.__extract_metadata_for_object(meta),
+            uuid=self.__extract_id_for_object(meta),
+            vector=self.__extract_vector_for_object(meta),
+            generated=self.__extract_generated_for_object(meta),
         )
 
     def __result_to_group(self, res: GroupByResult, type_: Optional[Type[T]]) -> _GroupByResult[T]:
         return _GroupByResult[T](
-            objects=[self.__result_to_query_object(obj, type_) for obj in res.objects],
+            objects=[
+                self.__result_to_query_object(obj.properties, obj.metadata, type_)
+                for obj in res.objects
+            ],
             name=res.name,
             number_of_objects=res.number_of_objects,
             min_distance=res.min_distance,
@@ -240,12 +268,16 @@ class _Grpc(Generic[Properties]):
         if is_typeddict(type_):
             type_ = cast(Type[TProperties], type_)  # we know it's a typeddict
             return _QueryReturn[TProperties](
-                objects=[self.__result_to_query_object(obj, type_=type_) for obj in res.results]
+                objects=[
+                    self.__result_to_query_object(obj.properties, obj.metadata, type_=type_)
+                    for obj in res.results
+                ]
             )
         else:
             return _QueryReturn[Properties](
                 objects=[
-                    self.__result_to_query_object(obj, type_=self._type) for obj in res.results
+                    self.__result_to_query_object(obj.properties, obj.metadata, type_=self._type)
+                    for obj in res.results
                 ]
             )
 
@@ -258,7 +290,8 @@ class _Grpc(Generic[Properties]):
             type_ = cast(Type[TProperties], type_)  # we know it's a typeddict
             return _GenerativeReturn[TProperties](
                 objects=[
-                    self.__result_to_generative_object(obj, type_=type_) for obj in res.results
+                    self.__result_to_generative_object(obj.properties, obj.metadata, type_=type_)
+                    for obj in res.results
                 ],
                 generated=res.generative_grouped_result
                 if res.generative_grouped_result != ""
@@ -267,7 +300,10 @@ class _Grpc(Generic[Properties]):
         else:
             return _GenerativeReturn[Properties](
                 objects=[
-                    self.__result_to_generative_object(obj, type_=self._type) for obj in res.results
+                    self.__result_to_generative_object(
+                        obj.properties, obj.metadata, type_=self._type
+                    )
+                    for obj in res.results
                 ],
                 generated=res.generative_grouped_result
                 if res.generative_grouped_result != ""
@@ -286,7 +322,11 @@ class _Grpc(Generic[Properties]):
             }
             objects_group_by = [
                 _GroupByObject[TProperties](
-                    properties=obj.properties, metadata=obj.metadata, belongs_to_group=group.name
+                    properties=obj.properties,
+                    metadata=obj.metadata,
+                    belongs_to_group=group.name,
+                    uuid=obj.uuid,
+                    vector=obj.vector,
                 )
                 for group in groups.values()
                 for obj in group.objects
@@ -299,7 +339,11 @@ class _Grpc(Generic[Properties]):
             }
             objects_group_byy = [
                 _GroupByObject[Properties](
-                    properties=obj.properties, metadata=obj.metadata, belongs_to_group=group.name
+                    properties=obj.properties,
+                    metadata=obj.metadata,
+                    belongs_to_group=group.name,
+                    uuid=obj.uuid,
+                    vector=obj.vector,
                 )
                 for group in groupss.values()
                 for obj in group.objects
@@ -328,7 +372,8 @@ class _Grpc(Generic[Properties]):
             or isinstance(return_properties, FromNested)
             or (return_properties is None and self._type is None)
         ):
-            return self.__parse_properties(return_properties)
+            # return self.__parse_properties(return_properties)
+            return cast(Optional[PROPERTIES], return_properties)
         elif return_properties is None and self._type is not None:
             return self.__parse_generic_properties(self._type)
         else:
@@ -336,14 +381,15 @@ class _Grpc(Generic[Properties]):
             return self.__parse_generic_properties(return_properties)
 
     def _parse_return_metadata(
-        self, return_metadata: Optional[METADATA]
-    ) -> Optional[MetadataQuery]:
+        self, return_metadata: Optional[METADATA], include_vector: bool
+    ) -> Optional[_MetadataQuery]:
         if return_metadata is None:
-            return return_metadata
+            ret_md = None
         elif isinstance(return_metadata, list):
-            return MetadataQuery(**{str(prop): True for prop in return_metadata})
+            ret_md = MetadataQuery(**{str(prop): True for prop in return_metadata})
         else:
-            return return_metadata
+            ret_md = return_metadata
+        return _MetadataQuery.from_public(ret_md, include_vector)
 
     @staticmethod
     def _parse_media(media: Union[str, pathlib.Path, io.BufferedReader]) -> str:

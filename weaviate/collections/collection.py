@@ -6,7 +6,7 @@ from typing_extensions import is_typeddict
 from weaviate.collections.classes.config import (
     ConsistencyLevel,
 )
-from weaviate.collections.classes.grpc import MetadataQuery, PROPERTIES
+from weaviate.collections.classes.grpc import METADATA, PROPERTIES
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.base import _CollectionBase
 from weaviate.collections.aggregate import _AggregateCollection, _AggregateGroupByCollection
@@ -125,23 +125,27 @@ class Collection(_CollectionBase, Generic[Properties]):
     @overload
     def iterator(
         self,
-        return_properties: Optional[PROPERTIES] = None,
         include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        return_properties: Optional[PROPERTIES] = None,
     ) -> _ObjectIterator[Properties]:
         ...
 
     @overload
     def iterator(
         self,
-        return_properties: Type[TProperties],
         include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Type[TProperties],
     ) -> _ObjectIterator[TProperties]:
         ...
 
     def iterator(
         self,
-        return_properties: Optional[Union[PROPERTIES, Type[TProperties]]] = None,
         include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        return_properties: Optional[Union[PROPERTIES, Type[TProperties]]] = None,
     ) -> Union[_ObjectIterator[Properties], _ObjectIterator[TProperties]]:
         """Use this method to return an iterator over the objects in the collection.
 
@@ -168,7 +172,8 @@ class Collection(_CollectionBase, Generic[Properties]):
                 lambda limit, alpha: self.query.fetch_objects(
                     limit=limit,
                     after=alpha,
-                    return_metadata=MetadataQuery._full(include_vector),
+                    include_vector=include_vector,
+                    return_metadata=return_metadata,
                     return_properties=return_properties,
                 ).objects,
             )
@@ -178,7 +183,8 @@ class Collection(_CollectionBase, Generic[Properties]):
                 lambda limit, alpha: self.query.fetch_objects(
                     limit=limit,
                     after=alpha,
-                    return_metadata=MetadataQuery._full(include_vector),
+                    include_vector=include_vector,
+                    return_metadata=return_metadata,
                     return_properties=_type,
                 ).objects,
             )
@@ -187,7 +193,8 @@ class Collection(_CollectionBase, Generic[Properties]):
             lambda limit, alpha: self.query.fetch_objects(
                 limit=limit,
                 after=alpha,
-                return_metadata=MetadataQuery._full(include_vector),
+                include_vector=include_vector,
+                return_metadata=return_metadata,
                 return_properties=props,
             ).objects,
         )
