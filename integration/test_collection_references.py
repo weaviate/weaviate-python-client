@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 import pytest as pytest
 import uuid
@@ -15,7 +15,7 @@ from weaviate.collections.classes.config import (
     ReferencePropertyMultiTarget,
 )
 
-from weaviate.collections.classes.internal import CrossReference, Reference
+from weaviate.collections.classes.internal import CrossReference, Reference, ReferenceAnnotation
 
 
 @pytest.fixture(scope="module")
@@ -163,15 +163,18 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient):
 
     class BProps(TypedDict):
         name: str
-        ref: CrossReference[AProps]
+        ref: Annotated[
+            CrossReference[AProps],
+            ReferenceAnnotation(metadata=MetadataQuery(creation_time_unix=True)),
+        ]
 
     class CProps(TypedDict):
         name: str
-        ref: CrossReference[BProps]
+        ref: Annotated[CrossReference[BProps], ReferenceAnnotation(include_vector=True)]
 
     client.collections.create(
         name="ATypedDicts",
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
@@ -186,7 +189,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient):
             Property(name="Name", data_type=DataType.TEXT),
             ReferenceProperty(name="ref", target_collection="ATypedDicts"),
         ],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
     )
     B = client.collections.get("BTypedDicts", BProps)
     uuid_B = B.data.insert(
@@ -205,7 +208,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient):
             Property(name="Age", data_type=DataType.INT),
             ReferenceProperty(name="ref", target_collection="BTypedDicts"),
         ],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
     )
     C = client.collections.get("CTypedDicts", CProps)
     C.data.insert(
@@ -216,6 +219,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient):
         client.collections.get("CTypedDicts")
         .query.bm25(
             query="find",
+            include_vector=True,
             return_properties=CProps,
         )
         .objects
@@ -224,21 +228,41 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient):
         objects[0].properties["name"] == "find me"
     )  # happy path (in type and in return_properties)
     assert objects[0].uuid is not None
+    assert objects[0].vector is not None
     assert (
         objects[0].properties.get("not_specified") is None
     )  # type is str but instance is None (in type but not in return_properties)
     assert objects[0].properties["ref"].objects[0].properties["name"] == "B"
     assert objects[0].properties["ref"].objects[0].uuid == uuid_B
+    assert objects[0].properties["ref"].objects[0].vector is not None
     assert (
         objects[0].properties["ref"].objects[0].properties["ref"].objects[0].properties["name"]
         == "A1"
     )
     assert objects[0].properties["ref"].objects[0].properties["ref"].objects[0].uuid == uuid_A1
     assert (
+        objects[0]
+        .properties["ref"]
+        .objects[0]
+        .properties["ref"]
+        .objects[0]
+        .metadata.creation_time_unix
+        is not None
+    )
+    assert (
         objects[0].properties["ref"].objects[0].properties["ref"].objects[1].properties["name"]
         == "A2"
     )
     assert objects[0].properties["ref"].objects[0].properties["ref"].objects[1].uuid == uuid_A2
+    assert (
+        objects[0]
+        .properties["ref"]
+        .objects[0]
+        .properties["ref"]
+        .objects[1]
+        .metadata.creation_time_unix
+        is not None
+    )
 
 
 def test_multi_references_grpc(client: weaviate.WeaviateClient):

@@ -155,6 +155,7 @@ class FromReference(_WeaviateInput):
     """Define a query-time reference to a single-target property when querying through cross-references."""
 
     link_on: str
+    include_vector: bool = Field(default=False)
     return_properties: Optional["PROPERTIES"] = Field(default=None)
     return_metadata: Optional[MetadataQuery] = Field(default=None)
 
@@ -163,7 +164,7 @@ class FromReference(_WeaviateInput):
 
     @property
     def _return_metadata(self) -> _MetadataQuery:
-        return _MetadataQuery.from_public(self.return_metadata, False)
+        return _MetadataQuery.from_public(self.return_metadata, self.include_vector)
 
 
 class FromReferenceMultiTarget(FromReference):

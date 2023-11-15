@@ -22,7 +22,12 @@ from weaviate.collections.classes.grpc import (
     FromReferenceMultiTarget,
     MetadataQuery,
 )
-from weaviate.collections.classes.internal import Nested, CrossReference, Reference
+from weaviate.collections.classes.internal import (
+    Nested,
+    CrossReference,
+    Reference,
+    ReferenceAnnotation,
+)
 from weaviate.collections.classes.tenants import Tenant
 
 __all__ = [
@@ -42,6 +47,7 @@ __all__ = [
     "Nested",
     "Property",
     "Reference",
+    "ReferenceAnnotation",
     "ReferenceProperty",
     "ReferencePropertyMultiTarget",
     "StopwordsPreset",

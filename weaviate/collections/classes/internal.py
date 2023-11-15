@@ -326,28 +326,34 @@ class Reference:
         )
 
 
+@dataclass
+class ReferenceAnnotation:
+    """Dataclass to be used when annotating a generic cross reference property with options for retrieving data from the cross referenced object when querying."""
+
+    include_vector: bool = False
+    metadata: Optional[MetadataQuery] = None
+    target_collection: Optional[str] = None
+
+
 def _extract_property_type_from_reference(type_: _Reference[P]) -> Type[P]:
-    """Extract inner type from Reference[Properties]."""
+    """Extract inner type from CrossReference[Properties]."""
     if getattr(type_, "__origin__", None) == _Reference:
         args = cast(List[Type[P]], getattr(type_, "__args__", None))
         return args[0]
-    raise ValueError("Type is not Reference[Properties]")
+    raise ValueError("Type is not CrossReference[Properties]")
 
 
 def _extract_property_type_from_annotated_reference(
-    type_: Union[
-        Annotated[_Reference[P], MetadataQuery],
-        Annotated[_Reference[P], MetadataQuery, str],
-    ]
+    type_: Annotated[_Reference[P], ReferenceAnnotation]
 ) -> Type[P]:
-    """Extract inner type from Annotated[Reference[Properties]]."""
+    """Extract inner type from Annotated[CrossReference[Properties]]."""
     if get_origin(type_) is Annotated:
         args = cast(List[_Reference[Type[P]]], getattr(type_, "__args__", None))
         inner_type = args[0]
         if get_origin(inner_type) is _Reference:
             inner_args = cast(List[Type[P]], getattr(inner_type, "__args__", None))
             return inner_args[0]
-    raise ValueError("Type is not Annotated[Reference[Properties]]")
+    raise ValueError("Type is not Annotated[CrossReference[Properties]]")
 
 
 def __is_annotated_reference(value: Any) -> bool:
@@ -359,37 +365,30 @@ def __is_annotated_reference(value: Any) -> bool:
 
 
 def __create_link_to_from_annotated_reference(
-    link_on: str,
-    value: Union[
-        Annotated[_Reference[Properties], MetadataQuery],
-        Annotated[_Reference[Properties], MetadataQuery, str],
-    ],
+    link_on: str, value: Annotated[_Reference[Properties], ReferenceAnnotation]
 ) -> Union[FromReference, FromReferenceMultiTarget]:
-    """Create FromReference or FromReferenceMultiTarget from Annotated[Reference[Properties]]."""
+    """Create FromReference or FromReferenceMultiTarget from Annotated[CrossReference[Properties], ReferenceAnnotation]."""
     assert get_origin(value) is Annotated
     args = cast(List[_Reference[Properties]], getattr(value, "__args__", None))
     inner_type = args[0]
     assert get_origin(inner_type) is _Reference
-    inner_type_metadata = cast(
-        Union[Tuple[MetadataQuery], Tuple[MetadataQuery, str]], getattr(value, "__metadata__", None)
-    )
-    metadata = inner_type_metadata[0]
-    if len(inner_type_metadata) == 2:
-        target_collection = cast(Tuple[MetadataQuery, str], inner_type_metadata)[
-            1
-        ]  # https://github.com/python/mypy/issues/1178
+    inner_type_metadata = cast(Tuple[ReferenceAnnotation], getattr(value, "__metadata__", None))
+    annotation = inner_type_metadata[0]
+    if annotation.target_collection is not None:
         return FromReferenceMultiTarget(
             link_on=link_on,
-            return_metadata=metadata,
+            include_vector=annotation.include_vector,
+            return_metadata=annotation.metadata,
             return_properties=_extract_properties_from_data_model(
                 _extract_property_type_from_annotated_reference(value)
             ),
-            target_collection=target_collection,
+            target_collection=annotation.target_collection,
         )
     else:
         return FromReference(
             link_on=link_on,
-            return_metadata=metadata,
+            include_vector=annotation.include_vector,
+            return_metadata=annotation.metadata,
             return_properties=_extract_properties_from_data_model(
                 _extract_property_type_from_annotated_reference(value)
             ),
@@ -404,10 +403,9 @@ def __create_link_to_from_reference(
     link_on: str,
     value: _Reference[Properties],
 ) -> FromReference:
-    """Create FromReference from Reference[Properties]."""
+    """Create FromReference from CrossReference[Properties]."""
     return FromReference(
         link_on=link_on,
-        return_metadata=None,
         return_properties=_extract_properties_from_data_model(
             _extract_property_type_from_reference(value)
         ),
