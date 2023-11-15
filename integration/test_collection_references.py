@@ -1,4 +1,5 @@
-from typing import Annotated, TypedDict
+from typing import TypedDict
+from typing_extensions import Annotated
 
 import pytest as pytest
 import uuid
