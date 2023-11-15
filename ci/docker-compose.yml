@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-pass-isconsistentpresent-bool-in-grpc-reply-87ad07b
+    image: semitechnologies/weaviate:1.22.4
     ports:
       - "8080:8080"
       - "50051:50051"
