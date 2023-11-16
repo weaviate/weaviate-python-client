@@ -13,47 +13,49 @@ N = TypeVar("N", int, float)
 
 
 @dataclass
-class AggregateInt:
-    """The aggregation result for an integer property."""
+class AggregateInteger:
+    """The aggregation result for an int property."""
 
     count: Optional[int]
     maximum: Optional[int]
     mean: Optional[float]
-    median: Optional[int]
+    median: Optional[float]
+    minimum: Optional[int]
     mode: Optional[int]
     sum_: Optional[int]
 
 
 @dataclass
-class AggregateFloat:
-    """The aggregation result for a float property."""
+class AggregateNumber:
+    """The aggregation result for a number property."""
 
     count: Optional[int]
     maximum: Optional[float]
     mean: Optional[float]
     median: Optional[float]
+    minimum: Optional[float]
     mode: Optional[float]
     sum_: Optional[float]
 
 
 @dataclass
 class TopOccurrence:
-    """The top occurrence of a string property."""
+    """The top occurrence of a text property."""
 
-    occurs: Optional[int]
+    count: Optional[int]
     value: Optional[str]
 
 
 @dataclass
-class AggregateStr:
-    """The aggregation result for a string property."""
+class AggregateText:
+    """The aggregation result for a text property."""
 
     count: Optional[int]
     top_occurrences: Optional[List[TopOccurrence]]
 
 
 @dataclass
-class AggregateBool:
+class AggregateBoolean:
     """The aggregation result for a boolean property."""
 
     count: Optional[int]
@@ -64,7 +66,7 @@ class AggregateBool:
 
 
 @dataclass
-class AggregateRef:
+class AggregateReference:
     """The aggregation result for a cross-reference property."""
 
     pointing_to: Optional[str]
@@ -82,7 +84,12 @@ class AggregateDate:
 
 
 AggregateResult = Union[
-    AggregateInt, AggregateFloat, AggregateStr, AggregateBool, AggregateDate, AggregateRef
+    AggregateInteger,
+    AggregateNumber,
+    AggregateText,
+    AggregateBoolean,
+    AggregateDate,
+    AggregateReference,
 ]
 
 AProperties = Dict[str, AggregateResult]

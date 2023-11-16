@@ -1,5 +1,11 @@
 Changelog
 =========
+Version 4.3.b2
+--------------
+This patch beta version includes:
+
+- Fixes to the ``dataclass`` types returned by aggregate queries
+
 Version 4.3.b1
 --------------
 This patch beta version includes:

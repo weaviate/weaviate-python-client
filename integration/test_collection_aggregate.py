@@ -416,7 +416,7 @@ def test_all_available_aggregations(client: weaviate.WeaviateClient):
     collection.data.insert(
         {
             "text": "some text",
-            "texts": ["some text", "some more text"],
+            "texts": ["some text", "some text"],
             "int": 1,
             "ints": [1, 2],
             "float": 1.0,
@@ -429,25 +429,140 @@ def test_all_available_aggregations(client: weaviate.WeaviateClient):
     )
     res = collection.aggregate.over_all(
         return_metrics=[
-            Metrics("text").text(count=True),
-            Metrics("texts").text(count=True),
-            Metrics("int").integer(count=True),
-            Metrics("ints").integer(count=True),
-            Metrics("float").number(count=True),
-            Metrics("floats").number(count=True),
-            Metrics("bool").boolean(count=True),
-            Metrics("bools").boolean(count=True),
-            Metrics("date").date_(count=True),
-            Metrics("dates").date_(count=True),
+            Metrics("text").text(
+                count=True,
+                top_occurrences_count=True,
+                top_occurrences_value=True,
+            ),
+            Metrics("texts").text(
+                count=True,
+                top_occurrences_count=True,
+                top_occurrences_value=True,
+            ),
+            Metrics("int").int(
+                count=True,
+                maximum=True,
+                mean=True,
+                median=True,
+                minimum=True,
+                mode=True,
+                sum_=True,
+            ),
+            Metrics("ints").int(
+                count=True,
+                maximum=True,
+                mean=True,
+                median=True,
+                minimum=True,
+                mode=True,
+                sum_=True,
+            ),
+            Metrics("float").number(
+                count=True,
+                maximum=True,
+                mean=True,
+                median=True,
+                minimum=True,
+                mode=True,
+                sum_=True,
+            ),
+            Metrics("floats").number(
+                count=True,
+                maximum=True,
+                mean=True,
+                median=True,
+                minimum=True,
+                mode=True,
+                sum_=True,
+            ),
+            Metrics("bool").boolean(
+                count=True,
+                percentage_false=True,
+                percentage_true=True,
+                total_false=True,
+                total_true=True,
+            ),
+            Metrics("bools").boolean(
+                count=True,
+                percentage_false=True,
+                percentage_true=True,
+                total_false=True,
+                total_true=True,
+            ),
+            Metrics("date").date_(
+                count=True,
+                maximum=True,
+                median=True,
+                minimum=True,
+                mode=True,
+            ),
+            Metrics("dates").date_(
+                count=True,
+                maximum=True,
+                median=True,
+                minimum=True,
+                mode=True,
+            ),
         ]
     )
+
     assert res.properties["text"].count == 1
+    assert res.properties["text"].top_occurrences[0].count == 1
+    assert res.properties["text"].top_occurrences[0].value == "some text"
+
     assert res.properties["texts"].count == 2
+    assert res.properties["texts"].top_occurrences[0].count == 2
+    assert res.properties["texts"].top_occurrences[0].value == "some text"
+
     assert res.properties["int"].count == 1
+    assert res.properties["int"].maximum == 1
+    assert res.properties["int"].mean == 1
+    assert res.properties["int"].median == 1
+    assert res.properties["int"].minimum == 1
+    assert res.properties["int"].mode == 1
+    assert res.properties["int"].sum_ == 1
+
     assert res.properties["ints"].count == 2
+    assert res.properties["ints"].maximum == 2
+    assert res.properties["ints"].mean == 1.5
+    assert res.properties["ints"].median == 1.5
+    assert res.properties["ints"].minimum == 1
+    assert res.properties["ints"].mode == 1
+
     assert res.properties["float"].count == 1
+    assert res.properties["float"].maximum == 1.0
+    assert res.properties["float"].mean == 1.0
+    assert res.properties["float"].median == 1.0
+    assert res.properties["float"].minimum == 1.0
+    assert res.properties["float"].mode == 1.0
+
     assert res.properties["floats"].count == 2
+    assert res.properties["floats"].maximum == 2.0
+    assert res.properties["floats"].mean == 1.5
+    assert res.properties["floats"].median == 1.5
+    assert res.properties["floats"].minimum == 1.0
+    assert res.properties["floats"].mode == 1.0
+
     assert res.properties["bool"].count == 1
+    assert res.properties["bool"].percentage_false == 0
+    assert res.properties["bool"].percentage_true == 1
+    assert res.properties["bool"].total_false == 0
+    assert res.properties["bool"].total_true == 1
+
     assert res.properties["bools"].count == 2
+    assert res.properties["bools"].percentage_false == 0.5
+    assert res.properties["bools"].percentage_true == 0.5
+    assert res.properties["bools"].total_false == 1
+    assert res.properties["bools"].total_true == 1
+
     assert res.properties["date"].count == 1
+    assert res.properties["date"].maximum == "2021-01-01T00:00:00Z"
+    assert res.properties["date"].median == "2021-01-01T00:00:00Z"
+    assert res.properties["date"].minimum == "2021-01-01T00:00:00Z"
+    assert res.properties["date"].mode == "2021-01-01T00:00:00Z"
+
     assert res.properties["dates"].count == 2
+    assert res.properties["dates"].maximum == "2021-01-02T00:00:00Z"
+    assert res.properties["dates"].median == "2021-01-01T12:00:00Z"
+    assert res.properties["dates"].minimum == "2021-01-01T00:00:00Z"
+    # assert res.properties["dates"].mode == "2021-01-02T00:00:00Z" # flakey: sometimes return 01, other times 02

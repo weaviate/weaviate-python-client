@@ -8,12 +8,12 @@ from typing_extensions import ParamSpec
 from weaviate.collections.classes.aggregate import (
     AProperties,
     AggregateResult,
-    AggregateBool,
+    AggregateBoolean,
     AggregateDate,
-    AggregateInt,
-    AggregateFloat,
-    AggregateRef,
-    AggregateStr,
+    AggregateInteger,
+    AggregateNumber,
+    AggregateReference,
+    AggregateText,
     _AggregateGroupByReturn,
     _AggregateReturn,
     _Metrics,
@@ -128,36 +128,38 @@ class _Aggregate:
     @staticmethod
     def __parse_property(property_: dict, metric: _Metrics) -> AggregateResult:
         if isinstance(metric, _MetricsText):
-            return AggregateStr(
+            return AggregateText(
                 count=property_.get("count"),
                 top_occurrences=[
                     TopOccurrence(
-                        occurs=cast(dict, top_occurence).get("occurs"),
+                        count=cast(dict, top_occurence).get("occurs"),
                         value=cast(dict, top_occurence).get("value"),
                     )
                     for top_occurence in property_.get("topOccurrences", [])
                 ],
             )
         elif isinstance(metric, _MetricsInteger):
-            return AggregateInt(
+            return AggregateInteger(
                 count=property_.get("count"),
                 maximum=property_.get("maximum"),
                 mean=property_.get("mean"),
                 median=property_.get("median"),
+                minimum=property_.get("minimum"),
                 mode=property_.get("mode"),
                 sum_=property_.get("sum"),
             )
         elif isinstance(metric, _MetricsNumber):
-            return AggregateFloat(
+            return AggregateNumber(
                 count=property_.get("count"),
                 maximum=property_.get("maximum"),
                 mean=property_.get("mean"),
                 median=property_.get("median"),
+                minimum=property_.get("minimum"),
                 mode=property_.get("mode"),
                 sum_=property_.get("sum"),
             )
         elif isinstance(metric, _MetricsBoolean):
-            return AggregateBool(
+            return AggregateBoolean(
                 count=property_.get("count"),
                 percentage_false=property_.get("percentageFalse"),
                 percentage_true=property_.get("percentageTrue"),
@@ -173,7 +175,7 @@ class _Aggregate:
                 mode=property_.get("mode"),
             )
         elif isinstance(metric, _MetricsReference):
-            return AggregateRef(pointing_to=property_.get("pointingTo"))
+            return AggregateReference(pointing_to=property_.get("pointingTo"))
         else:
             raise ValueError(
                 f"Unknown aggregation type {metric} encountered in _Aggregate.__parse_property() for property {property_}"
