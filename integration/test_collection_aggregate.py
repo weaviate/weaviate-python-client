@@ -439,7 +439,7 @@ def test_all_available_aggregations(client: weaviate.WeaviateClient):
                 top_occurrences_count=True,
                 top_occurrences_value=True,
             ),
-            Metrics("int").int(
+            Metrics("int").integer(
                 count=True,
                 maximum=True,
                 mean=True,
@@ -448,7 +448,7 @@ def test_all_available_aggregations(client: weaviate.WeaviateClient):
                 mode=True,
                 sum_=True,
             ),
-            Metrics("ints").int(
+            Metrics("ints").integer(
                 count=True,
                 maximum=True,
                 mean=True,
