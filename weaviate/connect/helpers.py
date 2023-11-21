@@ -1,3 +1,6 @@
+"""Helper functions for creating a new WeaviateClient in common scenarios."""
+from socket import gethostbyname, gaierror
+from urllib.parse import urlparse
 from typing import Optional, Tuple
 
 from weaviate.auth import AuthCredentials
@@ -5,10 +8,11 @@ from weaviate.client import WeaviateClient
 from weaviate.config import AdditionalConfig
 from weaviate.connect.connection import ConnectionParams, ProtocolParams
 from weaviate.embedded import EmbeddedOptions
+from weaviate.exceptions import WeaviateGrpcUnavailable
 
 
 def connect_to_wcs(
-    cluster_id: str,
+    cluster_url: str,
     auth_credentials: Optional[AuthCredentials],
     headers: Optional[dict] = None,
     timeout: Tuple[int, int] = (10, 60),
@@ -17,8 +21,8 @@ def connect_to_wcs(
     Connect to your own Weaviate Cloud Service (WCS) instance.
 
     Arguments:
-        `cluster_id`
-            The WCS cluster id to connect to.
+        `cluster_url`
+            The WCS cluster URL or hostname to connect to.
         `auth_credentials`
             The credentials to use for authentication with your WCS instance. This can be an API key, in which case use `weaviate.auth.AuthApiKey`,
             a bearer token, in which case use `weaviate.auth.AuthBearerToken`, a client secret, in which case use `weaviate.auth.AuthClientCredentials`
@@ -33,16 +37,24 @@ def connect_to_wcs(
         `weaviate.WeaviateClient`
             The client connected to the cluster with the required parameters set appropriately.
     """
-    raise NotImplementedError("WCS doesn't support gRPC yet")
-    # return WeaviateClient(
-    #     connection_params=ConnectionParams(
-    #         http=ProtocolParams(host=f"{cluster_id}.weaviate.network", port=443, secure=True),
-    #         grpc=ProtocolParams(host=f"{cluster_id}.weaviate.network", port=50051, secure=True),
-    #     ),
-    #     auth_client_secret=auth_credentials,
-    #     additional_headers=headers,
-    #     additional_config=AdditionalConfig(timeout=timeout),
-    # )
+    if cluster_url.startswith("http"):
+        # Handle the common case of copy/pasting a URL instead of the hostname.
+        cluster_url = urlparse(cluster_url).netloc
+    # Check the grpc- endpoint is available for this cluster:
+    grpc_host = f"grpc-{cluster_url}"
+    try:
+        gethostbyname(grpc_host)
+    except gaierror as exc:
+        raise WeaviateGrpcUnavailable() from exc
+    return WeaviateClient(
+        connection_params=ConnectionParams(
+            http=ProtocolParams(host=cluster_url, port=443, secure=True),
+            grpc=ProtocolParams(host=grpc_host, port=443, secure=True),
+        ),
+        auth_client_secret=auth_credentials,
+        additional_headers=headers,
+        additional_config=AdditionalConfig(timeout=timeout),
+    )
 
 
 def connect_to_local(
