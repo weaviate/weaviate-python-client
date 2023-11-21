@@ -1,5 +1,6 @@
 """Helper functions for creating a new WeaviateClient in common scenarios."""
-from socket import gethostbyname, gaierror
+import requests
+from socket import gaierror, gethostbyname
 from urllib.parse import urlparse
 from typing import Optional, Tuple
 
@@ -22,7 +23,7 @@ def connect_to_wcs(
 
     Arguments:
         `cluster_url`
-            The WCS cluster URL or hostname to connect to.
+            The WCS cluster URL or hostname to connect to. Usually in the form rAnD0mD1g1t5.something.weaviate.cloud
         `auth_credentials`
             The credentials to use for authentication with your WCS instance. This can be an API key, in which case use `weaviate.auth.AuthApiKey`,
             a bearer token, in which case use `weaviate.auth.AuthBearerToken`, a client secret, in which case use `weaviate.auth.AuthClientCredentials`
@@ -40,12 +41,19 @@ def connect_to_wcs(
     if cluster_url.startswith("http"):
         # Handle the common case of copy/pasting a URL instead of the hostname.
         cluster_url = urlparse(cluster_url).netloc
-    # Check the grpc- endpoint is available for this cluster:
     grpc_host = f"grpc-{cluster_url}"
+    # Check the grpc- endpoint is available for this cluster:
     try:
         gethostbyname(grpc_host)
     except gaierror as exc:
         raise WeaviateGrpcUnavailable() from exc
+    # Some WCS regions have wildcard DNS, so we can get a valid DNS response even
+    # without a grpc server.
+    # An ordinary https GET will get a 415 from the grpc server if present
+    # but (usefully for us) a simple 404 from the proxy if there is no grpc backend.
+    resp = requests.get(f"https://{grpc_host}:443/", timeout=timeout)
+    if resp.status_code == 404:
+        raise WeaviateGrpcUnavailable()
     return WeaviateClient(
         connection_params=ConnectionParams(
             http=ProtocolParams(host=cluster_url, port=443, secure=True),
