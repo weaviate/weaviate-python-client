@@ -139,8 +139,12 @@ class ConnectionParams(BaseModel):
 
     @model_validator(mode="after")
     def _check_port_collision(self) -> ConnectionParams:
-        if self.grpc is not None and self.http.port == self.grpc.port:
-            raise ValueError("http.port and grpc.port must be different")
+        if (
+            self.grpc is not None
+            and self.http.host == self.grpc.host
+            and self.http.port == self.grpc.port
+        ):
+            raise ValueError("http.port and grpc.port must be different if using the same host")
         return self
 
     @property

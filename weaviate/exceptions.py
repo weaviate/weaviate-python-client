@@ -215,6 +215,6 @@ class WeaviateInsertInvalidPropertyError(WeaviateBaseError):
 class WeaviateGrpcUnavailable(WeaviateBaseError):
     """Is raised when a gRPC-backed query is made with no gRPC connection present."""
 
-    def __init__(self) -> None:
-        msg = """gRPC is not available. Please make sure that gRPC is configured correctly in the client and on the server."""
+    def __init__(self, message: str = "") -> None:
+        msg = f"""gRPC is not available. Please make sure that gRPC is configured correctly in the client and on the server: {message}"""
         super().__init__(msg)
