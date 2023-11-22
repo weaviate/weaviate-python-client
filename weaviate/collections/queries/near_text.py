@@ -104,6 +104,10 @@ class _NearTextQuery(Generic[Properties], _Grpc[Properties]):
             `return_properties`
                 The properties to return for each object.
 
+        NOTE:
+            If `return_properties` is not provided then all properties are returned except for any cross reference properties.
+            If `return_metadata` is not provided then no metadata is provided.
+
         Returns:
             A `_QueryReturn` object containing the results of the query.
 
@@ -221,6 +225,10 @@ class _NearTextGenerate(Generic[Properties], _Grpc[Properties]):
                 The metadata to return for each object, defaults to `None`.
             `return_properties`
                 The properties to return for each object.
+
+        NOTE:
+            If `return_properties` is not provided then all properties are returned except for any cross reference properties.
+            If `return_metadata` is not provided then no metadata is provided.
 
         Returns:
             A `_GenerativeReturn` object that includes the searched objects with per-object generated results and group generated results.
@@ -344,6 +352,10 @@ class _NearTextGroupBy(Generic[Properties], _Grpc[Properties]):
                 The metadata to return for each object, defaults to `None`.
             `return_properties`
                 The properties to return for each object.
+
+        NOTE:
+            If `return_properties` is not provided then all properties are returned except for any cross reference properties.
+            If `return_metadata` is not provided then no metadata is provided.
 
         Returns:
             A `_GroupByReturn` object that includes the searched objects grouped by the specified property.

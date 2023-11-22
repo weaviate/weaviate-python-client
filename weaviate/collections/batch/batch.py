@@ -206,7 +206,7 @@ class _Batch:
             Future[Tuple[BatchReferenceReturn, int, bool]]
         ] = deque([])
         self.__dynamic_batching = True
-        self.__num_workers: int = 1
+        self.__num_workers: Optional[int] = None
         self.__objects_throughput_frame: Deque[float] = deque(maxlen=5)
         self.__recommended_num_objects: Optional[int] = 50
         self.__recommended_num_references: Optional[int] = 50
@@ -246,9 +246,10 @@ class _Batch:
                 dynamically based on Weaviate's load. If `dynamic` is set to `False`, this value will be used as the
                 batch size for all batches.
             `consistency_level`
-                The consistency level to be used to send the batch. If not provided, the default value is None.
+                The consistency level to be used to send the batch. If not provided, the default value is `None`.
             `num_workers`
-                The number of workers to be used when sending the batches. If not provided, the default value is 1.
+                The number of workers to be used when sending the batches. If not provided, the default value is `None` which uses the Python defined
+                default value of `min(32, (os.cpu_count() or 1) + 4)`.
                 This controls the number of concurrent requests made to Weaviate and not the speed of batch creation within Python.
             `retry_failed_objects`
                 Whether to retry failed objects or not. If not provided, the default value is False.
@@ -580,8 +581,8 @@ class _Batch:
 
         if (
             not force_wait
-            and self.__num_workers > 1
-            and len(self.__future_pool_objects) < self.__num_workers
+            and self.__executor._max_workers > 1
+            and len(self.__future_pool_objects) < self.__executor._max_workers
         ):
             return
 
@@ -667,6 +668,7 @@ class _Batch:
 
             assert self.__recommended_num_objects is not None
             assert self.__recommended_num_references is not None
+            assert self.__executor is not None
 
             while (
                 self.__shut_background_thread_down is not None
@@ -678,7 +680,7 @@ class _Batch:
                         self.__dynamic_batching = False
                         return
                     rate = status[0]["batchStats"]["ratePerSecond"]
-                    rate_per_worker = rate / self.__num_workers
+                    rate_per_worker = rate / self.__executor._max_workers
                     batch_length = status[0]["batchStats"]["queueLength"]
 
                     if batch_length == 0:  # scale up if queue is empty
