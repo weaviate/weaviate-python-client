@@ -47,7 +47,7 @@ def connect_to_wcs(
         gethostbyname(grpc_host)
     except gaierror as exc:
         raise WeaviateGrpcUnavailable(
-            "The client was unable to resolve the gRPC endpoint of your WCS cluster!"
+            "the client was unable to resolve the gRPC endpoint of your WCS cluster!"
         ) from exc
     # Some WCS regions have wildcard DNS, so we can get a valid DNS response even
     # without a grpc server.
@@ -56,7 +56,7 @@ def connect_to_wcs(
     resp = requests.get(f"https://{grpc_host}:443/", timeout=timeout)
     if resp.status_code == 404:
         raise WeaviateGrpcUnavailable(
-            "The client was unable to resolve the proxy of gRPC endpoint of your WCS cluster!"
+            "your cluster may need upgrading to the latest Weaviate version to support gRPC."
         )
     return WeaviateClient(
         connection_params=ConnectionParams(
