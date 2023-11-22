@@ -46,14 +46,18 @@ def connect_to_wcs(
     try:
         gethostbyname(grpc_host)
     except gaierror as exc:
-        raise WeaviateGrpcUnavailable() from exc
+        raise WeaviateGrpcUnavailable(
+            "The client was unable to resolve the gRPC endpoint of your WCS cluster!"
+        ) from exc
     # Some WCS regions have wildcard DNS, so we can get a valid DNS response even
     # without a grpc server.
     # An ordinary https GET will get a 415 from the grpc server if present
     # but (usefully for us) a simple 404 from the proxy if there is no grpc backend.
     resp = requests.get(f"https://{grpc_host}:443/", timeout=timeout)
     if resp.status_code == 404:
-        raise WeaviateGrpcUnavailable()
+        raise WeaviateGrpcUnavailable(
+            "The client was unable to resolve the proxy of gRPC endpoint of your WCS cluster!"
+        )
     return WeaviateClient(
         connection_params=ConnectionParams(
             http=ProtocolParams(host=cluster_url, port=443, secure=True),
