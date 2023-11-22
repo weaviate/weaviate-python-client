@@ -95,7 +95,8 @@ class _HybridQuery(Generic[Properties], _Grpc[Properties]):
                 The properties to return for each object.
 
         NOTE:
-            If neither `return_metadata` nor `return_properties` are provided then all properties and metadata are returned except for `metadata.vector`.
+            If `return_properties` is not provided then all properties are returned except for any cross reference properties.
+            If `return_metadata` is not provided then no metadata is provided.
 
         Returns:
             A `_QueryReturn` object that includes the searched objects.
@@ -213,7 +214,8 @@ class _HybridGenerate(Generic[Properties], _Grpc[Properties]):
                 The properties to return for each object.
 
         NOTE:
-            If neither `return_metadata` nor `return_properties` are provided then all properties and metadata are returned except for `metadata.vector`.
+            If `return_properties` is not provided then all properties are returned except for any cross reference properties.
+            If `return_metadata` is not provided then no metadata is provided.
 
         Returns:
             A `_GenerativeReturn` object that includes the searched objects with per-object generated results and group generated results.
