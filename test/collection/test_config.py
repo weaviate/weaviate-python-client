@@ -543,7 +543,7 @@ TEST_CONFIG_WITH_GENERATIVE_MODULE = [
     (
         Configure.Generative.aws(model="cohere.command-light-text-v14", region="us-east-1"),
         {
-            "generative-cohere": {
+            "generative-aws": {
                 "model": "cohere.command-light-text-v14",
                 "region": "us-east-1",
             }
