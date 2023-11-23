@@ -472,10 +472,6 @@ class _GenerativeAWSConfig(_GenerativeConfigCreate):
     model: str
     region: str
 
-    def _to_dict(self) -> Dict[str, Any]:
-        ret_dict = super()._to_dict()
-        return ret_dict
-
 
 class _VectorizerConfigCreate(_ConfigCreateModel):
     vectorizer: Vectorizer
@@ -712,10 +708,6 @@ class _Text2VecAWSConfig(_VectorizerConfigCreate):
     model: AWSModel
     region: str
     vectorizeClassName: bool
-
-    def _to_dict(self) -> Dict[str, Any]:
-        ret_dict = super()._to_dict()
-        return ret_dict
 
 
 CohereModel = Literal[

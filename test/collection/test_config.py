@@ -149,6 +149,20 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.text2vec_aws(
+            vectorize_class_name=False,
+            model="cohere.embed-english-v3",
+            region="us-east-1"
+        ),
+        {
+            "text2vec-aws": {
+                "vectorizeClassName": False,
+                "model": "cohere.embed-english-v3",
+                "region": "us-east-1",
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_openai(),
         {
             "text2vec-openai": {
@@ -525,6 +539,18 @@ TEST_CONFIG_WITH_GENERATIVE_MODULE = [
                 "temperature": 0.5,
                 "topK": 10,
                 "topP": 0.5,
+            }
+        },
+    ),
+    (
+        Configure.Generative.aws(
+            model="cohere.command-light-text-v14",
+            region="us-east-1"
+        ),
+        {
+            "generative-cohere": {
+                "model": "cohere.command-light-text-v14",
+                "region": "us-east-1",
             }
         },
     ),
