@@ -150,9 +150,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
     ),
     (
         Configure.Vectorizer.text2vec_aws(
-            vectorize_class_name=False,
-            model="cohere.embed-english-v3",
-            region="us-east-1"
+            vectorize_class_name=False, model="cohere.embed-english-v3", region="us-east-1"
         ),
         {
             "text2vec-aws": {
@@ -543,10 +541,7 @@ TEST_CONFIG_WITH_GENERATIVE_MODULE = [
         },
     ),
     (
-        Configure.Generative.aws(
-            model="cohere.command-light-text-v14",
-            region="us-east-1"
-        ),
+        Configure.Generative.aws(model="cohere.command-light-text-v14", region="us-east-1"),
         {
             "generative-cohere": {
                 "model": "cohere.command-light-text-v14",

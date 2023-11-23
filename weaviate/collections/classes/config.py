@@ -695,7 +695,6 @@ class _Text2VecContextionaryConfig(_VectorizerConfigCreate):
     vectorizeClassName: bool
 
 
-
 AWSModel = Literal[
     "amazon.titan-embed-text-v1",
     "cohere.embed-english-v3",
@@ -721,7 +720,7 @@ CohereModel = Literal[
     "embed-english-v2.0",
     "embed-english-light-v2.0",
     "embed-english-v3.0",
-    "embed-english-light-v3.0"
+    "embed-english-light-v3.0",
 ]
 CohereTruncation = Literal["NONE", "START", "END", "LEFT", "RIGHT"]
 
@@ -1058,9 +1057,7 @@ class _Vectorizer:
             `pydantic.ValidationError` if `model` or `truncate` are not valid values from the `CohereModel` and `CohereTruncate` types.
         """
         return _Text2VecAWSConfig(
-            model=model,
-            region=region,
-            vectorizeClassName=vectorize_class_name
+            model=model, region=region, vectorizeClassName=vectorize_class_name
         )
 
     @staticmethod
