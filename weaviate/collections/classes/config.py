@@ -723,7 +723,7 @@ CohereModel = Literal[
     "embed-english-v3.0",
     "embed-english-light-v3.0"
 ]
-CohereTruncation = Literal["RIGHT", "NONE"]
+CohereTruncation = Literal["NONE", "START", "END", "LEFT", "RIGHT"]
 
 
 class _Text2VecCohereConfig(_VectorizerConfigCreate):
