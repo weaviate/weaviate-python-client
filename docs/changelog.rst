@@ -1,5 +1,15 @@
 Changelog
 =========
+Version 4.4.b0
+--------------
+This minor beta version includes:
+
+- Adds support for connecting to WCS using the ``connect_to_wcs`` helper function
+- Changes default ``num_workers`` in ``client.batch`` from ``1`` to Python's ``ThreadPoolExecutor`` default
+- Adds ``text2vec-aws`` and ``generative-aws`` static methods to ``Configure.Vectorizer`` and ``Configure.Generative``
+- Tidy up stale docstrings
+- Add missing class exports
+
 Version 4.3.b2
 --------------
 This patch beta version includes:
