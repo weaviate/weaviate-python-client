@@ -13,6 +13,7 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.collections.classes.data import (
     DataObject,
+    DataReference,
 )
 from weaviate.collections.classes.filters import Filter
 from weaviate.collections.classes.grpc import (
@@ -35,6 +36,7 @@ __all__ = [
     "Reconfigure",
     "CrossReference",
     "DataObject",
+    "DataReference",
     "DataType",
     "Filter",
     "HybridFusion",
