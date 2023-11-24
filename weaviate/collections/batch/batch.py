@@ -208,8 +208,8 @@ class _Batch:
         self.__dynamic_batching = True
         self.__num_workers: Optional[int] = None
         self.__objects_throughput_frame: Deque[float] = deque(maxlen=5)
-        self.__recommended_num_objects: Optional[int] = 50
-        self.__recommended_num_references: Optional[int] = 50
+        self.__recommended_num_objects: Optional[int] = 1000
+        self.__recommended_num_references: Optional[int] = 1000
         self.__reference_batch_queue: Deque[List[_BatchReference]] = deque([])
         self.__references_throughput_frame: Deque[float] = deque(maxlen=5)
         self.__retry_failed_objects: bool = False
@@ -220,7 +220,7 @@ class _Batch:
     def configure(
         self,
         dynamic: bool = True,
-        batch_size: Optional[int] = 100,
+        batch_size: Optional[int] = 1000,
         consistency_level: Optional[ConsistencyLevel] = None,
         num_workers: Optional[int] = None,
         retry_failed_objects: bool = False,
@@ -256,7 +256,7 @@ class _Batch:
             `retry_failed_references`
                 Whether to retry failed references or not. If not provided, the default value is False.
         """
-        self.__batch_size = 100 if dynamic else batch_size
+        self.__batch_size = batch_size
         self.__consistency_level = consistency_level or self.__consistency_level
         self.__dynamic_batching = dynamic
         self.__num_workers = num_workers or self.__num_workers
@@ -465,7 +465,7 @@ class _Batch:
 
         This function will do nothing unless you set `dynamic` to `False` in `configure`.
         """
-        if self.__dynamic_batching or self.__batch_size is not None:
+        if self.__is_auto():
             _Warnings.batch_create_automatic("objects")
             return BatchObjectReturn(
                 all_responses=[],
@@ -484,7 +484,7 @@ class _Batch:
 
         This function will do nothing unless you set `dynamic` to `False` in `configure`.
         """
-        if self.__dynamic_batching or self.__batch_size is not None:
+        if self.__is_auto():
             _Warnings.batch_create_automatic("references")
             return BatchReferenceReturn(
                 elapsed_seconds=0,
