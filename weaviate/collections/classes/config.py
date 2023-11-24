@@ -97,6 +97,8 @@ class Vectorizer(str, Enum):
     Attributes:
         `NONE`
             No vectorizer.
+        `TEXT2VEC_AWS`
+            Weaviate module backed by AWS text-based embedding models.
         `TEXT2VEC_COHERE`
             Weaviate module backed by Cohere text-based embedding models.
         `TEXT2VEC_CONTEXTIONARY`
@@ -122,6 +124,7 @@ class Vectorizer(str, Enum):
     """
 
     NONE = "none"
+    TEXT2VEC_AWS = "text2vec-aws"
     TEXT2VEC_COHERE = "text2vec-cohere"
     TEXT2VEC_CONTEXTIONARY = "text2vec-contextionary"
     TEXT2VEC_GPT4ALL = "text2vec-gpt4all"
@@ -148,11 +151,14 @@ class GenerativeSearches(str, Enum):
             Weaviate module backed by Cohere generative models.
         `PALM`
             Weaviate module backed by PaLM generative models.
+        `AWS`
+            Weaviate module backed by AWS Bedrock generative models.
     """
 
     OPENAI = "generative-openai"
     COHERE = "generative-cohere"
     PALM = "generative-palm"
+    AWS = "generative-aws"
 
 
 class VectorDistance(str, Enum):
@@ -459,6 +465,14 @@ class _GenerativePaLMConfig(_GenerativeConfigCreate):
         return ret_dict
 
 
+class _GenerativeAWSConfig(_GenerativeConfigCreate):
+    generative: GenerativeSearches = Field(
+        default=GenerativeSearches.AWS, frozen=True, exclude=True
+    )
+    model: str
+    region: str
+
+
 class _VectorizerConfigCreate(_ConfigCreateModel):
     vectorizer: Vectorizer
 
@@ -638,6 +652,27 @@ class _Generative:
             topP=top_p,
         )
 
+    @staticmethod
+    def aws(
+        model: str,
+        region: str,
+    ) -> _GenerativeConfigCreate:
+        """Create a `_GenerativeAWSConfig` object for use when performing AI generation using the `generative-aws` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-aws)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use, REQUIRED.
+            `region`
+                The AWS region to run the model from, REQUIRED.
+        """
+        return _GenerativeAWSConfig(
+            model=model,
+            region=region,
+        )
+
 
 class _Text2VecAzureOpenAIConfig(_VectorizerConfigCreate):
     vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
@@ -660,17 +695,34 @@ class _Text2VecContextionaryConfig(_VectorizerConfigCreate):
     vectorizeClassName: bool
 
 
+AWSModel = Literal[
+    "amazon.titan-embed-text-v1",
+    "cohere.embed-english-v3",
+    "cohere.embed-multilingual-v3",
+]
+
+
+class _Text2VecAWSConfig(_VectorizerConfigCreate):
+    vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_AWS, frozen=True, exclude=True)
+    model: AWSModel
+    region: str
+    vectorizeClassName: bool
+
+
 CohereModel = Literal[
     "embed-multilingual-v2.0",
     "embed-multilingual-v3.0",
+    "embed-multilingual-light-v3.0",
     "small",
     "medium",
     "large",
     "multilingual-22-12",
     "embed-english-v2.0",
     "embed-english-light-v2.0",
+    "embed-english-v3.0",
+    "embed-english-light-v3.0",
 ]
-CohereTruncation = Literal["RIGHT", "NONE"]
+CohereTruncation = Literal["NONE", "START", "END", "LEFT", "RIGHT"]
 
 
 class _Text2VecCohereConfig(_VectorizerConfigCreate):
@@ -980,6 +1032,32 @@ class _Vectorizer:
         return _Ref2VecCentroidConfig(
             referenceProperties=reference_properties,
             method=method,
+        )
+
+    @staticmethod
+    def text2vec_aws(
+        model: AWSModel,
+        region: str,
+        vectorize_class_name: bool = True,
+    ) -> _VectorizerConfigCreate:
+        """Create a `Text2VecAWSConfig` object for use when vectorizing using the `text2vec-aws` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-aws)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use, REQUIRED.
+            `region`
+                The AWS region to run the model from, REQUIRED.
+            `vectorize_class_name`
+                Whether to vectorize the class name. Defaults to `True`.
+
+        Raises:
+            `pydantic.ValidationError` if `model` or `truncate` are not valid values from the `CohereModel` and `CohereTruncate` types.
+        """
+        return _Text2VecAWSConfig(
+            model=model, region=region, vectorizeClassName=vectorize_class_name
         )
 
     @staticmethod
