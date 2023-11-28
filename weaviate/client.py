@@ -5,6 +5,9 @@ from typing import Optional, Tuple, Union, Dict, Any
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
+from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
+
+
 from .auth import AuthCredentials
 from .backup import Backup
 from .batch import Batch
@@ -26,7 +29,7 @@ from .embedded import EmbeddedDB, EmbeddedOptions
 from .exceptions import UnexpectedStatusCodeException
 from .gql import Query
 from .schema import Schema
-from .util import _get_valid_timeout_config, _type_request_response
+from .util import _decode_json_response_dict, _get_valid_timeout_config, _type_request_response
 from .types import NUMBER
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
@@ -249,6 +252,56 @@ class WeaviateClient(_ClientBase):
 
         Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `client.collections.create("MyCollection", ...)`.
         """
+
+    def graphql_raw_query(self, gql_query: str) -> _RawGQLReturn:
+        """Allows to send graphQL string queries, this should only be used for weaviate-features that are not yet supported.
+
+        Be cautious of injection risks when generating query strings.
+
+        Parameters
+        ----------
+        gql_query : str
+            GraphQL query as a string.
+
+        Returns
+        -------
+            A dict with the response from the GraphQL query.
+
+        Raises
+        ------
+        TypeError
+            If 'gql_query' is not of type str.
+        requests.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        """
+
+        if not isinstance(gql_query, str):
+            raise TypeError("Query is expected to be a string")
+
+        json_query = {"query": gql_query}
+
+        try:
+            response = self._connection.post(path="/graphql", weaviate_object=json_query)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Query not executed.") from conn_err
+
+        res = _decode_json_response_dict(response, "GQL query")
+        assert res is not None
+
+        errors: Optional[Dict[str, Any]] = res.get("errors")
+        data_raw: Optional[Dict[str, _GQLEntryReturnType]] = res.get("data")
+
+        if data_raw is not None:
+            return _RawGQLReturn(
+                aggregate=data_raw.get("Aggregate", {}),
+                explore=data_raw.get("Explore", {}),
+                get=data_raw.get("Get", {}),
+                errors=errors,
+            )
+
+        return _RawGQLReturn(aggregate={}, explore={}, get={}, errors=errors)
 
 
 class Client(_ClientBase):

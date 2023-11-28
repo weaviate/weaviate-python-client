@@ -130,6 +130,17 @@ class _QueryReturn(Generic[P]):
     objects: List[_Object[P]]
 
 
+_GQLEntryReturnType: TypeAlias = Dict[str, List[Dict[str, Any]]]
+
+
+@dataclass
+class _RawGQLReturn:
+    aggregate: _GQLEntryReturnType
+    explore: _GQLEntryReturnType
+    get: _GQLEntryReturnType
+    errors: Optional[Dict[str, Any]]
+
+
 QueryReturn: TypeAlias = Union[_QueryReturn[Properties], _QueryReturn[TProperties]]
 GenerativeReturn: TypeAlias = Union[_GenerativeReturn[Properties], _GenerativeReturn[TProperties]]
 GroupByReturn: TypeAlias = Union[_GroupByReturn[Properties], _GroupByReturn[TProperties]]
