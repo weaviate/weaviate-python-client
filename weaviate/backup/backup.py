@@ -1,8 +1,10 @@
 """
 Backup class definition.
 """
+from enum import Enum
 from time import sleep
-from typing import Union, List, Tuple, Any, Dict
+from typing import Optional, Union, List, Tuple, Any, Dict
+from pydantic import BaseModel, Field
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -19,6 +21,285 @@ STORAGE_NAMES = {
     "gcs",
     "azure",
 }
+
+
+class BackupStorage(str, Enum):
+    """Which backend should be used to write the backup to."""
+
+    FILESYSTEM = "filesystem"
+    S3 = "s3"
+    GCS = "gcs"
+    AZURE = "azure"
+
+
+class _BackupStatus(str, Enum):
+    STARTED = "STARTED"
+    TRANSFERRING = "TRANSFERRING"
+    TRANSFERRED = "TRANSFERRED"
+    SUCCESS = "SUCCESS"
+    FAILED = "FAILED"
+
+
+class _BackupStatusReturn(BaseModel):
+    status: _BackupStatus
+    path: str
+
+
+class _BackupReturn(_BackupStatusReturn):
+    collections: List[str] = Field(default_factory=list, alias="classes")
+
+
+class _Backup:
+    """Backup class used to schedule and/or check the status of a backup process of Weaviate objects."""
+
+    def __init__(self, connection: Connection):
+        self._connection = connection
+
+    def create(
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        include_classes: Optional[Union[List[str], str]] = None,
+        exclude_classes: Optional[Union[List[str], str]] = None,
+        wait_for_completion: bool = False,
+    ) -> _BackupReturn:
+        """Create a backup of all/per class Weaviate objects.
+
+        Parameters
+        ----------
+        backup_id : str
+            The identifier name of the backup.
+            NOTE: Case insensitive.
+        backend : BackupStorage
+            The backend storage where to create the backup.
+        include_classes : Union[List[str], str], optional
+            The class/list of classes to be included in the backup. If not specified all classes
+            will be included. Either `include_classes` or `exclude_classes` can be set.
+            By default None.
+        exclude_classes : Union[List[str], str], optional
+            The class/list of classes to be excluded in the backup. Either `include_classes` or
+            `exclude_classes` can be set. By default None.
+        wait_for_completion : bool, optional
+            Whether to wait until the backup is done. By default False.
+
+        Returns
+        -------
+         A `_BackupReturn` object that contains the backup creation response.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        TypeError
+            One of the arguments have a wrong type.
+        """
+        (
+            backup_id,
+            backend,
+            include_classes,
+            exclude_classes,
+        ) = _get_and_validate_create_restore_arguments(
+            backup_id=backup_id,
+            backend=backend,  # can be removed when we remove the old backup class
+            include_classes=include_classes,
+            exclude_classes=exclude_classes,
+            wait_for_completion=wait_for_completion,
+        )
+
+        payload = {
+            "id": backup_id,
+            "config": {},
+            "include": include_classes,
+            "exclude": exclude_classes,
+        }
+        path = f"/backups/{backend.value}"
+
+        try:
+            response = self._connection.post(
+                path=path,
+                weaviate_object=payload,
+            )
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                "Backup creation failed due to connection error."
+            ) from conn_err
+
+        create_status = _decode_json_response_dict(response, "Backup creation")
+        assert create_status is not None
+        if wait_for_completion:
+            while True:
+                status = self.get_create_status(
+                    backup_id=backup_id,
+                    backend=backend,
+                )
+                create_status["status"] = status.status
+                if status.status == _BackupStatus.SUCCESS:
+                    break
+                if status.status == _BackupStatus.FAILED:
+                    raise BackupFailedException(f"Backup failed: {create_status}")
+                sleep(1)
+        return _BackupReturn(**create_status)
+
+    def get_create_status(self, backup_id: str, backend: BackupStorage) -> _BackupStatusReturn:
+        """
+        Checks if a started backup job has completed.
+
+        Parameters
+        ----------
+        backup_id : str
+            The identifier name of the backup.
+            NOTE: Case insensitive.
+        backend : BackupStorage eNUM
+            The backend storage where the backup was created.
+
+        Returns
+        -------
+         A `__BackupStatusReturn` object that contains the backup creation status response.
+        """
+        backup_id, backend = _get_and_validate_get_status(
+            backup_id=backup_id,
+            backend=backend,  # this check can be removed when we remove the old backup class
+        )
+
+        path = f"/backups/{backend.value}/{backup_id}"
+
+        try:
+            response = self._connection.get(
+                path=path,
+            )
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                "Backup creation status failed due to connection error."
+            ) from conn_err
+
+        typed_response = _decode_json_response_dict(response, "Backup status check")
+        if typed_response is None:
+            raise EmptyResponseException()
+        return _BackupStatusReturn(**typed_response)
+
+    def restore(
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        include_classes: Union[List[str], str, None] = None,
+        exclude_classes: Union[List[str], str, None] = None,
+        wait_for_completion: bool = False,
+    ) -> _BackupReturn:
+        """
+        Restore a backup of all/per class Weaviate objects.
+
+        Parameters
+        ----------
+        backup_id : str
+            The identifier name of the backup.
+            NOTE: Case insensitive.
+        backend : BackupStorage
+            The backend storage from where to restore the backup.
+        include_classes : Union[List[str], str], optional
+            The class/list of classes to be included in the backup restore. If not specified all
+            classes will be included (that were backup-ed). Either `include_classes` or
+            `exclude_classes` can be set. By default None.
+        exclude_classes : Union[List[str], str], optional
+            The class/list of classes to be excluded in the backup restore.
+            Either `include_classes` or `exclude_classes` can be set. By default None.
+        wait_for_completion : bool, optional
+            Whether to wait until the backup restore is done.
+
+        Returns
+        -------
+         A `_BackupReturn` object that contains the backup restore response.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        """
+
+        (
+            backup_id,
+            backend,
+            include_classes,
+            exclude_classes,
+        ) = _get_and_validate_create_restore_arguments(
+            backup_id=backup_id,
+            backend=backend,
+            include_classes=include_classes,
+            exclude_classes=exclude_classes,
+            wait_for_completion=wait_for_completion,
+        )
+
+        payload = {
+            "config": {},
+            "include": include_classes,
+            "exclude": exclude_classes,
+        }
+        path = f"/backups/{backend.value}/{backup_id}/restore"
+
+        try:
+            response = self._connection.post(
+                path=path,
+                weaviate_object=payload,
+            )
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                "Backup restore failed due to connection error."
+            ) from conn_err
+        restore_status = _decode_json_response_dict(response, "Backup restore")
+        assert restore_status is not None
+        if wait_for_completion:
+            while True:
+                status = self.get_restore_status(
+                    backup_id=backup_id,
+                    backend=backend,
+                )
+                restore_status["status"] = status.status
+                if status.status == _BackupStatus.SUCCESS:
+                    break
+                if status.status == _BackupStatus.FAILED:
+                    raise BackupFailedException(f"Backup restore failed: {restore_status}")
+                sleep(1)
+        return _BackupReturn(**restore_status)
+
+    def get_restore_status(self, backup_id: str, backend: BackupStorage) -> _BackupStatusReturn:
+        """
+        Checks if a started classification job has completed.
+
+        Parameters
+        ----------
+        backup_id : str
+            The identifier name of the backup.
+            NOTE: Case insensitive.
+        backend : BackupStorage
+            The backend storage where to create the backup.
+
+        Returns
+        -------
+         A `__BackupStatusReturn` object that contains the backup restore status response.
+        """
+
+        backup_id, backend = _get_and_validate_get_status(
+            backup_id=backup_id,
+            backend=backend,
+        )
+        path = f"/backups/{backend.value}/{backup_id}/restore"
+
+        try:
+            response = self._connection.get(
+                path=path,
+            )
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                "Backup restore status failed due to connection error."
+            ) from conn_err
+
+        typed_response = _decode_json_response_dict(response, "Backup restore status check")
+        if typed_response is None:
+            raise EmptyResponseException()
+        return _BackupStatusReturn(**typed_response)
 
 
 class Backup:
@@ -305,11 +586,11 @@ class Backup:
 
 def _get_and_validate_create_restore_arguments(
     backup_id: str,
-    backend: str,
+    backend: Union[str, BackupStorage],
     include_classes: Union[List[str], str, None],
     exclude_classes: Union[List[str], str, None],
     wait_for_completion: bool,
-) -> Tuple[str, str, List[str], List[str]]:
+) -> Tuple[str, BackupStorage, List[str], List[str]]:
     """
     Validate and return the Backup.create/Backup.restore arguments.
 
@@ -344,10 +625,15 @@ def _get_and_validate_create_restore_arguments(
 
     if not isinstance(backup_id, str):
         raise TypeError(f"'backup_id' must be of type str. Given type: {type(backup_id)}.")
-    if backend not in STORAGE_NAMES:
-        raise ValueError(
-            f"'backend' must have one of these values: {STORAGE_NAMES}. " f"Given value: {backend}."
-        )
+    if isinstance(backend, str):
+        try:
+            backend = BackupStorage(backend.lower())
+        except KeyError:
+            raise ValueError(
+                f"'backend' must have one of these values: {STORAGE_NAMES}. "
+                f"Given value: {backend}."
+            )
+
     if not isinstance(wait_for_completion, bool):
         raise TypeError(
             f"'wait_for_completion' must be of type bool. Given type: {type(wait_for_completion)}."
@@ -381,10 +667,12 @@ def _get_and_validate_create_restore_arguments(
     include_classes = [_capitalize_first_letter(cls) for cls in include_classes]
     exclude_classes = [_capitalize_first_letter(cls) for cls in exclude_classes]
 
-    return (backup_id.lower(), backend.lower(), include_classes, exclude_classes)
+    return (backup_id.lower(), backend, include_classes, exclude_classes)
 
 
-def _get_and_validate_get_status(backup_id: str, backend: str) -> Tuple[str, str]:
+def _get_and_validate_get_status(
+    backup_id: str, backend: Union[str, BackupStorage]
+) -> Tuple[str, BackupStorage]:
     """
     Checks if a started classification job has completed.
 
@@ -396,7 +684,6 @@ def _get_and_validate_get_status(backup_id: str, backend: str) -> Tuple[str, str
     backend : str
         The backend storage where to create the backup. Currently available options are:
             "filesystem", "s3", "gcs" and "azure".
-        NOTE: Case insensitive.
 
     Returns
     -------
@@ -411,9 +698,13 @@ def _get_and_validate_get_status(backup_id: str, backend: str) -> Tuple[str, str
 
     if not isinstance(backup_id, str):
         raise TypeError(f"'backup_id' must be of type str. Given type: {type(backup_id)}.")
-    if backend not in STORAGE_NAMES:
-        raise ValueError(
-            f"'backend' must have one of these values: {STORAGE_NAMES}. " f"Given value: {backend}."
-        )
+    if isinstance(backend, str):
+        try:
+            backend = BackupStorage(backend.lower())
+        except KeyError:
+            raise ValueError(
+                f"'backend' must have one of these values: {STORAGE_NAMES}. "
+                f"Given value: {backend}."
+            )
 
-    return (backup_id.lower(), backend.lower())
+    return (backup_id.lower(), backend)

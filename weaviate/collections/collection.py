@@ -2,6 +2,7 @@ import json
 from dataclasses import asdict
 from typing import Generic, Optional, Type, Union, cast, overload
 from typing_extensions import is_typeddict
+from weaviate.collections.backups import _CollectionBackup
 
 from weaviate.collections.classes.config import (
     ConsistencyLevel,
@@ -83,6 +84,9 @@ class Collection(_CollectionBase, Generic[Properties]):
         """This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities."""
         self.tenants = _Tenants(connection, self.name)
         """This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate."""
+
+        self.backup = _CollectionBackup(connection, self.name)
+        """This namespace includes all the backup methods available to you when backing up a collection in Weaviate."""
 
         self.__tenant = tenant
         self.__consistency_level = consistency_level

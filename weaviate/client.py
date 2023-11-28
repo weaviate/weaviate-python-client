@@ -6,7 +6,7 @@ from typing import Optional, Tuple, Union, Dict, Any
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
-
+from weaviate.backup.backup import _Backup
 
 from .auth import AuthCredentials
 from .backup import Backup
@@ -247,6 +247,8 @@ class WeaviateClient(_ClientBase):
 
         self.batch = _Batch(self._connection)
         """This namespace contains all the functionality to upload data in batches to Weaviate."""
+        self.backup = _Backup(self._connection)
+        """This namespace contains all functionality to backup data."""
         self.collections = _Collections(self._connection)
         """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
 
