@@ -11,7 +11,7 @@ from weaviate.collections.classes.batch import (
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.filters import _FilterToREST
 from weaviate.collections.classes.filters import _Filters
-from weaviate.connect import Connection
+from weaviate.connect import HttpxConnection as Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _decode_json_response_dict
 

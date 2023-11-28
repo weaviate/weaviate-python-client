@@ -18,7 +18,7 @@ from weaviate.collections.classes.config_methods import (
     _collection_config_simple_from_json,
 )
 from weaviate.collections.classes.orm import Model
-from weaviate.connect import Connection
+from weaviate.connect import HttpxConnection as Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     ObjectAlreadyExistsException,

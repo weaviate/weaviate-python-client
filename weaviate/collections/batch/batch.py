@@ -27,7 +27,7 @@ from weaviate.collections.classes.batch import (
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.batch.grpc import _BatchGRPC
 from weaviate.collections.batch.rest import _BatchREST
-from weaviate.connect import Connection
+from weaviate.connect import HttpxConnection as Connection
 from weaviate.exceptions import WeaviateBatchValidationError
 from weaviate.util import _capitalize_first_letter, _decode_json_response_list
 from weaviate.warnings import _Warnings
@@ -664,7 +664,7 @@ class _Batch:
         self.__shut_background_thread_down = Event()
 
         def periodic_check() -> None:
-            cluster = Cluster(self.__connection)
+            cluster = Cluster(self.__connection)  # type: ignore # problem will go away once cluster implemented in new client
 
             assert self.__recommended_num_objects is not None
             assert self.__recommended_num_references is not None

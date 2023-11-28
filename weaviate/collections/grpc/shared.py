@@ -1,7 +1,7 @@
 from typing import Optional, Tuple, List
 
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.connect import Connection
+from weaviate.connect import HttpxConnection as Connection
 from weaviate.proto.v1 import base_pb2
 
 

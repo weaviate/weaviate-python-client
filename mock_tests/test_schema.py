@@ -1,7 +1,7 @@
 import time
 
 import pytest
-from requests import ReadTimeout
+from httpx import ReadTimeout
 from werkzeug.wrappers import Request, Response
 
 import weaviate

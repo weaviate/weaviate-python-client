@@ -2,7 +2,7 @@ from typing import Dict
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.connect import Connection
+from weaviate.connect import HttpxConnection as Connection
 from weaviate.collections.classes.config import (
     _CollectionConfigCreateBase,
     _CollectionConfig,

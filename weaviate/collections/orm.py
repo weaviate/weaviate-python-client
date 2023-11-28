@@ -16,7 +16,7 @@ from weaviate.collections.data import _DataCollectionModel
 
 # from weaviate.collections.query import _GrpcCollectionModel
 from weaviate.collections.tenants import _Tenants
-from weaviate.connect import Connection
+from weaviate.connect import HttpxConnection as Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _capitalize_first_letter
 from weaviate.types import PYTHON_TYPE_TO_DATATYPE

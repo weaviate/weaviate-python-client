@@ -57,7 +57,7 @@ from weaviate.collections.classes.types import (
     TProperties,
 )
 from weaviate.collections.grpc.query import _QueryGRPC, GroupByResult, SearchResponse
-from weaviate.connect import Connection
+from weaviate.connect import HttpxConnection as Connection
 from weaviate.exceptions import WeaviateGrpcUnavailable, WeaviateQueryException
 from weaviate.util import file_encoder_b64
 from weaviate.proto.v1 import base_pb2, search_get_pb2

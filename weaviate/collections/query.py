@@ -45,7 +45,7 @@ from weaviate.collections.queries.near_video import (
     _NearVideoQuery,
 )
 
-from weaviate.connect import Connection
+from weaviate.connect import HttpxConnection as Connection
 from weaviate.types import UUID
 
 

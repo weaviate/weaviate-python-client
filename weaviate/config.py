@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 @dataclass
 class ConnectionConfig:
     session_pool_connections: int = 20
-    session_pool_maxsize: int = 20
+    session_pool_maxsize: int = 100
 
     def __post_init__(self) -> None:
         if not isinstance(self.session_pool_connections, int):

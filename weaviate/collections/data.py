@@ -40,7 +40,7 @@ from weaviate.collections.classes.types import Properties, TProperties, _check_d
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.batch.grpc import _BatchGRPC, _validate_props
 from weaviate.collections.batch.rest import _BatchREST
-from weaviate.connect import Connection
+from weaviate.connect import HttpxConnection as Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     ObjectAlreadyExistsException,
@@ -245,7 +245,7 @@ class _Data:
         if self._tenant is not None:
             params["tenant"] = self._tenant
         if self._consistency_level is not None:
-            params["consistency_level"] = self._consistency_level
+            params["consistency_level"] = self._consistency_level.value
         return params
 
     def __apply_context_to_params_and_object(
@@ -254,7 +254,7 @@ class _Data:
         if self._tenant is not None:
             obj["tenant"] = self._tenant
         if self._consistency_level is not None:
-            params["consistency_level"] = self._consistency_level
+            params["consistency_level"] = self._consistency_level.value
         return params, obj
 
     def _serialize_properties(self, data: Properties) -> Dict[str, Any]:

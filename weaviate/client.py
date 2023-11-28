@@ -16,10 +16,9 @@ from .classification import Classification
 from .cluster import Cluster
 from .collections import _Collections
 from .config import AdditionalConfig, Config
+from .connect import Connection, HttpxConnection
 from .connect.connection import (
-    Connection,
     ConnectionParams,
-    GRPCConnection,
     ProtocolParams,
     TIMEOUT_TYPE_RETURN,
 )
@@ -36,7 +35,7 @@ TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
 
 class _ClientBase:
-    _connection: Connection
+    _connection: Union[Connection, HttpxConnection]
 
     def is_ready(self) -> bool:
         """
@@ -233,7 +232,7 @@ class WeaviateClient(_ClientBase):
         )
         config = additional_config or AdditionalConfig()
 
-        self._connection = GRPCConnection(
+        self._connection = HttpxConnection(
             connection_params=connection_params,
             auth_client_secret=auth_client_secret,
             timeout_config=_get_valid_timeout_config(config.timeout),
@@ -244,6 +243,7 @@ class WeaviateClient(_ClientBase):
             trust_env=config.trust_env,
             startup_period=config.startup_period,
         )
+        self._connection.connect()
 
         self.batch = _Batch(self._connection)
         """This namespace contains all the functionality to upload data in batches to Weaviate."""

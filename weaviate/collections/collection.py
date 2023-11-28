@@ -15,7 +15,7 @@ from weaviate.collections.data import _DataCollection
 from weaviate.collections.query import _GenerateCollection, _GroupByCollection, _QueryCollection
 from weaviate.collections.iterator import _ObjectIterator
 from weaviate.collections.tenants import _Tenants
-from weaviate.connect import Connection
+from weaviate.connect import HttpxConnection as Connection
 
 
 class Collection(_CollectionBase, Generic[Properties]):

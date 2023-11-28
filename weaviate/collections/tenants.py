@@ -3,7 +3,7 @@ from typing import Dict, Any, List
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collections.classes.tenants import Tenant
-from weaviate.connect import Connection
+from weaviate.connect import HttpxConnection as Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 
 
