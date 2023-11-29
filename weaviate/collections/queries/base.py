@@ -79,6 +79,10 @@ class _Grpc(Generic[Properties]):
         self.__tenant = tenant
         self.__consistency_level = consistency_level
         self._type = type_
+        self.__type_hints = self.__get_type_hints(type_)
+
+    def __get_type_hints(self, type_: Optional[Any]) -> dict:
+        return get_type_hints(type_) if get_origin(type_) is not dict and type_ is not None else {}
 
     def _query(self) -> _QueryGRPC:
         if not self.__connection._grpc_available:
@@ -143,13 +147,12 @@ class _Grpc(Generic[Properties]):
     def __parse_nonref_properties_result(
         self,
         properties: Union[search_get_pb2.PropertiesResult, base_pb2.ObjectPropertiesValue],
-        type_: Optional[Any],
+        type_hints: dict,
     ) -> dict:
-        hints = get_type_hints(type_) if get_origin(type_) is not dict and type_ is not None else {}
-        result = {}
+        result: dict = {}
 
         for name, non_ref_prop in properties.non_ref_properties.items():
-            result[name] = self.__deserialize_primitive(non_ref_prop, hints.get(name))
+            result[name] = self.__deserialize_primitive(non_ref_prop, type_hints.get(name))
 
         for number_array_property in properties.number_array_properties:
             result[number_array_property.prop_name] = [
@@ -169,16 +172,19 @@ class _Grpc(Generic[Properties]):
 
         for object_property in properties.object_properties:
             result[object_property.prop_name] = self.__parse_nonref_properties_result(
-                object_property.value, type_=hints.get(object_property.prop_name)
+                object_property.value,
+                self.__get_type_hints(type_hints.get(object_property.prop_name)),
             )
 
         for object_array_property in properties.object_array_properties:
             result[object_array_property.prop_name] = [
                 self.__parse_nonref_properties_result(
                     object_property,
-                    hints.get(
-                        object_array_property.prop_name,
-                        [None for _ in range(len(object_array_property.values))][i],
+                    self.__get_type_hints(
+                        type_hints.get(
+                            object_array_property.prop_name,
+                            [None for _ in range(len(object_array_property.values))][i],
+                        )
                     ),
                 )
                 for i, object_property in enumerate(object_array_property.values)
@@ -187,12 +193,13 @@ class _Grpc(Generic[Properties]):
         return result
 
     def __parse_ref_properties_result(
-        self, properties: "search_get_pb2.PropertiesResult", type_: Optional[Type[T]]
+        self, properties: "search_get_pb2.PropertiesResult", type_hints: dict
     ) -> dict:
-        hints = get_type_hints(type_) if get_origin(type_) is not dict and type_ is not None else {}
-        result = {}
+        result: dict = {}
+        if len(properties.ref_props) == 0:
+            return result
         for ref_prop in properties.ref_props:
-            hint = hints.get(ref_prop.prop_name)
+            hint = type_hints.get(ref_prop.prop_name)
             if hint is not None:
                 if get_origin(hint) is Annotated:
                     referenced_property_type = _extract_property_type_from_annotated_reference(hint)
@@ -201,34 +208,43 @@ class _Grpc(Generic[Properties]):
                     referenced_property_type = _extract_property_type_from_reference(hint)
                 result[ref_prop.prop_name] = _Reference._from(
                     [
-                        self.__result_to_query_object(prop, prop.metadata, referenced_property_type)
+                        self.__result_to_query_object(
+                            prop,
+                            prop.metadata,
+                            self.__get_type_hints(referenced_property_type),
+                            referenced_property_type,
+                        )
                         for prop in ref_prop.properties
                     ]
                 )
             else:
                 result[ref_prop.prop_name] = _Reference._from(
                     [
-                        self.__result_to_query_object(prop, prop.metadata, Dict[str, Any])
+                        self.__result_to_query_object(prop, prop.metadata, {}, Dict[str, Any])
                         for prop in ref_prop.properties
                     ]
                 )
         return result
 
     def __parse_result(
-        self, properties: "search_get_pb2.PropertiesResult", type_: Optional[Type[T]]
+        self,
+        properties: "search_get_pb2.PropertiesResult",
+        type_hints: dict,
+        type_: Optional[Type[T]],
     ) -> T:
-        nonref_result = self.__parse_nonref_properties_result(properties, type_)
-        ref_result = self.__parse_ref_properties_result(properties, type_)
+        nonref_result = self.__parse_nonref_properties_result(properties, type_hints)
+        ref_result = self.__parse_ref_properties_result(properties, type_hints)
         return cast(T, {**nonref_result, **ref_result})
 
     def __result_to_query_object(
         self,
         props: search_get_pb2.PropertiesResult,
         meta: search_get_pb2.MetadataResult,
+        type_hints: dict,
         type_: Optional[Type[T]],
     ) -> _Object[T]:
         return _Object[T](
-            properties=self.__parse_result(props, type_),
+            properties=self.__parse_result(props, type_hints, type_),
             metadata=self.__extract_metadata_for_object(meta),
             uuid=self.__extract_id_for_object(meta),
             vector=self.__extract_vector_for_object(meta),
@@ -238,20 +254,23 @@ class _Grpc(Generic[Properties]):
         self,
         props: search_get_pb2.PropertiesResult,
         meta: search_get_pb2.MetadataResult,
+        type_hints: dict,
         type_: Optional[Type[T]],
     ) -> _GenerativeObject[T]:
         return _GenerativeObject[T](
-            properties=self.__parse_result(props, type_),
+            properties=self.__parse_result(props, type_hints, type_),
             metadata=self.__extract_metadata_for_object(meta),
             uuid=self.__extract_id_for_object(meta),
             vector=self.__extract_vector_for_object(meta),
             generated=self.__extract_generated_for_object(meta),
         )
 
-    def __result_to_group(self, res: GroupByResult, type_: Optional[Type[T]]) -> _GroupByResult[T]:
+    def __result_to_group(
+        self, res: GroupByResult, type_hints: dict, type_: Optional[Type[T]]
+    ) -> _GroupByResult[T]:
         return _GroupByResult[T](
             objects=[
-                self.__result_to_query_object(obj.properties, obj.metadata, type_)
+                self.__result_to_query_object(obj.properties, obj.metadata, type_hints, type_)
                 for obj in res.objects
             ],
             name=res.name,
@@ -267,16 +286,19 @@ class _Grpc(Generic[Properties]):
     ) -> QueryReturn[Properties, TProperties]:
         if is_typeddict(type_):
             type_ = cast(Type[TProperties], type_)  # we know it's a typeddict
+            type_hints = self.__get_type_hints(type_)
             return _QueryReturn[TProperties](
                 objects=[
-                    self.__result_to_query_object(obj.properties, obj.metadata, type_=type_)
+                    self.__result_to_query_object(obj.properties, obj.metadata, type_hints, type_)
                     for obj in res.results
                 ]
             )
         else:
             return _QueryReturn[Properties](
                 objects=[
-                    self.__result_to_query_object(obj.properties, obj.metadata, type_=self._type)
+                    self.__result_to_query_object(
+                        obj.properties, obj.metadata, self.__type_hints, self._type
+                    )
                     for obj in res.results
                 ]
             )
@@ -288,9 +310,12 @@ class _Grpc(Generic[Properties]):
     ) -> GenerativeReturn[Properties, TProperties]:
         if is_typeddict(type_):
             type_ = cast(Type[TProperties], type_)  # we know it's a typeddict
+            type_hints = self.__get_type_hints(type_)
             return _GenerativeReturn[TProperties](
                 objects=[
-                    self.__result_to_generative_object(obj.properties, obj.metadata, type_=type_)
+                    self.__result_to_generative_object(
+                        obj.properties, obj.metadata, type_hints, type_
+                    )
                     for obj in res.results
                 ],
                 generated=res.generative_grouped_result
@@ -301,7 +326,7 @@ class _Grpc(Generic[Properties]):
             return _GenerativeReturn[Properties](
                 objects=[
                     self.__result_to_generative_object(
-                        obj.properties, obj.metadata, type_=self._type
+                        obj.properties, obj.metadata, self.__type_hints, self._type
                     )
                     for obj in res.results
                 ],
@@ -317,8 +342,10 @@ class _Grpc(Generic[Properties]):
     ) -> GroupByReturn[Properties, TProperties]:
         if is_typeddict(type_):
             type_ = cast(Type[TProperties], type_)  # we know it's a typeddict
+            type_hints = self.__get_type_hints(type_)
             groups = {
-                group.name: self.__result_to_group(group, type_) for group in res.group_by_results
+                group.name: self.__result_to_group(group, type_hints, type_)
+                for group in res.group_by_results
             }
             objects_group_by = [
                 _GroupByObject[TProperties](
@@ -334,7 +361,7 @@ class _Grpc(Generic[Properties]):
             return _GroupByReturn[TProperties](objects=objects_group_by, groups=groups)
         else:
             groupss = {
-                group.name: self.__result_to_group(group, self._type)
+                group.name: self.__result_to_group(group, self.__type_hints, self._type)
                 for group in res.group_by_results
             }
             objects_group_byy = [
