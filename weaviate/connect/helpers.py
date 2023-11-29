@@ -151,9 +151,9 @@ def connect_to_custom(
     grpc_host: str,
     grpc_port: int,
     grpc_secure: bool,
-    auth_credentials: Optional[AuthCredentials],
     headers: Optional[dict] = None,
     timeout: Tuple[int, int] = (10, 60),
+    auth_credentials: Optional[AuthCredentials] = None,
 ) -> WeaviateClient:
     """
     Connect to a Weaviate instance with custom connection parameters.
@@ -178,7 +178,10 @@ def connect_to_custom(
         `timeout`
             The timeout to use for the underlying HTTP calls. Accepts a tuple of integers, where the first integer
             represents the connect timeout and the second integer represents the read timeout.
-
+        `auth_credentials`
+            The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.auth.AuthApiKey`,
+            a bearer token, in which case use `weaviate.auth.AuthBearerToken`, a client secret, in which case use `weaviate.auth.AuthClientCredentials`
+            or a username and password, in which case use `weaviate.auth.AuthClientPassword`.
     Returns
         `weaviate.WeaviateClient`
             The client connected to the instance with the required parameters set appropriately.
