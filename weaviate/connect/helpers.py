@@ -151,6 +151,7 @@ def connect_to_custom(
     grpc_host: str,
     grpc_port: int,
     grpc_secure: bool,
+    auth_credentials: Optional[AuthCredentials],
     headers: Optional[dict] = None,
     timeout: Tuple[int, int] = (10, 60),
 ) -> WeaviateClient:
@@ -191,6 +192,7 @@ def connect_to_custom(
             grpc_port=grpc_port,
             grpc_secure=grpc_secure,
         ),
+        auth_client_secret=auth_credentials,
         additional_headers=headers,
         additional_config=AdditionalConfig(timeout=timeout),
     )
