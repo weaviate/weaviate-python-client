@@ -81,7 +81,7 @@ class _Grpc(Generic[Properties]):
         self._type = type_
         self.__type_hints = self.__get_type_hints(type_)
 
-    def __get_type_hints(self, type_: Optional[Any]) -> dict:
+    def __get_type_hints(self, type_: Optional[Any]) -> Dict[str, Any]:
         return get_type_hints(type_) if get_origin(type_) is not dict and type_ is not None else {}
 
     def _query(self) -> _QueryGRPC:
@@ -229,7 +229,7 @@ class _Grpc(Generic[Properties]):
     def __parse_result(
         self,
         properties: "search_get_pb2.PropertiesResult",
-        type_hints: dict,
+        type_hints: Dict[str, Any],
         type_: Optional[Type[T]],
     ) -> T:
         nonref_result = self.__parse_nonref_properties_result(properties, type_hints)
@@ -240,7 +240,7 @@ class _Grpc(Generic[Properties]):
         self,
         props: search_get_pb2.PropertiesResult,
         meta: search_get_pb2.MetadataResult,
-        type_hints: dict,
+        type_hints: Dict[str, Any],
         type_: Optional[Type[T]],
     ) -> _Object[T]:
         return _Object[T](
@@ -254,7 +254,7 @@ class _Grpc(Generic[Properties]):
         self,
         props: search_get_pb2.PropertiesResult,
         meta: search_get_pb2.MetadataResult,
-        type_hints: dict,
+        type_hints: Dict[str, Any],
         type_: Optional[Type[T]],
     ) -> _GenerativeObject[T]:
         return _GenerativeObject[T](
@@ -266,7 +266,7 @@ class _Grpc(Generic[Properties]):
         )
 
     def __result_to_group(
-        self, res: GroupByResult, type_hints: dict, type_: Optional[Type[T]]
+        self, res: GroupByResult, type_hints: Dict[str, Any], type_: Optional[Type[T]]
     ) -> _GroupByResult[T]:
         return _GroupByResult[T](
             objects=[
