@@ -386,7 +386,7 @@ class Backup:
             "include": include_classes,
             "exclude": exclude_classes,
         }
-        path = f"/backups/{backend}"
+        path = f"/backups/{backend.value}"
 
         try:
             response = self._connection.post(
@@ -439,7 +439,7 @@ class Backup:
             backend=backend,
         )
 
-        path = f"/backups/{backend}/{backup_id}"
+        path = f"/backups/{backend.value}/{backup_id}"
 
         try:
             response = self._connection.get(
@@ -516,7 +516,7 @@ class Backup:
             "include": include_classes,
             "exclude": exclude_classes,
         }
-        path = f"/backups/{backend}/{backup_id}/restore"
+        path = f"/backups/{backend.value}/{backup_id}/restore"
 
         try:
             response = self._connection.post(
@@ -567,7 +567,7 @@ class Backup:
             backup_id=backup_id,
             backend=backend,
         )
-        path = f"/backups/{backend}/{backup_id}/restore"
+        path = f"/backups/{backend.value}/{backup_id}/restore"
 
         try:
             response = self._connection.get(
