@@ -25,9 +25,9 @@ def connect_to_wcs(
         `cluster_url`
             The WCS cluster URL or hostname to connect to. Usually in the form rAnD0mD1g1t5.something.weaviate.cloud
         `auth_credentials`
-            The credentials to use for authentication with your WCS instance. This can be an API key, in which case use `weaviate.auth.AuthApiKey`,
-            a bearer token, in which case use `weaviate.auth.AuthBearerToken`, a client secret, in which case use `weaviate.auth.AuthClientCredentials`
-            or a username and password, in which case use `weaviate.auth.AuthClientPassword`.
+            The credentials to use for authentication with your WCS instance. This can be an API key, in which case use `weaviate.AuthApiKey`,
+            a bearer token, in which case use `weaviate.AuthBearerToken`, a client secret, in which case use `weaviate.AuthClientCredentials`
+            or a username and password, in which case use `weaviate.AuthClientPassword`.
         `headers`
             Additional headers to include in the requests, e.g. API keys for third-party Cloud vectorisation.
         `timeout`
@@ -179,9 +179,9 @@ def connect_to_custom(
             The timeout to use for the underlying HTTP calls. Accepts a tuple of integers, where the first integer
             represents the connect timeout and the second integer represents the read timeout.
         `auth_credentials`
-            The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.auth.AuthApiKey`,
-            a bearer token, in which case use `weaviate.auth.AuthBearerToken`, a client secret, in which case use `weaviate.auth.AuthClientCredentials`
-            or a username and password, in which case use `weaviate.auth.AuthClientPassword`.
+            The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.AuthApiKey`,
+            a bearer token, in which case use `weaviate.AuthBearerToken`, a client secret, in which case use `weaviate.AuthClientCredentials`
+            or a username and password, in which case use `weaviate.AuthClientPassword`.
     Returns
         `weaviate.WeaviateClient`
             The client connected to the instance with the required parameters set appropriately.
