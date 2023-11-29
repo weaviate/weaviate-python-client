@@ -1,5 +1,11 @@
 Changelog
 =========
+Version 4.4.b1
+--------------
+This patch beta version includes:
+
+- Performance improvements when making queries
+
 Version 4.4.b0
 --------------
 This minor beta version includes:
