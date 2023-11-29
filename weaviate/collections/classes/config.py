@@ -1640,6 +1640,7 @@ class Property(_ConfigCreateModel):
 
 
 class _ReferencePropertyBase(_ConfigCreateModel):
+    description: Optional[str] = Field(default=None)
     name: str
 
     @field_validator("name")
