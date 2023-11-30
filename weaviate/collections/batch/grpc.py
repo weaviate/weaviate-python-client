@@ -13,7 +13,11 @@ from weaviate.collections.classes.batch import (
 )
 from weaviate.collections.classes.internal import _Reference
 from weaviate.collections.grpc.shared import _BaseGRPC
-from weaviate.exceptions import WeaviateQueryException, WeaviateInsertInvalidPropertyError
+from weaviate.exceptions import (
+    WeaviateQueryException,
+    WeaviateInsertInvalidPropertyError,
+    WeaviateInsertManyAllFailedError,
+)
 from weaviate.util import _datetime_to_string, get_vector
 from weaviate.proto.v1 import batch_pb2, base_pb2
 
@@ -53,6 +57,14 @@ class _BatchGRPC(_BaseGRPC):
         start = time.time()
         errors = self.__send_batch(weaviate_objs)
         elapsed_time = time.time() - start
+
+        if len(errors) == len(weaviate_objs):
+            # Escape sequence (backslash) not allowed in expression portion of f-string prior to Python 3.12: Pylance
+            raise WeaviateInsertManyAllFailedError(
+                "Here is the set of all errors: {}".format(
+                    "\n".join(err for err in set(errors.values()))
+                )
+            )
 
         all_responses: List[Union[uuid_package.UUID, ErrorObject]] = cast(
             List[Union[uuid_package.UUID, ErrorObject]], list(range(len(weaviate_objs)))
