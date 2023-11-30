@@ -453,7 +453,7 @@ def test_add_1000_objects_with_async_indexing_and_wait(
     assert old_client.schema.get_class_shards(name)[0]["vectorQueueSize"] == 0
 
 
-def test_add_100000_objects_with_async_indexing_and_dont_wait(
+def test_add_1000000_objects_with_async_indexing_and_dont_wait(
     client_async_indexing: weaviate.WeaviateClient,
 ):
     name = "BatchTestAsyncTenants"
@@ -465,7 +465,7 @@ def test_add_100000_objects_with_async_indexing_and_dont_wait(
             Property(name="text", data_type=DataType.TEXT),
         ],
     )
-    nr_objects = 100000
+    nr_objects = 1000000
     objs = [
         {
             "collection": name,
