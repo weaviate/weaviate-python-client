@@ -41,7 +41,7 @@ class _CollectionBackup:
         TypeError
             One of the arguments have a wrong type.
         """
-        create = self._backup.create(backup_id, backend, self._name, None, wait_for_completion)
+        create = self._backup.create(backup_id, backend, [self._name], None, wait_for_completion)
         return _BackupStatusReturn(status=create.status, path=create.path)
 
     def restore(
@@ -71,7 +71,7 @@ class _CollectionBackup:
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
-        restore = self._backup.restore(backup_id, backend, self._name, None, wait_for_completion)
+        restore = self._backup.restore(backup_id, backend, [self._name], None, wait_for_completion)
         return _BackupStatusReturn(status=restore.status, path=restore.path)
 
     def get_create_status(self, backup_id: str, backend: BackupStorage) -> _BackupStatusReturn:
