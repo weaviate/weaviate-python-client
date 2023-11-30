@@ -1586,12 +1586,12 @@ class Property(_ConfigCreateModel):
             The name of the property, REQUIRED.
         `data_type`
             The data type of the property, REQUIRED.
+        `description`
+            A description of the property.
         `index_filterable`
             Whether the property should be filterable in the inverted index.
         `index_searchable`
             Whether the property should be searchable in the inverted index.
-        `description`
-            A description of the property.
         `skip_vectorization`
             Whether to skip vectorization of the property. Defaults to `False`.
         `tokenization`
@@ -1602,9 +1602,9 @@ class Property(_ConfigCreateModel):
 
     name: str
     dataType: DataType = Field(default=..., alias="data_type")
+    description: Optional[str] = Field(default=None)
     indexFilterable: Optional[bool] = Field(default=None, alias="index_filterable")
     indexSearchable: Optional[bool] = Field(default=None, alias="index_searchable")
-    description: Optional[str] = Field(default=None)
     nestedProperties: Optional[Union["Property", List["Property"]]] = Field(
         default=None, alias="nested_properties"
     )
@@ -1640,7 +1640,6 @@ class Property(_ConfigCreateModel):
 
 
 class _ReferencePropertyBase(_ConfigCreateModel):
-    description: Optional[str] = Field(default=None)
     name: str
 
     @field_validator("name")
@@ -1661,9 +1660,12 @@ class ReferenceProperty(_ReferencePropertyBase):
             The name of the property, REQUIRED.
         `target_collection`
             The name of the target collection, REQUIRED.
+        `description`
+            A description of the property.
     """
 
     target_collection: str
+    description: Optional[str] = Field(default=None)
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -1683,9 +1685,12 @@ class ReferencePropertyMultiTarget(_ReferencePropertyBase):
             The name of the property, REQUIRED.
         `target_collections`
             The names of the target collections, REQUIRED.
+        `description`
+            A description of the property.
     """
 
     target_collections: List[str]
+    description: Optional[str] = Field(default=None)
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
