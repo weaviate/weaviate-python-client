@@ -202,6 +202,7 @@ class WeaviateClient(_ClientBase):
         auth_client_secret: Optional[AuthCredentials] = None,
         additional_headers: Optional[dict] = None,
         additional_config: Optional[AdditionalConfig] = None,
+        skip_init_checks: bool = False,
     ) -> None:
         """Initialise a WeaviateClient class instance to use when interacting with Weaviate.
 
@@ -227,6 +228,10 @@ class WeaviateClient(_ClientBase):
                     example of how to set API keys within this parameter.
             - `additional_config`: `weaviate.AdditionalConfig` or None, optional
                 - Additional and advanced configuration options for Weaviate.
+            - `skip_init_checks`: `bool`, optional
+                - If set to `True` then the client will not wait for Weaviate to be ready before returning.
+                - This means that all requests will fail until Weaviate is ready including authentication steps.
+                - If you care about the correct provisioning of the authentication credentials then you should not set this to `True`.
         """
         connection_params, embedded_db = self._parse_connection_params_and_embedded_db(
             connection_params, embedded_options
@@ -243,6 +248,7 @@ class WeaviateClient(_ClientBase):
             proxies=config.proxies,
             trust_env=config.trust_env,
             startup_period=config.startup_period,
+            skip_init_checks=skip_init_checks,
         )
 
         self.batch = _Batch(self._connection)

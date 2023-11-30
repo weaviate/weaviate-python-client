@@ -203,6 +203,7 @@ class Connection:
         startup_period: Optional[int],
         connection_config: ConnectionConfig,
         embedded_db: Optional[EmbeddedDB] = None,
+        skip_init_checks: bool = False,
     ):
         """
         Initialize a Connection class instance.
@@ -253,24 +254,30 @@ class Connection:
 
         # create GRPC channel. If weaviate does not support GRPC, fallback to GraphQL is used.
         if has_grpc and connection_params._has_grpc:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            try:
-                s.settimeout(1.0)  # we're only pinging the port, 1s is plenty
-                assert connection_params._grpc_address is not None
-                s.connect(connection_params._grpc_address)
-                s.shutdown(2)
-                s.close()
+            if skip_init_checks:
                 grpc_channel = connection_params._grpc_channel()
                 assert grpc_channel is not None
                 self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(grpc_channel)
                 self._grpc_available = True
-            except (
-                ConnectionRefusedError,
-                TimeoutError,
-                socket.timeout,
-            ):  # self._grpc_stub stays None
-                s.close()
-                self._grpc_available = False
+            else:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                try:
+                    s.settimeout(1.0)  # we're only pinging the port, 1s is plenty
+                    assert connection_params._grpc_address is not None
+                    s.connect(connection_params._grpc_address)
+                    s.shutdown(2)
+                    s.close()
+                    grpc_channel = connection_params._grpc_channel()
+                    assert grpc_channel is not None
+                    self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(grpc_channel)
+                    self._grpc_available = True
+                except (
+                    ConnectionRefusedError,
+                    TimeoutError,
+                    socket.timeout,
+                ):  # self._grpc_stub stays None
+                    s.close()
+                    self._grpc_available = False
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:
@@ -297,29 +304,32 @@ class Connection:
         self._session: Session
         self._shutdown_background_event: Optional[Event] = None
 
-        if startup_period is not None:
+        if startup_period is not None and not skip_init_checks:
             _check_positive_num(startup_period, "startup_period", int, include_zero=False)
             self.wait_for_weaviate(startup_period)
 
-        self._create_session(auth_client_secret)
+        self._create_session(auth_client_secret, skip_init_checks)
         self._add_adapter_to_session(connection_config)
 
-        self._server_version = self.get_meta()["version"]
-        if self._server_version < "1.14":
-            _Warnings.weaviate_server_older_than_1_14(self._server_version)
-        if is_weaviate_too_old(self._server_version):
-            _Warnings.weaviate_too_old_vs_latest(self._server_version)
+        if not skip_init_checks:
+            self._server_version = self.get_meta()["version"]
+            if self._server_version < "1.14":
+                _Warnings.weaviate_server_older_than_1_14(self._server_version)
+            if is_weaviate_too_old(self._server_version):
+                _Warnings.weaviate_too_old_vs_latest(self._server_version)
 
-        try:
-            pkg_info = requests.get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
-            pkg_info = pkg_info.get("info", {})
-            latest_version = pkg_info.get("version", "unknown version")
-            if is_weaviate_client_too_old(client_version, latest_version):
-                _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
-        except requests.exceptions.RequestException:
-            pass  # ignore any errors related to requests, it is a best-effort warning
+            try:
+                pkg_info = requests.get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
+                pkg_info = pkg_info.get("info", {})
+                latest_version = pkg_info.get("version", "unknown version")
+                if is_weaviate_client_too_old(client_version, latest_version):
+                    _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
+            except requests.exceptions.RequestException:
+                pass  # ignore any errors related to requests, it is a best-effort warning
 
-    def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
+    def _create_session(
+        self, auth_client_secret: Optional[AuthCredentials], skip_init_checks: bool
+    ) -> None:
         """Creates a request session.
 
         Either through authlib.oauth2 if authentication is enabled or a normal request session otherwise.
@@ -329,6 +339,10 @@ class Connection:
         ValueError
             If no authentication credentials provided but the Weaviate server has OpenID configured.
         """
+        if skip_init_checks:
+            self._session = requests.Session()
+            return
+
         # API keys are separate from OIDC and do not need any config from weaviate
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
             self._session = requests.Session()
@@ -827,6 +841,7 @@ class GRPCConnection(Connection):
         startup_period: Optional[int],
         connection_config: ConnectionConfig,
         embedded_db: Optional[EmbeddedDB] = None,
+        skip_init_checks: bool = False,
     ):
         super().__init__(
             connection_params,
@@ -838,8 +853,9 @@ class GRPCConnection(Connection):
             startup_period,
             connection_config,
             embedded_db,
+            skip_init_checks,
         )
-        if self._server_version < "1.21" or self._grpc_stub is None:
+        if not skip_init_checks and self._server_version < "1.21" or self._grpc_stub is None:
             raise WeaviateQueryException(
                 f"gRPC is not enabled. Is your Weaviate version at least 1.22 or higher? Current is {self._server_version}"
             )
