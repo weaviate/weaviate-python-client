@@ -65,7 +65,7 @@ from weaviate.proto.v1 import base_pb2, search_get_pb2
 T = TypeVar("T")
 
 
-class _weaviateUUID(uuid_lib.UUID):
+class _WeaviateUUID(uuid_lib.UUID):
     def __init__(self, hex_: str) -> None:
         object.__setattr__(self, "int", int(hex_.replace("-", ""), 16))
 
@@ -119,7 +119,7 @@ class _Grpc(Generic[Properties]):
     ) -> uuid_lib.UUID:
         if not len(add_props.id) > 0:
             raise WeaviateQueryException("The query returned an object with an empty ID string")
-        return _weaviateUUID(add_props.id)
+        return _WeaviateUUID(add_props.id)
 
     def __extract_vector_for_object(
         self,
