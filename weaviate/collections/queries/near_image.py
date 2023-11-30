@@ -16,6 +16,7 @@ from weaviate.collections.classes.internal import (
     GroupByReturn,
     QueryReturn,
     ReturnProperties,
+    _QueryOptions,
 )
 from weaviate.collections.classes.types import (
     Properties,
@@ -116,7 +117,11 @@ class _NearImageQuery(Generic[Properties], _Grpc[Properties]):
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
         )
-        return self._result_to_query_return(res, return_properties)
+        return self._result_to_query_return(
+            res,
+            return_properties,
+            _QueryOptions.from_input(return_metadata, return_properties, include_vector),
+        )
 
 
 class _NearImageGenerate(Generic[Properties], _Grpc[Properties]):
@@ -231,7 +236,11 @@ class _NearImageGenerate(Generic[Properties], _Grpc[Properties]):
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
         )
-        return self._result_to_generative_return(res, return_properties)
+        return self._result_to_generative_return(
+            res,
+            return_properties,
+            _QueryOptions.from_input(return_metadata, return_properties, include_vector),
+        )
 
 
 class _NearImageGroupBy(Generic[Properties], _Grpc[Properties]):
@@ -346,4 +355,8 @@ class _NearImageGroupBy(Generic[Properties], _Grpc[Properties]):
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
         )
-        return self._result_to_groupby_return(res, return_properties)
+        return self._result_to_groupby_return(
+            res,
+            return_properties,
+            _QueryOptions.from_input(return_metadata, return_properties, include_vector),
+        )
