@@ -308,7 +308,7 @@ class Connection:
             _check_positive_num(startup_period, "startup_period", int, include_zero=False)
             self.wait_for_weaviate(startup_period)
 
-        self._create_session(auth_client_secret, skip_init_checks)
+        self._create_session(auth_client_secret)
         self._add_adapter_to_session(connection_config)
 
         if not skip_init_checks:
@@ -327,9 +327,7 @@ class Connection:
             except requests.exceptions.RequestException:
                 pass  # ignore any errors related to requests, it is a best-effort warning
 
-    def _create_session(
-        self, auth_client_secret: Optional[AuthCredentials], skip_init_checks: bool
-    ) -> None:
+    def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
         """Creates a request session.
 
         Either through authlib.oauth2 if authentication is enabled or a normal request session otherwise.
@@ -339,10 +337,6 @@ class Connection:
         ValueError
             If no authentication credentials provided but the Weaviate server has OpenID configured.
         """
-        if skip_init_checks:
-            self._session = requests.Session()
-            return
-
         # API keys are separate from OIDC and do not need any config from weaviate
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
             self._session = requests.Session()
