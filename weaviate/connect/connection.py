@@ -254,6 +254,7 @@ class Connection:
 
         # create GRPC channel. If weaviate does not support GRPC, fallback to GraphQL is used.
         if has_grpc and connection_params._has_grpc:
+            self._grpc_available = True
             if not skip_init_checks:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 try:
