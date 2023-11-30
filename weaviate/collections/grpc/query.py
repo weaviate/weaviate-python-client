@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import struct
 from typing import (
     Dict,
     List,
@@ -448,9 +449,13 @@ class _QueryGRPC(_BaseGRPC):
                     after=str(self._after) if self._after is not None else "",
                     autocut=self._autocut,
                     near_vector=search_get_pb2.NearVector(
-                        vector=self._near_vector_vec,
                         certainty=self._near_certainty,
                         distance=self._near_distance,
+                        vector_bytes=struct.pack(
+                            "%sf" % len(self._near_vector_vec), *self._near_vector_vec
+                        )
+                        if self._near_vector_vec is not None
+                        else None,
                     )
                     if self._near_vector_vec is not None
                     else None,

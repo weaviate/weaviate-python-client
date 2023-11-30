@@ -462,18 +462,21 @@ class RefPropertiesRequest(_message.Message):
     ) -> None: ...
 
 class NearVector(_message.Message):
-    __slots__ = ["vector", "certainty", "distance"]
+    __slots__ = ["vector", "certainty", "distance", "vector_bytes"]
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
     vector: _containers.RepeatedScalarFieldContainer[float]
     certainty: float
     distance: float
+    vector_bytes: bytes
     def __init__(
         self,
         vector: _Optional[_Iterable[float]] = ...,
         certainty: _Optional[float] = ...,
         distance: _Optional[float] = ...,
+        vector_bytes: _Optional[bytes] = ...,
     ) -> None: ...
 
 class NearObject(_message.Message):
