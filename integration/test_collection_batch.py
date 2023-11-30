@@ -470,7 +470,7 @@ def test_add_10000_objects_with_async_indexing_and_dont_wait(
         {
             "collection": name,
             "properties": {"text": "text" + str(i)},
-            "vector": list(range(1000)),
+            "vector": list(range(10000)),
         }
         for i in range(nr_objects)
     ]
@@ -525,7 +525,6 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
         assert shard["vectorQueueSize"] == 0
 
 
-@pytest.mark.skip(reason="This test is flaky due to Weaviate's async indexing feature")
 def test_add_10000_tenant_objects_with_async_indexing_and_wait_for_only_one(
     client_async_indexing: weaviate.WeaviateClient,
 ):
