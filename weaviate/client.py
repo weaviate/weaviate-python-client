@@ -229,9 +229,7 @@ class WeaviateClient(_ClientBase):
             - `additional_config`: `weaviate.AdditionalConfig` or None, optional
                 - Additional and advanced configuration options for Weaviate.
             - `skip_init_checks`: `bool`, optional
-                - If set to `True` then the client will not wait for Weaviate to be ready before returning.
-                - This means that all requests will fail until Weaviate is ready including authentication steps.
-                - If you care about the correct provisioning of the authentication credentials then you should not set this to `True`.
+                - If set to `True` then the client will not perform any checks including ensuring that weaviate has started. This is useful for air-gapped environments and high-performance setups.
         """
         connection_params, embedded_db = self._parse_connection_params_and_embedded_db(
             connection_params, embedded_options

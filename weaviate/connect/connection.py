@@ -254,12 +254,7 @@ class Connection:
 
         # create GRPC channel. If weaviate does not support GRPC, fallback to GraphQL is used.
         if has_grpc and connection_params._has_grpc:
-            if skip_init_checks:
-                grpc_channel = connection_params._grpc_channel()
-                assert grpc_channel is not None
-                self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(grpc_channel)
-                self._grpc_available = True
-            else:
+            if not skip_init_checks:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 try:
                     s.settimeout(1.0)  # we're only pinging the port, 1s is plenty
@@ -267,9 +262,6 @@ class Connection:
                     s.connect(connection_params._grpc_address)
                     s.shutdown(2)
                     s.close()
-                    grpc_channel = connection_params._grpc_channel()
-                    assert grpc_channel is not None
-                    self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(grpc_channel)
                     self._grpc_available = True
                 except (
                     ConnectionRefusedError,
@@ -278,6 +270,10 @@ class Connection:
                 ):  # self._grpc_stub stays None
                     s.close()
                     self._grpc_available = False
+
+            grpc_channel = connection_params._grpc_channel()
+            assert grpc_channel is not None
+            self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(grpc_channel)
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:
