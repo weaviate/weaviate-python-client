@@ -17,6 +17,7 @@ from weaviate.collections.classes.internal import (
     GenerativeReturn,
     GroupByReturn,
     ReturnProperties,
+    _QueryOptions,
 )
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.queries.base import _Grpc
@@ -112,7 +113,11 @@ class _NearObjectQuery(Generic[Properties], _Grpc[Properties]):
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
         )
-        return self._result_to_query_return(res, return_properties)
+        return self._result_to_query_return(
+            res,
+            return_properties,
+            _QueryOptions.from_input(return_metadata, return_properties, include_vector),
+        )
 
 
 class _NearObjectGenerate(Generic[Properties], _Grpc[Properties]):
@@ -218,7 +223,11 @@ class _NearObjectGenerate(Generic[Properties], _Grpc[Properties]):
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
         )
-        return self._result_to_generative_return(res, return_properties)
+        return self._result_to_generative_return(
+            res,
+            return_properties,
+            _QueryOptions.from_input(return_metadata, return_properties, include_vector),
+        )
 
 
 class _NearObjectGroupBy(Generic[Properties], _Grpc[Properties]):
@@ -330,4 +339,8 @@ class _NearObjectGroupBy(Generic[Properties], _Grpc[Properties]):
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
         )
-        return self._result_to_groupby_return(res, return_properties)
+        return self._result_to_groupby_return(
+            res,
+            return_properties,
+            _QueryOptions.from_input(return_metadata, return_properties, include_vector),
+        )

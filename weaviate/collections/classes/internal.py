@@ -16,6 +16,7 @@ from weaviate.collections.classes.grpc import (
     FromReference,
     FromReferenceMultiTarget,
     MetadataQuery,
+    METADATA,
     PROPERTIES,
     Generate,
 )
@@ -146,6 +147,28 @@ GenerativeReturn: TypeAlias = Union[_GenerativeReturn[Properties], _GenerativeRe
 GroupByReturn: TypeAlias = Union[_GroupByReturn[Properties], _GroupByReturn[TProperties]]
 
 ReturnProperties: TypeAlias = Union[PROPERTIES, Type[TProperties]]
+
+
+@dataclass
+class _QueryOptions(Generic[TProperties]):
+    include_metadata: bool
+    include_properties: bool
+    include_vector: bool
+
+    @classmethod
+    def from_input(
+        cls,
+        return_metadata: Optional[METADATA],
+        return_properties: Optional[ReturnProperties[TProperties]],
+        include_vector: bool,
+    ) -> "_QueryOptions":
+        return cls(
+            include_metadata=return_metadata is not None,
+            include_properties=not (
+                isinstance(return_properties, list) and len(return_properties) == 0
+            ),
+            include_vector=include_vector,
+        )
 
 
 class _Generative:

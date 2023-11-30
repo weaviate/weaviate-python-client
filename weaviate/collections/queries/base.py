@@ -47,6 +47,7 @@ from weaviate.collections.classes.internal import (
     _GroupByResult,
     _GroupByReturn,
     _QueryReturn,
+    _QueryOptions,
     GenerativeReturn,
     GroupByReturn,
     QueryReturn,
@@ -218,6 +219,7 @@ class _Grpc(Generic[Properties]):
                             prop.metadata,
                             self.__get_type_hints(referenced_property_type),
                             referenced_property_type,
+                            _QueryOptions(True, True, True),
                         )
                         for prop in ref_prop.properties
                     ]
@@ -225,7 +227,9 @@ class _Grpc(Generic[Properties]):
             else:
                 result[ref_prop.prop_name] = _Reference._from(
                     [
-                        self.__result_to_query_object(prop, prop.metadata, {}, Dict[str, Any])
+                        self.__result_to_query_object(
+                            prop, prop.metadata, {}, Dict[str, Any], _QueryOptions(True, True, True)
+                        )
                         for prop in ref_prop.properties
                     ]
                 )
@@ -235,11 +239,10 @@ class _Grpc(Generic[Properties]):
         self,
         properties: "search_get_pb2.PropertiesResult",
         type_hints: Dict[str, Any],
-        type_: Optional[Type[T]],
-    ) -> T:
+    ) -> dict:
         nonref_result = self.__parse_nonref_properties_result(properties, type_hints)
         ref_result = self.__parse_ref_properties_result(properties, type_hints)
-        return cast(T, {**nonref_result, **ref_result})
+        return {**nonref_result, **ref_result}
 
     def __result_to_query_object(
         self,
@@ -247,12 +250,15 @@ class _Grpc(Generic[Properties]):
         meta: search_get_pb2.MetadataResult,
         type_hints: Dict[str, Any],
         type_: Optional[Type[T]],
+        options: _QueryOptions,
     ) -> _Object[T]:
         return _Object[T](
-            properties=self.__parse_result(props, type_hints, type_),
-            metadata=self.__extract_metadata_for_object(meta),
+            properties=cast(
+                T, self.__parse_result(props, type_hints) if options.include_properties else {}
+            ),
+            metadata=self.__extract_metadata_for_object(meta) if options.include_metadata else None,
             uuid=self.__extract_id_for_object(meta),
-            vector=self.__extract_vector_for_object(meta),
+            vector=self.__extract_vector_for_object(meta) if options.include_vector else None,
         )
 
     def __result_to_generative_object(
@@ -261,21 +267,30 @@ class _Grpc(Generic[Properties]):
         meta: search_get_pb2.MetadataResult,
         type_hints: Dict[str, Any],
         type_: Optional[Type[T]],
+        options: _QueryOptions,
     ) -> _GenerativeObject[T]:
         return _GenerativeObject[T](
-            properties=self.__parse_result(props, type_hints, type_),
-            metadata=self.__extract_metadata_for_object(meta),
+            properties=cast(
+                T, self.__parse_result(props, type_hints) if options.include_properties else {}
+            ),
+            metadata=self.__extract_metadata_for_object(meta) if options.include_metadata else None,
             uuid=self.__extract_id_for_object(meta),
-            vector=self.__extract_vector_for_object(meta),
+            vector=self.__extract_vector_for_object(meta) if options.include_vector else None,
             generated=self.__extract_generated_for_object(meta),
         )
 
     def __result_to_group(
-        self, res: GroupByResult, type_hints: Dict[str, Any], type_: Optional[Type[T]]
+        self,
+        res: GroupByResult,
+        type_hints: Dict[str, Any],
+        type_: Optional[Type[T]],
+        options: _QueryOptions,
     ) -> _GroupByResult[T]:
         return _GroupByResult[T](
             objects=[
-                self.__result_to_query_object(obj.properties, obj.metadata, type_hints, type_)
+                self.__result_to_query_object(
+                    obj.properties, obj.metadata, type_hints, type_, options
+                )
                 for obj in res.objects
             ],
             name=res.name,
@@ -288,13 +303,16 @@ class _Grpc(Generic[Properties]):
         self,
         res: SearchResponse,
         type_: Optional[ReturnProperties[TProperties]],
+        options: _QueryOptions,
     ) -> QueryReturn[Properties, TProperties]:
         if is_typeddict(type_):
             type_ = cast(Type[TProperties], type_)  # we know it's a typeddict
             type_hints = self.__get_type_hints(type_)
             return _QueryReturn[TProperties](
                 objects=[
-                    self.__result_to_query_object(obj.properties, obj.metadata, type_hints, type_)
+                    self.__result_to_query_object(
+                        obj.properties, obj.metadata, type_hints, type_, options
+                    )
                     for obj in res.results
                 ]
             )
@@ -302,7 +320,7 @@ class _Grpc(Generic[Properties]):
             return _QueryReturn[Properties](
                 objects=[
                     self.__result_to_query_object(
-                        obj.properties, obj.metadata, self.__type_hints, self._type
+                        obj.properties, obj.metadata, self.__type_hints, self._type, options
                     )
                     for obj in res.results
                 ]
@@ -312,6 +330,7 @@ class _Grpc(Generic[Properties]):
         self,
         res: SearchResponse,
         type_: Optional[ReturnProperties[TProperties]],
+        options: _QueryOptions,
     ) -> GenerativeReturn[Properties, TProperties]:
         if is_typeddict(type_):
             type_ = cast(Type[TProperties], type_)  # we know it's a typeddict
@@ -319,7 +338,7 @@ class _Grpc(Generic[Properties]):
             return _GenerativeReturn[TProperties](
                 objects=[
                     self.__result_to_generative_object(
-                        obj.properties, obj.metadata, type_hints, type_
+                        obj.properties, obj.metadata, type_hints, type_, options
                     )
                     for obj in res.results
                 ],
@@ -331,7 +350,7 @@ class _Grpc(Generic[Properties]):
             return _GenerativeReturn[Properties](
                 objects=[
                     self.__result_to_generative_object(
-                        obj.properties, obj.metadata, self.__type_hints, self._type
+                        obj.properties, obj.metadata, self.__type_hints, self._type, options
                     )
                     for obj in res.results
                 ],
@@ -344,12 +363,13 @@ class _Grpc(Generic[Properties]):
         self,
         res: SearchResponse,
         type_: Optional[ReturnProperties[TProperties]],
+        options: _QueryOptions,
     ) -> GroupByReturn[Properties, TProperties]:
         if is_typeddict(type_):
             type_ = cast(Type[TProperties], type_)  # we know it's a typeddict
             type_hints = self.__get_type_hints(type_)
             groups = {
-                group.name: self.__result_to_group(group, type_hints, type_)
+                group.name: self.__result_to_group(group, type_hints, type_, options)
                 for group in res.group_by_results
             }
             objects_group_by = [
@@ -366,7 +386,7 @@ class _Grpc(Generic[Properties]):
             return _GroupByReturn[TProperties](objects=objects_group_by, groups=groups)
         else:
             groupss = {
-                group.name: self.__result_to_group(group, self.__type_hints, self._type)
+                group.name: self.__result_to_group(group, self.__type_hints, self._type, options)
                 for group in res.group_by_results
             }
             objects_group_byy = [
