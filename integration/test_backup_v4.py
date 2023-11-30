@@ -168,7 +168,7 @@ def test_create_and_restore_backup_without_waiting(client: weaviate.WeaviateClie
     # restore backup
     restore = client.backup.restore(
         backup_id=backup_id,
-        include_classes=include,
+        include_collections=include,
         backend=BACKEND,
     )
     assert restore.status == _BackupStatus.STARTED
@@ -214,7 +214,7 @@ def test_create_and_restore_1_of_2_classes(client: weaviate.WeaviateClient) -> N
 
     # restore backup
     restore = client.backup.restore(
-        backup_id=backup_id, include_classes=include, backend=BACKEND, wait_for_completion=True
+        backup_id=backup_id, include_collections=include, backend=BACKEND, wait_for_completion=True
     )
     assert restore.status == _BackupStatus.SUCCESS
 
@@ -250,7 +250,7 @@ def test_fail_restoring_backup_for_existing_class(client: weaviate.WeaviateClien
     with pytest.raises(BackupFailedException) as excinfo:
         client.backup.restore(
             backup_id=backup_id,
-            include_classes=class_name,
+            include_collections=class_name,
             backend=BACKEND,
             wait_for_completion=True,
         )

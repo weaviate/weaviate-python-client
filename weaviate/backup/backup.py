@@ -63,7 +63,7 @@ class _Backup:
         exclude_classes: Optional[Union[List[str], str]] = None,
         wait_for_completion: bool = False,
     ) -> _BackupReturn:
-        """Create a backup of all/per class Weaviate objects.
+        """Create a backup of all/per collection Weaviate objects.
 
         Parameters
         ----------
@@ -72,13 +72,12 @@ class _Backup:
             NOTE: Case insensitive.
         backend : BackupStorage
             The backend storage where to create the backup.
-        include_classes : Union[List[str], str], optional
-            The class/list of classes to be included in the backup. If not specified all classes
-            will be included. Either `include_classes` or `exclude_classes` can be set.
-            By default None.
-        exclude_classes : Union[List[str], str], optional
-            The class/list of classes to be excluded in the backup. Either `include_classes` or
-            `exclude_classes` can be set. By default None.
+        include_collections : Union[List[str], str], optional
+            The collection/list of collections to be included in the backup. If not specified all
+            collections will be included. Either `include_collections` or `exclude_collections` can be set. By default None.
+        exclude_collections : Union[List[str], str], optional
+            The collection/list of collections to be excluded in the backup.
+            Either `include_collections` or `exclude_collections` can be set. By default None.
         wait_for_completion : bool, optional
             Whether to wait until the backup is done. By default False.
 
@@ -183,12 +182,12 @@ class _Backup:
         self,
         backup_id: str,
         backend: BackupStorage,
-        include_classes: Union[List[str], str, None] = None,
-        exclude_classes: Union[List[str], str, None] = None,
+        include_collections: Union[List[str], str, None] = None,
+        exclude_collections: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,
     ) -> _BackupReturn:
         """
-        Restore a backup of all/per class Weaviate objects.
+        Restore a backup of all/per collection Weaviate objects.
 
         Parameters
         ----------
@@ -197,13 +196,13 @@ class _Backup:
             NOTE: Case insensitive.
         backend : BackupStorage
             The backend storage from where to restore the backup.
-        include_classes : Union[List[str], str], optional
-            The class/list of classes to be included in the backup restore. If not specified all
-            classes will be included (that were backup-ed). Either `include_classes` or
-            `exclude_classes` can be set. By default None.
-        exclude_classes : Union[List[str], str], optional
-            The class/list of classes to be excluded in the backup restore.
-            Either `include_classes` or `exclude_classes` can be set. By default None.
+        include_collections : Union[List[str], str], optional
+            The collection/list of collections to be included in the backup restore. If not specified all
+            collections will be included (that were backup-ed). Either `include_collections` or
+            `exclude_collections` can be set. By default None.
+        exclude_collections : Union[List[str], str], optional
+            The collection/list of collections to be excluded in the backup restore.
+            Either `include_collections` or `exclude_collections` can be set. By default None.
         wait_for_completion : bool, optional
             Whether to wait until the backup restore is done.
 
@@ -218,24 +217,23 @@ class _Backup:
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
-
         (
             backup_id,
             backend,
-            include_classes,
-            exclude_classes,
+            include_collections,
+            exclude_collections,
         ) = _get_and_validate_create_restore_arguments(
             backup_id=backup_id,
             backend=backend,
-            include_classes=include_classes,
-            exclude_classes=exclude_classes,
+            include_classes=include_collections,
+            exclude_classes=exclude_collections,
             wait_for_completion=wait_for_completion,
         )
 
         payload = {
             "config": {},
-            "include": include_classes,
-            "exclude": exclude_classes,
+            "include": include_collections,
+            "exclude": exclude_collections,
         }
         path = f"/backups/{backend.value}/{backup_id}/restore"
 
