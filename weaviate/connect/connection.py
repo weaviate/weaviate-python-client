@@ -271,7 +271,7 @@ class Connection:
                     ConnectionRefusedError,
                     TimeoutError,
                     socket.timeout,
-                ):  # self._grpc_stub stays None
+                ):
                     s.close()
                     self._grpc_stub = None
                     self._grpc_available = False
