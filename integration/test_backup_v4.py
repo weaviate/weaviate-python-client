@@ -144,7 +144,7 @@ def test_create_and_restore_backup_without_waiting(client: weaviate.WeaviateClie
 
     include = ["Article"]
 
-    resp = client.backup.create(backup_id=backup_id, include_classes=include, backend=BACKEND)
+    resp = client.backup.create(backup_id=backup_id, include_collections=include, backend=BACKEND)
     assert resp.status == _BackupStatus.STARTED
     assert sorted(resp.collections) == sorted(include)
 
@@ -201,7 +201,7 @@ def test_create_and_restore_1_of_2_classes(client: weaviate.WeaviateClient) -> N
     # create backup
     include = ["Article"]
     create = client.backup.create(
-        backup_id=backup_id, include_classes=include, backend=BACKEND, wait_for_completion=True
+        backup_id=backup_id, include_collections=include, backend=BACKEND, wait_for_completion=True
     )
     assert create.status == _BackupStatus.SUCCESS
 
@@ -232,7 +232,7 @@ def test_fail_on_non_existing_class(client: weaviate.WeaviateClient) -> None:
     class_name = "NonExistingClass"
     for func in [client.backup.create, client.backup.restore]:
         with pytest.raises(UnexpectedStatusCodeException) as excinfo:
-            func(backup_id=backup_id, backend=BACKEND, include_classes=class_name)
+            func(backup_id=backup_id, backend=BACKEND, include_collections=class_name)
             assert class_name in str(excinfo.value)
             assert "422" in str(excinfo.value)
 
@@ -242,7 +242,10 @@ def test_fail_restoring_backup_for_existing_class(client: weaviate.WeaviateClien
     backup_id = _create_backup_id()
     class_name = ["Article"]
     create = client.backup.create(
-        backup_id=backup_id, include_classes=class_name, backend=BACKEND, wait_for_completion=True
+        backup_id=backup_id,
+        include_collections=class_name,
+        backend=BACKEND,
+        wait_for_completion=True,
     )
     assert create.status == _BackupStatus.SUCCESS
 
@@ -263,7 +266,10 @@ def test_fail_creating_existing_backup(client: weaviate.WeaviateClient) -> None:
     backup_id = _create_backup_id()
     class_name = ["Article"]
     create = client.backup.create(
-        backup_id=backup_id, include_classes=class_name, backend=BACKEND, wait_for_completion=True
+        backup_id=backup_id,
+        include_collections=class_name,
+        backend=BACKEND,
+        wait_for_completion=True,
     )
     assert create.status == _BackupStatus.SUCCESS
 
@@ -271,7 +277,7 @@ def test_fail_creating_existing_backup(client: weaviate.WeaviateClient) -> None:
     with pytest.raises(UnexpectedStatusCodeException) as excinfo:
         client.backup.create(
             backup_id=backup_id,
-            include_classes=class_name,
+            include_collections=class_name,
             backend=BACKEND,
             wait_for_completion=True,
         )
@@ -313,8 +319,8 @@ def test_fail_creating_backup_for_both_include_and_exclude_classes(
             exclude = "Paragraph"
             func(
                 backup_id=backup_id,
-                include_classes=include,
-                exclude_classes=exclude,
+                include_collections=include,
+                exclude_collections=exclude,
                 backend=BACKEND,
                 wait_for_completion=True,
             )

@@ -59,8 +59,8 @@ class _Backup:
         self,
         backup_id: str,
         backend: BackupStorage,
-        include_classes: Optional[Union[List[str], str]] = None,
-        exclude_classes: Optional[Union[List[str], str]] = None,
+        include_collections: Optional[Union[List[str], str]] = None,
+        exclude_collections: Optional[Union[List[str], str]] = None,
         wait_for_completion: bool = False,
     ) -> _BackupReturn:
         """Create a backup of all/per collection Weaviate objects.
@@ -102,16 +102,16 @@ class _Backup:
         ) = _get_and_validate_create_restore_arguments(
             backup_id=backup_id,
             backend=backend,  # can be removed when we remove the old backup class
-            include_classes=include_classes,
-            exclude_classes=exclude_classes,
+            include_classes=include_collections,
+            exclude_classes=exclude_collections,
             wait_for_completion=wait_for_completion,
         )
 
         payload = {
             "id": backup_id,
             "config": {},
-            "include": include_classes,
-            "exclude": exclude_classes,
+            "include": include_collections,
+            "exclude": exclude_collections,
         }
         path = f"/backups/{backend.value}"
 
