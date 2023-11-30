@@ -470,7 +470,7 @@ def test_add_100000_objects_with_async_indexing_and_dont_wait(
         {
             "collection": name,
             "properties": {"text": "text" + str(i)},
-            "vector": list(range(1000)),
+            "vector": list(range(100)),
         }
         for i in range(nr_objects)
     ]
