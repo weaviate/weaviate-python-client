@@ -218,3 +218,11 @@ class WeaviateGrpcUnavailable(WeaviateBaseError):
     def __init__(self, message: str = "") -> None:
         msg = f"""gRPC is not available. Please make sure that gRPC is configured correctly in the client and on the server: {message}"""
         super().__init__(msg)
+
+
+class WeaviateInsertManyAllFailedError(WeaviateBaseError):
+    """Is raised when all objects fail to be inserted."""
+
+    def __init__(self, message: str = "") -> None:
+        msg = f"""Every object failed during insertion. {message}"""
+        super().__init__(msg)
