@@ -466,6 +466,9 @@ def test_add_1000_objects_with_async_indexing_and_wait(
     assert old_client.schema.get_class_shards(name)[0]["vectorQueueSize"] == 0
 
 
+@pytest.mark.skip(
+    reason="This test flakes when the number is too low and brakes if too high due to gRPC message sizing. Needs to be fixed."
+)
 def test_add_10000_objects_with_async_indexing_and_dont_wait(
     client_async_indexing: weaviate.WeaviateClient,
 ):
