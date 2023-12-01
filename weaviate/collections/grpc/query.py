@@ -115,13 +115,13 @@ class _QueryGRPC(_BaseGRPC):
         tenant: Optional[str],
         consistency_level: Optional[ConsistencyLevel],
         default_properties: Optional[PROPERTIES] = None,
-        suport_byte_vectors: bool = False,
+        support_byte_vectors: bool = False,
     ):
         super().__init__(connection, consistency_level)
         self._name: str = name
         self._tenant = tenant
 
-        self.__support_byte_vectors = suport_byte_vectors
+        self.__support_byte_vectors = support_byte_vectors
 
         if default_properties is not None:
             self._default_props: Optional[Set[PROPERTY]] = self.__convert_properties_to_set(

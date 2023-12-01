@@ -101,7 +101,7 @@ class _Grpc(Generic[Properties]):
             self.__name,
             self.__tenant,
             self.__consistency_level,
-            suport_byte_vectors=self.__support_byte_vectors,
+            support_byte_vectors=self.__support_byte_vectors,
         )
 
     def __extract_metadata_for_object(
