@@ -52,9 +52,9 @@ def connect_to_wcs(
     # Some WCS regions have wildcard DNS, so we can get a valid DNS response even
     # without a grpc server.
     # An ordinary https GET will get a 415 from the grpc server if present
-    # but (usefully for us) a simple 404 from the proxy if there is no grpc backend.
+    # due to the incorrect content-type.
     resp = requests.get(f"https://{grpc_host}:443/", timeout=timeout)
-    if resp.status_code == 404:
+    if resp.status_code != 415:
         raise WeaviateGrpcUnavailable(
             "your cluster may need upgrading to the latest Weaviate version to support gRPC."
         )
