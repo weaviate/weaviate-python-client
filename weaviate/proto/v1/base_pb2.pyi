@@ -26,13 +26,18 @@ CONSISTENCY_LEVEL_QUORUM: ConsistencyLevel
 CONSISTENCY_LEVEL_ALL: ConsistencyLevel
 
 class NumberArrayProperties(_message.Message):
-    __slots__ = ["values", "prop_name"]
+    __slots__ = ["values", "prop_name", "values_bytes"]
     VALUES_FIELD_NUMBER: _ClassVar[int]
     PROP_NAME_FIELD_NUMBER: _ClassVar[int]
+    VALUES_BYTES_FIELD_NUMBER: _ClassVar[int]
     values: _containers.RepeatedScalarFieldContainer[float]
     prop_name: str
+    values_bytes: bytes
     def __init__(
-        self, values: _Optional[_Iterable[float]] = ..., prop_name: _Optional[str] = ...
+        self,
+        values: _Optional[_Iterable[float]] = ...,
+        prop_name: _Optional[str] = ...,
+        values_bytes: _Optional[bytes] = ...,
     ) -> None: ...
 
 class IntArrayProperties(_message.Message):

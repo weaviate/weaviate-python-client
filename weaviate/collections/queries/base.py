@@ -89,7 +89,7 @@ class _Grpc(Generic[Properties]):
         self.__support_byte_vectors = (
             parse_version_string(self.__connection.server_version) > parse_version_string("1.22")
             if self.__connection.server_version != ""
-            else False
+            else True
         )
 
     def __get_type_hints(self, type_: Optional[Any]) -> Dict[str, Any]:

@@ -485,10 +485,15 @@ class _QueryGRPC(_BaseGRPC):
                         properties=self._hybrid_properties,
                         query=self._hybrid_query,
                         alpha=self._hybrid_alpha,
-                        vector=self._hybrid_vector,
+                        vector=self._hybrid_vector if not self.__support_byte_vectors else None,
                         fusion_type=cast(
                             search_get_pb2.Hybrid.FusionType, self._hybrid_fusion_type
                         ),
+                        vector_bytes=struct.pack(
+                            "{}f".format(len(self._hybrid_vector)), *self._hybrid_vector
+                        )
+                        if self.__support_byte_vectors and self._hybrid_vector is not None
+                        else None,
                     )
                     if self._hybrid_query is not None
                     else None,

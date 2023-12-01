@@ -617,7 +617,7 @@ def test_types(client: weaviate.WeaviateClient, data_type: DataType, value):
 
 
 @pytest.mark.parametrize("fusion_type", [HybridFusion.RANKED, HybridFusion.RELATIVE_SCORE])
-def test_search_hybrid(client: weaviate.WeaviateClient, fusion_type):
+def test_search_hybrid(client: weaviate.WeaviateClient, fusion_type: HybridFusion) -> None:
     collection = client.collections.create(
         name="Testing",
         properties=[Property(name="Name", data_type=DataType.TEXT)],
@@ -625,8 +625,16 @@ def test_search_hybrid(client: weaviate.WeaviateClient, fusion_type):
     )
     collection.data.insert({"Name": "some name"}, uuid.uuid4())
     collection.data.insert({"Name": "other word"}, uuid.uuid4())
-    objs = collection.query.hybrid(alpha=0, query="name", fusion_type=fusion_type).objects
+    objs = collection.query.hybrid(
+        alpha=0, query="name", fusion_type=fusion_type, include_vector=True
+    ).objects
     assert len(objs) == 1
+
+    objs = collection.query.hybrid(
+        alpha=1, query="name", fusion_type=fusion_type, vector=objs[0].vector
+    ).objects
+    assert len(objs) == 2
+
     client.collections.delete("Testing")
 
 
