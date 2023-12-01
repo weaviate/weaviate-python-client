@@ -86,9 +86,11 @@ class _Grpc(Generic[Properties]):
         self.__consistency_level = consistency_level
         self._type = type_
         self.__type_hints = self.__get_type_hints(type_)
-        self.__support_byte_vectors = parse_version_string(
-            self.__connection.server_version
-        ) > parse_version_string("1.22")
+        self.__support_byte_vectors = (
+            parse_version_string(self.__connection.server_version) > parse_version_string("1.22")
+            if self.__connection.server_version != ""
+            else False
+        )
 
     def __get_type_hints(self, type_: Optional[Any]) -> Dict[str, Any]:
         return get_type_hints(type_) if get_origin(type_) is not dict and type_ is not None else {}
