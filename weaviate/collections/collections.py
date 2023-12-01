@@ -120,7 +120,9 @@ class _Collections(_CollectionsBase):
         """
         _check_data_model(data_model)
         name = _capitalize_first_letter(name)
-        return Collection[Properties](self._connection, name, type_=data_model)
+        return Collection[Properties](
+            self._connection, name, self._batch_executor, type_=data_model
+        )
 
     def delete(self, name: Union[str, List[str]]) -> None:
         """Use this method to delete collection(s) from the Weaviate instance by its/their name(s).

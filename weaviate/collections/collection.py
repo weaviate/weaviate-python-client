@@ -4,6 +4,7 @@ from typing import Generic, Optional, Type, Union, cast, overload
 from typing_extensions import is_typeddict
 from weaviate.collections.backups import _CollectionBackup
 
+from weaviate.collections.batch import _BatchCollection, BatchExecutor
 from weaviate.collections.classes.config import (
     ConsistencyLevel,
 )
@@ -51,11 +52,13 @@ class Collection(_CollectionBase, Generic[Properties]):
         self,
         connection: Connection,
         name: str,
+        batch_executor: BatchExecutor,
         consistency_level: Optional[ConsistencyLevel] = None,
         tenant: Optional[str] = None,
         type_: Optional[Type[Properties]] = None,
     ) -> None:
         super().__init__(name)
+        self.__batch_executor = batch_executor
         self._connection = connection
 
         self.aggregate = _AggregateCollection(
@@ -66,10 +69,16 @@ class Collection(_CollectionBase, Generic[Properties]):
             self._connection, self.name, consistency_level, tenant
         )
         """This namespace includes all the aggregate methods available to you when using Weaviate's aggregation group-by capabilities."""
+        self.batch = _BatchCollection[Properties](connection, self.name, batch_executor, tenant)
+        """This namespace contains all the functionality to upload data in batches to Weaviate for this specific collection."""
         self.config = _ConfigCollection(self._connection, self.name, tenant)
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
         self.data = _DataCollection[Properties](
-            connection, self.name, consistency_level, tenant, type_
+            connection,
+            self.name,
+            consistency_level,
+            tenant,
+            type_,
         )
         """This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate."""
         self.generate = _GenerateCollection(connection, self.name, consistency_level, tenant, type_)
@@ -101,7 +110,9 @@ class Collection(_CollectionBase, Generic[Properties]):
             `tenant`
                 The name of the tenant to use.
         """
-        return Collection[Properties](self._connection, self.name, self.__consistency_level, tenant)
+        return Collection[Properties](
+            self._connection, self.name, self.__batch_executor, self.__consistency_level, tenant
+        )
 
     def with_consistency_level(
         self, consistency_level: Optional[ConsistencyLevel] = None
@@ -114,7 +125,9 @@ class Collection(_CollectionBase, Generic[Properties]):
             `consistency_level`
                 The consistency level to use.
         """
-        return Collection[Properties](self._connection, self.name, consistency_level, self.__tenant)
+        return Collection[Properties](
+            self._connection, self.name, self.__batch_executor, consistency_level, self.__tenant
+        )
 
     def __len__(self) -> int:
         total = self.aggregate.over_all(total_count=True).total_count

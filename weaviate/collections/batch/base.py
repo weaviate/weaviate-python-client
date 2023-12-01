@@ -2,7 +2,8 @@ import math
 import time
 from abc import ABC, abstractmethod
 from collections import deque
-from concurrent.futures import Future, ThreadPoolExecutor, as_completed
+from concurrent.futures import Future, as_completed
+from copy import copy
 from threading import Event, Thread
 from typing import Any, Deque, Dict, Generic, List, Optional, Sequence, Set, Tuple, TypeVar, cast
 
@@ -16,6 +17,7 @@ from weaviate.cluster import Cluster
 from weaviate.collections.classes.batch import (
     BatchObject,
     BatchReference,
+    BatchResult,
     ErrorObject,
     ErrorReference,
     _BatchObject,
@@ -25,6 +27,7 @@ from weaviate.collections.classes.batch import (
     Shard,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
+from weaviate.collections.batch.executor import BatchExecutor
 from weaviate.collections.batch.grpc import _BatchGRPC
 from weaviate.collections.batch.rest import _BatchREST
 from weaviate.connect import Connection
@@ -32,17 +35,6 @@ from weaviate.exceptions import WeaviateBatchValidationError
 from weaviate.util import _capitalize_first_letter, _decode_json_response_list
 from weaviate.warnings import _Warnings
 from weaviate.types import UUID, WeaviateField
-
-
-class BatchExecutor(ThreadPoolExecutor):
-    """
-    Weaviate Batch Executor to run batch requests in separate thread.
-
-    This class implements an additional method `_is_shutdown` that is used by the context manager.
-    """
-
-    def _is_shutdown(self) -> bool:
-        return self._shutdown
 
 
 BatchResponse = List[Dict[str, Any]]
@@ -183,10 +175,14 @@ class ObjectsBatchRequest(BatchRequest[_BatchObject, BatchObjectReturn]):
         # return successful_responses
 
 
-class _Batch:
+B = TypeVar("B", bound="_BatchBase")
+
+
+class _BatchBase:
     def __init__(
         self,
         connection: Connection,
+        executor: BatchExecutor,
         objects_: Optional[ObjectsBatchRequest] = None,
         references: Optional[ReferencesBatchRequest] = None,
     ) -> None:
@@ -198,7 +194,8 @@ class _Batch:
         self.__creation_time = min(self.__connection.timeout_config[1] / 10, 2)
         self.__batch_grpc = _BatchGRPC(connection, self.__consistency_level)
         self.__batch_rest = _BatchREST(connection, self.__consistency_level)
-        self.__executor: Optional[BatchExecutor] = None
+        self.__executor: BatchExecutor = executor
+        self.__result: BatchResult = BatchResult()
         self.__failed_objects: List[ErrorObject] = []
         self.__failed_references: List[ErrorReference] = []
         self.__future_pool_objects: Deque[Future[Tuple[BatchObjectReturn, int, bool]]] = deque([])
@@ -292,23 +289,40 @@ class _Batch:
         """
         Get all failed objects from the batch manager.
 
+        Returns a copy so that the results can be used even if a new batch manager is opened.
+
         Returns:
             `List[ErrorObject]`
                 A list of all the failed objects from the batch.
         """
-        return self.__failed_objects
+        return copy(self.__failed_objects)
 
     def failed_references(self) -> List[ErrorReference]:
         """
         Get all failed references from the batch manager.
 
+        Returns a copy so that the results can be used even if a new batch manager is opened.
+
         Returns:
             `List[ErrorReference]`
                 A list of all the failed references from the batch.
         """
-        return self.__failed_references
+        return copy(self.__failed_references)
 
-    def start(self) -> "_Batch":
+    @property
+    def results(self) -> BatchResult:
+        """
+        Get the results of the batch operation.
+
+        NOTE: If you re-enter the batch manager using `with client.batch as batch` then the results will be reset.
+
+        Returns:
+            `BatchResult`
+                The results of the batch operation.
+        """
+        return self.__result
+
+    def start(self: B) -> B:
         """
         Start the BatchExecutor if it was closed.
 
@@ -316,8 +330,8 @@ class _Batch:
             `Batch`
                 The batch object with an open BatchExecutor and background running thread.
         """
-        if self.__executor is None or self.__executor._is_shutdown():
-            self.__executor = BatchExecutor(max_workers=self.__num_workers)
+        if self.__executor._is_shutdown():
+            self.__executor = BatchExecutor(max_workers=self.__executor._max_workers)
 
         if self.__dynamic_batching and (
             self.__shut_background_thread_down is None
@@ -327,19 +341,19 @@ class _Batch:
 
         return self
 
-    def shutdown(self) -> None:
+    def shutdown(self: B) -> None:
         """Shutdown the BatchExecutor."""
-        if not (self.__executor is None or self.__executor._is_shutdown()):
-            self.__executor.shutdown()
+        # if not (self.__executor is None or self.__executor._is_shutdown()):
+        #     self.__executor.shutdown()
 
         if self.__shut_background_thread_down is not None:
             self.__shut_background_thread_down.set()
 
-    def flush(self) -> None:
+    def flush(self: B) -> None:
         """Flush the batch queue to ensure all batches are sent."""
         self.__send_batch_requests(force_wait=True)
 
-    def __enter__(self) -> "_Batch":
+    def __enter__(self: B) -> B:
         if not self.__dynamic_batching and self.__batch_size is None:
             raise WeaviateBatchValidationError(
                 "Cannot use the batch context manager without dynamic batching. If you are doing manual batching, you must create them manually outside of the context manager with create_objects()"
@@ -351,7 +365,7 @@ class _Batch:
         self.flush()
         self.shutdown()
 
-    def __reset(self) -> None:
+    def __reset(self: B) -> None:
         self.__batch_objects.clear()
         self.__batch_references.clear()
         self.__future_pool_objects.clear()
@@ -360,41 +374,14 @@ class _Batch:
         self.__failed_references.clear()
         self.__reference_batch_queue.clear()
 
-    def add_object(
+    def _add_object(
         self,
         collection: str,
-        properties: Optional[Dict[str, WeaviateField]],
+        properties: Optional[Dict[str, WeaviateField]] = None,
         uuid: Optional[UUID] = None,
         vector: Optional[Sequence] = None,
         tenant: Optional[str] = None,
     ) -> UUID:
-        """
-        Add one object to this batch.
-
-        NOTE: If the UUID of one of the objects already exists then the existing object will be
-        replaced by the new object.
-
-        Arguments:
-            `collection`
-                The name of the collection this object belongs to.
-            `properties`
-                The data properties of the object to be added as a dictionary.
-            `uuid`:
-                The UUID of the object as an uuid.UUID object or str. It can be a Weaviate beacon or Weaviate href.
-                If it is None an UUIDv4 will generated, by default None
-            `vector`:
-                The embedding of the object that should be validated. Can be used when a collection does not have a vectorization module or the given vector was generated using the _identical_ vectorization module that is configured for the class. In this case this vector takes precedence. Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
-            `tenant`
-                Name of the tenant.
-
-        Returns:
-            `str`
-                The UUID of the added object. If one was not provided a UUIDv4 will be auto-generated for you and returned here.
-
-        Raises:
-            `WeaviateBatchValidationError`
-                If the provided options are in the format required by Weaviate.
-        """
         try:
             batch_object = BatchObject(
                 collection=collection,
@@ -412,7 +399,7 @@ class _Batch:
         assert batch_object.uuid is not None
         return batch_object.uuid
 
-    def add_reference(
+    def _add_reference(
         self,
         from_object_uuid: UUID,
         from_object_collection: str,
@@ -557,9 +544,9 @@ class _Batch:
             )
 
     def __send_batch_requests(self, force_wait: bool, how_many_recursions: int = 0) -> None:
-        if self.__executor is None:
-            self.start()
-        elif self.__executor._is_shutdown():
+        # if self.__executor is None:
+        #     self.start()
+        if self.__executor._is_shutdown():
             _Warnings.batch_executor_is_shutdown()
             self.start()
 
@@ -588,6 +575,7 @@ class _Batch:
 
         for done_obj_future in as_completed(self.__future_pool_objects):
             ret_objs, nr_objs, exception_raised = done_obj_future.result()
+            self.__result.objs += ret_objs
             self.__failed_objects.extend(ret_objs.errors.values())
             if self.__retry_failed_objects and (exception_raised or ret_objs.has_errors):
                 self.__batch_objects._add_failed_objects_from_response(ret_objs)
@@ -605,6 +593,7 @@ class _Batch:
 
         for done_ref_future in as_completed(self.__future_pool_references):
             ret_refs, nr_refs, exception_raised = done_ref_future.result()
+            self.__result.refs += ret_refs
             self.__failed_references.extend(ret_refs.errors.values())
             if self.__retry_failed_references and (exception_raised or ret_refs.has_errors):
                 self.__batch_references._add_failed_objects_from_response(ret_refs)

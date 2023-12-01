@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, TYPE_CHECKING
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -15,6 +15,9 @@ from weaviate.collections.classes.config_methods import (
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _capitalize_first_letter
 
+if TYPE_CHECKING:
+    from weaviate.collections.batch.executor import BatchExecutor
+
 
 class _CollectionBase:
     def __init__(self, name: str) -> None:
@@ -22,8 +25,9 @@ class _CollectionBase:
 
 
 class _CollectionsBase:
-    def __init__(self, connection: Connection):
+    def __init__(self, connection: Connection, batch_executor: "BatchExecutor"):
         self._connection = connection
+        self._batch_executor = batch_executor
 
     def _create(
         self,

@@ -11,7 +11,7 @@ from weaviate.backup.backup import _Backup
 from .auth import AuthCredentials
 from .backup import Backup
 from .batch import Batch
-from .collections.batch import _Batch
+from .collections.batch import _BatchClient, BatchExecutor
 from .classification import Classification
 from .cluster import Cluster
 from .collections import _Collections
@@ -245,11 +245,15 @@ class WeaviateClient(_ClientBase):
             startup_period=config.startup_period,
         )
 
-        self.batch = _Batch(self._connection)
-        """This namespace contains all the functionality to upload data in batches to Weaviate."""
+        batch_executor = (
+            BatchExecutor()
+        )  # max_workers = None uses the concurrent.futures defined default of min(32, (os.cpu_count() or 1) + 4)
+
+        self.batch = _BatchClient(self._connection, batch_executor)
+        """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
         self.backup = _Backup(self._connection)
         """This namespace contains all functionality to backup data."""
-        self.collections = _Collections(self._connection)
+        self.collections = _Collections(self._connection, batch_executor)
         """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
 
         Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `client.collections.create("MyCollection", ...)`.
