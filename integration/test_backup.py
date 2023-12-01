@@ -110,7 +110,7 @@ def _create_backup_id() -> str:
 
 def _check_response(
     response: Dict[str, Any], backup_id: str, status: List[str], classes_include: List[str] = None
-):
+) -> None:
     assert response["id"] == backup_id
     if classes_include is not None:
         assert len(response["classes"]) == len(classes_include)
@@ -120,7 +120,7 @@ def _check_response(
     assert response["status"] in status
 
 
-def test_create_and_restore_backup_with_waiting(client, tmp_path):
+def test_create_and_restore_backup_with_waiting(client, tmp_path) -> None:
     """Create and restore backup with waiting."""
     backup_id = _create_backup_id()
     # check data exists
@@ -155,7 +155,7 @@ def test_create_and_restore_backup_with_waiting(client, tmp_path):
     _check_response(resp, backup_id, ["SUCCESS"])
 
 
-def test_create_and_restore_backup_without_waiting(client: weaviate.Client):
+def test_create_and_restore_backup_without_waiting(client: weaviate.Client) -> None:
     """Create and restore backup without waiting."""
     backup_id = _create_backup_id()
 
@@ -196,7 +196,7 @@ def test_create_and_restore_backup_without_waiting(client: weaviate.Client):
     _assert_objects_exist(client, "Article", len(articles))
 
 
-def test_create_and_restore_1_of_2_classes(client: weaviate.Client):
+def test_create_and_restore_1_of_2_classes(client: weaviate.Client) -> None:
     """Create and restore 1 of 2 classes."""
     backup_id = _create_backup_id()
 
@@ -231,7 +231,7 @@ def test_create_and_restore_1_of_2_classes(client: weaviate.Client):
     _check_response(resp, backup_id, ["SUCCESS"])
 
 
-def test_fail_on_non_existing_backend(client: weaviate.Client):
+def test_fail_on_non_existing_backend(client: weaviate.Client) -> None:
     """Fail backup functions on non-existing backend"""
     backup_id = _create_backup_id()
     backend = "non-existing-backend"
@@ -241,7 +241,7 @@ def test_fail_on_non_existing_backend(client: weaviate.Client):
             assert backend in str(excinfo.value)
 
 
-def test_fail_on_non_existing_class(client: weaviate.Client):
+def test_fail_on_non_existing_class(client: weaviate.Client) -> None:
     """Fail backup functions on non-existing class"""
     backup_id = _create_backup_id()
     class_name = "NonExistingClass"

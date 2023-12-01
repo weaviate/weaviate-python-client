@@ -12,6 +12,7 @@ __all__ = [
     "AuthClientPassword",
     "AuthBearerToken",
     "AuthApiKey",
+    "BackupStorage",
     "UnexpectedStatusCodeException",
     "ObjectAlreadyExistsException",
     "AuthenticationFailedException",
@@ -67,6 +68,7 @@ from .exceptions import (
 )
 from .config import AdditionalConfig, Config, ConnectionConfig
 from .gql.get import AdditionalProperties, LinkTo
+from .backup.backup import BackupStorage
 
 if not sys.warnoptions:
     import warnings

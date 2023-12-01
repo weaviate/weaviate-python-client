@@ -6,7 +6,7 @@ from typing import Optional, Tuple, Union, Dict, Any
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
-
+from weaviate.backup.backup import _Backup
 
 from .auth import AuthCredentials
 from .backup import Backup
@@ -202,6 +202,7 @@ class WeaviateClient(_ClientBase):
         auth_client_secret: Optional[AuthCredentials] = None,
         additional_headers: Optional[dict] = None,
         additional_config: Optional[AdditionalConfig] = None,
+        skip_init_checks: bool = False,
     ) -> None:
         """Initialise a WeaviateClient class instance to use when interacting with Weaviate.
 
@@ -227,6 +228,8 @@ class WeaviateClient(_ClientBase):
                     example of how to set API keys within this parameter.
             - `additional_config`: `weaviate.AdditionalConfig` or None, optional
                 - Additional and advanced configuration options for Weaviate.
+            - `skip_init_checks`: `bool`, optional
+                - If set to `True` then the client will not perform any checks including ensuring that weaviate has started. This is useful for air-gapped environments and high-performance setups.
         """
         connection_params, embedded_db = self._parse_connection_params_and_embedded_db(
             connection_params, embedded_options
@@ -243,10 +246,13 @@ class WeaviateClient(_ClientBase):
             proxies=config.proxies,
             trust_env=config.trust_env,
             startup_period=config.startup_period,
+            skip_init_checks=skip_init_checks,
         )
 
         self.batch = _Batch(self._connection)
         """This namespace contains all the functionality to upload data in batches to Weaviate."""
+        self.backup = _Backup(self._connection)
+        """This namespace contains all functionality to backup data."""
         self.collections = _Collections(self._connection)
         """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
 

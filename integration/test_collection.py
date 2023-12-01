@@ -44,6 +44,7 @@ from weaviate.exceptions import (
     InvalidDataModelException,
     WeaviateQueryException,
     WeaviateInsertInvalidPropertyError,
+    WeaviateInsertManyAllFailedError,
 )
 from weaviate.types import UUID
 
@@ -60,7 +61,10 @@ DATE3 = datetime.datetime.strptime("2019-06-10", "%Y-%m-%d").replace(tzinfo=date
 
 @pytest.fixture(scope="module")
 def client():
-    client = weaviate.connect_to_local()
+    client = weaviate.WeaviateClient(
+        connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080", 50051),
+        skip_init_checks=True,
+    )
     client.collections.delete_all()
     yield client
     client.collections.delete_all()
@@ -326,6 +330,25 @@ def test_insert_many(
             e.value.message
             == f"""It is forbidden to insert `id` or `vector` inside properties: {objects[0]}. Only properties defined in your collection's config can be insterted as properties of the object, `id` is totally forbidden as it is reserved and `vector` is forbidden at this level. You should use the `DataObject` class if you wish to insert an object with a custom `vector` whilst inserting its properties."""
         )
+
+
+def test_insert_many_all_error(
+    client: weaviate.WeaviateClient,
+):
+    name = "TestInsertMany"
+    client.collections.delete(name)
+    collection = client.collections.create(
+        name=name,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(True),
+    )
+    with pytest.raises(WeaviateInsertManyAllFailedError) as e:
+        collection.data.insert_many([{"name": "steve"}, {"name": "bob"}, {"name": "joe"}])
+    assert (
+        e.value.message
+        == "Every object failed during insertion. Here is the set of all errors: class TestInsertMany has multi-tenancy enabled, but request was without tenant"
+    )
 
 
 def test_insert_many_with_typed_dict(client: weaviate.WeaviateClient):

@@ -371,6 +371,8 @@ class _DataCollection(Generic[Properties], _Data):
                 If the network connection to Weaviate fails.
             `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
                 If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
+            `weaviate.exceptions.WeaviateInsertManyAllFailedError`:
+                If every object in the batch fails to be inserted. The exception message contains details about the failure.
         """
         return self._batch_grpc.objects(
             [
