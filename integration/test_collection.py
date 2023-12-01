@@ -64,7 +64,6 @@ def client():
         connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080", 50051),
         skip_init_checks=True,
     )
-    # client._connection.wait_for_weaviate()
     client.collections.delete_all()
     yield client
     client.collections.delete_all()
