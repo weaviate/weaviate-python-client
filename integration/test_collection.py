@@ -3,7 +3,7 @@ import io
 import pathlib
 import uuid
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional, Type, TypedDict, Union
+from typing import Any, Callable, Dict, List, Optional, Type, TypedDict, Union
 
 import pytest
 import weaviate
@@ -303,7 +303,7 @@ def test_insert_many(
     client: weaviate.WeaviateClient,
     objects: List[Union[Properties, DataObject[Properties]]],
     should_error: bool,
-):
+) -> None:
     name = "TestInsertMany"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -601,8 +601,9 @@ def test_update_with_tenant(client: weaviate.WeaviateClient):
         (DataType.NUMBER_ARRAY, [1.0, 2.1]),
     ],
 )
-def test_types(client: weaviate.WeaviateClient, data_type: DataType, value):
+def test_types(client: weaviate.WeaviateClient, data_type: DataType, value: Any) -> None:
     name = "name"
+    client.collections.delete("Something")
     collection = client.collections.create(
         name="Something",
         properties=[Property(name=name, data_type=data_type)],
@@ -611,7 +612,13 @@ def test_types(client: weaviate.WeaviateClient, data_type: DataType, value):
     uuid_object = collection.data.insert(properties={name: value})
 
     object_get = collection.query.fetch_object_by_id(uuid_object)
-    assert object_get.properties[name] == value
+    assert object_get is not None and object_get.properties[name] == value
+
+    batch_return = collection.data.insert_many([{name: value}])
+    assert not batch_return.has_errors
+
+    object_get_from_batch = collection.query.fetch_object_by_id(batch_return.uuids[0])
+    assert object_get_from_batch is not None and object_get_from_batch.properties[name] == value
 
     client.collections.delete("Something")
 

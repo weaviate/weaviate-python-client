@@ -117,11 +117,9 @@ class _QueryGRPC(_BaseGRPC):
         default_properties: Optional[PROPERTIES] = None,
         support_byte_vectors: bool = False,
     ):
-        super().__init__(connection, consistency_level)
+        super().__init__(connection, consistency_level, support_byte_vectors=support_byte_vectors)
         self._name: str = name
         self._tenant = tenant
-
-        self.__support_byte_vectors = support_byte_vectors
 
         if default_properties is not None:
             self._default_props: Optional[Set[PROPERTY]] = self.__convert_properties_to_set(
@@ -453,14 +451,14 @@ class _QueryGRPC(_BaseGRPC):
                     autocut=self._autocut,
                     near_vector=search_get_pb2.NearVector(
                         vector=self._near_vector_vec
-                        if self._near_vector_vec is not None and not self.__support_byte_vectors
+                        if self._near_vector_vec is not None and not self._support_byte_vectors
                         else None,
                         certainty=self._near_certainty,
                         distance=self._near_distance,
                         vector_bytes=struct.pack(
                             "{}f".format(len(self._near_vector_vec)), *self._near_vector_vec
                         )
-                        if self._near_vector_vec is not None and self.__support_byte_vectors
+                        if self._near_vector_vec is not None and self._support_byte_vectors
                         else None,
                     )
                     if self._near_vector_vec is not None
@@ -485,14 +483,14 @@ class _QueryGRPC(_BaseGRPC):
                         properties=self._hybrid_properties,
                         query=self._hybrid_query,
                         alpha=self._hybrid_alpha,
-                        vector=self._hybrid_vector if not self.__support_byte_vectors else None,
+                        vector=self._hybrid_vector if not self._support_byte_vectors else None,
                         fusion_type=cast(
                             search_get_pb2.Hybrid.FusionType, self._hybrid_fusion_type
                         ),
                         vector_bytes=struct.pack(
                             "{}f".format(len(self._hybrid_vector)), *self._hybrid_vector
                         )
-                        if self.__support_byte_vectors and self._hybrid_vector is not None
+                        if self._support_byte_vectors and self._hybrid_vector is not None
                         else None,
                     )
                     if self._hybrid_query is not None
