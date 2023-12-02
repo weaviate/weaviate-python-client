@@ -2,6 +2,7 @@ import datetime
 import io
 import pathlib
 import re
+import struct
 import sys
 from typing import (
     Any,
@@ -137,8 +138,11 @@ class _Grpc(Generic[Properties]):
         self,
         add_props: "search_get_pb2.MetadataResult",
     ) -> Optional[List[float]]:
-        # return [float(num) for num in add_props.vector] if len(add_props.vector) > 0 else None
-        return list(add_props.vector) if len(add_props.vector) > 0 else None
+        if len(add_props.vector_bytes) == 0:
+            return None
+
+        vector_bytes = struct.unpack(f"{len(add_props.vector_bytes)//4}f", add_props.vector_bytes)
+        return list(vector_bytes)
 
     def __extract_generated_for_object(
         self,
