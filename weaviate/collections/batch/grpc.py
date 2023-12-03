@@ -2,7 +2,7 @@ import datetime
 import struct
 import uuid as uuid_package
 import time
-from typing import Any, Dict, List, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 import grpc  # type: ignore
 from google.protobuf.struct_pb2 import Struct
@@ -32,7 +32,7 @@ class _BatchGRPC(_BaseGRPC):
     and abstractions so as not to couple to strongly to either use-case.
     """
 
-    def __init__(self, connection: Connection, consistency_level: ConsistencyLevel | None):
+    def __init__(self, connection: Connection, consistency_level: Optional[ConsistencyLevel]):
         support_byte_vectors = (
             parse_version_string(connection.server_version) > parse_version_string("1.22")
             if connection.server_version != ""
