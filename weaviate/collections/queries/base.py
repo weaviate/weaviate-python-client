@@ -60,7 +60,7 @@ from weaviate.collections.classes.types import (
 from weaviate.collections.grpc.query import _QueryGRPC, GroupByResult, SearchResponse
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGrpcUnavailable, WeaviateQueryException
-from weaviate.util import file_encoder_b64
+from weaviate.util import file_encoder_b64, parse_version_string
 from weaviate.proto.v1 import base_pb2, search_get_pb2
 
 T = TypeVar("T")
@@ -86,6 +86,11 @@ class _Grpc(Generic[Properties]):
         self.__consistency_level = consistency_level
         self._type = type_
         self.__type_hints = self.__get_type_hints(type_)
+        self.__support_byte_vectors = (
+            parse_version_string(self.__connection.server_version) > parse_version_string("1.22")
+            if self.__connection.server_version != ""
+            else False
+        )
 
     def __get_type_hints(self, type_: Optional[Any]) -> Dict[str, Any]:
         return get_type_hints(type_) if get_origin(type_) is not dict and type_ is not None else {}
@@ -93,7 +98,13 @@ class _Grpc(Generic[Properties]):
     def _query(self) -> _QueryGRPC:
         if not self.__connection._grpc_available:
             raise WeaviateGrpcUnavailable()
-        return _QueryGRPC(self.__connection, self.__name, self.__tenant, self.__consistency_level)
+        return _QueryGRPC(
+            self.__connection,
+            self.__name,
+            self.__tenant,
+            self.__consistency_level,
+            support_byte_vectors=self.__support_byte_vectors,
+        )
 
     def __extract_metadata_for_object(
         self,

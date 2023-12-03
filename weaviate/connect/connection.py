@@ -323,6 +323,8 @@ class Connection:
                     _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
             except requests.exceptions.RequestException:
                 pass  # ignore any errors related to requests, it is a best-effort warning
+        else:
+            self._server_version = ""
 
     def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
         """Creates a request session.
