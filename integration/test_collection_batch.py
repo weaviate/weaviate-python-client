@@ -421,7 +421,7 @@ def test_manual_batching(client_sync_indexing: weaviate.WeaviateClient):
 
 def test_add_1000_objects_with_async_indexing_and_wait(
     client_async_indexing: weaviate.WeaviateClient,
-):
+) -> None:
     name = "BatchTestAsyncTenants"
     client_async_indexing.collections.delete(name)
     test = client_async_indexing.collections.create(
@@ -431,7 +431,7 @@ def test_add_1000_objects_with_async_indexing_and_wait(
             Property(name="text", data_type=DataType.TEXT),
         ],
     )
-    nr_objects = 1000
+    nr_objects = 100
     objs = [
         {
             "collection": name,

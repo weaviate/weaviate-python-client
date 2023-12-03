@@ -138,11 +138,17 @@ class _Grpc(Generic[Properties]):
         self,
         add_props: "search_get_pb2.MetadataResult",
     ) -> Optional[List[float]]:
-        if len(add_props.vector_bytes) == 0:
+        if len(add_props.vector_bytes) == 0 and len(add_props.vector) == 0:
             return None
 
-        vector_bytes = struct.unpack(f"{len(add_props.vector_bytes)//4}f", add_props.vector_bytes)
-        return list(vector_bytes)
+        if len(add_props.vector_bytes) > 0:
+            vector_bytes = struct.unpack(
+                f"{len(add_props.vector_bytes)//4}f", add_props.vector_bytes
+            )
+            return list(vector_bytes)
+        else:
+            # backward compatibility
+            return list(add_props.vector)
 
     def __extract_generated_for_object(
         self,
@@ -176,9 +182,18 @@ class _Grpc(Generic[Properties]):
             result[name] = self.__deserialize_primitive(non_ref_prop, type_hints.get(name))
 
         for number_array_property in properties.number_array_properties:
-            result[number_array_property.prop_name] = [
-                float(val) for val in number_array_property.values
-            ]
+            if len(number_array_property.values_bytes) > 0:
+                result[number_array_property.prop_name] = list(
+                    struct.unpack(
+                        f"{len(number_array_property.values_bytes)//8}d",
+                        number_array_property.values_bytes,
+                    )
+                )
+            else:
+                # backward compatibility
+                result[number_array_property.prop_name] = [
+                    float(val) for val in number_array_property.values
+                ]
 
         for int_array_property in properties.int_array_properties:
             result[int_array_property.prop_name] = [int(val) for val in int_array_property.values]

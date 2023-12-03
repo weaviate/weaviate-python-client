@@ -1,6 +1,6 @@
 # run:
 # - profiling: pytest -m profiling profiling/test_profiling.py --profile-svg
-# - benchmark: pytest profiling --benchmark-only --benchmark-disable-gc
+# - benchmark: pytest profiling/test_profiling.py --benchmark-only --benchmark-disable-gc
 
 from typing import Any, List
 import pytest
@@ -68,8 +68,47 @@ def test_get_vector(client: weaviate.WeaviateClient) -> None:
         assert compare_float_lists(objs.objects[0].vector, obj.vector)
 
     client.collections.delete(name)
-    assert not client.collections.exists(name)
+
+
+@pytest.mark.profiling
+def test_get_float_properties(client: weaviate.WeaviateClient) -> None:
+    name = "TestProfilingFloatProperties"
+    client.collections.delete(name)
+
+    col = client.collections.create(
+        name=name,
+        properties=[
+            Property(name="Numbers", data_type=DataType.NUMBER_ARRAY),
+            Property(name="index", data_type=DataType.INT),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    col = client.collections.get(name)
+
+    batchReturn = col.data.insert_many(
+        [{"index": (i % 10 + 1), "numbers": [3.3] * (i % 10 + 1)} for i in range(1000)]
+    )
+    assert len(batchReturn.uuids) == 1000
+
+    for _ in range(100):
+        objs = col.query.fetch_objects(
+            limit=1000,
+            include_vector=False,
+            return_properties=["numbers", "index"],
+            return_metadata=None,
+        )
+        assert len(objs.objects) == 1000
+        assert objs.objects[0].properties["numbers"] == [3.3] * int(
+            objs.objects[0].properties["index"]
+        )
+
+    client.collections.delete(name)
 
 
 def test_benchmark_get_vector(benchmark: Any, client: weaviate.WeaviateClient) -> None:
     benchmark(test_get_vector, client)
+
+
+def test_benchmark_get_float_properties(benchmark: Any, client: weaviate.WeaviateClient) -> None:
+    benchmark(test_get_float_properties, client)

@@ -53,10 +53,20 @@ class _BatchGRPC(_BaseGRPC):
             `tenant`
                 The tenant to be used for this batch operation
         """
+
+        def pack_vector(vector: Any) -> bytes:
+            vector_list = get_vector(vector)
+            return struct.pack("{}f".format(len(vector_list)), *vector_list)
+
         weaviate_objs: List[batch_pb2.BatchObject] = [
             batch_pb2.BatchObject(
                 collection=obj.collection,
-                vector=get_vector(obj.vector) if obj.vector is not None else None,
+                vector=get_vector(obj.vector)
+                if obj.vector is not None and not self._support_byte_vectors
+                else None,
+                vector_bytes=pack_vector(obj.vector)
+                if obj.vector is not None and self._support_byte_vectors
+                else None,
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
                 properties=self.__translate_properties_from_python_to_grpc(obj.properties, False)
                 if obj.properties is not None

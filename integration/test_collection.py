@@ -1566,7 +1566,7 @@ def test_return_properties_with_query_specific_typed_dict_overwriting_general_ty
     assert "ints" not in objects[0].properties
 
 
-def test_batch_with_arrays(client: weaviate.WeaviateClient):
+def test_batch_with_arrays(client: weaviate.WeaviateClient) -> None:
     client.collections.delete("TestBatchArrays")
     collection = client.collections.create(
         name="TestBatchArrays",
@@ -1581,8 +1581,8 @@ def test_batch_with_arrays(client: weaviate.WeaviateClient):
         ],
     )
 
-    objects_in: List[DataObject[dict]] = [
-        DataObject[dict](
+    objects_in: List[DataObject] = [
+        DataObject(
             {
                 "texts": ["first", "second"],
                 "ints": [1, 2],
@@ -1592,7 +1592,7 @@ def test_batch_with_arrays(client: weaviate.WeaviateClient):
                 "uuids": [UUID1, UUID3],
             }
         ),
-        DataObject[dict](
+        DataObject(
             {
                 "texts": ["third", "fourth"],
                 "ints": [3, 4, 5],
@@ -1610,6 +1610,7 @@ def test_batch_with_arrays(client: weaviate.WeaviateClient):
 
     for i, obj_id in enumerate(ret.uuids.values()):
         obj_out = collection.query.fetch_object_by_id(obj_id)
+        assert obj_out is not None
 
         for prop, val in objects_in[i].properties.items():
             if prop == "dates":
