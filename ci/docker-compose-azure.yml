@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:1.22.4
+    image: semitechnologies/weaviate:preview--wip-optimize-more-float-lists-0f71f35
     ports:
       - 8081:8081
     restart: on-failure:0

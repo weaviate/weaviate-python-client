@@ -1,7 +1,8 @@
 import datetime
+import struct
 import uuid as uuid_package
 import time
-from typing import Any, Dict, List, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 import grpc  # type: ignore
 from google.protobuf.struct_pb2 import Struct
@@ -11,14 +12,16 @@ from weaviate.collections.classes.batch import (
     _BatchObject,
     BatchObjectReturn,
 )
+from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import _Reference
 from weaviate.collections.grpc.shared import _BaseGRPC
+from weaviate.connect import Connection
 from weaviate.exceptions import (
     WeaviateQueryException,
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
 )
-from weaviate.util import _datetime_to_string, get_vector
+from weaviate.util import _datetime_to_string, get_vector, parse_version_string
 from weaviate.proto.v1 import batch_pb2, base_pb2
 
 
@@ -28,6 +31,15 @@ class _BatchGRPC(_BaseGRPC):
     It is used within the `_Data` and `_Batch` classes hence the necessary generalities
     and abstractions so as not to couple to strongly to either use-case.
     """
+
+    def __init__(self, connection: Connection, consistency_level: Optional[ConsistencyLevel]):
+        support_byte_vectors = (
+            parse_version_string(connection.server_version) > parse_version_string("1.22")
+            if connection.server_version != ""
+            else True
+        )
+
+        super().__init__(connection, consistency_level, support_byte_vectors)
 
     def objects(self, objects: List[_BatchObject]) -> BatchObjectReturn:
         """Insert multiple objects into Weaviate through the gRPC API.
@@ -41,10 +53,20 @@ class _BatchGRPC(_BaseGRPC):
             `tenant`
                 The tenant to be used for this batch operation
         """
+
+        def pack_vector(vector: Any) -> bytes:
+            vector_list = get_vector(vector)
+            return struct.pack("{}f".format(len(vector_list)), *vector_list)
+
         weaviate_objs: List[batch_pb2.BatchObject] = [
             batch_pb2.BatchObject(
                 collection=obj.collection,
-                vector=get_vector(obj.vector) if obj.vector is not None else None,
+                vector=get_vector(obj.vector)
+                if obj.vector is not None and not self._support_byte_vectors
+                else None,
+                vector_bytes=pack_vector(obj.vector)
+                if obj.vector is not None and self._support_byte_vectors
+                else None,
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
                 properties=self.__translate_properties_from_python_to_grpc(obj.properties, False)
                 if obj.properties is not None
@@ -200,7 +222,17 @@ class _BatchGRPC(_BaseGRPC):
             elif isinstance(val, list) and isinstance(val[0], int):
                 int_arrays.append(base_pb2.IntArrayProperties(prop_name=key, values=val))
             elif isinstance(val, list) and isinstance(val[0], float):
-                float_arrays.append(base_pb2.NumberArrayProperties(prop_name=key, values=val))
+                values = val if not self._support_byte_vectors else None
+                values_bytes = (
+                    struct.pack("{}d".format(len(val)), *val)
+                    if self._support_byte_vectors
+                    else None
+                )
+                float_arrays.append(
+                    base_pb2.NumberArrayProperties(
+                        prop_name=key, values=values, values_bytes=values_bytes
+                    )
+                )
             else:
                 non_ref_properties.update({key: _serialize_primitive(val)})
 

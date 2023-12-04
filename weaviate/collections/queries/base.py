@@ -2,6 +2,7 @@ import datetime
 import io
 import pathlib
 import re
+import struct
 import sys
 from typing import (
     Any,
@@ -60,7 +61,7 @@ from weaviate.collections.classes.types import (
 from weaviate.collections.grpc.query import _QueryGRPC, GroupByResult, SearchResponse
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGrpcUnavailable, WeaviateQueryException
-from weaviate.util import file_encoder_b64
+from weaviate.util import file_encoder_b64, parse_version_string
 from weaviate.proto.v1 import base_pb2, search_get_pb2
 
 T = TypeVar("T")
@@ -86,6 +87,11 @@ class _Grpc(Generic[Properties]):
         self.__consistency_level = consistency_level
         self._type = type_
         self.__type_hints = self.__get_type_hints(type_)
+        self.__support_byte_vectors = (
+            parse_version_string(self.__connection.server_version) > parse_version_string("1.22")
+            if self.__connection.server_version != ""
+            else True
+        )
 
     def __get_type_hints(self, type_: Optional[Any]) -> Dict[str, Any]:
         return get_type_hints(type_) if get_origin(type_) is not dict and type_ is not None else {}
@@ -93,7 +99,13 @@ class _Grpc(Generic[Properties]):
     def _query(self) -> _QueryGRPC:
         if not self.__connection._grpc_available:
             raise WeaviateGrpcUnavailable()
-        return _QueryGRPC(self.__connection, self.__name, self.__tenant, self.__consistency_level)
+        return _QueryGRPC(
+            self.__connection,
+            self.__name,
+            self.__tenant,
+            self.__consistency_level,
+            support_byte_vectors=self.__support_byte_vectors,
+        )
 
     def __extract_metadata_for_object(
         self,
@@ -126,8 +138,17 @@ class _Grpc(Generic[Properties]):
         self,
         add_props: "search_get_pb2.MetadataResult",
     ) -> Optional[List[float]]:
-        # return [float(num) for num in add_props.vector] if len(add_props.vector) > 0 else None
-        return list(add_props.vector) if len(add_props.vector) > 0 else None
+        if len(add_props.vector_bytes) == 0 and len(add_props.vector) == 0:
+            return None
+
+        if len(add_props.vector_bytes) > 0:
+            vector_bytes = struct.unpack(
+                f"{len(add_props.vector_bytes)//4}f", add_props.vector_bytes
+            )
+            return list(vector_bytes)
+        else:
+            # backward compatibility
+            return list(add_props.vector)
 
     def __extract_generated_for_object(
         self,
@@ -161,9 +182,18 @@ class _Grpc(Generic[Properties]):
             result[name] = self.__deserialize_primitive(non_ref_prop, type_hints.get(name))
 
         for number_array_property in properties.number_array_properties:
-            result[number_array_property.prop_name] = [
-                float(val) for val in number_array_property.values
-            ]
+            if len(number_array_property.values_bytes) > 0:
+                result[number_array_property.prop_name] = list(
+                    struct.unpack(
+                        f"{len(number_array_property.values_bytes)//8}d",
+                        number_array_property.values_bytes,
+                    )
+                )
+            else:
+                # backward compatibility
+                result[number_array_property.prop_name] = [
+                    float(val) for val in number_array_property.values
+                ]
 
         for int_array_property in properties.int_array_properties:
             result[int_array_property.prop_name] = [int(val) for val in int_array_property.values]

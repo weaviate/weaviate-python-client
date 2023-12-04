@@ -26,7 +26,7 @@ class BatchObjectsRequest(_message.Message):
     ) -> None: ...
 
 class BatchObject(_message.Message):
-    __slots__ = ["uuid", "vector", "properties", "collection", "tenant"]
+    __slots__ = ["uuid", "vector", "properties", "collection", "tenant", "vector_bytes"]
 
     class Properties(_message.Message):
         __slots__ = [
@@ -130,11 +130,13 @@ class BatchObject(_message.Message):
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     TENANT_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
     uuid: str
     vector: _containers.RepeatedScalarFieldContainer[float]
     properties: BatchObject.Properties
     collection: str
     tenant: str
+    vector_bytes: bytes
     def __init__(
         self,
         uuid: _Optional[str] = ...,
@@ -142,6 +144,7 @@ class BatchObject(_message.Message):
         properties: _Optional[_Union[BatchObject.Properties, _Mapping]] = ...,
         collection: _Optional[str] = ...,
         tenant: _Optional[str] = ...,
+        vector_bytes: _Optional[bytes] = ...,
     ) -> None: ...
 
 class BatchObjectsReply(_message.Message):
