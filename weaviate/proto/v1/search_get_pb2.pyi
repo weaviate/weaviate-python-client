@@ -323,7 +323,7 @@ class ObjectPropertiesRequest(_message.Message):
     ) -> None: ...
 
 class Hybrid(_message.Message):
-    __slots__ = ["query", "properties", "vector", "alpha", "fusion_type"]
+    __slots__ = ["query", "properties", "vector", "alpha", "fusion_type", "vector_bytes"]
 
     class FusionType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
         __slots__ = []
@@ -338,11 +338,13 @@ class Hybrid(_message.Message):
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     ALPHA_FIELD_NUMBER: _ClassVar[int]
     FUSION_TYPE_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
     query: str
     properties: _containers.RepeatedScalarFieldContainer[str]
     vector: _containers.RepeatedScalarFieldContainer[float]
     alpha: float
     fusion_type: Hybrid.FusionType
+    vector_bytes: bytes
     def __init__(
         self,
         query: _Optional[str] = ...,
@@ -350,6 +352,7 @@ class Hybrid(_message.Message):
         vector: _Optional[_Iterable[float]] = ...,
         alpha: _Optional[float] = ...,
         fusion_type: _Optional[_Union[Hybrid.FusionType, str]] = ...,
+        vector_bytes: _Optional[bytes] = ...,
     ) -> None: ...
 
 class NearTextSearch(_message.Message):
@@ -565,6 +568,7 @@ class MetadataResult(_message.Message):
         "generative",
         "generative_present",
         "is_consistent_present",
+        "vector_bytes",
     ]
     ID_FIELD_NUMBER: _ClassVar[int]
     VECTOR_FIELD_NUMBER: _ClassVar[int]
@@ -584,6 +588,7 @@ class MetadataResult(_message.Message):
     GENERATIVE_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_PRESENT_FIELD_NUMBER: _ClassVar[int]
     IS_CONSISTENT_PRESENT_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
     id: str
     vector: _containers.RepeatedScalarFieldContainer[float]
     creation_time_unix: int
@@ -602,6 +607,7 @@ class MetadataResult(_message.Message):
     generative: str
     generative_present: bool
     is_consistent_present: bool
+    vector_bytes: bytes
     def __init__(
         self,
         id: _Optional[str] = ...,
@@ -622,6 +628,7 @@ class MetadataResult(_message.Message):
         generative: _Optional[str] = ...,
         generative_present: bool = ...,
         is_consistent_present: bool = ...,
+        vector_bytes: _Optional[bytes] = ...,
     ) -> None: ...
 
 class PropertiesResult(_message.Message):

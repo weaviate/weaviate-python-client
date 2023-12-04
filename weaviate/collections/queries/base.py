@@ -2,6 +2,7 @@ import datetime
 import io
 import pathlib
 import re
+import struct
 import sys
 from typing import (
     Any,
@@ -89,7 +90,7 @@ class _Grpc(Generic[Properties]):
         self.__support_byte_vectors = (
             parse_version_string(self.__connection.server_version) > parse_version_string("1.22")
             if self.__connection.server_version != ""
-            else False
+            else True
         )
 
     def __get_type_hints(self, type_: Optional[Any]) -> Dict[str, Any]:
@@ -137,8 +138,17 @@ class _Grpc(Generic[Properties]):
         self,
         add_props: "search_get_pb2.MetadataResult",
     ) -> Optional[List[float]]:
-        # return [float(num) for num in add_props.vector] if len(add_props.vector) > 0 else None
-        return list(add_props.vector) if len(add_props.vector) > 0 else None
+        if len(add_props.vector_bytes) == 0 and len(add_props.vector) == 0:
+            return None
+
+        if len(add_props.vector_bytes) > 0:
+            vector_bytes = struct.unpack(
+                f"{len(add_props.vector_bytes)//4}f", add_props.vector_bytes
+            )
+            return list(vector_bytes)
+        else:
+            # backward compatibility
+            return list(add_props.vector)
 
     def __extract_generated_for_object(
         self,
@@ -172,9 +182,18 @@ class _Grpc(Generic[Properties]):
             result[name] = self.__deserialize_primitive(non_ref_prop, type_hints.get(name))
 
         for number_array_property in properties.number_array_properties:
-            result[number_array_property.prop_name] = [
-                float(val) for val in number_array_property.values
-            ]
+            if len(number_array_property.values_bytes) > 0:
+                result[number_array_property.prop_name] = list(
+                    struct.unpack(
+                        f"{len(number_array_property.values_bytes)//8}d",
+                        number_array_property.values_bytes,
+                    )
+                )
+            else:
+                # backward compatibility
+                result[number_array_property.prop_name] = [
+                    float(val) for val in number_array_property.values
+                ]
 
         for int_array_property in properties.int_array_properties:
             result[int_array_property.prop_name] = [int(val) for val in int_array_property.values]

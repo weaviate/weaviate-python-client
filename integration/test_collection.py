@@ -3,7 +3,7 @@ import io
 import pathlib
 import uuid
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional, Type, TypedDict, Union
+from typing import Any, Callable, Dict, List, Optional, Type, TypedDict, Union
 
 import pytest
 import weaviate
@@ -303,7 +303,7 @@ def test_insert_many(
     client: weaviate.WeaviateClient,
     objects: List[Union[Properties, DataObject[Properties]]],
     should_error: bool,
-):
+) -> None:
     name = "TestInsertMany"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -601,8 +601,9 @@ def test_update_with_tenant(client: weaviate.WeaviateClient):
         (DataType.NUMBER_ARRAY, [1.0, 2.1]),
     ],
 )
-def test_types(client: weaviate.WeaviateClient, data_type: DataType, value):
+def test_types(client: weaviate.WeaviateClient, data_type: DataType, value: Any) -> None:
     name = "name"
+    client.collections.delete("Something")
     collection = client.collections.create(
         name="Something",
         properties=[Property(name=name, data_type=data_type)],
@@ -611,13 +612,19 @@ def test_types(client: weaviate.WeaviateClient, data_type: DataType, value):
     uuid_object = collection.data.insert(properties={name: value})
 
     object_get = collection.query.fetch_object_by_id(uuid_object)
-    assert object_get.properties[name] == value
+    assert object_get is not None and object_get.properties[name] == value
+
+    batch_return = collection.data.insert_many([{name: value}])
+    assert not batch_return.has_errors
+
+    object_get_from_batch = collection.query.fetch_object_by_id(batch_return.uuids[0])
+    assert object_get_from_batch is not None and object_get_from_batch.properties[name] == value
 
     client.collections.delete("Something")
 
 
 @pytest.mark.parametrize("fusion_type", [HybridFusion.RANKED, HybridFusion.RELATIVE_SCORE])
-def test_search_hybrid(client: weaviate.WeaviateClient, fusion_type):
+def test_search_hybrid(client: weaviate.WeaviateClient, fusion_type: HybridFusion) -> None:
     collection = client.collections.create(
         name="Testing",
         properties=[Property(name="Name", data_type=DataType.TEXT)],
@@ -625,8 +632,16 @@ def test_search_hybrid(client: weaviate.WeaviateClient, fusion_type):
     )
     collection.data.insert({"Name": "some name"}, uuid.uuid4())
     collection.data.insert({"Name": "other word"}, uuid.uuid4())
-    objs = collection.query.hybrid(alpha=0, query="name", fusion_type=fusion_type).objects
+    objs = collection.query.hybrid(
+        alpha=0, query="name", fusion_type=fusion_type, include_vector=True
+    ).objects
     assert len(objs) == 1
+
+    objs = collection.query.hybrid(
+        alpha=1, query="name", fusion_type=fusion_type, vector=objs[0].vector
+    ).objects
+    assert len(objs) == 2
+
     client.collections.delete("Testing")
 
 
@@ -1551,7 +1566,7 @@ def test_return_properties_with_query_specific_typed_dict_overwriting_general_ty
     assert "ints" not in objects[0].properties
 
 
-def test_batch_with_arrays(client: weaviate.WeaviateClient):
+def test_batch_with_arrays(client: weaviate.WeaviateClient) -> None:
     client.collections.delete("TestBatchArrays")
     collection = client.collections.create(
         name="TestBatchArrays",
@@ -1566,8 +1581,8 @@ def test_batch_with_arrays(client: weaviate.WeaviateClient):
         ],
     )
 
-    objects_in: List[DataObject[dict]] = [
-        DataObject[dict](
+    objects_in: List[DataObject] = [
+        DataObject(
             {
                 "texts": ["first", "second"],
                 "ints": [1, 2],
@@ -1577,7 +1592,7 @@ def test_batch_with_arrays(client: weaviate.WeaviateClient):
                 "uuids": [UUID1, UUID3],
             }
         ),
-        DataObject[dict](
+        DataObject(
             {
                 "texts": ["third", "fourth"],
                 "ints": [3, 4, 5],
@@ -1595,6 +1610,7 @@ def test_batch_with_arrays(client: weaviate.WeaviateClient):
 
     for i, obj_id in enumerate(ret.uuids.values()):
         obj_out = collection.query.fetch_object_by_id(obj_id)
+        assert obj_out is not None
 
         for prop, val in objects_in[i].properties.items():
             if prop == "dates":
