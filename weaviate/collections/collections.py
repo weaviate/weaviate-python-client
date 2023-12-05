@@ -101,16 +101,19 @@ class _Collections(_CollectionsBase):
             raise ValueError(
                 f"Name of created collection ({name}) does not match given name ({config.name})"
             )
-        type_: Union[Dict[str, DataType], Type[Properties]]
+        cached_datatypes: Optional[Dict[str, DataType]] = None
         if data_model is None:
-            type_ = (
+            cached_datatypes = (
                 {prop.name: prop.dataType for prop in properties if isinstance(prop, Property)}
                 if properties is not None
                 else {}
             )
-        else:
-            type_ = data_model
-        return Collection[Properties](self._connection, name, type_=type_)
+        return Collection[Properties](
+            self._connection,
+            name,
+            user_provided_types=data_model,
+            cached_datatypes=cached_datatypes,
+        )
 
     def get(
         self, name: str, data_model: Optional[Type[Properties]] = None
@@ -131,7 +134,7 @@ class _Collections(_CollectionsBase):
         """
         _check_data_model(data_model)
         name = _capitalize_first_letter(name)
-        return Collection[Properties](self._connection, name, type_=data_model)
+        return Collection[Properties](self._connection, name, user_provided_types=data_model)
 
     def delete(self, name: Union[str, List[str]]) -> None:
         """Use this method to delete collection(s) from the Weaviate instance by its/their name(s).

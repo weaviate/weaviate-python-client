@@ -203,7 +203,7 @@ def test_get_with_pydantic_dataclass_generic(client: weaviate.WeaviateClient):
     "which_generic",
     ["typed_dict", "dict", "none"],
 )
-def test_insert(client: weaviate.WeaviateClient, which_generic: str):
+def test_insert(client: weaviate.WeaviateClient, which_generic: str) -> None:
     name = "TestInsert"
     client.collections.delete(name)
 
@@ -223,7 +223,7 @@ def test_insert(client: weaviate.WeaviateClient, which_generic: str):
         uuid = collection.data.insert(properties=TestInsert(**insert_data))
     elif which_generic == "dict":
         client.collections.create(**create_args)
-        collection = client.collections.get(name, Dict[str, str])
+        collection = client.collections.get(name, data_model=Dict[str, str])
         uuid = collection.data.insert(properties=insert_data)
     else:
         collection = client.collections.create(**create_args)
@@ -391,7 +391,7 @@ def test_insert_many_with_typed_dict(client: weaviate.WeaviateClient):
     client.collections.delete(name)
 
 
-def test_insert_many_with_refs(client: weaviate.WeaviateClient):
+def test_insert_many_with_refs(client: weaviate.WeaviateClient) -> None:
     name_target = "RefClassBatchTarget"
     client.collections.delete(name_target)
 

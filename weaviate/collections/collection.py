@@ -55,13 +55,14 @@ class Collection(_CollectionBase, Generic[Properties]):
         name: str,
         consistency_level: Optional[ConsistencyLevel] = None,
         tenant: Optional[str] = None,
-        type_: Optional[Union[Type[Properties], Dict[str, DataType]]] = None,
+        user_provided_types: Optional[Type[Properties]] = None,
+        cached_datatypes: Optional[Dict[str, DataType]] = None,
     ) -> None:
         super().__init__(name)
         self._connection = connection
 
         config = _ConfigCollection(self._connection, self.name, tenant)
-        type_hints = _TypeHints[Properties](config, type_)
+        type_hints = _TypeHints[Properties](config, user_provided_types, cached_datatypes)
 
         self.aggregate = _AggregateCollection(
             self._connection, self.name, consistency_level, tenant
@@ -78,19 +79,18 @@ class Collection(_CollectionBase, Generic[Properties]):
             connection, self.name, consistency_level, tenant, type_hints
         )
 
-        query_type = type_ if isinstance(type_, type) else None
         """This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate."""
         self.generate = _GenerateCollection(
-            connection, self.name, consistency_level, tenant, query_type
+            connection, self.name, consistency_level, tenant, user_provided_types
         )
         """This namespace includes all the querying methods available to you when using Weaviate's generative capabilities."""
         self.query_group_by = _GroupByCollection(
-            connection, self.name, consistency_level, tenant, query_type
+            connection, self.name, consistency_level, tenant, user_provided_types
         )
         """This namespace includes all the querying methods available to you when using Weaviate's querying group-by capabilities."""
 
         self.query = _QueryCollection[Properties](
-            connection, self.name, self.data, consistency_level, tenant, query_type
+            connection, self.name, self.data, consistency_level, tenant, user_provided_types
         )
         """This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities."""
         self.tenants = _Tenants(connection, self.name)
@@ -101,7 +101,7 @@ class Collection(_CollectionBase, Generic[Properties]):
 
         self.__tenant = tenant
         self.__consistency_level = consistency_level
-        self.__type = query_type
+        self.__type = user_provided_types
 
     def with_tenant(self, tenant: Optional[str] = None) -> "Collection[Properties]":
         """Use this method to return a collection object specific to a single tenant.

@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Dict, Generic, Optional, Type, Union, cast, get_type_hints
+from typing import Any, Dict, Generic, Optional, Type, Union, cast, get_origin, get_type_hints
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.collections.classes.types import Properties
@@ -27,29 +27,31 @@ class _TypeHints(Generic[Properties]):
     def __init__(
         self,
         config: _ConfigCollection,
-        type_hints: Optional[Union[Type[Properties], Dict[str, DataType]]],
+        user_provided_types: Optional[Type[Properties]] = None,
+        cached_datatypes: Optional[Dict[str, DataType]] = None,
     ) -> None:
         self._config = config
-        self._type_hints: Optional[Type[Properties]] = None
+        self._user_provided_types: Optional[Type[Properties]] = None
         self._cached_datatypes: Optional[
             Dict[str, Union[DataType, _ReferenceDataType, _ReferenceDataTypeMultiTarget]]
         ] = None
-        if type_hints is None:
-            self.__refresh_cashed_datatypes()
-        elif isinstance(type_hints, type):
-            self._type_hints = type_hints
-        else:
+
+        if user_provided_types is not None:
+            self._user_provided_types = user_provided_types
+        elif cached_datatypes is not None:
             self._cached_datatypes = cast(
                 Dict[str, Union[DataType, _ReferenceDataType, _ReferenceDataTypeMultiTarget]],
-                type_hints,
+                cached_datatypes,
             )
+        else:
+            self.__refresh_cashed_datatypes()
 
     def __refresh_cashed_datatypes(self) -> None:
         config = self._config.get()
         self._cached_datatypes = {prop.name: prop.data_type for prop in config.properties}
 
     def deserialize_properties(self, data: Dict[str, Any]) -> Properties:
-        if self._type_hints is None:
+        if self._user_provided_types is None:
             return cast(
                 Properties,
                 {
@@ -58,7 +60,12 @@ class _TypeHints(Generic[Properties]):
                 },
             )
         else:
-            hints = get_type_hints(self._type_hints)
+            hints = (
+                get_type_hints(self._user_provided_types)
+                if self._user_provided_types is not None
+                and not get_origin(self._user_provided_types) == dict
+                else {}
+            )
             return cast(
                 Properties,
                 {
