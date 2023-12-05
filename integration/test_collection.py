@@ -109,8 +109,14 @@ def test_delete_multiple(client: weaviate.WeaviateClient):
 
 
 @pytest.mark.parametrize("use_typed_dict", [True, False])
-def test_get_with_dict_generic(client: weaviate.WeaviateClient, use_typed_dict: bool):
+def test_get_with_dict_generic(client: weaviate.WeaviateClient, use_typed_dict: bool) -> None:
     name = "TestGetWithDictGeneric"
+
+    # create collection with the correct types
+    client.collections.create(
+        name=name, properties=[Property(name="Name", data_type=DataType.TEXT)]
+    )
+
     if use_typed_dict:
 
         class Right(TypedDict):
@@ -120,10 +126,16 @@ def test_get_with_dict_generic(client: weaviate.WeaviateClient, use_typed_dict: 
     else:
         col = client.collections.get(name, Dict[str, str])
     assert isinstance(col, Collection)
+    client.collections.delete(name)
 
 
-def test_data_with_data_model_with_dict_generic(client: weaviate.WeaviateClient):
+def test_data_with_data_model_with_dict_generic(client: weaviate.WeaviateClient) -> None:
     name = "TestDataWithDictGeneric"
+
+    # create collection with the correct types
+    client.collections.create(
+        name=name, properties=[Property(name="Name", data_type=DataType.TEXT)]
+    )
 
     class Right(TypedDict):
         name: str
@@ -1154,7 +1166,9 @@ def test_return_properties_and_return_metadata_combos(
 
 
 @pytest.mark.parametrize("hours,minutes,sign", [(0, 0, 1), (1, 20, -1), (2, 0, 1), (3, 40, -1)])
-def test_insert_date_property(client: weaviate.WeaviateClient, hours: int, minutes: int, sign: int):
+def test_insert_date_property(
+    client: weaviate.WeaviateClient, hours: int, minutes: int, sign: int
+) -> None:
     client.collections.delete("TestInsertDateProperty")
     collection = client.collections.create(
         name="TestInsertDateProperty",
@@ -1168,18 +1182,9 @@ def test_insert_date_property(client: weaviate.WeaviateClient, hours: int, minut
     uuid = collection.data.insert(properties={"date": now})
 
     obj = collection.query.fetch_object_by_id(uuid)
+    assert obj is not None
+    assert obj.properties["date"] == now
 
-    assert (
-        datetime.datetime.strptime(
-            "".join(
-                obj.properties["date"].rsplit(":", 1)
-                if obj.properties["date"][-1] != "Z"
-                else obj.properties["date"]
-            ),
-            "%Y-%m-%dT%H:%M:%S.%f%z",
-        )
-        == now
-    )
     # weaviate drops any trailing zeros from the microseconds part of the date
     # this means that the returned dates aren't in the ISO format and so cannot be parsed easily to datetime
     # moreover, UTC timezones specified as +-00:00 are converted to Z further complicating matters
@@ -1513,7 +1518,7 @@ def test_return_properties_with_query_specific_typed_dict(
         assert objects[0].properties == {}
 
 
-def test_return_properties_with_general_typed_dict(client: weaviate.WeaviateClient):
+def test_return_properties_with_general_typed_dict(client: weaviate.WeaviateClient) -> None:
     name = "TestReturnListWithModel"
     client.collections.delete(name)
 
@@ -1613,16 +1618,7 @@ def test_batch_with_arrays(client: weaviate.WeaviateClient) -> None:
         assert obj_out is not None
 
         for prop, val in objects_in[i].properties.items():
-            if prop == "dates":
-                dates_from_weaviate = [
-                    datetime.datetime.fromisoformat(date) for date in obj_out.properties[prop]
-                ]
-                assert val == dates_from_weaviate
-            elif prop == "uuids":
-                uuids_from_weaviate = [uuid.UUID(prop) for prop in obj_out.properties[prop]]
-                assert val == uuids_from_weaviate
-            else:
-                assert obj_out.properties[prop] == val
+            assert obj_out.properties[prop] == val
 
 
 @pytest.mark.parametrize(

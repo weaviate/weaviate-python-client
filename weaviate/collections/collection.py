@@ -1,15 +1,17 @@
 import json
 from dataclasses import asdict
-from typing import Generic, Optional, Type, Union, cast, overload
+from typing import Dict, Generic, Optional, Type, Union, cast, overload
 from typing_extensions import is_typeddict
+
 from weaviate.collections.backups import _CollectionBackup
 
 from weaviate.collections.classes.config import (
     ConsistencyLevel,
+    DataType,
 )
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES
 from weaviate.collections.classes.types import Properties, TProperties
-from weaviate.collections.base import _CollectionBase
+from weaviate.collections.base import _CollectionBase, _TypeHints
 from weaviate.collections.aggregate import _AggregateCollection, _AggregateGroupByCollection
 from weaviate.collections.config import _ConfigCollection
 from weaviate.collections.data import _DataCollection
@@ -53,10 +55,13 @@ class Collection(_CollectionBase, Generic[Properties]):
         name: str,
         consistency_level: Optional[ConsistencyLevel] = None,
         tenant: Optional[str] = None,
-        type_: Optional[Type[Properties]] = None,
+        type_: Optional[Union[Type[Properties], Dict[str, DataType]]] = None,
     ) -> None:
         super().__init__(name)
         self._connection = connection
+
+        config = _ConfigCollection(self._connection, self.name, tenant)
+        type_hints = _TypeHints[Properties](config, type_)
 
         self.aggregate = _AggregateCollection(
             self._connection, self.name, consistency_level, tenant
@@ -66,20 +71,26 @@ class Collection(_CollectionBase, Generic[Properties]):
             self._connection, self.name, consistency_level, tenant
         )
         """This namespace includes all the aggregate methods available to you when using Weaviate's aggregation group-by capabilities."""
-        self.config = _ConfigCollection(self._connection, self.name, tenant)
+        self.config = config
+
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
         self.data = _DataCollection[Properties](
-            connection, self.name, consistency_level, tenant, type_
+            connection, self.name, consistency_level, tenant, type_hints
         )
+
+        query_type = type_ if isinstance(type_, type) else None
         """This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate."""
-        self.generate = _GenerateCollection(connection, self.name, consistency_level, tenant, type_)
+        self.generate = _GenerateCollection(
+            connection, self.name, consistency_level, tenant, query_type
+        )
         """This namespace includes all the querying methods available to you when using Weaviate's generative capabilities."""
         self.query_group_by = _GroupByCollection(
-            connection, self.name, consistency_level, tenant, type_
+            connection, self.name, consistency_level, tenant, query_type
         )
         """This namespace includes all the querying methods available to you when using Weaviate's querying group-by capabilities."""
+
         self.query = _QueryCollection[Properties](
-            connection, self.name, self.data, consistency_level, tenant, type_
+            connection, self.name, self.data, consistency_level, tenant, query_type
         )
         """This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities."""
         self.tenants = _Tenants(connection, self.name)
@@ -90,7 +101,7 @@ class Collection(_CollectionBase, Generic[Properties]):
 
         self.__tenant = tenant
         self.__consistency_level = consistency_level
-        self.__type = type_
+        self.__type = query_type
 
     def with_tenant(self, tenant: Optional[str] = None) -> "Collection[Properties]":
         """Use this method to return a collection object specific to a single tenant.

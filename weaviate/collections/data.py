@@ -10,11 +10,10 @@ from typing import (
     Type,
     Union,
     cast,
-    get_type_hints,
-    get_origin,
 )
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
+from weaviate.collections.base import _TypeHints
 
 from weaviate.collections.classes.batch import (
     _BatchObject,
@@ -274,19 +273,6 @@ class _Data:
             return [self.__serialize_primitive(val) for val in value]
         return value
 
-    def _deserialize_primitive(self, value: Any, type_value: Optional[Any]) -> Any:
-        if type_value is None:
-            return value
-        if type_value == uuid_package.UUID:
-            return uuid_package.UUID(value)
-        if type_value == datetime.datetime:
-            return datetime.datetime.fromisoformat(value)
-        if isinstance(type_value, list):
-            return [
-                self._deserialize_primitive(val, type_value[idx]) for idx, val in enumerate(value)
-            ]
-        return value
-
 
 class _DataCollection(Generic[Properties], _Data):
     def __init__(
@@ -295,30 +281,24 @@ class _DataCollection(Generic[Properties], _Data):
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
-        type_: Optional[Type[Properties]] = None,
+        type_hints: _TypeHints,
     ):
         super().__init__(connection, name, consistency_level, tenant)
-        self.__type = type_
+        self._type_hints = type_hints
 
     def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]":
         _check_data_model(data_model)
+        assert self._type_hints is not None
         return _DataCollection[TProperties](
-            self._connection, self.name, self._consistency_level, self._tenant, data_model
-        )
-
-    def __deserialize_properties(self, data: Dict[str, Any]) -> Properties:
-        hints = (
-            get_type_hints(self.__type)
-            if self.__type and not get_origin(self.__type) == dict
-            else {}
-        )
-        return cast(
-            Properties,
-            {key: self._deserialize_primitive(val, hints.get(key)) for key, val in data.items()},
+            self._connection,
+            self.name,
+            self._consistency_level,
+            self._tenant,
+            _TypeHints[TProperties](self._type_hints._config, data_model),
         )
 
     def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Properties]:
-        props = self.__deserialize_properties(obj["properties"])
+        props = self._type_hints.deserialize_properties(obj["properties"])
         uuid, vector, metadata = _metadata_from_dict(obj)
         return _Object[Properties](
             metadata=None if metadata._is_empty() else metadata,

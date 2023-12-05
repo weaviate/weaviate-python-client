@@ -8,6 +8,7 @@ from weaviate.collections.classes.config import (
     _GenerativeConfigCreate,
     _InvertedIndexConfigCreate,
     _MultiTenancyConfigCreate,
+    DataType,
     Property,
     _ShardingConfigCreate,
     _ReferencePropertyBase,
@@ -81,6 +82,7 @@ class _Collections(_CollectionsBase):
             `pydantic.ValidationError`
                 If the configuration object is invalid.
         """
+        _check_data_model(data_model)
         config = _CollectionConfigCreate(
             description=description,
             generative_config=generative_config,
@@ -99,7 +101,16 @@ class _Collections(_CollectionsBase):
             raise ValueError(
                 f"Name of created collection ({name}) does not match given name ({config.name})"
             )
-        return self.get(name, data_model)
+        type_: Union[Dict[str, DataType], Type[Properties]]
+        if data_model is None:
+            type_ = (
+                {prop.name: prop.dataType for prop in properties if isinstance(prop, Property)}
+                if properties is not None
+                else {}
+            )
+        else:
+            type_ = data_model
+        return Collection[Properties](self._connection, name, type_=type_)
 
     def get(
         self, name: str, data_model: Optional[Type[Properties]] = None

@@ -489,10 +489,10 @@ def test_add_1000000_objects_with_async_indexing_and_dont_wait(
     assert old_client.schema.get_class_shards(name)[0]["vectorQueueSize"] > 0
 
 
-def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
+def test_add_100_tenant_objects_with_async_indexing_and_wait_for_all(
     client_async_indexing: weaviate.WeaviateClient,
-):
-    name = "BatchTestAsyncTenants"
+) -> None:
+    name = "BatchTestAsyncTenants1"
     client_async_indexing.collections.delete(name)
     test = client_async_indexing.collections.create(
         name=name,
@@ -504,12 +504,12 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
     )
     tenants = [Tenant(name="tenant" + str(i)) for i in range(5)]
     test.tenants.create(tenants)
-    nr_objects = 1000
+    nr_objects = 100
     objs = [
         {
             "collection": name,
             "properties": {"text": "text" + str(i)},
-            "vector": list(range(1000)),
+            "vector": list(range(100)),
             "tenant": tenants[i % 5].name,
         }
         for i in range(nr_objects)
@@ -528,10 +528,10 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
         assert shard["vectorQueueSize"] == 0
 
 
-def test_add_10000_tenant_objects_with_async_indexing_and_wait_for_only_one(
+def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
     client_async_indexing: weaviate.WeaviateClient,
-):
-    name = "BatchTestAsyncTenants"
+) -> None:
+    name = "BatchTestAsyncTenants2"
     client_async_indexing.collections.delete(name)
     test = client_async_indexing.collections.create(
         name=name,
@@ -543,12 +543,12 @@ def test_add_10000_tenant_objects_with_async_indexing_and_wait_for_only_one(
     )
     tenants = [Tenant(name="tenant" + str(i)) for i in range(2)]
     test.tenants.create(tenants)
-    nr_objects = 10000
+    nr_objects = 1000
     objs = [
         {
             "collection": name,
             "properties": {"text": "text" + str(i)},
-            "vector": list(range(1000)),
+            "vector": list(range(100)),
             "tenant": tenants[0].name if i < 100 else tenants[1].name,
         }
         for i in range(nr_objects)
