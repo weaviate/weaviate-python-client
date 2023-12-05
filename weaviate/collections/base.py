@@ -73,13 +73,19 @@ class _TypeHints(Generic[Properties]):
         if type_value == uuid_package.UUID:
             return uuid_package.UUID(value)
         if type_value == datetime.datetime:
-            return datetime.datetime.fromisoformat(value)
+            return self._datetime_from_weaviate_date_str(value)
         if isinstance(type_value, list):
             return [
                 self._deserialize_primitive_from_user_hints(val, type_value[idx])
                 for idx, val in enumerate(value)
             ]
         return value
+
+    def _datetime_from_weaviate_date_str(self, date: str) -> datetime.datetime:
+        return datetime.datetime.strptime(
+            "".join(date.rsplit(":", 1) if date[-1] != "Z" else date),
+            "%Y-%m-%dT%H:%M:%S.%f%z",
+        )
 
     def _deserialize_primitive_from_cache(self, value: Any, name: str) -> Any:
         assert self._cached_datatypes is not None
@@ -91,9 +97,9 @@ class _TypeHints(Generic[Properties]):
         if dt == DataType.UUID_ARRAY:
             return [uuid_package.UUID(val) for val in value]
         if dt == DataType.DATE:
-            return datetime.datetime.fromisoformat(value)
+            return self._datetime_from_weaviate_date_str(value)
         if dt == DataType.DATE_ARRAY:
-            return [datetime.datetime.fromisoformat(val) for val in value]
+            return [self._datetime_from_weaviate_date_str(val) for val in value]
         return value
 
 
