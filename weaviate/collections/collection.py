@@ -8,6 +8,7 @@ from weaviate.collections.classes.config import (
     ConsistencyLevel,
 )
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES
+from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.base import _CollectionBase
 from weaviate.collections.aggregate import _AggregateCollection, _AggregateGroupByCollection
@@ -92,7 +93,7 @@ class Collection(_CollectionBase, Generic[Properties]):
         self.__consistency_level = consistency_level
         self.__type = type_
 
-    def with_tenant(self, tenant: Optional[str] = None) -> "Collection[Properties]":
+    def with_tenant(self, tenant: Union[str, Tenant]) -> "Collection[Properties]":
         """Use this method to return a collection object specific to a single tenant.
 
         If multi-tenancy is not configured for this collection then Weaviate will throw an error.
@@ -101,10 +102,17 @@ class Collection(_CollectionBase, Generic[Properties]):
             `tenant`
                 The name of the tenant to use.
         """
-        return Collection[Properties](self._connection, self.name, self.__consistency_level, tenant)
+        if not isinstance(tenant, str) and not isinstance(tenant, Tenant):
+            raise TypeError(f"Expected tenant to be of type str or Tenant but got {type(tenant)}")
+        return Collection[Properties](
+            self._connection,
+            self.name,
+            self.__consistency_level,
+            tenant if isinstance(tenant, str) else tenant.name,
+        )
 
     def with_consistency_level(
-        self, consistency_level: Optional[ConsistencyLevel] = None
+        self, consistency_level: ConsistencyLevel
     ) -> "Collection[Properties]":
         """Use this method to return a collection object specific to a single consistency level.
 
@@ -114,6 +122,10 @@ class Collection(_CollectionBase, Generic[Properties]):
             `consistency_level`
                 The consistency level to use.
         """
+        if not isinstance(consistency_level, ConsistencyLevel):
+            raise TypeError(
+                f"Expected consistency_level to be of type ConsistencyLevel but got {type(consistency_level)}"
+            )
         return Collection[Properties](self._connection, self.name, consistency_level, self.__tenant)
 
     def __len__(self) -> int:
