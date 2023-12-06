@@ -1,6 +1,9 @@
 import datetime
+import functools
+import inspect
 import uuid as uuid_package
 from typing import (
+    Callable,
     Dict,
     Any,
     Optional,
@@ -9,6 +12,8 @@ from typing import (
     Generic,
     Type,
     Union,
+    ParamSpec,
+    TypeVar,
     cast,
     get_type_hints,
     get_origin,
@@ -48,6 +53,43 @@ from weaviate.exceptions import (
 from weaviate.util import _datetime_to_string, _decode_json_response_dict, get_vector
 from weaviate.types import BEACON, UUID
 
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+class _TypeEnforcer(Generic[P, R]):
+    def __init__(self, func: Callable[P, R]):
+        """Use a class decorator so that get_type_hints is cached for each function invocation."""
+        self.func = func
+        self.type_hints = get_type_hints(func)
+
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
+        """Decorate the function by reading the type hints in the signature and checking the types of the arguments passed to the function."""
+        bound_args = inspect.signature(self.func).bind(*args, **kwargs)
+        bound_args.apply_defaults()
+        for name, value in bound_args.arguments.items():
+            if name in self.type_hints:
+                expected_type = self.type_hints[name]
+                if not isinstance(value, expected_type):
+                    raise TypeError(
+                        f"Argument '{name}' must be {expected_type}, but got {type(value)}"
+                    )
+
+        return self.func(*args, **kwargs)
+
+    def __get__(self, instance: Any, owner: Any) -> Callable[P, R]:
+        """Ensure that the decorator can be used on instance methods.
+
+        https://stackoverflow.com/questions/69288996/why-is-self-not-in-args-when-using-a-class-as-a-decorator
+
+        https://stackoverflow.com/questions/30104047/how-can-i-decorate-an-instance-method-with-a-decorator-class/30105234#30105234
+        """
+        return functools.partial(self.__call__, instance)
+
+
+def _enforce_types(func: Callable[P, R]) -> Callable[P, R]:
+    return _TypeEnforcer(func)
+
 
 class _Data:
     def __init__(
@@ -85,6 +127,7 @@ class _Data:
             pass
         raise UnexpectedStatusCodeException("Creating object", response)
 
+    @_enforce_types
     def delete_by_id(self, uuid: UUID) -> bool:
         """Delete an object from the collection based on its UUID.
 
@@ -123,6 +166,8 @@ class _Data:
             `weaviate.UnexpectedStatusCodeException`:
                 If Weaviate reports a non-OK status.
         """
+        if not isinstance(where, _Filters):
+            raise TypeError(f"Expected where to be of type _Filters, but got {type(where)}")
         return self._batch_rest.delete(self.name, where, verbose, dry_run, self._tenant)
 
     def _replace(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
