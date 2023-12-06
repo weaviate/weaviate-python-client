@@ -19,6 +19,7 @@ from weaviate.collections.classes.filters import (
     _Filters,
     _FilterValue,
 )
+from weaviate.collections.classes.grpc import MetadataQuery
 from weaviate.collections.classes.internal import Reference
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
@@ -31,7 +32,7 @@ UUID3 = uuid.uuid4()
 
 
 @pytest.fixture(scope="module")
-def client():
+def client() -> weaviate.WeaviateClient:
     client = weaviate.connect_to_local()
     client.collections.delete_all()
     yield client
@@ -48,7 +49,7 @@ def client():
 )
 def test_filters_text(
     client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
-):
+) -> None:
     client.collections.delete("TestFilterText")
     collection = client.collections.create(
         name="TestFilterText",
@@ -93,7 +94,7 @@ def test_filters_nested(
     client: weaviate.WeaviateClient,
     weaviate_filter: _Filters,
     results: List[int],
-):
+) -> None:
     client.collections.delete("TestFilterNested")
     collection = client.collections.create(
         name="TestFilterNested",
@@ -207,11 +208,12 @@ def test_filters_comparison(
         (Filter(path="uuids").contains_any([UUID2, UUID1]), [0, 1, 3]),
         (Filter(path="uuid").contains_any([UUID3]), []),
         (Filter(path="uuid").contains_any([UUID1]), [0]),
+        (Filter(path="_id").contains_any([UUID1, UUID3]), [0, 2]),
     ],
 )
 def test_filters_contains(
     client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
-):
+) -> None:
     client.collections.delete("TestFilterContains")
     collection = client.collections.create(
         name="TestFilterContains",
@@ -247,7 +249,8 @@ def test_filters_contains(
                 "date": NOW,
                 "uuids": [UUID1, UUID3, UUID2],
                 "uuid": UUID1,
-            }
+            },
+            uuid=UUID1,
         ),
         collection.data.insert(
             {
@@ -263,7 +266,8 @@ def test_filters_contains(
                 "date": LATER,
                 "uuids": [UUID2, UUID2],
                 "uuid": UUID2,
-            }
+            },
+            uuid=UUID2,
         ),
         collection.data.insert(
             {
@@ -276,7 +280,8 @@ def test_filters_contains(
                 "bools": [],
                 "dates": [],
                 "uuids": [],
-            }
+            },
+            uuid=UUID3,
         ),
         collection.data.insert(
             {
@@ -308,11 +313,12 @@ def test_filters_contains(
     [
         (Filter(path=["ref", "TestFilterRef2", "int"]).greater_than(3), [1]),
         (Filter(path=["ref", "TestFilterRef2", "text"], length=True).less_than(6), [0]),
+        (Filter(path=["ref", "TestFilterRef2", "_id"]).equal(UUID2), [1]),
     ],
 )
 def test_ref_filters(
     client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
-):
+) -> None:
     client.collections.delete("TestFilterRef")
     client.collections.delete("TestFilterRef2")
     to_collection = client.collections.create(
@@ -325,8 +331,8 @@ def test_ref_filters(
         inverted_index_config=Configure.inverted_index(index_property_length=True),
     )
     uuids_to = [
-        to_collection.data.insert(properties={"int": 0, "text": "first"}),
-        to_collection.data.insert(properties={"int": 15, "text": "second"}),
+        to_collection.data.insert(properties={"int": 0, "text": "first"}, uuid=UUID1),
+        to_collection.data.insert(properties={"int": 15, "text": "second"}, uuid=UUID2),
     ]
     from_collection = client.collections.create(
         name="TestFilterRef",
@@ -349,7 +355,7 @@ def test_ref_filters(
     assert all(obj.uuid in uuids for obj in objects)
 
 
-def test_ref_filters_multi_target(client: weaviate.WeaviateClient):
+def test_ref_filters_multi_target(client: weaviate.WeaviateClient) -> None:
     target = "TestFilterRefMulti2"
     source = "TestFilterRefMulti"
     client.collections.delete(source)
@@ -727,7 +733,7 @@ def test_delete_many_simple(
     objects: List[DataObject],
     where: _FilterValue,
     expected_len: int,
-):
+) -> None:
     name = "TestDeleteManySimple"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -744,7 +750,7 @@ def test_delete_many_simple(
     assert len(objects) == expected_len
 
 
-def test_delete_many_and(client: weaviate.WeaviateClient):
+def test_delete_many_and(client: weaviate.WeaviateClient) -> None:
     name = "TestDeleteManyAnd"
     collection = client.collections.create(
         name=name,
@@ -773,7 +779,7 @@ def test_delete_many_and(client: weaviate.WeaviateClient):
     assert objects[0].properties["name"] == "Tommy"
 
 
-def test_delete_many_or(client: weaviate.WeaviateClient):
+def test_delete_many_or(client: weaviate.WeaviateClient) -> None:
     name = "TestDeleteManyOr"
     collection = client.collections.create(
         name=name,
@@ -800,7 +806,7 @@ def test_delete_many_or(client: weaviate.WeaviateClient):
     assert objects[0].properties["name"] == "Tim"
 
 
-def test_delete_many_return(client: weaviate.WeaviateClient):
+def test_delete_many_return(client: weaviate.WeaviateClient) -> None:
     name = "TestDeleteManyReturn"
     collection = client.collections.create(
         name=name,
@@ -819,3 +825,52 @@ def test_delete_many_return(client: weaviate.WeaviateClient):
     assert ret.matches == 1
     assert ret.objects is None
     assert ret.successful == 1
+
+
+def test_filter_id(client: weaviate.WeaviateClient) -> None:
+    name = "TestFilterMetadata"
+    client.collections.delete(name)
+    collection = client.collections.create(
+        name=name,
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    batch_ret = collection.data.insert_many(
+        [
+            DataObject(properties={"name": "first"}),
+            DataObject(properties={"name": "second"}),
+        ]
+    )
+
+    filters = Filter(path=["_id"]).equal(batch_ret.uuids[0])
+    objects = collection.query.fetch_objects(filters=filters).objects
+
+    assert len(objects) == 1
+    assert objects[0].uuid == batch_ret.uuids[0]
+
+
+@pytest.mark.parametrize("path", ["_creationTimeUnix", "_lastUpdateTimeUnix"])
+def test_filter_timestamp(client: weaviate.WeaviateClient, path: str) -> None:
+    name = "TestFilterMetadataTime"
+    client.collections.delete(name)
+    collection = client.collections.create(
+        name=name,
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(index_timestamps=True),
+    )
+    obj1 = collection.data.insert(properties={"name": "first"})
+    now = datetime.datetime.now(datetime.timezone.utc)
+    collection.data.insert(properties={"name": "second"})
+
+    filters = Filter(path=[path]).less_than(now)
+    objects = collection.query.fetch_objects(
+        filters=filters, return_metadata=MetadataQuery(creation_time_unix=True)
+    ).objects
+
+    assert len(objects) == 1
+    assert objects[0].uuid == obj1
