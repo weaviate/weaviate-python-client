@@ -1,4 +1,3 @@
-import datetime
 import io
 import pathlib
 import re
@@ -53,7 +52,7 @@ from weaviate.collections.classes.types import (
 from weaviate.collections.grpc.query import _QueryGRPC, GroupByResult, SearchResponse
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGrpcUnavailable, WeaviateQueryException
-from weaviate.util import file_encoder_b64, parse_version_string
+from weaviate.util import file_encoder_b64, parse_version_string, _datetime_from_weaviate_str
 from weaviate.proto.v1 import search_get_pb2, properties_pb2
 
 T = TypeVar("T")
@@ -149,7 +148,7 @@ class _Grpc(Generic[Properties]):
         if value.HasField("uuid_value"):
             return uuid_lib.UUID(value.uuid_value)
         if value.HasField("date_value"):
-            return datetime.datetime.fromisoformat(value.date_value)
+            return _datetime_from_weaviate_str(value.date_value)
         if value.HasField("string_value"):
             return str(value.string_value)
         if value.HasField("int_value"):
