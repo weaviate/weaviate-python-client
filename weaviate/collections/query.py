@@ -6,12 +6,10 @@ from typing import (
 
 from weaviate.collections.classes.config import ConsistencyLevel
 
-from weaviate.collections.classes.internal import _Object
 from weaviate.collections.classes.types import TProperties
 
-from weaviate.collections.data import _DataCollection
-
 from weaviate.collections.queries.bm25 import _BM25Generate, _BM25Query
+from weaviate.collections.queries.fetch_object_by_id import _FetchObjectByIDQuery
 from weaviate.collections.queries.fetch_objects import _FetchObjectsGenerate, _FetchObjectsQuery
 from weaviate.collections.queries.hybrid import _HybridGenerate, _HybridQuery
 from weaviate.collections.queries.near_audio import (
@@ -46,13 +44,13 @@ from weaviate.collections.queries.near_video import (
 )
 
 from weaviate.connect import Connection
-from weaviate.types import UUID
 
 
 class _QueryCollection(
     Generic[TProperties],
     _BM25Query[TProperties],
     _FetchObjectsQuery[TProperties],
+    _FetchObjectByIDQuery[TProperties],
     _HybridQuery,
     _NearAudioQuery,
     _NearImageQuery,
@@ -65,35 +63,11 @@ class _QueryCollection(
         self,
         connection: Connection,
         name: str,
-        rest_query: _DataCollection[TProperties],
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
         type_: Optional[Type[TProperties]],
     ):
         super().__init__(connection, name, consistency_level, tenant, type_)
-        self.__data = rest_query
-
-    def fetch_object_by_id(
-        self, uuid: UUID, include_vector: bool = False
-    ) -> Optional[_Object[TProperties]]:
-        """Retrieve an object from the server by its UUID.
-
-        Arguments:
-            `uuid`
-                The UUID of the object to retrieve, REQUIRED.
-            `include_vector`
-                Whether to include the vector in the returned object.
-
-        Raises:
-            `weaviate.exceptions.WeaviateQueryException`:
-                If the network connection to Weaviate fails.
-            `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
-                If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
-        """
-        ret = self.__data._get_by_id(uuid=uuid, include_vector=include_vector)
-        if ret is None:
-            return ret
-        return self.__data._json_to_object(ret)
 
 
 class _GenerateCollection(
