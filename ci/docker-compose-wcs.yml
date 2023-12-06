@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview--wip-optimize-more-float-lists-0f71f35
+    image: semitechnologies/weaviate:preview-introduce-custom-pb-properties-message-to-contain-type-aware-properties-within-search-result-d912b66
     ports:
       - 8085:8085
     restart: on-failure:0

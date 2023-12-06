@@ -3,7 +3,6 @@ import io
 import pathlib
 import re
 import struct
-import sys
 from typing import (
     Any,
     Dict,
@@ -17,14 +16,9 @@ from typing import (
 )
 from typing_extensions import is_typeddict
 
-if sys.version_info < (3, 9):
-    from typing_extensions import Annotated, get_type_hints, get_origin
-else:
-    from typing import Annotated, get_type_hints, get_origin
-
 import uuid as uuid_lib
 
-from google.protobuf import struct_pb2
+from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
@@ -41,8 +35,6 @@ from weaviate.collections.classes.internal import (
     _GenerativeObject,
     _Object,
     _Reference,
-    _extract_property_type_from_annotated_reference,
-    _extract_property_type_from_reference,
     _extract_properties_from_data_model,
     _GenerativeReturn,
     _GroupByResult,
@@ -62,7 +54,7 @@ from weaviate.collections.grpc.query import _QueryGRPC, GroupByResult, SearchRes
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGrpcUnavailable, WeaviateQueryException
 from weaviate.util import file_encoder_b64, parse_version_string
-from weaviate.proto.v1 import base_pb2, search_get_pb2
+from weaviate.proto.v1 import search_get_pb2, struct_pb2
 
 T = TypeVar("T")
 
@@ -86,15 +78,11 @@ class _Grpc(Generic[Properties]):
         self.__tenant = tenant
         self.__consistency_level = consistency_level
         self._type = type_
-        self.__type_hints = self.__get_type_hints(type_)
         self.__support_byte_vectors = (
             parse_version_string(self.__connection.server_version) > parse_version_string("1.22")
             if self.__connection.server_version != ""
             else True
         )
-
-    def __get_type_hints(self, type_: Optional[Any]) -> Dict[str, Any]:
-        return get_type_hints(type_) if get_origin(type_) is not dict and type_ is not None else {}
 
     def _query(self) -> _QueryGRPC:
         if not self.__connection._grpc_available:
@@ -156,136 +144,70 @@ class _Grpc(Generic[Properties]):
     ) -> Optional[str]:
         return add_props.generative if add_props.generative_present else None
 
-    def __deserialize_primitive(self, value: Any, type_value: Any) -> Any:
-        if type_value == uuid_lib.UUID:
-            return uuid_lib.UUID(value)
-        if type_value == datetime.datetime:
-            return datetime.datetime.fromisoformat(value)
-        if isinstance(type_value, list):
-            return [
-                self.__deserialize_primitive(val, type_value[idx]) for idx, val in enumerate(value)
-            ]
-        if isinstance(value, struct_pb2.Struct):
-            raise ValueError(
-                f"The query returned an object value where it expected a primitive. Have you missed a NestedProperty specification in your query? {value}"
-            )
+    def __deserialize_non_ref_prop(self, value: struct_pb2.Value) -> Any:
+        if value.HasField("uuid_value"):
+            return uuid_lib.UUID(value.uuid_value)
+        if value.HasField("date_value"):
+            return datetime.datetime.fromisoformat(value.date_value)
+        if value.HasField("string_value"):
+            return str(value.string_value)
+        if value.HasField("int_value"):
+            return int(value.int_value)
+        if value.HasField("number_value"):
+            return float(value.number_value)
+        if value.HasField("bool_value"):
+            return bool(value.bool_value)
+        if value.HasField("list_value"):
+            return [self.__deserialize_non_ref_prop(val) for val in value.list_value.values]
+        if value.HasField("object_value"):
+            return self.__parse_nonref_properties_result(value.object_value)
         return value
 
     def __parse_nonref_properties_result(
         self,
-        properties: Union[search_get_pb2.PropertiesResult, base_pb2.ObjectPropertiesValue],
-        type_hints: dict,
+        properties: struct_pb2.Struct,
     ) -> dict:
-        result: dict = {}
-
-        for name, non_ref_prop in properties.non_ref_properties.items():
-            result[name] = self.__deserialize_primitive(non_ref_prop, type_hints.get(name))
-
-        for number_array_property in properties.number_array_properties:
-            if len(number_array_property.values_bytes) > 0:
-                result[number_array_property.prop_name] = list(
-                    struct.unpack(
-                        f"{len(number_array_property.values_bytes)//8}d",
-                        number_array_property.values_bytes,
-                    )
-                )
-            else:
-                # backward compatibility
-                result[number_array_property.prop_name] = [
-                    float(val) for val in number_array_property.values
-                ]
-
-        for int_array_property in properties.int_array_properties:
-            result[int_array_property.prop_name] = [int(val) for val in int_array_property.values]
-
-        for text_array_property in properties.text_array_properties:
-            result[text_array_property.prop_name] = [str(val) for val in text_array_property.values]
-
-        for boolean_array_property in properties.boolean_array_properties:
-            result[boolean_array_property.prop_name] = [
-                bool(val) for val in boolean_array_property.values
-            ]
-
-        for object_property in properties.object_properties:
-            result[object_property.prop_name] = self.__parse_nonref_properties_result(
-                object_property.value,
-                self.__get_type_hints(type_hints.get(object_property.prop_name)),
-            )
-
-        for object_array_property in properties.object_array_properties:
-            result[object_array_property.prop_name] = [
-                self.__parse_nonref_properties_result(
-                    object_property,
-                    self.__get_type_hints(
-                        type_hints.get(
-                            object_array_property.prop_name,
-                            [None for _ in range(len(object_array_property.values))][i],
-                        )
-                    ),
-                )
-                for i, object_property in enumerate(object_array_property.values)
-            ]
-
-        return result
+        return {
+            name: self.__deserialize_non_ref_prop(value)
+            for name, value in properties.fields.items()
+        }
 
     def __parse_ref_properties_result(
-        self, properties: "search_get_pb2.PropertiesResult", type_hints: dict
+        self, properties: RepeatedCompositeFieldContainer[search_get_pb2.RefPropertiesResult]
     ) -> dict:
-        result: dict = {}
-        if len(properties.ref_props) == 0:
-            return result
-        for ref_prop in properties.ref_props:
-            hint = type_hints.get(ref_prop.prop_name)
-            if hint is not None:
-                if get_origin(hint) is Annotated:
-                    referenced_property_type = _extract_property_type_from_annotated_reference(hint)
-                else:
-                    assert get_origin(hint) is _Reference
-                    referenced_property_type = _extract_property_type_from_reference(hint)
-                result[ref_prop.prop_name] = _Reference._from(
-                    [
-                        self.__result_to_query_object(
-                            prop,
-                            prop.metadata,
-                            self.__get_type_hints(referenced_property_type),
-                            referenced_property_type,
-                            _QueryOptions(True, True, True),
-                        )
-                        for prop in ref_prop.properties
-                    ]
-                )
-            else:
-                result[ref_prop.prop_name] = _Reference._from(
-                    [
-                        self.__result_to_query_object(
-                            prop, prop.metadata, {}, Dict[str, Any], _QueryOptions(True, True, True)
-                        )
-                        for prop in ref_prop.properties
-                    ]
-                )
-        return result
+        if len(properties) == 0:
+            return {}
+        return {
+            ref_prop.prop_name: _Reference._from(
+                [
+                    self.__result_to_query_object(
+                        prop, prop.metadata, Dict[str, Any], _QueryOptions(True, True, True)
+                    )
+                    for prop in ref_prop.properties
+                ]
+            )
+            for ref_prop in properties
+        }
 
     def __parse_result(
         self,
-        properties: "search_get_pb2.PropertiesResult",
-        type_hints: Dict[str, Any],
+        properties: search_get_pb2.PropertiesResult,
     ) -> dict:
-        nonref_result = self.__parse_nonref_properties_result(properties, type_hints)
-        ref_result = self.__parse_ref_properties_result(properties, type_hints)
+        nonref_result = self.__parse_nonref_properties_result(properties.non_ref_props)
+        ref_result = self.__parse_ref_properties_result(properties.ref_props)
         return {**nonref_result, **ref_result}
 
     def __result_to_query_object(
         self,
         props: search_get_pb2.PropertiesResult,
         meta: search_get_pb2.MetadataResult,
-        type_hints: Dict[str, Any],
-        type_: Optional[Type[T]],
+        type_: Optional[
+            Type[T]
+        ],  # required until 3.12 is minimum supported version to use new generics syntax
         options: _QueryOptions,
     ) -> _Object[T]:
         return _Object[T](
-            properties=cast(
-                T, self.__parse_result(props, type_hints) if options.include_properties else {}
-            ),
+            properties=cast(T, self.__parse_result(props) if options.include_properties else {}),
             metadata=self.__extract_metadata_for_object(meta) if options.include_metadata else None,
             uuid=self.__extract_id_for_object(meta),
             vector=self.__extract_vector_for_object(meta) if options.include_vector else None,
@@ -295,14 +217,13 @@ class _Grpc(Generic[Properties]):
         self,
         props: search_get_pb2.PropertiesResult,
         meta: search_get_pb2.MetadataResult,
-        type_hints: Dict[str, Any],
-        type_: Optional[Type[T]],
+        type_: Optional[
+            Type[T]
+        ],  # required until 3.12 is minimum supported version to use new generics syntax
         options: _QueryOptions,
     ) -> _GenerativeObject[T]:
         return _GenerativeObject[T](
-            properties=cast(
-                T, self.__parse_result(props, type_hints) if options.include_properties else {}
-            ),
+            properties=cast(T, self.__parse_result(props) if options.include_properties else {}),
             metadata=self.__extract_metadata_for_object(meta) if options.include_metadata else None,
             uuid=self.__extract_id_for_object(meta),
             vector=self.__extract_vector_for_object(meta) if options.include_vector else None,
@@ -312,15 +233,14 @@ class _Grpc(Generic[Properties]):
     def __result_to_group(
         self,
         res: GroupByResult,
-        type_hints: Dict[str, Any],
-        type_: Optional[Type[T]],
+        type_: Optional[
+            Type[T]
+        ],  # required until 3.12 is minimum supported version to use new generics syntax
         options: _QueryOptions,
     ) -> _GroupByResult[T]:
         return _GroupByResult[T](
             objects=[
-                self.__result_to_query_object(
-                    obj.properties, obj.metadata, type_hints, type_, options
-                )
+                self.__result_to_query_object(obj.properties, obj.metadata, type_, options)
                 for obj in res.objects
             ],
             name=res.name,
@@ -332,26 +252,23 @@ class _Grpc(Generic[Properties]):
     def _result_to_query_return(
         self,
         res: SearchResponse,
-        type_: Optional[ReturnProperties[TProperties]],
+        type_: Optional[
+            ReturnProperties[TProperties]
+        ],  # required until 3.12 is minimum supported version to use new generics syntax
         options: _QueryOptions,
     ) -> QueryReturn[Properties, TProperties]:
         if is_typeddict(type_):
             type_ = cast(Type[TProperties], type_)  # we know it's a typeddict
-            type_hints = self.__get_type_hints(type_)
             return _QueryReturn[TProperties](
                 objects=[
-                    self.__result_to_query_object(
-                        obj.properties, obj.metadata, type_hints, type_, options
-                    )
+                    self.__result_to_query_object(obj.properties, obj.metadata, type_, options)
                     for obj in res.results
                 ]
             )
         else:
             return _QueryReturn[Properties](
                 objects=[
-                    self.__result_to_query_object(
-                        obj.properties, obj.metadata, self.__type_hints, self._type, options
-                    )
+                    self.__result_to_query_object(obj.properties, obj.metadata, self._type, options)
                     for obj in res.results
                 ]
             )
@@ -359,17 +276,16 @@ class _Grpc(Generic[Properties]):
     def _result_to_generative_return(
         self,
         res: SearchResponse,
-        type_: Optional[ReturnProperties[TProperties]],
+        type_: Optional[
+            ReturnProperties[TProperties]
+        ],  # required until 3.12 is minimum supported version to use new generics syntax
         options: _QueryOptions,
     ) -> GenerativeReturn[Properties, TProperties]:
         if is_typeddict(type_):
             type_ = cast(Type[TProperties], type_)  # we know it's a typeddict
-            type_hints = self.__get_type_hints(type_)
             return _GenerativeReturn[TProperties](
                 objects=[
-                    self.__result_to_generative_object(
-                        obj.properties, obj.metadata, type_hints, type_, options
-                    )
+                    self.__result_to_generative_object(obj.properties, obj.metadata, type_, options)
                     for obj in res.results
                 ],
                 generated=res.generative_grouped_result
@@ -380,7 +296,7 @@ class _Grpc(Generic[Properties]):
             return _GenerativeReturn[Properties](
                 objects=[
                     self.__result_to_generative_object(
-                        obj.properties, obj.metadata, self.__type_hints, self._type, options
+                        obj.properties, obj.metadata, self._type, options
                     )
                     for obj in res.results
                 ],
@@ -392,14 +308,15 @@ class _Grpc(Generic[Properties]):
     def _result_to_groupby_return(
         self,
         res: SearchResponse,
-        type_: Optional[ReturnProperties[TProperties]],
+        type_: Optional[
+            ReturnProperties[TProperties]
+        ],  # required until 3.12 is minimum supported version to use new generics syntax
         options: _QueryOptions,
     ) -> GroupByReturn[Properties, TProperties]:
         if is_typeddict(type_):
             type_ = cast(Type[TProperties], type_)  # we know it's a typeddict
-            type_hints = self.__get_type_hints(type_)
             groups = {
-                group.name: self.__result_to_group(group, type_hints, type_, options)
+                group.name: self.__result_to_group(group, type_, options)
                 for group in res.group_by_results
             }
             objects_group_by = [
@@ -416,7 +333,7 @@ class _Grpc(Generic[Properties]):
             return _GroupByReturn[TProperties](objects=objects_group_by, groups=groups)
         else:
             groupss = {
-                group.name: self.__result_to_group(group, self.__type_hints, self._type, options)
+                group.name: self.__result_to_group(group, self._type, options)
                 for group in res.group_by_results
             }
             objects_group_byy = [

@@ -1,5 +1,6 @@
 from google.protobuf import struct_pb2 as _struct_pb2
 from weaviate.proto.v1 import base_pb2 as _base_pb2
+from weaviate.proto.v1 import struct_pb2 as _struct_pb2_1
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -37,6 +38,7 @@ class SearchRequest(_message.Message):
         "near_audio",
         "near_video",
         "generative",
+        "uses_weaviate_struct",
     ]
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     TENANT_FIELD_NUMBER: _ClassVar[int]
@@ -59,6 +61,7 @@ class SearchRequest(_message.Message):
     NEAR_AUDIO_FIELD_NUMBER: _ClassVar[int]
     NEAR_VIDEO_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_FIELD_NUMBER: _ClassVar[int]
+    USES_WEAVIATE_STRUCT_FIELD_NUMBER: _ClassVar[int]
     collection: str
     tenant: str
     consistency_level: _base_pb2.ConsistencyLevel
@@ -80,6 +83,7 @@ class SearchRequest(_message.Message):
     near_audio: NearAudioSearch
     near_video: NearVideoSearch
     generative: GenerativeSearch
+    uses_weaviate_struct: bool
     def __init__(
         self,
         collection: _Optional[str] = ...,
@@ -103,6 +107,7 @@ class SearchRequest(_message.Message):
         near_audio: _Optional[_Union[NearAudioSearch, _Mapping]] = ...,
         near_video: _Optional[_Union[NearVideoSearch, _Mapping]] = ...,
         generative: _Optional[_Union[GenerativeSearch, _Mapping]] = ...,
+        uses_weaviate_struct: bool = ...,
     ) -> None: ...
 
 class GroupBy(_message.Message):
@@ -643,6 +648,7 @@ class PropertiesResult(_message.Message):
         "boolean_array_properties",
         "object_properties",
         "object_array_properties",
+        "non_ref_props",
     ]
     NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     REF_PROPS_FIELD_NUMBER: _ClassVar[int]
@@ -654,6 +660,7 @@ class PropertiesResult(_message.Message):
     BOOLEAN_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     OBJECT_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     OBJECT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    NON_REF_PROPS_FIELD_NUMBER: _ClassVar[int]
     non_ref_properties: _struct_pb2.Struct
     ref_props: _containers.RepeatedCompositeFieldContainer[RefPropertiesResult]
     target_collection: str
@@ -672,6 +679,7 @@ class PropertiesResult(_message.Message):
     object_array_properties: _containers.RepeatedCompositeFieldContainer[
         _base_pb2.ObjectArrayProperties
     ]
+    non_ref_props: _struct_pb2_1.Struct
     def __init__(
         self,
         non_ref_properties: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...,
@@ -694,6 +702,7 @@ class PropertiesResult(_message.Message):
         object_array_properties: _Optional[
             _Iterable[_Union[_base_pb2.ObjectArrayProperties, _Mapping]]
         ] = ...,
+        non_ref_props: _Optional[_Union[_struct_pb2_1.Struct, _Mapping]] = ...,
     ) -> None: ...
 
 class RefPropertiesResult(_message.Message):

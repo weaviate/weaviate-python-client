@@ -63,7 +63,7 @@ DATE3 = datetime.datetime.strptime("2019-06-10", "%Y-%m-%d").replace(tzinfo=date
 def client():
     client = weaviate.WeaviateClient(
         connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080", 50051),
-        skip_init_checks=True,
+        skip_init_checks=False,
     )
     client.collections.delete_all()
     yield client
@@ -1269,19 +1269,6 @@ def test_return_list_properties(client: weaviate.WeaviateClient):
     collection.data.insert(properties=data)
     objects = collection.query.fetch_objects().objects
     assert len(objects) == 1
-
-    # remove dates because of problems comparing dates
-    dates_from_weaviate = objects[0].properties.pop("dates")
-    dates2 = [datetime.datetime.fromisoformat(date) for date in dates_from_weaviate]
-    dates = data.pop("dates")
-    assert dates2 == dates
-
-    # remove uuids because weaviate returns them as strings
-    uuids_from_weaviate = objects[0].properties.pop("uuids")
-    uuids2 = [uuid.UUID(uuids) for uuids in uuids_from_weaviate]
-    uuids = data.pop("uuids")
-    assert uuids2 == uuids
-
     assert objects[0].properties == data
 
 
