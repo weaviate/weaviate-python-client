@@ -118,6 +118,8 @@ class _Collections(_CollectionsBase):
             `weaviate.exceptions.InvalidDataModelException`
                 If the data model is not a valid data model, i.e., it is not a `dict` nor a `TypedDict`.
         """
+        if not isinstance(name, str):
+            raise TypeError(f"Expected name to be of type str, but got {type(name)}")
         _check_data_model(data_model)
         name = _capitalize_first_letter(name)
         return Collection[Properties](self._connection, name, type_=data_model)
@@ -140,9 +142,15 @@ class _Collections(_CollectionsBase):
         """
         if isinstance(name, str):
             self._delete(_capitalize_first_letter(name))
-        else:
+        elif isinstance(name, list):
+            if not all(isinstance(n, str) for n in name):
+                raise TypeError(
+                    f"Expected name to be of type str or List[str], but got {type(name)}"
+                )
             for n in name:
                 self._delete(_capitalize_first_letter(n))
+        else:
+            raise TypeError(f"Expected name to be of type str or List[str], but got {type(name)}")
 
     def delete_all(self) -> None:
         """Use this method to delete all collections from the Weaviate instance.
@@ -175,6 +183,8 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeException`
                 If Weaviate reports a non-OK status.
         """
+        if not isinstance(name, str):
+            raise TypeError(f"Expected name to be of type str, but got {type(name)}")
         return self._exists(_capitalize_first_letter(name))
 
     @overload
@@ -204,6 +214,8 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeException`
                 If Weaviate reports a non-OK status.
         """
+        if not isinstance(simple, bool):
+            raise TypeError(f"Expected simple to be of type bool, but got {type(simple)}")
         if simple:
             return self._get_simple()
         return self._get_all()
