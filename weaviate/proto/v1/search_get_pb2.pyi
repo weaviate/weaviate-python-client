@@ -1,6 +1,6 @@
 from google.protobuf import struct_pb2 as _struct_pb2
 from weaviate.proto.v1 import base_pb2 as _base_pb2
-from weaviate.proto.v1 import struct_pb2 as _struct_pb2_1
+from weaviate.proto.v1 import properties_pb2 as _properties_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -679,7 +679,7 @@ class PropertiesResult(_message.Message):
     object_array_properties: _containers.RepeatedCompositeFieldContainer[
         _base_pb2.ObjectArrayProperties
     ]
-    non_ref_props: _struct_pb2_1.Struct
+    non_ref_props: _properties_pb2.Properties
     def __init__(
         self,
         non_ref_properties: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...,
@@ -702,7 +702,7 @@ class PropertiesResult(_message.Message):
         object_array_properties: _Optional[
             _Iterable[_Union[_base_pb2.ObjectArrayProperties, _Mapping]]
         ] = ...,
-        non_ref_props: _Optional[_Union[_struct_pb2_1.Struct, _Mapping]] = ...,
+        non_ref_props: _Optional[_Union[_properties_pb2.Properties, _Mapping]] = ...,
     ) -> None: ...
 
 class RefPropertiesResult(_message.Message):

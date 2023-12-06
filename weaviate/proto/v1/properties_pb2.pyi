@@ -11,7 +11,7 @@ from typing import (
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
-class Struct(_message.Message):
+class Properties(_message.Message):
     __slots__ = ["fields"]
 
     class FieldsEntry(_message.Message):
@@ -49,7 +49,7 @@ class Value(_message.Message):
     number_value: float
     string_value: str
     bool_value: bool
-    object_value: Struct
+    object_value: Properties
     list_value: ListValue
     date_value: str
     uuid_value: str
@@ -59,7 +59,7 @@ class Value(_message.Message):
         number_value: _Optional[float] = ...,
         string_value: _Optional[str] = ...,
         bool_value: bool = ...,
-        object_value: _Optional[_Union[Struct, _Mapping]] = ...,
+        object_value: _Optional[_Union[Properties, _Mapping]] = ...,
         list_value: _Optional[_Union[ListValue, _Mapping]] = ...,
         date_value: _Optional[str] = ...,
         uuid_value: _Optional[str] = ...,

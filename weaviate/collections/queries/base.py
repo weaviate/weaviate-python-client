@@ -54,7 +54,7 @@ from weaviate.collections.grpc.query import _QueryGRPC, GroupByResult, SearchRes
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGrpcUnavailable, WeaviateQueryException
 from weaviate.util import file_encoder_b64, parse_version_string
-from weaviate.proto.v1 import search_get_pb2, struct_pb2
+from weaviate.proto.v1 import search_get_pb2, properties_pb2
 
 T = TypeVar("T")
 
@@ -144,7 +144,8 @@ class _Grpc(Generic[Properties]):
     ) -> Optional[str]:
         return add_props.generative if add_props.generative_present else None
 
-    def __deserialize_non_ref_prop(self, value: struct_pb2.Value) -> Any:
+    def __deserialize_non_ref_prop(self, value: properties_pb2.Value) -> Any:
+        print(value)
         if value.HasField("uuid_value"):
             return uuid_lib.UUID(value.uuid_value)
         if value.HasField("date_value"):
@@ -165,7 +166,7 @@ class _Grpc(Generic[Properties]):
 
     def __parse_nonref_properties_result(
         self,
-        properties: struct_pb2.Struct,
+        properties: properties_pb2.Properties,
     ) -> dict:
         return {
             name: self.__deserialize_non_ref_prop(value)
