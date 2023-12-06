@@ -1,4 +1,5 @@
 import datetime
+import time
 import uuid
 from typing import List
 
@@ -864,7 +865,9 @@ def test_filter_timestamp(client: weaviate.WeaviateClient, path: str) -> None:
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
     )
     obj1 = collection.data.insert(properties={"name": "first"})
+    time.sleep(0.5)
     now = datetime.datetime.now(datetime.timezone.utc)
+    time.sleep(0.5)
     collection.data.insert(properties={"name": "second"})
 
     filters = Filter(path=[path]).less_than(now)
