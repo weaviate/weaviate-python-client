@@ -6,7 +6,8 @@ from weaviate.collections.classes.filters import (
 from weaviate.collections.classes.grpc import MetadataQuery
 
 from weaviate.collections.classes.internal import (
-    _Object,
+    _MetadataSingleObjectReturn,
+    _ObjectSingleReturn,
     ReturnProperties,
     _QueryOptions,
 )
@@ -21,7 +22,7 @@ class _FetchObjectByIDQuery(Generic[Properties], _Grpc[Properties]):
         uuid: UUID,
         return_properties: Optional[ReturnProperties[Properties]] = None,
         include_vector: bool = False,
-    ) -> Optional[_Object[Properties]]:
+    ) -> Optional[_ObjectSingleReturn[Properties]]:
         """Retrieve an object from the server by its UUID.
 
         Arguments:
@@ -56,4 +57,18 @@ class _FetchObjectByIDQuery(Generic[Properties], _Grpc[Properties]):
         if len(objects.objects) == 0:
             return None
 
-        return objects.objects[0]
+        obj = objects.objects[0]
+        assert obj.metadata is not None
+        assert obj.metadata.creation_time_unix is not None
+        assert obj.metadata.last_update_time_unix is not None
+
+        return _ObjectSingleReturn(
+            uuid=obj.uuid,
+            vector=obj.vector,
+            properties=obj.properties,
+            metadata=_MetadataSingleObjectReturn(
+                creation_time_unix=obj.metadata.creation_time_unix,
+                last_update_time_unix=obj.metadata.last_update_time_unix,
+                is_consistent=obj.metadata.is_consistent,
+            ),
+        )
