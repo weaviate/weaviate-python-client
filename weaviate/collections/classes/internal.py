@@ -158,6 +158,9 @@ class _RawGQLReturn:
 
 
 QueryReturn: TypeAlias = Union[_QueryReturn[Properties], _QueryReturn[TProperties]]
+QuerySingleObjectReturn: TypeAlias = Union[
+    _ObjectSingleReturn[Properties], _ObjectSingleReturn[TProperties]
+]
 GenerativeReturn: TypeAlias = Union[_GenerativeReturn[Properties], _GenerativeReturn[TProperties]]
 GroupByReturn: TypeAlias = Union[_GroupByReturn[Properties], _GroupByReturn[TProperties]]
 

@@ -1557,7 +1557,7 @@ def test_return_properties_with_general_typed_dict(client: weaviate.WeaviateClie
 
 def test_return_properties_with_query_specific_typed_dict_overwriting_general_typed_dict(
     client: weaviate.WeaviateClient,
-):
+) -> None:
     name = "TestReturnListWithModel"
     client.collections.delete(name)
 
@@ -1582,6 +1582,11 @@ def test_return_properties_with_query_specific_typed_dict_overwriting_general_ty
     assert len(objects) == 1
     assert objects[0].properties["int_"] == 1
     assert "ints" not in objects[0].properties
+
+    obj = collection.query.fetch_object_by_id(objects[0].uuid, return_properties=_Data)
+    assert obj is not None
+    assert "ints" not in obj.properties
+    assert obj.properties["int_"] == 1
 
 
 def test_batch_with_arrays(client: weaviate.WeaviateClient) -> None:
