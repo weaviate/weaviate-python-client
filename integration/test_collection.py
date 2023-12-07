@@ -63,7 +63,7 @@ DATE3 = datetime.datetime.strptime("2019-06-10", "%Y-%m-%d").replace(tzinfo=date
 def client():
     client = weaviate.WeaviateClient(
         connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080", 50051),
-        skip_init_checks=True,
+        skip_init_checks=False,
     )
     client.collections.delete_all()
     yield client
@@ -1860,3 +1860,21 @@ def test_iterator_with_default_generic(client: weaviate.WeaviateClient):
     for datum in iter__:
         assert datum.properties["this"] == "this"
         assert "that" not in datum.properties
+
+
+def test_return_properties_with_type_hint_generic(client: weaviate.WeaviateClient):
+    name = "TestReturnListWithModel"
+    client.collections.delete(name)
+
+    client.collections.create(
+        name=name,
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+    )
+    collection = client.collections.get(name, Dict[str, str])
+    collection.data.insert(properties={"name": "bob"})
+    objects = collection.query.fetch_objects().objects
+    assert len(objects) == 1
+    assert objects[0].properties["name"] == "bob"
