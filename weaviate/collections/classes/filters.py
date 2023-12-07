@@ -223,78 +223,61 @@ class _FilterId:
 
 
 class _FilterTime:
-    _internal_path: Optional[List[str]] = None
-
     @staticmethod
-    def contains_any(
-        dates: List[DATE], on_reference_path: Optional[List[str]] = None
-    ) -> _FilterValue:
-        """Filter for objects that have one of the given Times."""
+    def contains_any(dates: List[DATE], on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
-            path=_FilterCreationTime._prepare_path(path=on_reference_path),
-            value=[_FilterCreationTime._convert_date(date) for date in dates],
+            path=on_reference_path,
+            value=[_FilterTime._convert_date(date) for date in dates],
             operator=_Operator.CONTAINS_ANY,
         )
 
     @staticmethod
-    def equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
-        """Filter for objects that have the given time."""
+    def equal(date: DATE, on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
-            path=_FilterCreationTime._prepare_path(path=on_reference_path),
-            value=_FilterCreationTime._convert_date(date),
+            path=on_reference_path,
+            value=_FilterTime._convert_date(date),
             operator=_Operator.EQUAL,
         )
 
     @staticmethod
-    def not_equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
-        """Filter our objects that have the given time."""
+    def not_equal(date: DATE, on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
-            path=_FilterCreationTime._prepare_path(path=on_reference_path),
-            value=_FilterCreationTime._convert_date(date),
+            path=on_reference_path,
+            value=_FilterTime._convert_date(date),
             operator=_Operator.NOT_EQUAL,
         )
 
     @staticmethod
-    def less_than(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
-        """Filter on whether the time is less than the given value."""
+    def less_than(date: DATE, on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
-            path=_FilterCreationTime._prepare_path(path=on_reference_path),
-            value=_FilterCreationTime._convert_date(date),
+            path=on_reference_path,
+            value=_FilterTime._convert_date(date),
             operator=_Operator.LESS_THAN,
         )
 
     @staticmethod
-    def less_or_equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
-        """Filter on whether the time is less than or equal to the given value."""
+    def less_or_equal(date: DATE, on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
-            path=_FilterCreationTime._prepare_path(path=on_reference_path),
-            value=_FilterCreationTime._convert_date(date),
+            path=on_reference_path,
+            value=_FilterTime._convert_date(date),
             operator=_Operator.LESS_THAN_EQUAL,
         )
 
     @staticmethod
-    def greater_than(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
-        """Filter on whether the time is greater than the given value."""
+    def greater_than(date: DATE, on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
-            path=_FilterCreationTime._prepare_path(path=on_reference_path),
-            value=_FilterCreationTime._convert_date(date),
+            path=on_reference_path,
+            value=_FilterTime._convert_date(date),
             operator=_Operator.GREATER_THAN,
         )
 
     @staticmethod
-    def greater_or_equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
-        """Filter on whether the time is greater than or equal to the given value."""
+    def greater_or_equal(date: DATE, on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
-            path=_FilterCreationTime._prepare_path(path=on_reference_path),
-            value=_FilterCreationTime._convert_date(date),
+            path=on_reference_path,
+            value=_FilterTime._convert_date(date),
             operator=_Operator.GREATER_THAN_EQUAL,
         )
-
-    @staticmethod
-    def _prepare_path(path: Optional[List[str]]) -> List[str]:
-        internal_path = _FilterTime._internal_path
-        assert internal_path is not None
-        return path or [] + internal_path
 
     @staticmethod
     def _convert_date(date: DATE) -> datetime:
@@ -305,21 +288,198 @@ class _FilterTime:
 
 
 class _FilterCreationTime(_FilterTime):
-    _FilterTime._internal_path = ["_creationTimeUnix"]
+    @staticmethod
+    def contains_any(
+        dates: List[DATE], on_reference_path: Optional[List[str]] = None
+    ) -> _FilterValue:
+        """Filter for objects that have been created at the given time.
+
+        Arguments:
+            `dates`
+                List of dates to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterTime.contains_any(dates, _FilterCreationTime._prepare_path(on_reference_path))
+
+    @staticmethod
+    def equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter on whether the creation time is equal to the given time.
+
+        Arguments:
+            `date`
+                date to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterTime.equal(date, _FilterCreationTime._prepare_path(on_reference_path))
+
+    @staticmethod
+    def not_equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter on whether the creation time is not equal to the given time.
+
+        Arguments:
+            `date`
+                date to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterTime.not_equal(date, _FilterCreationTime._prepare_path(on_reference_path))
+
+    @staticmethod
+    def less_than(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter on whether the creation time is less than the given time.
+
+        Arguments:
+            `date`
+                date to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterTime.less_than(date, _FilterCreationTime._prepare_path(on_reference_path))
+
+    @staticmethod
+    def less_or_equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter on whether the creation time is less than or equal to the given time.
+
+        Arguments:
+            `date`
+                date to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterTime.less_or_equal(date, _FilterCreationTime._prepare_path(on_reference_path))
+
+    @staticmethod
+    def greater_than(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter on whether the creation time is greater than the given time.
+
+        Arguments:
+            `date`
+                date to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterTime.greater_than(date, _FilterCreationTime._prepare_path(on_reference_path))
+
+    @staticmethod
+    def greater_or_equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter on whether the creation time is greater than or equal to the given time.
+
+        Arguments:
+            `date`
+                date to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterTime.greater_or_equal(
+            date, _FilterCreationTime._prepare_path(on_reference_path)
+        )
+
+    @staticmethod
+    def _prepare_path(path: Optional[List[str]]) -> List[str]:
+        return path or [] + ["_creationTimeUnix"]
 
 
-class _FilterUpdateTime(_FilterTime):
-    _FilterTime._internal_path = ["_creationTimeUnix"]
+class _FilterUpdateTime:
+    @staticmethod
+    def contains_any(
+        dates: List[DATE], on_reference_path: Optional[List[str]] = None
+    ) -> _FilterValue:
+        """Filter for objects that have been last update at the given time.
+
+        Arguments:
+            `dates`
+                List of dates to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterTime.contains_any(dates, _FilterUpdateTime._prepare_path(on_reference_path))
+
+    @staticmethod
+    def equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter on whether the last update time is equal to the given time.
+
+        Arguments:
+            `date`
+                date to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterTime.equal(date, _FilterUpdateTime._prepare_path(on_reference_path))
+
+    @staticmethod
+    def not_equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter on whether the last update time is not equal to the given time.
+
+        Arguments:
+            `date`
+                date to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterTime.not_equal(date, _FilterUpdateTime._prepare_path(on_reference_path))
+
+    @staticmethod
+    def less_than(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter on whether the last update time is less than the given time.
+
+        Arguments:
+            `date`
+                date to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterTime.less_than(date, _FilterUpdateTime._prepare_path(on_reference_path))
+
+    @staticmethod
+    def less_or_equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter on whether the last update time is less than or equal to the given time.
+
+        Arguments:
+            `date`
+                date to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterTime.less_or_equal(date, _FilterUpdateTime._prepare_path(on_reference_path))
+
+    @staticmethod
+    def greater_than(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter on whether the last update time is greater than the given time.
+
+        Arguments:
+            `date`
+                date to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterTime.greater_than(date, _FilterUpdateTime._prepare_path(on_reference_path))
+
+    @staticmethod
+    def greater_or_equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter on whether the last update time is greater than or equal to the given time.
+
+        Arguments:
+            `date`
+                date to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterTime.greater_or_equal(
+            date, _FilterUpdateTime._prepare_path(on_reference_path)
+        )
+
+    @staticmethod
+    def _prepare_path(path: Optional[List[str]]) -> List[str]:
+        return path or [] + ["_lastUpdateTimeUnix"]
 
 
 class FilterMetadata:
-    """Define a filter based on a property to be used when querying a collection.
-
-    Use the `__init__` method to define the path to the property to be filtered on and then
-    use the methods of this class to define the condition to filter on.
+    """Define a filter based on a ID, Creation- or LastUpdateTime  to be used when querying a collection.
 
     To combine multiple filters, you can use `&` or `|` operators for each `AND` or `OR` operations, e.g.,
-        `Filter("name").equal("John") & Filter("age").greater_than(18)`
+        `FilterMetadata.FilterById.equal(UUID) & Filter("age").greater_than(18)`
 
     See [the docs](https://weaviate.io/developers/weaviate/search/filters) for more details!
     """

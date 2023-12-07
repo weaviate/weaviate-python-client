@@ -946,3 +946,41 @@ def test_filter_timestamp_class(client: weaviate.WeaviateClient, filter_type: _F
         uuids = [obj.uuid for obj in objects]
         assert len(uuids) == 2
         assert obj1_uuid in uuids and obj2_uuid in uuids
+
+
+def test_time_update_and_creation_time(client: weaviate.WeaviateClient) -> None:
+    name = "TestFilterMetadataTime"
+    client.collections.delete(name)
+    collection = client.collections.create(
+        name=name,
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(index_timestamps=True),
+    )
+    obj1_uuid = collection.data.insert(properties={"name": "first"})
+    obj2_uuid = collection.data.insert(properties={"name": "second"})
+
+    collection.data.update(uuid=obj1_uuid, properties={"name": "first updated"})
+
+    obj1 = collection.query.fetch_object_by_id(uuid=obj1_uuid)
+    assert obj1 is not None
+    assert obj1.metadata is not None
+    assert obj1.metadata.creation_time_unix is not None
+    assert obj1.metadata.last_update_time_unix is not None
+    assert obj1.metadata.creation_time_unix < obj1.metadata.last_update_time_unix
+
+    filter_creation = FilterMetadata.FilterByUpdateTime.less_than(obj1.metadata.creation_time_unix)
+    filter_update = FilterMetadata.FilterByUpdateTime.less_than(obj1.metadata.last_update_time_unix)
+
+    objects_creation = collection.query.fetch_objects(
+        filters=filter_creation, return_metadata=MetadataQuery(creation_time_unix=True)
+    ).objects
+    assert len(objects_creation) == 0
+
+    objects_update = collection.query.fetch_objects(
+        filters=filter_update, return_metadata=MetadataQuery(creation_time_unix=True)
+    ).objects
+    assert len(objects_update) == 1
+    assert objects_update[0].uuid == obj2_uuid
