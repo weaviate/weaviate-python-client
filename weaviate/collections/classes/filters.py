@@ -1,10 +1,13 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
-from typing import List, Union
+from typing import List, Optional, Union
 
 from weaviate.types import UUID
 from weaviate.proto.v1 import search_get_pb2
+from weaviate.util import get_valid_uuid
+
+DATE = Union[datetime, int]
 
 
 class _Operator(str, Enum):
@@ -182,3 +185,145 @@ class Filter:
         This filter can make use of `*` and `?` as wildcards. See [the docs](https://weaviate.io/developers/weaviate/search/filters#by-partial-matches-text) for more details.
         """
         return _FilterValue(path=self.__internal_path, value=val, operator=_Operator.LIKE)
+
+
+class _FilterId:
+    @staticmethod
+    def contains_any(
+        uuids: List[UUID], on_reference_path: Optional[List[str]] = None
+    ) -> _FilterValue:
+        """Filter for objects that has one of the given ID."""
+        return _FilterValue(
+            path=_FilterId._prepare_path(path=on_reference_path),
+            value=[get_valid_uuid(val) for val in uuids],
+            operator=_Operator.CONTAINS_ANY,
+        )
+
+    @staticmethod
+    def equal(uuid: UUID, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter for object that has the given ID."""
+        return _FilterValue(
+            path=_FilterId._prepare_path(path=on_reference_path),
+            value=get_valid_uuid(uuid),
+            operator=_Operator.EQUAL,
+        )
+
+    @staticmethod
+    def not_equal(uuid: UUID, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter our object that has the given ID."""
+        return _FilterValue(
+            path=_FilterId._prepare_path(path=on_reference_path),
+            value=get_valid_uuid(uuid),
+            operator=_Operator.NOT_EQUAL,
+        )
+
+    @staticmethod
+    def _prepare_path(path: Optional[List[str]]) -> List[str]:
+        return path or [] + ["_id"]
+
+
+class _FilterTime:
+    _internal_path: Optional[List[str]] = None
+
+    @staticmethod
+    def contains_any(
+        dates: List[DATE], on_reference_path: Optional[List[str]] = None
+    ) -> _FilterValue:
+        """Filter for objects that have one of the given Times."""
+        return _FilterValue(
+            path=_FilterCreationTime._prepare_path(path=on_reference_path),
+            value=[_FilterCreationTime._convert_date(date) for date in dates],
+            operator=_Operator.CONTAINS_ANY,
+        )
+
+    @staticmethod
+    def equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter for objects that have the given time."""
+        return _FilterValue(
+            path=_FilterCreationTime._prepare_path(path=on_reference_path),
+            value=_FilterCreationTime._convert_date(date),
+            operator=_Operator.EQUAL,
+        )
+
+    @staticmethod
+    def not_equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter our objects that have the given time."""
+        return _FilterValue(
+            path=_FilterCreationTime._prepare_path(path=on_reference_path),
+            value=_FilterCreationTime._convert_date(date),
+            operator=_Operator.NOT_EQUAL,
+        )
+
+    @staticmethod
+    def less_than(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter on whether the time is less than the given value."""
+        return _FilterValue(
+            path=_FilterCreationTime._prepare_path(path=on_reference_path),
+            value=_FilterCreationTime._convert_date(date),
+            operator=_Operator.LESS_THAN,
+        )
+
+    @staticmethod
+    def less_or_equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter on whether the time is less than or equal to the given value."""
+        return _FilterValue(
+            path=_FilterCreationTime._prepare_path(path=on_reference_path),
+            value=_FilterCreationTime._convert_date(date),
+            operator=_Operator.LESS_THAN_EQUAL,
+        )
+
+    @staticmethod
+    def greater_than(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter on whether the time is greater than the given value."""
+        return _FilterValue(
+            path=_FilterCreationTime._prepare_path(path=on_reference_path),
+            value=_FilterCreationTime._convert_date(date),
+            operator=_Operator.GREATER_THAN,
+        )
+
+    @staticmethod
+    def greater_or_equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+        """Filter on whether the time is greater than or equal to the given value."""
+        return _FilterValue(
+            path=_FilterCreationTime._prepare_path(path=on_reference_path),
+            value=_FilterCreationTime._convert_date(date),
+            operator=_Operator.GREATER_THAN_EQUAL,
+        )
+
+    @staticmethod
+    def _prepare_path(path: Optional[List[str]]) -> List[str]:
+        internal_path = _FilterTime._internal_path
+        assert internal_path is not None
+        return path or [] + internal_path
+
+    @staticmethod
+    def _convert_date(date: DATE) -> datetime:
+        if isinstance(date, datetime):
+            return date
+        # weaviate returns a different timestamp format
+        return datetime.fromtimestamp(date / 1000, tz=timezone.utc)
+
+
+class _FilterCreationTime(_FilterTime):
+    _FilterTime._internal_path = ["_creationTimeUnix"]
+
+
+class _FilterUpdateTime(_FilterTime):
+    _FilterTime._internal_path = ["_creationTimeUnix"]
+
+
+class FilterMetadata:
+    """Define a filter based on a property to be used when querying a collection.
+
+    Use the `__init__` method to define the path to the property to be filtered on and then
+    use the methods of this class to define the condition to filter on.
+
+    To combine multiple filters, you can use `&` or `|` operators for each `AND` or `OR` operations, e.g.,
+        `Filter("name").equal("John") & Filter("age").greater_than(18)`
+
+    See [the docs](https://weaviate.io/developers/weaviate/search/filters) for more details!
+    """
+
+    FilterById = _FilterId
+    FilterByCreationTime = _FilterCreationTime
+    FilterByUpdateTime = _FilterUpdateTime
