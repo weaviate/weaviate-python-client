@@ -874,17 +874,25 @@ def test_filter_timestamp_direct_path(client: weaviate.WeaviateClient, path: str
         vectorizer_config=Configure.Vectorizer.none(),
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
     )
-    obj1 = collection.data.insert(properties={"name": "first"})
-    now = datetime.datetime.now(datetime.timezone.utc)
-    collection.data.insert(properties={"name": "second"})
+    obj1_uuid = collection.data.insert(properties={"name": "first"})
+    obj2_uuid = collection.data.insert(properties={"name": "second"})
 
-    filters = Filter(path=[path]).less_than(now)
+    obj2 = collection.query.fetch_object_by_id(uuid=obj2_uuid)
+    assert obj2 is not None
+    assert obj2.metadata is not None
+    assert obj2.metadata.creation_time_unix is not None
+
+    date = datetime.datetime.fromtimestamp(
+        obj2.metadata.creation_time_unix / 1000, tz=datetime.timezone.utc
+    )
+
+    filters = Filter(path=[path]).less_than(date)
     objects = collection.query.fetch_objects(
         filters=filters, return_metadata=MetadataQuery(creation_time_unix=True)
     ).objects
 
     assert len(objects) == 1
-    assert objects[0].uuid == obj1
+    assert objects[0].uuid == obj1_uuid
 
 
 @pytest.mark.parametrize(
