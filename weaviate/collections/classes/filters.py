@@ -484,6 +484,6 @@ class FilterMetadata:
     See [the docs](https://weaviate.io/developers/weaviate/search/filters) for more details!
     """
 
-    FilterById = _FilterId
-    FilterByCreationTime = _FilterCreationTime
-    FilterByUpdateTime = _FilterUpdateTime
+    ById = _FilterId
+    ByCreationTime = _FilterCreationTime
+    ByUpdateTime = _FilterUpdateTime

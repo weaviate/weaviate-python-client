@@ -832,14 +832,14 @@ def test_delete_many_return(client: weaviate.WeaviateClient) -> None:
 @pytest.mark.parametrize(
     "weav_filter",
     [
-        FilterMetadata.FilterById.equal(UUID1),
-        FilterMetadata.FilterById.contains_any([UUID1]),
-        FilterMetadata.FilterById.not_equal(UUID2),
+        FilterMetadata.ById.equal(UUID1),
+        FilterMetadata.ById.contains_any([UUID1]),
+        FilterMetadata.ById.not_equal(UUID2),
         Filter(path=["_id"]).equal(UUID1),
     ],
 )
 def test_filter_id(client: weaviate.WeaviateClient, weav_filter: _FilterValue) -> None:
-    FilterMetadata.FilterById.contains_any
+    FilterMetadata.ById.contains_any
     name = "TestFilterMetadata"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -888,7 +888,7 @@ def test_filter_timestamp_direct_path(client: weaviate.WeaviateClient, path: str
 
 
 @pytest.mark.parametrize(
-    "filter_type", [FilterMetadata.FilterByCreationTime, FilterMetadata.FilterByUpdateTime]
+    "filter_type", [FilterMetadata.ByCreationTime, FilterMetadata.ByUpdateTime]
 )
 def test_filter_timestamp_class(client: weaviate.WeaviateClient, filter_type: _FilterTime) -> None:
     name = "TestFilterMetadataTime"
@@ -971,8 +971,8 @@ def test_time_update_and_creation_time(client: weaviate.WeaviateClient) -> None:
     assert obj1.metadata.last_update_time_unix is not None
     assert obj1.metadata.creation_time_unix < obj1.metadata.last_update_time_unix
 
-    filter_creation = FilterMetadata.FilterByUpdateTime.less_than(obj1.metadata.creation_time_unix)
-    filter_update = FilterMetadata.FilterByUpdateTime.less_than(obj1.metadata.last_update_time_unix)
+    filter_creation = FilterMetadata.ByUpdateTime.less_than(obj1.metadata.creation_time_unix)
+    filter_update = FilterMetadata.ByUpdateTime.less_than(obj1.metadata.last_update_time_unix)
 
     objects_creation = collection.query.fetch_objects(
         filters=filter_creation, return_metadata=MetadataQuery(creation_time_unix=True)
