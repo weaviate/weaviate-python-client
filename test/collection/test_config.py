@@ -466,6 +466,10 @@ TEST_CONFIG_WITH_GENERATIVE_MODULE = [
         {"generative-openai": {}},
     ),
     (
+        Configure.Generative.anyscale(),
+        {"generative-anyscale": {}},
+    ),
+    (
         Configure.Generative.openai(
             model="gpt-4",
             frequency_penalty=0.5,
