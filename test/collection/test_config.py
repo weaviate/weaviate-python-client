@@ -737,7 +737,7 @@ def test_vector_config_hnsw_bq() -> None:
     vi_dict = vector_index._to_dict()
 
     assert vi_dict["efConstruction"] == 128
-    assert vi_dict["BQ"]["rescoreLimit"] == 123
+    assert vi_dict["bq"]["rescoreLimit"] == 123
 
 
 def test_vector_config_flat_pq() -> None:
@@ -750,6 +750,6 @@ def test_vector_config_flat_pq() -> None:
     vi_dict = vector_index._to_dict()
 
     assert vi_dict["distance"] == "dot"
-    assert vi_dict["vector_cache_max_objects"] == 456
-    assert vi_dict["PQ"]["bitCompression"]
-    assert vi_dict["PQ"]["segments"] == 789
+    assert vi_dict["vectorCacheMaxObjects"] == 456
+    assert vi_dict["pq"]["bitCompression"]
+    assert vi_dict["pq"]["segments"] == 789
