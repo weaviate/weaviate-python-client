@@ -79,7 +79,7 @@ class Collection(_CollectionBase, Generic[Properties]):
         )
         """This namespace includes all the querying methods available to you when using Weaviate's querying group-by capabilities."""
         self.query = _QueryCollection[Properties](
-            connection, self.name, self.data, consistency_level, tenant, type_
+            connection, self.name, consistency_level, tenant, type_
         )
         """This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities."""
         self.tenants = _Tenants(connection, self.name)

@@ -106,9 +106,36 @@ def test_get_float_properties(client: weaviate.WeaviateClient) -> None:
     client.collections.delete(name)
 
 
+def test_object_by_id(client: weaviate.WeaviateClient) -> None:
+    name = "TestProfileObjectByID"
+    client.collections.delete(name)
+
+    col = client.collections.create(
+        name=name,
+        properties=[
+            Property(name="index", data_type=DataType.INT),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    col = client.collections.get(name)
+
+    batchReturn = col.data.insert_many([{"index": i} for i in range(1000)])
+
+    for i in range(1000):
+        obj = col.query.fetch_object_by_id(batchReturn.uuids[i])
+        assert obj is not None
+        assert obj.properties["index"] == i
+        assert obj.uuid == batchReturn.uuids[i]
+
+
 def test_benchmark_get_vector(benchmark: Any, client: weaviate.WeaviateClient) -> None:
     benchmark(test_get_vector, client)
 
 
 def test_benchmark_get_float_properties(benchmark: Any, client: weaviate.WeaviateClient) -> None:
     benchmark(test_get_float_properties, client)
+
+
+def test_benchmark_get_object_by_id(benchmark: Any, client: weaviate.WeaviateClient) -> None:
+    benchmark(test_object_by_id, client)

@@ -27,7 +27,7 @@ def client():
     client.collections.delete_all()
 
 
-def test_reference_add_delete_replace(client: weaviate.WeaviateClient):
+def test_reference_add_delete_replace(client: weaviate.WeaviateClient) -> None:
     ref_collection = client.collections.create(
         name="RefClass2", vectorizer_config=Configure.Vectorizer.none()
     )
@@ -47,19 +47,40 @@ def test_reference_add_delete_replace(client: weaviate.WeaviateClient):
     collection.data.reference_delete(
         from_uuid=uuid_from1, from_property="ref", ref=Reference.to(uuids=uuid_to)
     )
-    assert len(collection.query.fetch_object_by_id(uuid_from1).properties["ref"]) == 0
+    assert (
+        len(
+            collection.query.fetch_object_by_id(
+                uuid_from1, return_properties=FromReference(link_on="ref")
+            )
+            .properties["ref"]
+            .objects
+        )
+        == 0
+    )
 
     collection.data.reference_add(
         from_uuid=uuid_from2, from_property="ref", ref=Reference.to(uuids=uuid_to)
     )
-    obj = collection.query.fetch_object_by_id(uuid_from2)
-    assert len(obj.properties["ref"]) == 2
-    assert str(uuid_to) in "".join([ref["beacon"] for ref in obj.properties["ref"]])
+    obj = collection.query.fetch_object_by_id(
+        uuid_from2, return_properties=FromReference(link_on="ref")
+    )
+    assert obj is not None
+    assert len(obj.properties["ref"].objects) == 2
+    assert uuid_to in [x.uuid for x in obj.properties["ref"].objects]
 
     collection.data.reference_replace(
         from_uuid=uuid_from2, from_property="ref", ref=Reference.to(uuids=[])
     )
-    assert len(collection.query.fetch_object_by_id(uuid_from2).properties["ref"]) == 0
+    assert (
+        len(
+            collection.query.fetch_object_by_id(
+                uuid_from2, return_properties=FromReference(link_on="ref")
+            )
+            .properties["ref"]
+            .objects
+        )
+        == 0
+    )
 
     client.collections.delete("SomethingElse")
     client.collections.delete("RefClass2")
