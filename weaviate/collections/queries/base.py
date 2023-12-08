@@ -368,7 +368,13 @@ class _BaseQuery(Generic[Properties, References]):
             )  # is sourced from collection-specific generic
         else:
             assert return_properties is not None
-            return self.__parse_generic_properties(return_properties)
+            if not is_typeddict(return_properties):
+                raise TypeError(
+                    f"return_properties must only be a TypedDict or PROPERTIES within this context but is {type(return_properties)}"
+                )
+            return _extract_properties_from_data_model(
+                return_properties
+            )  # is sourced from query-specific generic
 
     def _parse_return_metadata(
         self, return_metadata: Optional[METADATA], include_vector: bool

@@ -101,6 +101,22 @@ class _Object(Generic[P, R]):
 
 
 @dataclass
+class _MetadataSingleObjectReturn:
+    creation_time_unix: int
+    last_update_time_unix: int
+    is_consistent: Optional[bool]
+
+
+@dataclass
+class _ObjectSingleReturn(Generic[P, R]):
+    uuid: uuid_package.UUID
+    metadata: _MetadataSingleObjectReturn
+    properties: P
+    references: R
+    vector: Optional[List[float]]
+
+
+@dataclass
 class _GroupByObject(Generic[P, R], _Object[P, R]):
     belongs_to_group: str
 
@@ -145,22 +161,6 @@ class _RawGQLReturn:
     explore: _GQLEntryReturnType
     get: _GQLEntryReturnType
     errors: Optional[Dict[str, Any]]
-
-
-# mypy fails to make the type inference for the below typealias generics so we define manually in queries :(
-
-# GenerativeReturn: TypeAlias = Union[
-#     _GenerativeReturn[Properties, References],
-#     _GenerativeReturn[Properties, TReferences],
-#     _GenerativeReturn[TProperties, References],
-#     _GenerativeReturn[TProperties, TReferences],
-# ]
-# GroupByReturn: TypeAlias = Union[
-#     _GroupByReturn[Properties, References],
-#     _GroupByReturn[Properties, TReferences],
-#     _GroupByReturn[TProperties, References],
-#     _GroupByReturn[TProperties, TReferences],
-# ]
 
 
 class _Generative:

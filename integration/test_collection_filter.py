@@ -1,5 +1,4 @@
 import datetime
-import time
 import uuid
 from typing import List
 
@@ -16,9 +15,11 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.filters import (
+    _FilterTime,
     Filter,
     _Filters,
     _FilterValue,
+    FilterMetadata,
 )
 from weaviate.collections.classes.grpc import MetadataQuery
 from weaviate.collections.classes.internal import Reference
@@ -828,7 +829,17 @@ def test_delete_many_return(client: weaviate.WeaviateClient) -> None:
     assert ret.successful == 1
 
 
-def test_filter_id(client: weaviate.WeaviateClient) -> None:
+@pytest.mark.parametrize(
+    "weav_filter",
+    [
+        FilterMetadata.ById.equal(UUID1),
+        FilterMetadata.ById.contains_any([UUID1]),
+        FilterMetadata.ById.not_equal(UUID2),
+        Filter(path=["_id"]).equal(UUID1),
+    ],
+)
+def test_filter_id(client: weaviate.WeaviateClient, weav_filter: _FilterValue) -> None:
+    FilterMetadata.ById.contains_any
     name = "TestFilterMetadata"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -838,22 +849,21 @@ def test_filter_id(client: weaviate.WeaviateClient) -> None:
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    batch_ret = collection.data.insert_many(
+    collection.data.insert_many(
         [
-            DataObject(properties={"name": "first"}),
-            DataObject(properties={"name": "second"}),
+            DataObject(properties={"name": "first"}, uuid=UUID1),
+            DataObject(properties={"name": "second"}, uuid=UUID2),
         ]
     )
 
-    filters = Filter(path=["_id"]).equal(batch_ret.uuids[0])
-    objects = collection.query.fetch_objects(filters=filters).objects
+    objects = collection.query.fetch_objects(filters=weav_filter).objects
 
     assert len(objects) == 1
-    assert objects[0].uuid == batch_ret.uuids[0]
+    assert objects[0].uuid == UUID1
 
 
 @pytest.mark.parametrize("path", ["_creationTimeUnix", "_lastUpdateTimeUnix"])
-def test_filter_timestamp(client: weaviate.WeaviateClient, path: str) -> None:
+def test_filter_timestamp_direct_path(client: weaviate.WeaviateClient, path: str) -> None:
     name = "TestFilterMetadataTime"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -864,16 +874,121 @@ def test_filter_timestamp(client: weaviate.WeaviateClient, path: str) -> None:
         vectorizer_config=Configure.Vectorizer.none(),
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
     )
-    obj1 = collection.data.insert(properties={"name": "first"})
-    time.sleep(0.5)
-    now = datetime.datetime.now(datetime.timezone.utc)
-    time.sleep(0.5)
-    collection.data.insert(properties={"name": "second"})
+    obj1_uuid = collection.data.insert(properties={"name": "first"})
+    obj2_uuid = collection.data.insert(properties={"name": "second"})
 
-    filters = Filter(path=[path]).less_than(now)
+    obj2 = collection.query.fetch_object_by_id(uuid=obj2_uuid)
+    assert obj2 is not None
+    assert obj2.metadata is not None
+    assert obj2.metadata.creation_time_unix is not None
+
+    date = datetime.datetime.fromtimestamp(
+        obj2.metadata.creation_time_unix / 1000, tz=datetime.timezone.utc
+    )
+
+    filters = Filter(path=[path]).less_than(date)
     objects = collection.query.fetch_objects(
         filters=filters, return_metadata=MetadataQuery(creation_time_unix=True)
     ).objects
 
     assert len(objects) == 1
-    assert objects[0].uuid == obj1
+    assert objects[0].uuid == obj1_uuid
+
+
+@pytest.mark.parametrize(
+    "filter_type", [FilterMetadata.ByCreationTime, FilterMetadata.ByUpdateTime]
+)
+def test_filter_timestamp_class(client: weaviate.WeaviateClient, filter_type: _FilterTime) -> None:
+    name = "TestFilterMetadataTime"
+    client.collections.delete(name)
+    collection = client.collections.create(
+        name=name,
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(index_timestamps=True),
+    )
+    obj1_uuid = collection.data.insert(properties={"name": "first"})
+    obj2_uuid = collection.data.insert(properties={"name": "second"})
+
+    obj1 = collection.query.fetch_object_by_id(uuid=obj1_uuid)
+    assert obj1 is not None
+    assert obj1.metadata is not None
+    assert obj1.metadata.creation_time_unix is not None
+
+    obj2 = collection.query.fetch_object_by_id(uuid=obj2_uuid)
+    assert obj2 is not None
+    assert obj2.metadata is not None
+    assert obj2.metadata.creation_time_unix is not None
+
+    filters = filter_type.less_than(obj2.metadata.creation_time_unix)
+    objects = collection.query.fetch_objects(
+        filters=filters, return_metadata=MetadataQuery(creation_time_unix=True)
+    ).objects
+    assert len(objects) == 1
+    assert objects[0].uuid == obj1_uuid
+
+    for filters in [
+        filter_type.greater_than(obj1.metadata.creation_time_unix),
+        filter_type.not_equal(obj1.metadata.creation_time_unix),
+        filter_type.equal(obj2.metadata.creation_time_unix),
+    ]:
+        objects = collection.query.fetch_objects(
+            filters=filters, return_metadata=MetadataQuery(creation_time_unix=True)
+        ).objects
+        assert len(objects) == 1
+        assert objects[0].uuid == obj2_uuid
+
+    for filters in [
+        filter_type.contains_any(
+            [obj1.metadata.creation_time_unix, obj2.metadata.creation_time_unix]
+        ),
+        filter_type.less_or_equal(obj2.metadata.creation_time_unix),
+        filter_type.greater_or_equal(obj1.metadata.creation_time_unix),
+    ]:
+        objects = collection.query.fetch_objects(
+            filters=filters, return_metadata=MetadataQuery(creation_time_unix=True)
+        ).objects
+
+        uuids = [obj.uuid for obj in objects]
+        assert len(uuids) == 2
+        assert obj1_uuid in uuids and obj2_uuid in uuids
+
+
+def test_time_update_and_creation_time(client: weaviate.WeaviateClient) -> None:
+    name = "TestFilterMetadataTime"
+    client.collections.delete(name)
+    collection = client.collections.create(
+        name=name,
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(index_timestamps=True),
+    )
+    obj1_uuid = collection.data.insert(properties={"name": "first"})
+    obj2_uuid = collection.data.insert(properties={"name": "second"})
+
+    collection.data.update(uuid=obj1_uuid, properties={"name": "first updated"})
+
+    obj1 = collection.query.fetch_object_by_id(uuid=obj1_uuid)
+    assert obj1 is not None
+    assert obj1.metadata is not None
+    assert obj1.metadata.creation_time_unix is not None
+    assert obj1.metadata.last_update_time_unix is not None
+    assert obj1.metadata.creation_time_unix < obj1.metadata.last_update_time_unix
+
+    filter_creation = FilterMetadata.ByUpdateTime.less_than(obj1.metadata.creation_time_unix)
+    filter_update = FilterMetadata.ByUpdateTime.less_than(obj1.metadata.last_update_time_unix)
+
+    objects_creation = collection.query.fetch_objects(
+        filters=filter_creation, return_metadata=MetadataQuery(creation_time_unix=True)
+    ).objects
+    assert len(objects_creation) == 0
+
+    objects_update = collection.query.fetch_objects(
+        filters=filter_update, return_metadata=MetadataQuery(creation_time_unix=True)
+    ).objects
+    assert len(objects_update) == 1
+    assert objects_update[0].uuid == obj2_uuid

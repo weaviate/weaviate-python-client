@@ -27,6 +27,7 @@ from weaviate.collections.classes.data import (
     DataObject,
 )
 from weaviate.collections.classes.grpc import (
+    FromReferenceMultiTarget,
     HybridFusion,
     FromReference,
     MetadataQuery,
@@ -35,7 +36,7 @@ from weaviate.collections.classes.grpc import (
     METADATA,
     PROPERTIES,
 )
-from weaviate.collections.classes.internal import Reference
+from weaviate.collections.classes.internal import _Reference, Reference
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collections.classes.types import Properties
 
@@ -47,7 +48,6 @@ from weaviate.exceptions import (
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
 )
-from weaviate.util import _datetime_from_weaviate_str
 from weaviate.types import UUID
 
 BEACON_START = "weaviate://localhost"
@@ -193,7 +193,7 @@ def test_get_with_pydantic_dataclass_generic(client: weaviate.WeaviateClient):
     "which_generic",
     ["typed_dict", "dict", "none"],
 )
-def test_insert(client: weaviate.WeaviateClient, which_generic: str):
+def test_insert(client: weaviate.WeaviateClient, which_generic: str) -> None:
     name = "TestInsert"
     client.collections.delete(name)
 
@@ -218,6 +218,8 @@ def test_insert(client: weaviate.WeaviateClient, which_generic: str):
     else:
         collection = client.collections.create(**create_args)
         uuid = collection.data.insert(properties=insert_data)
+    objects = collection.query.fetch_objects()
+    assert len(objects.objects) == 1
     name = collection.query.fetch_object_by_id(uuid).properties["name"]
     assert name == insert_data["name"]
 
@@ -381,7 +383,7 @@ def test_insert_many_with_typed_dict(client: weaviate.WeaviateClient):
     client.collections.delete(name)
 
 
-def test_insert_many_with_refs(client: weaviate.WeaviateClient):
+def test_insert_many_with_refs(client: weaviate.WeaviateClient) -> None:
     name_target = "RefClassBatchTarget"
     client.collections.delete(name_target)
 
@@ -430,16 +432,35 @@ def test_insert_many_with_refs(client: weaviate.WeaviateClient):
             ),
         ]
     )
-    obj1 = collection.query.fetch_object_by_id(ret.uuids[0])
+    obj1 = collection.query.fetch_object_by_id(
+        ret.uuids[0],
+        return_properties=[
+            "name",
+        ],
+        return_references=[
+            FromReference(link_on="ref_single"),
+            FromReferenceMultiTarget(link_on="ref_many", target_collection=collection.name),
+        ],
+    )
+    assert obj1 is not None
     assert obj1.properties["name"] == "some name"
-    assert obj1.properties["ref_single"][0]["beacon"] == BEACON_START + f"/{name_target}/{uuid_to1}"
-    assert obj1.properties["ref_single"][1]["beacon"] == BEACON_START + f"/{name_target}/{uuid_to2}"
-    assert obj1.properties["ref_many"][0]["beacon"] == BEACON_START + f"/{name}/{uuid_from}"
+    assert isinstance(obj1.references["ref_many"], _Reference)
+    assert isinstance(obj1.references["ref_single"], _Reference)
 
-    obj1 = collection.query.fetch_object_by_id(ret.uuids[1])
+    obj1 = collection.query.fetch_object_by_id(
+        ret.uuids[1],
+        return_properties=[
+            "name",
+        ],
+        return_references=[
+            FromReference(link_on="ref_single"),
+            FromReferenceMultiTarget(link_on="ref_many", target_collection=name_target),
+        ],
+    )
+    assert obj1 is not None
     assert obj1.properties["name"] == "some other name"
-    assert obj1.properties["ref_single"][0]["beacon"] == BEACON_START + f"/{name_target}/{uuid_to2}"
-    assert obj1.properties["ref_many"][0]["beacon"] == BEACON_START + f"/{name_target}/{uuid_to1}"
+    assert isinstance(obj1.references["ref_many"], _Reference)
+    assert isinstance(obj1.references["ref_single"], _Reference)
 
 
 def test_insert_many_error(client: weaviate.WeaviateClient):
@@ -1171,17 +1192,7 @@ def test_insert_date_property(client: weaviate.WeaviateClient, hours: int, minut
 
     obj = collection.query.fetch_object_by_id(uuid)
 
-    assert (
-        datetime.datetime.strptime(
-            "".join(
-                obj.properties["date"].rsplit(":", 1)
-                if obj.properties["date"][-1] != "Z"
-                else obj.properties["date"]
-            ),
-            "%Y-%m-%dT%H:%M:%S.%f%z",
-        )
-        == now
-    )
+    assert obj.properties["date"] == now
     # weaviate drops any trailing zeros from the microseconds part of the date
     # this means that the returned dates aren't in the ISO format and so cannot be parsed easily to datetime
     # moreover, UTC timezones specified as +-00:00 are converted to Z further complicating matters
@@ -1528,7 +1539,7 @@ def test_return_properties_with_general_typed_dict(client: weaviate.WeaviateClie
 
 def test_return_properties_with_query_specific_typed_dict_overwriting_general_typed_dict(
     client: weaviate.WeaviateClient,
-):
+) -> None:
     name = "TestReturnListWithModel"
     client.collections.delete(name)
 
@@ -1553,6 +1564,11 @@ def test_return_properties_with_query_specific_typed_dict_overwriting_general_ty
     assert len(objects) == 1
     assert objects[0].properties["int_"] == 1
     assert "ints" not in objects[0].properties
+
+    obj = collection.query.fetch_object_by_id(objects[0].uuid, return_properties=_Data)
+    assert obj is not None
+    assert "ints" not in obj.properties
+    assert obj.properties["int_"] == 1
 
 
 def test_batch_with_arrays(client: weaviate.WeaviateClient) -> None:
@@ -1602,16 +1618,7 @@ def test_batch_with_arrays(client: weaviate.WeaviateClient) -> None:
         assert obj_out is not None
 
         for prop, val in objects_in[i].properties.items():
-            if prop == "dates":
-                dates_from_weaviate = [
-                    _datetime_from_weaviate_str(date) for date in obj_out.properties[prop]
-                ]
-                assert val == dates_from_weaviate
-            elif prop == "uuids":
-                uuids_from_weaviate = [uuid.UUID(prop) for prop in obj_out.properties[prop]]
-                assert val == uuids_from_weaviate
-            else:
-                assert obj_out.properties[prop] == val
+            assert obj_out.properties[prop] == val
 
 
 @pytest.mark.parametrize(
@@ -1794,7 +1801,7 @@ def test_iterator_arguments(
             assert all(obj.metadata is None for obj in iter_)
 
 
-def test_iterator_dict_hint(client: weaviate.WeaviateClient):
+def test_iterator_dict_hint(client: weaviate.WeaviateClient) -> None:
     name = "TestIteratorTypedDict"
     client.collections.delete(name)
 
@@ -1849,3 +1856,21 @@ def test_iterator_with_default_generic(client: weaviate.WeaviateClient):
     for datum in iter__:
         assert datum.properties["this"] == "this"
         assert "that" not in datum.properties
+
+
+def test_return_properties_with_type_hint_generic(client: weaviate.WeaviateClient):
+    name = "TestReturnListWithModel"
+    client.collections.delete(name)
+
+    client.collections.create(
+        name=name,
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+    )
+    collection = client.collections.get(name, Dict[str, str])
+    collection.data.insert(properties={"name": "bob"})
+    objects = collection.query.fetch_objects().objects
+    assert len(objects) == 1
+    assert objects[0].properties["name"] == "bob"

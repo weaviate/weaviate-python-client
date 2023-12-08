@@ -1,17 +1,12 @@
 from typing import (
     Generic,
-    Optional,
-    Type,
 )
 
-from weaviate.collections.classes.config import ConsistencyLevel
-
-from weaviate.collections.classes.internal import _Object, References
+from weaviate.collections.classes.internal import References
 from weaviate.collections.classes.types import TProperties
 
-from weaviate.collections.data import _DataCollection
-
 from weaviate.collections.queries.bm25 import _BM25Generate, _BM25Query
+from weaviate.collections.queries.fetch_object_by_id import _FetchObjectByIDQuery
 from weaviate.collections.queries.fetch_objects import _FetchObjectsGenerate, _FetchObjectsQuery
 from weaviate.collections.queries.hybrid import _HybridGenerate, _HybridQuery
 from weaviate.collections.queries.near_audio import (
@@ -45,13 +40,11 @@ from weaviate.collections.queries.near_video import (
     _NearVideoQuery,
 )
 
-from weaviate.connect import Connection
-from weaviate.types import UUID
-
 
 class _QueryCollection(
     Generic[TProperties, References],
     _BM25Query[TProperties, References],
+    _FetchObjectByIDQuery[TProperties, References],
     _FetchObjectsQuery[TProperties, References],
     _HybridQuery[TProperties, References],
     _NearAudioQuery[TProperties, References],
@@ -61,40 +54,7 @@ class _QueryCollection(
     _NearVectorQuery[TProperties, References],
     _NearVideoQuery[TProperties, References],
 ):
-    def __init__(
-        self,
-        connection: Connection,
-        name: str,
-        rest_query: _DataCollection[TProperties],
-        consistency_level: Optional[ConsistencyLevel],
-        tenant: Optional[str],
-        type_: Optional[Type[TProperties]],
-        references: Optional[Type[References]],
-    ):
-        super().__init__(connection, name, consistency_level, tenant, type_, references)
-        self.__data = rest_query
-
-    def fetch_object_by_id(
-        self, uuid: UUID, include_vector: bool = False
-    ) -> Optional[_Object[TProperties, dict]]:
-        """Retrieve an object from the server by its UUID.
-
-        Arguments:
-            `uuid`
-                The UUID of the object to retrieve, REQUIRED.
-            `include_vector`
-                Whether to include the vector in the returned object.
-
-        Raises:
-            `weaviate.exceptions.WeaviateQueryException`:
-                If the network connection to Weaviate fails.
-            `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
-                If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
-        """
-        ret = self.__data._get_by_id(uuid=uuid, include_vector=include_vector)
-        if ret is None:
-            return ret
-        return self.__data._json_to_object(ret)
+    pass
 
 
 class _GenerateCollection(
