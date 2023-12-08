@@ -455,6 +455,10 @@ class _Grpc(Generic[Properties]):
             )  # is sourced from collection-specific generic
         else:
             assert return_properties is not None
+            if not is_typeddict(return_properties):
+                raise TypeError(
+                    f"return_properties must only be a TypedDict or PROPERTIES within this context but is {type(return_properties)}"
+                )
             return _extract_properties_from_data_model(
                 return_properties
             )  # is sourced from query-specific generic

@@ -96,6 +96,21 @@ class _Object(Generic[P]):
 
 
 @dataclass
+class _MetadataSingleObjectReturn:
+    creation_time_unix: int
+    last_update_time_unix: int
+    is_consistent: Optional[bool]
+
+
+@dataclass
+class _ObjectSingleReturn(Generic[P]):
+    uuid: uuid_package.UUID
+    metadata: _MetadataSingleObjectReturn
+    properties: P
+    vector: Optional[List[float]]
+
+
+@dataclass
 class _GroupByObject(Generic[P], _Object[P]):
     belongs_to_group: str
 
@@ -143,6 +158,9 @@ class _RawGQLReturn:
 
 
 QueryReturn: TypeAlias = Union[_QueryReturn[Properties], _QueryReturn[TProperties]]
+QuerySingleObjectReturn: TypeAlias = Union[
+    _ObjectSingleReturn[Properties], _ObjectSingleReturn[TProperties]
+]
 GenerativeReturn: TypeAlias = Union[_GenerativeReturn[Properties], _GenerativeReturn[TProperties]]
 GroupByReturn: TypeAlias = Union[_GroupByReturn[Properties], _GroupByReturn[TProperties]]
 
