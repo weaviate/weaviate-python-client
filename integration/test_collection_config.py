@@ -3,8 +3,10 @@ import pytest as pytest
 
 import weaviate
 from weaviate.collections.classes.config import (
+    _BQConfig,
     _CollectionConfig,
     _CollectionConfigSimple,
+    _PQConfig,
     Configure,
     Reconfigure,
     Property,
@@ -472,3 +474,43 @@ def test_collection_config_get_shards_multi_tenancy(client: weaviate.WeaviateCli
     assert "tenant2" in [shard.name for shard in shards]
 
     client.collections.delete("TestCollectionConfigGetShardsMultiTenancy")
+
+
+def test_config_vector_index_flat_and_quantitizer_bq() -> None:
+    client = weaviate.connect_to_local()
+    client.collections.delete("TestCollectionCVectorIndexAndQuantitizer")
+    collection = client.collections.create(
+        name="TestCollectionCVectorIndexAndQuantitizer",
+        vector_index_config=Configure.VectorIndex.flat(
+            vector_cache_max_objects=234,
+            quantitizer=Configure.VectorIndex.Quantitizer.BQ(enabled=True, rescore_limit=456),
+        ),
+    )
+
+    conf = collection.config.get()
+    assert conf.vector_index_type == _VectorIndexType.FLAT
+    assert conf.vector_index_config.vector_cache_max_objects == 234
+    assert isinstance(conf.vector_index_config.quantitizer, _BQConfig)
+    assert conf.vector_index_config.quantitizer.enabled
+    # assert conf.vector_index_config.quantitizer.rescore_limit == 456  # bug in weavaite
+
+
+def test_config_vector_index_hnsw_and_quantitizer_pq() -> None:
+    client = weaviate.connect_to_local()
+    client.collections.delete("TestCollectionCVectorIndexAndQuantitizer")
+    collection = client.collections.create(
+        name="TestCollectionCVectorIndexAndQuantitizer",
+        vector_index_config=Configure.VectorIndex.hnsw(
+            vector_cache_max_objects=234,
+            ef_construction=789,
+            quantitizer=Configure.VectorIndex.Quantitizer.PQ(enabled=True, segments=456),
+        ),
+    )
+
+    conf = collection.config.get()
+    assert conf.vector_index_type == _VectorIndexType.HNSW
+    assert conf.vector_index_config.vector_cache_max_objects == 234
+    assert conf.vector_index_config.ef_construction == 789
+    assert isinstance(conf.vector_index_config.quantitizer, _PQConfig)
+    assert conf.vector_index_config.quantitizer.enabled
+    assert conf.vector_index_config.quantitizer.segments == 456  # bug in weavaite

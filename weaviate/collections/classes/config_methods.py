@@ -1,9 +1,11 @@
 from typing import Any, Dict, List, Optional, Union, cast
 
 from weaviate.collections.classes.config import (
+    _BQConfig,
     _CollectionConfig,
     _CollectionConfigSimple,
     _PQConfig,
+    _VectorIndexConfigFlat,
     DataType,
     _InvertedIndexConfig,
     _BM25Config,
@@ -14,7 +16,7 @@ from weaviate.collections.classes.config import (
     _ReferenceDataTypeMultiTarget,
     _ReplicationConfig,
     _ShardingConfig,
-    _VectorIndexConfig,
+    _VectorIndexConfigHNSW,
     StopwordsPreset,
     VectorDistance,
     PQEncoderType,
@@ -121,6 +123,52 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
     else:
         generative_config = None
 
+    if "bq" in schema["vectorIndexConfig"]:
+        quantitizer: Union[_PQConfig, _BQConfig] = _BQConfig(
+            cache=schema["vectorIndexConfig"]["bq"]["cache"],
+            enabled=schema["vectorIndexConfig"]["bq"]["enabled"],
+            rescore_limit=schema["vectorIndexConfig"]["bq"]["rescoreLimit"],
+        )
+    else:
+        assert "pq" in schema["vectorIndexConfig"]
+        quantitizer = _PQConfig(
+            enabled=schema["vectorIndexConfig"]["pq"]["enabled"],
+            bit_compression=schema["vectorIndexConfig"]["pq"]["bitCompression"],
+            segments=schema["vectorIndexConfig"]["pq"]["segments"],
+            centroids=schema["vectorIndexConfig"]["pq"]["centroids"],
+            training_limit=schema["vectorIndexConfig"]["pq"]["trainingLimit"],
+            encoder=_PQEncoderConfig(
+                type_=PQEncoderType(schema["vectorIndexConfig"]["pq"]["encoder"]["type"]),
+                distribution=PQEncoderDistribution(
+                    schema["vectorIndexConfig"]["pq"]["encoder"]["distribution"]
+                ),
+            ),
+        )
+
+    if schema["vectorIndexType"] == "hnsw":
+        vector_index_config: Union[
+            _VectorIndexConfigHNSW, _VectorIndexConfigFlat
+        ] = _VectorIndexConfigHNSW(
+            cleanup_interval_seconds=schema["vectorIndexConfig"]["cleanupIntervalSeconds"],
+            distance_metric=VectorDistance(schema["vectorIndexConfig"]["distance"]),
+            dynamic_ef_min=schema["vectorIndexConfig"]["dynamicEfMin"],
+            dynamic_ef_max=schema["vectorIndexConfig"]["dynamicEfMax"],
+            dynamic_ef_factor=schema["vectorIndexConfig"]["dynamicEfFactor"],
+            ef=schema["vectorIndexConfig"]["ef"],
+            ef_construction=schema["vectorIndexConfig"]["efConstruction"],
+            flat_search_cutoff=schema["vectorIndexConfig"]["flatSearchCutoff"],
+            max_connections=schema["vectorIndexConfig"]["maxConnections"],
+            quantitizer=quantitizer,
+            skip=schema["vectorIndexConfig"]["skip"],
+            vector_cache_max_objects=schema["vectorIndexConfig"]["vectorCacheMaxObjects"],
+        )
+    else:
+        assert schema["vectorIndexType"] == "flat"
+        vector_index_config = _VectorIndexConfigFlat(
+            distance_metric=VectorDistance(schema["vectorIndexConfig"]["distance"]),
+            quantitizer=quantitizer,
+            vector_cache_max_objects=schema["vectorIndexConfig"]["vectorCacheMaxObjects"],
+        )
     return _CollectionConfig(
         name=schema["class"],
         description=schema.get("description"),
@@ -181,32 +229,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
             strategy=schema["shardingConfig"]["strategy"],
             function=schema["shardingConfig"]["function"],
         ),
-        vector_index_config=_VectorIndexConfig(
-            cleanup_interval_seconds=schema["vectorIndexConfig"]["cleanupIntervalSeconds"],
-            distance_metric=VectorDistance(schema["vectorIndexConfig"]["distance"]),
-            dynamic_ef_min=schema["vectorIndexConfig"]["dynamicEfMin"],
-            dynamic_ef_max=schema["vectorIndexConfig"]["dynamicEfMax"],
-            dynamic_ef_factor=schema["vectorIndexConfig"]["dynamicEfFactor"],
-            ef=schema["vectorIndexConfig"]["ef"],
-            ef_construction=schema["vectorIndexConfig"]["efConstruction"],
-            flat_search_cutoff=schema["vectorIndexConfig"]["flatSearchCutoff"],
-            max_connections=schema["vectorIndexConfig"]["maxConnections"],
-            pq=_PQConfig(
-                enabled=schema["vectorIndexConfig"]["pq"]["enabled"],
-                bit_compression=schema["vectorIndexConfig"]["pq"]["bitCompression"],
-                segments=schema["vectorIndexConfig"]["pq"]["segments"],
-                centroids=schema["vectorIndexConfig"]["pq"]["centroids"],
-                training_limit=schema["vectorIndexConfig"]["pq"]["trainingLimit"],
-                encoder=_PQEncoderConfig(
-                    type_=PQEncoderType(schema["vectorIndexConfig"]["pq"]["encoder"]["type"]),
-                    distribution=PQEncoderDistribution(
-                        schema["vectorIndexConfig"]["pq"]["encoder"]["distribution"]
-                    ),
-                ),
-            ),
-            skip=schema["vectorIndexConfig"]["skip"],
-            vector_cache_max_objects=schema["vectorIndexConfig"]["vectorCacheMaxObjects"],
-        ),
+        vector_index_config=vector_index_config,
         vector_index_type=_VectorIndexType(schema["vectorIndexType"]),
         vectorizer_config=vectorizer_config,
         vectorizer=Vectorizer(schema["vectorizer"]),

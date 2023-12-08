@@ -8,13 +8,13 @@ from weaviate.collections.classes.config import (
     _GenerativeConfigCreate,
     _InvertedIndexConfigCreate,
     _MultiTenancyConfigCreate,
+    _VectorIndexConfigCreate,
     Property,
     _ShardingConfigCreate,
     _ReferencePropertyBase,
     _ReplicationConfigCreate,
     _VectorizerConfigCreate,
     _Vectorizer,
-    _VectorIndexConfigCreate,
     _VectorIndexType,
 )
 from weaviate.collections.classes.internal import References, _check_references_generic
@@ -35,7 +35,6 @@ class _Collections(_CollectionsBase):
         replication_config: Optional[_ReplicationConfigCreate] = None,
         sharding_config: Optional[_ShardingConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vector_index_type: _VectorIndexType = _VectorIndexType.HNSW,
         vectorizer_config: Optional[_VectorizerConfigCreate] = None,
         data_model: Optional[Type[Properties]] = None,
         references: Optional[Type[References]] = None,
@@ -68,8 +67,6 @@ class _Collections(_CollectionsBase):
                 The configuration for Weaviate's sharding strategy.
             `vector_index_config`
                 The configuration for Weaviate's vector index.
-            `vector_index_type`
-                The type of vector index to use.
             `vectorizer_config`
                 The configuration for Weaviate's vectorizer.
             `data_model`
@@ -94,7 +91,9 @@ class _Collections(_CollectionsBase):
             sharding_config=sharding_config,
             vectorizer_config=vectorizer_config or _Vectorizer.none(),
             vector_index_config=vector_index_config,
-            vector_index_type=vector_index_type,
+            vector_index_type=vector_index_config.vector_index_type()
+            if vector_index_config is not None
+            else _VectorIndexType.HNSW,
         )
         name = super()._create(config)
         if config.name != name:

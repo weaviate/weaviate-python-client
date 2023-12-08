@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, cast
@@ -66,6 +67,7 @@ class DataType(str, Enum):
 
 class _VectorIndexType(str, Enum):
     HNSW = "hnsw"
+    FLAT = "flat"
 
 
 class Tokenization(str, Enum):
@@ -256,13 +258,8 @@ class _ConfigUpdateModel(BaseModel):
 
 
 class _PQEncoderConfigCreate(_ConfigCreateModel):
-    type_: PQEncoderType
+    type_: PQEncoderType = Field(serialization_alias="type")
     distribution: PQEncoderDistribution
-
-    def _to_dict(self) -> Dict[str, Any]:
-        ret_dict = super()._to_dict()
-        ret_dict["type"] = ret_dict.pop("type_")
-        return ret_dict
 
 
 class _PQEncoderConfigUpdate(_ConfigUpdateModel):
@@ -281,21 +278,34 @@ class _PQEncoderConfigUpdate(_ConfigUpdateModel):
         return schema
 
 
-class _PQConfigCreate(_ConfigCreateModel):
+class _QuantitizerConfigCreate(_ConfigCreateModel):
+    enabled: bool
+
+    @staticmethod
+    @abstractmethod
+    def quantitizer_name() -> str:
+        ...
+
+
+class _PQConfigCreate(_QuantitizerConfigCreate):
     bitCompression: bool
     centroids: int
-    enabled: bool
     encoder: _PQEncoderConfigCreate
     segments: int
     trainingLimit: int = Field(..., ge=100000)
 
-    def _to_dict(self) -> Dict[str, Any]:
-        ret_dict = super()._to_dict()
-        ret_dict["encoder"] = {
-            "type": ret_dict.pop("encoder_type"),
-            "distribution": ret_dict.pop("encoder_distribution"),
-        }
-        return ret_dict
+    @staticmethod
+    def quantitizer_name() -> str:
+        return "pq"
+
+
+class _BQConfigCreate(_QuantitizerConfigCreate):
+    cache: bool
+    rescoreLimit: int
+
+    @staticmethod
+    def quantitizer_name() -> str:
+        return "bq"
 
 
 class _PQConfigUpdate(_ConfigUpdateModel):
@@ -308,8 +318,26 @@ class _PQConfigUpdate(_ConfigUpdateModel):
 
 
 class _VectorIndexConfigCreate(_ConfigCreateModel):
-    cleanupIntervalSeconds: int
     distance: VectorDistance
+    vectorCacheMaxObjects: int
+    quantitizer: Optional[_QuantitizerConfigCreate] = Field(exclude=True)
+
+    @staticmethod
+    @abstractmethod
+    def vector_index_type() -> _VectorIndexType:
+        ...
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.quantitizer is not None:
+            ret_dict[self.quantitizer.quantitizer_name()] = self.quantitizer._to_dict()
+        ret_dict["distance"] = str(self.distance.value)
+
+        return ret_dict
+
+
+class _VectorIndexHNSWConfigCreate(_VectorIndexConfigCreate):
+    cleanupIntervalSeconds: int
     dynamicEfMin: int
     dynamicEfMax: int
     dynamicEfFactor: int
@@ -317,9 +345,17 @@ class _VectorIndexConfigCreate(_ConfigCreateModel):
     ef: int
     flatSearchCutoff: int
     maxConnections: int
-    pq: _PQConfigCreate
     skip: bool
-    vectorCacheMaxObjects: int
+
+    @staticmethod
+    def vector_index_type() -> _VectorIndexType:
+        return _VectorIndexType.HNSW
+
+
+class _VectorIndexFlatConfigCreate(_VectorIndexConfigCreate):
+    @staticmethod
+    def vector_index_type() -> _VectorIndexType:
+        return _VectorIndexType.FLAT
 
 
 class _VectorIndexConfigUpdate(_ConfigUpdateModel):
@@ -1506,7 +1542,14 @@ class _PQConfig:
 
 
 @dataclass
-class _VectorIndexConfig:
+class _BQConfig:
+    cache: bool
+    enabled: bool
+    rescore_limit: int
+
+
+@dataclass
+class _VectorIndexConfigHNSW:
     cleanup_interval_seconds: int
     distance_metric: VectorDistance
     dynamic_ef_min: int
@@ -1516,8 +1559,15 @@ class _VectorIndexConfig:
     ef_construction: int
     flat_search_cutoff: int
     max_connections: int
-    pq: _PQConfig
+    quantitizer: Union[_PQConfig, _BQConfig]
     skip: bool
+    vector_cache_max_objects: int
+
+
+@dataclass
+class _VectorIndexConfigFlat:
+    distance_metric: VectorDistance
+    quantitizer: Union[_PQConfig, _BQConfig]
     vector_cache_max_objects: int
 
 
@@ -1543,7 +1593,7 @@ class _CollectionConfig:
     properties: List[_Property]
     replication_config: _ReplicationConfig
     sharding_config: _ShardingConfig
-    vector_index_config: _VectorIndexConfig
+    vector_index_config: Union[_VectorIndexConfigHNSW, _VectorIndexConfigFlat]
     vector_index_type: _VectorIndexType
     vectorizer_config: Optional[_VectorizerConfig]
     vectorizer: Vectorizer
@@ -1743,6 +1793,92 @@ class _CollectionConfigCreate(_CollectionConfigCreateBase):
         return ret_dict
 
 
+class _VectorIndexOptimizer:
+    @staticmethod
+    def PQ(
+        bit_compression: bool = False,
+        centroids: int = 256,
+        enabled: bool = False,
+        encoder_distribution: PQEncoderDistribution = PQEncoderDistribution.LOG_NORMAL,
+        encoder_type: PQEncoderType = PQEncoderType.KMEANS,
+        segments: int = 0,
+        training_limit: int = 100000,
+    ) -> _PQConfigCreate:
+        return _PQConfigCreate(
+            bitCompression=bit_compression,
+            centroids=centroids,
+            enabled=enabled,
+            segments=segments,
+            trainingLimit=training_limit,
+            encoder=_PQEncoderConfigCreate(type_=encoder_type, distribution=encoder_distribution),
+        )
+
+    @staticmethod
+    def BQ(
+        cache: bool = False,
+        enabled: bool = False,
+        rescore_limit: int = -1,
+    ) -> _BQConfigCreate:
+        return _BQConfigCreate(
+            cache=cache,
+            enabled=enabled,
+            rescoreLimit=rescore_limit,
+        )
+
+
+class _VectorIndex:
+    Quantitizer = _VectorIndexOptimizer
+
+    @staticmethod
+    def hnsw(
+        cleanup_interval_seconds: int = 300,
+        distance_metric: VectorDistance = VectorDistance.COSINE,
+        dynamic_ef_factor: int = 8,
+        dynamic_ef_max: int = 500,
+        dynamic_ef_min: int = 100,
+        ef: int = -1,
+        ef_construction: int = 128,
+        flat_search_cutoff: int = 40000,
+        max_connections: int = 64,
+        skip: bool = False,
+        vector_cache_max_objects: int = 1000000000000,
+        quantitizer: Optional[_QuantitizerConfigCreate] = None,
+    ) -> _VectorIndexHNSWConfigCreate:
+        """Create a `_VectorIndexConfigCreate` object to be used when defining the vector index configuration of Weaviate.
+
+        Use this method when defining the `vector_index_config` argument in `collection.create()`.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _VectorIndexHNSWConfigCreate(
+            cleanupIntervalSeconds=cleanup_interval_seconds,
+            distance=distance_metric,
+            dynamicEfMin=dynamic_ef_min,
+            dynamicEfMax=dynamic_ef_max,
+            dynamicEfFactor=dynamic_ef_factor,
+            efConstruction=ef_construction,
+            ef=ef,
+            flatSearchCutoff=flat_search_cutoff,
+            maxConnections=max_connections,
+            skip=skip,
+            vectorCacheMaxObjects=vector_cache_max_objects,
+            quantitizer=quantitizer,
+        )
+
+    @staticmethod
+    def flat(
+        distance_metric: VectorDistance = VectorDistance.COSINE,
+        vector_cache_max_objects: int = 1000000000000,
+        quantitizer: Optional[_QuantitizerConfigCreate] = None,
+    ) -> _VectorIndexFlatConfigCreate:
+        return _VectorIndexFlatConfigCreate(
+            distance=distance_metric,
+            vectorCacheMaxObjects=vector_cache_max_objects,
+            quantitizer=quantitizer,
+        )
+
+
 class Configure:
     """Use this factory class to generate the correct object for use when using the `collection.create()` method. E.g., `.multi_tenancy()` will return a `MultiTenancyConfigCreate` object to be used in the `multi_tenancy_config` argument.
 
@@ -1752,6 +1888,7 @@ class Configure:
 
     Generative = _Generative
     Vectorizer = _Vectorizer
+    VectorIndex = _VectorIndex
 
     @staticmethod
     def inverted_index(
@@ -1836,67 +1973,6 @@ class Configure:
             desiredVirtualCount=desired_virtual_count,
             actualVirtualCount=actual_virtual_count,
         )
-
-    @staticmethod
-    def vector_index(
-        cleanup_interval_seconds: int = 300,
-        distance_metric: VectorDistance = VectorDistance.COSINE,
-        dynamic_ef_factor: int = 8,
-        dynamic_ef_max: int = 500,
-        dynamic_ef_min: int = 100,
-        ef: int = -1,
-        ef_construction: int = 128,
-        flat_search_cutoff: int = 40000,
-        max_connections: int = 64,
-        pq_bit_compression: bool = False,
-        pq_centroids: int = 256,
-        pq_enabled: bool = False,
-        pq_encoder_distribution: PQEncoderDistribution = PQEncoderDistribution.LOG_NORMAL,
-        pq_encoder_type: PQEncoderType = PQEncoderType.KMEANS,
-        pq_segments: int = 0,
-        pq_training_limit: int = 100000,
-        skip: bool = False,
-        vector_cache_max_objects: int = 1000000000000,
-    ) -> _VectorIndexConfigCreate:
-        """Create a `_VectorIndexConfigCreate` object to be used when defining the vector index configuration of Weaviate.
-
-        Use this method when defining the `vector_index_config` argument in `collection.create()`.
-
-        Arguments:
-            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
-        """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _VectorIndexConfigCreate(
-            cleanupIntervalSeconds=cleanup_interval_seconds,
-            distance=distance_metric,
-            dynamicEfMin=dynamic_ef_min,
-            dynamicEfMax=dynamic_ef_max,
-            dynamicEfFactor=dynamic_ef_factor,
-            efConstruction=ef_construction,
-            ef=ef,
-            flatSearchCutoff=flat_search_cutoff,
-            maxConnections=max_connections,
-            pq=_PQConfigCreate(
-                bitCompression=pq_bit_compression,
-                centroids=pq_centroids,
-                enabled=pq_enabled,
-                encoder=_PQEncoderConfigCreate(
-                    type_=pq_encoder_type,
-                    distribution=pq_encoder_distribution,
-                ),
-                segments=pq_segments,
-                trainingLimit=pq_training_limit,
-            ),
-            skip=skip,
-            vectorCacheMaxObjects=vector_cache_max_objects,
-        )
-
-    @staticmethod
-    def vector_index_type() -> _VectorIndexType:
-        """Create a `_VectorIndexType` object to be used when defining the vector index type of Weaviate.
-
-        Use this method when defining the `vector_index_type` argument in `collection.create()`.
-        """
-        return _VectorIndexType.HNSW
 
 
 class Reconfigure:
