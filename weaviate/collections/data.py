@@ -36,7 +36,7 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.orm import (
     Model,
 )
-from weaviate.collections.classes.types import Properties, TProperties, _check_data_model
+from weaviate.collections.classes.types import Properties
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.batch.grpc import _BatchGRPC, _validate_props
 from weaviate.collections.batch.rest import _BatchREST
@@ -305,11 +305,11 @@ class _DataCollection(Generic[Properties], _Data):
         super().__init__(connection, name, consistency_level, tenant)
         self.__type = type_
 
-    def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]":
-        _check_data_model(data_model)
-        return _DataCollection[TProperties](
-            self._connection, self.name, self._consistency_level, self._tenant, data_model
-        )
+    # def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]":
+    #     _check_data_model(data_model)
+    #     return _DataCollection[TProperties](
+    #         self._connection, self.name, self._consistency_level, self._tenant, data_model
+    #     )
 
     def __deserialize_properties(self, data: Dict[str, Any]) -> Properties:
         hints = (
@@ -322,12 +322,13 @@ class _DataCollection(Generic[Properties], _Data):
             {key: self._deserialize_primitive(val, hints.get(key)) for key, val in data.items()},
         )
 
-    def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Properties]:
+    def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Properties, dict]:
         props = self.__deserialize_properties(obj["properties"])
         uuid, vector, metadata = _metadata_from_dict(obj)
-        return _Object[Properties](
+        return _Object[Properties, dict](
             metadata=None if metadata._is_empty() else metadata,
             properties=cast(Properties, props),
+            references={},
             uuid=uuid,
             vector=vector,
         )
@@ -537,7 +538,7 @@ class _DataCollectionModel(Generic[Model], _Data):
         super().__init__(connection, name, consistency_level, tenant)
         self.__model = model
 
-    def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Model]:
+    def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Model, dict]:
         for ref in self.__model.get_ref_fields(self.__model):
             if ref not in obj["properties"]:
                 continue
@@ -557,7 +558,7 @@ class _DataCollectionModel(Generic[Model], _Data):
                 obj["properties"][prop] = None
 
         uuid, vector, metadata = _metadata_from_dict(obj)
-        model_object = _Object[Model](
+        model_object = _Object[Model, dict](
             properties=self.__model.model_validate(
                 {
                     **obj["properties"],
@@ -565,6 +566,7 @@ class _DataCollectionModel(Generic[Model], _Data):
                     "vector": vector,
                 }
             ),
+            references={},
             metadata=metadata,
             uuid=uuid,
             vector=vector,
@@ -625,7 +627,7 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         self._update(weaviate_obj, uuid)
 
-    def get_by_id(self, uuid: UUID, include_vector: bool = False) -> Optional[_Object[Model]]:
+    def get_by_id(self, uuid: UUID, include_vector: bool = False) -> Optional[_Object[Model, dict]]:
         ret = self._get_by_id(uuid=uuid, include_vector=include_vector)
         if ret is None:
             return None
@@ -633,7 +635,7 @@ class _DataCollectionModel(Generic[Model], _Data):
 
     def get(
         self, limit: Optional[int] = None, include_vector: bool = False
-    ) -> List[_Object[Model]]:
+    ) -> List[_Object[Model, dict]]:
         ret = self._get(limit=limit, include_vector=include_vector)
         if ret is None:
             return []

@@ -1,14 +1,17 @@
 from typing import Any, Dict, Mapping, Optional, Type, get_origin
-from typing_extensions import TypeVar, is_typeddict
+from typing_extensions import TypeAlias, TypeVar, is_typeddict
 
 from pydantic import BaseModel, ConfigDict
 
 from weaviate.exceptions import InvalidDataModelException
+from weaviate.types import WeaviateField
 
-Properties = TypeVar("Properties", bound=Mapping[str, Any], default=Dict[str, Any])
-"""`Properties` is used wherever a single generic type is needed"""
+WeaviateProperties: TypeAlias = Dict[str, WeaviateField]
 
-TProperties = TypeVar("TProperties", bound=Mapping[str, Any], default=Dict[str, Any])
+Properties = TypeVar("Properties", bound=Mapping[str, Any], default=WeaviateProperties)
+"""`Properties` is used wherever a single generic type is needed for properties"""
+
+TProperties = TypeVar("TProperties", bound=Mapping[str, Any], default=WeaviateProperties)
 """`TProperties` is used alongside `Properties` wherever there are two generic types needed
 
 E.g., in `_DataCollection`, `Properties` is used when defining the generic of the class while
@@ -22,17 +25,38 @@ P = TypeVar("P")
 """`P` is a completely general type that is used wherever generic properties objects are defined that can be used
 within the non-ORM and ORM APIs interchangeably"""
 
+QP = TypeVar("QP")
+"""`QP` is a completely general type that is used wherever generic properties objects are defined that can be used
+within the non-ORM and ORM APIs interchangeably"""
+
+R = TypeVar("R")
+"""`R` is a completely general type that is used wherever generic reference objects are defined that can be used
+within the non-ORM and ORM APIs interchangeably"""
+
+QR = TypeVar("QR")
+"""`QR` is a completely general type that is used wherever generic reference objects are defined that can be used
+within the non-ORM and ORM APIs interchangeably"""
+
 T = TypeVar("T")
 """`T` is a completely general type that is used in any kind of generic"""
 
 
-def _check_data_model(data_model: Optional[Type[Properties]]) -> None:
+def _check_properties_generic(properties: Optional[Type[Properties]]) -> None:
     if (
-        data_model is not None
-        and get_origin(data_model) is not dict
-        and not is_typeddict(data_model)
+        properties is not None
+        and get_origin(properties) is not dict
+        and not is_typeddict(properties)
+        # and not all([val in [
+        #     str,
+        #     int,
+        #     float,
+        #     bool,
+        #     list,
+        #     dict,
+        #     None,
+        # ] for val in get_type_hints(properties).values()])
     ):
-        raise InvalidDataModelException()
+        raise InvalidDataModelException("properties")
 
 
 class _WeaviateInput(BaseModel):

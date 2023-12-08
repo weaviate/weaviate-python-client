@@ -38,7 +38,8 @@ from weaviate.collections.classes.grpc import (
 from weaviate.collections.classes.internal import Reference
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collections.classes.types import Properties
-from weaviate.collections.data import _Data
+
+# from weaviate.collections.data import _Data
 from weaviate.collections.iterator import ITERATOR_CACHE_SIZE
 from weaviate.exceptions import (
     InvalidDataModelException,
@@ -123,19 +124,19 @@ def test_get_with_dict_generic(client: weaviate.WeaviateClient, use_typed_dict: 
     assert isinstance(col, Collection)
 
 
-def test_data_with_data_model_with_dict_generic(client: weaviate.WeaviateClient):
-    name = "TestDataWithDictGeneric"
+# def test_data_with_data_model_with_dict_generic(client: weaviate.WeaviateClient):
+#     name = "TestDataWithDictGeneric"
 
-    class Right(TypedDict):
-        name: str
+#     class Right(TypedDict):
+#         name: str
 
-    col = client.collections.get(name)
-    assert isinstance(col, Collection)
-    data = col.data.with_data_model(Right)
-    assert isinstance(data, _Data)
+#     col = client.collections.get(name)
+#     assert isinstance(col, Collection)
+#     data = col.data.with_data_model(Right)
+#     assert isinstance(data, _Data)
 
 
-WRONG_GENERIC_ERROR_MSG = "data_model can only be a dict type, e.g. Dict[str, str], or a class that inherits from TypedDict"
+WRONG_GENERIC_ERROR_MSG = "properties can only be a dict type, e.g. Dict[str, Any], or a class that inherits from TypedDict"
 
 
 def test_get_with_empty_class_generic(client: weaviate.WeaviateClient):
@@ -1670,11 +1671,11 @@ def test_optional_ref_returns(client: weaviate.WeaviateClient):
     collection.data.insert(properties={"ref": Reference.to(uuid_to1)})
 
     objects = collection.query.fetch_objects(
-        return_properties=[FromReference(link_on="ref")]
+        return_references=[FromReference(link_on="ref")]
     ).objects
 
-    assert objects[0].properties["ref"].objects[0].properties["text"] == "ref text"
-    assert objects[0].properties["ref"].objects[0].uuid is not None
+    assert objects[0].references["ref"].objects[0].properties["text"] == "ref text"
+    assert objects[0].references["ref"].objects[0].uuid is not None
 
 
 @pytest.mark.parametrize(

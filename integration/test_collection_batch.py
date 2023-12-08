@@ -335,12 +335,12 @@ def test_add_one_hundred_objects_and_references_between_all(
             batch.add_reference(**ref)
     objs = (
         client_sync_indexing.collections.get("Test")
-        .query.fetch_objects(limit=nr_objects, return_properties=FromReference(link_on="test"))
+        .query.fetch_objects(limit=nr_objects, return_references=FromReference(link_on="test"))
         .objects
     )
     assert len(objs) == nr_objects
     for obj in objs:
-        assert len(obj.properties["test"].objects) == nr_objects - 1
+        assert len(obj.references["test"].objects) == nr_objects - 1
     client_sync_indexing.collections.delete("Test")
 
 
