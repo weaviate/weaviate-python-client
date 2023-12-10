@@ -326,7 +326,7 @@ class _DataCollection(Generic[Properties], _Data):
         props = self.__deserialize_properties(obj["properties"])
         uuid, vector, metadata = _metadata_from_dict(obj)
         return _Object[Properties](
-            metadata=None if metadata._is_empty() else metadata,
+            metadata=metadata,
             properties=cast(Properties, props),
             uuid=uuid,
             vector=vector,
