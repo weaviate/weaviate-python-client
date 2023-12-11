@@ -15,6 +15,7 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.data import (
     DataObject,
     DataReference,
+    GeoCoordinate,
 )
 from weaviate.collections.classes.internal import (
     _Object,
@@ -240,10 +241,19 @@ class _Data:
             return _datetime_to_string(value)
         if isinstance(value, list):
             return [self.__serialize_primitive(val) for val in value]
+        if isinstance(value, GeoCoordinate):
+            return value._to_dict()
         return value
 
     def _deserialize_primitive(self, value: Any, type_value: Optional[Any]) -> Any:
         if type_value is None:
+            if (
+                isinstance(value, dict)
+                and len(value) == 2
+                and "latitude" in value
+                and "longitude" in value
+            ):
+                return GeoCoordinate(**value)
             return value
         if type_value == uuid_package.UUID:
             return uuid_package.UUID(value)
