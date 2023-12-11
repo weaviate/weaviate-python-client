@@ -1188,17 +1188,7 @@ def test_insert_date_property(client: weaviate.WeaviateClient, hours: int, minut
 
     obj = collection.query.fetch_object_by_id(uuid)
 
-    assert (
-        datetime.datetime.strptime(
-            "".join(
-                obj.properties["date"].rsplit(":", 1)
-                if obj.properties["date"][-1] != "Z"
-                else obj.properties["date"]
-            ),
-            "%Y-%m-%dT%H:%M:%S.%f%z",
-        )
-        == now
-    )
+    assert obj.properties["date"] == now
     # weaviate drops any trailing zeros from the microseconds part of the date
     # this means that the returned dates aren't in the ISO format and so cannot be parsed easily to datetime
     # moreover, UTC timezones specified as +-00:00 are converted to Z further complicating matters
