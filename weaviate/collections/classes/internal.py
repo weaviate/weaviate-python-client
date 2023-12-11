@@ -91,7 +91,7 @@ class _MetadataReturn:
 @dataclass
 class _Object(Generic[P]):
     uuid: uuid_package.UUID
-    metadata: Optional[_MetadataReturn]
+    metadata: _MetadataReturn
     properties: P
     vector: Optional[List[float]]
 
