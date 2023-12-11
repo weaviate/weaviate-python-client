@@ -178,6 +178,13 @@ jobs:
   test-package:
     needs: [build-package]
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        server: [
+          "1.22.6",
+          "1.23.0-rc.0-b454247",
+        ]
     steps:
       - name: Download build artifact to append to release
         uses: actions/download-artifact@v3
@@ -192,7 +199,7 @@ jobs:
           fetch-depth: 0
       - run: rm -r weaviate
       - name: start weaviate
-        run: /bin/bash ci/start_weaviate.sh
+        run: /bin/bash ci/start_weaviate.sh ${{ matrix.server }}
       - name: Run integration tests with auth secrets
         if: ${{ !github.event.pull_request.head.repo.fork }}
         env:
