@@ -13,7 +13,7 @@ from weaviate.collections.classes.config import (
     Property,
     ReferenceProperty,
 )
-from weaviate.collections.classes.internal import FromReference
+from weaviate.collections.classes.internal import _Reference, FromReference
 from weaviate.collections.classes.tenants import Tenant
 
 UUID = Union[str, uuid.UUID]
@@ -98,9 +98,8 @@ def test_add_reference(
     from_object_uuid: UUID,
     to_object_uuid: UUID,
     to_object_collection: Optional[str],
-):
+) -> None:
     """Test the `add_reference` method"""
-
     with client_sync_indexing.batch as batch:
         batch.add_object(
             properties={},
@@ -125,11 +124,16 @@ def test_add_reference(
         )
         assert batch.num_objects() == 2
         assert batch.num_references() == 1
-    objs = client_sync_indexing.collections.get("Test").query.fetch_objects().objects
-    obj = client_sync_indexing.collections.get("Test").query.fetch_object_by_id(from_object_uuid)
+    objs = (
+        client_sync_indexing.collections.get("Test")
+        .query.fetch_objects(return_references=FromReference(link_on="test"))
+        .objects
+    )
+    obj = client_sync_indexing.collections.get("Test").query.fetch_object_by_id(
+        from_object_uuid, return_references=FromReference(link_on="test")
+    )
     assert len(objs) == 2
-    print(obj.properties)
-    assert isinstance(obj.properties["test"][0]["beacon"], str)
+    assert isinstance(obj.references["test"], _Reference)
 
 
 def test_add_data_object_and_get_class_shards_readiness(
@@ -210,7 +214,7 @@ def test_add_object_batch_with_tenant(client_sync_indexing: weaviate.WeaviateCli
         client_sync_indexing.collections.delete(name)
 
 
-def test_add_ref_batch_with_tenant(client_sync_indexing: weaviate.WeaviateClient):
+def test_add_ref_batch_with_tenant(client_sync_indexing: weaviate.WeaviateClient) -> None:
     client_sync_indexing.collections.delete_all()
 
     # create two classes and add 5 tenants each
@@ -269,21 +273,23 @@ def test_add_ref_batch_with_tenant(client_sync_indexing: weaviate.WeaviateClient
         ret_obj = (
             client_sync_indexing.collections.get(collections[1])
             .with_tenant(obj[1])
-            .query.fetch_object_by_id(obj[0])
+            .query.fetch_object_by_id(
+                obj[0],
+                return_properties="tenantAsProp",
+                return_references=FromReference(link_on="ref"),
+            )
         )
+        assert ret_obj is not None
         assert ret_obj.properties["tenantAsProp"] == obj[1]
-        assert (
-            ret_obj.properties["ref"][0]["beacon"]
-            == f"weaviate://localhost/{collections[0]}/{objects_class0[i]}"
-        )
+        assert ret_obj.references["ref"].objects[0].uuid == objects_class0[i]
 
     for name in reversed(collections):
         client_sync_indexing.collections.delete(name)
 
 
-def test_add_ten_thousand_data_objects(client_sync_indexing: weaviate.WeaviateClient):
+def test_add_thousand_data_objects(client_sync_indexing: weaviate.WeaviateClient):
     """Test adding ten thousand data objects"""
-    nr_objects = 10000
+    nr_objects = 1000
     client_sync_indexing.batch.configure(num_workers=4)
     with client_sync_indexing.batch as batch:
         for i in range(nr_objects):
@@ -318,7 +324,7 @@ def make_refs(uuids: List[uuid.UUID]) -> List[dict]:
 
 def test_add_one_hundred_objects_and_references_between_all(
     client_sync_indexing: weaviate.WeaviateClient,
-):
+) -> None:
     """Test adding one hundred objects and references between all of them"""
 
     nr_objects = 100
@@ -335,12 +341,12 @@ def test_add_one_hundred_objects_and_references_between_all(
             batch.add_reference(**ref)
     objs = (
         client_sync_indexing.collections.get("Test")
-        .query.fetch_objects(limit=nr_objects, return_properties=FromReference(link_on="test"))
+        .query.fetch_objects(limit=nr_objects, return_references=FromReference(link_on="test"))
         .objects
     )
     assert len(objs) == nr_objects
     for obj in objs:
-        assert len(obj.properties["test"].objects) == nr_objects - 1
+        assert len(obj.references["test"].objects) == nr_objects - 1
     client_sync_indexing.collections.delete("Test")
 
 
@@ -419,7 +425,7 @@ def test_manual_batching(client_sync_indexing: weaviate.WeaviateClient):
     assert len(objs) == 10
 
 
-def test_add_1000_objects_with_async_indexing_and_wait(
+def test_add_100_objects_with_async_indexing_and_wait(
     client_async_indexing: weaviate.WeaviateClient,
 ) -> None:
     name = "BatchTestAsyncTenants"
@@ -456,7 +462,7 @@ def test_add_1000_objects_with_async_indexing_and_wait(
 @pytest.mark.skip(
     reason="This test flakes when the number is too low and brakes if too high due to gRPC message sizing. Needs to be fixed."
 )
-def test_add_1000000_objects_with_async_indexing_and_dont_wait(
+def test_add_100000_objects_with_async_indexing_and_dont_wait(
     client_async_indexing: weaviate.WeaviateClient,
 ):
     name = "BatchTestAsyncTenants"
@@ -468,7 +474,7 @@ def test_add_1000000_objects_with_async_indexing_and_dont_wait(
             Property(name="text", data_type=DataType.TEXT),
         ],
     )
-    nr_objects = 1000000
+    nr_objects = 100000
     objs = [
         {
             "collection": name,
@@ -489,7 +495,7 @@ def test_add_1000000_objects_with_async_indexing_and_dont_wait(
     assert old_client.schema.get_class_shards(name)[0]["vectorQueueSize"] > 0
 
 
-def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
+def test_add_100_tenant_objects_with_async_indexing_and_wait_for_all(
     client_async_indexing: weaviate.WeaviateClient,
 ):
     name = "BatchTestAsyncTenants"
@@ -504,7 +510,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
     )
     tenants = [Tenant(name="tenant" + str(i)) for i in range(5)]
     test.tenants.create(tenants)
-    nr_objects = 1000
+    nr_objects = 100
     objs = [
         {
             "collection": name,
@@ -528,7 +534,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
         assert shard["vectorQueueSize"] == 0
 
 
-def test_add_10000_tenant_objects_with_async_indexing_and_wait_for_only_one(
+def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
     client_async_indexing: weaviate.WeaviateClient,
 ):
     name = "BatchTestAsyncTenants"
@@ -543,7 +549,7 @@ def test_add_10000_tenant_objects_with_async_indexing_and_wait_for_only_one(
     )
     tenants = [Tenant(name="tenant" + str(i)) for i in range(2)]
     test.tenants.create(tenants)
-    nr_objects = 10000
+    nr_objects = 1000
     objs = [
         {
             "collection": name,

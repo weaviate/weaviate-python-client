@@ -862,3 +862,16 @@ def _datetime_to_string(value: TIME) -> str:
         _Warnings.datetime_insertion_with_no_specified_timezone(value)
         value = value.replace(tzinfo=datetime.timezone.utc)
     return value.isoformat(sep="T", timespec="microseconds")
+
+
+def _datetime_from_weaviate_str(string: str) -> datetime.datetime:
+    try:
+        return datetime.datetime.strptime(
+            "".join(string.rsplit(":", 1) if string[-1] != "Z" else string),
+            "%Y-%m-%dT%H:%M:%S.%f%z",
+        )
+    except ValueError:  # if the string does not have microseconds
+        return datetime.datetime.strptime(
+            "".join(string.rsplit(":", 1) if string[-1] != "Z" else string),
+            "%Y-%m-%dT%H:%M:%S%z",
+        )

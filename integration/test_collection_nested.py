@@ -1,3 +1,4 @@
+import datetime
 from typing import List, TypedDict, Union
 
 import pytest
@@ -142,8 +143,35 @@ def client():
                 "ints": [42, 43],
                 "bool": True,
                 "bools": [True, False],
-                "date": "2020-01-01T00:00:00Z",
-                "dates": ["2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z"],
+                "date": datetime.datetime(
+                    year=2020,
+                    month=1,
+                    day=1,
+                    hour=0,
+                    minute=0,
+                    second=0,
+                    tzinfo=datetime.timezone.utc,
+                ),
+                "dates": [
+                    datetime.datetime(
+                        year=2020,
+                        month=1,
+                        day=1,
+                        hour=0,
+                        minute=0,
+                        second=0,
+                        tzinfo=datetime.timezone.utc,
+                    ),
+                    datetime.datetime(
+                        year=2020,
+                        month=1,
+                        day=2,
+                        hour=0,
+                        minute=0,
+                        second=0,
+                        tzinfo=datetime.timezone.utc,
+                    ),
+                ],
                 "obj": {"text": "Hello World"},
                 "objs": [{"text": "Hello World"}, {"text": "Hello World"}],
             },
@@ -221,8 +249,35 @@ def client():
                     "ints": [42, 43],
                     "bool": True,
                     "bools": [True, False],
-                    "date": "2020-01-01T00:00:00Z",
-                    "dates": ["2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z"],
+                    "date": datetime.datetime(
+                        year=2020,
+                        month=1,
+                        day=1,
+                        hour=0,
+                        minute=0,
+                        second=0,
+                        tzinfo=datetime.timezone.utc,
+                    ),
+                    "dates": [
+                        datetime.datetime(
+                            year=2020,
+                            month=1,
+                            day=1,
+                            hour=0,
+                            minute=0,
+                            second=0,
+                            tzinfo=datetime.timezone.utc,
+                        ),
+                        datetime.datetime(
+                            year=2020,
+                            month=1,
+                            day=2,
+                            hour=0,
+                            minute=0,
+                            second=0,
+                            tzinfo=datetime.timezone.utc,
+                        ),
+                    ],
                     "obj": {"text": "Hello World"},
                     "objs": [{"text": "Hello World"}, {"text": "Hello World"}],
                 }
@@ -280,10 +335,44 @@ def test_nested_return_all_properties(
         (FromNested(name="nested", properties=["ints"]), {"ints": [42, 43]}),
         (FromNested(name="nested", properties=["bool"]), {"bool": True}),
         (FromNested(name="nested", properties=["bools"]), {"bools": [True, False]}),
-        (FromNested(name="nested", properties=["date"]), {"date": "2020-01-01T00:00:00Z"}),
+        (
+            FromNested(name="nested", properties=["date"]),
+            {
+                "date": datetime.datetime(
+                    year=2020,
+                    month=1,
+                    day=1,
+                    hour=0,
+                    minute=0,
+                    second=0,
+                    tzinfo=datetime.timezone.utc,
+                )
+            },
+        ),
         (
             FromNested(name="nested", properties=["dates"]),
-            {"dates": ["2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z"]},
+            {
+                "dates": [
+                    datetime.datetime(
+                        year=2020,
+                        month=1,
+                        day=1,
+                        hour=0,
+                        minute=0,
+                        second=0,
+                        tzinfo=datetime.timezone.utc,
+                    ),
+                    datetime.datetime(
+                        year=2020,
+                        month=1,
+                        day=2,
+                        hour=0,
+                        minute=0,
+                        second=0,
+                        tzinfo=datetime.timezone.utc,
+                    ),
+                ]
+            },
         ),
         (
             FromNested(name="nested", properties=[FromNested(name="obj", properties=["text"])]),
@@ -407,8 +496,8 @@ def test_nested_return_specific_properties(
                     "ints": [42, 43],
                     "bool": True,
                     "bools": [True, False],
-                    "date": "2020-01-01T00:00:00Z",
-                    "dates": ["2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z"],
+                    "date": "2020-01-01T00:00:00.000Z",
+                    "dates": ["2020-01-01T00:00:00.000Z", "2020-01-02T00:00:00.000Z"],
                     "obj": {"text": "Hello World"},
                     "objs": [{"text": "Hello World"}, {"text": "Hello World"}],
                     "a": {"b": {"c": {"d": "e"}}},

@@ -1,7 +1,7 @@
 """
 Cluster class definition.
 """
-from typing import List, Optional, cast
+from typing import List, Literal, Optional, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -30,7 +30,11 @@ class Cluster:
 
         self._connection = connection
 
-    def get_nodes_status(self, class_name: Optional[str] = None) -> List[Node]:
+    def get_nodes_status(
+        self,
+        class_name: Optional[str] = None,
+        output: Optional[Literal["minimal", "verbose"]] = None,
+    ) -> List[Node]:
         """
         Get the nodes status.
 
@@ -38,6 +42,8 @@ class Cluster:
         ----------
         class_name : Optional[str]
             Get the status for the given class. If not given all classes will be included.
+        output : Optional[str]
+            Set the desired output verbosity level. Can be [minimal | verbose], defaults to minimal.
 
         Returns
         -------
@@ -56,6 +62,8 @@ class Cluster:
         path = "/nodes"
         if class_name is not None:
             path += "/" + _capitalize_first_letter(class_name)
+        if output is not None:
+            path += f"?output={output}"
 
         try:
             response = self._connection.get(path=path)

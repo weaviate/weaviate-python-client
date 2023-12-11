@@ -1,4 +1,4 @@
-from typing import Generic, List, Optional, Union, Type, overload
+from typing import Generic, List, Literal, Optional, Union, Type, overload
 
 from weaviate.collections.classes.filters import (
     _Filters,
@@ -6,23 +6,26 @@ from weaviate.collections.classes.filters import (
 from weaviate.collections.classes.grpc import (
     METADATA,
     PROPERTIES,
+    REFERENCES,
     Sort,
 )
 from weaviate.collections.classes.internal import (
     _GenerativeReturn,
     _QueryReturn,
     _Generative,
-    GenerativeReturn,
-    QueryReturn,
     ReturnProperties,
+    ReturnReferences,
     _QueryOptions,
+    References,
+    TReferences,
+    WeaviateReferences,
 )
 from weaviate.collections.classes.types import Properties, TProperties
-from weaviate.collections.queries.base import _Grpc
+from weaviate.collections.queries.base import _BaseQuery
 from weaviate.types import UUID
 
 
-class _FetchObjectsQuery(Generic[Properties], _Grpc[Properties]):
+class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
     @overload
     def fetch_objects(
         self,
@@ -35,7 +38,40 @@ class _FetchObjectsQuery(Generic[Properties], _Grpc[Properties]):
         return_metadata: Optional[METADATA] = None,
         *,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> _QueryReturn[Properties]:
+        return_references: Literal[None] = None
+    ) -> _QueryReturn[Properties, References]:
+        ...
+
+    @overload
+    def fetch_objects(
+        self,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+        filters: Optional[_Filters] = None,
+        sort: Optional[Union[Sort, List[Sort]]] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: REFERENCES
+    ) -> _QueryReturn[Properties, WeaviateReferences]:
+        ...
+
+    @overload
+    def fetch_objects(
+        self,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+        filters: Optional[_Filters] = None,
+        sort: Optional[Union[Sort, List[Sort]]] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Type[TReferences]
+    ) -> _QueryReturn[Properties, TReferences]:
         ...
 
     @overload
@@ -50,7 +86,40 @@ class _FetchObjectsQuery(Generic[Properties], _Grpc[Properties]):
         return_metadata: Optional[METADATA] = None,
         *,
         return_properties: Type[TProperties],
-    ) -> _QueryReturn[TProperties]:
+        return_references: Literal[None] = None
+    ) -> _QueryReturn[TProperties, References]:
+        ...
+
+    @overload
+    def fetch_objects(
+        self,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+        filters: Optional[_Filters] = None,
+        sort: Optional[Union[Sort, List[Sort]]] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Type[TProperties],
+        return_references: REFERENCES
+    ) -> _QueryReturn[TProperties, WeaviateReferences]:
+        ...
+
+    @overload
+    def fetch_objects(
+        self,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+        filters: Optional[_Filters] = None,
+        sort: Optional[Union[Sort, List[Sort]]] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Type[TProperties],
+        return_references: Type[TReferences]
+    ) -> _QueryReturn[TProperties, TReferences]:
         ...
 
     def fetch_objects(
@@ -62,8 +131,17 @@ class _FetchObjectsQuery(Generic[Properties], _Grpc[Properties]):
         sort: Optional[Union[Sort, List[Sort]]] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
+        *,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
-    ) -> QueryReturn[Properties, TProperties]:
+        return_references: Optional[ReturnReferences[TReferences]] = None
+    ) -> Union[
+        _QueryReturn[Properties, References],
+        _QueryReturn[Properties, WeaviateReferences],
+        _QueryReturn[Properties, TReferences],
+        _QueryReturn[TProperties, References],
+        _QueryReturn[TProperties, WeaviateReferences],
+        _QueryReturn[TProperties, TReferences],
+    ]:
         """Retrieve the objects in this collection without any search.
 
         Arguments:
@@ -83,6 +161,8 @@ class _FetchObjectsQuery(Generic[Properties], _Grpc[Properties]):
                 The metadata to return for each object, defaults to `None`.
             `return_properties`
                 The properties to return for each object.
+            `return_references`
+                The references to return for each object.
 
         NOTE:
             If `return_properties` is not provided then all properties are returned except for any cross reference properties.
@@ -103,15 +183,23 @@ class _FetchObjectsQuery(Generic[Properties], _Grpc[Properties]):
             sort=sort,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
+            return_references=self._parse_return_references(return_references),
         )
         return self._result_to_query_return(
             res,
+            _QueryOptions.from_input(
+                return_metadata,
+                return_properties,
+                include_vector,
+                self._references,
+                return_references,
+            ),
             return_properties,
-            _QueryOptions.from_input(return_metadata, return_properties, include_vector),
+            return_references,
         )
 
 
-class _FetchObjectsGenerate(Generic[Properties], _Grpc[Properties]):
+class _FetchObjectsGenerate(Generic[Properties, References], _BaseQuery[Properties, References]):
     @overload
     def fetch_objects(
         self,
@@ -125,8 +213,48 @@ class _FetchObjectsGenerate(Generic[Properties], _Grpc[Properties]):
         sort: Optional[Union[Sort, List[Sort]]] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
+        *,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> _GenerativeReturn[Properties]:
+        return_references: Literal[None] = None
+    ) -> _GenerativeReturn[Properties, References]:
+        ...
+
+    @overload
+    def fetch_objects(
+        self,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+        filters: Optional[_Filters] = None,
+        sort: Optional[Union[Sort, List[Sort]]] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: REFERENCES
+    ) -> _GenerativeReturn[Properties, WeaviateReferences]:
+        ...
+
+    @overload
+    def fetch_objects(
+        self,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+        filters: Optional[_Filters] = None,
+        sort: Optional[Union[Sort, List[Sort]]] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Type[TReferences]
+    ) -> _GenerativeReturn[Properties, TReferences]:
         ...
 
     @overload
@@ -144,7 +272,46 @@ class _FetchObjectsGenerate(Generic[Properties], _Grpc[Properties]):
         return_metadata: Optional[METADATA] = None,
         *,
         return_properties: Type[TProperties],
-    ) -> _GenerativeReturn[TProperties]:
+        return_references: Literal[None] = None
+    ) -> _GenerativeReturn[TProperties, References]:
+        ...
+
+    @overload
+    def fetch_objects(
+        self,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+        filters: Optional[_Filters] = None,
+        sort: Optional[Union[Sort, List[Sort]]] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Type[TProperties],
+        return_references: REFERENCES
+    ) -> _GenerativeReturn[TProperties, WeaviateReferences]:
+        ...
+
+    @overload
+    def fetch_objects(
+        self,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+        filters: Optional[_Filters] = None,
+        sort: Optional[Union[Sort, List[Sort]]] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Type[TProperties],
+        return_references: Type[TReferences]
+    ) -> _GenerativeReturn[TProperties, TReferences]:
         ...
 
     def fetch_objects(
@@ -159,8 +326,17 @@ class _FetchObjectsGenerate(Generic[Properties], _Grpc[Properties]):
         sort: Optional[Union[Sort, List[Sort]]] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
+        *,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
-    ) -> GenerativeReturn[Properties, TProperties]:
+        return_references: Optional[ReturnReferences[TReferences]] = None
+    ) -> Union[
+        _GenerativeReturn[Properties, References],
+        _GenerativeReturn[Properties, WeaviateReferences],
+        _GenerativeReturn[Properties, TReferences],
+        _GenerativeReturn[TProperties, References],
+        _GenerativeReturn[TProperties, WeaviateReferences],
+        _GenerativeReturn[TProperties, TReferences],
+    ]:
         """Perform retrieval-augmented generation (RaG) on the results of a simple get query of objects in this collection.
 
         Arguments:
@@ -186,10 +362,13 @@ class _FetchObjectsGenerate(Generic[Properties], _Grpc[Properties]):
                 The metadata to return for each object, defaults to `None`.
             `return_properties`
                 The properties to return for each object.
+            `return_references`
+                The references to return for each object.
 
         NOTE:
-            If `return_properties` is not provided then all properties are returned except for any cross reference properties.
+            If `return_properties` is not provided then all non-reference properties are returned including nested properties.
             If `return_metadata` is not provided then no metadata is provided.
+            If `return_references` is not provided then no references are provided.
 
         Returns:
             A `_GenerativeReturn` object that includes the searched objects with per-object generated results and group generated results.
@@ -206,6 +385,7 @@ class _FetchObjectsGenerate(Generic[Properties], _Grpc[Properties]):
             sort=sort,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
+            return_references=self._parse_return_references(return_references),
             generative=_Generative(
                 single=single_prompt,
                 grouped=grouped_task,
@@ -214,6 +394,13 @@ class _FetchObjectsGenerate(Generic[Properties], _Grpc[Properties]):
         )
         return self._result_to_generative_return(
             res,
+            _QueryOptions.from_input(
+                return_metadata,
+                return_properties,
+                include_vector,
+                self._references,
+                return_references,
+            ),
             return_properties,
-            _QueryOptions.from_input(return_metadata, return_properties, include_vector),
+            return_references,
         )

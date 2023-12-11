@@ -9,7 +9,7 @@ services:
       - '8090'
       - --scheme
       - http
-    image: semitechnologies/weaviate:preview-add-filter-for-metadata-to-grpc-e025130
+    image: semitechnologies/weaviate:1.23.0-rc.0-b454247
     ports:
       - "8090:8090"
       - "50060:50051"

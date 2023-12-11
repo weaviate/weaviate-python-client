@@ -17,7 +17,8 @@ from weaviate.collections.classes.config import (
     _VectorIndexConfigCreate,
     _VectorIndexType,
 )
-from weaviate.collections.classes.types import Properties, _check_data_model
+from weaviate.collections.classes.internal import References, _check_references_generic
+from weaviate.collections.classes.types import Properties, _check_properties_generic
 from weaviate.collections.collection import Collection
 from weaviate.util import _capitalize_first_letter
 
@@ -37,7 +38,8 @@ class _Collections(_CollectionsBase):
         vector_index_type: _VectorIndexType = _VectorIndexType.HNSW,
         vectorizer_config: Optional[_VectorizerConfigCreate] = None,
         data_model: Optional[Type[Properties]] = None,
-    ) -> Collection[Properties]:
+        references: Optional[Type[References]] = None,
+    ) -> Collection[Properties, References]:
         """Use this method to create a collection in Weaviate and immediately return a collection object.
 
         This method takes several arguments that allow you to configure the collection to your liking. Each argument
@@ -99,11 +101,14 @@ class _Collections(_CollectionsBase):
             raise ValueError(
                 f"Name of created collection ({name}) does not match given name ({config.name})"
             )
-        return self.get(name, data_model)
+        return self.get(name, data_model, references)
 
     def get(
-        self, name: str, data_model: Optional[Type[Properties]] = None
-    ) -> Collection[Properties]:
+        self,
+        name: str,
+        properties: Optional[Type[Properties]] = None,
+        references: Optional[Type[References]] = None,
+    ) -> Collection[Properties, References]:
         """Use this method to return a collection object to be used when interacting with your Weaviate collection.
 
         Arguments:
@@ -120,9 +125,12 @@ class _Collections(_CollectionsBase):
         """
         if not isinstance(name, str):
             raise TypeError(f"Expected name to be of type str, but got {type(name)}")
-        _check_data_model(data_model)
+        _check_properties_generic(properties)
+        _check_references_generic(references)
         name = _capitalize_first_letter(name)
-        return Collection[Properties](self._connection, name, type_=data_model)
+        return Collection[Properties, References](
+            self._connection, name, properties=properties, references=references
+        )
 
     def delete(self, name: Union[str, List[str]]) -> None:
         """Use this method to delete collection(s) from the Weaviate instance by its/their name(s).
