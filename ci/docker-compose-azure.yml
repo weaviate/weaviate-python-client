@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-add-filter-for-metadata-to-grpc-e025130
+    image: semitechnologies/weaviate:preview-introduce-custom-pb-properties-message-to-contain-type-aware-properties-within-search-result-7002ea3
     ports:
       - 8081:8081
     restart: on-failure:0

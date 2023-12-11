@@ -4,8 +4,8 @@ import pytest
 
 import weaviate
 
-GIT_HASH = "e025130"
-SERVER_VERSION = "1.22.6"
+GIT_HASH = "7002ea3"
+SERVER_VERSION = "1.23.0-rc.0"
 NODE_NAME = "node1"
 NUM_OBJECT = 10
 
@@ -34,7 +34,7 @@ def client():
 
 def test_get_nodes_status_without_data(client: weaviate.Client):
     """get nodes status without data"""
-    resp = client.cluster.get_nodes_status()
+    resp = client.cluster.get_nodes_status(output="verbose")
     assert len(resp) == 1
     assert resp[0]["gitHash"] == GIT_HASH
     assert resp[0]["name"] == NODE_NAME
@@ -58,7 +58,8 @@ def test_get_nodes_status_with_data(client: weaviate.Client):
     for i in range(NUM_OBJECT * 2):
         client.data_object.create({"stringProp": f"object-{i}", "intProp": i}, class_name2)
 
-    resp = client.cluster.get_nodes_status()
+    resp = client.cluster.get_nodes_status(output="verbose")
+    print(resp)
     assert len(resp) == 1
     assert resp[0]["gitHash"] == GIT_HASH
     assert resp[0]["name"] == NODE_NAME
@@ -74,7 +75,7 @@ def test_get_nodes_status_with_data(client: weaviate.Client):
     assert shards[1]["class"] == class_name2
     assert shards[1]["objectCount"] == NUM_OBJECT * 2
 
-    resp = client.cluster.get_nodes_status(class_name1)
+    resp = client.cluster.get_nodes_status(class_name1, output="verbose")
     assert len(resp) == 1
     assert resp[0]["gitHash"] == GIT_HASH
     assert resp[0]["name"] == NODE_NAME
@@ -87,7 +88,7 @@ def test_get_nodes_status_with_data(client: weaviate.Client):
     assert shards[0]["objectCount"] == NUM_OBJECT
     assert resp[0]["stats"]["objectCount"] == NUM_OBJECT
 
-    resp = client.cluster.get_nodes_status(uncap_class_name1)
+    resp = client.cluster.get_nodes_status(uncap_class_name1, output="verbose")
     assert len(resp) == 1
     assert resp[0]["gitHash"] == GIT_HASH
     assert resp[0]["name"] == NODE_NAME

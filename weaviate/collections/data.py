@@ -45,7 +45,12 @@ from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     ObjectAlreadyExistsException,
 )
-from weaviate.util import _datetime_to_string, _decode_json_response_dict, get_vector
+from weaviate.util import (
+    _datetime_to_string,
+    _decode_json_response_dict,
+    get_vector,
+    _datetime_from_weaviate_str,
+)
 from weaviate.types import BEACON, UUID
 
 
@@ -280,7 +285,7 @@ class _Data:
         if type_value == uuid_package.UUID:
             return uuid_package.UUID(value)
         if type_value == datetime.datetime:
-            return datetime.datetime.fromisoformat(value)
+            return _datetime_from_weaviate_str(value)
         if isinstance(type_value, list):
             return [
                 self._deserialize_primitive(val, type_value[idx]) for idx, val in enumerate(value)

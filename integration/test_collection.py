@@ -1187,17 +1187,7 @@ def test_insert_date_property(client: weaviate.WeaviateClient, hours: int, minut
 
     obj = collection.query.fetch_object_by_id(uuid)
 
-    assert (
-        datetime.datetime.strptime(
-            "".join(
-                obj.properties["date"].rsplit(":", 1)
-                if obj.properties["date"][-1] != "Z"
-                else obj.properties["date"]
-            ),
-            "%Y-%m-%dT%H:%M:%S.%f%z",
-        )
-        == now
-    )
+    assert obj.properties["date"] == now
     # weaviate drops any trailing zeros from the microseconds part of the date
     # this means that the returned dates aren't in the ISO format and so cannot be parsed easily to datetime
     # moreover, UTC timezones specified as +-00:00 are converted to Z further complicating matters
@@ -1287,19 +1277,6 @@ def test_return_list_properties(client: weaviate.WeaviateClient):
     collection.data.insert(properties=data)
     objects = collection.query.fetch_objects().objects
     assert len(objects) == 1
-
-    # remove dates because of problems comparing dates
-    dates_from_weaviate = objects[0].properties.pop("dates")
-    dates2 = [datetime.datetime.fromisoformat(date) for date in dates_from_weaviate]
-    dates = data.pop("dates")
-    assert dates2 == dates
-
-    # remove uuids because weaviate returns them as strings
-    uuids_from_weaviate = objects[0].properties.pop("uuids")
-    uuids2 = [uuid.UUID(uuids) for uuids in uuids_from_weaviate]
-    uuids = data.pop("uuids")
-    assert uuids2 == uuids
-
     assert objects[0].properties == data
 
 
@@ -1636,16 +1613,7 @@ def test_batch_with_arrays(client: weaviate.WeaviateClient) -> None:
         assert obj_out is not None
 
         for prop, val in objects_in[i].properties.items():
-            if prop == "dates":
-                dates_from_weaviate = [
-                    datetime.datetime.fromisoformat(date) for date in obj_out.properties[prop]
-                ]
-                assert val == dates_from_weaviate
-            elif prop == "uuids":
-                uuids_from_weaviate = [uuid.UUID(prop) for prop in obj_out.properties[prop]]
-                assert val == uuids_from_weaviate
-            else:
-                assert obj_out.properties[prop] == val
+            assert obj_out.properties[prop] == val
 
 
 @pytest.mark.parametrize(
