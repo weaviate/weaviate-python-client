@@ -346,8 +346,12 @@ def test_ref_filters(
     )
 
     uuids_from = [
-        from_collection.data.insert({"ref": Reference.to(uuids_to[0]), "name": "first"}),
-        from_collection.data.insert({"ref": Reference.to(uuids_to[1]), "name": "second"}),
+        from_collection.data.insert(
+            properties={"name": "first"}, references={"ref": Reference.to(uuids_to[0])}
+        ),
+        from_collection.data.insert(
+            properties={"name": "second"}, references={"ref": Reference.to(uuids_to[1])}
+        ),
     ]
 
     objects = from_collection.query.fetch_objects(filters=weaviate_filter).objects
@@ -382,27 +386,35 @@ def test_ref_filters_multi_target(client: weaviate.WeaviateClient) -> None:
 
     uuid_from_to_target1 = from_collection.data.insert(
         {
-            "ref": Reference.to_multi_target(uuids=uuid_to, target_collection=target),
             "name": "first",
-        }
+        },
+        references={
+            "ref": Reference.to_multi_target(uuids=uuid_to, target_collection=target),
+        },
     )
     uuid_from_to_target2 = from_collection.data.insert(
         {
-            "ref": Reference.to_multi_target(uuids=uuid_to2, target_collection=target),
             "name": "second",
-        }
+        },
+        references={
+            "ref": Reference.to_multi_target(uuids=uuid_to2, target_collection=target),
+        },
     )
     from_collection.data.insert(
         {
-            "ref": Reference.to_multi_target(uuids=uuid_from_to_target1, target_collection=source),
             "name": "third",
-        }
+        },
+        references={
+            "ref": Reference.to_multi_target(uuids=uuid_from_to_target1, target_collection=source),
+        },
     )
     from_collection.data.insert(
         {
-            "ref": Reference.to_multi_target(uuids=uuid_from_to_target2, target_collection=source),
             "name": "fourth",
-        }
+        },
+        references={
+            "ref": Reference.to_multi_target(uuids=uuid_from_to_target2, target_collection=source),
+        },
     )
 
     objects = from_collection.query.fetch_objects(

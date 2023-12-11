@@ -485,7 +485,8 @@ def _extract_references_from_data_model(type_: Type["References"]) -> Optional[R
     return refs if len(refs) > 0 else None
 
 
-WeaviateReferences = Dict[str, _Reference[WeaviateProperties, "WeaviateReferences"]]
+WeaviateReference = _Reference[WeaviateProperties, "WeaviateReferences"]
+WeaviateReferences = Dict[str, WeaviateReference]
 
 References = TypeVar("References", bound=Optional[Mapping[str, Any]], default=None)
 """`References` is used wherever a single generic type is needed for references"""

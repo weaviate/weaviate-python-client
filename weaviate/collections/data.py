@@ -32,6 +32,8 @@ from weaviate.collections.classes.internal import (
     _Object,
     _metadata_from_dict,
     _Reference,
+    WeaviateReference,
+    WeaviateReferences,
 )
 from weaviate.collections.classes.orm import (
     Model,
@@ -215,7 +217,9 @@ class _Data:
             ]
         )
 
-    def _reference_delete(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
+    def _reference_delete(
+        self, from_uuid: UUID, from_property: str, ref: WeaviateReference
+    ) -> None:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
@@ -231,7 +235,9 @@ class _Data:
             if response.status_code != 204:
                 raise UnexpectedStatusCodeException("Add property reference to object", response)
 
-    def _reference_replace(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
+    def _reference_replace(
+        self, from_uuid: UUID, from_property: str, ref: WeaviateReference
+    ) -> None:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
@@ -262,13 +268,13 @@ class _Data:
             params["consistency_level"] = self._consistency_level
         return params, obj
 
-    def _serialize_properties(self, data: Properties) -> Dict[str, Any]:
-        return {
-            key: val._to_beacons()
-            if isinstance(val, _Reference)
-            else self.__serialize_primitive(val)
-            for key, val in data.items()
+    def _serialize(self, props: Properties, refs: Optional[WeaviateReferences]) -> Dict[str, Any]:
+        out = {
+            **({key: val._to_beacons() for key, val in refs.items()} if refs is not None else {}),
+            **{key: self.__serialize_primitive(val) for key, val in props.items()},
         }
+        print(out)
+        return out
 
     def __serialize_primitive(self, value: Any) -> Any:
         if isinstance(value, uuid_package.UUID):
@@ -338,6 +344,7 @@ class _DataCollection(Generic[Properties], _Data):
         properties: Properties,
         uuid: Optional[UUID] = None,
         vector: Optional[List[float]] = None,
+        references: Optional[WeaviateReferences] = None,
     ) -> uuid_package.UUID:
         """Insert a single object into the collection.
 
@@ -348,10 +355,12 @@ class _DataCollection(Generic[Properties], _Data):
                 The UUID of the object. If not provided, a random UUID will be generated.
             `vector`
                 The vector of the object.
+            `references`
+                Any references to other objects in Weaviate.
         """
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": self._serialize_properties(properties),
+            "properties": self._serialize(properties, references),
             "id": str(uuid if uuid is not None else uuid_package.uuid4()),
         }
 
@@ -402,7 +411,11 @@ class _DataCollection(Generic[Properties], _Data):
         )
 
     def replace(
-        self, properties: Properties, uuid: UUID, vector: Optional[List[float]] = None
+        self,
+        properties: Properties,
+        uuid: UUID,
+        vector: Optional[List[float]] = None,
+        references: Optional[WeaviateReferences] = None,
     ) -> None:
         """Replace an object in the collection.
 
@@ -415,6 +428,8 @@ class _DataCollection(Generic[Properties], _Data):
                 The UUID of the object, REQUIRED.
             `vector`
                 The vector of the object.
+            `references`
+                Any references to other objects in Weaviate.
 
         Raises:
             `requests.ConnectionError`:
@@ -426,7 +441,7 @@ class _DataCollection(Generic[Properties], _Data):
         """
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": self._serialize_properties(properties),
+            "properties": self._serialize(properties, references),
         }
         if vector is not None:
             weaviate_obj["vector"] = vector
@@ -434,7 +449,11 @@ class _DataCollection(Generic[Properties], _Data):
         self._replace(weaviate_obj, uuid=uuid)
 
     def update(
-        self, properties: Properties, uuid: UUID, vector: Optional[List[float]] = None
+        self,
+        properties: Properties,
+        uuid: UUID,
+        vector: Optional[List[float]] = None,
+        references: Optional[WeaviateReferences] = None,
     ) -> None:
         """Update an object in the collection.
 
@@ -447,17 +466,19 @@ class _DataCollection(Generic[Properties], _Data):
                 The UUID of the object, REQUIRED.
             `vector`
                 The vector of the object.
+            `references`
+                Any references to other objects in Weaviate.
         """
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": self._serialize_properties(properties),
+            "properties": self._serialize(properties, references),
         }
         if vector is not None:
             weaviate_obj["vector"] = vector
 
         self._update(weaviate_obj, uuid=uuid)
 
-    def reference_add(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
+    def reference_add(self, from_uuid: UUID, from_property: str, ref: WeaviateReference) -> None:
         """Create a reference between an object in this collection and any other object in Weaviate.
 
         Arguments:
@@ -499,7 +520,7 @@ class _DataCollection(Generic[Properties], _Data):
         """
         return self._reference_add_many(refs)
 
-    def reference_delete(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
+    def reference_delete(self, from_uuid: UUID, from_property: str, ref: WeaviateReference) -> None:
         """Delete a reference from an object within the collection.
 
         Arguments:
@@ -512,7 +533,9 @@ class _DataCollection(Generic[Properties], _Data):
         """
         self._reference_delete(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_replace(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
+    def reference_replace(
+        self, from_uuid: UUID, from_property: str, ref: WeaviateReference
+    ) -> None:
         """Replace a reference of an object within the collection.
 
         Arguments:
@@ -577,7 +600,7 @@ class _DataCollectionModel(Generic[Model], _Data):
         self.__model.model_validate(obj)
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": self._serialize_properties(obj.props_to_dict()),
+            "properties": self._serialize(obj.props_to_dict(), None),
             "id": str(obj.uuid),
         }
         if obj.vector is not None:
@@ -608,7 +631,7 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": self._serialize_properties(obj.props_to_dict()),
+            "properties": self._serialize(obj.props_to_dict(), None),
         }
         if obj.vector is not None:
             weaviate_obj["vector"] = obj.vector
@@ -620,7 +643,7 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
-            "properties": self._serialize_properties(obj.props_to_dict()),
+            "properties": self._serialize(obj.props_to_dict(), None),
         }
         if obj.vector is not None:
             weaviate_obj["vector"] = obj.vector

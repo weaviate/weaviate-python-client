@@ -1675,7 +1675,7 @@ def test_optional_ref_returns(client: weaviate.WeaviateClient):
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    collection.data.insert(properties={"ref": Reference.to(uuid_to1)})
+    collection.data.insert({}, references={"ref": Reference.to(uuid_to1)})
 
     objects = collection.query.fetch_objects(
         return_references=[FromReference(link_on="ref")]

@@ -39,7 +39,9 @@ def test_reference_add_delete_replace(client: weaviate.WeaviateClient) -> None:
     )
 
     uuid_from1 = collection.data.insert({}, uuid.uuid4())
-    uuid_from2 = collection.data.insert({"ref": Reference.to(uuids=uuid_to)}, uuid.uuid4())
+    uuid_from2 = collection.data.insert(
+        {}, references={"ref": Reference.to(uuids=uuid_to)}, uuid=uuid.uuid4()
+    )
     collection.data.reference_add(
         from_uuid=uuid_from1, from_property="ref", ref=Reference.to(uuids=uuid_to)
     )
@@ -108,7 +110,7 @@ def test_mono_references_grpc(client: weaviate.WeaviateClient):
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    uuid_B = B.data.insert({"Name": "B", "a": Reference.to(uuids=uuid_A1)})
+    uuid_B = B.data.insert({"Name": "B"}, references={"a": Reference.to(uuids=uuid_A1)})
     B.data.reference_add(from_uuid=uuid_B, from_property="a", ref=Reference.to(uuids=uuid_A2))
 
     objects = B.query.bm25(
@@ -141,7 +143,7 @@ def test_mono_references_grpc(client: weaviate.WeaviateClient):
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    C.data.insert({"Name": "find me", "b": Reference.to(uuids=uuid_B)})
+    C.data.insert({"Name": "find me"}, references={"b": Reference.to(uuids=uuid_B)})
 
     objects = C.query.bm25(
         query="find",
@@ -211,7 +213,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient, level
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
     )
     B = client.collections.get("BTypedDicts", BProps)
-    uuid_B = B.data.insert(properties={"name": "B", "a": Reference.to(uuids=uuid_A1)})
+    uuid_B = B.data.insert(properties={"name": "B"}, references={"a": Reference.to(uuids=uuid_A1)})
     B.data.reference_add(
         from_uuid=uuid_B,
         from_property="a",
@@ -236,7 +238,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient, level
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
     )
     C = client.collections.get("CTypedDicts", CProps)
-    C.data.insert(properties={"name": "find me", "b": Reference.to(uuids=uuid_B)})
+    C.data.insert(properties={"name": "find me"}, references={"b": Reference.to(uuids=uuid_B)})
 
     if level == "col-col":
         objects = (
@@ -339,14 +341,18 @@ def test_multi_references_grpc(client: weaviate.WeaviateClient):
     C.data.insert(
         {
             "Name": "first",
+        },
+        references={
             "ref": Reference.to_multi_target(uuids=uuid_A, target_collection="A"),
-        }
+        },
     )
     C.data.insert(
         {
             "Name": "second",
+        },
+        references={
             "ref": Reference.to_multi_target(uuids=uuid_B, target_collection="B"),
-        }
+        },
     )
 
     objects = C.query.bm25(
@@ -503,7 +509,9 @@ def test_references_with_string_syntax(client: weaviate.WeaviateClient):
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
-    client.collections.get(name2).data.insert({"Name": "B", "ref": Reference.to(uuids=uuid_A)})
+    client.collections.get(name2).data.insert(
+        {"Name": "B"}, references={"ref": Reference.to(uuids=uuid_A)}
+    )
 
     objects = (
         client.collections.get(name2)
