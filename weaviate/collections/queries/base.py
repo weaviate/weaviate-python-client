@@ -144,7 +144,6 @@ class _Grpc(Generic[Properties]):
         return add_props.generative if add_props.generative_present else None
 
     def __deserialize_non_ref_prop(self, value: properties_pb2.Value) -> Any:
-        print(value)
         if value.HasField("uuid_value"):
             return uuid_lib.UUID(value.uuid_value)
         if value.HasField("date_value"):
