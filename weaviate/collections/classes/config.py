@@ -159,6 +159,7 @@ class GenerativeSearches(str, Enum):
     COHERE = "generative-cohere"
     PALM = "generative-palm"
     AWS = "generative-aws"
+    ANYSCALE = "generative-anyscale"
 
 
 class VectorDistance(str, Enum):
@@ -400,6 +401,14 @@ class _GenerativeConfigCreate(_ConfigCreateModel):
     generative: GenerativeSearches
 
 
+class _GenerativeAnyscale(_GenerativeConfigCreate):
+    generative: GenerativeSearches = Field(
+        default=GenerativeSearches.ANYSCALE, frozen=True, exclude=True
+    )
+    temperature: Optional[float]
+    model: Optional[str]
+
+
 class _GenerativeOpenAIConfigBase(_GenerativeConfigCreate):
     generative: GenerativeSearches = Field(
         default=GenerativeSearches.OPENAI, frozen=True, exclude=True
@@ -483,6 +492,13 @@ class _Generative:
     Each staticmethod provides options specific to the named generative search module in the function's name. Under-the-hood data validation steps
     will ensure that any mis-specifications will be caught before the request is sent to Weaviate.
     """
+
+    @staticmethod
+    def anyscale(
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+    ) -> _GenerativeConfigCreate:
+        return _GenerativeAnyscale(model=model, temperature=temperature)
 
     @staticmethod
     def openai(

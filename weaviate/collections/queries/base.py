@@ -349,15 +349,6 @@ class _Grpc(Generic[Properties]):
             ]
             return _GroupByReturn[Properties](objects=objects_group_byy, groups=groupss)
 
-    def __parse_generic_properties(
-        self, generic_properties: Type[TProperties]
-    ) -> Optional[PROPERTIES]:
-        if not is_typeddict(generic_properties):
-            raise TypeError(
-                f"return_properties must only be a TypedDict or PROPERTIES within this context but is {type(generic_properties)}"
-            )
-        return _extract_properties_from_data_model(generic_properties)
-
     def __parse_properties(self, return_properties: Optional[PROPERTIES]) -> Optional[PROPERTIES]:
         return _PropertiesParser().parse(return_properties)
 
@@ -372,12 +363,22 @@ class _Grpc(Generic[Properties]):
             or (return_properties is None and self._type is None)
         ):
             # return self.__parse_properties(return_properties)
-            return cast(Optional[PROPERTIES], return_properties)
+            return cast(Optional[PROPERTIES], return_properties)  # is not sourced from any generic
         elif return_properties is None and self._type is not None:
-            return self.__parse_generic_properties(self._type)
+            if not is_typeddict(self._type):
+                return return_properties
+            return _extract_properties_from_data_model(
+                self._type
+            )  # is sourced from collection-specific generic
         else:
             assert return_properties is not None
-            return self.__parse_generic_properties(return_properties)
+            if not is_typeddict(return_properties):
+                raise TypeError(
+                    f"return_properties must only be a TypedDict or PROPERTIES within this context but is {type(return_properties)}"
+                )
+            return _extract_properties_from_data_model(
+                return_properties
+            )  # is sourced from query-specific generic
 
     def _parse_return_metadata(
         self, return_metadata: Optional[METADATA], include_vector: bool
