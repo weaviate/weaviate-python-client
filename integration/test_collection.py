@@ -928,7 +928,7 @@ def test_tenants(client: weaviate.WeaviateClient):
     client.collections.delete("Tenants")
 
 
-def test_multi_searches(client: weaviate.WeaviateClient):
+def test_multi_searches(client: weaviate.WeaviateClient) -> None:
     collection = client.collections.create(
         name="TestMultiSearches",
         properties=[Property(name="name", data_type=DataType.TEXT)],
@@ -949,12 +949,12 @@ def test_multi_searches(client: weaviate.WeaviateClient):
     objects = collection.query.bm25(query="other").objects
     assert "name" in objects[0].properties
     assert objects[0].uuid is not None
-    assert objects[0].metadata is None
+    assert objects[0].metadata._is_empty()
 
     objects = collection.query.bm25(query="other", return_properties=[]).objects
     assert "name" not in objects[0].properties
     assert objects[0].uuid is not None
-    assert objects[0].metadata is None
+    assert objects[0].metadata._is_empty()
 
     client.collections.delete("TestMultiSearches")
 
@@ -1118,7 +1118,7 @@ def test_return_properties_and_return_metadata_combos(
     return_properties: Optional[PROPERTIES],
     return_metadata: Optional[MetadataQuery],
     include_vector: bool,
-):
+) -> None:
     client.collections.delete("TestReturnEverything")
     collection = client.collections.create(
         name="TestReturnEverything",
@@ -1159,7 +1159,7 @@ def test_return_properties_and_return_metadata_combos(
         or return_metadata == MetadataQuery()
         or (isinstance(return_metadata, list) and len(return_metadata) == 0)
     ):
-        assert objects[0].metadata is None
+        assert objects[0].metadata._is_empty()
     else:
         assert objects[0].metadata.last_update_time_unix is not None
         assert objects[0].metadata.creation_time_unix is not None
@@ -1733,7 +1733,7 @@ def test_iterator_arguments(
     include_vector: bool,
     return_metadata: Optional[METADATA],
     return_properties: Optional[Union[PROPERTIES, Type[Properties]]],
-):
+) -> None:
     name = "TestIteratorTypedDict"
     client.collections.delete(name)
 
@@ -1782,7 +1782,7 @@ def test_iterator_arguments(
             assert all(obj.metadata.creation_time_unix is not None for obj in iter_)
             assert all(obj.metadata.score is not None for obj in iter_)
         else:
-            assert all(obj.metadata is None for obj in iter_)
+            assert all(obj.metadata._is_empty() for obj in iter_)
     # Expect specified properties and no vector
     elif not include_vector and return_properties is not None:
         all_data: list[int] = sorted([int(obj.properties["data"]) for obj in iter_])
@@ -1793,7 +1793,7 @@ def test_iterator_arguments(
             assert all(obj.metadata.creation_time_unix is not None for obj in iter_)
             assert all(obj.metadata.score is not None for obj in iter_)
         else:
-            assert all(obj.metadata is None for obj in iter_)
+            assert all(obj.metadata._is_empty() for obj in iter_)
 
 
 def test_iterator_dict_hint(client: weaviate.WeaviateClient) -> None:

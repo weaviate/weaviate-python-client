@@ -882,11 +882,7 @@ def test_filter_timestamp_direct_path(client: weaviate.WeaviateClient, path: str
     assert obj2.metadata is not None
     assert obj2.metadata.creation_time_unix is not None
 
-    date = datetime.datetime.fromtimestamp(
-        obj2.metadata.creation_time_unix / 1000, tz=datetime.timezone.utc
-    )
-
-    filters = Filter(path=[path]).less_than(date)
+    filters = Filter(path=[path]).less_than(obj2.metadata.creation_time_unix)
     objects = collection.query.fetch_objects(
         filters=filters, return_metadata=MetadataQuery(creation_time_unix=True)
     ).objects
