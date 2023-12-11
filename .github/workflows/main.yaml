@@ -82,7 +82,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: [ "3.8", "3.9", "3.10", "3.11"]
+        versions: [
+          { py: "3.8", weaviate: "1.23.0-rc.0-b454247"},
+          { py: "3.9", weaviate: "1.23.0-rc.0-b454247"},
+          { py: "3.10", weaviate: "1.23.0-rc.0-b454247"},
+          { py: "3.11", weaviate: "1.23.0-rc.0-b454247"},
+          { py: "3.11", weaviate: "1.22.6"},
+          { py: "3.12", weaviate: "1.23.0-rc.0-b454247"}
+        ]
         optional_dependencies: [false]
         include:
           - version: "3.11"
@@ -94,13 +101,13 @@ jobs:
           fetch-tags: true
       - uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.version }}
+          python-version: ${{ matrix.versions.py }}
           cache: 'pip' # caching pip dependencies
       - run: |
           pip install -r requirements-devel.txt
           pip install .
       - name: start weaviate
-        run: /bin/bash ci/start_weaviate.sh
+        run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
       - name: Run integration tests with auth secrets
         if: ${{ !github.event.pull_request.head.repo.fork }}
         env:
@@ -114,7 +121,7 @@ jobs:
         if: ${{ github.event.pull_request.head.repo.fork }}
         run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Archive code coverage results
-        if: matrix.version == '3.10' && (github.ref_name != 'main')
+        if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
         uses: actions/upload-artifact@v3
         with:
           name: coverage-report-integration
