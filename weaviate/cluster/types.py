@@ -1,4 +1,4 @@
-from typing import List, TypedDict
+from typing import List, Optional, TypedDict
 
 
 class BatchStats(TypedDict):
@@ -19,7 +19,7 @@ class Node(TypedDict):
     batchStats: BatchStats
     gitHash: str
     name: str
-    shards: List[Shard]
+    shards: Optional[List[Shard]]
     stats: Stats
     status: str
     version: str
