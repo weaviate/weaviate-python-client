@@ -1,3 +1,4 @@
+import datetime
 import sys
 from dataclasses import dataclass
 from typing import Any, Dict, Generic, List, Mapping, Optional, Tuple, Type, Union, cast
@@ -69,13 +70,13 @@ def _metadata_from_dict(
 
 @dataclass
 class _MetadataReturn:
-    creation_time_unix: Optional[int]
-    last_update_time_unix: Optional[int]
-    distance: Optional[float]
-    certainty: Optional[float]
-    score: Optional[float]
-    explain_score: Optional[str]
-    is_consistent: Optional[bool]
+    creation_time_unix: Optional[datetime.datetime] = None
+    last_update_time_unix: Optional[datetime.datetime] = None
+    distance: Optional[float] = None
+    certainty: Optional[float] = None
+    score: Optional[float] = None
+    explain_score: Optional[str] = None
+    is_consistent: Optional[bool] = None
 
     def _is_empty(self) -> bool:
         return all(
@@ -94,7 +95,7 @@ class _MetadataReturn:
 @dataclass
 class _Object(Generic[P, R]):
     uuid: uuid_package.UUID
-    metadata: Optional[_MetadataReturn]
+    metadata: _MetadataReturn
     properties: P
     references: R
     vector: Optional[List[float]]
@@ -102,8 +103,8 @@ class _Object(Generic[P, R]):
 
 @dataclass
 class _MetadataSingleObjectReturn:
-    creation_time_unix: int
-    last_update_time_unix: int
+    creation_time_unix: datetime.datetime
+    last_update_time_unix: datetime.datetime
     is_consistent: Optional[bool]
 
 

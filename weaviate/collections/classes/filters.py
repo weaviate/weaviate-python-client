@@ -1,13 +1,11 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Union
 
 from weaviate.types import UUID
 from weaviate.proto.v1 import search_get_pb2
 from weaviate.util import get_valid_uuid
-
-DATE = Union[datetime, int]
 
 
 class _Operator(str, Enum):
@@ -224,73 +222,66 @@ class _FilterId:
 
 class _FilterTime:
     @staticmethod
-    def contains_any(dates: List[DATE], on_reference_path: List[str]) -> _FilterValue:
+    def contains_any(dates: List[datetime], on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
             path=on_reference_path,
-            value=[_FilterTime._convert_date(date) for date in dates],
+            value=dates,
             operator=_Operator.CONTAINS_ANY,
         )
 
     @staticmethod
-    def equal(date: DATE, on_reference_path: List[str]) -> _FilterValue:
+    def equal(date: datetime, on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
             path=on_reference_path,
-            value=_FilterTime._convert_date(date),
+            value=date,
             operator=_Operator.EQUAL,
         )
 
     @staticmethod
-    def not_equal(date: DATE, on_reference_path: List[str]) -> _FilterValue:
+    def not_equal(date: datetime, on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
             path=on_reference_path,
-            value=_FilterTime._convert_date(date),
+            value=date,
             operator=_Operator.NOT_EQUAL,
         )
 
     @staticmethod
-    def less_than(date: DATE, on_reference_path: List[str]) -> _FilterValue:
+    def less_than(date: datetime, on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
             path=on_reference_path,
-            value=_FilterTime._convert_date(date),
+            value=date,
             operator=_Operator.LESS_THAN,
         )
 
     @staticmethod
-    def less_or_equal(date: DATE, on_reference_path: List[str]) -> _FilterValue:
+    def less_or_equal(date: datetime, on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
             path=on_reference_path,
-            value=_FilterTime._convert_date(date),
+            value=date,
             operator=_Operator.LESS_THAN_EQUAL,
         )
 
     @staticmethod
-    def greater_than(date: DATE, on_reference_path: List[str]) -> _FilterValue:
+    def greater_than(date: datetime, on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
             path=on_reference_path,
-            value=_FilterTime._convert_date(date),
+            value=date,
             operator=_Operator.GREATER_THAN,
         )
 
     @staticmethod
-    def greater_or_equal(date: DATE, on_reference_path: List[str]) -> _FilterValue:
+    def greater_or_equal(date: datetime, on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
             path=on_reference_path,
-            value=_FilterTime._convert_date(date),
+            value=date,
             operator=_Operator.GREATER_THAN_EQUAL,
         )
-
-    @staticmethod
-    def _convert_date(date: DATE) -> datetime:
-        if isinstance(date, datetime):
-            return date
-        # weaviate returns a different timestamp format
-        return datetime.fromtimestamp(date / 1000, tz=timezone.utc)
 
 
 class _FilterCreationTime(_FilterTime):
     @staticmethod
     def contains_any(
-        dates: List[DATE], on_reference_path: Optional[List[str]] = None
+        dates: List[datetime], on_reference_path: Optional[List[str]] = None
     ) -> _FilterValue:
         """Filter for objects that have been created at the given time.
 
@@ -303,7 +294,7 @@ class _FilterCreationTime(_FilterTime):
         return _FilterTime.contains_any(dates, _FilterCreationTime._prepare_path(on_reference_path))
 
     @staticmethod
-    def equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+    def equal(date: datetime, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
         """Filter on whether the creation time is equal to the given time.
 
         Arguments:
@@ -315,7 +306,7 @@ class _FilterCreationTime(_FilterTime):
         return _FilterTime.equal(date, _FilterCreationTime._prepare_path(on_reference_path))
 
     @staticmethod
-    def not_equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+    def not_equal(date: datetime, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
         """Filter on whether the creation time is not equal to the given time.
 
         Arguments:
@@ -327,7 +318,7 @@ class _FilterCreationTime(_FilterTime):
         return _FilterTime.not_equal(date, _FilterCreationTime._prepare_path(on_reference_path))
 
     @staticmethod
-    def less_than(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+    def less_than(date: datetime, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
         """Filter on whether the creation time is less than the given time.
 
         Arguments:
@@ -339,7 +330,9 @@ class _FilterCreationTime(_FilterTime):
         return _FilterTime.less_than(date, _FilterCreationTime._prepare_path(on_reference_path))
 
     @staticmethod
-    def less_or_equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+    def less_or_equal(
+        date: datetime, on_reference_path: Optional[List[str]] = None
+    ) -> _FilterValue:
         """Filter on whether the creation time is less than or equal to the given time.
 
         Arguments:
@@ -351,7 +344,7 @@ class _FilterCreationTime(_FilterTime):
         return _FilterTime.less_or_equal(date, _FilterCreationTime._prepare_path(on_reference_path))
 
     @staticmethod
-    def greater_than(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+    def greater_than(date: datetime, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
         """Filter on whether the creation time is greater than the given time.
 
         Arguments:
@@ -363,7 +356,9 @@ class _FilterCreationTime(_FilterTime):
         return _FilterTime.greater_than(date, _FilterCreationTime._prepare_path(on_reference_path))
 
     @staticmethod
-    def greater_or_equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+    def greater_or_equal(
+        date: datetime, on_reference_path: Optional[List[str]] = None
+    ) -> _FilterValue:
         """Filter on whether the creation time is greater than or equal to the given time.
 
         Arguments:
@@ -384,7 +379,7 @@ class _FilterCreationTime(_FilterTime):
 class _FilterUpdateTime:
     @staticmethod
     def contains_any(
-        dates: List[DATE], on_reference_path: Optional[List[str]] = None
+        dates: List[datetime], on_reference_path: Optional[List[str]] = None
     ) -> _FilterValue:
         """Filter for objects that have been last update at the given time.
 
@@ -397,7 +392,7 @@ class _FilterUpdateTime:
         return _FilterTime.contains_any(dates, _FilterUpdateTime._prepare_path(on_reference_path))
 
     @staticmethod
-    def equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+    def equal(date: datetime, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
         """Filter on whether the last update time is equal to the given time.
 
         Arguments:
@@ -409,7 +404,7 @@ class _FilterUpdateTime:
         return _FilterTime.equal(date, _FilterUpdateTime._prepare_path(on_reference_path))
 
     @staticmethod
-    def not_equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+    def not_equal(date: datetime, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
         """Filter on whether the last update time is not equal to the given time.
 
         Arguments:
@@ -421,7 +416,7 @@ class _FilterUpdateTime:
         return _FilterTime.not_equal(date, _FilterUpdateTime._prepare_path(on_reference_path))
 
     @staticmethod
-    def less_than(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+    def less_than(date: datetime, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
         """Filter on whether the last update time is less than the given time.
 
         Arguments:
@@ -433,7 +428,9 @@ class _FilterUpdateTime:
         return _FilterTime.less_than(date, _FilterUpdateTime._prepare_path(on_reference_path))
 
     @staticmethod
-    def less_or_equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+    def less_or_equal(
+        date: datetime, on_reference_path: Optional[List[str]] = None
+    ) -> _FilterValue:
         """Filter on whether the last update time is less than or equal to the given time.
 
         Arguments:
@@ -445,7 +442,7 @@ class _FilterUpdateTime:
         return _FilterTime.less_or_equal(date, _FilterUpdateTime._prepare_path(on_reference_path))
 
     @staticmethod
-    def greater_than(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+    def greater_than(date: datetime, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
         """Filter on whether the last update time is greater than the given time.
 
         Arguments:
@@ -457,7 +454,9 @@ class _FilterUpdateTime:
         return _FilterTime.greater_than(date, _FilterUpdateTime._prepare_path(on_reference_path))
 
     @staticmethod
-    def greater_or_equal(date: DATE, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
+    def greater_or_equal(
+        date: datetime, on_reference_path: Optional[List[str]] = None
+    ) -> _FilterValue:
         """Filter on whether the last update time is greater than or equal to the given time.
 
         Arguments:

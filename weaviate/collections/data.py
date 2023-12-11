@@ -10,8 +10,6 @@ from typing import (
     Type,
     Union,
     cast,
-    get_type_hints,
-    get_origin,
 )
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -316,28 +314,6 @@ class _DataCollection(Generic[Properties], _Data):
     #     return _DataCollection[TProperties](
     #         self._connection, self.name, self._consistency_level, self._tenant, data_model
     #     )
-
-    def __deserialize_properties(self, data: Dict[str, Any]) -> Properties:
-        hints = (
-            get_type_hints(self.__type)
-            if self.__type and not get_origin(self.__type) == dict
-            else {}
-        )
-        return cast(
-            Properties,
-            {key: self._deserialize_primitive(val, hints.get(key)) for key, val in data.items()},
-        )
-
-    def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Properties, dict]:
-        props = self.__deserialize_properties(obj["properties"])
-        uuid, vector, metadata = _metadata_from_dict(obj)
-        return _Object[Properties, dict](
-            metadata=None if metadata._is_empty() else metadata,
-            properties=cast(Properties, props),
-            references={},
-            uuid=uuid,
-            vector=vector,
-        )
 
     def insert(
         self,
