@@ -97,21 +97,25 @@ class _Grpc(Generic[Properties]):
     def __extract_metadata_for_object(
         self,
         add_props: "search_get_pb2.MetadataResult",
-    ) -> Optional[_MetadataReturn]:
+    ) -> _MetadataReturn:
         meta = _MetadataReturn(
             distance=add_props.distance if add_props.distance_present else None,
             certainty=add_props.certainty if add_props.certainty_present else None,
-            creation_time_unix=add_props.creation_time_unix
+            creation_time_unix=datetime.datetime.fromtimestamp(
+                add_props.creation_time_unix / 1000, tz=datetime.timezone.utc
+            )
             if add_props.creation_time_unix_present
             else None,
-            last_update_time_unix=add_props.last_update_time_unix
+            last_update_time_unix=datetime.datetime.fromtimestamp(
+                add_props.last_update_time_unix / 1000, tz=datetime.timezone.utc
+            )
             if add_props.last_update_time_unix_present
             else None,
             score=add_props.score if add_props.score_present else None,
             explain_score=add_props.explain_score if add_props.explain_score_present else None,
             is_consistent=add_props.is_consistent if add_props.is_consistent_present else None,
         )
-        return None if meta._is_empty() else meta
+        return meta
 
     def __extract_id_for_object(
         self,
@@ -223,7 +227,7 @@ class _Grpc(Generic[Properties]):
     ) -> _GenerativeObject[T]:
         return _GenerativeObject[T](
             properties=cast(T, self.__parse_result(props) if options.include_properties else {}),
-            metadata=self.__extract_metadata_for_object(meta) if options.include_metadata else None,
+            metadata=self.__extract_metadata_for_object(meta) if options.include_metadata else _MetadataReturn(),
             uuid=self.__extract_id_for_object(meta),
             vector=self.__extract_vector_for_object(meta) if options.include_vector else None,
             generated=self.__extract_generated_for_object(meta),

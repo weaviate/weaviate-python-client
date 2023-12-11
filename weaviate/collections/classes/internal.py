@@ -1,3 +1,4 @@
+import datetime
 import sys
 from dataclasses import dataclass
 from typing import Any, Dict, Generic, List, Optional, Tuple, Type, Union, cast
@@ -65,8 +66,8 @@ def _metadata_from_dict(
 
 @dataclass
 class _MetadataReturn:
-    creation_time_unix: Optional[int] = None
-    last_update_time_unix: Optional[int] = None
+    creation_time_unix: Optional[datetime.datetime] = None
+    last_update_time_unix: Optional[datetime.datetime] = None
     distance: Optional[float] = None
     certainty: Optional[float] = None
     score: Optional[float] = None
@@ -97,8 +98,8 @@ class _Object(Generic[P]):
 
 @dataclass
 class _MetadataSingleObjectReturn:
-    creation_time_unix: int
-    last_update_time_unix: int
+    creation_time_unix: datetime.datetime
+    last_update_time_unix: datetime.datetime
     is_consistent: Optional[bool]
 
 
