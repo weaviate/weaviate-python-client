@@ -47,7 +47,6 @@ from weaviate.exceptions import (
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
 )
-from weaviate.util import _datetime_from_weaviate_str
 from weaviate.types import UUID
 
 BEACON_START = "weaviate://localhost"
@@ -1614,16 +1613,7 @@ def test_batch_with_arrays(client: weaviate.WeaviateClient) -> None:
         assert obj_out is not None
 
         for prop, val in objects_in[i].properties.items():
-            if prop == "dates":
-                dates_from_weaviate = [
-                    _datetime_from_weaviate_str(date) for date in obj_out.properties[prop]
-                ]
-                assert val == dates_from_weaviate
-            elif prop == "uuids":
-                uuids_from_weaviate = [uuid.UUID(prop) for prop in obj_out.properties[prop]]
-                assert val == uuids_from_weaviate
-            else:
-                assert obj_out.properties[prop] == val
+            assert obj_out.properties[prop] == val
 
 
 @pytest.mark.parametrize(
