@@ -50,9 +50,9 @@ def test_reference_add_delete_replace(client: weaviate.WeaviateClient) -> None:
     assert (
         len(
             collection.query.fetch_object_by_id(
-                uuid_from1, return_properties=FromReference(link_on="ref")
+                uuid_from1, return_references=FromReference(link_on="ref")
             )
-            .properties["ref"]
+            .references["ref"]
             .objects
         )
         == 0
@@ -62,11 +62,11 @@ def test_reference_add_delete_replace(client: weaviate.WeaviateClient) -> None:
         from_uuid=uuid_from2, from_property="ref", ref=Reference.to(uuids=uuid_to)
     )
     obj = collection.query.fetch_object_by_id(
-        uuid_from2, return_properties=FromReference(link_on="ref")
+        uuid_from2, return_references=FromReference(link_on="ref")
     )
     assert obj is not None
-    assert len(obj.properties["ref"].objects) == 2
-    assert uuid_to in [x.uuid for x in obj.properties["ref"].objects]
+    assert len(obj.references["ref"].objects) == 2
+    assert uuid_to in [x.uuid for x in obj.references["ref"].objects]
 
     collection.data.reference_replace(
         from_uuid=uuid_from2, from_property="ref", ref=Reference.to(uuids=[])
@@ -74,9 +74,9 @@ def test_reference_add_delete_replace(client: weaviate.WeaviateClient) -> None:
     assert (
         len(
             collection.query.fetch_object_by_id(
-                uuid_from2, return_properties=FromReference(link_on="ref")
+                uuid_from2, return_references=FromReference(link_on="ref")
             )
-            .properties["ref"]
+            .references["ref"]
             .objects
         )
         == 0

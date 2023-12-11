@@ -126,14 +126,14 @@ def test_add_reference(
         assert batch.num_references() == 1
     objs = (
         client_sync_indexing.collections.get("Test")
-        .query.fetch_objects(return_properties=FromReference(link_on="test"))
+        .query.fetch_objects(return_references=FromReference(link_on="test"))
         .objects
     )
     obj = client_sync_indexing.collections.get("Test").query.fetch_object_by_id(
-        from_object_uuid, return_properties=FromReference(link_on="test")
+        from_object_uuid, return_references=FromReference(link_on="test")
     )
     assert len(objs) == 2
-    assert isinstance(obj.properties["test"], _Reference)
+    assert isinstance(obj.references["test"], _Reference)
 
 
 def test_add_data_object_and_get_class_shards_readiness(
@@ -274,12 +274,14 @@ def test_add_ref_batch_with_tenant(client_sync_indexing: weaviate.WeaviateClient
             client_sync_indexing.collections.get(collections[1])
             .with_tenant(obj[1])
             .query.fetch_object_by_id(
-                obj[0], return_properties=["tenantAsProp", FromReference(link_on="ref")]
+                obj[0],
+                return_properties="tenantAsProp",
+                return_references=FromReference(link_on="ref"),
             )
         )
         assert ret_obj is not None
         assert ret_obj.properties["tenantAsProp"] == obj[1]
-        assert ret_obj.properties["ref"].objects[0].uuid == objects_class0[i]
+        assert ret_obj.references["ref"].objects[0].uuid == objects_class0[i]
 
     for name in reversed(collections):
         client_sync_indexing.collections.delete(name)
