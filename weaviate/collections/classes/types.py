@@ -46,15 +46,6 @@ def _check_properties_generic(properties: Optional[Type[Properties]]) -> None:
         properties is not None
         and get_origin(properties) is not dict
         and not is_typeddict(properties)
-        # and not all([val in [
-        #     str,
-        #     int,
-        #     float,
-        #     bool,
-        #     list,
-        #     dict,
-        #     None,
-        # ] for val in get_type_hints(properties).values()])
     ):
         raise InvalidDataModelException("properties")
 

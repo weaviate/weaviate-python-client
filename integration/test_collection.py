@@ -40,7 +40,7 @@ from weaviate.collections.classes.internal import _Reference, Reference
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collections.classes.types import Properties
 
-# from weaviate.collections.data import _Data
+from weaviate.collections.data import _Data
 from weaviate.collections.iterator import ITERATOR_CACHE_SIZE
 from weaviate.exceptions import (
     InvalidDataModelException,
@@ -124,16 +124,16 @@ def test_get_with_dict_generic(client: weaviate.WeaviateClient, use_typed_dict: 
     assert isinstance(col, Collection)
 
 
-# def test_data_with_data_model_with_dict_generic(client: weaviate.WeaviateClient):
-#     name = "TestDataWithDictGeneric"
+def test_data_with_data_model_with_dict_generic(client: weaviate.WeaviateClient):
+    name = "TestDataWithDictGeneric"
 
-#     class Right(TypedDict):
-#         name: str
+    class Right(TypedDict):
+        name: str
 
-#     col = client.collections.get(name)
-#     assert isinstance(col, Collection)
-#     data = col.data.with_data_model(Right)
-#     assert isinstance(data, _Data)
+    col = client.collections.get(name)
+    assert isinstance(col, Collection)
+    data = col.data.with_data_model(Right)
+    assert isinstance(data, _Data)
 
 
 WRONG_GENERIC_ERROR_MSG = "properties can only be a dict type, e.g. Dict[str, Any], or a class that inherits from TypedDict"

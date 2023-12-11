@@ -1,3 +1,5 @@
+# TODO: re-enable tests once string syntax is re-enabled in the API
+
 # from typing import List, Optional, Union
 
 # import pytest
@@ -9,8 +11,6 @@
 # )
 # from weaviate.collections.queries.base import _PropertiesParser
 
-
-# @pytest.mark.skip(reason="string syntax has been temporarily removed from the API")
 # @pytest.mark.parametrize(
 #     "properties,output",
 #     [

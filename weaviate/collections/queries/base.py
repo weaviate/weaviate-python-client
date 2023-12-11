@@ -422,6 +422,9 @@ class _BaseQuery(Generic[Properties, References]):
             return file_encoder_b64(media)
 
 
+# TODO: refactor PropertiesParser to handle new schema for specifying query parameters
+# e.g. return_metadata, return_properties, return_references and include_vector
+
 # class _PropertiesParser:
 #     def __init__(self) -> None:
 #         self.__from_references_by_prop_name: Dict[str, FromReference] = {}

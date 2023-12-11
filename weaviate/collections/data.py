@@ -36,7 +36,7 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.orm import (
     Model,
 )
-from weaviate.collections.classes.types import Properties
+from weaviate.collections.classes.types import Properties, TProperties, _check_properties_generic
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.batch.grpc import _BatchGRPC, _validate_props
 from weaviate.collections.batch.rest import _BatchREST
@@ -158,35 +158,6 @@ class _Data:
             return
         raise UnexpectedStatusCodeException("Update object", response)
 
-    def _get_by_id(self, uuid: UUID, include_vector: bool) -> Optional[Dict[str, Any]]:
-        path = f"/objects/{self.name}/{uuid}"
-        params: Dict[str, Any] = {}
-        if include_vector:
-            params["include"] = "vector"
-        return self._get_from_weaviate(params=self.__apply_context(params), path=path)
-
-    def _get(self, limit: Optional[int], include_vector: bool) -> Optional[Dict[str, Any]]:
-        path = "/objects"
-        params: Dict[str, Any] = {"class": self.name}
-        if limit is not None:
-            params["limit"] = limit
-        if include_vector:
-            params["include"] = "vector"
-        return self._get_from_weaviate(params=self.__apply_context(params), path=path)
-
-    def _get_from_weaviate(self, params: Dict[str, Any], path: str) -> Optional[Dict[str, Any]]:
-        try:
-            response = self._connection.get(path=path, params=params)
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError("Could not get object/s.") from conn_err
-        if response.status_code == 200:
-            response_json = _decode_json_response_dict(response, "get")
-            assert response_json is not None
-            return response_json
-        if response.status_code == 404:
-            return None
-        raise UnexpectedStatusCodeException("Get object/s", response)
-
     def _reference_add(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         params: Dict[str, str] = {}
 
@@ -267,12 +238,10 @@ class _Data:
         return params, obj
 
     def _serialize(self, props: Properties, refs: Optional[WeaviateReferences]) -> Dict[str, Any]:
-        out = {
+        return {
             **({key: val._to_beacons() for key, val in refs.items()} if refs is not None else {}),
             **{key: self.__serialize_primitive(val) for key, val in props.items()},
         }
-        print(out)
-        return out
 
     def __serialize_primitive(self, value: Any) -> Any:
         if isinstance(value, uuid_package.UUID):
@@ -309,11 +278,11 @@ class _DataCollection(Generic[Properties], _Data):
         super().__init__(connection, name, consistency_level, tenant)
         self.__type = type_
 
-    # def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]":
-    #     _check_data_model(data_model)
-    #     return _DataCollection[TProperties](
-    #         self._connection, self.name, self._consistency_level, self._tenant, data_model
-    #     )
+    def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]":
+        _check_properties_generic(data_model)
+        return _DataCollection[TProperties](
+            self._connection, self.name, self._consistency_level, self._tenant, data_model
+        )
 
     def insert(
         self,
@@ -625,21 +594,6 @@ class _DataCollectionModel(Generic[Model], _Data):
             weaviate_obj["vector"] = obj.vector
 
         self._update(weaviate_obj, uuid)
-
-    def get_by_id(self, uuid: UUID, include_vector: bool = False) -> Optional[_Object[Model, dict]]:
-        ret = self._get_by_id(uuid=uuid, include_vector=include_vector)
-        if ret is None:
-            return None
-        return self._json_to_object(ret)
-
-    def get(
-        self, limit: Optional[int] = None, include_vector: bool = False
-    ) -> List[_Object[Model, dict]]:
-        ret = self._get(limit=limit, include_vector=include_vector)
-        if ret is None:
-            return []
-
-        return [self._json_to_object(obj) for obj in ret["objects"]]
 
     def reference_add(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         self._reference_add(from_uuid=from_uuid, from_property=from_property, ref=ref)
