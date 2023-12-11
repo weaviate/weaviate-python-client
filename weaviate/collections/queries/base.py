@@ -1,3 +1,4 @@
+import datetime
 import io
 import pathlib
 import re
@@ -211,7 +212,9 @@ class _Grpc(Generic[Properties]):
     ) -> _Object[T]:
         return _Object[T](
             properties=cast(T, self.__parse_result(props) if options.include_properties else {}),
-            metadata=self.__extract_metadata_for_object(meta) if options.include_metadata else _MetadataReturn(),
+            metadata=self.__extract_metadata_for_object(meta)
+            if options.include_metadata
+            else _MetadataReturn(),
             uuid=self.__extract_id_for_object(meta),
             vector=self.__extract_vector_for_object(meta) if options.include_vector else None,
         )
@@ -227,7 +230,9 @@ class _Grpc(Generic[Properties]):
     ) -> _GenerativeObject[T]:
         return _GenerativeObject[T](
             properties=cast(T, self.__parse_result(props) if options.include_properties else {}),
-            metadata=self.__extract_metadata_for_object(meta) if options.include_metadata else _MetadataReturn(),
+            metadata=self.__extract_metadata_for_object(meta)
+            if options.include_metadata
+            else _MetadataReturn(),
             uuid=self.__extract_id_for_object(meta),
             vector=self.__extract_vector_for_object(meta) if options.include_vector else None,
             generated=self.__extract_generated_for_object(meta),
