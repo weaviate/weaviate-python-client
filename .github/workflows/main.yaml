@@ -91,9 +91,6 @@ jobs:
           { py: "3.12", weaviate: "1.23.0-rc.0-b454247"}
         ]
         optional_dependencies: [false]
-        include:
-          - version: "3.11"
-            optional_dependencies: true
     steps:
       - uses: actions/checkout@v3
         with:
