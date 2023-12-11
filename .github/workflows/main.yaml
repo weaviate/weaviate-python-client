@@ -107,7 +107,7 @@ jobs:
           pip install -r requirements-devel.txt
           pip install .
       - name: start weaviate
-        run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
+        run: export WEAVIATE_VERSION=${{ matrix.versions.weaviate }} & /bin/bash ci/start_weaviate.sh
       - name: Run integration tests with auth secrets
         if: ${{ !github.event.pull_request.head.repo.fork }}
         env:
