@@ -1,30 +1,27 @@
-from typing import Generic, List, Optional, Union, Type, overload
+from typing import Generic, List, Literal, Optional, Type, Union, overload
 
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import (
-    METADATA,
-    PROPERTIES,
-    Move,
-)
+from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, Move
 from weaviate.collections.classes.internal import (
     _Generative,
     _GenerativeReturn,
     _GroupBy,
     _GroupByReturn,
     _QueryReturn,
-    QueryReturn,
-    GenerativeReturn,
-    GroupByReturn,
     ReturnProperties,
+    ReturnReferences,
     _QueryOptions,
+    References,
+    TReferences,
+    WeaviateReferences,
 )
 from weaviate.collections.classes.types import Properties, TProperties
-from weaviate.collections.queries.base import _Grpc
+from weaviate.collections.queries.base import _BaseQuery
 
 
-class _NearTextQuery(Generic[Properties], _Grpc[Properties]):
+class _NearTextQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
     @overload
     def near_text(
         self,
@@ -38,8 +35,48 @@ class _NearTextQuery(Generic[Properties], _Grpc[Properties]):
         filters: Optional[_Filters] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
+        *,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> _QueryReturn[Properties]:
+        return_references: Literal[None] = None,
+    ) -> _QueryReturn[Properties, References]:
+        ...
+
+    @overload
+    def near_text(
+        self,
+        query: Union[List[str], str],
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: REFERENCES,
+    ) -> _QueryReturn[Properties, WeaviateReferences]:
+        ...
+
+    @overload
+    def near_text(
+        self,
+        query: Union[List[str], str],
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Type[TReferences],
+    ) -> _QueryReturn[Properties, TReferences]:
         ...
 
     @overload
@@ -57,7 +94,46 @@ class _NearTextQuery(Generic[Properties], _Grpc[Properties]):
         return_metadata: Optional[METADATA] = None,
         *,
         return_properties: Type[TProperties],
-    ) -> _QueryReturn[TProperties]:
+        return_references: Literal[None] = None,
+    ) -> _QueryReturn[TProperties, References]:
+        ...
+
+    @overload
+    def near_text(
+        self,
+        query: Union[List[str], str],
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Type[TProperties],
+        return_references: REFERENCES,
+    ) -> _QueryReturn[TProperties, WeaviateReferences]:
+        ...
+
+    @overload
+    def near_text(
+        self,
+        query: Union[List[str], str],
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Type[TProperties],
+        return_references: Type[TReferences],
+    ) -> _QueryReturn[TProperties, TReferences]:
         ...
 
     def near_text(
@@ -72,8 +148,17 @@ class _NearTextQuery(Generic[Properties], _Grpc[Properties]):
         filters: Optional[_Filters] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
+        *,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
-    ) -> QueryReturn[Properties, TProperties]:
+        return_references: Optional[ReturnReferences[TReferences]] = None,
+    ) -> Union[
+        _QueryReturn[Properties, References],
+        _QueryReturn[Properties, WeaviateReferences],
+        _QueryReturn[Properties, TReferences],
+        _QueryReturn[TProperties, References],
+        _QueryReturn[TProperties, WeaviateReferences],
+        _QueryReturn[TProperties, TReferences],
+    ]:
         """Search for objects in this collection by text using text-capable vectorisation module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/api/graphql/search-operators#neartext) for a more detailed explanation.
@@ -88,10 +173,6 @@ class _NearTextQuery(Generic[Properties], _Grpc[Properties]):
                 The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
             `distance`
                 The maximum distance to search. If not specified, the default distance specified by the server is used.
-            `move_to`
-                The vector to move the search towards.
-            `move_away`
-                The vector to move the search away from.
             `limit`
                 The maximum number of results to return. If not specified, the default limit specified by the server is returned.
             `auto_limit`
@@ -104,13 +185,15 @@ class _NearTextQuery(Generic[Properties], _Grpc[Properties]):
                 The metadata to return for each object, defaults to `None`.
             `return_properties`
                 The properties to return for each object.
+            `return_references`
+                The references to return for each object.
 
         NOTE:
             If `return_properties` is not provided then all properties are returned except for any cross reference properties.
             If `return_metadata` is not provided then no metadata is provided.
 
         Returns:
-            A `_QueryReturn` object containing the results of the query.
+            A `_QueryReturn` object that includes the searched objects.
 
         Raises:
             `weaviate.exceptions.WeaviateQueryException`:
@@ -127,15 +210,23 @@ class _NearTextQuery(Generic[Properties], _Grpc[Properties]):
             filters=filters,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
+            return_references=self._parse_return_references(return_references),
         )
         return self._result_to_query_return(
             res,
+            _QueryOptions.from_input(
+                return_metadata,
+                return_properties,
+                include_vector,
+                self._references,
+                return_references,
+            ),
             return_properties,
-            _QueryOptions.from_input(return_metadata, return_properties, include_vector),
+            return_references,
         )
 
 
-class _NearTextGenerate(Generic[Properties], _Grpc[Properties]):
+class _NearTextGenerate(Generic[Properties, References], _BaseQuery[Properties, References]):
     @overload
     def near_text(
         self,
@@ -152,8 +243,54 @@ class _NearTextGenerate(Generic[Properties], _Grpc[Properties]):
         filters: Optional[_Filters] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
+        *,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> _GenerativeReturn[Properties]:
+        return_references: Literal[None] = None,
+    ) -> _GenerativeReturn[Properties, References]:
+        ...
+
+    @overload
+    def near_text(
+        self,
+        query: Union[List[str], str],
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: REFERENCES,
+    ) -> _GenerativeReturn[Properties, WeaviateReferences]:
+        ...
+
+    @overload
+    def near_text(
+        self,
+        query: Union[List[str], str],
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Type[TReferences],
+    ) -> _GenerativeReturn[Properties, TReferences]:
         ...
 
     @overload
@@ -174,7 +311,52 @@ class _NearTextGenerate(Generic[Properties], _Grpc[Properties]):
         return_metadata: Optional[METADATA] = None,
         *,
         return_properties: Type[TProperties],
-    ) -> _GenerativeReturn[TProperties]:
+        return_references: Literal[None] = None,
+    ) -> _GenerativeReturn[TProperties, References]:
+        ...
+
+    @overload
+    def near_text(
+        self,
+        query: Union[List[str], str],
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Type[TProperties],
+        return_references: REFERENCES,
+    ) -> _GenerativeReturn[TProperties, WeaviateReferences]:
+        ...
+
+    @overload
+    def near_text(
+        self,
+        query: Union[List[str], str],
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Type[TProperties],
+        return_references: Type[TReferences],
+    ) -> _GenerativeReturn[TProperties, TReferences]:
         ...
 
     def near_text(
@@ -192,8 +374,17 @@ class _NearTextGenerate(Generic[Properties], _Grpc[Properties]):
         filters: Optional[_Filters] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
+        *,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
-    ) -> GenerativeReturn[Properties, TProperties]:
+        return_references: Optional[ReturnReferences[TReferences]] = None,
+    ) -> Union[
+        _GenerativeReturn[Properties, References],
+        _GenerativeReturn[Properties, WeaviateReferences],
+        _GenerativeReturn[Properties, TReferences],
+        _GenerativeReturn[TProperties, References],
+        _GenerativeReturn[TProperties, WeaviateReferences],
+        _GenerativeReturn[TProperties, TReferences],
+    ]:
         """Perform retrieval-augmented generation (RaG) on the results of a by-image object search in this collection using the image-capable vectorisation module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/api/graphql/search-operators#neartext) for a more detailed explanation.
@@ -204,20 +395,10 @@ class _NearTextGenerate(Generic[Properties], _Grpc[Properties]):
         Arguments:
             `query`
                 The text or texts to search on, REQUIRED.
-            `single_prompt`
-                The prompt to use for single prompt generation.
-            `grouped_task`
-                The task to use for grouped generation.
-            `grouped_properties`
-                The properties to use for grouped generation.
             `certainty`
                 The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
             `distance`
                 The maximum distance to search. If not specified, the default distance specified by the server is used.
-            `move_to`
-                The vector to move the search towards.
-            `move_away`
-                The vector to move the search away from.
             `limit`
                 The maximum number of results to return. If not specified, the default limit specified by the server is returned.
             `auto_limit`
@@ -230,6 +411,8 @@ class _NearTextGenerate(Generic[Properties], _Grpc[Properties]):
                 The metadata to return for each object, defaults to `None`.
             `return_properties`
                 The properties to return for each object.
+            `return_references`
+                The references to return for each object.
 
         NOTE:
             If `return_properties` is not provided then all properties are returned except for any cross reference properties.
@@ -258,15 +441,23 @@ class _NearTextGenerate(Generic[Properties], _Grpc[Properties]):
             ),
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
+            return_references=self._parse_return_references(return_references),
         )
         return self._result_to_generative_return(
             res,
+            _QueryOptions.from_input(
+                return_metadata,
+                return_properties,
+                include_vector,
+                self._references,
+                return_references,
+            ),
             return_properties,
-            _QueryOptions.from_input(return_metadata, return_properties, include_vector),
+            return_references,
         )
 
 
-class _NearTextGroupBy(Generic[Properties], _Grpc[Properties]):
+class _NearTextGroupBy(Generic[Properties, References], _BaseQuery[Properties, References]):
     @overload
     def near_text(
         self,
@@ -283,8 +474,54 @@ class _NearTextGroupBy(Generic[Properties], _Grpc[Properties]):
         filters: Optional[_Filters] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
+        *,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> _GroupByReturn[Properties]:
+        return_references: Literal[None] = None,
+    ) -> _GroupByReturn[Properties, References]:
+        ...
+
+    @overload
+    def near_text(
+        self,
+        query: Union[List[str], str],
+        group_by_property: str,
+        number_of_groups: int,
+        objects_per_group: int,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: REFERENCES,
+    ) -> _GroupByReturn[Properties, WeaviateReferences]:
+        ...
+
+    @overload
+    def near_text(
+        self,
+        query: Union[List[str], str],
+        group_by_property: str,
+        number_of_groups: int,
+        objects_per_group: int,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Type[TReferences],
+    ) -> _GroupByReturn[Properties, TReferences]:
         ...
 
     @overload
@@ -305,7 +542,52 @@ class _NearTextGroupBy(Generic[Properties], _Grpc[Properties]):
         return_metadata: Optional[METADATA] = None,
         *,
         return_properties: Type[TProperties],
-    ) -> _GroupByReturn[TProperties]:
+        return_references: Literal[None] = None,
+    ) -> _GroupByReturn[TProperties, References]:
+        ...
+
+    @overload
+    def near_text(
+        self,
+        query: Union[List[str], str],
+        group_by_property: str,
+        number_of_groups: int,
+        objects_per_group: int,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Type[TProperties],
+        return_references: REFERENCES,
+    ) -> _GroupByReturn[TProperties, WeaviateReferences]:
+        ...
+
+    @overload
+    def near_text(
+        self,
+        query: Union[List[str], str],
+        group_by_property: str,
+        number_of_groups: int,
+        objects_per_group: int,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        *,
+        return_properties: Type[TProperties],
+        return_references: Type[TReferences],
+    ) -> _GroupByReturn[TProperties, TReferences]:
         ...
 
     def near_text(
@@ -323,8 +605,17 @@ class _NearTextGroupBy(Generic[Properties], _Grpc[Properties]):
         filters: Optional[_Filters] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
+        *,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
-    ) -> GroupByReturn[Properties, TProperties]:
+        return_references: Optional[ReturnReferences[TReferences]] = None,
+    ) -> Union[
+        _GroupByReturn[Properties, References],
+        _GroupByReturn[Properties, WeaviateReferences],
+        _GroupByReturn[Properties, TReferences],
+        _GroupByReturn[TProperties, References],
+        _GroupByReturn[TProperties, WeaviateReferences],
+        _GroupByReturn[TProperties, TReferences],
+    ]:
         """Group the results of a by-text object search in this collection using an text-capable vectorisation module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/api/graphql/search-operators#neartext) for a more detailed explanation.
@@ -340,15 +631,11 @@ class _NearTextGroupBy(Generic[Properties], _Grpc[Properties]):
             `number_of_groups`
                 The number of groups to return, REQUIRED.
             `objects_per_group`
-                The number of objects per group to return, REQUIRED.
+                The number of objects to return per group, REQUIRED.
             `certainty`
                 The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
             `distance`
                 The maximum distance to search. If not specified, the default distance specified by the server is used.
-            `move_to`
-                The vector to move the search towards.
-            `move_away`
-                The vector to move the search away from.
             `limit`
                 The maximum number of results to return. If not specified, the default limit specified by the server is returned.
             `auto_limit`
@@ -361,6 +648,8 @@ class _NearTextGroupBy(Generic[Properties], _Grpc[Properties]):
                 The metadata to return for each object, defaults to `None`.
             `return_properties`
                 The properties to return for each object.
+            `return_references`
+                The references to return for each object.
 
         NOTE:
             If `return_properties` is not provided then all properties are returned except for any cross reference properties.
@@ -389,9 +678,17 @@ class _NearTextGroupBy(Generic[Properties], _Grpc[Properties]):
             ),
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
+            return_references=self._parse_return_references(return_references),
         )
         return self._result_to_groupby_return(
             res,
+            _QueryOptions.from_input(
+                return_metadata,
+                return_properties,
+                include_vector,
+                self._references,
+                return_references,
+            ),
             return_properties,
-            _QueryOptions.from_input(return_metadata, return_properties, include_vector),
+            return_references,
         )

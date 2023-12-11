@@ -144,8 +144,8 @@ class AdditionalPropertiesException(WeaviateBaseError):
 class InvalidDataModelException(WeaviateBaseError):
     """Is raised when the user provides a generic that is not supported"""
 
-    def __init__(self) -> None:
-        msg = """data_model can only be a dict type, e.g. Dict[str, str], or a class that inherits from TypedDict"""
+    def __init__(self, type_: str) -> None:
+        msg = f"""{type_} can only be a dict type, e.g. Dict[str, Any], or a class that inherits from TypedDict"""
         super().__init__(msg)
 
 

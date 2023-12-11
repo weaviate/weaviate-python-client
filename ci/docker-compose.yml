@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:preview-introduce-custom-pb-properties-message-to-contain-type-aware-properties-within-search-result-7002ea3
+    image: semitechnologies/weaviate:1.23.0-rc.0-b454247
     ports:
       - "8080:8080"
       - "50051:50051"

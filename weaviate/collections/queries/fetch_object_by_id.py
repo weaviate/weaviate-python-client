@@ -1,24 +1,26 @@
-from typing import Generic, Optional, Type, cast, overload
+from typing import Generic, Literal, Optional, Union, Type, cast, overload
 
 from weaviate.collections.classes.filters import (
     FilterMetadata,
 )
-from weaviate.collections.classes.grpc import PROPERTIES, MetadataQuery
+from weaviate.collections.classes.grpc import PROPERTIES, REFERENCES, MetadataQuery
 
 from weaviate.collections.classes.internal import (
     _MetadataSingleObjectReturn,
     _ObjectSingleReturn,
-    QuerySingleObjectReturn,
     ReturnProperties,
+    ReturnReferences,
     _QueryOptions,
+    References,
+    WeaviateReferences,
+    TReferences,
 )
 from weaviate.collections.classes.types import Properties, TProperties
-from weaviate.collections.queries.base import _Grpc
+from weaviate.collections.queries.base import _BaseQuery
 from weaviate.types import UUID
-from typing_extensions import is_typeddict
 
 
-class _FetchObjectByIDQuery(Generic[Properties], _Grpc[Properties]):
+class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
     @overload
     def fetch_object_by_id(
         self,
@@ -26,7 +28,30 @@ class _FetchObjectByIDQuery(Generic[Properties], _Grpc[Properties]):
         include_vector: bool = False,
         *,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> _ObjectSingleReturn[Properties]:
+        return_references: Literal[None] = None,
+    ) -> _ObjectSingleReturn[Properties, References]:
+        ...
+
+    @overload
+    def fetch_object_by_id(
+        self,
+        uuid: UUID,
+        include_vector: bool = False,
+        *,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: REFERENCES,
+    ) -> _ObjectSingleReturn[Properties, WeaviateReferences]:
+        ...
+
+    @overload
+    def fetch_object_by_id(
+        self,
+        uuid: UUID,
+        include_vector: bool = False,
+        *,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Type[TReferences],
+    ) -> _ObjectSingleReturn[Properties, TReferences]:
         ...
 
     @overload
@@ -36,15 +61,48 @@ class _FetchObjectByIDQuery(Generic[Properties], _Grpc[Properties]):
         include_vector: bool = False,
         *,
         return_properties: Type[TProperties],
-    ) -> _ObjectSingleReturn[TProperties]:
+        return_references: Literal[None] = None,
+    ) -> _ObjectSingleReturn[TProperties, References]:
+        ...
+
+    @overload
+    def fetch_object_by_id(
+        self,
+        uuid: UUID,
+        include_vector: bool = False,
+        *,
+        return_properties: Type[TProperties],
+        return_references: REFERENCES,
+    ) -> _ObjectSingleReturn[TProperties, WeaviateReferences]:
+        ...
+
+    @overload
+    def fetch_object_by_id(
+        self,
+        uuid: UUID,
+        include_vector: bool = False,
+        *,
+        return_properties: Type[TProperties],
+        return_references: Type[TReferences],
+    ) -> _ObjectSingleReturn[TProperties, TReferences]:
         ...
 
     def fetch_object_by_id(
         self,
         uuid: UUID,
         include_vector: bool = False,
+        *,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
-    ) -> Optional[QuerySingleObjectReturn[Properties, TProperties]]:
+        return_references: Optional[ReturnReferences[TReferences]] = None,
+    ) -> Union[
+        None,
+        _ObjectSingleReturn[Properties, References],
+        _ObjectSingleReturn[Properties, WeaviateReferences],
+        _ObjectSingleReturn[Properties, TReferences],
+        _ObjectSingleReturn[TProperties, References],
+        _ObjectSingleReturn[TProperties, WeaviateReferences],
+        _ObjectSingleReturn[TProperties, TReferences],
+    ]:
         """Retrieve an object from the server by its UUID.
 
         Arguments:
@@ -69,11 +127,19 @@ class _FetchObjectByIDQuery(Generic[Properties], _Grpc[Properties]):
             filters=FilterMetadata.ById.equal(uuid),
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
+            return_references=self._parse_return_references(return_references),
         )
         objects = self._result_to_query_return(
             res,
+            _QueryOptions.from_input(
+                return_metadata,
+                return_properties,
+                include_vector,
+                self._references,
+                return_references,
+            ),
             return_properties,
-            _QueryOptions.from_input(return_metadata, return_properties, include_vector),
+            None,
         )
 
         if len(objects.objects) == 0:
@@ -84,25 +150,25 @@ class _FetchObjectByIDQuery(Generic[Properties], _Grpc[Properties]):
         assert obj.metadata.creation_time_unix is not None
         assert obj.metadata.last_update_time_unix is not None
 
-        if is_typeddict(return_properties):
-            return _ObjectSingleReturn[TProperties](
+        return cast(
+            Union[
+                None,
+                _ObjectSingleReturn[Properties, References],
+                _ObjectSingleReturn[Properties, WeaviateReferences],
+                _ObjectSingleReturn[Properties, TReferences],
+                _ObjectSingleReturn[TProperties, References],
+                _ObjectSingleReturn[TProperties, WeaviateReferences],
+                _ObjectSingleReturn[TProperties, TReferences],
+            ],
+            _ObjectSingleReturn(
                 uuid=obj.uuid,
                 vector=obj.vector,
-                properties=cast(TProperties, obj.properties),
+                properties=obj.properties,
                 metadata=_MetadataSingleObjectReturn(
                     creation_time_unix=obj.metadata.creation_time_unix,
                     last_update_time_unix=obj.metadata.last_update_time_unix,
                     is_consistent=obj.metadata.is_consistent,
                 ),
-            )
-        else:
-            return _ObjectSingleReturn[Properties](
-                uuid=obj.uuid,
-                vector=obj.vector,
-                properties=cast(Properties, obj.properties),
-                metadata=_MetadataSingleObjectReturn(
-                    creation_time_unix=obj.metadata.creation_time_unix,
-                    last_update_time_unix=obj.metadata.last_update_time_unix,
-                    is_consistent=obj.metadata.is_consistent,
-                ),
-            )
+                references=obj.references,
+            ),
+        )

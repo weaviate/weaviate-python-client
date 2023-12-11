@@ -156,8 +156,9 @@ class FromReference(_WeaviateInput):
 
     link_on: str
     include_vector: bool = Field(default=False)
-    return_properties: Optional["PROPERTIES"] = Field(default=None)
     return_metadata: Optional[MetadataQuery] = Field(default=None)
+    return_properties: Optional["PROPERTIES"] = Field(default=None)
+    return_references: Optional["REFERENCES"] = Field(default=None)
 
     def __hash__(self) -> int:  # for set
         return hash(str(self))
@@ -177,13 +178,19 @@ class FromNested(_WeaviateInput):
     """Define the return properties of a nested property."""
 
     name: str
-    properties: "NestedProperties"
+    properties: "PROPERTIES"
 
     def __hash__(self) -> int:  # for set
         return hash(str(self))
 
 
-PROPERTY = Union[str, FromReference, FromNested]
+REFERENCE = Union[FromReference, FromReferenceMultiTarget]
+REFERENCES = Union[List[REFERENCE], REFERENCE]
+
+PROPERTY = Union[str, FromNested]
 PROPERTIES = Union[List[PROPERTY], PROPERTY]
 
 NestedProperties = Union[List[Union[str, FromNested]], str, FromNested]
+
+_PROPERTY = Union[PROPERTY, REFERENCE]
+_PROPERTIES = Union[PROPERTIES, REFERENCES]
