@@ -4,13 +4,14 @@ from typing import (
     Any,
     Callable,
     Generic,
-    ParamSpec,
     Set,
     TypeVar,
+    Union,
     get_args,
     get_origin,
     get_type_hints,
 )
+from typing_extensions import ParamSpec
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -44,10 +45,17 @@ class _Validator(Generic[P, R]):
                             raise TypeError(
                                 f"List element of argument '{name}' must be {expected_inner_type}, but got {type(item)}"
                             )
-                if not isinstance(value, expected_type):
-                    raise TypeError(
-                        f"Argument '{name}' must be {expected_type}, but got {type(value)}"
-                    )
+                elif get_origin(expected_type) == Union:
+                    expected_types = get_args(expected_type)
+                    if not any(isinstance(value, t) for t in expected_types):
+                        raise TypeError(
+                            f"Argument '{name}' must be one of {expected_type}, but got {type(value)}"
+                        )
+                else:
+                    if not isinstance(value, expected_type):
+                        raise TypeError(
+                            f"Argument '{name}' must be {expected_type}, but got {type(value)}"
+                        )
         return self.func(*args, **kwargs)
 
     def __get__(self, instance: Any, owner: Any) -> Callable[P, R]:

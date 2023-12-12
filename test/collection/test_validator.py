@@ -79,7 +79,7 @@ def functions(
         "config.add_property": [
             TestableFunction(
                 lambda: config.add_property(1),
-                "Argument 'additional_property' must be typing.Union[weaviate.collections.classes.config.Property, weaviate.collections.classes.config.ReferenceProperty, weaviate.collections.classes.config.ReferencePropertyMultiTarget], but got <class 'int'>",
+                "Argument 'additional_property' must be one of typing.Union[weaviate.collections.classes.config.Property, weaviate.collections.classes.config.ReferenceProperty, weaviate.collections.classes.config.ReferencePropertyMultiTarget], but got <class 'int'>",
             )
         ],
         "config.get": [
@@ -91,37 +91,37 @@ def functions(
         "config.update": [
             TestableFunction(
                 lambda: config.update(description=1),
-                "Argument 'description' must be typing.Optional[str], but got <class 'int'>",
+                "Argument 'description' must be one of typing.Union[str, NoneType], but got <class 'int'>",
             ),
             TestableFunction(
                 lambda: config.update(inverted_index_config=1),
-                "Argument 'inverted_index_config' must be typing.Optional[weaviate.collections.classes.config._InvertedIndexConfigUpdate], but got <class 'int'>",
+                "Argument 'inverted_index_config' must be one of typing.Union[weaviate.collections.classes.config._InvertedIndexConfigUpdate, NoneType], but got <class 'int'>",
             ),
             TestableFunction(
                 lambda: config.update(inverted_index_config=Configure.inverted_index()),
-                "Argument 'inverted_index_config' must be typing.Optional[weaviate.collections.classes.config._InvertedIndexConfigUpdate], but got <class 'weaviate.collections.classes.config._InvertedIndexConfigCreate'>",
+                "Argument 'inverted_index_config' must be one of typing.Union[weaviate.collections.classes.config._InvertedIndexConfigUpdate, NoneType], but got <class 'weaviate.collections.classes.config._InvertedIndexConfigCreate'>",
             ),
             TestableFunction(
                 lambda: config.update(replication_config=1),
-                "Argument 'replication_config' must be typing.Optional[weaviate.collections.classes.config._ReplicationConfigUpdate], but got <class 'int'>",
+                "Argument 'replication_config' must be one of typing.Union[weaviate.collections.classes.config._ReplicationConfigUpdate, NoneType], but got <class 'int'>",
             ),
             TestableFunction(
                 lambda: config.update(replication_config=Configure.replication()),
-                "Argument 'replication_config' must be typing.Optional[weaviate.collections.classes.config._ReplicationConfigUpdate], but got <class 'weaviate.collections.classes.config._ReplicationConfigCreate'>",
+                "Argument 'replication_config' must be one of typing.Union[weaviate.collections.classes.config._ReplicationConfigUpdate, NoneType], but got <class 'weaviate.collections.classes.config._ReplicationConfigCreate'>",
             ),
             TestableFunction(
                 lambda: config.update(vector_index_config=1),
-                "Argument 'vector_index_config' must be typing.Optional[weaviate.collections.classes.config._VectorIndexConfigUpdate], but got <class 'int'>",
+                "Argument 'vector_index_config' must be one of typing.Union[weaviate.collections.classes.config._VectorIndexConfigHNSWUpdate, weaviate.collections.classes.config._VectorIndexConfigFlatUpdate, NoneType], but got <class 'int'>",
             ),
             TestableFunction(
-                lambda: config.update(vector_index_config=Configure.vector_index()),
-                "Argument 'vector_index_config' must be typing.Optional[weaviate.collections.classes.config._VectorIndexConfigUpdate], but got <class 'weaviate.collections.classes.config._VectorIndexConfigCreate'>",
+                lambda: config.update(vector_index_config=Configure.VectorIndex.hnsw()),
+                "Argument 'vector_index_config' must be one of typing.Union[weaviate.collections.classes.config._VectorIndexConfigHNSWUpdate, weaviate.collections.classes.config._VectorIndexConfigFlatUpdate, NoneType], but got <class 'weaviate.collections.classes.config._VectorIndexConfigHNSWCreate'>",
             ),
         ],
         "data.delete_by_id": [
             TestableFunction(
                 lambda: data.delete_by_id(1),
-                "Argument 'uuid' must be typing.Union[str, uuid.UUID], but got <class 'int'>",
+                "Argument 'uuid' must be one of typing.Union[str, uuid.UUID], but got <class 'int'>",
             ),
             TestableFunction(
                 lambda: data.delete_by_id("1", "extra"), "too many positional arguments"
