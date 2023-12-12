@@ -4,8 +4,9 @@ from typing_extensions import TypeAlias, TypeVar, is_typeddict
 from pydantic import BaseModel, ConfigDict
 
 from weaviate.exceptions import InvalidDataModelException
+from weaviate.types import WeaviateField
 
-WeaviateProperties: TypeAlias = Dict[str, "WeaviateProperties"]
+WeaviateProperties: TypeAlias = Dict[str, WeaviateField]
 
 Properties = TypeVar("Properties", bound=Mapping[str, Any], default=WeaviateProperties)
 """`Properties` is used wherever a single generic type is needed for properties"""

@@ -35,7 +35,7 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.queries.base import _BaseQuery
 from weaviate.util import _datetime_from_weaviate_str
-from weaviate.types import UUID
+from weaviate.types import UUID, WeaviateField
 
 
 class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
@@ -220,8 +220,8 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         res = self._get_by_id_rest(collection, uuid, include_vector)
         if res is None:
             return None
-        else:
-            obj_rest = cast(_RestPayload, res)
+
+        obj_rest = cast(_RestPayload, res)
 
         parsed_props = self._parse_return_properties(return_properties)
         ret_props = (
@@ -243,16 +243,23 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
                     return uuid_lib.UUID(value)
                 except ValueError:
                     pass
+            if isinstance(value, dict):
+                return {key: parse_value(val) for key, val in value.items()}
             return value
 
-        def resolve_nested(obj: Dict[str, WeaviateProperties], prop: FromNested) -> dict:
+        def resolve_nested(obj: WeaviateField, prop: FromNested) -> dict:
+            assert isinstance(obj, dict)
             nested_props = (
                 prop.properties if isinstance(prop.properties, list) else [prop.properties]
             )
-            nested = {}
+            nested: Dict[str, Any] = {}
             for nested_prop in nested_props:
                 if isinstance(nested_prop, FromNested):
-                    return resolve_nested(obj[nested_prop.name], nested_prop)
+                    val = obj[nested_prop.name]
+                    if isinstance(val, list):
+                        nested[nested_prop.name] = [resolve_nested(o, nested_prop) for o in val]
+                    else:
+                        nested[nested_prop.name] = resolve_nested(val, nested_prop)
                 else:
                     nested[nested_prop] = parse_value(obj[nested_prop])
             return nested
@@ -260,7 +267,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         if ret_props is not None:
             for prop in ret_props:
                 if isinstance(prop, FromNested):
-                    props[prop.name] = resolve_nested(obj_rest["properties"], prop)
+                    props[prop.name] = resolve_nested(obj_rest["properties"][prop.name], prop)
                 else:
                     props[prop] = parse_value(obj_rest["properties"][prop])
         else:
