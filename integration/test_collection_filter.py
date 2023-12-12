@@ -86,6 +86,8 @@ def test_filters_text(
 def test_filter_with_wrong_types(
     client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: Optional[List[int]]
 ) -> None:
+    if parse_version_string(client._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("Fixes for this are not implemented in this version")
     client.collections.delete("TestFilterWrongTypes")
     collection = client.collections.create(
         name="TestFilterWrongTypes",
