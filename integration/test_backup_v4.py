@@ -92,7 +92,7 @@ def client() -> Generator[weaviate.WeaviateClient, None, None]:
         col_articles.data.reference_add(
             from_uuid=ARTICLES_IDS[i],
             from_property="hasParagraphs",
-            ref=Reference.to(PARAGRAPHS_IDS[i]),
+            to=Reference.to(PARAGRAPHS_IDS[i]),
         )
     yield client
     client.collections.delete("Paragraph")

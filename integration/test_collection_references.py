@@ -38,16 +38,16 @@ def test_reference_add_delete_replace(client: weaviate.WeaviateClient) -> None:
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
-    uuid_from1 = collection.data.insert({}, uuid.uuid4())
+    uuid_from1 = collection.data.insert({}, uuid=uuid.uuid4())
     uuid_from2 = collection.data.insert(
         {}, references={"ref": Reference.to(uuids=uuid_to)}, uuid=uuid.uuid4()
     )
     collection.data.reference_add(
-        from_uuid=uuid_from1, from_property="ref", ref=Reference.to(uuids=uuid_to)
+        from_uuid=uuid_from1, from_property="ref", to=Reference.to(uuids=uuid_to)
     )
 
     collection.data.reference_delete(
-        from_uuid=uuid_from1, from_property="ref", ref=Reference.to(uuids=uuid_to)
+        from_uuid=uuid_from1, from_property="ref", to=Reference.to(uuids=uuid_to)
     )
     assert (
         len(
@@ -61,7 +61,7 @@ def test_reference_add_delete_replace(client: weaviate.WeaviateClient) -> None:
     )
 
     collection.data.reference_add(
-        from_uuid=uuid_from2, from_property="ref", ref=Reference.to(uuids=uuid_to)
+        from_uuid=uuid_from2, from_property="ref", to=Reference.to(uuids=uuid_to)
     )
     obj = collection.query.fetch_object_by_id(
         uuid_from2, return_references=FromReference(link_on="ref")
@@ -71,7 +71,7 @@ def test_reference_add_delete_replace(client: weaviate.WeaviateClient) -> None:
     assert uuid_to in [x.uuid for x in obj.references["ref"].objects]
 
     collection.data.reference_replace(
-        from_uuid=uuid_from2, from_property="ref", ref=Reference.to(uuids=[])
+        from_uuid=uuid_from2, from_property="ref", to=Reference.to(uuids=[])
     )
     assert (
         len(
@@ -111,7 +111,7 @@ def test_mono_references_grpc(client: weaviate.WeaviateClient):
         vectorizer_config=Configure.Vectorizer.none(),
     )
     uuid_B = B.data.insert({"Name": "B"}, references={"a": Reference.to(uuids=uuid_A1)})
-    B.data.reference_add(from_uuid=uuid_B, from_property="a", ref=Reference.to(uuids=uuid_A2))
+    B.data.reference_add(from_uuid=uuid_B, from_property="a", to=Reference.to(uuids=uuid_A2))
 
     objects = B.query.bm25(
         query="B",
@@ -217,7 +217,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient, level
     B.data.reference_add(
         from_uuid=uuid_B,
         from_property="a",
-        ref=Reference.to(uuids=uuid_A2, properties=AProps),
+        to=Reference.to(uuids=uuid_A2, properties=AProps),
     )
 
     objects = B.query.bm25(query="B", return_references=BRefs).objects
@@ -424,7 +424,9 @@ def test_references_batch(client: weaviate.WeaviateClient):
     batch_return = collection.data.reference_add_many(
         [
             DataReference(
-                from_property="ref", from_uuid=list(uuids_from)[i], to_uuid=list(uuids_to)[i]
+                from_property="ref",
+                from_uuid=list(uuids_from)[i],
+                to=Reference.to(list(uuids_to)[i]),
             )
             for i in range(num_objects)
         ],
@@ -467,7 +469,11 @@ def test_references_batch_with_errors(client: weaviate.WeaviateClient):
     )
 
     batch_return = collection.data.reference_add_many(
-        [DataReference(from_property="doesNotExist", from_uuid=uuid.uuid4(), to_uuid=uuid.uuid4())],
+        [
+            DataReference(
+                from_property="doesNotExist", from_uuid=uuid.uuid4(), to=Reference.to(uuid.uuid4())
+            )
+        ],
     )
     assert batch_return.has_errors is True
     assert 0 in batch_return.errors

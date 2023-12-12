@@ -653,8 +653,8 @@ def test_search_hybrid(client: weaviate.WeaviateClient, fusion_type: HybridFusio
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(),
     )
-    collection.data.insert({"Name": "some name"}, uuid.uuid4())
-    collection.data.insert({"Name": "other word"}, uuid.uuid4())
+    collection.data.insert({"Name": "some name"}, uuid=uuid.uuid4())
+    collection.data.insert({"Name": "other word"}, uuid=uuid.uuid4())
     objs = collection.query.hybrid(
         alpha=0, query="name", fusion_type=fusion_type, include_vector=True
     ).objects

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import List, Optional, Generic
-from weaviate.collections.classes.internal import P
+from weaviate.collections.classes.internal import Properties, References, CrossReference
 from weaviate.types import UUID
 
 
@@ -21,18 +21,18 @@ class RefError:
 
 
 @dataclass
-class DataObject(Generic[P]):
+class DataObject(Generic[Properties]):
     """This class represents an entire object within a collection to be used when batching."""
 
-    properties: Optional[P] = None
+    properties: Optional[Properties] = None
     uuid: Optional[UUID] = None
     vector: Optional[List[float]] = None
 
 
 @dataclass
-class DataReference:
+class DataReference(Generic[Properties, References]):
     """This class represents a reference between objects within a collection to be used when batching."""
 
     from_property: str
     from_uuid: UUID
-    to_uuid: UUID
+    to: CrossReference[Properties, References]
