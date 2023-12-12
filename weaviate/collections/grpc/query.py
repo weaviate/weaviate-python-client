@@ -560,7 +560,7 @@ class _QueryGRPC(_BaseGRPC):
                     else None,
                     generative=self._generative.to_grpc() if self._generative is not None else None,
                     group_by=self._group_by.to_grpc() if self._group_by is not None else None,
-                    uses_weaviate_struct=True,
+                    uses_properties_message=True,
                 ),
                 metadata=metadata,
             )

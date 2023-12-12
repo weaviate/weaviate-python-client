@@ -1,6 +1,6 @@
 import datetime
 import uuid
-from typing import List
+from typing import List, Optional
 
 import pytest as pytest
 
@@ -71,6 +71,46 @@ def test_filters_text(
 
     uuids = [uuids[result] for result in results]
     assert all(obj.uuid in uuids for obj in objects)
+
+
+@pytest.mark.parametrize(
+    "weaviate_filter,results",
+    [
+        (Filter(path="int").equal(1), [0]),
+        (Filter(path="int").equal(val=1.0), [0]),
+        (Filter(path="int").equal(val=1.2), None),
+        (Filter(path="float").equal(val=1), [0]),
+        (Filter(path="float").equal(val=1.0), [0]),
+    ],
+)
+def test_filter_with_wrong_types(
+    client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: Optional[List[int]]
+) -> None:
+    client.collections.delete("TestFilterWrongTypes")
+    collection = client.collections.create(
+        name="TestFilterWrongTypes",
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="int", data_type=DataType.INT),
+            Property(name="float", data_type=DataType.NUMBER),
+        ],
+    )
+
+    uuids = [
+        collection.data.insert({"int": 1, "float": 1.0}),
+        collection.data.insert({"int": 2, "float": 2.0}),
+        collection.data.insert({"int": 3, "float": 3.0}),
+    ]
+
+    if results is not None:
+        objects = collection.query.fetch_objects(filters=weaviate_filter).objects
+        assert len(objects) == len(results)
+
+        uuids = [uuids[result] for result in results]
+        assert all(obj.uuid in uuids for obj in objects)
+    else:
+        with pytest.raises(weaviate.exceptions.WeaviateQueryException):
+            collection.query.fetch_objects(filters=weaviate_filter).objects
 
 
 @pytest.mark.parametrize(
@@ -179,9 +219,10 @@ def test_filters_comparison(
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
-        (Filter(path="nums").contains_any([1, 4]), [0, 3]),
-        (Filter(path="nums").contains_any([10]), []),
-        (Filter(path="num").contains_any([1]), [0, 1]),
+        (Filter(path="ints").contains_any([1, 4]), [0, 3]),
+        (Filter(path="ints").contains_any([1.0, 4]), [0, 3]),
+        (Filter(path="ints").contains_any([10]), []),
+        (Filter(path="int").contains_any([1]), [0, 1]),
         (Filter(path="text").contains_any(["test"]), [0, 1]),
         (Filter(path="text").contains_any(["real", "deal"]), [1, 2, 3]),
         (Filter(path="texts").contains_any(["test"]), [0, 1]),
@@ -196,7 +237,7 @@ def test_filters_comparison(
         (Filter(path="bools").contains_any([True, False]), [0, 1, 3]),
         (Filter(path="bools").contains_any([False]), [0, 1]),
         (Filter(path="bool").contains_any([True]), [0, 1, 3]),
-        (Filter(path="nums").contains_all([1, 4]), [0]),
+        (Filter(path="ints").contains_all([1, 4]), [0]),
         (Filter(path="text").contains_all(["real", "test"]), [1]),
         (Filter(path="texts").contains_all(["real", "test"]), [1]),
         (Filter(path="floats").contains_all([0.7, 2]), [1]),
@@ -228,8 +269,8 @@ def test_filters_contains(
         properties=[
             Property(name="text", data_type=DataType.TEXT),
             Property(name="texts", data_type=DataType.TEXT_ARRAY),
-            Property(name="num", data_type=DataType.INT),
-            Property(name="nums", data_type=DataType.INT_ARRAY),
+            Property(name="int", data_type=DataType.INT),
+            Property(name="ints", data_type=DataType.INT_ARRAY),
             Property(name="float", data_type=DataType.NUMBER),
             Property(name="floats", data_type=DataType.NUMBER_ARRAY),
             Property(name="bool", data_type=DataType.BOOL),
@@ -246,8 +287,8 @@ def test_filters_contains(
             {
                 "text": "this is a test",
                 "texts": "this is a test".split(" "),
-                "num": 1,
-                "nums": [1, 2, 4],
+                "int": 1,
+                "ints": [1, 2, 4],
                 "float": 0.5,
                 "floats": [0.4, 0.9, 2],
                 "bool": True,
@@ -263,8 +304,8 @@ def test_filters_contains(
             {
                 "text": "this is not a real test",
                 "texts": "this is not a real test".split(" "),
-                "num": 1,
-                "nums": [5, 6, 9],
+                "int": 1,
+                "ints": [5, 6, 9],
                 "float": 0.3,
                 "floats": [0.1, 0.7, 2],
                 "bool": True,
@@ -280,8 +321,8 @@ def test_filters_contains(
             {
                 "text": "real deal",
                 "texts": "real deal".split(" "),
-                "num": 3,
-                "nums": [],
+                "int": 3,
+                "ints": [],
                 "floats": [],
                 "bool": False,
                 "bools": [],
@@ -294,8 +335,8 @@ def test_filters_contains(
             {
                 "text": "not real deal",
                 "texts": "not real deal".split(" "),
-                "num": 4,
-                "nums": [4],
+                "int": 4,
+                "ints": [4],
                 "float": 8,
                 "floats": [0.7],
                 "bool": True,
