@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.22.6
-  NEW_WEAVIATE_VERSION: 1.23.0-rc.0-1db42dc
+  NEW_WEAVIATE_VERSION: preview-fixes-for-grpc-filters-626171b
 
 jobs:
   lint-and-format:
