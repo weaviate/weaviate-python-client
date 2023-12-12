@@ -12,6 +12,7 @@ from weaviate.collections.classes.config import (
     Configure,
     Property,
     ReferenceProperty,
+    VectorDistance,
 )
 
 
@@ -726,3 +727,29 @@ def test_config_with_invalid_reference_property(name: str):
         _CollectionConfigCreate(
             name="test", description="test", properties=[ReferenceProperty(name=name, to="Test")]
         )
+
+
+def test_vector_config_hnsw_bq() -> None:
+    vector_index = Configure.VectorIndex.hnsw(
+        ef_construction=128, quantitizer=Configure.VectorIndex.Quantitizer.BQ(rescore_limit=123)
+    )
+
+    vi_dict = vector_index._to_dict()
+
+    assert vi_dict["efConstruction"] == 128
+    assert vi_dict["bq"]["rescoreLimit"] == 123
+
+
+def test_vector_config_flat_pq() -> None:
+    vector_index = Configure.VectorIndex.flat(
+        distance_metric=VectorDistance.DOT,
+        vector_cache_max_objects=456,
+        quantitizer=Configure.VectorIndex.Quantitizer.PQ(bit_compression=True, segments=789),
+    )
+
+    vi_dict = vector_index._to_dict()
+
+    assert vi_dict["distance"] == "dot"
+    assert vi_dict["vectorCacheMaxObjects"] == 456
+    assert vi_dict["pq"]["bitCompression"]
+    assert vi_dict["pq"]["segments"] == 789
