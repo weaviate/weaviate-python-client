@@ -38,5 +38,10 @@ WeaviateField = Union[
     DATE,
     UUID,
     GEO_COORDINATES,
-    List[Union[str, bool, int, float, DATE, UUID, GEO_COORDINATES]],
+    List[str],
+    List[bool],
+    List[int],
+    List[float],
+    List[DATE],
+    List[UUID],
 ]

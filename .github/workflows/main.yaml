@@ -13,6 +13,10 @@ on:
       - publishing.md
   pull_request:
 
+env:
+  OLD_WEAVIATE_VERSION: 1.22.6
+  NEW_WEAVIATE_VERSION: preview-fixes-for-grpc-filters-626171b
+
 jobs:
   lint-and-format:
     name: Run Linter and Formatter
@@ -82,11 +86,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: [ "3.8", "3.9", "3.10", "3.11"]
+        versions: [
+          { py: "3.8", weaviate: $NEW_WEAVIATE_VERSION},
+          { py: "3.9", weaviate: $NEW_WEAVIATE_VERSION},
+          { py: "3.10", weaviate: $NEW_WEAVIATE_VERSION},
+          { py: "3.11", weaviate: $NEW_WEAVIATE_VERSION},
+          { py: "3.11", weaviate: $OLD_WEAVIATE_VERSION},
+          { py: "3.12", weaviate: $NEW_WEAVIATE_VERSION}
+        ]
         optional_dependencies: [false]
-        include:
-          - version: "3.11"
-            optional_dependencies: true
     steps:
       - uses: actions/checkout@v3
         with:
@@ -94,13 +102,13 @@ jobs:
           fetch-tags: true
       - uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.version }}
+          python-version: ${{ matrix.versions.py }}
           cache: 'pip' # caching pip dependencies
       - run: |
           pip install -r requirements-devel.txt
           pip install .
       - name: start weaviate
-        run: /bin/bash ci/start_weaviate.sh
+        run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
       - name: Run integration tests with auth secrets
         if: ${{ !github.event.pull_request.head.repo.fork }}
         env:
@@ -114,7 +122,7 @@ jobs:
         if: ${{ github.event.pull_request.head.repo.fork }}
         run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Archive code coverage results
-        if: matrix.version == '3.10' && (github.ref_name != 'main')
+        if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
         uses: actions/upload-artifact@v3
         with:
           name: coverage-report-integration
@@ -174,6 +182,13 @@ jobs:
   test-package:
     needs: [build-package]
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        server: [
+          $OLD_WEAVIATE_VERSION,
+          $NEW_WEAVIATE_VERSION,
+        ]
     steps:
       - name: Download build artifact to append to release
         uses: actions/download-artifact@v3
@@ -188,7 +203,7 @@ jobs:
           fetch-depth: 0
       - run: rm -r weaviate
       - name: start weaviate
-        run: /bin/bash ci/start_weaviate.sh
+        run: /bin/bash ci/start_weaviate.sh ${{ matrix.server }}
       - name: Run integration tests with auth secrets
         if: ${{ !github.event.pull_request.head.repo.fork }}
         env:

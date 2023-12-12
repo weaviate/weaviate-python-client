@@ -38,7 +38,7 @@ class SearchRequest(_message.Message):
         "near_audio",
         "near_video",
         "generative",
-        "uses_weaviate_struct",
+        "uses_properties_message",
     ]
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     TENANT_FIELD_NUMBER: _ClassVar[int]
@@ -61,7 +61,7 @@ class SearchRequest(_message.Message):
     NEAR_AUDIO_FIELD_NUMBER: _ClassVar[int]
     NEAR_VIDEO_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_FIELD_NUMBER: _ClassVar[int]
-    USES_WEAVIATE_STRUCT_FIELD_NUMBER: _ClassVar[int]
+    USES_PROPERTIES_MESSAGE_FIELD_NUMBER: _ClassVar[int]
     collection: str
     tenant: str
     consistency_level: _base_pb2.ConsistencyLevel
@@ -83,7 +83,7 @@ class SearchRequest(_message.Message):
     near_audio: NearAudioSearch
     near_video: NearVideoSearch
     generative: GenerativeSearch
-    uses_weaviate_struct: bool
+    uses_properties_message: bool
     def __init__(
         self,
         collection: _Optional[str] = ...,
@@ -107,7 +107,7 @@ class SearchRequest(_message.Message):
         near_audio: _Optional[_Union[NearAudioSearch, _Mapping]] = ...,
         near_video: _Optional[_Union[NearVideoSearch, _Mapping]] = ...,
         generative: _Optional[_Union[GenerativeSearch, _Mapping]] = ...,
-        uses_weaviate_struct: bool = ...,
+        uses_properties_message: bool = ...,
     ) -> None: ...
 
 class GroupBy(_message.Message):

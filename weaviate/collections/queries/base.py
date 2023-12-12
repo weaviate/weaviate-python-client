@@ -2,20 +2,13 @@ import datetime
 import io
 import pathlib
 import struct
-from typing import (
-    Any,
-    Generic,
-    List,
-    Optional,
-    Type,
-    Union,
-    cast,
-)
+from typing import Any, Dict, Generic, List, Optional, Type, Union, cast
 from typing_extensions import is_typeddict
 
 import uuid as uuid_lib
 
 from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
+from google.protobuf import struct_pb2
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
@@ -53,8 +46,19 @@ from weaviate.collections.classes.types import (
 from weaviate.collections.grpc.query import _QueryGRPC, GroupByResult, SearchResponse
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateGrpcUnavailable, WeaviateQueryException
-from weaviate.util import file_encoder_b64, parse_version_string, _datetime_from_weaviate_str
-from weaviate.proto.v1 import search_get_pb2, properties_pb2
+from weaviate.util import (
+    file_encoder_b64,
+    parse_version_string,
+    _datetime_from_weaviate_str,
+    _decode_json_response_dict,
+)
+from weaviate.proto.v1 import base_pb2, search_get_pb2, properties_pb2
+
+from weaviate.exceptions import (
+    UnexpectedStatusCodeException,
+)
+from requests.exceptions import ConnectionError as RequestsConnectionError
+from weaviate.types import UUID
 
 
 class _WeaviateUUID(uuid_lib.UUID):
@@ -73,12 +77,12 @@ class _BaseQuery(Generic[Properties, References]):
         references: Optional[Type[References]],
     ):
         self.__connection = connection
-        self.__name = name
+        self._name = name
         self.__tenant = tenant
         self.__consistency_level = consistency_level
         self._properties = properties
         self._references = references
-        self.__support_byte_vectors = (
+        self._is_weaviate_version_123 = (
             parse_version_string(self.__connection.server_version) > parse_version_string("1.22")
             if self.__connection.server_version != ""
             else True
@@ -89,10 +93,10 @@ class _BaseQuery(Generic[Properties, References]):
             raise WeaviateGrpcUnavailable()
         return _QueryGRPC(
             self.__connection,
-            self.__name,
+            self._name,
             self.__tenant,
             self.__consistency_level,
-            support_byte_vectors=self.__support_byte_vectors,
+            support_byte_vectors=self._is_weaviate_version_123,
         )
 
     def __extract_metadata_for_object(
@@ -193,6 +197,83 @@ class _BaseQuery(Generic[Properties, References]):
             for ref_prop in properties
         }
 
+    def __deserialize_primitive_122(self, value: Any) -> Any:
+        if isinstance(value, str):
+            try:
+                return uuid_lib.UUID(value)
+            except ValueError:
+                pass
+            try:
+                return _datetime_from_weaviate_str(value)
+            except ValueError:
+                pass
+        if isinstance(value, list):
+            return [self.__deserialize_primitive_122(val) for val in value]
+        if isinstance(value, struct_pb2.Struct):
+            raise ValueError(
+                f"The query returned an object value where it expected a primitive. Have you missed a NestedProperty specification in your query? {value}"
+            )
+        return value
+
+    def __parse_nonref_properties_result_122(
+        self,
+        properties: Union[search_get_pb2.PropertiesResult, base_pb2.ObjectPropertiesValue],
+    ) -> dict:
+        result: dict = {}
+
+        for name, non_ref_prop in properties.non_ref_properties.items():
+            result[name] = self.__deserialize_primitive_122(non_ref_prop)
+
+        for number_array_property in properties.number_array_properties:
+            result[number_array_property.prop_name] = [
+                float(val) for val in number_array_property.values
+            ]
+
+        for int_array_property in properties.int_array_properties:
+            result[int_array_property.prop_name] = [int(val) for val in int_array_property.values]
+
+        for text_array_property in properties.text_array_properties:
+            result[text_array_property.prop_name] = [
+                self.__deserialize_primitive_122(val) for val in text_array_property.values
+            ]
+
+        for boolean_array_property in properties.boolean_array_properties:
+            result[boolean_array_property.prop_name] = [
+                bool(val) for val in boolean_array_property.values
+            ]
+
+        for object_property in properties.object_properties:
+            result[object_property.prop_name] = self.__parse_nonref_properties_result_122(
+                object_property.value,
+            )
+
+        for object_array_property in properties.object_array_properties:
+            result[object_array_property.prop_name] = [
+                self.__parse_nonref_properties_result_122(
+                    object_property,
+                )
+                for object_property in object_array_property.values
+            ]
+
+        return result
+
+    def __parse_ref_properties_result_122(
+        self, properties: search_get_pb2.PropertiesResult
+    ) -> Optional[dict]:
+        if len(properties.ref_props) == 0:
+            return None
+        return {
+            ref_prop.prop_name: _Reference._from(
+                [
+                    self.__result_to_query_object(
+                        prop, prop.metadata, _QueryOptions(True, True, True, True)
+                    )
+                    for prop in ref_prop.properties
+                ]
+            )
+            for ref_prop in properties.ref_props
+        }
+
     def __result_to_query_object(
         self,
         props: search_get_pb2.PropertiesResult,
@@ -200,13 +281,21 @@ class _BaseQuery(Generic[Properties, References]):
         options: _QueryOptions,
     ) -> _Object[Any, Any]:
         return _Object(
-            properties=self.__parse_nonref_properties_result(props.non_ref_props)
+            properties=(
+                self.__parse_nonref_properties_result(props.non_ref_props)
+                if self._is_weaviate_version_123
+                else self.__parse_nonref_properties_result_122(props)
+            )
             if options.include_properties
             else {},
             metadata=self.__extract_metadata_for_object(meta)
             if options.include_metadata
             else _MetadataReturn(),
-            references=self.__parse_ref_properties_result(props.ref_props)
+            references=(
+                self.__parse_ref_properties_result(props.ref_props)
+                if self._is_weaviate_version_123
+                else self.__parse_ref_properties_result_122(props)
+            )
             if options.include_references
             else None,
             uuid=self.__extract_id_for_object(meta),
@@ -220,13 +309,21 @@ class _BaseQuery(Generic[Properties, References]):
         options: _QueryOptions,
     ) -> _GenerativeObject[Any, Any]:
         return _GenerativeObject(
-            properties=self.__parse_nonref_properties_result(props.non_ref_props)
+            properties=(
+                self.__parse_nonref_properties_result(props.non_ref_props)
+                if self._is_weaviate_version_123
+                else self.__parse_nonref_properties_result_122(props)
+            )
             if options.include_properties
             else {},
             metadata=self.__extract_metadata_for_object(meta)
             if options.include_metadata
             else _MetadataReturn(),
-            references=self.__parse_ref_properties_result(props.ref_props)
+            references=(
+                self.__parse_ref_properties_result(props.ref_props)
+                if self._is_weaviate_version_123
+                else self.__parse_ref_properties_result_122(props)
+            )
             if options.include_references
             else None,
             uuid=self.__extract_id_for_object(meta),
@@ -420,6 +517,35 @@ class _BaseQuery(Generic[Properties, References]):
             return media
         else:
             return file_encoder_b64(media)
+
+    def _get_by_id_rest(
+        self, name: str, uuid: UUID, include_vector: bool
+    ) -> Optional[Dict[str, Any]]:
+        path = f"/objects/{name}/{uuid}"
+        params: Dict[str, Any] = {}
+        if include_vector:
+            params["include"] = "vector"
+        return self.__get_from_weaviate(params=self.__apply_context(params), path=path)
+
+    def __get_from_weaviate(self, params: Dict[str, Any], path: str) -> Optional[Dict[str, Any]]:
+        try:
+            response = self.__connection.get(path=path, params=params)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Could not get object/s.") from conn_err
+        if response.status_code == 200:
+            response_json = _decode_json_response_dict(response, "get")
+            assert response_json is not None
+            return response_json
+        if response.status_code == 404:
+            return None
+        raise UnexpectedStatusCodeException("Get object/s", response)
+
+    def __apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        if self.__tenant is not None:
+            params["tenant"] = self.__tenant
+        if self.__consistency_level is not None:
+            params["consistency_level"] = self.__consistency_level
+        return params
 
 
 # TODO: refactor PropertiesParser to handle new schema for specifying query parameters
