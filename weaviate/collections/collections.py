@@ -19,7 +19,6 @@ from weaviate.collections.classes.config import (
 from weaviate.collections.classes.internal import References, _check_references_generic
 from weaviate.collections.classes.types import Properties, _check_properties_generic
 from weaviate.collections.collection import Collection
-from weaviate.collections.validator import validate
 from weaviate.util import _capitalize_first_letter
 
 
@@ -99,7 +98,6 @@ class _Collections(_CollectionsBase):
             )
         return self.get(name, data_model, references)
 
-    @validate("name")
     def get(
         self,
         name: str,
@@ -129,7 +127,6 @@ class _Collections(_CollectionsBase):
             self._connection, name, properties=properties, references=references
         )
 
-    @validate("all")
     def delete(self, name: Union[str, List[str]]) -> None:
         """Use this method to delete collection(s) from the Weaviate instance by its/their name(s).
 
@@ -173,7 +170,6 @@ class _Collections(_CollectionsBase):
         for name in self.list_all().keys():
             self.delete(name)
 
-    @validate("all")
     def exists(self, name: str) -> bool:
         """Use this method to check if a collection exists in the Weaviate instance.
 
@@ -202,7 +198,6 @@ class _Collections(_CollectionsBase):
     def list_all(self, simple: Literal[True] = ...) -> Dict[str, _CollectionConfigSimple]:
         ...
 
-    @validate("all")
     def list_all(
         self, simple: bool = True
     ) -> Union[Dict[str, _CollectionConfig], Dict[str, _CollectionConfigSimple]]:

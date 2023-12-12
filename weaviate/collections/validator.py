@@ -49,7 +49,7 @@ class _Validator(Generic[P, R]):
                     expected_types = get_args(expected_type)
                     if not any(isinstance(value, t) for t in expected_types):
                         raise TypeError(
-                            f"Argument '{name}' must be one of {expected_type}, but got {type(value)}"
+                            f"Argument '{name}' must be one of {' | '.join([f'uuid.{t.__name__}' if t.__name__ == 'UUID' else t.__name__ for t in expected_types])}, but got {type(value).__name__}"
                         )
                 else:
                     if not isinstance(value, expected_type):

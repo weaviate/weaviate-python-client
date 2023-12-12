@@ -42,7 +42,6 @@ from weaviate.collections.classes.types import Properties, TProperties, _check_p
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.batch.grpc import _BatchGRPC, _validate_props
 from weaviate.collections.batch.rest import _BatchREST
-from weaviate.collections.validator import validate
 from weaviate.connect import Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
@@ -93,7 +92,6 @@ class _Data:
             pass
         raise UnexpectedStatusCodeException("Creating object", response)
 
-    @validate("all")
     def delete_by_id(self, uuid: UUID) -> bool:
         """Delete an object from the collection based on its UUID.
 
@@ -113,7 +111,6 @@ class _Data:
             return False  # did not exist
         raise UnexpectedStatusCodeException("Delete object", response)
 
-    @validate("all")
     def delete_many(
         self, where: _Filters, verbose: bool = False, dry_run: bool = False
     ) -> _BatchDeleteResult:
@@ -296,7 +293,6 @@ class _DataCollection(Generic[Properties], _Data):
             self._connection, self.name, self._consistency_level, self._tenant, data_model
         )
 
-    @validate("uuid")
     def insert(
         self,
         properties: Properties,
@@ -373,7 +369,6 @@ class _DataCollection(Generic[Properties], _Data):
             ]
         )
 
-    @validate("uuid")
     def replace(
         self,
         uuid: UUID,

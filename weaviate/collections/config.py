@@ -19,7 +19,6 @@ from weaviate.collections.classes.config_methods import (
     _collection_config_simple_from_json,
 )
 from weaviate.collections.classes.orm import Model
-from weaviate.collections.validator import validate
 from weaviate.connect import Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
@@ -54,7 +53,6 @@ class _ConfigBase:
     def get(self, simple: Literal[True]) -> _CollectionConfigSimple:
         ...
 
-    @validate("all")
     def get(self, simple: bool = False) -> Union[_CollectionConfig, _CollectionConfigSimple]:
         """Get the configuration for this collection from Weaviate.
 
@@ -72,7 +70,6 @@ class _ConfigBase:
             return _collection_config_simple_from_json(schema)
         return _collection_config_from_json(schema)
 
-    @validate("all")
     def update(
         self,
         description: Optional[str] = None,
@@ -172,7 +169,6 @@ class _ConfigBase:
 
 
 class _ConfigCollection(_ConfigBase):
-    @validate("all")
     def add_property(self, additional_property: PropertyType) -> None:
         """Add a property to the collection in Weaviate.
 

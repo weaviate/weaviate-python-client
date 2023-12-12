@@ -3,7 +3,6 @@ from typing import Dict, Any, List
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collections.classes.tenants import Tenant
-from weaviate.collections.validator import validate
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 
@@ -20,7 +19,6 @@ class _Tenants:
         self.__connection = connection
         self.__name = name
 
-    @validate("all")
     def create(self, tenants: List[Tenant]) -> None:
         """Create the specified tenants for a collection in Weaviate.
 
@@ -50,7 +48,6 @@ class _Tenants:
                 f"Add collection tenants for {self.__name}", response
             )
 
-    @validate("all")
     def remove(self, tenants: List[str]) -> None:
         """Remove the specified tenants from a collection in Weaviate.
 
@@ -104,7 +101,6 @@ class _Tenants:
         tenant_resp: List[Dict[str, Any]] = response.json()
         return {tenant["name"]: Tenant(**tenant) for tenant in tenant_resp}
 
-    @validate("all")
     def update(self, tenants: List[Tenant]) -> None:
         """Update the specified tenants for a collection in Weaviate.
 
