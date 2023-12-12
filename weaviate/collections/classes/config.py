@@ -1834,6 +1834,13 @@ class _VectorIndexQuantitizer:
         segments: int = 0,
         training_limit: int = 100000,
     ) -> _PQConfigCreate:
+        """Create a `_PQConfigCreate` object to be used when defining the product quantization (PQ) configuration of Weaviate.
+
+        Use this method when defining the `quantitizer` argument in the `vector_index` configuration.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
         return _PQConfigCreate(
             bitCompression=bit_compression,
             centroids=centroids,
@@ -1849,6 +1856,13 @@ class _VectorIndexQuantitizer:
         enabled: bool = False,
         rescore_limit: int = -1,
     ) -> _BQConfigCreate:
+        """Create a `_BQConfigCreate` object to be used when defining the binary quantization (BQ) configuration of Weaviate.
+
+        Use this method when defining the `quantitizer` argument in the `vector_index` configuration.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
         return _BQConfigCreate(
             cache=cache,
             enabled=enabled,
@@ -1872,9 +1886,9 @@ class _VectorIndex:
         max_connections: int = 64,
         skip: bool = False,
         vector_cache_max_objects: int = 1000000000000,
-        quantitizer: Optional[_QuantitizerConfigCreate] = None,
+        quantitizer: Optional[_PQConfigCreate] = None,
     ) -> _VectorIndexHNSWConfigCreate:
-        """Create a `_VectorIndexConfigCreate` object to be used when defining the vector index configuration of Weaviate.
+        """Create a `_VectorIndexHNSWConfigCreate` object to be used when defining the HNSW vector index configuration of Weaviate.
 
         Use this method when defining the `vector_index_config` argument in `collection.create()`.
 
@@ -1900,8 +1914,15 @@ class _VectorIndex:
     def flat(
         distance_metric: VectorDistance = VectorDistance.COSINE,
         vector_cache_max_objects: int = 1000000000000,
-        quantitizer: Optional[_QuantitizerConfigCreate] = None,
+        quantitizer: Optional[_BQConfigCreate] = None,
     ) -> _VectorIndexFlatConfigCreate:
+        """Create a `_VectorIndexFlatConfigCreate` object to be used when defining the FLAT vector index configuration of Weaviate.
+
+        Use this method when defining the `vector_index_config` argument in `collection.create()`.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexFlatConfigCreate(
             distance=distance_metric,
             vectorCacheMaxObjects=vector_cache_max_objects,
@@ -2016,6 +2037,13 @@ class _VectorIndexQuantitizerUpdate:
         segments: int = 0,
         training_limit: int = 100000,
     ) -> _PQConfigUpdate:
+        """Create a `_PQConfigUpdate` object to be used when updating the product quantization (PQ) configuration of Weaviate.
+
+        Use this method when defining the `quantitizer` argument in the `vector_index` configuration in `collection.update()`.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
         return _PQConfigUpdate(
             bitCompression=bit_compression,
             centroids=centroids,
@@ -2026,12 +2054,15 @@ class _VectorIndexQuantitizerUpdate:
         )
 
     @staticmethod
-    def BQ(
-        rescore_limit: int = -1,
-    ) -> _BQConfigUpdate:
-        return _BQConfigUpdate(
-            rescoreLimit=rescore_limit,
-        )
+    def BQ(rescore_limit: int = -1) -> _BQConfigUpdate:
+        """Create a `_BQConfigUpdate` object to be used when updating the binary quantization (BQ) configuration of Weaviate.
+
+        Use this method when defining the `quantitizer` argument in the `vector_index` configuration in `collection.update()`.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _BQConfigUpdate(rescoreLimit=rescore_limit)
 
 
 class _VectorIndexUpdate:
@@ -2048,12 +2079,12 @@ class _VectorIndexUpdate:
         vector_cache_max_objects: Optional[int] = None,
         quantitizer: Optional[_PQConfigUpdate] = None,
     ) -> _VectorIndexConfigHNSWUpdate:
-        """Create a `_VectorIndexConfigCreate` object to be used when defining the vector index configuration of Weaviate.
+        """Create an `_VectorIndexConfigHNSWUpdate` object to update the configuration of the HNSW vector index.
 
-        Use this method when defining the `vector_index_config` argument in `collection.create()`.
+        Use this method when defining the `vector_index_config` argument in `collection.update()`.
 
         Arguments:
-            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigHNSWUpdate(
             dynamicEfMin=dynamic_ef_min,
@@ -2071,6 +2102,13 @@ class _VectorIndexUpdate:
         vector_cache_max_objects: Optional[int] = None,
         quantitizer: Optional[_BQConfigUpdate] = None,
     ) -> _VectorIndexConfigFlatUpdate:
+        """Create an `_VectorIndexConfigFlatUpdate` object to update the configuration of the FLAT vector index.
+
+        Use this method when defining the `vector_index_config` argument in `collection.update()`.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigFlatUpdate(
             vectorCacheMaxObjects=vector_cache_max_objects,
             quantitizer=quantitizer,
