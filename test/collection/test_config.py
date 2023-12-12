@@ -419,7 +419,7 @@ TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
             )
         ],
         {
-            "text2vec-jina": {
+            "text2vec-jinaai": {
                 "vectorizeClassName": True,
             }
         },
@@ -428,7 +428,7 @@ TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
                 "dataType": ["text"],
                 "name": "text",
                 "moduleConfig": {
-                    "text2vec-jina": {
+                    "text2vec-jinaai": {
                         "skip": True,
                         "vectorizePropertyName": False,
                     }
