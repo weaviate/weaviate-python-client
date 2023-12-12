@@ -409,7 +409,7 @@ TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
         ],
     ),
     (
-        Configure.Vectorizer.text2vec_jina(),
+        Configure.Vectorizer.text2vec_jinaai(),
         [
             Property(
                 name="text",
