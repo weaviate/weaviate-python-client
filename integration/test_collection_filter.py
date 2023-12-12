@@ -219,51 +219,52 @@ def test_filters_comparison(
 
 
 @pytest.mark.parametrize(
-    "weaviate_filter,results",
+    "weaviate_filter,results,skip",
     [
-        (Filter(path="ints").contains_any([1, 4]), [0, 3]),
-        (Filter(path="ints").contains_any([1.0, 4]), [0, 3]),
-        (Filter(path="ints").contains_any([10]), []),
-        (Filter(path="int").contains_any([1]), [0, 1]),
-        (Filter(path="text").contains_any(["test"]), [0, 1]),
-        (Filter(path="text").contains_any(["real", "deal"]), [1, 2, 3]),
-        (Filter(path="texts").contains_any(["test"]), [0, 1]),
-        (Filter(path="texts").contains_any(["real", "deal"]), [1, 2, 3]),
-        (Filter(path="float").contains_any([2.0]), []),
-        (Filter(path="float").contains_any([2]), []),
-        (Filter(path="float").contains_any([8]), [3]),
-        (Filter(path="float").contains_any([8.0]), [3]),
-        (Filter(path="floats").contains_any([2.0]), [0, 1]),
-        (Filter(path="floats").contains_any([0.4, 0.7]), [0, 1, 3]),
-        (Filter(path="floats").contains_any([2]), [0, 1]),
-        (Filter(path="bools").contains_any([True, False]), [0, 1, 3]),
-        (Filter(path="bools").contains_any([False]), [0, 1]),
-        (Filter(path="bool").contains_any([True]), [0, 1, 3]),
-        (Filter(path="ints").contains_all([1, 4]), [0]),
-        (Filter(path="text").contains_all(["real", "test"]), [1]),
-        (Filter(path="texts").contains_all(["real", "test"]), [1]),
-        (Filter(path="floats").contains_all([0.7, 2]), [1]),
-        (Filter(path="bools").contains_all([True, False]), [0]),
-        (Filter(path="bool").contains_all([True, False]), []),
-        (Filter(path="bool").contains_all([True]), [0, 1, 3]),
-        (Filter(path="dates").contains_any([NOW, MUCH_LATER]), [0, 1, 3]),
-        (Filter(path="dates").contains_any([NOW]), [0, 1]),
-        (Filter(path="date").equal(NOW), [0]),
-        (Filter(path="date").greater_than(NOW), [1, 3]),
-        (Filter(path="uuids").contains_all([UUID2, UUID1]), [0, 3]),
-        (Filter(path="uuids").contains_any([UUID2, UUID1]), [0, 1, 3]),
-        (Filter(path="uuid").contains_any([UUID3]), []),
-        (Filter(path="uuid").contains_any([UUID1]), [0]),
-        (Filter(path="_id").contains_any([UUID1, UUID3]), [0, 2]),
+        (Filter(path="ints").contains_any([1, 4]), [0, 3], False),
+        (Filter(path="ints").contains_any([1.0, 4]), [0, 3], True),
+        (Filter(path="ints").contains_any([10]), [], False),
+        (Filter(path="int").contains_any([1]), [0, 1], False),
+        (Filter(path="text").contains_any(["test"]), [0, 1], False),
+        (Filter(path="text").contains_any(["real", "deal"]), [1, 2, 3], False),
+        (Filter(path="texts").contains_any(["test"]), [0, 1], False),
+        (Filter(path="texts").contains_any(["real", "deal"]), [1, 2, 3], False),
+        (Filter(path="float").contains_any([2.0]), [], False),
+        (Filter(path="float").contains_any([2]), [], False),
+        (Filter(path="float").contains_any([8]), [3], False),
+        (Filter(path="float").contains_any([8.0]), [3], False),
+        (Filter(path="floats").contains_any([2.0]), [0, 1], False),
+        (Filter(path="floats").contains_any([0.4, 0.7]), [0, 1, 3], False),
+        (Filter(path="floats").contains_any([2]), [0, 1], False),
+        (Filter(path="bools").contains_any([True, False]), [0, 1, 3], False),
+        (Filter(path="bools").contains_any([False]), [0, 1], False),
+        (Filter(path="bool").contains_any([True]), [0, 1, 3], False),
+        (Filter(path="ints").contains_all([1, 4]), [0], False),
+        (Filter(path="text").contains_all(["real", "test"]), [1], False),
+        (Filter(path="texts").contains_all(["real", "test"]), [1], False),
+        (Filter(path="floats").contains_all([0.7, 2]), [1], False),
+        (Filter(path="bools").contains_all([True, False]), [0], False),
+        (Filter(path="bool").contains_all([True, False]), [], False),
+        (Filter(path="bool").contains_all([True]), [0, 1, 3], False),
+        (Filter(path="dates").contains_any([NOW, MUCH_LATER]), [0, 1, 3], False),
+        (Filter(path="dates").contains_any([NOW]), [0, 1], False),
+        (Filter(path="date").equal(NOW), [0], False),
+        (Filter(path="date").greater_than(NOW), [1, 3], False),
+        (Filter(path="uuids").contains_all([UUID2, UUID1]), [0, 3], False),
+        (Filter(path="uuids").contains_any([UUID2, UUID1]), [0, 1, 3], False),
+        (Filter(path="uuid").contains_any([UUID3]), [], False),
+        (Filter(path="uuid").contains_any([UUID1]), [0], False),
+        (Filter(path="_id").contains_any([UUID1, UUID3]), [0, 2], True),
     ],
 )
 def test_filters_contains(
-    client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
+    client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int], skip: bool
 ) -> None:
-    if parse_version_string(client._connection._server_version) < parse_version_string(
-        "1.23"
-    ) and weaviate_filter.path == ["_id"]:
-        pytest.skip("filter by id is not supported in this version")
+    if (
+        parse_version_string(client._connection._server_version) < parse_version_string("1.23")
+        and skip
+    ):
+        pytest.skip("not supported in this version")
     client.collections.delete("TestFilterContains")
     collection = client.collections.create(
         name="TestFilterContains",
