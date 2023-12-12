@@ -15,7 +15,6 @@ from weaviate.collections.classes.config import (
     _ReplicationConfigCreate,
     _VectorizerConfigCreate,
     _Vectorizer,
-    _VectorIndexType,
 )
 from weaviate.collections.classes.internal import References, _check_references_generic
 from weaviate.collections.classes.types import Properties, _check_properties_generic
@@ -91,9 +90,6 @@ class _Collections(_CollectionsBase):
             sharding_config=sharding_config,
             vectorizer_config=vectorizer_config or _Vectorizer.none(),
             vector_index_config=vector_index_config,
-            vector_index_type=vector_index_config.vector_index_type()
-            if vector_index_config is not None
-            else _VectorIndexType.HNSW,
         )
         name = super()._create(config)
         if config.name != name:

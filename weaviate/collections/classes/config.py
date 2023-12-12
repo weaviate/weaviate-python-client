@@ -1396,9 +1396,6 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
     vectorIndexConfig: Optional[_VectorIndexConfigCreate] = Field(
         default=None, alias="vector_index_config"
     )
-    vectorIndexType: _VectorIndexType = Field(
-        default=_VectorIndexType.HNSW, alias="vector_index_type"
-    )
     moduleConfig: _VectorizerConfigCreate = Field(
         default=_Vectorizer.none(), alias="vectorizer_config"
     )
@@ -1423,11 +1420,16 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
                 ret_dict["vectorizer"] = val.vectorizer.value
                 if val.vectorizer != Vectorizer.NONE:
                     self.__add_to_module_config(ret_dict, val.vectorizer.value, val._to_dict())
+            elif isinstance(val, _VectorIndexConfigCreate):
+                ret_dict["vectorIndexType"] = val.vector_index_type()
+                ret_dict[cls_field] = val._to_dict()
             else:
                 assert isinstance(val, _ConfigCreateModel)
                 ret_dict[cls_field] = val._to_dict()
         if self.moduleConfig is None:
             ret_dict["vectorizer"] = Vectorizer.NONE.value
+        if self.vectorIndexConfig is None:
+            ret_dict["vectorIndexType"] = _VectorIndexType.HNSW
         return ret_dict
 
     @staticmethod
