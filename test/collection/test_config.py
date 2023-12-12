@@ -409,6 +409,34 @@ TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
         ],
     ),
     (
+        Configure.Vectorizer.text2vec_jina(),
+        [
+            Property(
+                name="text",
+                data_type=DataType.TEXT,
+                skip_vectorization=True,
+                vectorize_property_name=False,
+            )
+        ],
+        {
+            "text2vec-jina": {
+                "vectorizeClassName": True,
+            }
+        },
+        [
+            {
+                "dataType": ["text"],
+                "name": "text",
+                "moduleConfig": {
+                    "text2vec-jina": {
+                        "skip": True,
+                        "vectorizePropertyName": False,
+                    }
+                },
+            }
+        ],
+    ),
+    (
         Configure.Vectorizer.text2vec_transformers(),
         [
             Property(
@@ -447,7 +475,7 @@ def test_config_with_module_and_properties(
     properties: List[Property],
     expected_mc: dict,
     expected_props: dict,
-):
+) -> None:
     config = _CollectionConfigCreate(
         name="test", properties=properties, vectorizer_config=vectorizer_config
     )

@@ -113,6 +113,8 @@ class Vectorizer(str, Enum):
             Weaviate module backed by PaLM text-based embedding models.
         `TEXT2VEC_TRANSFORMERS`
             Weaviate module backed by Transformers text-based embedding models.
+        `TEXT2VEC_JINA`
+            Weaviate module backed by Jina text-based embedding models.
         `IMG2VEC_NEURAL`
             Weaviate module backed by a ResNet-50 neural network for images.
         `MULTI2VEC_CLIP`
@@ -132,6 +134,7 @@ class Vectorizer(str, Enum):
     TEXT2VEC_OPENAI = "text2vec-openai"
     TEXT2VEC_PALM = "text2vec-palm"
     TEXT2VEC_TRANSFORMERS = "text2vec-transformers"
+    TEXT2VEC_JINA = "text2vec-jina"
     IMG2VEC_NEURAL = "img2vec-neural"
     MULTI2VEC_CLIP = "multi2vec-clip"
     MULTI2VEC_BIND = "multi2vec-bind"
@@ -859,6 +862,12 @@ class _Text2VecGPT4AllConfig(_VectorizerConfigCreate):
     vectorizeClassName: bool
 
 
+class _Text2VecJinaConfig(_VectorizerConfigCreate):
+    vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_JINA, frozen=True, exclude=True)
+    model: Optional[Literal["jina-embeddings-v2-base-en", "jina-embeddings-v2-small-en"]]
+    vectorizeClassName: bool
+
+
 class _Img2VecNeuralConfig(_VectorizerConfigCreate):
     vectorizer: Vectorizer = Field(default=Vectorizer.IMG2VEC_NEURAL, frozen=True, exclude=True)
     imageFields: List[str]
@@ -1315,6 +1324,30 @@ class _Vectorizer:
             poolingStrategy=pooling_strategy,
             vectorizeClassName=vectorize_class_name,
         )
+
+    @staticmethod
+    def text2vec_jina(
+        model: Optional[
+            Literal["jina-embeddings-v2-base-en", "jina-embeddings-v2-small-en"]
+        ] = None,
+        vectorize_class_name: bool = True,
+    ) -> _VectorizerConfigCreate:
+        """Create a `_Text2VecJinaConfig` object for use when vectorizing using the `text2vec-jinaai` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-jinaai)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+            `vectorize_class_name`
+                Whether to vectorize the class name. Defaults to `True`.
+
+        Raises:
+            `pydantic.ValidationError` if `model` is not a valid value from the available models. See the
+                [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-jinaai#available-models) for more details.
+        """
+        return _Text2VecJinaConfig(model=model, vectorizeClassName=vectorize_class_name)
 
 
 class _CollectionConfigCreateBase(_ConfigCreateModel):
