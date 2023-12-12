@@ -6,8 +6,9 @@ from weaviate.collections.classes.config import (
     _CollectionConfigUpdate,
     _InvertedIndexConfigUpdate,
     _ReplicationConfigUpdate,
+    _VectorIndexConfigFlatUpdate,
     PropertyType,
-    _VectorIndexConfigUpdate,
+    _VectorIndexConfigHNSWUpdate,
     _CollectionConfig,
     _CollectionConfigSimple,
     _Property,
@@ -74,7 +75,9 @@ class _ConfigBase:
         description: Optional[str] = None,
         inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
         replication_config: Optional[_ReplicationConfigUpdate] = None,
-        vector_index_config: Optional[_VectorIndexConfigUpdate] = None,
+        vector_index_config: Optional[
+            Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate]
+        ] = None,
     ) -> None:
         """Update the configuration for this collection in Weaviate.
 

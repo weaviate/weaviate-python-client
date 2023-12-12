@@ -251,6 +251,10 @@ class _ConfigUpdateModel(BaseModel):
                 schema[cls_field] = str(val.value)
             elif isinstance(val, (int, float, bool, str, list)):
                 schema[cls_field] = val
+            elif isinstance(val, _QuantitizerConfigUpdate):
+                schema[val.quantitizer_name()] = val.merge_with_existing(
+                    schema[val.quantitizer_name()]
+                )
             else:
                 assert isinstance(val, _ConfigUpdateModel)
                 schema[cls_field] = val.merge_with_existing(schema[cls_field])
@@ -308,13 +312,32 @@ class _BQConfigCreate(_QuantitizerConfigCreate):
         return "bq"
 
 
-class _PQConfigUpdate(_ConfigUpdateModel):
+class _QuantitizerConfigUpdate(_ConfigUpdateModel):
+    @staticmethod
+    @abstractmethod
+    def quantitizer_name() -> str:
+        ...
+
+
+class _PQConfigUpdate(_QuantitizerConfigUpdate):
     bitCompression: Optional[bool]
     centroids: Optional[int]
     enabled: Optional[bool]
     segments: Optional[int]
     trainingLimit: Optional[int]
     encoder: Optional[_PQEncoderConfigUpdate]
+
+    @staticmethod
+    def quantitizer_name() -> str:
+        return "pq"
+
+
+class _BQConfigUpdate(_QuantitizerConfigUpdate):
+    rescoreLimit: int
+
+    @staticmethod
+    def quantitizer_name() -> str:
+        return "bq"
 
 
 class _VectorIndexConfigCreate(_ConfigCreateModel):
@@ -358,7 +381,7 @@ class _VectorIndexFlatConfigCreate(_VectorIndexConfigCreate):
         return _VectorIndexType.FLAT
 
 
-class _VectorIndexConfigUpdate(_ConfigUpdateModel):
+class _VectorIndexConfigHNSWUpdate(_ConfigUpdateModel):
     dynamicEfFactor: Optional[int]
     dynamicEfMin: Optional[int]
     dynamicEfMax: Optional[int]
@@ -366,7 +389,12 @@ class _VectorIndexConfigUpdate(_ConfigUpdateModel):
     flatSearchCutoff: Optional[int]
     skip: Optional[bool]
     vectorCacheMaxObjects: Optional[int]
-    pq: Optional[_PQConfigUpdate]
+    quantitizer: Optional[_PQConfigUpdate]
+
+
+class _VectorIndexConfigFlatUpdate(_ConfigUpdateModel):
+    vectorCacheMaxObjects: Optional[int]
+    quantitizer: Optional[_BQConfigUpdate]
 
 
 class _ShardingConfigCreate(_ConfigCreateModel):
@@ -1420,9 +1448,9 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     replicationConfig: Optional[_ReplicationConfigUpdate] = Field(
         default=None, alias="replication_config"
     )
-    vectorIndexConfig: Optional[_VectorIndexConfigUpdate] = Field(
-        default=None, alias="vector_index_config"
-    )
+    vectorIndexConfig: Optional[
+        Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate]
+    ] = Field(default=None, alias="vector_index_config")
 
 
 @dataclass
@@ -1793,7 +1821,7 @@ class _CollectionConfigCreate(_CollectionConfigCreateBase):
         return ret_dict
 
 
-class _VectorIndexOptimizer:
+class _VectorIndexQuantitizer:
     @staticmethod
     def PQ(
         bit_compression: bool = False,
@@ -1827,7 +1855,7 @@ class _VectorIndexOptimizer:
 
 
 class _VectorIndex:
-    Quantitizer = _VectorIndexOptimizer
+    Quantitizer = _VectorIndexQuantitizer
 
     @staticmethod
     def hnsw(
@@ -1975,6 +2003,78 @@ class Configure:
         )
 
 
+class _VectorIndexQuantitizerUpdate:
+    @staticmethod
+    def PQ(
+        bit_compression: bool = False,
+        centroids: int = 256,
+        enabled: bool = False,
+        encoder_distribution: PQEncoderDistribution = PQEncoderDistribution.LOG_NORMAL,
+        encoder_type: PQEncoderType = PQEncoderType.KMEANS,
+        segments: int = 0,
+        training_limit: int = 100000,
+    ) -> _PQConfigUpdate:
+        return _PQConfigUpdate(
+            bitCompression=bit_compression,
+            centroids=centroids,
+            enabled=enabled,
+            segments=segments,
+            trainingLimit=training_limit,
+            encoder=_PQEncoderConfigUpdate(type_=encoder_type, distribution=encoder_distribution),
+        )
+
+    @staticmethod
+    def BQ(
+        rescore_limit: int = -1,
+    ) -> _BQConfigUpdate:
+        return _BQConfigUpdate(
+            rescoreLimit=rescore_limit,
+        )
+
+
+class _VectorIndexUpdate:
+    Quantitizer = _VectorIndexQuantitizerUpdate
+
+    @staticmethod
+    def hnsw(
+        dynamic_ef_factor: Optional[int] = None,
+        dynamic_ef_min: Optional[int] = None,
+        dynamic_ef_max: Optional[int] = None,
+        ef: Optional[int] = None,
+        flat_search_cutoff: Optional[int] = None,
+        skip: Optional[bool] = None,
+        vector_cache_max_objects: Optional[int] = None,
+        quantitizer: Optional[_PQConfigUpdate] = None,
+    ) -> _VectorIndexConfigHNSWUpdate:
+        """Create a `_VectorIndexConfigCreate` object to be used when defining the vector index configuration of Weaviate.
+
+        Use this method when defining the `vector_index_config` argument in `collection.create()`.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _VectorIndexConfigHNSWUpdate(
+            dynamicEfMin=dynamic_ef_min,
+            dynamicEfMax=dynamic_ef_max,
+            dynamicEfFactor=dynamic_ef_factor,
+            ef=ef,
+            flatSearchCutoff=flat_search_cutoff,
+            skip=skip,
+            vectorCacheMaxObjects=vector_cache_max_objects,
+            quantitizer=quantitizer,
+        )
+
+    @staticmethod
+    def flat(
+        vector_cache_max_objects: Optional[int] = None,
+        quantitizer: Optional[_BQConfigUpdate] = None,
+    ) -> _VectorIndexConfigFlatUpdate:
+        return _VectorIndexConfigFlatUpdate(
+            vectorCacheMaxObjects=vector_cache_max_objects,
+            quantitizer=quantitizer,
+        )
+
+
 class Reconfigure:
     """Use this factory class to generate the correct `xxxConfig` object for use when using the `collection.update()` method.
 
@@ -1983,6 +2083,8 @@ class Reconfigure:
     available in this class. If you wish to update the configuration of an immutable aspect of your collection then you will have to delete
     the collection and re-create it with the new configuration.
     """
+
+    VectorIndex = _VectorIndexUpdate
 
     @staticmethod
     def inverted_index(
@@ -2021,48 +2123,3 @@ class Reconfigure:
                 The replication factor. Defaults to `1`.
         """
         return _ReplicationConfigUpdate(factor=factor)
-
-    @staticmethod
-    def vector_index(
-        dynamic_ef_factor: Optional[int] = None,
-        dynamic_ef_min: Optional[int] = None,
-        dynamic_ef_max: Optional[int] = None,
-        ef: Optional[int] = None,
-        flat_search_cutoff: Optional[int] = None,
-        skip: Optional[bool] = None,
-        vector_cache_max_objects: Optional[int] = None,
-        pq_bit_compression: Optional[bool] = None,
-        pq_centroids: Optional[int] = None,
-        pq_enabled: Optional[bool] = None,
-        pq_encoder_distribution: Optional[PQEncoderDistribution] = None,
-        pq_encoder_type: Optional[PQEncoderType] = None,
-        pq_segments: Optional[int] = None,
-        pq_training_limit: Optional[int] = None,
-    ) -> _VectorIndexConfigUpdate:
-        """Create a `_VectorIndexConfigUpdate` object.
-
-        Use this method when defining the `vector_index_config` argument in `collection.update()`.
-
-        Arguments:
-            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for details!
-        """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _VectorIndexConfigUpdate(
-            dynamicEfFactor=dynamic_ef_factor,
-            dynamicEfMin=dynamic_ef_min,
-            dynamicEfMax=dynamic_ef_max,
-            ef=ef,
-            flatSearchCutoff=flat_search_cutoff,
-            skip=skip,
-            vectorCacheMaxObjects=vector_cache_max_objects,
-            pq=_PQConfigUpdate(
-                bitCompression=pq_bit_compression,
-                centroids=pq_centroids,
-                enabled=pq_enabled,
-                encoder=_PQEncoderConfigUpdate(
-                    type_=pq_encoder_type,
-                    distribution=pq_encoder_distribution,
-                ),
-                segments=pq_segments,
-                trainingLimit=pq_training_limit,
-            ),
-        )

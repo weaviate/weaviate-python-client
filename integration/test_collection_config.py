@@ -397,16 +397,18 @@ def test_collection_config_update(client: weaviate.WeaviateClient) -> None:
             stopwords_removals=["the"],
         ),
         replication_config=Reconfigure.replication(factor=2),
-        vector_index_config=Reconfigure.vector_index(
+        vector_index_config=Reconfigure.VectorIndex.hnsw(
             skip=True,
-            pq_bit_compression=True,
-            pq_centroids=128,
-            pq_enabled=True,
-            pq_encoder_type=PQEncoderType.TILE,
-            pq_encoder_distribution=PQEncoderDistribution.NORMAL,
-            pq_segments=4,
-            pq_training_limit=100001,
             vector_cache_max_objects=2000000,
+            quantitizer=Reconfigure.VectorIndex.Quantitizer.PQ(
+                bit_compression=True,
+                centroids=128,
+                enabled=True,
+                encoder_type=PQEncoderType.TILE,
+                encoder_distribution=PQEncoderDistribution.NORMAL,
+                segments=4,
+                training_limit=100001,
+            ),
         ),
     )
 
@@ -450,7 +452,34 @@ def test_collection_config_update(client: weaviate.WeaviateClient) -> None:
     client.collections.delete("TestCollectionSchemaUpdate")
 
 
-def test_collection_config_get_shards(client: weaviate.WeaviateClient):
+def test_update_flat(client: weaviate.WeaviateClient) -> None:
+    collection = client.collections.create(
+        name="TestCollectionConfigUpdateFlat",
+        vector_index_config=Configure.VectorIndex.flat(
+            vector_cache_max_objects=5,
+            quantitizer=Configure.VectorIndex.Quantitizer.BQ(enabled=True, rescore_limit=10),
+        ),
+    )
+    config = collection.config.get()
+    assert config.vector_index_type == _VectorIndexType.FLAT
+    assert config.vector_index_config.vector_cache_max_objects == 5
+    assert isinstance(config.vector_index_config.quantitizer, _BQConfig)
+    assert config.vector_index_config.quantitizer.rescore_limit == 10
+
+    collection.config.update(
+        vector_index_config=Reconfigure.VectorIndex.flat(
+            vector_cache_max_objects=10,
+            quantitizer=Reconfigure.VectorIndex.Quantitizer.BQ(rescore_limit=20),
+        ),
+    )
+    config = collection.config.get()
+    assert config.vector_index_type == _VectorIndexType.FLAT
+    assert config.vector_index_config.vector_cache_max_objects == 10
+    assert isinstance(config.vector_index_config.quantitizer, _BQConfig)
+    assert config.vector_index_config.quantitizer.rescore_limit == 20
+
+
+def test_collection_config_get_shards(client: weaviate.WeaviateClient) -> None:
     collection = client.collections.create(
         name="TestCollectionConfigGetShards",
         vectorizer_config=Configure.Vectorizer.none(),
@@ -509,7 +538,7 @@ def test_config_vector_index_flat_and_quantitizer_bq() -> None:
     assert conf.vector_index_config.vector_cache_max_objects == 234
     assert isinstance(conf.vector_index_config.quantitizer, _BQConfig)
     assert conf.vector_index_config.quantitizer.enabled
-    # assert conf.vector_index_config.quantitizer.rescore_limit == 456  # bug in weavaite
+    assert conf.vector_index_config.quantitizer.rescore_limit == 456
 
 
 def test_config_vector_index_hnsw_and_quantitizer_pq() -> None:
@@ -527,7 +556,8 @@ def test_config_vector_index_hnsw_and_quantitizer_pq() -> None:
     conf = collection.config.get()
     assert conf.vector_index_type == _VectorIndexType.HNSW
     assert conf.vector_index_config.vector_cache_max_objects == 234
+    assert isinstance(conf.vector_index_config, _VectorIndexConfigHNSW)
     assert conf.vector_index_config.ef_construction == 789
     assert isinstance(conf.vector_index_config.quantitizer, _PQConfig)
     assert conf.vector_index_config.quantitizer.enabled
-    assert conf.vector_index_config.quantitizer.segments == 456  # bug in weavaite
+    assert conf.vector_index_config.quantitizer.segments == 456

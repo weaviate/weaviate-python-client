@@ -2,7 +2,7 @@
 version: '3.4'
 services:
   weaviate-node-1:
-    image: semitechnologies/weaviate:1.23.0-rc.0-b454247
+    image: semitechnologies/weaviate:1.23.0-rc.0-1db42dc
     restart: on-failure:0
     ports:
       - "8087:8080"
@@ -26,7 +26,7 @@ services:
       - '8080'
       - --scheme
       - http
-    image: semitechnologies/weaviate:1.23.0-rc.0-b454247
+    image: semitechnologies/weaviate:1.23.0-rc.0-1db42dc
     ports:
       - 8088:8080
       - "50059:50051"
