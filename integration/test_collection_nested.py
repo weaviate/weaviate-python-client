@@ -323,6 +323,9 @@ def test_nested_return_all_properties(
     result = collection.query.fetch_objects()
     assert result.objects[0].properties["nested"] == object_
 
+    res = collection.query.fetch_object_by_id(res.uuids[0])
+    assert res.properties["nested"] == object_
+
 
 @pytest.mark.parametrize(
     "return_properties,expected",
@@ -508,6 +511,8 @@ def test_nested_return_specific_properties(
     assert res.has_errors is False
     result = collection.query.fetch_objects(return_properties=return_properties)
     assert result.objects[0].properties["nested"] == expected
+    res = collection.query.fetch_object_by_id(res.uuids[0], return_properties=return_properties)
+    assert res.properties["nested"] == expected
 
 
 def test_nested_return_generic_properties(

@@ -23,6 +23,7 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.grpc import MetadataQuery
 from weaviate.collections.classes.internal import Reference
+from weaviate.util import parse_version_string
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
 LATER = NOW + datetime.timedelta(hours=1)
@@ -216,6 +217,10 @@ def test_filters_comparison(
 def test_filters_contains(
     client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
 ) -> None:
+    if parse_version_string(client._connection._server_version) < parse_version_string(
+        "1.23"
+    ) and weaviate_filter.path == ["_id"]:
+        pytest.skip("filter by id is not supported in this version")
     client.collections.delete("TestFilterContains")
     collection = client.collections.create(
         name="TestFilterContains",
@@ -321,6 +326,10 @@ def test_filters_contains(
 def test_ref_filters(
     client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
 ) -> None:
+    if parse_version_string(client._connection._server_version) < parse_version_string(
+        "1.23"
+    ) and weaviate_filter.path == ["ref", "TestFilterRef2", "_id"]:
+        pytest.skip("filter by id is not supported in this version")
     client.collections.delete("TestFilterRef")
     client.collections.delete("TestFilterRef2")
     to_collection = client.collections.create(
@@ -851,6 +860,8 @@ def test_delete_many_return(client: weaviate.WeaviateClient) -> None:
     ],
 )
 def test_filter_id(client: weaviate.WeaviateClient, weav_filter: _FilterValue) -> None:
+    if parse_version_string(client._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("filter by id is not supported in this version")
     FilterMetadata.ById.contains_any
     name = "TestFilterMetadata"
     client.collections.delete(name)
@@ -876,6 +887,8 @@ def test_filter_id(client: weaviate.WeaviateClient, weav_filter: _FilterValue) -
 
 @pytest.mark.parametrize("path", ["_creationTimeUnix", "_lastUpdateTimeUnix"])
 def test_filter_timestamp_direct_path(client: weaviate.WeaviateClient, path: str) -> None:
+    if parse_version_string(client._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("filter by id is not supported in this version")
     name = "TestFilterMetadataTime"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -907,6 +920,8 @@ def test_filter_timestamp_direct_path(client: weaviate.WeaviateClient, path: str
     "filter_type", [FilterMetadata.ByCreationTime, FilterMetadata.ByUpdateTime]
 )
 def test_filter_timestamp_class(client: weaviate.WeaviateClient, filter_type: _FilterTime) -> None:
+    if parse_version_string(client._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("filter by id is not supported in this version")
     name = "TestFilterMetadataTime"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -965,6 +980,8 @@ def test_filter_timestamp_class(client: weaviate.WeaviateClient, filter_type: _F
 
 
 def test_time_update_and_creation_time(client: weaviate.WeaviateClient) -> None:
+    if parse_version_string(client._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("filter by id is not supported in this version")
     name = "TestFilterMetadataTime"
     client.collections.delete(name)
     collection = client.collections.create(

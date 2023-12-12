@@ -1,16 +1,6 @@
 import datetime
 import uuid as uuid_package
-from typing import (
-    Dict,
-    Any,
-    Optional,
-    List,
-    Tuple,
-    Generic,
-    Type,
-    Union,
-    cast,
-)
+from typing import Dict, Any, Optional, List, Tuple, Generic, Type, Union, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 

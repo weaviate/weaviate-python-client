@@ -1,6 +1,4 @@
-from typing import (
-    Generic,
-)
+from typing import Generic
 
 from weaviate.collections.classes.internal import References
 from weaviate.collections.classes.types import TProperties

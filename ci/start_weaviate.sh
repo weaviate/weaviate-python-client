@@ -2,6 +2,8 @@
 
 set -eou pipefail
 
+export WEAVIATE_VERSION=$1
+
 echo "Run Docker compose"
 nohup docker-compose -f ci/docker-compose.yml up -d
 nohup docker-compose -f ci/docker-compose-async.yml up -d

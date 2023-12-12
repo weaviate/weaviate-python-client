@@ -21,6 +21,7 @@ from weaviate.collections.classes.config import (
     GenerativeSearches,
 )
 from weaviate.collections.classes.tenants import Tenant
+from weaviate.util import parse_version_string
 
 
 @pytest.fixture(scope="module")
@@ -453,6 +454,8 @@ def test_collection_config_update(client: weaviate.WeaviateClient) -> None:
 
 
 def test_update_flat(client: weaviate.WeaviateClient) -> None:
+    if parse_version_string(client._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("flat index is not supported in this version")
     collection = client.collections.create(
         name="TestCollectionConfigUpdateFlat",
         vector_index_config=Configure.VectorIndex.flat(
@@ -524,6 +527,8 @@ def test_collection_config_get_shards_multi_tenancy(client: weaviate.WeaviateCli
 
 def test_config_vector_index_flat_and_quantitizer_bq() -> None:
     client = weaviate.connect_to_local()
+    if parse_version_string(client._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("flat index is not supported in this version")
     client.collections.delete("TestCollectionCVectorIndexAndQuantitizer")
     collection = client.collections.create(
         name="TestCollectionCVectorIndexAndQuantitizer",

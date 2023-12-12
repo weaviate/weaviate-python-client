@@ -9,7 +9,7 @@ services:
       - '8090'
       - --scheme
       - http
-    image: semitechnologies/weaviate:1.23.0-rc.0-1db42dc
+    image: semitechnologies/weaviate:${WEAVIATE_VERSION}
     ports:
       - "8090:8090"
       - "50060:50051"
