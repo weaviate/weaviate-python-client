@@ -1,10 +1,7 @@
 import datetime
-import functools
-import inspect
 import uuid as uuid_package
 from collections import deque
 from typing import (
-    Callable,
     Deque,
     Dict,
     Any,
@@ -14,10 +11,7 @@ from typing import (
     Generic,
     Type,
     Union,
-    ParamSpec,
-    TypeVar,
     cast,
-    get_type_hints,
 )
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -48,6 +42,7 @@ from weaviate.collections.classes.types import Properties, TProperties, _check_p
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.batch.grpc import _BatchGRPC, _validate_props
 from weaviate.collections.batch.rest import _BatchREST
+from weaviate.collections.validator import validate
 from weaviate.connect import Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
@@ -60,43 +55,6 @@ from weaviate.util import (
     _datetime_from_weaviate_str,
 )
 from weaviate.types import BEACON, UUID
-
-P = ParamSpec("P")
-R = TypeVar("R")
-
-
-class _TypeEnforcer(Generic[P, R]):
-    def __init__(self, func: Callable[P, R]):
-        """Use a class decorator so that get_type_hints is cached for each function invocation."""
-        self.func = func
-        self.type_hints = get_type_hints(func)
-
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
-        """Decorate the function by reading the type hints in the signature and checking the types of the arguments passed to the function."""
-        bound_args = inspect.signature(self.func).bind(*args, **kwargs)
-        bound_args.apply_defaults()
-        for name, value in bound_args.arguments.items():
-            if name in self.type_hints:
-                expected_type = self.type_hints[name]
-                if not isinstance(value, expected_type):
-                    raise TypeError(
-                        f"Argument '{name}' must be {expected_type}, but got {type(value)}"
-                    )
-
-        return self.func(*args, **kwargs)
-
-    def __get__(self, instance: Any, owner: Any) -> Callable[P, R]:
-        """Ensure that the decorator can be used on instance methods.
-
-        https://stackoverflow.com/questions/69288996/why-is-self-not-in-args-when-using-a-class-as-a-decorator
-
-        https://stackoverflow.com/questions/30104047/how-can-i-decorate-an-instance-method-with-a-decorator-class/30105234#30105234
-        """
-        return functools.partial(self.__call__, instance)
-
-
-def _enforce_types(func: Callable[P, R]) -> Callable[P, R]:
-    return _TypeEnforcer(func)
 
 
 class _Data:
@@ -135,7 +93,7 @@ class _Data:
             pass
         raise UnexpectedStatusCodeException("Creating object", response)
 
-    @_enforce_types
+    @validate("all")
     def delete_by_id(self, uuid: UUID) -> bool:
         """Delete an object from the collection based on its UUID.
 
@@ -155,6 +113,7 @@ class _Data:
             return False  # did not exist
         raise UnexpectedStatusCodeException("Delete object", response)
 
+    @validate("all")
     def delete_many(
         self, where: _Filters, verbose: bool = False, dry_run: bool = False
     ) -> _BatchDeleteResult:
@@ -337,6 +296,7 @@ class _DataCollection(Generic[Properties], _Data):
             self._connection, self.name, self._consistency_level, self._tenant, data_model
         )
 
+    @validate("uuid")
     def insert(
         self,
         properties: Properties,
@@ -413,6 +373,7 @@ class _DataCollection(Generic[Properties], _Data):
             ]
         )
 
+    @validate("uuid")
     def replace(
         self,
         uuid: UUID,
