@@ -13,6 +13,10 @@ on:
       - publishing.md
   pull_request:
 
+env:
+  OLD_WEAVIATE_VERSION: 1.22.6
+  NEW_WEAVIATE_VERSION: 1.23.0-rc.0-1db42dc
+
 jobs:
   lint-and-format:
     name: Run Linter and Formatter
@@ -83,12 +87,12 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.8", weaviate: "1.23.0-rc.0-1db42dc"},
-          { py: "3.9", weaviate: "1.23.0-rc.0-1db42dc"},
-          { py: "3.10", weaviate: "1.23.0-rc.0-1db42dc"},
-          { py: "3.11", weaviate: "1.23.0-rc.0-1db42dc"},
-          { py: "3.11", weaviate: "1.22.6"},
-          { py: "3.12", weaviate: "1.23.0-rc.0-1db42dc"}
+          { py: "3.8", weaviate: $NEW_WEAVIATE_VERSION},
+          { py: "3.9", weaviate: $NEW_WEAVIATE_VERSION},
+          { py: "3.10", weaviate: $NEW_WEAVIATE_VERSION},
+          { py: "3.11", weaviate: $NEW_WEAVIATE_VERSION},
+          { py: "3.11", weaviate: $OLD_WEAVIATE_VERSION},
+          { py: "3.12", weaviate: $NEW_WEAVIATE_VERSION}
         ]
         optional_dependencies: [false]
     steps:
@@ -182,8 +186,8 @@ jobs:
       fail-fast: false
       matrix:
         server: [
-          "1.22.6",
-          "1.23.0-rc.0-b454247",
+          $OLD_WEAVIATE_VERSION,
+          $NEW_WEAVIATE_VERSION,
         ]
     steps:
       - name: Download build artifact to append to release
