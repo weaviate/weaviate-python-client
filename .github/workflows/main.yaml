@@ -83,12 +83,12 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.8", weaviate: "1.23.0-rc.0-b454247"},
-          { py: "3.9", weaviate: "1.23.0-rc.0-b454247"},
-          { py: "3.10", weaviate: "1.23.0-rc.0-b454247"},
-          { py: "3.11", weaviate: "1.23.0-rc.0-b454247"},
+          { py: "3.8", weaviate: "1.23.0-rc.0-1db42dc"},
+          { py: "3.9", weaviate: "1.23.0-rc.0-1db42dc"},
+          { py: "3.10", weaviate: "1.23.0-rc.0-1db42dc"},
+          { py: "3.11", weaviate: "1.23.0-rc.0-1db42dc"},
           { py: "3.11", weaviate: "1.22.6"},
-          { py: "3.12", weaviate: "1.23.0-rc.0-b454247"}
+          { py: "3.12", weaviate: "1.23.0-rc.0-1db42dc"}
         ]
         optional_dependencies: [false]
     steps:
