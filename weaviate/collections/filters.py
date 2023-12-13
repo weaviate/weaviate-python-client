@@ -6,6 +6,7 @@ from weaviate.collections.classes.filters import (
     _FilterAnd,
     _FilterOr,
     _FilterValue,
+    _GeoCoordinateFilter,
     FilterValues,
 )
 from weaviate.util import _datetime_to_string
@@ -45,7 +46,17 @@ class _FilterToGRPC:
             value_number_array=_FilterToGRPC.__filter_to_float_list(weav_filter.value),
             value_text_array=_FilterToGRPC.__filter_to_text_list(weav_filter.value),
             value_boolean_array=_FilterToGRPC.__filter_to_bool_list(weav_filter.value),
+            value_geo=_FilterToGRPC.__filter_to_geo(weav_filter.value),
             on=weav_filter.path if isinstance(weav_filter.path, list) else [weav_filter.path],
+        )
+
+    @staticmethod
+    def __filter_to_geo(value: FilterValues) -> Optional[search_get_pb2.GeoCoordinatesFilter]:
+        if not (isinstance(value, _GeoCoordinateFilter)):
+            return None
+
+        return search_get_pb2.GeoCoordinatesFilter(
+            latitude=value.latitude, longitude=value.longitude, distance=value.distance
         )
 
     @staticmethod
