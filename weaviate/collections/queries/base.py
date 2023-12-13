@@ -11,6 +11,7 @@ from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 from google.protobuf import struct_pb2
 
 from weaviate.collections.classes.config import ConsistencyLevel
+from weaviate.collections.classes.data import GeoCoordinate
 from weaviate.collections.classes.grpc import (
     FromReference,
     MetadataQuery,
@@ -169,6 +170,10 @@ class _BaseQuery(Generic[Properties, References]):
             return [self.__deserialize_non_ref_prop(val) for val in value.list_value.values]
         if value.HasField("object_value"):
             return self.__parse_nonref_properties_result(value.object_value)
+        if value.HasField("geo_value"):
+            return GeoCoordinate(
+                latitude=value.geo_value.latitude, longitude=value.geo_value.longitude
+            )
         return value
 
     def __parse_nonref_properties_result(

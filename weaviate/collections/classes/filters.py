@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Union
+from weaviate.collections.classes.data import GeoCoordinate
+
 
 from weaviate.types import UUID
 from weaviate.proto.v1 import search_get_pb2
@@ -19,6 +21,7 @@ class _Operator(str, Enum):
     IS_NULL = "IsNull"
     CONTAINS_ANY = "ContainsAny"
     CONTAINS_ALL = "ContainsAll"
+    WITHIN_GEO_RANGE = "WithinGeoRange"
     AND = "And"
     OR = "Or"
 
@@ -43,6 +46,8 @@ class _Operator(str, Enum):
             return search_get_pb2.Filters.OPERATOR_CONTAINS_ANY
         elif self == _Operator.CONTAINS_ALL:
             return search_get_pb2.Filters.OPERATOR_CONTAINS_ALL
+        elif self == _Operator.WITHIN_GEO_RANGE:
+            return search_get_pb2.Filters.OPERATOR_WITHIN_GEO_RANGE
         elif self == _Operator.AND:
             return search_get_pb2.Filters.OPERATOR_AND
         elif self == _Operator.OR:
@@ -81,8 +86,14 @@ class _FilterOr(_Filters):
         return _Operator.OR
 
 
+class _GeoCoordinateFilter(GeoCoordinate):
+    distance: float
+
+
 FilterValuesList = Union[List[str], List[bool], List[int], List[float], List[datetime], List[UUID]]
-FilterValues = Union[int, float, str, bool, datetime, UUID, None, FilterValuesList]
+FilterValues = Union[
+    int, float, str, bool, datetime, UUID, _GeoCoordinateFilter, None, FilterValuesList
+]
 
 
 @dataclass
@@ -183,6 +194,19 @@ class Filter:
         This filter can make use of `*` and `?` as wildcards. See [the docs](https://weaviate.io/developers/weaviate/search/filters#by-partial-matches-text) for more details.
         """
         return _FilterValue(path=self.__internal_path, value=val, operator=_Operator.LIKE)
+
+    def within_geo_range(self, coordinate: GeoCoordinate, distance: float) -> _FilterValue:
+        """Filter on whether the property is within a given range of a geo-coordinate.
+
+        See [the docs](https://weaviate.io/developers/weaviate/search/filters#by-geolocation) for more details.
+        """
+        return _FilterValue(
+            path=self.__internal_path,
+            value=_GeoCoordinateFilter(
+                latitude=coordinate.latitude, longitude=coordinate.longitude, distance=distance
+            ),
+            operator=_Operator.WITHIN_GEO_RANGE,
+        )
 
 
 class _FilterId:

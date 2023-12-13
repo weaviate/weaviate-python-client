@@ -13,6 +13,7 @@ from weaviate.collections.classes.batch import (
     BatchObjectReturn,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
+from weaviate.collections.classes.data import GeoCoordinate
 from weaviate.collections.classes.internal import _Reference
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import Connection
@@ -233,6 +234,8 @@ class _BatchGRPC(_BaseGRPC):
                         prop_name=key, values=values, values_bytes=values_bytes
                     )
                 )
+            elif isinstance(val, GeoCoordinate):
+                non_ref_properties.update({key: val._to_dict()})
             else:
                 non_ref_properties.update({key: _serialize_primitive(val)})
 
