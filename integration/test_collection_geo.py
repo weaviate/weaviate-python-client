@@ -4,11 +4,14 @@ import weaviate
 from weaviate.collections.classes.config import Configure, DataType, Property
 from weaviate.collections.classes.data import GeoCoordinate
 from weaviate.collections.classes.filters import Filter
+from weaviate.util import parse_version_string
 
 
 @pytest.fixture(scope="module")
 def client() -> weaviate.WeaviateClient:
     client = weaviate.connect_to_local()
+    if parse_version_string(client._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("not implemented in this version")
     client.collections.delete_all()
     yield client
     client.collections.delete_all()
