@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from typing import List, Optional, Generic
+from typing import Dict, List, Optional, Generic
 from weaviate.collections.classes.internal import Properties, References, CrossReference
+from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.types import UUID
 
 
@@ -36,3 +37,13 @@ class DataReference(Generic[Properties, References]):
     from_property: str
     from_uuid: UUID
     to: CrossReference[Properties, References]
+
+
+class GeoCoordinate(_WeaviateInput):
+    """Input for the geo-coordinate datatype."""
+
+    latitude: float
+    longitude: float
+
+    def _to_dict(self) -> Dict[str, float]:
+        return {"latitude": self.latitude, "longitude": self.longitude}

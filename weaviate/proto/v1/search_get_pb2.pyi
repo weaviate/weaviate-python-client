@@ -185,6 +185,7 @@ class Filters(_message.Message):
         "value_int_array",
         "value_boolean_array",
         "value_number_array",
+        "value_geo",
     ]
 
     class Operator(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
@@ -228,6 +229,7 @@ class Filters(_message.Message):
     VALUE_INT_ARRAY_FIELD_NUMBER: _ClassVar[int]
     VALUE_BOOLEAN_ARRAY_FIELD_NUMBER: _ClassVar[int]
     VALUE_NUMBER_ARRAY_FIELD_NUMBER: _ClassVar[int]
+    VALUE_GEO_FIELD_NUMBER: _ClassVar[int]
     operator: Filters.Operator
     on: _containers.RepeatedScalarFieldContainer[str]
     filters: _containers.RepeatedCompositeFieldContainer[Filters]
@@ -239,6 +241,7 @@ class Filters(_message.Message):
     value_int_array: IntArray
     value_boolean_array: BooleanArray
     value_number_array: NumberArray
+    value_geo: GeoCoordinatesFilter
     def __init__(
         self,
         operator: _Optional[_Union[Filters.Operator, str]] = ...,
@@ -252,6 +255,22 @@ class Filters(_message.Message):
         value_int_array: _Optional[_Union[IntArray, _Mapping]] = ...,
         value_boolean_array: _Optional[_Union[BooleanArray, _Mapping]] = ...,
         value_number_array: _Optional[_Union[NumberArray, _Mapping]] = ...,
+        value_geo: _Optional[_Union[GeoCoordinatesFilter, _Mapping]] = ...,
+    ) -> None: ...
+
+class GeoCoordinatesFilter(_message.Message):
+    __slots__ = ["latitude", "longitude", "distance"]
+    LATITUDE_FIELD_NUMBER: _ClassVar[int]
+    LONGITUDE_FIELD_NUMBER: _ClassVar[int]
+    DISTANCE_FIELD_NUMBER: _ClassVar[int]
+    latitude: float
+    longitude: float
+    distance: float
+    def __init__(
+        self,
+        latitude: _Optional[float] = ...,
+        longitude: _Optional[float] = ...,
+        distance: _Optional[float] = ...,
     ) -> None: ...
 
 class MetadataRequest(_message.Message):

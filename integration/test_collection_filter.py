@@ -76,6 +76,46 @@ def test_filters_text(
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
+        (Filter(path="texts").like("*nana"), [1]),
+        (Filter(path="texts").equal("banana"), [1]),
+        (Filter(path="ints").equal(3), [1]),
+        (Filter(path="ints").greater_or_equal(3), [1, 2]),
+        (Filter(path="floats").equal(3), [1]),
+        (Filter(path="floats").less_or_equal(3), [0, 1]),
+    ],
+)
+def test_array_types(
+    client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
+) -> None:
+    if parse_version_string(client._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("Fixes for this are not implemented in this version")
+
+    client.collections.delete("TestFilterOnArrayTypes")
+    collection = client.collections.create(
+        name="TestFilterOnArrayTypes",
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="texts", data_type=DataType.TEXT_ARRAY),
+            Property(name="ints", data_type=DataType.INT_ARRAY),
+            Property(name="floats", data_type=DataType.NUMBER_ARRAY),
+        ],
+    )
+    uuids = [
+        collection.data.insert({"texts": ["an", "apple"], "ints": [1, 2], "floats": [1.0, 2.0]}),
+        collection.data.insert({"texts": ["a", "banana"], "ints": [2, 3], "floats": [2.0, 3.0]}),
+        collection.data.insert({"texts": ["a", "text"], "ints": [4, 5], "floats": [4.0, 5.0]}),
+    ]
+
+    objects = collection.query.fetch_objects(filters=weaviate_filter).objects
+    assert len(objects) == len(results)
+
+    uuids = [uuids[result] for result in results]
+    assert all(obj.uuid in uuids for obj in objects)
+
+
+@pytest.mark.parametrize(
+    "weaviate_filter,results",
+    [
         (Filter(path="int").equal(1), [0]),
         (Filter(path="int").equal(val=1.0), [0]),
         (Filter(path="int").equal(val=1.2), None),

@@ -27,6 +27,7 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.data import (
     DataObject,
     DataReference,
+    GeoCoordinate,
 )
 from weaviate.collections.classes.internal import (
     _Object,
@@ -52,7 +53,6 @@ from weaviate.util import (
     _datetime_to_string,
     _decode_json_response_dict,
     get_vector,
-    _datetime_from_weaviate_str,
 )
 from weaviate.types import BEACON, UUID
 
@@ -260,19 +260,8 @@ class _Data:
             return _datetime_to_string(value)
         if isinstance(value, list):
             return [self.__serialize_primitive(val) for val in value]
-        return value
-
-    def _deserialize_primitive(self, value: Any, type_value: Optional[Any]) -> Any:
-        if type_value is None:
-            return value
-        if type_value == uuid_package.UUID:
-            return uuid_package.UUID(value)
-        if type_value == datetime.datetime:
-            return _datetime_from_weaviate_str(value)
-        if isinstance(type_value, list):
-            return [
-                self._deserialize_primitive(val, type_value[idx]) for idx, val in enumerate(value)
-            ]
+        if isinstance(value, GeoCoordinate):
+            return value._to_dict()
         return value
 
 
