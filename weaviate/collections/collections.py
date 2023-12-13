@@ -122,7 +122,11 @@ class _Collections(_CollectionsBase):
         _check_references_generic(references)
         name = _capitalize_first_letter(name)
         return Collection[Properties, References](
-            self._connection, name, properties=properties, references=references
+            self._connection,
+            name,
+            self._batch_executor,
+            properties=properties,
+            references=references,
         )
 
     def delete(self, name: Union[str, List[str]]) -> None:

@@ -3,6 +3,7 @@ from dataclasses import asdict
 from typing import Generic, Literal, Optional, Type, Union, cast, overload
 from weaviate.collections.backups import _CollectionBackup
 
+from weaviate.collections.batch import _BatchCollection, BatchExecutor
 from weaviate.collections.classes.config import (
     ConsistencyLevel,
 )
@@ -57,12 +58,14 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         self,
         connection: Connection,
         name: str,
+        batch_executor: BatchExecutor,
         consistency_level: Optional[ConsistencyLevel] = None,
         tenant: Optional[str] = None,
         properties: Optional[Type[Properties]] = None,
         references: Optional[Type[References]] = None,
     ) -> None:
         super().__init__(name)
+        self.__batch_executor = batch_executor
         self._connection = connection
 
         self.aggregate = _AggregateCollection(
@@ -73,6 +76,8 @@ class Collection(_CollectionBase, Generic[Properties, References]):
             self._connection, self.name, consistency_level, tenant
         )
         """This namespace includes all the aggregate methods available to you when using Weaviate's aggregation group-by capabilities."""
+        self.batch = _BatchCollection[Properties](connection, self.name, batch_executor, tenant)
+        """This namespace contains all the functionality to upload data in batches to Weaviate for this specific collection."""
         self.config = _ConfigCollection(self._connection, self.name, tenant)
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
         self.data = _DataCollection[Properties](
@@ -114,6 +119,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         return Collection(
             self._connection,
             self.name,
+            self.__batch_executor,
             self.__consistency_level,
             tenant,
             self.__properties,
@@ -134,6 +140,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         return Collection(
             self._connection,
             self.name,
+            self.__batch_executor,
             consistency_level,
             self.__tenant,
             self.__properties,

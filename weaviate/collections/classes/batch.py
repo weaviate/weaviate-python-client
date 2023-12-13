@@ -145,21 +145,35 @@ class BatchObjectReturn:
     Attributes:
         `all_responses`
             A list of all the responses from the batch operation. Each response is either a `uuid_package.UUID` object or an `Error` object.
-        `uuids`
-            A dictionary of all the successful responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `uuid_package.UUID` objects.
-        `errors`
-            A dictionary of all the failed responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `Error` objects.
         `elapsed_seconds`
             The time taken to perform the batch operation.
+        `errors`
+            A dictionary of all the failed responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `Error` objects.
+        `uuids`
+            A dictionary of all the successful responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `uuid_package.UUID` objects.
         `has_errors`
             A boolean indicating whether or not any of the objects in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry.
     """
 
     all_responses: List[Union[uuid_package.UUID, ErrorObject]]
-    uuids: Dict[int, uuid_package.UUID]
-    errors: Dict[int, ErrorObject]
     elapsed_seconds: float
+    errors: Dict[int, ErrorObject]
+    uuids: Dict[int, uuid_package.UUID]
     has_errors: bool = False
+
+    def __add__(self, other: "BatchObjectReturn") -> "BatchObjectReturn":
+        self.all_responses += other.all_responses
+
+        prev_max = max(self.errors.keys()) if len(self.errors) > 0 else -1
+        for k1, v1 in other.errors.items():
+            self.errors[prev_max + k1] = v1
+
+        prev_max = max(self.uuids.keys()) if len(self.uuids) > 0 else -1
+        for k1, v2 in other.uuids.items():
+            self.uuids[prev_max + k1] = v2
+
+        self.has_errors = self.has_errors or other.has_errors
+        return self
 
 
 @dataclass
@@ -180,6 +194,34 @@ class BatchReferenceReturn:
     elapsed_seconds: float
     errors: Dict[int, ErrorReference]
     has_errors: bool = False
+
+    def __add__(self, other: "BatchReferenceReturn") -> "BatchReferenceReturn":
+        self.elapsed_seconds += other.elapsed_seconds
+        prev_max = max(self.errors.keys()) if len(self.errors) > 0 else -1
+        for key, value in other.errors.items():
+            self.errors[prev_max + key] = value
+        self.has_errors = self.has_errors or other.has_errors
+        return self
+
+
+class BatchResult:
+    """This class contains the results of a batch operation.
+
+    Since the individual objects and references within the batch can error for differing reasons, the data is split up within this class for ease use when performing error checking, handling, and data revalidation.
+
+    Attributes:
+        `objects`
+            The results of the batch object operation.
+        `references`
+            The results of the batch reference operation.
+    """
+
+    objs: BatchObjectReturn
+    refs: BatchReferenceReturn
+
+    def __init__(self) -> None:
+        self.objs = BatchObjectReturn([], 0.0, {}, {})
+        self.refs = BatchReferenceReturn(0.0, {})
 
 
 @dataclass
