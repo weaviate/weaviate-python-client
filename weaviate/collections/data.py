@@ -42,6 +42,7 @@ from weaviate.collections.classes.types import Properties, TProperties, _check_p
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.batch.grpc import _BatchGRPC, _validate_props
 from weaviate.collections.batch.rest import _BatchREST
+from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
@@ -131,7 +132,7 @@ class _Data:
                 If Weaviate reports a non-OK status.
         """
         if not isinstance(where, _Filters):
-            raise TypeError(f"Expected where to be of type _Filters, but got {type(where)}")
+            return _raise_invalid_input("where", where, _Filters)
         return self._batch_rest.delete(self.name, where, verbose, dry_run, self._tenant)
 
     def _replace(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
@@ -312,6 +313,11 @@ class _DataCollection(Generic[Properties], _Data):
             `vector`
                 The vector of the object.
         """
+        if not isinstance(properties, dict):
+            _raise_invalid_input("properties", properties, dict)
+        if references is not None and not isinstance(references, dict):
+            _raise_invalid_input("references", references, dict)
+
         props, refs = {}, {}
         if properties is not None:
             props = self._serialize_props(properties)
@@ -398,6 +404,11 @@ class _DataCollection(Generic[Properties], _Data):
             `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
                 If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
         """
+        if not isinstance(properties, dict):
+            _raise_invalid_input("properties", properties, dict)
+        if references is not None and not isinstance(references, dict):
+            _raise_invalid_input("references", references, dict)
+
         props, refs = {}, {}
         if properties is not None:
             props = self._serialize_props(properties)
@@ -435,6 +446,11 @@ class _DataCollection(Generic[Properties], _Data):
             `vector`
                 The vector of the object.
         """
+        if properties is not None and not isinstance(properties, dict):
+            _raise_invalid_input("properties", properties, dict)
+        if references is not None and not isinstance(references, dict):
+            _raise_invalid_input("references", references, dict)
+
         props, refs = {}, {}
         if properties is not None:
             props = self._serialize_props(properties)
@@ -464,6 +480,8 @@ class _DataCollection(Generic[Properties], _Data):
             `weaviate.UnexpectedStatusCodeException`:
                 If Weaviate reports a non-OK status.
         """
+        if not isinstance(to, _Reference):
+            _raise_invalid_input("to", to, _Reference)
         self._reference_add(
             from_uuid=from_uuid,
             from_property=from_property,
@@ -500,6 +518,8 @@ class _DataCollection(Generic[Properties], _Data):
             `to`
                 The reference to delete, REQUIRED. Use `Reference.to` to generate the correct type.
         """
+        if not isinstance(to, _Reference):
+            _raise_invalid_input("to", to, _Reference)
         self._reference_delete(from_uuid=from_uuid, from_property=from_property, ref=to)
 
     def reference_replace(self, from_uuid: UUID, from_property: str, to: WeaviateReference) -> None:
@@ -513,6 +533,8 @@ class _DataCollection(Generic[Properties], _Data):
             `to`
                 The reference to replace, REQUIRED. Use `Reference.to` to generate the correct type.
         """
+        if not isinstance(to, _Reference):
+            _raise_invalid_input("to", to, _Reference)
         self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=to)
 
 

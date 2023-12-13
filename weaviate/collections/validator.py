@@ -13,6 +13,8 @@ from typing import (
 )
 from typing_extensions import ParamSpec
 
+from weaviate.exceptions import WeaviateInvalidInputException
+
 P = ParamSpec("P")
 R = TypeVar("R")
 
@@ -98,3 +100,14 @@ def validate(*include_params: str) -> Callable[[Callable[P, R]], Callable[P, R]]
         return _Validator(func, set(include_params))
 
     return decorator
+
+
+def _raise_invalid_input(name: str, value: Any, expected_type: Any) -> None:
+    if isinstance(value, list):
+        raise WeaviateInvalidInputException(
+            f"Argument '{name}' must be {expected_type}, but got typing.List[{' | '.join({type(val).__name__ for val in value})}]"
+        )
+    else:
+        raise WeaviateInvalidInputException(
+            f"Argument '{name}' must be {expected_type}, but got {type(value)}"
+        )

@@ -23,6 +23,7 @@ from weaviate.collections.data import _DataCollection
 from weaviate.collections.query import _GenerateCollection, _GroupByCollection, _QueryCollection
 from weaviate.collections.iterator import _ObjectIterator
 from weaviate.collections.tenants import _Tenants
+from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import Connection
 
 
@@ -113,7 +114,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
                 The name of the tenant to use.
         """
         if not isinstance(tenant, str) and not isinstance(tenant, Tenant):
-            raise TypeError(f"Expected tenant to be of type str or Tenant but got {type(tenant)}")
+            _raise_invalid_input("tenant", tenant, Union[str, Tenant])
         return Collection[Properties, References](
             self._connection,
             self.name,
@@ -135,9 +136,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
                 The consistency level to use.
         """
         if not isinstance(consistency_level, ConsistencyLevel):
-            raise TypeError(
-                f"Expected consistency_level to be of type ConsistencyLevel but got {type(consistency_level)}"
-            )
+            _raise_invalid_input("consistency_level", consistency_level, ConsistencyLevel)
         return Collection[Properties, References](
             self._connection,
             self.name,

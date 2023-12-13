@@ -4,13 +4,12 @@ from unittest.mock import Mock
 
 import pytest
 
-
-from weaviate.collections.classes.config import Configure
 from weaviate.collections.collections import _Collections
 from weaviate.collections.config import _ConfigCollection
 from weaviate.collections.data import _DataCollection
 from weaviate.collections.tenants import _Tenants
 from weaviate.connect import Connection
+from weaviate.exceptions import WeaviateInvalidInputException
 
 
 @dataclass
@@ -55,7 +54,7 @@ def functions(
         "collections.get": [
             TestableFunction(
                 lambda: collections.get(1),
-                "Argument 'name' must be typing.List[str], but got <class 'int'>",
+                "Argument 'name' must be <class 'str'>, but got <class 'int'>",
             )
         ],
         "collections.delete": [
@@ -67,7 +66,7 @@ def functions(
         "collections.exists": [
             TestableFunction(
                 lambda: collections.exists(1),
-                "Argument 'name' must be typing.Union[str, typing.List[str]], but got <class 'int'>",
+                "Argument 'name' must be <class 'str'>, but got <class 'int'>",
             )
         ],
         "collections.list_all": [
@@ -79,7 +78,7 @@ def functions(
         "config.add_property": [
             TestableFunction(
                 lambda: config.add_property(1),
-                "Argument 'additional_property' must be one of typing.Union[weaviate.collections.classes.config.Property, weaviate.collections.classes.config.ReferenceProperty, weaviate.collections.classes.config.ReferencePropertyMultiTarget], but got <class 'int'>",
+                "Argument 'additional_property' must be typing.Union[weaviate.collections.classes.config.Property, weaviate.collections.classes.config.ReferenceProperty, weaviate.collections.classes.config.ReferencePropertyMultiTarget], but got <class 'int'>",
             )
         ],
         "config.get": [
@@ -88,48 +87,11 @@ def functions(
                 "Argument 'simple' must be <class 'bool'>, but got <class 'int'>",
             )
         ],
-        "config.update": [
-            TestableFunction(
-                lambda: config.update(description=1),
-                "Argument 'description' must be one of typing.Union[str, NoneType], but got <class 'int'>",
-            ),
-            TestableFunction(
-                lambda: config.update(inverted_index_config=1),
-                "Argument 'inverted_index_config' must be one of typing.Union[weaviate.collections.classes.config._InvertedIndexConfigUpdate, NoneType], but got <class 'int'>",
-            ),
-            TestableFunction(
-                lambda: config.update(inverted_index_config=Configure.inverted_index()),
-                "Argument 'inverted_index_config' must be one of typing.Union[weaviate.collections.classes.config._InvertedIndexConfigUpdate, NoneType], but got <class 'weaviate.collections.classes.config._InvertedIndexConfigCreate'>",
-            ),
-            TestableFunction(
-                lambda: config.update(replication_config=1),
-                "Argument 'replication_config' must be one of typing.Union[weaviate.collections.classes.config._ReplicationConfigUpdate, NoneType], but got <class 'int'>",
-            ),
-            TestableFunction(
-                lambda: config.update(replication_config=Configure.replication()),
-                "Argument 'replication_config' must be one of typing.Union[weaviate.collections.classes.config._ReplicationConfigUpdate, NoneType], but got <class 'weaviate.collections.classes.config._ReplicationConfigCreate'>",
-            ),
-            TestableFunction(
-                lambda: config.update(vector_index_config=1),
-                "Argument 'vector_index_config' must be one of typing.Union[weaviate.collections.classes.config._VectorIndexConfigHNSWUpdate, weaviate.collections.classes.config._VectorIndexConfigFlatUpdate, NoneType], but got <class 'int'>",
-            ),
-            TestableFunction(
-                lambda: config.update(vector_index_config=Configure.VectorIndex.hnsw()),
-                "Argument 'vector_index_config' must be one of weaviate.collections.classes.config._VectorIndexConfigHNSWUpdate, weaviate.collections.classes.config._VectorIndexConfigFlatUpdate, NoneType], but got <class 'weaviate.collections.classes.config._VectorIndexConfigHNSWCreate'>",
-            ),
-        ],
         "data.delete_by_id": [
             TestableFunction(
                 lambda: data.delete_by_id(1),
-                "Argument 'uuid' must be one of str | uuid.UUID, but got int",
-            ),
-            TestableFunction(
-                lambda: data.delete_by_id("1", "extra"), "too many positional arguments"
-            ),
-            TestableFunction(
-                lambda: data.delete_by_id("1", extra="extra"),
-                "got an unexpected keyword argument 'extra'",
-            ),
+                "Argument 'uuid' must be typing.Union[str, uuid.UUID], but got <class 'int'>",
+            )
         ],
         "data.delete_many": [
             TestableFunction(
@@ -144,7 +106,7 @@ def functions(
             ),
             TestableFunction(
                 lambda: tenants.create(["who"]),
-                "List element of argument 'tenants' must be <class 'weaviate.collections.classes.tenants.Tenant'>, but got <class 'str'>",
+                "Argument 'tenants' must be typing.List[weaviate.collections.classes.tenants.Tenant], but got typing.List[str]",
             ),
         ],
         "tenants.remove": [
@@ -154,7 +116,7 @@ def functions(
             ),
             TestableFunction(
                 lambda: tenants.remove([1.1]),
-                "List element of argument 'tenants' must be <class 'str'>, but got <class 'float'>",
+                "Argument 'tenants' must be typing.List[str], but got typing.List[float]",
             ),
         ],
         "tenants.update": [
@@ -164,7 +126,7 @@ def functions(
             ),
             TestableFunction(
                 lambda: tenants.update(["who"]),
-                "List element of argument 'tenants' must be <class 'weaviate.collections.classes.tenants.Tenant'>, but got <class 'str'>",
+                "Argument 'tenants' must be typing.List[weaviate.collections.classes.tenants.Tenant], but got typing.List[str]",
             ),
         ],
     }
@@ -177,21 +139,16 @@ def test(
     return functions[request.param[0]][request.param[1]]
 
 
-@pytest.mark.skip("Too complicated to implement across Py versions and for all method signatures")
 @pytest.mark.parametrize(
     "test",
     [
+        ("collections.get", 0),
+        ("collections.delete", 0),
+        ("collections.exists", 0),
+        ("collections.list_all", 0),
         ("config.add_property", 0),
         ("config.get", 0),
-        ("config.update", 0),
-        ("config.update", 1),
-        ("config.update", 2),
-        ("config.update", 3),
-        ("config.update", 4),
-        ("config.update", 5),
         ("data.delete_by_id", 0),
-        ("data.delete_by_id", 1),
-        ("data.delete_by_id", 2),
         ("data.delete_many", 0),
         ("tenants.create", 0),
         ("tenants.create", 1),
@@ -204,6 +161,6 @@ def test(
     ids=lambda x: x[0] + str(x[1]),
 )
 def test_validator(test: TestableFunction):
-    with pytest.raises(TypeError) as e:
+    with pytest.raises(WeaviateInvalidInputException) as e:
         test.func()
-    assert e.value.args[0] == test.err
+    assert e.value.args[0] == f"Invalid input provided: {test.err}."

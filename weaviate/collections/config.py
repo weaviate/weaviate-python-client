@@ -13,12 +13,16 @@ from weaviate.collections.classes.config import (
     _CollectionConfigSimple,
     _Property,
     _ShardStatus,
+    Property,
+    ReferenceProperty,
+    ReferencePropertyMultiTarget,
 )
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_config_simple_from_json,
 )
 from weaviate.collections.classes.orm import Model
+from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
@@ -65,6 +69,8 @@ class _ConfigBase:
             `weaviate.UnexpectedStatusCodeException`
                 If Weaviate reports a non-OK status.
         """
+        if not isinstance(simple, bool):
+            _raise_invalid_input("simple", simple, bool)
         schema = self.__get()
         if simple:
             return _collection_config_simple_from_json(schema)
@@ -183,6 +189,16 @@ class _ConfigCollection(_ConfigBase):
             `weaviate.ObjectAlreadyExistsException`:
                 If the property already exists in the collection.
         """
+        if (
+            not isinstance(additional_property, Property)
+            and not isinstance(additional_property, ReferenceProperty)
+            and not isinstance(additional_property, ReferencePropertyMultiTarget)
+        ):
+            _raise_invalid_input(
+                "additional_property",
+                additional_property,
+                Union[Property, ReferenceProperty, ReferencePropertyMultiTarget],
+            )
         if self._get_property_by_name(additional_property.name) is not None:
             raise ObjectAlreadyExistsException(
                 f"Property with name '{additional_property.name}' already exists in collection '{self._name}'."

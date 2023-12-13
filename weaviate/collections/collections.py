@@ -19,6 +19,7 @@ from weaviate.collections.classes.config import (
 from weaviate.collections.classes.internal import References, _check_references_generic
 from weaviate.collections.classes.types import Properties, _check_properties_generic
 from weaviate.collections.collection import Collection
+from weaviate.collections.validator import _raise_invalid_input
 from weaviate.util import _capitalize_first_letter
 
 
@@ -119,7 +120,7 @@ class _Collections(_CollectionsBase):
                 If the data model is not a valid data model, i.e., it is not a `dict` nor a `TypedDict`.
         """
         if not isinstance(name, str):
-            raise TypeError(f"Expected name to be of type str, but got {type(name)}")
+            _raise_invalid_input("name", name, str)
         _check_properties_generic(properties)
         _check_references_generic(references)
         name = _capitalize_first_letter(name)
@@ -143,6 +144,11 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeException`
                 If Weaviate reports a non-OK status.
         """
+        if not isinstance(name, str) and (
+            not isinstance(name, list) or not all(isinstance(n, str) for n in name)
+        ):
+            _raise_invalid_input("name", name, Union[str, List[str]])
+
         if isinstance(name, str):
             self._delete(_capitalize_first_letter(name))
         elif isinstance(name, list):
@@ -187,7 +193,7 @@ class _Collections(_CollectionsBase):
                 If Weaviate reports a non-OK status.
         """
         if not isinstance(name, str):
-            raise TypeError(f"Expected name to be of type str, but got {type(name)}")
+            _raise_invalid_input("name", name, str)
         return self._exists(_capitalize_first_letter(name))
 
     @overload
@@ -218,7 +224,7 @@ class _Collections(_CollectionsBase):
                 If Weaviate reports a non-OK status.
         """
         if not isinstance(simple, bool):
-            raise TypeError(f"Expected simple to be of type bool, but got {type(simple)}")
+            _raise_invalid_input("simple", simple, bool)
         if simple:
             return self._get_simple()
         return self._get_all()

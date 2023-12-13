@@ -438,7 +438,7 @@ def get_vector(vector: Sequence) -> List[float]:
             return vector.numpy().squeeze().tolist()  # type: ignore
         except AttributeError:
             raise TypeError(
-                "The type of the 'vector' argument is not supported!\n"
+                f"The type {type(vector)} of the 'vector' argument is not supported!\n"
                 "Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`"
             ) from None
 
