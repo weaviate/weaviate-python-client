@@ -19,6 +19,7 @@ from weaviate.collections.classes.grpc import (
     FromReference,
     FromReferenceMultiTarget,
     MetadataQuery,
+    Move,
 )
 from weaviate.collections.classes.internal import (
     Nested,
@@ -43,6 +44,7 @@ __all__ = [
     "GeoCoordinate",
     "MetadataQuery",
     "Metrics",
+    "Move",
     "Multi2VecField",
     "Nested",
     "Property",
