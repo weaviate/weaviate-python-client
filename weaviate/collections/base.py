@@ -4,7 +4,6 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.collections.classes.config import (
-    _CollectionConfigCreateBase,
     _CollectionConfig,
     _CollectionConfigSimple,
 )
@@ -27,12 +26,10 @@ class _CollectionsBase:
 
     def _create(
         self,
-        config: _CollectionConfigCreateBase,
+        config: dict,
     ) -> str:
-        weaviate_object = config._to_dict()
-
         try:
-            response = self._connection.post(path="/schema", weaviate_object=weaviate_object)
+            response = self._connection.post(path="/schema", weaviate_object=config)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Class may not have been created properly.") from conn_err
         if response.status_code != 200:

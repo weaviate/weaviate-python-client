@@ -89,6 +89,21 @@ def test_create_get_and_delete(client: weaviate.WeaviateClient):
     assert not client.collections.exists(name)
 
 
+def test_create_raw_get_and_delete(client: weaviate.WeaviateClient):
+    name = "TestCreateAndDeleteNoGeneric"
+    col = client.collections.create_raw(
+        {"class": name, "properties": [{"name": "Name", "dataType": ["text"]}]}
+    )
+    assert client.collections.exists(name)
+    assert isinstance(col, Collection)
+
+    col = client.collections.get(name)
+    assert isinstance(col, Collection)
+
+    client.collections.delete(name)
+    assert not client.collections.exists(name)
+
+
 def test_delete_multiple(client: weaviate.WeaviateClient):
     name1 = "TestDeleteMultiple1"
     name2 = "TestDeleteMultiple2"

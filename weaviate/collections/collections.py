@@ -91,7 +91,7 @@ class _Collections(_CollectionsBase):
             vectorizer_config=vectorizer_config or _Vectorizer.none(),
             vector_index_config=vector_index_config,
         )
-        name = super()._create(config)
+        name = super()._create(config._to_dict())
         if config.name != name:
             raise ValueError(
                 f"Name of created collection ({name}) does not match given name ({config.name})"
@@ -210,3 +210,22 @@ class _Collections(_CollectionsBase):
         if simple:
             return self._get_simple()
         return self._get_all()
+
+    def create_raw(self, config: dict) -> Collection:
+        """Use this method to create a collection in Weaviate and immediately return a collection object using a pre-defined Weaviate collection configuration dictionary object.
+
+        This method is helpful for those making the v3 -> v4 migration and for those interfacing with any experimental
+        Weaviate features that are not yet fully supported by the Weaviate Python client.
+
+        Arguments:
+            `config`
+                The dictionary representation of the collection's configuration.
+
+        Raises:
+            `requests.ConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a non-OK status.
+        """
+        name = super()._create(config)
+        return self.get(name)
