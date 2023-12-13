@@ -1,5 +1,11 @@
 Changelog
 =========
+Version 3.25.3
+--------------
+This patch version includes
+
+- Bump of the default version for Weaviate Embedded DB to v1.22.3
+
 Version 3.25.2
 --------------
 This patch version includes

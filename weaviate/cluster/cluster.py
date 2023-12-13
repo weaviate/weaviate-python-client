@@ -29,7 +29,9 @@ class Cluster:
 
         self._connection = connection
 
-    def get_nodes_status(self, class_name: Optional[str] = None) -> list:
+    def get_nodes_status(
+        self, class_name: Optional[str] = None, output: Optional[str] = None
+    ) -> list:
         """
         Get the nodes status.
 
@@ -37,6 +39,8 @@ class Cluster:
         ----------
         class_name : Optional[str]
             Get the status for the given class. If not given all classes will be included.
+        output : Optional[str]
+            Set the desired output verbosity level. Can be [minimal | verbose], defaults to minimal.
 
         Returns
         -------
@@ -55,6 +59,8 @@ class Cluster:
         path = "/nodes"
         if class_name is not None:
             path += "/" + _capitalize_first_letter(class_name)
+        if output is not None:
+            path += f"?output={output}"
 
         try:
             response = self._connection.get(path=path)
