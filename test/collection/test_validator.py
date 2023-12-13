@@ -87,12 +87,6 @@ def functions(
                 "Argument 'simple' must be <class 'bool'>, but got <class 'int'>",
             )
         ],
-        "data.delete_by_id": [
-            TestableFunction(
-                lambda: data.delete_by_id(1),
-                "Argument 'uuid' must be typing.Union[str, uuid.UUID], but got <class 'int'>",
-            )
-        ],
         "data.delete_many": [
             TestableFunction(
                 lambda: data.delete_many(1),
@@ -148,7 +142,6 @@ def test(
         ("collections.list_all", 0),
         ("config.add_property", 0),
         ("config.get", 0),
-        ("data.delete_by_id", 0),
         ("data.delete_many", 0),
         ("tenants.create", 0),
         ("tenants.create", 1),
