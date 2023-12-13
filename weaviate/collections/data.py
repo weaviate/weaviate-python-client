@@ -40,7 +40,6 @@ from weaviate.util import (
     _datetime_to_string,
     _decode_json_response_dict,
     get_vector,
-    _datetime_from_weaviate_str,
 )
 from weaviate.types import BEACON, UUID
 
@@ -243,26 +242,6 @@ class _Data:
             return [self.__serialize_primitive(val) for val in value]
         if isinstance(value, GeoCoordinate):
             return value._to_dict()
-        return value
-
-    def _deserialize_primitive(self, value: Any, type_value: Optional[Any]) -> Any:
-        if type_value is None:
-            if (
-                isinstance(value, dict)
-                and len(value) == 2
-                and "latitude" in value
-                and "longitude" in value
-            ):
-                return GeoCoordinate(**value)
-            return value
-        if type_value == uuid_package.UUID:
-            return uuid_package.UUID(value)
-        if type_value == datetime.datetime:
-            return _datetime_from_weaviate_str(value)
-        if isinstance(type_value, list):
-            return [
-                self._deserialize_primitive(val, type_value[idx]) for idx, val in enumerate(value)
-            ]
         return value
 
 

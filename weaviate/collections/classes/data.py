@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Generic
 from weaviate.collections.classes.internal import P
+from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.types import UUID
 
 
@@ -38,8 +39,7 @@ class DataReference:
     to_uuid: UUID
 
 
-@dataclass
-class GeoCoordinate:
+class GeoCoordinate(_WeaviateInput):
     """Input for the geo-coordinate datatype."""
 
     latitude: float

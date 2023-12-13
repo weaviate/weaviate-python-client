@@ -86,7 +86,6 @@ class _FilterOr(_Filters):
         return _Operator.OR
 
 
-@dataclass
 class _GeoCoordinateFilter(GeoCoordinate):
     distance: float
 
