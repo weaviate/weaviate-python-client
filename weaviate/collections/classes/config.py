@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, cast
 
@@ -1489,20 +1489,31 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
 
 
 @dataclass
-class _BM25Config:
+class _ConfigBase:
+    def _to_dict(self) -> dict:
+        out = {}
+        for k, v in asdict(self).items():
+            if v is None:
+                continue
+            out[k] = v._to_dict() if isinstance(v, _ConfigBase) else v
+        return out
+
+
+@dataclass
+class _BM25Config(_ConfigBase):
     b: float
     k1: float
 
 
 @dataclass
-class _StopwordsConfig:
+class _StopwordsConfig(_ConfigBase):
     preset: StopwordsPreset
     additions: Optional[List[str]]
     removals: Optional[List[str]]
 
 
 @dataclass
-class _InvertedIndexConfig:
+class _InvertedIndexConfig(_ConfigBase):
     bm25: _BM25Config
     cleanup_interval_seconds: int
     index_null_state: bool
@@ -1512,7 +1523,7 @@ class _InvertedIndexConfig:
 
 
 @dataclass
-class _MultiTenancyConfig:
+class _MultiTenancyConfig(_ConfigBase):
     enabled: bool
 
 
@@ -1533,7 +1544,7 @@ class _PropertyVectorizerConfig:
 
 
 @dataclass
-class _Property:
+class _Property(_ConfigBase):
     data_type: Union[DataType, _ReferenceDataType, _ReferenceDataTypeMultiTarget]
     description: Optional[str]
     index_filterable: bool
@@ -1543,7 +1554,7 @@ class _Property:
     vectorizer_config: Optional[_PropertyVectorizerConfig]
     vectorizer: Optional[str]
 
-    def to_weaviate_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> Dict[str, Any]:
         if isinstance(self.data_type, DataType):
             data_type = [self.data_type.value]
         elif isinstance(self.data_type, _ReferenceDataType):
@@ -1572,12 +1583,12 @@ class _Property:
 
 
 @dataclass
-class _ReplicationConfig:
+class _ReplicationConfig(_ConfigBase):
     factor: int
 
 
 @dataclass
-class _ShardingConfig:
+class _ShardingConfig(_ConfigBase):
     virtual_per_physical: int
     desired_count: int
     actual_count: int
@@ -1589,13 +1600,19 @@ class _ShardingConfig:
 
 
 @dataclass
-class _PQEncoderConfig:
+class _PQEncoderConfig(_ConfigBase):
     type_: PQEncoderType
     distribution: PQEncoderDistribution
 
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        ret_dict["type"] = str(ret_dict.pop("type_"))
+        ret_dict["distribution"] = str(ret_dict.pop("distribution"))
+        return ret_dict
+
 
 @dataclass
-class _PQConfig:
+class _PQConfig(_ConfigBase):
     enabled: bool
     bit_compression: bool
     segments: int
@@ -1605,14 +1622,14 @@ class _PQConfig:
 
 
 @dataclass
-class _BQConfig:
+class _BQConfig(_ConfigBase):
     cache: bool
     enabled: bool
     rescore_limit: int
 
 
 @dataclass
-class _VectorIndexConfigHNSW:
+class _VectorIndexConfigHNSW(_ConfigBase):
     cleanup_interval_seconds: int
     distance_metric: VectorDistance
     dynamic_ef_min: int
@@ -1628,26 +1645,26 @@ class _VectorIndexConfigHNSW:
 
 
 @dataclass
-class _VectorIndexConfigFlat:
+class _VectorIndexConfigFlat(_ConfigBase):
     distance_metric: VectorDistance
     quantitizer: Union[_PQConfig, _BQConfig]
     vector_cache_max_objects: int
 
 
 @dataclass
-class _GenerativeConfig:
+class _GenerativeConfig(_ConfigBase):
     generator: GenerativeSearches
     model: Dict[str, Any]
 
 
 @dataclass
-class _VectorizerConfig:
+class _VectorizerConfig(_ConfigBase):
     model: Dict[str, Any]
     vectorize_class_name: bool
 
 
 @dataclass
-class _CollectionConfig:
+class _CollectionConfig(_ConfigBase):
     name: str
     description: Optional[str]
     generative_config: Optional[_GenerativeConfig]
@@ -1661,9 +1678,19 @@ class _CollectionConfig:
     vectorizer_config: Optional[_VectorizerConfig]
     vectorizer: Vectorizer
 
+    def _to_dict(self) -> dict:
+        out = super()._to_dict()
+        out["class"] = out.pop("name")
+        out["moduleConfig"] = {
+            **out.pop("generative_config", {}),
+            **out.pop("vectorizer_config", {}),
+        }
+        out["properties"] = [prop._to_dict() for prop in self.properties]
+        return out
+
 
 @dataclass
-class _CollectionConfigSimple:
+class _CollectionConfigSimple(_ConfigBase):
     name: str
     description: Optional[str]
     generative_config: Optional[_GenerativeConfig]

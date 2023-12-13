@@ -22,6 +22,7 @@ from weaviate.collections.classes.config import (
     ReferenceProperty,
     ReferencePropertyMultiTarget,
     Vectorizer,
+    _CollectionConfig,
 )
 from weaviate.collections.classes.data import (
     DataObject,
@@ -102,6 +103,30 @@ def test_create_raw_get_and_delete(client: weaviate.WeaviateClient):
 
     client.collections.delete(name)
     assert not client.collections.exists(name)
+
+
+def test_create_export_and_recreate(client: weaviate.WeaviateClient):
+    name1 = "TestCreateExportAndRecreate"
+    name2 = "TestCreateExportAndRecreate2"
+    col = client.collections.create(
+        name=name1,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    assert client.collections.exists(name1)
+    assert isinstance(col, Collection)
+
+    export = client.collections.export(name1)
+    assert isinstance(export, _CollectionConfig)
+    export.name = name2
+
+    col = client.collections.create_from_config(export)
+    assert client.collections.exists(name2)
+    assert isinstance(col, Collection)
+
+    client.collections.delete([name1, name2])
+    assert not client.collections.exists(name1)
+    assert not client.collections.exists(name2)
 
 
 def test_delete_multiple(client: weaviate.WeaviateClient):

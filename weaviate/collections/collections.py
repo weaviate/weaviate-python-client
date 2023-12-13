@@ -180,6 +180,24 @@ class _Collections(_CollectionsBase):
         """
         return self._exists(_capitalize_first_letter(name))
 
+    def export(self, name: str) -> _CollectionConfig:
+        """Use this method to export the configuration of a collection from the Weaviate instance.
+
+        Arguments:
+            `name`
+                The name of the collection to export.
+
+        Returns:
+            The configuration of the collection as a dictionary.
+
+        Raises:
+            `requests.ConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a non-OK status.
+        """
+        return self._export(_capitalize_first_letter(name))
+
     @overload
     def list_all(self, simple: Literal[False]) -> Dict[str, _CollectionConfig]:
         ...
@@ -227,5 +245,23 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeException`
                 If Weaviate reports a non-OK status.
         """
+        import json
+
+        print(json.dumps(config, indent=2))
         name = super()._create(config)
         return self.get(name)
+
+    def create_from_config(self, config: _CollectionConfig) -> Collection:
+        """Use this method to create a collection in Weaviate and immediately return a collection object using a pre-defined Weaviate collection configuration object.
+
+        Arguments:
+            `config`
+                The collection's configuration.
+
+        Raises:
+            `requests.ConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a non-OK status.
+        """
+        return self.create_raw(config._to_dict())
