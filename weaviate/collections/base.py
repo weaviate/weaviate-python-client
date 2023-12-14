@@ -4,16 +4,16 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.collections.classes.config import (
-    _CollectionConfigCreateBase,
     _CollectionConfig,
     _CollectionConfigSimple,
 )
 from weaviate.collections.classes.config_methods import (
+    _collection_config_from_json,
     _collection_configs_from_json,
     _collection_configs_simple_from_json,
 )
 from weaviate.exceptions import UnexpectedStatusCodeException
-from weaviate.util import _capitalize_first_letter
+from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 
 
 class _CollectionBase:
@@ -27,12 +27,10 @@ class _CollectionsBase:
 
     def _create(
         self,
-        config: _CollectionConfigCreateBase,
+        config: dict,
     ) -> str:
-        weaviate_object = config._to_dict()
-
         try:
-            response = self._connection.post(path="/schema", weaviate_object=weaviate_object)
+            response = self._connection.post(path="/schema", weaviate_object=config)
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Class may not have been created properly.") from conn_err
         if response.status_code != 200:
@@ -55,6 +53,16 @@ class _CollectionsBase:
             return False
         raise UnexpectedStatusCodeException("collection exists", response)
 
+    def _export(self, name: str) -> _CollectionConfig:
+        path = f"/schema/{name}"
+        try:
+            response = self._connection.get(path=path)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError("Get schema export.") from conn_err
+        res = _decode_json_response_dict(response, "Get schema export")
+        assert res is not None
+        return _collection_config_from_json(res)
+
     def _delete(self, name: str) -> None:
         path = f"/schema/{name}"
         try:
@@ -71,17 +79,15 @@ class _CollectionsBase:
             response = self._connection.get(path="/schema")
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Get schema.") from conn_err
-        if response.status_code == 200:
-            res = response.json()
-            return _collection_configs_from_json(res)
-        raise UnexpectedStatusCodeException("Get schema", response)
+        res = _decode_json_response_dict(response, "Get schema all")
+        assert res is not None
+        return _collection_configs_from_json(res)
 
     def _get_simple(self) -> Dict[str, _CollectionConfigSimple]:
         try:
             response = self._connection.get(path="/schema")
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Get schema.") from conn_err
-        if response.status_code == 200:
-            res = response.json()
-            return _collection_configs_simple_from_json(res)
-        raise UnexpectedStatusCodeException("Get schema", response)
+        res = _decode_json_response_dict(response, "Get schema simple")
+        assert res is not None
+        return _collection_configs_simple_from_json(res)

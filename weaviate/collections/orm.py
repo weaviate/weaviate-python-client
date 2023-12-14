@@ -68,7 +68,7 @@ class _CollectionObjectModel(_CollectionBase, Generic[Model]):
 
 class _CollectionModel(_CollectionsBase):
     def create(self, config: CollectionModelConfig[Model]) -> _CollectionObjectModel[Model]:
-        name = super()._create(config)
+        name = super()._create(config._to_dict())
         config_name = _capitalize_first_letter(config.model.__name__)
         if config_name != name:
             raise ValueError(

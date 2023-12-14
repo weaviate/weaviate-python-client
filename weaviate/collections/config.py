@@ -200,7 +200,7 @@ class _ConfigCollectionModel(_ConfigBase):
         schema_props_simple = [
             {
                 "name": prop.name,
-                "dataType": prop.to_weaviate_dict().get("dataType"),
+                "dataType": prop._to_dict().get("dataType"),
             }
             for prop in schema_props
         ]
