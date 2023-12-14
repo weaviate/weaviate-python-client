@@ -1,6 +1,7 @@
-from typing import Dict, Optional, Sequence
+from typing import Dict, Optional, Sequence, Union
 
 from weaviate.collections.batch.base import _BatchBase
+from weaviate.collections.classes.tenants import Tenant
 from weaviate.types import UUID, WeaviateField
 
 
@@ -11,7 +12,7 @@ class _BatchClient(_BatchBase):
         properties: Optional[Dict[str, WeaviateField]] = None,
         uuid: Optional[UUID] = None,
         vector: Optional[Sequence] = None,
-        tenant: Optional[str] = None,
+        tenant: Optional[Union[str, Tenant]] = None,
     ) -> UUID:
         """
         Add one object to this batch.
@@ -45,7 +46,7 @@ class _BatchClient(_BatchBase):
             properties=properties,
             uuid=uuid,
             vector=vector,
-            tenant=tenant,
+            tenant=tenant.name if isinstance(tenant, Tenant) else tenant,
         )
 
     def add_reference(
