@@ -1528,24 +1528,13 @@ class _MultiTenancyConfig(_ConfigBase):
 
 
 @dataclass
-class _ReferenceDataType:
-    target_collection: str
-
-
-@dataclass
-class _ReferenceDataTypeMultiTarget:
-    target_collections: List[str]
-
-
-@dataclass
 class _PropertyVectorizerConfig:
     skip: bool
     vectorize_property_name: bool
 
 
 @dataclass
-class _Property(_ConfigBase):
-    data_type: Union[DataType, _ReferenceDataType, _ReferenceDataTypeMultiTarget]
+class _PropertyBase(_ConfigBase):
     description: Optional[str]
     index_filterable: bool
     index_searchable: bool
@@ -1555,13 +1544,6 @@ class _Property(_ConfigBase):
     vectorizer: Optional[str]
 
     def _to_dict(self) -> Dict[str, Any]:
-        if isinstance(self.data_type, DataType):
-            data_type = [self.data_type.value]
-        elif isinstance(self.data_type, _ReferenceDataType):
-            data_type = [self.data_type.target_collection]
-        else:
-            data_type = self.data_type.target_collections
-
         if self.vectorizer is not None:
             module_config: Dict[str, Any] = {self.vectorizer: {}}
         if self.vectorizer_config is not None:
@@ -1572,7 +1554,6 @@ class _Property(_ConfigBase):
             }
 
         return {
-            "dataType": data_type,
             "description": self.description,
             "indexFilterable": self.index_filterable,
             "indexVector": self.index_searchable,
@@ -1580,6 +1561,26 @@ class _Property(_ConfigBase):
             "name": self.name,
             "tokenizer": self.tokenization.value if self.tokenization else None,
         }
+
+
+@dataclass
+class _Property(_PropertyBase):
+    data_type: DataType
+
+    def _to_dict(self) -> Dict[str, Any]:
+        out = super()._to_dict()
+        out["dataType"] = self.data_type.value
+        return out
+
+
+@dataclass
+class _ReferenceProperty(_PropertyBase):
+    target_collections: List[str]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        out = super()._to_dict()
+        out["dataType"] = self.target_collections
+        return out
 
 
 @dataclass
@@ -1671,6 +1672,7 @@ class _CollectionConfig(_ConfigBase):
     inverted_index_config: _InvertedIndexConfig
     multi_tenancy_config: _MultiTenancyConfig
     properties: List[_Property]
+    references: List[_ReferenceProperty]
     replication_config: _ReplicationConfig
     sharding_config: _ShardingConfig
     vector_index_config: Union[_VectorIndexConfigHNSW, _VectorIndexConfigFlat]
@@ -1685,7 +1687,10 @@ class _CollectionConfig(_ConfigBase):
             **out.pop("generative_config", {}),
             **out.pop("vectorizer_config", {}),
         }
-        out["properties"] = [prop._to_dict() for prop in self.properties]
+        out["properties"] = [
+            *[prop._to_dict() for prop in self.properties],
+            *[prop._to_dict() for prop in self.references],
+        ]
         return out
 
 
@@ -1695,6 +1700,7 @@ class _CollectionConfigSimple(_ConfigBase):
     description: Optional[str]
     generative_config: Optional[_GenerativeConfig]
     properties: List[_Property]
+    references: List[_ReferenceProperty]
     vectorizer_config: Optional[_VectorizerConfig]
     vectorizer: Vectorizer
 
