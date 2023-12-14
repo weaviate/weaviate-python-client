@@ -593,6 +593,7 @@ class MetadataResult(_message.Message):
         "generative_present",
         "is_consistent_present",
         "vector_bytes",
+        "id_bytes",
     ]
     ID_FIELD_NUMBER: _ClassVar[int]
     VECTOR_FIELD_NUMBER: _ClassVar[int]
@@ -613,6 +614,7 @@ class MetadataResult(_message.Message):
     GENERATIVE_PRESENT_FIELD_NUMBER: _ClassVar[int]
     IS_CONSISTENT_PRESENT_FIELD_NUMBER: _ClassVar[int]
     VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
+    ID_BYTES_FIELD_NUMBER: _ClassVar[int]
     id: str
     vector: _containers.RepeatedScalarFieldContainer[float]
     creation_time_unix: int
@@ -632,6 +634,7 @@ class MetadataResult(_message.Message):
     generative_present: bool
     is_consistent_present: bool
     vector_bytes: bytes
+    id_bytes: bytes
     def __init__(
         self,
         id: _Optional[str] = ...,
@@ -653,6 +656,7 @@ class MetadataResult(_message.Message):
         generative_present: bool = ...,
         is_consistent_present: bool = ...,
         vector_bytes: _Optional[bytes] = ...,
+        id_bytes: _Optional[bytes] = ...,
     ) -> None: ...
 
 class PropertiesResult(_message.Message):
