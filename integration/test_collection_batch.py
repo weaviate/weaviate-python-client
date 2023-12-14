@@ -45,10 +45,10 @@ def client_sync_indexing() -> weaviate.WeaviateClient:
     client.collections.create(
         name="Test",
         properties=[
-            ReferenceProperty(name="test", target_collection="Test"),
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
         ],
+        references=[ReferenceProperty(name="test", target_collection="Test")],
     )
     yield client
     client.collections.delete_all()
@@ -226,10 +226,8 @@ def test_add_ref_batch_with_tenant(client_sync_indexing: weaviate.WeaviateClient
 
     client_sync_indexing.collections.create(
         name=collections[1],
-        properties=[
-            Property(name="tenantAsProp", data_type=DataType.TEXT),
-            ReferenceProperty(name="ref", target_collection=collections[0]),
-        ],
+        properties=[Property(name="tenantAsProp", data_type=DataType.TEXT)],
+        references=[ReferenceProperty(name="ref", target_collection=collections[0])],
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
 
@@ -350,7 +348,7 @@ def test_add_one_hundred_objects_and_references_between_all(
     client_sync_indexing.collections.delete("Test")
 
 
-def test_add_bad_prop(client_sync_indexing: weaviate.WeaviateClient):
+def test_add_bad_prop(client_sync_indexing: weaviate.WeaviateClient) -> None:
     """Test adding a data object with a bad property"""
     with warnings.catch_warnings():
         # Tests that no warning is emitted when the batch is not configured to retry failed objects

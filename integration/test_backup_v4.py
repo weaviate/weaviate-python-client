@@ -70,8 +70,8 @@ def client() -> Generator[weaviate.WeaviateClient, None, None]:
 
     col_para = client.collections.create(
         name="Paragraph",
-        properties=[
-            Property(name="contents", data_type=DataType.TEXT),
+        properties=[Property(name="contents", data_type=DataType.TEXT)],
+        references=[
             ReferenceProperty(name="hasParagraphs", target_collection="Paragraph"),
         ],
     )
@@ -83,6 +83,8 @@ def client() -> Generator[weaviate.WeaviateClient, None, None]:
         properties=[
             Property(name="title", data_type=DataType.TEXT),
             Property(name="datePublished", data_type=DataType.DATE),
+        ],
+        references=[
             ReferenceProperty(name="hasParagraphs", target_collection="Paragraph"),
         ],
     )

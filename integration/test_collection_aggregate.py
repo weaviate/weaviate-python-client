@@ -391,7 +391,7 @@ def test_mistake_in_usage(client: weaviate.WeaviateClient):
     )
 
 
-def test_all_available_aggregations(client: weaviate.WeaviateClient):
+def test_all_available_aggregations(client: weaviate.WeaviateClient) -> None:
     name = "TestAllAvailableAggregations"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -410,6 +410,8 @@ def test_all_available_aggregations(client: weaviate.WeaviateClient):
             Property(name="bools", data_type=DataType.BOOL_ARRAY),
             Property(name="date", data_type=DataType.DATE),
             Property(name="dates", data_type=DataType.DATE_ARRAY),
+        ],
+        references=[
             ReferenceProperty(name="ref", target_collection="TestAllAvailableAggregations"),
         ],
     )
