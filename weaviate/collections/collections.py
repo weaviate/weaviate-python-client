@@ -180,7 +180,7 @@ class _Collections(_CollectionsBase):
         """
         return self._exists(_capitalize_first_letter(name))
 
-    def export(self, name: str) -> _CollectionConfig:
+    def export_config(self, name: str) -> _CollectionConfig:
         """Use this method to export the configuration of a collection from the Weaviate instance.
 
         Arguments:
@@ -229,7 +229,7 @@ class _Collections(_CollectionsBase):
             return self._get_simple()
         return self._get_all()
 
-    def create_raw(self, config: dict) -> Collection:
+    def create_from_dict(self, config: dict) -> Collection:
         """Use this method to create a collection in Weaviate and immediately return a collection object using a pre-defined Weaviate collection configuration dictionary object.
 
         This method is helpful for those making the v3 -> v4 migration and for those interfacing with any experimental
@@ -245,9 +245,6 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeException`
                 If Weaviate reports a non-OK status.
         """
-        import json
-
-        print(json.dumps(config, indent=2))
         name = super()._create(config)
         return self.get(name)
 
@@ -264,4 +261,4 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeException`
                 If Weaviate reports a non-OK status.
         """
-        return self.create_raw(config._to_dict())
+        return self.create_from_dict(config._to_dict())

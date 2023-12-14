@@ -92,7 +92,7 @@ def test_create_get_and_delete(client: weaviate.WeaviateClient):
 
 def test_create_raw_get_and_delete(client: weaviate.WeaviateClient):
     name = "TestCreateAndDeleteNoGeneric"
-    col = client.collections.create_raw(
+    col = client.collections.create_from_dict(
         {"class": name, "properties": [{"name": "Name", "dataType": ["text"]}]}
     )
     assert client.collections.exists(name)
@@ -116,7 +116,7 @@ def test_create_export_and_recreate(client: weaviate.WeaviateClient):
     assert client.collections.exists(name1)
     assert isinstance(col, Collection)
 
-    export = client.collections.export(name1)
+    export = client.collections.export_config(name1)
     assert isinstance(export, _CollectionConfig)
     export.name = name2
 
