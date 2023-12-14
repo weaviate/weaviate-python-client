@@ -524,7 +524,7 @@ def test_ref_filters_multi_target(client: weaviate.WeaviateClient) -> None:
 
 
 @pytest.mark.parametrize(
-    "properties,objects,where,expected_len",
+    "properties,inserts,where,expected_len",
     [
         (
             [
@@ -832,12 +832,24 @@ def test_ref_filters_multi_target(client: weaviate.WeaviateClient) -> None:
             Filter("int").is_none(True),
             1,
         ),
+        (
+            [
+                Property(name="text", data_type=DataType.TEXT),
+                Property(name="int", data_type=DataType.INT),
+            ],
+            [
+                DataObject(properties={"int": 10}, uuid=UUID1),
+                DataObject(properties={"text": "I am ageless"}, uuid=UUID2),
+            ],
+            FilterMetadata.ById.equal(UUID1),
+            1,
+        ),
     ],
 )
 def test_delete_many_simple(
     client: weaviate.WeaviateClient,
     properties: List[Property],
-    objects: List[DataObject],
+    inserts: List[DataObject],
     where: _FilterValue,
     expected_len: int,
 ) -> None:
@@ -849,12 +861,34 @@ def test_delete_many_simple(
         inverted_index_config=Configure.inverted_index(index_null_state=True),
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    collection.data.insert_many(objects)
-    assert len(collection.query.fetch_objects().objects) == len(objects)
+    collection.data.insert_many(inserts)
+    assert len(collection.query.fetch_objects().objects) == len(inserts)
 
     collection.data.delete_many(where=where)
     objects = collection.query.fetch_objects().objects
     assert len(objects) == expected_len
+
+
+def test_delete_by_time_metadata(client: weaviate.WeaviateClient) -> None:
+    name = "TestDeleteByTimeMetadata"
+    client.collections.delete(name)
+    collection = client.collections.create(
+        name=name,
+        inverted_index_config=Configure.inverted_index(index_timestamps=True),
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    uuid1 = collection.data.insert(properties={})
+    uuid2 = collection.data.insert(properties={})
+
+    obj1 = collection.query.fetch_object_by_id(uuid=uuid1)
+
+    collection.data.delete_many(
+        where=FilterMetadata.ByCreationTime.less_or_equal(obj1.metadata.creation_time_unix)
+    )
+
+    assert len(collection) == 1
+    assert collection.query.fetch_object_by_id(uuid=uuid2) is not None
 
 
 def test_delete_many_and(client: weaviate.WeaviateClient) -> None:
