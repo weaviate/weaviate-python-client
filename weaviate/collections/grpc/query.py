@@ -468,6 +468,7 @@ class _QueryGRPC(_BaseGRPC):
             res: SearchResponse  # According to PEP-0526
             res, _ = self._connection.grpc_stub.Search.with_call(
                 search_get_pb2.SearchRequest(
+                    uses_123_api=True,
                     collection=self._name,
                     limit=self._limit,
                     offset=self._offset,
@@ -562,7 +563,6 @@ class _QueryGRPC(_BaseGRPC):
                     else None,
                     generative=self._generative.to_grpc() if self._generative is not None else None,
                     group_by=self._group_by.to_grpc() if self._group_by is not None else None,
-                    uses_properties_message=True,
                 ),
                 metadata=metadata,
             )
@@ -601,8 +601,7 @@ class _QueryGRPC(_BaseGRPC):
         if properties is None and references is None:
             return None
         return search_get_pb2.PropertiesRequest(
-            uses_new_default_logic=self._is_weaviate_version_123,
-            return_all_nonref_properties=self._is_weaviate_version_123 and properties is None,
+            return_all_nonref_properties=properties is None,
             non_ref_properties=None
             if properties is None
             else [prop for prop in properties if isinstance(prop, str)],
