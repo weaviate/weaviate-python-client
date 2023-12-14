@@ -39,7 +39,6 @@ class BatchObject(BaseModel):
     uuid: Optional[UUID] = Field(default=None)
     vector: Optional[Sequence] = Field(default=None)
     tenant: Optional[str] = Field(default=None)
-    references: Optional[WeaviateReferences] = Field(default=None)
 
     def __init__(self, **data: Any) -> None:
         data["vector"] = get_vector(v) if (v := data.get("vector")) is not None else None
@@ -55,7 +54,7 @@ class BatchObject(BaseModel):
             uuid=self.uuid,
             properties=self.properties,
             tenant=self.tenant,
-            references=self.references,
+            references=None,
         )
 
     @field_validator("collection")
