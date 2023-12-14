@@ -104,7 +104,9 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         self.__properties = properties
         self.__references = references
 
-    def with_tenant(self, tenant: Union[str, Tenant]) -> "Collection[Properties, References]":
+    def with_tenant(
+        self, tenant: Optional[Union[str, Tenant]] = None
+    ) -> "Collection[Properties, References]":
         """Use this method to return a collection object specific to a single tenant.
 
         If multi-tenancy is not configured for this collection then Weaviate will throw an error.
@@ -113,19 +115,19 @@ class Collection(_CollectionBase, Generic[Properties, References]):
             `tenant`
                 The name of the tenant to use.
         """
-        if not isinstance(tenant, str) and not isinstance(tenant, Tenant):
+        if tenant is not None and not isinstance(tenant, str) and not isinstance(tenant, Tenant):
             _raise_invalid_input("tenant", tenant, Union[str, Tenant])
         return Collection[Properties, References](
             self._connection,
             self.name,
             self.__consistency_level,
-            tenant if isinstance(tenant, str) else tenant.name,
+            tenant.name if isinstance(tenant, Tenant) else tenant,
             self.__properties,
             self.__references,
         )
 
     def with_consistency_level(
-        self, consistency_level: ConsistencyLevel
+        self, consistency_level: Optional[ConsistencyLevel] = None
     ) -> "Collection[Properties, References]":
         """Use this method to return a collection object specific to a single consistency level.
 
@@ -135,7 +137,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
             `consistency_level`
                 The consistency level to use.
         """
-        if not isinstance(consistency_level, ConsistencyLevel):
+        if consistency_level is not None and not isinstance(consistency_level, ConsistencyLevel):
             _raise_invalid_input("consistency_level", consistency_level, ConsistencyLevel)
         return Collection[Properties, References](
             self._connection,

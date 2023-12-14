@@ -151,15 +151,9 @@ class _Collections(_CollectionsBase):
 
         if isinstance(name, str):
             self._delete(_capitalize_first_letter(name))
-        elif isinstance(name, list):
-            if not all(isinstance(n, str) for n in name):
-                raise TypeError(
-                    f"Expected name to be of type str or List[str], but got {type(name)}"
-                )
+        else:
             for n in name:
                 self._delete(_capitalize_first_letter(n))
-        else:
-            raise TypeError(f"Expected name to be of type str or List[str], but got {type(name)}")
 
     def delete_all(self) -> None:
         """Use this method to delete all collections from the Weaviate instance.

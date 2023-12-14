@@ -27,6 +27,7 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.data import (
     DataObject,
     DataReference,
+    DataReferenceOneToMany,
     GeoCoordinate,
 )
 from weaviate.collections.classes.internal import (
@@ -179,17 +180,28 @@ class _Data:
             if response.status_code != 200:
                 raise UnexpectedStatusCodeException("Add property reference to object", response)
 
-    def _reference_add_many(self, refs: List[DataReference]) -> BatchReferenceReturn:
+    def _reference_add_many(
+        self, refs: List[Union[DataReference, DataReferenceOneToMany]]
+    ) -> BatchReferenceReturn:
         batch: Deque[_BatchReference] = deque()
         for ref in refs:
-            for uuid_ in ref.to.uuids_str:
+            if isinstance(ref, DataReference):
                 batch.appendleft(
                     _BatchReference(
                         from_=f"{BEACON}{self.name}/{ref.from_uuid}/{ref.from_property}",
-                        to=f"{BEACON}{uuid_}",
+                        to=f"{BEACON}{self.name}/{ref.to_uuid}",
                         tenant=self._tenant,
                     )
                 )
+            else:
+                for uuid_ in ref.to.uuids_str:
+                    batch.appendleft(
+                        _BatchReference(
+                            from_=f"{BEACON}{self.name}/{ref.from_uuid}/{ref.from_property}",
+                            to=f"{BEACON}{uuid_}",
+                            tenant=self._tenant,
+                        )
+                    )
         return self._batch_rest.references(list(batch))
 
     def _reference_delete(
@@ -244,14 +256,10 @@ class _Data:
         return params, obj
 
     def _serialize_props(self, props: Properties) -> Dict[str, Any]:
-        return (
-            {key: self.__serialize_primitive(val) for key, val in props.items()}
-            if props is not None
-            else {}
-        )
+        return {key: self.__serialize_primitive(val) for key, val in props.items()}
 
     def _serialize_refs(self, refs: WeaviateReferences) -> Dict[str, Any]:
-        return {key: val._to_beacons() for key, val in refs.items()} if refs is not None else {}
+        return {key: val._to_beacons() for key, val in refs.items()}
 
     def __serialize_primitive(self, value: Any) -> Any:
         if isinstance(value, uuid_package.UUID):
@@ -307,11 +315,8 @@ class _DataCollection(Generic[Properties], _Data):
         if references is not None and not isinstance(references, dict):
             _raise_invalid_input("references", references, dict)
 
-        props, refs = {}, {}
-        if properties is not None:
-            props = self._serialize_props(properties)
-        if references is not None:
-            refs = self._serialize_refs(references)
+        props = self._serialize_props(properties) if properties is not None else {}
+        refs = self._serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
             "properties": {**props, **refs},
@@ -398,11 +403,8 @@ class _DataCollection(Generic[Properties], _Data):
         if references is not None and not isinstance(references, dict):
             _raise_invalid_input("references", references, dict)
 
-        props, refs = {}, {}
-        if properties is not None:
-            props = self._serialize_props(properties)
-        if references is not None:
-            refs = self._serialize_refs(references)
+        props = self._serialize_props(properties) if properties is not None else {}
+        refs = self._serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {
             "class": self.name,
             "properties": {**props, **refs},
@@ -440,16 +442,12 @@ class _DataCollection(Generic[Properties], _Data):
         if references is not None and not isinstance(references, dict):
             _raise_invalid_input("references", references, dict)
 
-        props, refs = {}, {}
-        if properties is not None:
-            props = self._serialize_props(properties)
-        if references is not None:
-            refs = self._serialize_refs(references)
-
+        props = self._serialize_props(properties) if properties is not None else {}
+        refs = self._serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {"class": self.name, "properties": {**props, **refs}}
         if vector is not None:
             weaviate_obj["vector"] = vector
-        print(weaviate_obj)
+
         self._update(weaviate_obj, uuid=uuid)
 
     def reference_add(self, from_uuid: UUID, from_property: str, to: WeaviateReference) -> None:
@@ -477,7 +475,9 @@ class _DataCollection(Generic[Properties], _Data):
             ref=to,
         )
 
-    def reference_add_many(self, refs: List[DataReference]) -> BatchReferenceReturn:
+    def reference_add_many(
+        self, refs: List[Union[DataReference, DataReferenceOneToMany]]
+    ) -> BatchReferenceReturn:
         """Create multiple references on a property in batch between objects in this collection and any other object in Weaviate.
 
         Arguments:
@@ -637,5 +637,7 @@ class _DataCollectionModel(Generic[Model], _Data):
     def reference_replace(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_add_many(self, refs: List[DataReference]) -> BatchReferenceReturn:
+    def reference_add_many(
+        self, refs: List[Union[DataReference, DataReferenceOneToMany]]
+    ) -> BatchReferenceReturn:
         return self._reference_add_many(refs)

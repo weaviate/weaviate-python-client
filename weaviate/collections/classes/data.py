@@ -31,7 +31,16 @@ class DataObject(Generic[Properties]):
 
 
 @dataclass
-class DataReference(Generic[Properties, References]):
+class DataReference:
+    """This class represents a reference between objects within a collection to be used when batching."""
+
+    from_property: str
+    from_uuid: UUID
+    to_uuid: UUID
+
+
+@dataclass
+class DataReferenceOneToMany(Generic[Properties, References]):
     """This class represents a reference between objects within a collection to be used when batching."""
 
     from_property: str
