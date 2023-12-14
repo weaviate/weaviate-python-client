@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, cast
 
-from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from weaviate.util import _capitalize_first_letter
 from weaviate.warnings import _Warnings
@@ -1838,15 +1838,13 @@ class _CollectionConfigCreate(_CollectionConfigCreateBase):
     properties: Optional[List[Union[Property, _ReferencePropertyBase]]] = Field(default=None)
     references: Optional[List[_ReferencePropertyBase]] = Field(default=None)
 
-    @field_validator("properties")
-    @classmethod
-    def props_and_refs(
-        self, properties: Optional[List[Union[Property, _ReferencePropertyBase]]]
-    ) -> None:
-        if properties is not None and any(
-            isinstance(p, _ReferencePropertyBase) for p in properties
+    @model_validator(mode="after")
+    def model_validator_return_none(self) -> "_CollectionConfigCreate":
+        if self.properties is not None and any(
+            isinstance(p, _ReferencePropertyBase) for p in self.properties
         ):
             _Warnings.reference_in_properties()
+        return self
 
     def model_post_init(self, __context: Any) -> None:
         self.name = _capitalize_first_letter(self.name)
