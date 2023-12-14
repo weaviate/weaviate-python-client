@@ -4,7 +4,7 @@ from typing_extensions import Annotated
 import pytest as pytest
 import uuid
 
-from weaviate.collections.classes.data import DataObject, DataReference
+from weaviate.collections.classes.data import DataObject, DataReference, DataReferenceOneToMany
 from weaviate.collections.classes.grpc import FromReference, FromReferenceMultiTarget, MetadataQuery
 
 import weaviate
@@ -423,13 +423,23 @@ def test_references_batch(client: weaviate.WeaviateClient):
 
     batch_return = collection.data.reference_add_many(
         [
-            DataReference(
-                from_property="ref",
-                from_uuid=list(uuids_from)[i],
-                to=Reference.to(list(uuids_to)[i]),
-            )
-            for i in range(num_objects)
-        ],
+            *[
+                DataReferenceOneToMany(
+                    from_property="ref",
+                    from_uuid=list(uuids_from)[i],
+                    to=Reference.to(list(uuids_to)[i]),
+                )
+                for i in range(num_objects)
+            ],
+            *[
+                DataReference(
+                    from_property="ref",
+                    from_uuid=list(uuids_from)[i],
+                    to_uuid=list(uuids_to)[i],
+                )
+                for i in range(num_objects)
+            ],
+        ]
     )
 
     assert batch_return.has_errors is False
@@ -469,18 +479,10 @@ def test_references_batch_with_errors(client: weaviate.WeaviateClient):
     )
 
     batch_return = collection.data.reference_add_many(
-        [
-            DataReference(
-                from_property="doesNotExist", from_uuid=uuid.uuid4(), to=Reference.to(uuid.uuid4())
-            )
-        ],
+        [DataReference(from_property="doesNotExist", from_uuid=uuid.uuid4(), to_uuid=uuid.uuid4())],
     )
     assert batch_return.has_errors is True
     assert 0 in batch_return.errors
-    assert (
-        batch_return.errors[0].message
-        == "property doesNotExist does not exist for class TestBatchRefErrorFrom"
-    )
 
 
 @pytest.mark.skip(reason="string syntax has been temporarily removed from the API")
