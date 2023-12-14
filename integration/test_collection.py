@@ -439,8 +439,8 @@ def test_insert_many_with_refs(client: weaviate.WeaviateClient) -> None:
 
     collection = client.collections.create(
         name=name,
-        properties=[
-            Property(name="Name", data_type=DataType.TEXT),
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        references=[
             ReferenceProperty(name="ref_single", target_collection=name_target),
             ReferencePropertyMultiTarget(name="ref_many", target_collections=[name_target, name]),
         ],
@@ -1568,7 +1568,7 @@ def test_return_properties_with_general_typed_dict(client: weaviate.WeaviateClie
             Property(name="int_", data_type=DataType.INT),
             Property(name="ints", data_type=DataType.INT_ARRAY),
         ],
-        data_model=_Data,
+        data_model_properties=_Data,
     )
     collection.data.insert(properties=_Data(int_=1, ints=[1, 2, 3]))
     objects = collection.query.fetch_objects().objects
@@ -1597,7 +1597,7 @@ def test_return_properties_with_query_specific_typed_dict_overwriting_general_ty
             Property(name="int_", data_type=DataType.INT),
             Property(name="ints", data_type=DataType.INT_ARRAY),
         ],
-        data_model=_DataAll,
+        data_model_properties=_DataAll,
     )
     collection.data.insert(properties=_DataAll(int_=1, ints=[1, 2, 3]))
     objects = collection.query.fetch_objects(return_properties=_Data).objects
@@ -1695,7 +1695,7 @@ def test_sort(client: weaviate.WeaviateClient, sort: Union[Sort, List[Sort]], ex
     assert object_uuids == expected_uuids
 
 
-def test_optional_ref_returns(client: weaviate.WeaviateClient):
+def test_optional_ref_returns(client: weaviate.WeaviateClient) -> None:
     name_target = "TestRefReturnEverything"
     name = "TestInsertManyRefs"
     client.collections.delete(name_target)
@@ -1710,7 +1710,7 @@ def test_optional_ref_returns(client: weaviate.WeaviateClient):
 
     collection = client.collections.create(
         name=name,
-        properties=[
+        references=[
             ReferenceProperty(name="ref", target_collection=name_target),
         ],
         vectorizer_config=Configure.Vectorizer.none(),
@@ -1880,7 +1880,7 @@ def test_iterator_with_default_generic(client: weaviate.WeaviateClient):
             Property(name="that", data_type=DataType.TEXT),
         ],
         vectorizer_config=Configure.Vectorizer.none(),
-        data_model=That,
+        data_model_properties=That,
     )
 
     collection.data.insert_many(

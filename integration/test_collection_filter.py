@@ -432,9 +432,9 @@ def test_ref_filters(
     from_collection = client.collections.create(
         name="TestFilterRef",
         properties=[
-            ReferenceProperty(name="ref", target_collection="TestFilterRef2"),
             Property(name="name", data_type=DataType.TEXT),
         ],
+        references=[ReferenceProperty(name="ref", target_collection="TestFilterRef2")],
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
@@ -469,10 +469,12 @@ def test_ref_filters_multi_target(client: weaviate.WeaviateClient) -> None:
     from_collection = client.collections.create(
         name=source,
         properties=[
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+        references=[
             ReferencePropertyMultiTarget(
                 name="ref", target_collections=[target, "TestFilterRefMulti"]
-            ),
-            Property(name="name", data_type=DataType.TEXT),
+            )
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )

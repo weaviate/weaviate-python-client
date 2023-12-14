@@ -3,7 +3,7 @@ from dataclasses import dataclass, asdict
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, cast
 
-from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from weaviate.util import _capitalize_first_letter
 from weaviate.warnings import _Warnings
@@ -1441,7 +1441,7 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
 
         for cls_field in self.model_fields:
             val = getattr(self, cls_field)
-            if cls_field in ["name", "model", "properties"] or val is None:
+            if cls_field in ["name", "model", "properties", "references"] or val is None:
                 continue
             if isinstance(val, Enum):
                 ret_dict[cls_field] = str(val.value)
@@ -1863,6 +1863,15 @@ PropertyType = Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]
 class _CollectionConfigCreate(_CollectionConfigCreateBase):
     name: str
     properties: Optional[List[Union[Property, _ReferencePropertyBase]]] = Field(default=None)
+    references: Optional[List[_ReferencePropertyBase]] = Field(default=None)
+
+    @model_validator(mode="after")
+    def model_validator_return_none(self) -> "_CollectionConfigCreate":
+        if self.properties is not None and any(
+            isinstance(p, _ReferencePropertyBase) for p in self.properties
+        ):
+            _Warnings.reference_in_properties()
+        return self
 
     def model_post_init(self, __context: Any) -> None:
         self.name = _capitalize_first_letter(self.name)
@@ -1871,16 +1880,30 @@ class _CollectionConfigCreate(_CollectionConfigCreateBase):
         ret_dict = super()._to_dict()
 
         ret_dict["class"] = self.name
+        self.__add_props(self.properties, ret_dict)
+        self.__add_props(self.references, ret_dict)
 
-        if self.properties is not None:
-            ret_dict["properties"] = [
+        return ret_dict
+
+    def __add_props(
+        self,
+        props: Optional[
+            Union[List[Union[Property, _ReferencePropertyBase]], List[_ReferencePropertyBase]]
+        ],
+        ret_dict: Dict[str, Any],
+    ) -> None:
+        if props is None:
+            return
+        existing_props = ret_dict.get("properties", [])
+        existing_props.extend(
+            [
                 prop._to_dict(self.moduleConfig.vectorizer)
                 if isinstance(prop, Property)
                 else prop._to_dict()
-                for prop in self.properties
+                for prop in props
             ]
-
-        return ret_dict
+        )
+        ret_dict["properties"] = existing_props
 
 
 class _VectorIndexQuantitizer:
