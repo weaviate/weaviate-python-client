@@ -345,7 +345,7 @@ def test_delete_by_id(client: weaviate.WeaviateClient):
 )
 def test_insert_many(
     client: weaviate.WeaviateClient,
-    objects: List[Union[Properties, DataObject[Properties]]],
+    objects: List[Union[Properties, DataObject]],
     should_error: bool,
 ) -> None:
     name = "TestInsertMany"
@@ -1115,6 +1115,31 @@ def test_add_property(client: weaviate.WeaviateClient):
     assert "number" in obj2.properties
 
     client.collections.delete("TestAddProperty")
+
+
+def test_add_reference(client: weaviate.WeaviateClient):
+    collection = client.collections.create(
+        name="TestAddReference",
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+    )
+    uuid1 = collection.data.insert({"name": "first"})
+    collection.config.add_reference(
+        ReferenceProperty(name="self", target_collection="TestAddReference")
+    )
+    uuid2 = collection.data.insert({"name": "second"}, references={"self": Reference.to(uuid1)})
+    obj1 = collection.query.fetch_object_by_id(
+        uuid1, return_properties=["name"], return_references=FromReference(link_on="self")
+    )
+    obj2 = collection.query.fetch_object_by_id(
+        uuid2, return_properties=["name"], return_references=FromReference(link_on="self")
+    )
+    assert "name" in obj1.properties
+    assert obj1.references is None
+    assert "name" in obj2.properties
+    assert "self" in obj2.references
+
+    client.collections.delete("TestAddReference")
 
 
 def test_collection_config_get(client: weaviate.WeaviateClient):
