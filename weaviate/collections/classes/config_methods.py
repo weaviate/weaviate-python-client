@@ -27,6 +27,7 @@ from weaviate.collections.classes.config import (
     _VectorizerConfig,
     _GenerativeConfig,
     GenerativeSearches,
+    DataType,
 )
 
 
@@ -197,7 +198,7 @@ def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
             continue
         props.append(
             _Property(
-                data_type=prop["dataType"][0],
+                data_type=DataType(prop["dataType"][0]),
                 description=prop.get("description"),
                 index_filterable=prop["indexFilterable"],
                 index_searchable=prop["indexSearchable"],

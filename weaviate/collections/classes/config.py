@@ -1569,7 +1569,7 @@ class _Property(_PropertyBase):
 
     def _to_dict(self) -> Dict[str, Any]:
         out = super()._to_dict()
-        out["dataType"] = self.data_type.value
+        out["dataType"] = [self.data_type.value]
         return out
 
 
@@ -1691,6 +1691,7 @@ class _CollectionConfig(_ConfigBase):
             *[prop._to_dict() for prop in self.properties],
             *[prop._to_dict() for prop in self.references],
         ]
+        out.pop("references")
         return out
 
 
