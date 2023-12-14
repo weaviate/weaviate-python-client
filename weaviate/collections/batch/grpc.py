@@ -34,13 +34,13 @@ class _BatchGRPC(_BaseGRPC):
     """
 
     def __init__(self, connection: Connection, consistency_level: Optional[ConsistencyLevel]):
-        support_byte_vectors = (
+        is_weaviate_version_123 = (
             parse_version_string(connection.server_version) > parse_version_string("1.22")
             if connection.server_version != ""
             else True
         )
 
-        super().__init__(connection, consistency_level, support_byte_vectors)
+        super().__init__(connection, consistency_level, is_weaviate_version_123)
 
     def objects(self, objects: List[_BatchObject]) -> BatchObjectReturn:
         """Insert multiple objects into Weaviate through the gRPC API.
@@ -63,10 +63,10 @@ class _BatchGRPC(_BaseGRPC):
             batch_pb2.BatchObject(
                 collection=obj.collection,
                 vector=get_vector(obj.vector)
-                if obj.vector is not None and not self._support_byte_vectors
+                if obj.vector is not None and not self._is_weaviate_version_123
                 else None,
                 vector_bytes=pack_vector(obj.vector)
-                if obj.vector is not None and self._support_byte_vectors
+                if obj.vector is not None and self._is_weaviate_version_123
                 else None,
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
                 properties=self.__translate_properties_from_python_to_grpc(obj.properties, False)
@@ -223,10 +223,10 @@ class _BatchGRPC(_BaseGRPC):
             elif isinstance(val, list) and isinstance(val[0], int):
                 int_arrays.append(base_pb2.IntArrayProperties(prop_name=key, values=val))
             elif isinstance(val, list) and isinstance(val[0], float):
-                values = val if not self._support_byte_vectors else None
+                values = val if not self._is_weaviate_version_123 else None
                 values_bytes = (
                     struct.pack("{}d".format(len(val)), *val)
-                    if self._support_byte_vectors
+                    if self._is_weaviate_version_123
                     else None
                 )
                 float_arrays.append(

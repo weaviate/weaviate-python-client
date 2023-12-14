@@ -317,18 +317,30 @@ class MetadataRequest(_message.Message):
     ) -> None: ...
 
 class PropertiesRequest(_message.Message):
-    __slots__ = ["non_ref_properties", "ref_properties", "object_properties"]
+    __slots__ = [
+        "non_ref_properties",
+        "ref_properties",
+        "object_properties",
+        "return_all_nonref_properties",
+        "uses_new_default_logic",
+    ]
     NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     OBJECT_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    RETURN_ALL_NONREF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    USES_NEW_DEFAULT_LOGIC_FIELD_NUMBER: _ClassVar[int]
     non_ref_properties: _containers.RepeatedScalarFieldContainer[str]
     ref_properties: _containers.RepeatedCompositeFieldContainer[RefPropertiesRequest]
     object_properties: _containers.RepeatedCompositeFieldContainer[ObjectPropertiesRequest]
+    return_all_nonref_properties: bool
+    uses_new_default_logic: bool
     def __init__(
         self,
         non_ref_properties: _Optional[_Iterable[str]] = ...,
         ref_properties: _Optional[_Iterable[_Union[RefPropertiesRequest, _Mapping]]] = ...,
         object_properties: _Optional[_Iterable[_Union[ObjectPropertiesRequest, _Mapping]]] = ...,
+        return_all_nonref_properties: bool = ...,
+        uses_new_default_logic: bool = ...,
     ) -> None: ...
 
 class ObjectPropertiesRequest(_message.Message):

@@ -120,9 +120,11 @@ class _QueryGRPC(_BaseGRPC):
         tenant: Optional[str],
         consistency_level: Optional[ConsistencyLevel],
         default_properties: Optional[PROPERTIES] = None,
-        support_byte_vectors: bool = False,
+        is_weaviate_version_123: bool = False,
     ):
-        super().__init__(connection, consistency_level, support_byte_vectors=support_byte_vectors)
+        super().__init__(
+            connection, consistency_level, is_weaviate_version_123=is_weaviate_version_123
+        )
         self._name: str = name
         self._tenant = tenant
 
@@ -473,14 +475,14 @@ class _QueryGRPC(_BaseGRPC):
                     autocut=self._autocut,
                     near_vector=search_get_pb2.NearVector(
                         vector=self._near_vector_vec
-                        if self._near_vector_vec is not None and not self._support_byte_vectors
+                        if self._near_vector_vec is not None and not self._is_weaviate_version_123
                         else None,
                         certainty=self._near_certainty,
                         distance=self._near_distance,
                         vector_bytes=struct.pack(
                             "{}f".format(len(self._near_vector_vec)), *self._near_vector_vec
                         )
-                        if self._near_vector_vec is not None and self._support_byte_vectors
+                        if self._near_vector_vec is not None and self._is_weaviate_version_123
                         else None,
                     )
                     if self._near_vector_vec is not None
@@ -507,14 +509,14 @@ class _QueryGRPC(_BaseGRPC):
                         properties=self._hybrid_properties,
                         query=self._hybrid_query,
                         alpha=self._hybrid_alpha,
-                        vector=self._hybrid_vector if not self._support_byte_vectors else None,
+                        vector=self._hybrid_vector if not self._is_weaviate_version_123 else None,
                         fusion_type=cast(
                             search_get_pb2.Hybrid.FusionType, self._hybrid_fusion_type
                         ),
                         vector_bytes=struct.pack(
                             "{}f".format(len(self._hybrid_vector)), *self._hybrid_vector
                         )
-                        if self._support_byte_vectors and self._hybrid_vector is not None
+                        if self._is_weaviate_version_123 and self._hybrid_vector is not None
                         else None,
                     )
                     if self._hybrid_query is not None
@@ -599,6 +601,8 @@ class _QueryGRPC(_BaseGRPC):
         if properties is None and references is None:
             return None
         return search_get_pb2.PropertiesRequest(
+            uses_new_default_logic=self._is_weaviate_version_123,
+            return_all_nonref_properties=self._is_weaviate_version_123 and properties is None,
             non_ref_properties=None
             if properties is None
             else [prop for prop in properties if isinstance(prop, str)],
