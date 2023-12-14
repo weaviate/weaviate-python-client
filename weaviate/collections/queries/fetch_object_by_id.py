@@ -286,6 +286,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         ret_refs = (
             parsed_refs if isinstance(parsed_refs, list) or parsed_refs is None else [parsed_refs]
         )
+        refs: Optional[dict] = None
         if ret_refs is not None:
             refs = {
                 ret_ref.link_on: _Reference._from(
@@ -302,10 +303,12 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
                         )
                     ]
                 )
+                if obj_rest["properties"].get(ret_ref.link_on) is not None
+                else None
                 for ret_ref in ret_refs
             }
-        else:
-            refs = None
+            if all(ref is None for ref in refs.values()):
+                refs = None
 
         return _ObjectSingleReturn(
             uuid=uuid_lib.UUID(obj_rest["id"]),
