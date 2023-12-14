@@ -447,6 +447,45 @@ def test_references_batch(client: weaviate.WeaviateClient) -> None:
         assert obj.properties["num"] == obj.references["ref"].objects[0].properties["num"]
 
 
+def test_insert_many_with_refs(client: weaviate.WeaviateClient):
+    name = "TestInsertManyRefs"
+    client.collections.delete(name)
+    collection = client.collections.create(
+        name=name,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        references=[
+            ReferenceProperty(name="self", target_collection=name),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    uuid1 = collection.data.insert({"name": "A"})
+    uuid2 = collection.data.insert({"name": "B"})
+
+    batch_return = collection.data.insert_many(
+        [
+            DataObject(
+                properties={"name": "C"},
+                references={"self": Reference.to(uuids=uuid1)},
+            ),
+            DataObject(
+                properties={"name": "D"},
+                references={"self": Reference.to(uuids=uuid2)},
+            ),
+        ]
+    )
+    assert batch_return.has_errors is False
+
+    for obj in collection.query.fetch_objects(
+        return_properties=["name"], return_references=FromReference(link_on="self")
+    ).objects:
+        if obj.properties["name"] in ["A", "B"]:
+            assert obj.references is None
+        else:
+            print(obj)
+            assert obj.references is not None
+
+
 def test_references_batch_with_errors(client: weaviate.WeaviateClient):
     name_ref_to = "TestBatchRefErrorTo"
     name_ref_from = "TestBatchRefErrorFrom"
