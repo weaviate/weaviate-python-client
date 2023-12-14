@@ -20,7 +20,6 @@ from weaviate.collections.classes.internal import References, _check_references_
 from weaviate.collections.classes.types import Properties, _check_properties_generic
 from weaviate.collections.collection import Collection
 from weaviate.util import _capitalize_first_letter
-from weaviate.warnings import _Warnings
 
 
 class _Collections(_CollectionsBase):
@@ -85,11 +84,6 @@ class _Collections(_CollectionsBase):
             `pydantic.ValidationError`
                 If the configuration object is invalid.
         """
-        if properties is not None and any(
-            isinstance(p, _ReferencePropertyBase) for p in properties
-        ):
-            _Warnings.reference_in_properties()
-
         config = _CollectionConfigCreate(
             description=description,
             generative_config=generative_config,

@@ -1838,6 +1838,16 @@ class _CollectionConfigCreate(_CollectionConfigCreateBase):
     properties: Optional[List[Union[Property, _ReferencePropertyBase]]] = Field(default=None)
     references: Optional[List[_ReferencePropertyBase]] = Field(default=None)
 
+    @field_validator("properties")
+    @classmethod
+    def props_and_refs(
+        self, properties: Optional[List[Union[Property, _ReferencePropertyBase]]]
+    ) -> None:
+        if properties is not None and any(
+            isinstance(p, _ReferencePropertyBase) for p in properties
+        ):
+            _Warnings.reference_in_properties()
+
     def model_post_init(self, __context: Any) -> None:
         self.name = _capitalize_first_letter(self.name)
 
