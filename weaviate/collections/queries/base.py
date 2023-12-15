@@ -97,7 +97,7 @@ class _BaseQuery(Generic[Properties, References]):
             self._name,
             self.__tenant,
             self.__consistency_level,
-            support_byte_vectors=self._is_weaviate_version_123,
+            is_weaviate_version_123=self._is_weaviate_version_123,
         )
 
     def __extract_metadata_for_object(

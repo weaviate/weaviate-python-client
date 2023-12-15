@@ -37,6 +37,7 @@ from weaviate.collections.classes.grpc import (
     METADATA,
     PROPERTIES,
     PROPERTY,
+    REFERENCE,
 )
 from weaviate.collections.classes.internal import _CrossReference, Reference, _Object
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
@@ -50,6 +51,7 @@ from weaviate.exceptions import (
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
 )
+from weaviate.util import parse_version_string
 from weaviate.types import UUID
 
 BEACON_START = "weaviate://localhost"
@@ -1209,11 +1211,13 @@ def test_collection_config_get(client: weaviate.WeaviateClient) -> None:
         MetadataQuery._full(),
     ],
 )
+@pytest.mark.parametrize("return_references", [None, [], [FromReference(link_on="friend")]])
 @pytest.mark.parametrize("include_vector", [False, True])
-def test_return_properties_and_return_metadata_combos(
+def test_return_properties_metadata_references_combos(
     client: weaviate.WeaviateClient,
     return_properties: Optional[List[PROPERTY]],
     return_metadata: Optional[MetadataQuery],
+    return_references: Optional[List[REFERENCE]],
     include_vector: bool,
 ) -> None:
     client.collections.delete("TestReturnEverything")
@@ -1223,49 +1227,72 @@ def test_return_properties_and_return_metadata_combos(
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
+            ReferenceProperty(name="friend", target_collection="TestReturnEverything"),
         ],
     )
 
     collection.data.insert(
         uuid=UUID1, properties={"name": "Graham", "age": 42}, vector=[1, 2, 3, 4]
     )
+    collection.data.insert(
+        uuid=UUID2,
+        properties={"name": "John", "age": 43},
+        vector=[1, 2, 3, 4],
+        references={"friend": Reference.to(uuids=UUID1)},
+    )
 
     objects = collection.query.fetch_objects(
         include_vector=include_vector,
         return_properties=return_properties,
         return_metadata=return_metadata,
+        return_references=return_references,
     ).objects
 
-    assert objects[0].uuid is not None
+    obj = [obj for obj in objects if obj.uuid == UUID2][0]
+
+    assert obj.uuid is not None
 
     if return_properties is None:
-        assert "name" in objects[0].properties
-        assert "age" in objects[0].properties
-        assert objects[0].properties["name"] == "Graham"
-        assert objects[0].properties["age"] == 42
+        if return_references is not None and parse_version_string(
+            client._connection._server_version
+        ) < parse_version_string("1.23"):
+            assert obj.properties == {}
+        else:
+            assert "name" in obj.properties
+            assert "age" in obj.properties
+            assert obj.properties["name"] == "John"
+            assert obj.properties["age"] == 43
     elif len(return_properties) == 0:
-        assert "name" not in objects[0].properties
-        assert "age" not in objects[0].properties
+        assert "name" not in obj.properties
+        assert "age" not in obj.properties
     else:
-        assert "name" in objects[0].properties
-        assert "age" not in objects[0].properties
-        assert objects[0].properties["name"] == "Graham"
+        assert "name" in obj.properties
+        assert "age" not in obj.properties
+        assert obj.properties["name"] == "John"
 
     if (
         return_metadata is None
         or return_metadata == MetadataQuery()
         or (isinstance(return_metadata, list) and len(return_metadata) == 0)
     ):
-        assert objects[0].metadata._is_empty()
+        assert obj.metadata._is_empty()
     else:
-        assert objects[0].metadata.last_update_time_unix is not None
-        assert objects[0].metadata.creation_time_unix is not None
-        assert objects[0].metadata.explain_score is not None
+        assert obj.metadata.last_update_time_unix is not None
+        assert obj.metadata.creation_time_unix is not None
+        assert obj.metadata.explain_score is not None
 
     if include_vector:
-        assert objects[0].vector == [1, 2, 3, 4]
+        assert obj.vector == [1, 2, 3, 4]
     else:
-        assert objects[0].vector is None
+        assert obj.vector is None
+
+    if return_references is None or len(return_references) == 0:
+        assert obj.references is None
+    else:
+        assert obj.references is not None
+        assert obj.references["friend"].objects[0].uuid == UUID1
+        assert obj.references["friend"].objects[0].properties["name"] == "Graham"
+        assert obj.references["friend"].objects[0].properties["age"] == 42
 
 
 @pytest.mark.parametrize("hours,minutes,sign", [(0, 0, 1), (1, 20, -1), (2, 0, 1), (3, 40, -1)])

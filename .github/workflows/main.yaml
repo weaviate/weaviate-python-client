@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.22.6
-  NEW_WEAVIATE_VERSION: preview--performance-send-uuid-as-a-byte-6233a12
+  NEW_WEAVIATE_VERSION: preview-introduce-returnallnonrefproperties-bool-to-propertiesrequest-287c1c6
 
 jobs:
   lint-and-format:
