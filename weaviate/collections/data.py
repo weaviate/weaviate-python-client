@@ -1,6 +1,6 @@
 import datetime
 import uuid as uuid_package
-from typing import Dict, Any, Optional, List, Tuple, Generic, Type, Union, cast
+from typing import Dict, Any, Optional, List, Sequence, Tuple, Generic, Type, Union, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -12,11 +12,7 @@ from weaviate.collections.classes.batch import (
     _BatchDeleteResult,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.classes.data import (
-    DataObject,
-    DataReference,
-    GeoCoordinate,
-)
+from weaviate.collections.classes.data import DataObject, DataReference
 from weaviate.collections.classes.internal import (
     _Object,
     _metadata_from_dict,
@@ -27,7 +23,12 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.orm import (
     Model,
 )
-from weaviate.collections.classes.types import Properties, TProperties, _check_properties_generic
+from weaviate.collections.classes.types import (
+    GeoCoordinate,
+    Properties,
+    TProperties,
+    _check_properties_generic,
+)
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.batch.grpc import _BatchGRPC, _validate_props
 from weaviate.collections.batch.rest import _BatchREST
@@ -295,7 +296,7 @@ class _DataCollection(Generic[Properties], _Data):
 
     def insert_many(
         self,
-        objects: List[Union[Properties, DataObject[Properties, WeaviateReferences]]],
+        objects: Sequence[Union[Properties, DataObject[Properties, Optional[WeaviateReferences]]]],
     ) -> BatchObjectReturn:
         """Insert multiple objects into the collection.
 

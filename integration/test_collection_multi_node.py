@@ -1,3 +1,4 @@
+from typing import Generator
 import pytest
 
 import weaviate
@@ -12,7 +13,7 @@ from weaviate.collections.classes.grpc import MetadataQuery
 
 
 @pytest.fixture(scope="module")
-def client():
+def client() -> Generator[weaviate.WeaviateClient, None, None]:
     client = weaviate.connect_to_local(port=8087, grpc_port=50058)
     client.collections.delete_all()
     yield client
@@ -22,7 +23,7 @@ def client():
 @pytest.mark.parametrize(
     "level", [ConsistencyLevel.ONE, ConsistencyLevel.ALL, ConsistencyLevel.QUORUM]
 )
-def test_consistency_on_multinode(client: weaviate.WeaviateClient, level: ConsistencyLevel):
+def test_consistency_on_multinode(client: weaviate.WeaviateClient, level: ConsistencyLevel) -> None:
     name = "TestConsistency"
     client.collections.delete(name)
     collection = client.collections.create(

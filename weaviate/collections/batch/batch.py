@@ -25,13 +25,14 @@ from weaviate.collections.classes.batch import (
     Shard,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
+from weaviate.collections.classes.types import WeaviateField
 from weaviate.collections.batch.grpc import _BatchGRPC
 from weaviate.collections.batch.rest import _BatchREST
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateBatchValidationError
 from weaviate.util import _capitalize_first_letter, _decode_json_response_list
 from weaviate.warnings import _Warnings
-from weaviate.types import UUID, WeaviateField
+from weaviate.types import UUID
 
 
 class BatchExecutor(ThreadPoolExecutor):

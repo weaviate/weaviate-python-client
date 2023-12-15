@@ -1,8 +1,10 @@
+import uuid as uuid_lib
+
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Union
-from weaviate.collections.classes.data import GeoCoordinate
+from weaviate.collections.classes.types import GeoCoordinate
 
 
 from weaviate.types import UUID
@@ -90,7 +92,9 @@ class _GeoCoordinateFilter(GeoCoordinate):
     distance: float
 
 
-FilterValuesList = Union[List[str], List[bool], List[int], List[float], List[datetime], List[UUID]]
+FilterValuesList = Union[
+    List[str], List[bool], List[int], List[float], List[datetime], List[uuid_lib.UUID]
+]
 FilterValues = Union[
     int, float, str, bool, datetime, UUID, _GeoCoordinateFilter, None, FilterValuesList
 ]

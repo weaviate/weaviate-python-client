@@ -1,4 +1,4 @@
-from typing import Dict, List, Literal, Optional, Type, Union, overload
+from typing import Dict, List, Literal, Optional, Sequence, Type, Union, overload
 
 from weaviate.collections.base import _CollectionsBase
 from weaviate.collections.classes.config import (
@@ -30,7 +30,7 @@ class _Collections(_CollectionsBase):
         generative_config: Optional[_GenerativeConfigCreate] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
-        properties: Optional[List[Union[Property, _ReferencePropertyBase]]] = None,
+        properties: Optional[Sequence[Union[Property, _ReferencePropertyBase]]] = None,
         references: Optional[List[_ReferencePropertyBase]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
         sharding_config: Optional[_ShardingConfigCreate] = None,

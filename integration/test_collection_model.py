@@ -264,7 +264,7 @@ def test_multi_searches(client: weaviate.WeaviateClient):
 def test_multi_searches_with_references(client: weaviate.WeaviateClient):
     class TestMultiSearchesWithReferences(BaseProperty):
         name: Optional[str] = None
-        group: Optional[CrossReference[Group]] = None
+        group: Optional[CrossReference[Group]] = None  # type: ignore
 
     client._collection_model.delete(TestMultiSearchesWithReferences)
     collection = client._collection_model.create(
@@ -378,7 +378,7 @@ def test_update_properties(
 
     class TestPropUpdate(BaseProperty):
         name: str
-        number: member_type = field
+        number: member_type = field  # type: ignore
 
     if exception:
         with pytest.raises(WeaviateAddInvalidPropertyError):
@@ -466,7 +466,7 @@ def test_update_reference_property(client: weaviate.WeaviateClient):
 
     class TestRefPropUpdate(BaseProperty):
         name: str
-        group: CrossReference[Group]
+        group: CrossReference[Group]  # type: ignore
 
     create_original_collection()
     client._collection_model.update(TestRefPropUpdate)

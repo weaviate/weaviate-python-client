@@ -1,6 +1,6 @@
 import datetime
 import uuid
-from typing import List, Optional
+from typing import Generator, List, Optional, Union
 
 import pytest as pytest
 
@@ -15,7 +15,8 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.filters import (
-    _FilterTime,
+    _FilterCreationTime,
+    _FilterUpdateTime,
     Filter,
     _Filters,
     _FilterValue,
@@ -35,7 +36,7 @@ UUID3 = uuid.uuid4()
 
 
 @pytest.fixture(scope="module")
-def client() -> weaviate.WeaviateClient:
+def client() -> Generator[weaviate.WeaviateClient, None, None]:
     client = weaviate.connect_to_local()
     client.collections.delete_all()
     yield client
@@ -202,7 +203,7 @@ def test_filters_nested(
     assert all(obj.uuid in uuids for obj in objects)
 
 
-def test_length_filter(client: weaviate.WeaviateClient):
+def test_length_filter(client: weaviate.WeaviateClient) -> None:
     client.collections.delete("TestFilterNested")
     collection = client.collections.create(
         name="TestFilterNested",
@@ -235,7 +236,7 @@ def test_length_filter(client: weaviate.WeaviateClient):
 )
 def test_filters_comparison(
     client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
-):
+) -> None:
     client.collections.delete("TestFilterNumber")
     collection = client.collections.create(
         name="TestFilterNumber",
@@ -1039,7 +1040,9 @@ def test_filter_timestamp_direct_path(client: weaviate.WeaviateClient, path: str
 @pytest.mark.parametrize(
     "filter_type", [FilterMetadata.ByCreationTime, FilterMetadata.ByUpdateTime]
 )
-def test_filter_timestamp_class(client: weaviate.WeaviateClient, filter_type: _FilterTime) -> None:
+def test_filter_timestamp_class(
+    client: weaviate.WeaviateClient, filter_type: Union[_FilterCreationTime, _FilterUpdateTime]
+) -> None:
     if parse_version_string(client._connection._server_version) < parse_version_string("1.23"):
         pytest.skip("filter by id is not supported in this version")
     name = "TestFilterMetadataTime"

@@ -11,7 +11,7 @@ from weaviate.collections.classes.config import (
     Tokenization,
     VectorDistance,
 )
-from weaviate.collections.classes.data import DataObject, DataReference, GeoCoordinate
+from weaviate.collections.classes.data import DataObject, DataReference
 from weaviate.collections.classes.filters import Filter
 from weaviate.collections.classes.grpc import (
     HybridFusion,
@@ -28,6 +28,7 @@ from weaviate.collections.classes.internal import (
     ReferenceAnnotation,
 )
 from weaviate.collections.classes.tenants import Tenant
+from weaviate.collections.classes.types import GeoCoordinate
 
 __all__ = [
     "Configure",

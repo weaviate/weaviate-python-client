@@ -1,7 +1,6 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Generic
-from weaviate.collections.classes.internal import P, R
-from weaviate.collections.classes.types import _WeaviateInput
+from typing import Any, Generic, List, Optional
+from typing_extensions import TypeVar
 from weaviate.types import UUID
 
 
@@ -21,14 +20,20 @@ class RefError:
     message: str
 
 
+P = TypeVar("P")
+R = TypeVar("R", bound=Optional[Any], default=None)
+
+
 @dataclass
 class DataObject(Generic[P, R]):
     """This class represents an entire object within a collection to be used when batching."""
 
-    properties: Optional[P] = None
+    properties: P
     uuid: Optional[UUID] = None
     vector: Optional[List[float]] = None
-    references: Optional[R] = None
+    references: R = None  # type: ignore
+    # R is clearly bounded to Optional[Any] and defaults to None but mypy doesn't seem to understand that
+    # throws error: Incompatible types in assignment (expression has type "None", variable has type "R")  [assignment]
 
 
 @dataclass
@@ -38,13 +43,3 @@ class DataReference:
     from_property: str
     from_uuid: UUID
     to_uuid: UUID
-
-
-class GeoCoordinate(_WeaviateInput):
-    """Input for the geo-coordinate datatype."""
-
-    latitude: float
-    longitude: float
-
-    def _to_dict(self) -> Dict[str, float]:
-        return {"latitude": self.latitude, "longitude": self.longitude}

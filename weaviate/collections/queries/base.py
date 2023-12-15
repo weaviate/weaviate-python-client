@@ -11,7 +11,6 @@ from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 from google.protobuf import struct_pb2
 
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.classes.data import GeoCoordinate
 from weaviate.collections.classes.grpc import (
     FromReference,
     MetadataQuery,
@@ -26,7 +25,6 @@ from weaviate.collections.classes.internal import (
     _MetadataReturn,
     _GenerativeObject,
     _Object,
-    _Reference,
     _extract_properties_from_data_model,
     _extract_references_from_data_model,
     _GenerativeReturn,
@@ -38,9 +36,11 @@ from weaviate.collections.classes.internal import (
     ReturnReferences,
     References,
     TReferences,
-    WeaviateReferences,
+    CrossReferences,
+    _CrossReference,
 )
 from weaviate.collections.classes.types import (
+    GeoCoordinate,
     Properties,
     TProperties,
 )
@@ -90,7 +90,7 @@ class _BaseQuery(Generic[Properties, References]):
         )
 
     def _query(self) -> _QueryGRPC:
-        if not self.__connection._grpc_available:
+        if not self.__connection._grpc_available:  # type: ignore[unused-ignore,has-type] # very strange "cannot determine type of" error here when running mypy ./integration
             raise WeaviateGrpcUnavailable()
         return _QueryGRPC(
             self.__connection,
@@ -194,7 +194,7 @@ class _BaseQuery(Generic[Properties, References]):
         if len(properties) == 0:
             return None
         return {
-            ref_prop.prop_name: _Reference._from(
+            ref_prop.prop_name: _CrossReference._from(
                 [
                     self.__result_to_query_object(
                         prop, prop.metadata, _QueryOptions(True, True, True, True)
@@ -271,7 +271,7 @@ class _BaseQuery(Generic[Properties, References]):
         if len(properties.ref_props) == 0:
             return None
         return {
-            ref_prop.prop_name: _Reference._from(
+            ref_prop.prop_name: _CrossReference._from(
                 [
                     self.__result_to_query_object(
                         prop, prop.metadata, _QueryOptions(True, True, True, True)
@@ -367,10 +367,10 @@ class _BaseQuery(Generic[Properties, References]):
         ],  # required until 3.12 is minimum supported version to use new generics syntax
     ) -> Union[
         _QueryReturn[Properties, References],
-        _QueryReturn[Properties, WeaviateReferences],
+        _QueryReturn[Properties, CrossReferences],
         _QueryReturn[Properties, TReferences],
         _QueryReturn[TProperties, References],
-        _QueryReturn[TProperties, WeaviateReferences],
+        _QueryReturn[TProperties, CrossReferences],
         _QueryReturn[TProperties, TReferences],
     ]:
         return _QueryReturn(
@@ -392,10 +392,10 @@ class _BaseQuery(Generic[Properties, References]):
         ],  # required until 3.12 is minimum supported version to use new generics syntax
     ) -> Union[
         _GenerativeReturn[Properties, References],
-        _GenerativeReturn[Properties, WeaviateReferences],
+        _GenerativeReturn[Properties, CrossReferences],
         _GenerativeReturn[Properties, TReferences],
         _GenerativeReturn[TProperties, References],
-        _GenerativeReturn[TProperties, WeaviateReferences],
+        _GenerativeReturn[TProperties, CrossReferences],
         _GenerativeReturn[TProperties, TReferences],
     ]:
         return _GenerativeReturn(
@@ -420,10 +420,10 @@ class _BaseQuery(Generic[Properties, References]):
         ],  # required until 3.12 is minimum supported version to use new generics syntax
     ) -> Union[
         _GroupByReturn[Properties, References],
-        _GroupByReturn[Properties, WeaviateReferences],
+        _GroupByReturn[Properties, CrossReferences],
         _GroupByReturn[Properties, TReferences],
         _GroupByReturn[TProperties, References],
-        _GroupByReturn[TProperties, WeaviateReferences],
+        _GroupByReturn[TProperties, CrossReferences],
         _GroupByReturn[TProperties, TReferences],
     ]:
         groups = {
@@ -481,6 +481,7 @@ class _BaseQuery(Generic[Properties, References]):
                 self._properties
             )  # is sourced from collection-specific generic
         else:
+            print(return_properties)
             assert return_properties is not None
             if not is_typeddict(return_properties):
                 raise TypeError(

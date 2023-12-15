@@ -268,8 +268,10 @@ class Collection(_CollectionBase, Generic[Properties, References]):
                     after=after,
                     include_vector=include_vector,
                     return_metadata=return_metadata,
-                    return_properties=return_properties or self.__properties,
-                    return_references=return_references,
+                    return_properties=return_properties,  # type: ignore
+                    return_references=return_references,  # type: ignore
                 ).objects
             ),
+            # type ignores here are because we don't care about the types when working within the API
+            # types are mainly for the users of the API
         )
