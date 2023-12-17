@@ -1027,7 +1027,7 @@ class _Vectorizer:
     def multi2vec_clip(
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        vectorize_class_name: bool = True,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `Multi2VecClipConfig` object for use when vectorizing using the `multi2vec-clip` model.
 
@@ -1039,8 +1039,8 @@ class _Vectorizer:
                 The image fields to use in vectorization.
             `text_fields`
                 The text fields to use in vectorization.
-            `vectorize_class_name`
-                Whether to vectorize the class name. Defaults to `True`.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
             `pydantic.ValidationError` if `image_fields` or `text_fields` are not `None` or a `list`.
@@ -1048,7 +1048,7 @@ class _Vectorizer:
         return _Multi2VecClipConfig(
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
-            vectorizeClassName=vectorize_class_name,
+            vectorizeClassName=vectorize_collection_name,
         )
 
     @staticmethod
@@ -1060,7 +1060,7 @@ class _Vectorizer:
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         thermal_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        vectorize_class_name: bool = True,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `Multi2VecClipConfig` object for use when vectorizing using the `multi2vec-clip` model.
 
@@ -1082,8 +1082,8 @@ class _Vectorizer:
                 The thermal fields to use in vectorization.
             `video_fields`
                 The video fields to use in vectorization.
-            `vectorize_class_name`
-                Whether to vectorize the class name. Defaults to `True`.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
             `pydantic.ValidationError` if any of the `*_fields` are not `None` or a `list`.
@@ -1096,7 +1096,7 @@ class _Vectorizer:
             textFields=_map_multi2vec_fields(text_fields),
             thermalFields=_map_multi2vec_fields(thermal_fields),
             videoFields=_map_multi2vec_fields(video_fields),
-            vectorizeClassName=vectorize_class_name,
+            vectorizeClassName=vectorize_collection_name,
         )
 
     @staticmethod
@@ -1127,7 +1127,7 @@ class _Vectorizer:
     def text2vec_aws(
         model: AWSModel,
         region: str,
-        vectorize_class_name: bool = True,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `Text2VecAWSConfig` object for use when vectorizing using the `text2vec-aws` model.
 
@@ -1139,21 +1139,21 @@ class _Vectorizer:
                 The model to use, REQUIRED.
             `region`
                 The AWS region to run the model from, REQUIRED.
-            `vectorize_class_name`
-                Whether to vectorize the class name. Defaults to `True`.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
             `pydantic.ValidationError` if `model` or `truncate` are not valid values from the `CohereModel` and `CohereTruncate` types.
         """
         return _Text2VecAWSConfig(
-            model=model, region=region, vectorizeClassName=vectorize_class_name
+            model=model, region=region, vectorizeClassName=vectorize_collection_name
         )
 
     @staticmethod
     def text2vec_azure_openai(
         resource_name: str,
         deployment_id: str,
-        vectorize_class_name: bool = True,
+        vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `Text2VecAzureOpenAIConfig` object for use when vectorizing using the `text2vec-azure-openai` model.
@@ -1166,8 +1166,8 @@ class _Vectorizer:
                 The resource name to use, REQUIRED.
             `deployment_id`
                 The deployment ID to use, REQUIRED.
-            `vectorize_class_name`
-                Whether to vectorize the class name. Defaults to `True`.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
             `base_url`
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
 
@@ -1178,30 +1178,30 @@ class _Vectorizer:
             baseURL=base_url,
             resourceName=resource_name,
             deploymentId=deployment_id,
-            vectorizeClassName=vectorize_class_name,
+            vectorizeClassName=vectorize_collection_name,
         )
 
     @staticmethod
-    def text2vec_contextionary(vectorize_class_name: bool = True) -> _VectorizerConfigCreate:
+    def text2vec_contextionary(vectorize_collection_name: bool = True) -> _VectorizerConfigCreate:
         """Create a `Text2VecContextionaryConfig` object for use when vectorizing using the `text2vec-contextionary` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-contextionary)
         for detailed usage.
 
         Arguments:
-            `vectorize_class_name`
-                Whether to vectorize the class name. Defaults to `True`.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
-            `pydantic.ValidationError`` if `vectorize_class_name` is not a `bool`.
+            `pydantic.ValidationError`` if `vectorize_collection_name` is not a `bool`.
         """
-        return _Text2VecContextionaryConfig(vectorizeClassName=vectorize_class_name)
+        return _Text2VecContextionaryConfig(vectorizeClassName=vectorize_collection_name)
 
     @staticmethod
     def text2vec_cohere(
         model: Optional[CohereModel] = None,
         truncate: Optional[CohereTruncation] = None,
-        vectorize_class_name: bool = True,
+        vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `Text2VecCohereConfig` object for use when vectorizing using the `text2vec-cohere` model.
@@ -1214,8 +1214,8 @@ class _Vectorizer:
                 The model to use. Defaults to `None`, which uses the server-defined default.
             `truncate`
                 The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
-            `vectorize_class_name`
-                Whether to vectorize the class name. Defaults to `True`.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
             `base_url`
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
 
@@ -1226,12 +1226,12 @@ class _Vectorizer:
             baseURL=base_url,
             model=model,
             truncate=truncate,
-            vectorizeClassName=vectorize_class_name,
+            vectorizeClassName=vectorize_collection_name,
         )
 
     @staticmethod
     def text2vec_gpt4all(
-        vectorize_class_name: bool = True,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `Text2VecGPT4AllConfig` object for use when vectorizing using the `text2vec-gpt4all` model.
 
@@ -1239,13 +1239,13 @@ class _Vectorizer:
         for detailed usage.
 
         Arguments:
-            `vectorize_class_name`
-                Whether to vectorize the class name. Defaults to `True`.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
-            `pydantic.ValidationError` if `vectorize_class_name` is not a `bool`.
+            `pydantic.ValidationError` if `vectorize_collection_name` is not a `bool`.
         """
-        return _Text2VecGPT4AllConfig(vectorizeClassName=vectorize_class_name)
+        return _Text2VecGPT4AllConfig(vectorizeClassName=vectorize_collection_name)
 
     @staticmethod
     def text2vec_huggingface(
@@ -1256,7 +1256,7 @@ class _Vectorizer:
         wait_for_model: Optional[bool] = None,
         use_gpu: Optional[bool] = None,
         use_cache: Optional[bool] = None,
-        vectorize_class_name: bool = True,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `Text2VecHuggingFaceConfig` object for use when vectorizing using the `text2vec-huggingface` model.
 
@@ -1278,8 +1278,8 @@ class _Vectorizer:
                 Whether to use the GPU. Defaults to `None`, which uses the server-defined default.
             `use_cache`
                 Whether to use the cache. Defaults to `None`, which uses the server-defined default.
-            `vectorize_class_name`
-                Whether to vectorize the class name. Defaults to `True`.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
             `pydantic.ValidationError` if the arguments passed to the function are invalid.
@@ -1294,7 +1294,7 @@ class _Vectorizer:
             waitForModel=wait_for_model,
             useGPU=use_gpu,
             useCache=use_cache,
-            vectorizeClassName=vectorize_class_name,
+            vectorizeClassName=vectorize_collection_name,
         )
 
     @staticmethod
@@ -1302,7 +1302,7 @@ class _Vectorizer:
         model: Optional[OpenAIModel] = None,
         model_version: Optional[str] = None,
         type_: Optional[OpenAIType] = None,
-        vectorize_class_name: bool = True,
+        vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `Text2VecOpenAIConfig` object for use when vectorizing using the `text2vec-openai` model.
@@ -1317,8 +1317,8 @@ class _Vectorizer:
                 The model version to use. Defaults to `None`, which uses the server-defined default.
             `type_`
                 The type of model to use. Defaults to `None`, which uses the server-defined default.
-            `vectorize_class_name`
-                Whether to vectorize the class name. Defaults to `True`.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
             `base_url`
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
 
@@ -1330,7 +1330,7 @@ class _Vectorizer:
             model=model,
             modelVersion=model_version,
             type_=type_,
-            vectorizeClassName=vectorize_class_name,
+            vectorizeClassName=vectorize_collection_name,
         )
 
     @staticmethod
@@ -1338,7 +1338,7 @@ class _Vectorizer:
         project_id: str,
         api_endpoint: Optional[AnyHttpUrl] = None,
         model_id: Optional[str] = None,
-        vectorize_class_name: bool = True,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `Text2VecPalmConfig` object for use when vectorizing using the `text2vec-palm` model.
 
@@ -1352,8 +1352,8 @@ class _Vectorizer:
                 The API endpoint to use. Defaults to `None`, which uses the server-defined default.
             `model_id`
                 The model ID to use. Defaults to `None`, which uses the server-defined default.
-            `vectorize_class_name`
-                Whether to vectorize the class name. Defaults to `True`.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
             `pydantic.ValidationError` if `api_endpoint` is not a valid URL.
@@ -1362,13 +1362,13 @@ class _Vectorizer:
             projectId=project_id,
             apiEndpoint=api_endpoint,
             modelId=model_id,
-            vectorizeClassName=vectorize_class_name,
+            vectorizeClassName=vectorize_collection_name,
         )
 
     @staticmethod
     def text2vec_transformers(
         pooling_strategy: Literal["masked_mean", "cls"] = "masked_mean",
-        vectorize_class_name: bool = True,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `Text2VecTransformersConfig` object for use when vectorizing using the `text2vec-transformers` model.
 
@@ -1378,15 +1378,15 @@ class _Vectorizer:
         Arguments:
             `pooling_strategy`
                 The pooling strategy to use. Defaults to `masked_mean`.
-            `vectorize_class_name`
-                Whether to vectorize the class name. Defaults to `True`.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
             `pydantic.ValidationError` if `pooling_strategy` is not a valid value from the `PoolingStrategy` type.
         """
         return _Text2VecTransformersConfig(
             poolingStrategy=pooling_strategy,
-            vectorizeClassName=vectorize_class_name,
+            vectorizeClassName=vectorize_collection_name,
         )
 
     @staticmethod
@@ -1394,7 +1394,7 @@ class _Vectorizer:
         model: Optional[
             Literal["jina-embeddings-v2-base-en", "jina-embeddings-v2-small-en"]
         ] = None,
-        vectorize_class_name: bool = True,
+        vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecJinaConfig` object for use when vectorizing using the `text2vec-jinaai` model.
 
@@ -1404,14 +1404,14 @@ class _Vectorizer:
         Arguments:
             `model`
                 The model to use. Defaults to `None`, which uses the server-defined default.
-            `vectorize_class_name`
-                Whether to vectorize the class name. Defaults to `True`.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
             `pydantic.ValidationError` if `model` is not a valid value from the available models. See the
                 [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-jinaai#available-models) for more details.
         """
-        return _Text2VecJinaConfig(model=model, vectorizeClassName=vectorize_class_name)
+        return _Text2VecJinaConfig(model=model, vectorizeClassName=vectorize_collection_name)
 
 
 class _CollectionConfigCreateBase(_ConfigCreateModel):
@@ -1660,7 +1660,7 @@ class _GenerativeConfig(_ConfigBase):
 @dataclass
 class _VectorizerConfig(_ConfigBase):
     model: Dict[str, Any]
-    vectorize_class_name: bool
+    vectorize_collection_name: bool
 
 
 @dataclass
