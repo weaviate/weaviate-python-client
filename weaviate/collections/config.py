@@ -193,10 +193,10 @@ class _ConfigCollection(_ConfigBase):
         self._add_property(prop)
 
     def add_reference(self, ref: Union[ReferenceProperty, ReferencePropertyMultiTarget]) -> None:
-        """Add a reference property to the collection in Weaviate.
+        """Add a reference to the collection in Weaviate.
 
         Arguments:
-            ref : The reference property to add to the collection.
+            ref : The reference to add to the collection.
 
         Raises:
             `requests.ConnectionError`:

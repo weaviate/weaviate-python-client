@@ -471,7 +471,6 @@ def test_insert_many_with_refs(client: weaviate.WeaviateClient) -> None:
         if obj.properties["name"] in ["A", "B"]:
             assert obj.references is None
         else:
-            print(obj)
             assert obj.references is not None
 
 
