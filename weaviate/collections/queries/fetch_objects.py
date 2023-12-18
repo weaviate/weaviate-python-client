@@ -18,7 +18,7 @@ from weaviate.collections.classes.internal import (
     _QueryOptions,
     References,
     TReferences,
-    WeaviateReferences,
+    CrossReferences,
 )
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.queries.base import _BaseQuery
@@ -55,7 +55,7 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES
-    ) -> _QueryReturn[Properties, WeaviateReferences]:
+    ) -> _QueryReturn[Properties, CrossReferences]:
         ...
 
     @overload
@@ -103,7 +103,7 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
         *,
         return_properties: Type[TProperties],
         return_references: REFERENCES
-    ) -> _QueryReturn[TProperties, WeaviateReferences]:
+    ) -> _QueryReturn[TProperties, CrossReferences]:
         ...
 
     @overload
@@ -136,10 +136,10 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
         return_references: Optional[ReturnReferences[TReferences]] = None
     ) -> Union[
         _QueryReturn[Properties, References],
-        _QueryReturn[Properties, WeaviateReferences],
+        _QueryReturn[Properties, CrossReferences],
         _QueryReturn[Properties, TReferences],
         _QueryReturn[TProperties, References],
-        _QueryReturn[TProperties, WeaviateReferences],
+        _QueryReturn[TProperties, CrossReferences],
         _QueryReturn[TProperties, TReferences],
     ]:
         """Retrieve the objects in this collection without any search.
@@ -235,7 +235,7 @@ class _FetchObjectsGenerate(Generic[Properties, References], _BaseQuery[Properti
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES
-    ) -> _GenerativeReturn[Properties, WeaviateReferences]:
+    ) -> _GenerativeReturn[Properties, CrossReferences]:
         ...
 
     @overload
@@ -292,7 +292,7 @@ class _FetchObjectsGenerate(Generic[Properties, References], _BaseQuery[Properti
         *,
         return_properties: Type[TProperties],
         return_references: REFERENCES
-    ) -> _GenerativeReturn[TProperties, WeaviateReferences]:
+    ) -> _GenerativeReturn[TProperties, CrossReferences]:
         ...
 
     @overload
@@ -331,10 +331,10 @@ class _FetchObjectsGenerate(Generic[Properties, References], _BaseQuery[Properti
         return_references: Optional[ReturnReferences[TReferences]] = None
     ) -> Union[
         _GenerativeReturn[Properties, References],
-        _GenerativeReturn[Properties, WeaviateReferences],
+        _GenerativeReturn[Properties, CrossReferences],
         _GenerativeReturn[Properties, TReferences],
         _GenerativeReturn[TProperties, References],
-        _GenerativeReturn[TProperties, WeaviateReferences],
+        _GenerativeReturn[TProperties, CrossReferences],
         _GenerativeReturn[TProperties, TReferences],
     ]:
         """Perform retrieval-augmented generation (RaG) on the results of a simple get query of objects in this collection.

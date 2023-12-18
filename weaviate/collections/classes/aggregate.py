@@ -51,7 +51,7 @@ class AggregateText:
     """The aggregation result for a text property."""
 
     count: Optional[int]
-    top_occurrences: Optional[List[TopOccurrence]]
+    top_occurrences: List[TopOccurrence]
 
 
 @dataclass

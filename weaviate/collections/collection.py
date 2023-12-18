@@ -268,8 +268,11 @@ class Collection(_CollectionBase, Generic[Properties, References]):
                     after=after,
                     include_vector=include_vector,
                     return_metadata=return_metadata,
-                    return_properties=return_properties or self.__properties,
-                    return_references=return_references,
+                    return_properties=return_properties,  # type: ignore
+                    return_references=return_references,  # type: ignore
                 ).objects
             ),
+            # type ignores here are because we don't care about the correct types when using the public
+            # fetch_objects() method as an internal API. The correct types are only for the users of the API
+            # and these are provided by casting and overloading of iterator()
         )

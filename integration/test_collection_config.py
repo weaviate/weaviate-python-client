@@ -1,5 +1,6 @@
 import os
 import pytest as pytest
+from typing import Generator
 
 import weaviate
 from weaviate.collections.classes.config import (
@@ -26,7 +27,7 @@ from weaviate.util import parse_version_string
 
 
 @pytest.fixture(scope="module")
-def client():
+def client() -> Generator[weaviate.WeaviateClient, None, None]:
     client = weaviate.connect_to_local(port=8087)
     client.collections.delete_all()
     yield client
@@ -34,7 +35,7 @@ def client():
 
 
 @pytest.fixture(scope="module")
-def generative_client():
+def generative_client() -> Generator[weaviate.WeaviateClient, None, None]:
     api_key = os.environ.get("OPENAI_APIKEY")
     if api_key is None:
         pytest.skip("No OpenAI API key found.")
@@ -47,7 +48,7 @@ def generative_client():
     client.collections.delete_all()
 
 
-def test_collection_list(client: weaviate.WeaviateClient):
+def test_collection_list(client: weaviate.WeaviateClient) -> None:
     client.collections.create(
         name="TestCollectionList",
         vectorizer_config=Configure.Vectorizer.none(),
@@ -68,7 +69,7 @@ def test_collection_list(client: weaviate.WeaviateClient):
     client.collections.delete("TestCollectionList")
 
 
-def test_collection_get_simple(client: weaviate.WeaviateClient):
+def test_collection_get_simple(client: weaviate.WeaviateClient) -> None:
     client.collections.create(
         name="TestCollectionGetSimple",
         vectorizer_config=Configure.Vectorizer.none(),
@@ -85,7 +86,7 @@ def test_collection_get_simple(client: weaviate.WeaviateClient):
     client.collections.delete("TestCollectionGetSimple")
 
 
-def test_collection_vectorizer_config(client: weaviate.WeaviateClient):
+def test_collection_vectorizer_config(client: weaviate.WeaviateClient) -> None:
     client.collections.create(
         name="TestCollectionVectorizerConfig",
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
@@ -106,9 +107,11 @@ def test_collection_vectorizer_config(client: weaviate.WeaviateClient):
     config = collection.config.get(True)
 
     assert config.properties[0].vectorizer == "text2vec-contextionary"
+    assert config.properties[0].vectorizer_config is not None
     assert config.properties[0].vectorizer_config.skip is False
     assert config.properties[0].vectorizer_config.vectorize_property_name is True
     assert config.properties[1].vectorizer == "text2vec-contextionary"
+    assert config.properties[1].vectorizer_config is not None
     assert config.properties[1].vectorizer_config.skip is True
     assert config.properties[1].vectorizer_config.vectorize_property_name is False
 
@@ -119,7 +122,7 @@ def test_collection_vectorizer_config(client: weaviate.WeaviateClient):
     client.collections.delete("TestCollectionVectorizerConfig")
 
 
-def test_collection_generative_config(generative_client: weaviate.WeaviateClient):
+def test_collection_generative_config(generative_client: weaviate.WeaviateClient) -> None:
     generative_client.collections.create(
         name="TestCollectionGenerativeConfig",
         generative_config=Configure.Generative.openai(),
@@ -134,13 +137,14 @@ def test_collection_generative_config(generative_client: weaviate.WeaviateClient
     config = collection.config.get()
 
     assert config.properties[0].vectorizer == "none"
+    assert config.generative_config is not None
     assert config.generative_config.generator == GenerativeSearches.OPENAI
     assert config.generative_config.model is not None
 
     generative_client.collections.delete("TestCollectionGenerativeConfig")
 
 
-def test_collection_config_empty(client: weaviate.WeaviateClient):
+def test_collection_config_empty(client: weaviate.WeaviateClient) -> None:
     collection = client.collections.create(
         name="TestCollectionConfigEmpty",
     )
@@ -166,6 +170,7 @@ def test_collection_config_empty(client: weaviate.WeaviateClient):
 
     assert config.replication_config.factor == 1
 
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.cleanup_interval_seconds == 300
     assert config.vector_index_config.distance_metric == VectorDistance.COSINE
     assert config.vector_index_config.dynamic_ef_factor == 8
@@ -222,6 +227,7 @@ def test_collection_config_defaults(client: weaviate.WeaviateClient) -> None:
 
     assert config.replication_config.factor == 1
 
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.cleanup_interval_seconds == 300
     assert config.vector_index_config.distance_metric == VectorDistance.COSINE
     assert config.vector_index_config.dynamic_ef_factor == 8
@@ -493,7 +499,7 @@ def test_collection_config_get_shards(client: weaviate.WeaviateClient) -> None:
     client.collections.delete("TestCollectionConfigGetShards")
 
 
-def test_collection_config_get_shards_multi_tenancy(client: weaviate.WeaviateClient):
+def test_collection_config_get_shards_multi_tenancy(client: weaviate.WeaviateClient) -> None:
     collection = client.collections.create(
         name="TestCollectionConfigGetShardsMultiTenancy",
         vectorizer_config=Configure.Vectorizer.none(),

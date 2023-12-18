@@ -29,15 +29,3 @@ DATATYPE_TO_PYTHON_TYPE = {
 }
 PYTHON_TYPE_TO_DATATYPE = {val: key for key, val in DATATYPE_TO_PYTHON_TYPE.items()}
 TIME = datetime.datetime
-
-WeaviateField = Union[
-    str,
-    bool,
-    int,
-    float,
-    DATE,
-    UUID,
-    GEO_COORDINATES,
-    List["WeaviateField"],
-    Dict[str, "WeaviateField"],
-]

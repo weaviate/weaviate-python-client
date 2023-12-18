@@ -13,7 +13,7 @@ from weaviate.collections.classes.batch import (
     BatchObjectReturn,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.classes.data import GeoCoordinate
+from weaviate.collections.classes.types import GeoCoordinate
 from weaviate.collections.classes.internal import _Reference
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import Connection
