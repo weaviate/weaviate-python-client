@@ -88,16 +88,14 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
     else:
         generative_config = None
 
-    if "bq" in schema["vectorIndexConfig"]:
-        quantitizer: Union[_PQConfig, _BQConfig] = _BQConfig(
+    quantitizer: Optional[Union[_PQConfig, _BQConfig]] = None
+    if "bq" in schema["vectorIndexConfig"] and schema["vectorIndexConfig"]["bq"]["enabled"]:
+        quantitizer = _BQConfig(
             cache=schema["vectorIndexConfig"]["bq"]["cache"],
-            enabled=schema["vectorIndexConfig"]["bq"]["enabled"],
             rescore_limit=schema["vectorIndexConfig"]["bq"]["rescoreLimit"],
         )
-    else:
-        assert "pq" in schema["vectorIndexConfig"]
+    elif "pq" in schema["vectorIndexConfig"] and schema["vectorIndexConfig"]["pq"]["enabled"]:
         quantitizer = _PQConfig(
-            enabled=schema["vectorIndexConfig"]["pq"]["enabled"],
             bit_compression=schema["vectorIndexConfig"]["pq"]["bitCompression"],
             segments=schema["vectorIndexConfig"]["pq"]["segments"],
             centroids=schema["vectorIndexConfig"]["pq"]["centroids"],

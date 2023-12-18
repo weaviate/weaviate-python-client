@@ -286,7 +286,7 @@ class _PQEncoderConfigUpdate(_ConfigUpdateModel):
 
 
 class _QuantitizerConfigCreate(_ConfigCreateModel):
-    enabled: bool
+    enabled: bool = Field(default=True)
 
     @staticmethod
     @abstractmethod
@@ -325,7 +325,7 @@ class _QuantitizerConfigUpdate(_ConfigUpdateModel):
 class _PQConfigUpdate(_QuantitizerConfigUpdate):
     bitCompression: Optional[bool]
     centroids: Optional[int]
-    enabled: Optional[bool]
+    enabled: bool = Field(default=True)
     segments: Optional[int]
     trainingLimit: Optional[int]
     encoder: Optional[_PQEncoderConfigUpdate]
@@ -1614,7 +1614,6 @@ class _PQEncoderConfig(_ConfigBase):
 
 @dataclass
 class _PQConfig(_ConfigBase):
-    enabled: bool
     bit_compression: bool
     segments: int
     centroids: int
@@ -1625,7 +1624,6 @@ class _PQConfig(_ConfigBase):
 @dataclass
 class _BQConfig(_ConfigBase):
     cache: bool
-    enabled: bool
     rescore_limit: int
 
 
@@ -1640,7 +1638,7 @@ class _VectorIndexConfigHNSW(_ConfigBase):
     ef_construction: int
     flat_search_cutoff: int
     max_connections: int
-    quantitizer: Union[_PQConfig, _BQConfig]
+    quantitizer: Optional[Union[_PQConfig, _BQConfig]]
     skip: bool
     vector_cache_max_objects: int
 
@@ -1648,7 +1646,7 @@ class _VectorIndexConfigHNSW(_ConfigBase):
 @dataclass
 class _VectorIndexConfigFlat(_ConfigBase):
     distance_metric: VectorDistance
-    quantitizer: Union[_PQConfig, _BQConfig]
+    quantitizer: Optional[Union[_PQConfig, _BQConfig]]
     vector_cache_max_objects: int
 
 
@@ -1918,7 +1916,6 @@ class _VectorIndexQuantitizer:
     def PQ(
         bit_compression: bool = False,
         centroids: int = 256,
-        enabled: bool = False,
         encoder_distribution: PQEncoderDistribution = PQEncoderDistribution.LOG_NORMAL,
         encoder_type: PQEncoderType = PQEncoderType.KMEANS,
         segments: int = 0,
@@ -1934,7 +1931,6 @@ class _VectorIndexQuantitizer:
         return _PQConfigCreate(
             bitCompression=bit_compression,
             centroids=centroids,
-            enabled=enabled,
             segments=segments,
             trainingLimit=training_limit,
             encoder=_PQEncoderConfigCreate(type_=encoder_type, distribution=encoder_distribution),
@@ -1943,7 +1939,6 @@ class _VectorIndexQuantitizer:
     @staticmethod
     def BQ(
         cache: bool = False,
-        enabled: bool = False,
         rescore_limit: int = -1,
     ) -> _BQConfigCreate:
         """Create a `_BQConfigCreate` object to be used when defining the binary quantization (BQ) configuration of Weaviate.
@@ -1955,7 +1950,6 @@ class _VectorIndexQuantitizer:
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _BQConfigCreate(
             cache=cache,
-            enabled=enabled,
             rescoreLimit=rescore_limit,
         )
 
@@ -2121,7 +2115,6 @@ class _VectorIndexQuantitizerUpdate:
     def PQ(
         bit_compression: Optional[bool] = None,
         centroids: Optional[int] = None,
-        enabled: Optional[bool] = None,
         encoder_distribution: Optional[PQEncoderDistribution] = None,
         encoder_type: Optional[PQEncoderType] = None,
         segments: Optional[int] = None,
@@ -2137,7 +2130,6 @@ class _VectorIndexQuantitizerUpdate:
         return _PQConfigUpdate(
             bitCompression=bit_compression,
             centroids=centroids,
-            enabled=enabled,
             segments=segments,
             trainingLimit=training_limit,
             encoder=_PQEncoderConfigUpdate(type_=encoder_type, distribution=encoder_distribution),

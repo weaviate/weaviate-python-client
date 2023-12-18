@@ -175,16 +175,7 @@ def test_collection_config_empty(client: weaviate.WeaviateClient):
     assert config.vector_index_config.ef_construction == 128
     assert config.vector_index_config.flat_search_cutoff == 40000
     assert config.vector_index_config.max_connections == 64
-    assert config.vector_index_config.quantitizer.bit_compression is False
-    assert config.vector_index_config.quantitizer.centroids == 256
-    assert config.vector_index_config.quantitizer.enabled is False
-    assert (
-        config.vector_index_config.quantitizer.encoder.distribution
-        == PQEncoderDistribution.LOG_NORMAL
-    )
-    assert config.vector_index_config.quantitizer.encoder.type_ == PQEncoderType.KMEANS
-    assert config.vector_index_config.quantitizer.segments == 0
-    assert config.vector_index_config.quantitizer.training_limit == 100000
+    assert config.vector_index_config.quantitizer is None
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 1000000000000
 
@@ -233,16 +224,7 @@ def test_collection_config_defaults(client: weaviate.WeaviateClient) -> None:
     assert config.vector_index_config.ef_construction == 128
     assert config.vector_index_config.flat_search_cutoff == 40000
     assert config.vector_index_config.max_connections == 64
-    assert config.vector_index_config.quantitizer.bit_compression is False
-    assert config.vector_index_config.quantitizer.centroids == 256
-    assert config.vector_index_config.quantitizer.enabled is False
-    assert (
-        config.vector_index_config.quantitizer.encoder.distribution
-        == PQEncoderDistribution.LOG_NORMAL
-    )
-    assert config.vector_index_config.quantitizer.encoder.type_ == PQEncoderType.KMEANS
-    assert config.vector_index_config.quantitizer.segments == 0
-    assert config.vector_index_config.quantitizer.training_limit == 100000
+    assert config.vector_index_config.quantitizer is None
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 1000000000000
 
@@ -297,7 +279,6 @@ def test_collection_config_full(client: weaviate.WeaviateClient) -> None:
             quantitizer=Configure.VectorIndex.Quantitizer.PQ(
                 bit_compression=True,
                 centroids=128,
-                enabled=True,
                 encoder_distribution=PQEncoderDistribution.NORMAL,
                 encoder_type=PQEncoderType.TILE,
                 segments=4,
@@ -368,7 +349,6 @@ def test_collection_config_full(client: weaviate.WeaviateClient) -> None:
     assert config.vector_index_config.max_connections == 72
     assert config.vector_index_config.quantitizer.bit_compression is True
     assert config.vector_index_config.quantitizer.centroids == 128
-    assert config.vector_index_config.quantitizer.enabled is True
     assert (
         config.vector_index_config.quantitizer.encoder.distribution == PQEncoderDistribution.NORMAL
     )
@@ -413,7 +393,6 @@ def test_collection_config_update(client: weaviate.WeaviateClient) -> None:
             quantitizer=Reconfigure.VectorIndex.Quantitizer.PQ(
                 bit_compression=True,
                 centroids=128,
-                enabled=True,
                 encoder_type=PQEncoderType.TILE,
                 encoder_distribution=PQEncoderDistribution.NORMAL,
                 segments=4,
@@ -447,7 +426,6 @@ def test_collection_config_update(client: weaviate.WeaviateClient) -> None:
     assert config.vector_index_config.max_connections == 64
     assert config.vector_index_config.quantitizer.bit_compression is True
     assert config.vector_index_config.quantitizer.centroids == 128
-    assert config.vector_index_config.quantitizer.enabled is True
     assert config.vector_index_config.quantitizer.encoder.type_ == PQEncoderType.TILE
     assert (
         config.vector_index_config.quantitizer.encoder.distribution == PQEncoderDistribution.NORMAL
@@ -469,7 +447,7 @@ def test_update_flat(client: weaviate.WeaviateClient) -> None:
         name="TestCollectionConfigUpdateFlat",
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=5,
-            quantitizer=Configure.VectorIndex.Quantitizer.BQ(enabled=True, rescore_limit=10),
+            quantitizer=Configure.VectorIndex.Quantitizer.BQ(rescore_limit=10),
         ),
     )
     config = collection.config.get()
@@ -543,7 +521,7 @@ def test_config_vector_index_flat_and_quantitizer_bq() -> None:
         name="TestCollectionCVectorIndexAndQuantitizer",
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=234,
-            quantitizer=Configure.VectorIndex.Quantitizer.BQ(enabled=True, rescore_limit=456),
+            quantitizer=Configure.VectorIndex.Quantitizer.BQ(rescore_limit=456),
         ),
     )
 
@@ -551,7 +529,6 @@ def test_config_vector_index_flat_and_quantitizer_bq() -> None:
     assert conf.vector_index_type == _VectorIndexType.FLAT
     assert conf.vector_index_config.vector_cache_max_objects == 234
     assert isinstance(conf.vector_index_config.quantitizer, _BQConfig)
-    assert conf.vector_index_config.quantitizer.enabled
     assert conf.vector_index_config.quantitizer.rescore_limit == 456
 
 
@@ -563,7 +540,7 @@ def test_config_vector_index_hnsw_and_quantitizer_pq() -> None:
         vector_index_config=Configure.VectorIndex.hnsw(
             vector_cache_max_objects=234,
             ef_construction=789,
-            quantitizer=Configure.VectorIndex.Quantitizer.PQ(enabled=True, segments=456),
+            quantitizer=Configure.VectorIndex.Quantitizer.PQ(segments=456),
         ),
     )
 
@@ -573,5 +550,4 @@ def test_config_vector_index_hnsw_and_quantitizer_pq() -> None:
     assert isinstance(conf.vector_index_config, _VectorIndexConfigHNSW)
     assert conf.vector_index_config.ef_construction == 789
     assert isinstance(conf.vector_index_config.quantitizer, _PQConfig)
-    assert conf.vector_index_config.quantitizer.enabled
     assert conf.vector_index_config.quantitizer.segments == 456
