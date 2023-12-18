@@ -211,7 +211,7 @@ def test_collection_config_defaults(client: weaviate.WeaviateClient) -> None:
     assert config.inverted_index_config.stopwords.preset == StopwordsPreset.EN
     assert config.inverted_index_config.stopwords.removals is None
 
-    assert config.multi_tenancy_config.enabled is False
+    assert config.multi_tenancy_config.enabled is True
 
     assert config.replication_config.factor == 1
 
