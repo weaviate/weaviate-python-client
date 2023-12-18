@@ -151,7 +151,7 @@ class Sort(_WeaviateInput):
     ascending: bool = Field(default=True)
 
 
-class FromReference(_WeaviateInput):
+class QueryReference(_WeaviateInput):
     """Define a query-time reference to a single-target property when querying through cross-references."""
 
     link_on: str
@@ -168,14 +168,14 @@ class FromReference(_WeaviateInput):
         return _MetadataQuery.from_public(self.return_metadata, self.include_vector)
 
 
-class FromReferenceMultiTarget(FromReference):
+class QueryReferenceMultiTarget(QueryReference):
     """Define a query-time reference to a multi-target property when querying through cross-references."""
 
     target_collection: str
 
 
-class FromNested(_WeaviateInput):
-    """Define the return properties of a nested property."""
+class QueryNested(_WeaviateInput):
+    """Define the query-time return properties of a nested property."""
 
     name: str
     properties: "PROPERTIES"
@@ -184,13 +184,23 @@ class FromNested(_WeaviateInput):
         return hash(str(self))
 
 
-REFERENCE = Union[FromReference, FromReferenceMultiTarget]
+# deprecated and should be removed in v4 GA
+FromReference = QueryReference
+"""@deprecated: Use `QueryReference` instead."""
+FromReferenceMultiTarget = QueryReferenceMultiTarget
+"""@deprecated: Use `QueryReferenceMultiTarget` instead."""
+FromNested = QueryNested
+"""@deprecated: Use `QueryNested` instead."""
+
+REFERENCE = Union[
+    FromReference, FromReferenceMultiTarget, QueryReference, QueryReferenceMultiTarget
+]
 REFERENCES = Union[List[REFERENCE], REFERENCE]
 
-PROPERTY = Union[str, FromNested]
+PROPERTY = Union[str, FromNested, QueryNested]
 PROPERTIES = Union[List[PROPERTY], PROPERTY]
 
-NestedProperties = Union[List[Union[str, FromNested]], str, FromNested]
+NestedProperties = Union[List[Union[str, FromNested, QueryNested]], str, FromNested, QueryNested]
 
 _PROPERTY = Union[PROPERTY, REFERENCE]
 _PROPERTIES = Union[PROPERTIES, REFERENCES]
