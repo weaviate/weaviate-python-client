@@ -282,7 +282,6 @@ class _CrossReference(Generic[Properties, IReferences]):
         self,
         objects: Optional[List[_Object[Properties, IReferences]]],
     ):
-        """You should not initialise this class directly. Use the `.to()` or `.to_multi_target()` class methods instead."""
         self.__objects = objects
 
     @classmethod
