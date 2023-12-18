@@ -70,7 +70,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         Configure.Vectorizer.text2vec_cohere(
             model="embed-multilingual-v2.0",
             truncate="NONE",
-            vectorize_class_name=False,
+            vectorize_collection_name=False,
             base_url="https://api.cohere.ai",
         ),
         {
@@ -92,7 +92,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
     ),
     (
         Configure.Vectorizer.text2vec_gpt4all(
-            vectorize_class_name=False,
+            vectorize_collection_name=False,
         ),
         {
             "text2vec-gpt4all": {
@@ -123,7 +123,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
             wait_for_model=True,
             use_gpu=True,
             use_cache=True,
-            vectorize_class_name=False,
+            vectorize_collection_name=False,
         ),
         {
             "text2vec-huggingface": {
@@ -151,7 +151,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
     ),
     (
         Configure.Vectorizer.text2vec_aws(
-            vectorize_class_name=False, model="cohere.embed-english-v3", region="us-east-1"
+            vectorize_collection_name=False, model="cohere.embed-english-v3", region="us-east-1"
         ),
         {
             "text2vec-aws": {
@@ -171,7 +171,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
     ),
     (
         Configure.Vectorizer.text2vec_openai(
-            vectorize_class_name=False,
+            vectorize_collection_name=False,
             model="ada",
             model_version="002",
             type_="text",
@@ -203,7 +203,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
             project_id="project",
             api_endpoint="https://api.google.com",
             model_id="model",
-            vectorize_class_name=False,
+            vectorize_collection_name=False,
         ),
         {
             "text2vec-palm": {
@@ -226,7 +226,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
     (
         Configure.Vectorizer.text2vec_transformers(
             pooling_strategy="cls",
-            vectorize_class_name=False,
+            vectorize_collection_name=False,
         ),
         {
             "text2vec-transformers": {
@@ -275,7 +275,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
         Configure.Vectorizer.multi2vec_clip(
             image_fields=[Multi2VecField(name="image", weight=0.5)],
             text_fields=[Multi2VecField(name="text", weight=0.5)],
-            vectorize_class_name=False,
+            vectorize_collection_name=False,
         ),
         {
             "multi2vec-clip": {
@@ -339,7 +339,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
             imu_fields=[Multi2VecField(name="imu", weight=0.5)],
             text_fields=[Multi2VecField(name="text", weight=0.5)],
             thermal_fields=[Multi2VecField(name="thermal", weight=0.5)],
-            vectorize_class_name=False,
+            vectorize_collection_name=False,
         ),
         {
             "multi2vec-bind": {
