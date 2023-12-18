@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Generic
-from weaviate.collections.classes.internal import P
+from weaviate.collections.classes.internal import P, R
 from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.types import UUID
 
@@ -22,12 +22,13 @@ class RefError:
 
 
 @dataclass
-class DataObject(Generic[P]):
+class DataObject(Generic[P, R]):
     """This class represents an entire object within a collection to be used when batching."""
 
     properties: Optional[P] = None
     uuid: Optional[UUID] = None
     vector: Optional[List[float]] = None
+    references: Optional[R] = None
 
 
 @dataclass

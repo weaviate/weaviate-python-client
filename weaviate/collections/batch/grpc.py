@@ -69,7 +69,10 @@ class _BatchGRPC(_BaseGRPC):
                 if obj.vector is not None and self._is_weaviate_version_123
                 else None,
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
-                properties=self.__translate_properties_from_python_to_grpc(obj.properties, False)
+                properties=self.__translate_properties_from_python_to_grpc(
+                    {**obj.properties, **(obj.references if obj.references is not None else {})},
+                    False,
+                )
                 if obj.properties is not None
                 else None,
                 tenant=obj.tenant,
