@@ -11,6 +11,7 @@ from weaviate.collections.classes.config import (
     Configure,
     Reconfigure,
     Property,
+    ReferenceProperty,
     DataType,
     PQEncoderType,
     PQEncoderDistribution,
@@ -87,7 +88,9 @@ def test_collection_get_simple(client: weaviate.WeaviateClient):
 def test_collection_vectorizer_config(client: weaviate.WeaviateClient):
     client.collections.create(
         name="TestCollectionVectorizerConfig",
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(
@@ -110,7 +113,7 @@ def test_collection_vectorizer_config(client: weaviate.WeaviateClient):
     assert config.properties[1].vectorizer_config.vectorize_property_name is False
 
     assert config.vectorizer_config is not None
-    assert config.vectorizer_config.vectorize_class_name is False
+    assert config.vectorizer_config.vectorize_collection_name is False
     assert config.vectorizer_config.model == {}
 
     client.collections.delete("TestCollectionVectorizerConfig")
@@ -265,6 +268,9 @@ def test_collection_config_full(client: weaviate.WeaviateClient) -> None:
             Property(name="geo", data_type=DataType.GEO_COORDINATES),
             Property(name="phone", data_type=DataType.PHONE_NUMBER),
         ],
+        references=[
+            ReferenceProperty(name="self", target_collection="TestCollectionConfigFull"),
+        ],
         inverted_index_config=Configure.inverted_index(
             bm25_b=0.8,
             bm25_k1=1.3,
@@ -331,6 +337,9 @@ def test_collection_config_full(client: weaviate.WeaviateClient) -> None:
     assert config.properties[10].data_type == DataType.GEO_COORDINATES
     assert config.properties[11].name == "phone"
     assert config.properties[11].data_type == DataType.PHONE_NUMBER
+
+    assert config.references[0].name == "self"
+    assert config.references[0].target_collections == ["TestCollectionConfigFull"]
 
     assert config.inverted_index_config.bm25.b == 0.8
     assert config.inverted_index_config.bm25.k1 == 1.3

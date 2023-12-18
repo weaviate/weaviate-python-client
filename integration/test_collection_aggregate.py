@@ -83,7 +83,9 @@ def test_near_object_aggregation(client: weaviate.WeaviateClient, option: dict, 
     collection = client.collections.create(
         name=name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
     )
     text_1 = "some text"
     text_2 = "nothing like the other one at all, not even a little bit"
@@ -117,7 +119,9 @@ def test_near_object_missing_param(client: weaviate.WeaviateClient):
     collection = client.collections.create(
         name=name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
     )
     text_1 = "some text"
     text_2 = "nothing like the other one at all, not even a little bit"
@@ -155,7 +159,9 @@ def test_near_vector_aggregation(client: weaviate.WeaviateClient, option: dict, 
     collection = client.collections.create(
         name=name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
     )
     text_1 = "some text"
     text_2 = "nothing like the other one at all, not even a little bit"
@@ -190,7 +196,9 @@ def test_near_vector_missing_param(client: weaviate.WeaviateClient):
     collection = client.collections.create(
         name=name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
     )
     uuid_ = collection.data.insert({"text": "some text"})
     obj = collection.query.fetch_object_by_id(uuid_, include_vector=True)
@@ -226,7 +234,9 @@ def test_near_text_aggregation(client: weaviate.WeaviateClient, option: dict, ex
     collection = client.collections.create(
         name=name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
     )
     text_1 = "some text"
     text_2 = "nothing like the other one at all, not even a little bit"
@@ -260,7 +270,9 @@ def test_near_text_missing_param(client: weaviate.WeaviateClient):
     collection = client.collections.create(
         name=name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
     )
     text_1 = "some text"
     collection.data.insert({"text": text_1})
@@ -391,7 +403,7 @@ def test_mistake_in_usage(client: weaviate.WeaviateClient):
     )
 
 
-def test_all_available_aggregations(client: weaviate.WeaviateClient):
+def test_all_available_aggregations(client: weaviate.WeaviateClient) -> None:
     name = "TestAllAvailableAggregations"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -410,6 +422,8 @@ def test_all_available_aggregations(client: weaviate.WeaviateClient):
             Property(name="bools", data_type=DataType.BOOL_ARRAY),
             Property(name="date", data_type=DataType.DATE),
             Property(name="dates", data_type=DataType.DATE_ARRAY),
+        ],
+        references=[
             ReferenceProperty(name="ref", target_collection="TestAllAvailableAggregations"),
         ],
     )

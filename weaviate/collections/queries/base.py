@@ -62,9 +62,9 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.types import UUID
 
 
-class _WeaviateUUID(uuid_lib.UUID):
-    def __init__(self, hex_: str) -> None:
-        object.__setattr__(self, "int", int(hex_.replace("-", ""), 16))
+class _WeaviateUUIDInt(uuid_lib.UUID):
+    def __init__(self, hex_: int) -> None:
+        object.__setattr__(self, "int", hex_)
 
 
 class _BaseQuery(Generic[Properties, References]):
@@ -97,7 +97,7 @@ class _BaseQuery(Generic[Properties, References]):
             self._name,
             self.__tenant,
             self.__consistency_level,
-            support_byte_vectors=self._is_weaviate_version_123,
+            is_weaviate_version_123=self._is_weaviate_version_123,
         )
 
     def __extract_metadata_for_object(
@@ -127,9 +127,12 @@ class _BaseQuery(Generic[Properties, References]):
         self,
         add_props: "search_get_pb2.MetadataResult",
     ) -> uuid_lib.UUID:
-        if not len(add_props.id) > 0:
+        if len(add_props.id_bytes) > 0:
+            return _WeaviateUUIDInt(int.from_bytes(add_props.id_bytes, byteorder="big"))
+
+        if len(add_props.id) == 0:
             raise WeaviateQueryException("The query returned an object with an empty ID string")
-        return _WeaviateUUID(add_props.id)
+        return uuid_lib.UUID(add_props.id)
 
     def __extract_vector_for_object(
         self,

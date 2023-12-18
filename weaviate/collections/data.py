@@ -295,15 +295,15 @@ class _DataCollection(Generic[Properties], _Data):
 
     def insert_many(
         self,
-        objects: List[Union[Properties, DataObject[Properties]]],
+        objects: List[Union[Properties, DataObject[Properties, WeaviateReferences]]],
     ) -> BatchObjectReturn:
         """Insert multiple objects into the collection.
 
         Arguments:
             `objects`
-                The objects to insert. This can be either a list of `Properties` or `DataObject[Properties]`
+                The objects to insert. This can be either a list of `Properties` or `DataObject[Properties, WeaviateReferences]`
                     If you didn't set `data_model` then `Properties` will be `Data[str, Any]` in which case you can insert simple dictionaries here.
-                        If you want to insert vectors and UUIDs alongside your properties, you will have to use `DataObject` instead.
+                        If you want to insert references, vectors, or UUIDs alongside your properties, you will have to use `DataObject` instead.
 
         Raises:
             `weaviate.exceptions.WeaviateQueryException`:
@@ -321,6 +321,7 @@ class _DataCollection(Generic[Properties], _Data):
                     uuid=obj.uuid,
                     properties=cast(dict, obj.properties),
                     tenant=self._tenant,
+                    references=obj.references,
                 )
                 if isinstance(obj, DataObject)
                 else _BatchObject(
@@ -329,6 +330,7 @@ class _DataCollection(Generic[Properties], _Data):
                     uuid=None,
                     properties=cast(dict, obj),
                     tenant=None,
+                    references=None,
                 )
                 for obj in objects
             ]
@@ -544,6 +546,7 @@ class _DataCollectionModel(Generic[Model], _Data):
                 tenant=self._tenant,
                 uuid=obj.uuid,
                 vector=obj.vector,
+                references=None,
             )
             for obj in objects
         ]

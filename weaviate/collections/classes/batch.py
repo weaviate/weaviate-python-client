@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union, cast
 
 from pydantic import BaseModel, Field, field_validator
 
+from weaviate.collections.classes.internal import WeaviateReferences
 from weaviate.util import _capitalize_first_letter, get_valid_uuid, get_vector
 from weaviate.types import BEACON, UUID, WeaviateField
 
@@ -15,6 +16,7 @@ class _BatchObject:
     uuid: Optional[UUID]
     properties: Optional[Dict[str, WeaviateField]]
     tenant: Optional[str]
+    references: Optional[WeaviateReferences]
 
 
 @dataclass
@@ -52,6 +54,7 @@ class BatchObject(BaseModel):
             uuid=self.uuid,
             properties=self.properties,
             tenant=self.tenant,
+            references=None,
         )
 
     @field_validator("collection")

@@ -38,7 +38,7 @@ class SearchRequest(_message.Message):
         "near_audio",
         "near_video",
         "generative",
-        "uses_properties_message",
+        "uses_123_api",
     ]
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     TENANT_FIELD_NUMBER: _ClassVar[int]
@@ -61,7 +61,7 @@ class SearchRequest(_message.Message):
     NEAR_AUDIO_FIELD_NUMBER: _ClassVar[int]
     NEAR_VIDEO_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_FIELD_NUMBER: _ClassVar[int]
-    USES_PROPERTIES_MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    USES_123_API_FIELD_NUMBER: _ClassVar[int]
     collection: str
     tenant: str
     consistency_level: _base_pb2.ConsistencyLevel
@@ -83,7 +83,7 @@ class SearchRequest(_message.Message):
     near_audio: NearAudioSearch
     near_video: NearVideoSearch
     generative: GenerativeSearch
-    uses_properties_message: bool
+    uses_123_api: bool
     def __init__(
         self,
         collection: _Optional[str] = ...,
@@ -107,7 +107,7 @@ class SearchRequest(_message.Message):
         near_audio: _Optional[_Union[NearAudioSearch, _Mapping]] = ...,
         near_video: _Optional[_Union[NearVideoSearch, _Mapping]] = ...,
         generative: _Optional[_Union[GenerativeSearch, _Mapping]] = ...,
-        uses_properties_message: bool = ...,
+        uses_123_api: bool = ...,
     ) -> None: ...
 
 class GroupBy(_message.Message):
@@ -317,18 +317,26 @@ class MetadataRequest(_message.Message):
     ) -> None: ...
 
 class PropertiesRequest(_message.Message):
-    __slots__ = ["non_ref_properties", "ref_properties", "object_properties"]
+    __slots__ = [
+        "non_ref_properties",
+        "ref_properties",
+        "object_properties",
+        "return_all_nonref_properties",
+    ]
     NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     OBJECT_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    RETURN_ALL_NONREF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     non_ref_properties: _containers.RepeatedScalarFieldContainer[str]
     ref_properties: _containers.RepeatedCompositeFieldContainer[RefPropertiesRequest]
     object_properties: _containers.RepeatedCompositeFieldContainer[ObjectPropertiesRequest]
+    return_all_nonref_properties: bool
     def __init__(
         self,
         non_ref_properties: _Optional[_Iterable[str]] = ...,
         ref_properties: _Optional[_Iterable[_Union[RefPropertiesRequest, _Mapping]]] = ...,
         object_properties: _Optional[_Iterable[_Union[ObjectPropertiesRequest, _Mapping]]] = ...,
+        return_all_nonref_properties: bool = ...,
     ) -> None: ...
 
 class ObjectPropertiesRequest(_message.Message):
@@ -593,6 +601,7 @@ class MetadataResult(_message.Message):
         "generative_present",
         "is_consistent_present",
         "vector_bytes",
+        "id_bytes",
     ]
     ID_FIELD_NUMBER: _ClassVar[int]
     VECTOR_FIELD_NUMBER: _ClassVar[int]
@@ -613,6 +622,7 @@ class MetadataResult(_message.Message):
     GENERATIVE_PRESENT_FIELD_NUMBER: _ClassVar[int]
     IS_CONSISTENT_PRESENT_FIELD_NUMBER: _ClassVar[int]
     VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
+    ID_BYTES_FIELD_NUMBER: _ClassVar[int]
     id: str
     vector: _containers.RepeatedScalarFieldContainer[float]
     creation_time_unix: int
@@ -632,6 +642,7 @@ class MetadataResult(_message.Message):
     generative_present: bool
     is_consistent_present: bool
     vector_bytes: bytes
+    id_bytes: bytes
     def __init__(
         self,
         id: _Optional[str] = ...,
@@ -653,6 +664,7 @@ class MetadataResult(_message.Message):
         generative_present: bool = ...,
         is_consistent_present: bool = ...,
         vector_bytes: _Optional[bytes] = ...,
+        id_bytes: _Optional[bytes] = ...,
     ) -> None: ...
 
 class PropertiesResult(_message.Message):

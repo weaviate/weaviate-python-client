@@ -48,9 +48,11 @@ def client_sync_indexing() -> weaviate.WeaviateClient:
     client.collections.create(
         name=SYNC_COLLECTION_NAME,
         properties=[
-            ReferenceProperty(name="test", target_collection=SYNC_COLLECTION_NAME),
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
+        ],
+        references=[
+            ReferenceProperty(name="test", target_collection=SYNC_COLLECTION_NAME),
         ],
     )
     yield client
@@ -237,6 +239,8 @@ def test_add_ref_batch_with_tenant(client_sync_indexing: weaviate.WeaviateClient
         name=collections[1],
         properties=[
             Property(name="tenantAsProp", data_type=DataType.TEXT),
+        ],
+        references=[
             ReferenceProperty(name="ref", target_collection=collections[0]),
         ],
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),

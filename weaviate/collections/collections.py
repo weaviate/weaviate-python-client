@@ -31,12 +31,13 @@ class _Collections(_CollectionsBase):
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
         properties: Optional[List[Union[Property, _ReferencePropertyBase]]] = None,
+        references: Optional[List[_ReferencePropertyBase]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
         sharding_config: Optional[_ShardingConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorizer_config: Optional[_VectorizerConfigCreate] = None,
-        data_model: Optional[Type[Properties]] = None,
-        references: Optional[Type[References]] = None,
+        data_model_properties: Optional[Type[Properties]] = None,
+        data_model_references: Optional[Type[References]] = None,
     ) -> Collection[Properties, References]:
         """Use this method to create a collection in Weaviate and immediately return a collection object.
 
@@ -60,6 +61,8 @@ class _Collections(_CollectionsBase):
                 The configuration for Weaviate's multi-tenancy capabilities.
             `properties`
                 The properties of the objects in the collection.
+            `references`
+                The references of the objects in the collection.
             `replication_config`
                 The configuration for Weaviate's replication strategy.
             `sharding_config`
@@ -68,8 +71,10 @@ class _Collections(_CollectionsBase):
                 The configuration for Weaviate's vector index.
             `vectorizer_config`
                 The configuration for Weaviate's vectorizer.
-            `data_model`
+            `data_model_properties`
                 The generic class that you want to use to represent the properties of objects in this collection. See the `get` method for more information.
+            `data_model_references`
+                The generic class that you want to use to represent the references of objects in this collection. See the `get` method for more information.
 
         Raises:
             `requests.ConnectionError`
@@ -86,47 +91,52 @@ class _Collections(_CollectionsBase):
             multi_tenancy_config=multi_tenancy_config,
             name=name,
             properties=properties,
+            references=references,
             replication_config=replication_config,
             sharding_config=sharding_config,
             vectorizer_config=vectorizer_config or _Vectorizer.none(),
             vector_index_config=vector_index_config,
         )
-        name = super()._create(config)
+        name = super()._create(config._to_dict())
         if config.name != name:
             raise ValueError(
                 f"Name of created collection ({name}) does not match given name ({config.name})"
             )
-        return self.get(name, data_model, references)
+        return self.get(name, data_model_properties, data_model_references)
 
     def get(
         self,
         name: str,
-        properties: Optional[Type[Properties]] = None,
-        references: Optional[Type[References]] = None,
+        data_model_properties: Optional[Type[Properties]] = None,
+        data_model_references: Optional[Type[References]] = None,
     ) -> Collection[Properties, References]:
         """Use this method to return a collection object to be used when interacting with your Weaviate collection.
 
         Arguments:
             `name`
                 The name of the collection to get.
-            `data_model`
-                The generic class that you want to use to represent the properties of objects in this collection when mutating objects through the `.data` namespace.
-                    The generic provided in this argument will propagate to the methods in `.data` and allow you to do `mypy` static type checking on your codebase.
-                        If you do not provide a generic, the methods in `.data` will return objects of `Dict[str, Any]` type.
+            `data_model_properties`
+                The generic class that you want to use to represent the properties of objects in this collection when mutating objects through the `.query` namespace.
+                The generic provided in this argument will propagate to the methods in `.query` and allow you to do `mypy` static type checking on your codebase.
+                If you do not provide a generic, the methods in `.query` will return objects properties as `Dict[str, Any]`.
+            `data_model_references`
+                The generic class that you want to use to represent the objects of references in this collection when mutating objects through the `.query` namespace.
+                The generic provided in this argument will propagate to the methods in `.query` and allow you to do `mypy` static type checking on your codebase.
+                If you do not provide a generic, the methods in `.query` will return properties of referenced objects as `Dict[str, Any]`.
 
         Raises:
             `weaviate.exceptions.InvalidDataModelException`
                 If the data model is not a valid data model, i.e., it is not a `dict` nor a `TypedDict`.
         """
-        _check_properties_generic(properties)
-        _check_references_generic(references)
+        _check_properties_generic(data_model_properties)
+        _check_references_generic(data_model_references)
         name = _capitalize_first_letter(name)
         return Collection[Properties, References](
             self._connection,
             name,
             self._batch_executor,
-            properties=properties,
-            references=references,
+            properties=data_model_properties,
+            references=data_model_references,
         )
 
     def delete(self, name: Union[str, List[str]]) -> None:
@@ -184,6 +194,24 @@ class _Collections(_CollectionsBase):
         """
         return self._exists(_capitalize_first_letter(name))
 
+    def export_config(self, name: str) -> _CollectionConfig:
+        """Use this method to export the configuration of a collection from the Weaviate instance.
+
+        Arguments:
+            `name`
+                The name of the collection to export.
+
+        Returns:
+            The configuration of the collection as a dictionary.
+
+        Raises:
+            `requests.ConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a non-OK status.
+        """
+        return self._export(_capitalize_first_letter(name))
+
     @overload
     def list_all(self, simple: Literal[False]) -> Dict[str, _CollectionConfig]:
         ...
@@ -214,3 +242,37 @@ class _Collections(_CollectionsBase):
         if simple:
             return self._get_simple()
         return self._get_all()
+
+    def create_from_dict(self, config: dict) -> Collection:
+        """Use this method to create a collection in Weaviate and immediately return a collection object using a pre-defined Weaviate collection configuration dictionary object.
+
+        This method is helpful for those making the v3 -> v4 migration and for those interfacing with any experimental
+        Weaviate features that are not yet fully supported by the Weaviate Python client.
+
+        Arguments:
+            `config`
+                The dictionary representation of the collection's configuration.
+
+        Raises:
+            `requests.ConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a non-OK status.
+        """
+        name = super()._create(config)
+        return self.get(name)
+
+    def create_from_config(self, config: _CollectionConfig) -> Collection:
+        """Use this method to create a collection in Weaviate and immediately return a collection object using a pre-defined Weaviate collection configuration object.
+
+        Arguments:
+            `config`
+                The collection's configuration.
+
+        Raises:
+            `requests.ConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If Weaviate reports a non-OK status.
+        """
+        return self.create_from_dict(config._to_dict())

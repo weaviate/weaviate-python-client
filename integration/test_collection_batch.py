@@ -43,10 +43,10 @@ def collection() -> weaviate.Collection:
     client.collections.create(
         name="CollectionBatchTest",
         properties=[
-            ReferenceProperty(name="test", target_collection="CollectionBatchTest"),
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
         ],
+        references=[ReferenceProperty(name="test", target_collection="CollectionBatchTest")],
     )
     yield client.collections.get("CollectionBatchTest")
     client.collections.delete_all()

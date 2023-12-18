@@ -2,10 +2,13 @@
 # - profiling: pytest -m profiling profiling/test_profiling.py --profile-svg
 # - benchmark: pytest profiling/test_profiling.py --benchmark-only --benchmark-disable-gc
 
+import math
 from typing import Any, List
 import pytest
 import weaviate
 from weaviate.collections.classes.config import Configure, DataType, Property
+from weaviate.collections.classes.data import DataObject
+from weaviate.collections.classes.grpc import MetadataQuery
 
 
 def are_floats_equal(num1: float, num2: float, decimal_places: int = 4) -> bool:
@@ -106,6 +109,7 @@ def test_get_float_properties(client: weaviate.WeaviateClient) -> None:
     client.collections.delete(name)
 
 
+@pytest.mark.profiling
 def test_object_by_id(client: weaviate.WeaviateClient) -> None:
     name = "TestProfileObjectByID"
     client.collections.delete(name)
@@ -129,6 +133,32 @@ def test_object_by_id(client: weaviate.WeaviateClient) -> None:
         assert obj.uuid == batchReturn.uuids[i]
 
 
+@pytest.mark.profiling
+def test_vector_search(client: weaviate.WeaviateClient) -> None:
+    name = "TestProfileVectorSearch"
+    client.collections.delete(name)
+
+    col = client.collections.create(
+        name=name,
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    def shift_vector(i: int) -> List[float]:
+        return [math.fmod(i * 0.1, 1) for i in range(i, i + 12)]
+
+    _ret = col.data.insert_many([DataObject(vector=shift_vector(i) * 128) for i in range(12)])
+
+    vector_search = [math.fmod(i * 0.1, 1) for i in range(12)] * 128
+    for _ in range(10000):
+        query_ret = col.query.near_vector(
+            vector_search,
+            limit=5,
+            return_metadata=MetadataQuery(distance=True),
+            return_properties=[],
+        )
+        assert query_ret.objects[0].uuid in _ret.uuids.values()
+
+
 def test_benchmark_get_vector(benchmark: Any, client: weaviate.WeaviateClient) -> None:
     benchmark(test_get_vector, client)
 
@@ -139,3 +169,7 @@ def test_benchmark_get_float_properties(benchmark: Any, client: weaviate.Weaviat
 
 def test_benchmark_get_object_by_id(benchmark: Any, client: weaviate.WeaviateClient) -> None:
     benchmark(test_object_by_id, client)
+
+
+def test_benchmark_vector_search(benchmark: Any, client: weaviate.WeaviateClient) -> None:
+    benchmark(test_vector_search, client)
