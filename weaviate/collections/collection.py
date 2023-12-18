@@ -272,6 +272,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
                     return_references=return_references,  # type: ignore
                 ).objects
             ),
-            # type ignores here are because we don't care about the types when working within the API
-            # types are mainly for the users of the API
+            # type ignores here are because we don't care about the correct types when using the public
+            # fetch_objects() method as an internal API. The correct types are only for the users of the API
+            # and these are provided by casting and overloading of iterator()
         )
