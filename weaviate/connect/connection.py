@@ -249,6 +249,7 @@ class Connection:
         self.timeout_config: TIMEOUT_TYPE_RETURN = timeout_config
         self.embedded_db = embedded_db
 
+        self._grpc_available = False
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
         self.__additional_headers: Dict[str, str] = {}
 
@@ -274,7 +275,6 @@ class Connection:
                 ):
                     s.close()
                     self._grpc_stub = None
-                    self._grpc_available = False
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:

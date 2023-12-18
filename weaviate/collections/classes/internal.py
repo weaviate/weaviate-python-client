@@ -243,15 +243,13 @@ def __create_nested_property_from_nested(name: str, value: Any) -> FromNested:
     )
 
 
-class _Reference(Generic[Properties, IReferences]):
+class _Reference:
     def __init__(
         self,
-        objects: Optional[List[_Object[Properties, IReferences]]],
         target_collection: Optional[str],
         uuids: Optional[UUIDS],
     ):
         """You should not initialise this class directly. Use the `.to()` or `.to_multi_target()` class methods instead."""
-        self.__objects = objects
         self.__target_collection = target_collection if target_collection else ""
         self.__uuids = uuids
 
@@ -259,12 +257,6 @@ class _Reference(Generic[Properties, IReferences]):
         if self.__uuids is None:
             return []
         return _to_beacons(self.__uuids, self.__target_collection)
-
-    @classmethod
-    def _from(
-        cls, objects: List[_Object[Properties, IReferences]]
-    ) -> "_Reference[Properties, IReferences]":
-        return cls(objects, None, None)
 
     @property
     def is_multi_target(self) -> bool:
@@ -284,13 +276,27 @@ class _Reference(Generic[Properties, IReferences]):
         """Returns the target collection name."""
         return self.__target_collection
 
+
+class _CrossReference(Generic[Properties, IReferences]):
+    def __init__(
+        self,
+        objects: Optional[List[_Object[Properties, IReferences]]],
+    ):
+        self.__objects = objects
+
+    @classmethod
+    def _from(
+        cls, objects: List[_Object[Properties, IReferences]]
+    ) -> "_CrossReference[Properties, IReferences]":
+        return cls(objects)
+
     @property
     def objects(self) -> List[_Object[Properties, IReferences]]:
         """Returns the objects of the cross reference."""
         return self.__objects or []
 
 
-CrossReference: TypeAlias = _Reference[Properties, IReferences]
+CrossReference: TypeAlias = _CrossReference[Properties, IReferences]
 """Use this TypeAlias when you want to type hint a cross reference within a generic data model.
 
 If you want to define a reference property when creating your collection, use `ReferenceProperty` or `ReferencePropertyMultiTarget` instead.
@@ -308,6 +314,8 @@ Example:
     ...     one: wvc.CrossReference[One]
 """
 
+CrossReferences = Mapping[str, _CrossReference[WeaviateProperties, "CrossReferences"]]
+
 
 class Reference:
     """Factory class for cross references to other objects.
@@ -321,9 +329,7 @@ class Reference:
     def to(
         cls,
         uuids: UUIDS,
-        properties: Optional[Type[Properties]] = None,
-        references: Optional[Type[IReferences]] = None,
-    ) -> CrossReference[Properties, IReferences]:
+    ) -> "_Reference":
         """Define cross references to other objects by their UUIDs.
 
         Can be made to be generic by supplying a type to the `data_model` argument.
@@ -332,16 +338,14 @@ class Reference:
             `uuids`
                 List of UUIDs of the objects to which the reference should point.
         """
-        return _Reference[Properties, IReferences](None, None, uuids)
+        return _Reference(None, uuids)
 
     @classmethod
     def to_multi_target(
         cls,
         uuids: UUIDS,
         target_collection: Union[str, _CollectionBase],
-        properties: Optional[Type[Properties]] = None,
-        references: Optional[Type[IReferences]] = None,
-    ) -> CrossReference[Properties, IReferences]:
+    ) -> "_Reference":
         """Define cross references to other objects by their UUIDs and the collection in which they are stored.
 
         Can be made to be generic by supplying a type to the `data_model` argument.
@@ -352,13 +356,16 @@ class Reference:
             `target_collection`
                 The collection in which the objects are stored. Can be either the name of the collection or the collection object itself.
         """
-        return _Reference[Properties, IReferences](
-            None,
+        return _Reference(
             target_collection.name
             if isinstance(target_collection, _CollectionBase)
             else target_collection,
             uuids,
         )
+
+
+WeaviateReference: TypeAlias = _Reference
+WeaviateReferences: TypeAlias = Mapping[str, WeaviateReference]
 
 
 @dataclass
@@ -385,21 +392,21 @@ class ReferenceAnnotation:
 
 
 def _extract_types_from_reference(
-    type_: _Reference[Properties, "References"]
+    type_: CrossReference[Properties, "References"]
 ) -> Tuple[Type[Properties], Type["References"]]:
     """Extract first inner type from CrossReference[Properties, References]."""
-    if get_origin(type_) == _Reference:
+    if get_origin(type_) == _CrossReference:
         return cast(Tuple[Type[Properties], Type[References]], get_args(type_))
     raise ValueError("Type is not CrossReference[Properties, References]")
 
 
 def _extract_types_from_annotated_reference(
-    type_: Annotated[_Reference[Properties, "References"], ReferenceAnnotation]
+    type_: Annotated[CrossReference[Properties, "References"], ReferenceAnnotation]
 ) -> Tuple[Type[Properties], Type["References"]]:
     """Extract inner type from Annotated[CrossReference[Properties, References]]."""
     if get_origin(type_) is Annotated:
         args = get_args(type_)
-        inner_type = cast(_Reference[Properties, References], args[0])
+        inner_type = cast(CrossReference[Properties, References], args[0])
         return _extract_types_from_reference(inner_type)
     raise ValueError("Type is not Annotated[CrossReference[Properties, References]]")
 
@@ -408,21 +415,22 @@ def __is_annotated_reference(value: Any) -> bool:
     return (
         get_origin(value) is Annotated
         and len(get_args(value)) == 2
-        and get_origin(get_args(value)[0]) is _Reference
+        and get_origin(get_args(value)[0]) is _CrossReference
     )
 
 
 def __create_link_to_from_annotated_reference(
-    link_on: str, value: Annotated[_Reference[Properties, "References"], ReferenceAnnotation]
+    link_on: str, value: Annotated[CrossReference[Properties, "References"], ReferenceAnnotation]
 ) -> Union[FromReference, FromReferenceMultiTarget]:
     """Create FromReference or FromReferenceMultiTarget from Annotated[CrossReference[Properties], ReferenceAnnotation]."""
     assert get_origin(value) is Annotated
-    args = cast(List[_Reference[Properties, References]], get_args(value))
+    args = cast(List[CrossReference[Properties, References]], get_args(value))
     inner_type = args[0]
-    assert get_origin(inner_type) is _Reference
+    assert get_origin(inner_type) is _CrossReference
     inner_type_metadata = cast(Tuple[ReferenceAnnotation], getattr(value, "__metadata__", None))
     annotation = inner_type_metadata[0]
     types = _extract_types_from_annotated_reference(value)
+    print(annotation)
     if annotation.target_collection is not None:
         return FromReferenceMultiTarget(
             link_on=link_on,
@@ -443,12 +451,12 @@ def __create_link_to_from_annotated_reference(
 
 
 def __is_reference(value: Any) -> bool:
-    return get_origin(value) is _Reference
+    return get_origin(value) is _CrossReference
 
 
 def __create_link_to_from_reference(
     link_on: str,
-    value: _Reference[Properties, "References"],
+    value: CrossReference[Properties, "References"],
 ) -> FromReference:
     """Create FromReference from CrossReference[Properties]."""
     types = _extract_types_from_annotated_reference(value)
@@ -485,9 +493,6 @@ def _extract_references_from_data_model(type_: Type["References"]) -> Optional[R
     ]
     return refs if len(refs) > 0 else None
 
-
-WeaviateReference = _Reference[WeaviateProperties, "WeaviateReferences"]
-WeaviateReferences = Dict[str, WeaviateReference]
 
 References = TypeVar("References", bound=Optional[Mapping[str, Any]], default=None)
 """`References` is used wherever a single generic type is needed for references"""

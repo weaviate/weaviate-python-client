@@ -1,8 +1,9 @@
 from typing import Dict, Optional, Sequence, Union
 
 from weaviate.collections.batch.base import _BatchBase
+from weaviate.collections.classes.types import WeaviateField
 from weaviate.collections.classes.tenants import Tenant
-from weaviate.types import UUID, WeaviateField
+from weaviate.types import UUID
 
 
 class _BatchClient(_BatchBase):

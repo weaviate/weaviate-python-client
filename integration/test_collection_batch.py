@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass
-from typing import Optional, Sequence, Union
+from typing import Generator, Optional, Sequence, Union
 
 import pytest
 
@@ -11,7 +11,12 @@ from weaviate.collections.classes.config import (
     Property,
     ReferenceProperty,
 )
-from weaviate.collections.classes.internal import Reference, FromReference, _Reference
+from weaviate.collections.classes.internal import (
+    Reference,
+    _CrossReference,
+    FromReference,
+    _Reference,
+)
 from weaviate.collections.classes.tenants import Tenant
 
 UUID = Union[str, uuid.UUID]
@@ -37,7 +42,7 @@ class MockTensorFlow:
 
 
 @pytest.fixture(scope="function")
-def collection() -> weaviate.Collection:
+def collection() -> Generator[weaviate.Collection, None, None]:
     client = weaviate.connect_to_local()
     client.collections.delete_all()
     client.collections.create(
@@ -53,7 +58,7 @@ def collection() -> weaviate.Collection:
 
 
 @pytest.fixture(scope="function")
-def mt_collection() -> weaviate.Collection:
+def mt_collection() -> Generator[weaviate.Collection, None, None]:
     client = weaviate.connect_to_local()
     client.collections.delete_all()
     client.collections.create(
@@ -76,7 +81,7 @@ def mt_collection() -> weaviate.Collection:
 @pytest.mark.parametrize("uuid", [None, uuid.uuid4(), str(uuid.uuid4()), uuid.uuid4().hex])
 def test_add_object(
     collection: weaviate.Collection, uuid: Optional[UUID], vector: Optional[Sequence]
-):
+) -> None:
     with collection.batch as batch:
         batch.add_object(
             properties={},
@@ -97,7 +102,7 @@ def test_add_reference(
     collection: weaviate.Collection,
     from_uuid: UUID,
     to_uuid: UUID,
-):
+) -> None:
     """Test the `add_reference` method"""
 
     with collection.batch as batch:
@@ -117,10 +122,10 @@ def test_add_reference(
         from_uuid, return_references=FromReference(link_on="test")
     )
     assert len(objs) == 2
-    assert isinstance(obj.references["test"], _Reference)
+    assert isinstance(obj.references["test"], _CrossReference)
 
 
-def test_add_object_batch_with_tenant(mt_collection: weaviate.Collection):
+def test_add_object_batch_with_tenant(mt_collection: weaviate.Collection) -> None:
     mt_collection.tenants.create([Tenant(name="tenant" + str(i)) for i in range(5)])
     for i in range(5):
         with mt_collection.with_tenant("tenant" + str(i % 5)).batch as batch:
@@ -135,7 +140,7 @@ def test_add_object_batch_with_tenant(mt_collection: weaviate.Collection):
         assert obj.properties["name"] == "tenant1"
 
 
-def test_add_ref_batch_with_tenant(mt_collection: weaviate.Collection):
+def test_add_ref_batch_with_tenant(mt_collection: weaviate.Collection) -> None:
     mt_collection.tenants.create([Tenant(name="tenant" + str(i)) for i in range(5)])
 
     with mt_collection.with_tenant("tenant1").batch as batch:

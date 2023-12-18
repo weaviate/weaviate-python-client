@@ -24,3 +24,4 @@ scratch/
 
 int-test.sh
 unit-test.sh
+static-test.sh

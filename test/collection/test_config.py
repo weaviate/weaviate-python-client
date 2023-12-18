@@ -759,7 +759,7 @@ def test_config_with_invalid_reference_property(name: str):
 
 def test_vector_config_hnsw_bq() -> None:
     vector_index = Configure.VectorIndex.hnsw(
-        ef_construction=128, quantitizer=Configure.VectorIndex.Quantitizer.BQ(rescore_limit=123)
+        ef_construction=128, quantitizer=Configure.VectorIndex.Quantitizer.bq(rescore_limit=123)
     )
 
     vi_dict = vector_index._to_dict()
@@ -772,7 +772,7 @@ def test_vector_config_flat_pq() -> None:
     vector_index = Configure.VectorIndex.flat(
         distance_metric=VectorDistance.DOT,
         vector_cache_max_objects=456,
-        quantitizer=Configure.VectorIndex.Quantitizer.PQ(bit_compression=True, segments=789),
+        quantitizer=Configure.VectorIndex.Quantitizer.pq(bit_compression=True, segments=789),
     )
 
     vi_dict = vector_index._to_dict()

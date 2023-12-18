@@ -1,7 +1,7 @@
 import uuid
 import warnings
 from dataclasses import dataclass
-from typing import List, Optional, Sequence, Union
+from typing import Generator, List, Optional, Sequence, Union
 
 import pytest
 
@@ -42,7 +42,7 @@ SYNC_COLLECTION_NAME = "ClientBatchTestSync"
 
 
 @pytest.fixture(scope="function")
-def client_sync_indexing() -> weaviate.WeaviateClient:
+def client_sync_indexing() -> Generator[weaviate.WeaviateClient, None, None]:
     client = weaviate.connect_to_local()
     client.collections.delete_all()
     client.collections.create(
@@ -63,7 +63,7 @@ ASYNC_COLLECTION_NAME = "ClientBatchTestAsync"
 
 
 @pytest.fixture(scope="function")
-def client_async_indexing() -> weaviate.WeaviateClient:
+def client_async_indexing() -> Generator[weaviate.WeaviateClient, None, None]:
     client = weaviate.connect_to_local(port=8090, grpc_port=50060)
     client.collections.delete_all()
     client.collections.create(
@@ -84,7 +84,7 @@ def client_async_indexing() -> weaviate.WeaviateClient:
 @pytest.mark.parametrize("uuid", [None, uuid.uuid4(), str(uuid.uuid4()), uuid.uuid4().hex])
 def test_add_object(
     client_sync_indexing: weaviate.WeaviateClient, uuid: Optional[UUID], vector: Optional[Sequence]
-):
+) -> None:
     with client_sync_indexing.batch as batch:
         batch.add_object(
             collection=SYNC_COLLECTION_NAME,
@@ -106,7 +106,7 @@ def test_add_reference(
     from_object_uuid: UUID,
     to_object_uuid: UUID,
     to_object_collection: Optional[str],
-):
+) -> None:
     """Test the `add_reference` method"""
 
     with client_sync_indexing.batch as batch:
@@ -147,7 +147,7 @@ def test_add_reference(
 
 def test_add_data_object_and_get_class_shards_readiness(
     client_sync_indexing: weaviate.WeaviateClient,
-):
+) -> None:
     """Test the `add_data_object` method"""
     client_sync_indexing.batch.add_object(
         properties={},
@@ -163,7 +163,7 @@ def test_add_data_object_and_get_class_shards_readiness(
 
 def test_add_data_object_with_tenant_and_get_class_shards_readiness(
     client_sync_indexing: weaviate.WeaviateClient,
-):
+) -> None:
     """Test the `add_data_object` method"""
     client_sync_indexing.collections.delete_all()
     test = client_sync_indexing.collections.create(
@@ -185,7 +185,7 @@ def test_add_data_object_with_tenant_and_get_class_shards_readiness(
     assert statuses[0]
 
 
-def test_add_object_batch_with_tenant(client_sync_indexing: weaviate.WeaviateClient):
+def test_add_object_batch_with_tenant(client_sync_indexing: weaviate.WeaviateClient) -> None:
     # create two classes and add 5 tenants each
     collections = ["BatchTestMultiTenant1", "BatchTestMultiTenant2"]
     for name in collections:
@@ -225,7 +225,7 @@ def test_add_object_batch_with_tenant(client_sync_indexing: weaviate.WeaviateCli
         client_sync_indexing.collections.delete(name)
 
 
-def test_add_ref_batch_with_tenant(client_sync_indexing: weaviate.WeaviateClient):
+def test_add_ref_batch_with_tenant(client_sync_indexing: weaviate.WeaviateClient) -> None:
     client_sync_indexing.collections.delete_all()
 
     # create two classes and add 5 tenants each
@@ -300,7 +300,7 @@ def test_add_ref_batch_with_tenant(client_sync_indexing: weaviate.WeaviateClient
         client_sync_indexing.collections.delete(name)
 
 
-def test_add_ten_thousand_data_objects(client_sync_indexing: weaviate.WeaviateClient):
+def test_add_ten_thousand_data_objects(client_sync_indexing: weaviate.WeaviateClient) -> None:
     """Test adding ten thousand data objects"""
     nr_objects = 10000
     client_sync_indexing.batch.configure(num_workers=4)
@@ -319,7 +319,7 @@ def test_add_ten_thousand_data_objects(client_sync_indexing: weaviate.WeaviateCl
     client_sync_indexing.collections.delete(SYNC_COLLECTION_NAME)
 
 
-def make_refs(uuids: List[uuid.UUID]) -> List[dict]:
+def make_refs(uuids: List[UUID]) -> List[dict]:
     refs = []
     for from_ in uuids:
         tos = uuids.copy()
@@ -339,12 +339,12 @@ def make_refs(uuids: List[uuid.UUID]) -> List[dict]:
 
 def test_add_one_hundred_objects_and_references_between_all(
     client_sync_indexing: weaviate.WeaviateClient,
-):
+) -> None:
     """Test adding one hundred objects and references between all of them"""
 
     nr_objects = 100
     client_sync_indexing.batch.configure(num_workers=4)
-    uuids: List[uuid.UUID] = []
+    uuids: List[UUID] = []
     with client_sync_indexing.batch as batch:
         for i in range(nr_objects):
             uuid_ = batch.add_object(
@@ -365,7 +365,7 @@ def test_add_one_hundred_objects_and_references_between_all(
     client_sync_indexing.collections.delete(SYNC_COLLECTION_NAME)
 
 
-def test_add_bad_prop(client_sync_indexing: weaviate.WeaviateClient):
+def test_add_bad_prop(client_sync_indexing: weaviate.WeaviateClient) -> None:
     """Test adding a data object with a bad property"""
     with warnings.catch_warnings():
         # Tests that no warning is emitted when the batch is not configured to retry failed objects
@@ -388,7 +388,7 @@ def test_add_bad_prop(client_sync_indexing: weaviate.WeaviateClient):
         assert len(client_sync_indexing.batch.failed_objects()) == 1
 
 
-def test_add_bad_ref(client_sync_indexing: weaviate.WeaviateClient):
+def test_add_bad_ref(client_sync_indexing: weaviate.WeaviateClient) -> None:
     """Test adding a reference with a bad property name"""
     with warnings.catch_warnings():
         # Tests that no warning is emitted when the batch is not configured to retry failed references
@@ -417,9 +417,9 @@ def test_add_bad_ref(client_sync_indexing: weaviate.WeaviateClient):
         assert len(client_sync_indexing.batch.failed_references()) == 1
 
 
-def test_manual_batching(client_sync_indexing: weaviate.WeaviateClient):
+def test_manual_batching(client_sync_indexing: weaviate.WeaviateClient) -> None:
     client_sync_indexing.batch.configure(dynamic=False, batch_size=None)
-    uuids: List[uuid.UUID] = []
+    uuids: List[UUID] = []
     for _ in range(10):
         uuid_ = client_sync_indexing.batch.add_object(
             collection=SYNC_COLLECTION_NAME,
@@ -427,15 +427,14 @@ def test_manual_batching(client_sync_indexing: weaviate.WeaviateClient):
         )
         uuids.append(uuid_)
         if client_sync_indexing.batch.num_objects() == 5:
-            ret = client_sync_indexing.batch.create_objects()
-            assert ret.has_errors is False
+            ret_1 = client_sync_indexing.batch.create_objects()
+            assert ret_1.has_errors is False
 
     for ref in make_refs(uuids):
-        print(ref)
         client_sync_indexing.batch.add_reference(**ref)
         if client_sync_indexing.batch.num_references() == 5:
-            ret = client_sync_indexing.batch.create_references()
-            assert ret.has_errors is False
+            ret_2 = client_sync_indexing.batch.create_references()
+            assert ret_2.has_errors is False
 
     objs = client_sync_indexing.collections.get(SYNC_COLLECTION_NAME).query.fetch_objects().objects
     assert len(objs) == 10
@@ -443,7 +442,7 @@ def test_manual_batching(client_sync_indexing: weaviate.WeaviateClient):
 
 def test_add_1000_objects_with_async_indexing_and_wait(
     client_async_indexing: weaviate.WeaviateClient,
-):
+) -> None:
     name = "BatchTestAsyncTenants"
     client_async_indexing.collections.delete(name)
     test = client_async_indexing.collections.create(
@@ -464,7 +463,7 @@ def test_add_1000_objects_with_async_indexing_and_wait(
     ]
     with client_async_indexing.batch as batch:
         for obj in objs:
-            batch.add_object(**obj)
+            batch.add_object(**obj)  # type: ignore # hacky testing logic
     assert len(client_async_indexing.batch.failed_objects()) == 0
     client_async_indexing.batch.wait_for_vector_indexing()
     ret = test.aggregate.over_all(total_count=True)
@@ -480,7 +479,7 @@ def test_add_1000_objects_with_async_indexing_and_wait(
 )
 def test_add_10000_objects_with_async_indexing_and_dont_wait(
     client_async_indexing: weaviate.WeaviateClient,
-):
+) -> None:
     name = "BatchTestAsyncTenants"
     client_async_indexing.collections.delete(name)
     test = client_async_indexing.collections.create(
@@ -501,7 +500,7 @@ def test_add_10000_objects_with_async_indexing_and_dont_wait(
     ]
     with client_async_indexing.batch as batch:
         for obj in objs:
-            batch.add_object(**obj)
+            batch.add_object(**obj)  # type: ignore # hacky testing logic
     assert len(client_async_indexing.batch.failed_objects()) == 0
     ret = test.aggregate.over_all(total_count=True)
     assert ret.total_count == nr_objects
@@ -513,7 +512,7 @@ def test_add_10000_objects_with_async_indexing_and_dont_wait(
 
 def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
     client_async_indexing: weaviate.WeaviateClient,
-):
+) -> None:
     name = "BatchTestAsyncTenants"
     client_async_indexing.collections.delete(name)
     test = client_async_indexing.collections.create(
@@ -538,7 +537,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
     ]
     with client_async_indexing.batch as batch:
         for obj in objs:
-            batch.add_object(**obj)
+            batch.add_object(**obj)  # type: ignore # hacky testing logic
     assert len(client_async_indexing.batch.failed_objects()) == 0
     client_async_indexing.batch.wait_for_vector_indexing()
     for tenant in tenants:
@@ -552,7 +551,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
 
 def test_add_10000_tenant_objects_with_async_indexing_and_wait_for_only_one(
     client_async_indexing: weaviate.WeaviateClient,
-):
+) -> None:
     name = "BatchTestAsyncTenants"
     client_async_indexing.collections.delete(name)
     test = client_async_indexing.collections.create(
@@ -577,7 +576,7 @@ def test_add_10000_tenant_objects_with_async_indexing_and_wait_for_only_one(
     ]
     with client_async_indexing.batch as batch:
         for obj in objs:
-            batch.add_object(**obj)
+            batch.add_object(**obj)  # type: ignore # hacky testing logic
     assert len(client_async_indexing.batch.failed_objects()) == 0
     client_async_indexing.batch.wait_for_vector_indexing(
         shards=[Shard(collection=name, tenant="tenant0")]

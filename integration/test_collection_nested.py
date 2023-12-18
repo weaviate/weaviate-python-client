@@ -1,5 +1,5 @@
 import datetime
-from typing import List, TypedDict, Union
+from typing import Generator, List, TypedDict, Union
 
 import pytest
 
@@ -13,7 +13,7 @@ from weaviate.collections.classes.internal import Nested
 
 
 @pytest.fixture(scope="module")
-def client():
+def client() -> Generator[weaviate.WeaviateClient, None, None]:
     client = weaviate.connect_to_local()
     client.collections.delete_all()
     yield client
@@ -310,7 +310,7 @@ def client():
 )
 def test_nested_return_all_properties(
     client: weaviate.WeaviateClient, property_: Property, object_: Union[dict, List[dict]]
-):
+) -> None:
     name = "TestInsertNestedPropertiesAll"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -323,8 +323,8 @@ def test_nested_return_all_properties(
     result = collection.query.fetch_objects()
     assert result.objects[0].properties["nested"] == object_
 
-    res = collection.query.fetch_object_by_id(res.uuids[0])
-    assert res.properties["nested"] == object_
+    out = collection.query.fetch_object_by_id(res.uuids[0])
+    assert out.properties["nested"] == object_
 
 
 @pytest.mark.parametrize(
@@ -401,7 +401,7 @@ def test_nested_return_all_properties(
 )
 def test_nested_return_specific_properties(
     client: weaviate.WeaviateClient, return_properties: PROPERTIES, expected: dict
-):
+) -> None:
     name = "TestInsertNestedPropertiesSpecific"
     client.collections.delete(name)
     collection = client.collections.create(
@@ -511,13 +511,13 @@ def test_nested_return_specific_properties(
     assert res.has_errors is False
     result = collection.query.fetch_objects(return_properties=return_properties)
     assert result.objects[0].properties["nested"] == expected
-    res = collection.query.fetch_object_by_id(res.uuids[0], return_properties=return_properties)
-    assert res.properties["nested"] == expected
+    out = collection.query.fetch_object_by_id(res.uuids[0], return_properties=return_properties)
+    assert out.properties["nested"] == expected
 
 
 def test_nested_return_generic_properties(
     client: weaviate.WeaviateClient,
-):
+) -> None:
     name = "TestInsertNestedPropertiesGeneric"
     client.collections.delete(name)
 
