@@ -15,7 +15,6 @@ from weaviate.collections.classes.internal import (
     Reference,
     _CrossReference,
     FromReference,
-    _Reference,
 )
 from weaviate.collections.classes.tenants import Tenant
 
@@ -171,4 +170,4 @@ def test_add_ref_batch_with_tenant(mt_collection: weaviate.Collection) -> None:
         obj_uuid0, return_references=FromReference(link_on="test")
     )
     assert ret_obj.properties["name"] == "one"
-    assert isinstance(ret_obj.references["test"], _Reference)
+    assert isinstance(ret_obj.references["test"], _CrossReference)

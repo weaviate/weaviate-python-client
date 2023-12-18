@@ -13,7 +13,7 @@ from weaviate.collections.classes.config import (
     Property,
     ReferenceProperty,
 )
-from weaviate.collections.classes.internal import FromReference, _Reference
+from weaviate.collections.classes.internal import FromReference, _CrossReference
 from weaviate.collections.classes.tenants import Tenant
 
 UUID = Union[str, uuid.UUID]
@@ -134,15 +134,15 @@ def test_add_reference(
         assert batch.num_objects() == 2
         assert batch.num_references() == 1
     objs = (
-        client_sync_indexing.collections.get("Test")
+        client_sync_indexing.collections.get(SYNC_COLLECTION_NAME)
         .query.fetch_objects(return_references=FromReference(link_on="test"))
         .objects
     )
-    obj = client_sync_indexing.collections.get("Test").query.fetch_object_by_id(
+    obj = client_sync_indexing.collections.get(SYNC_COLLECTION_NAME).query.fetch_object_by_id(
         from_object_uuid, return_references=FromReference(link_on="test")
     )
     assert len(objs) == 2
-    assert isinstance(obj.references["test"], _Reference)
+    assert isinstance(obj.references["test"], _CrossReference)
 
 
 def test_add_data_object_and_get_class_shards_readiness(
