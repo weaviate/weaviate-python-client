@@ -265,6 +265,8 @@ def test_collection_config_full(client: weaviate.WeaviateClient) -> None:
             Property(name="booleans", data_type=DataType.BOOL_ARRAY),
             Property(name="geo", data_type=DataType.GEO_COORDINATES),
             Property(name="phone", data_type=DataType.PHONE_NUMBER),
+        ],
+        references=[
             ReferenceProperty(name="self", target_collection="TestCollectionConfigFull"),
         ],
         inverted_index_config=Configure.inverted_index(
