@@ -265,8 +265,8 @@ class _ConfigUpdateModel(BaseModel):
 
 
 class _PQEncoderConfigCreate(_ConfigCreateModel):
-    type_: PQEncoderType = Field(serialization_alias="type")
-    distribution: PQEncoderDistribution
+    type_: Optional[PQEncoderType] = Field(serialization_alias="type")
+    distribution: Optional[PQEncoderDistribution]
 
 
 class _PQEncoderConfigUpdate(_ConfigUpdateModel):
@@ -295,11 +295,11 @@ class _QuantitizerConfigCreate(_ConfigCreateModel):
 
 
 class _PQConfigCreate(_QuantitizerConfigCreate):
-    bitCompression: bool
-    centroids: int
+    bitCompression: Optional[bool]
+    centroids: Optional[int]
     encoder: _PQEncoderConfigCreate
-    segments: int
-    trainingLimit: int = Field(..., ge=100000)
+    segments: Optional[int]
+    trainingLimit: Optional[int]
 
     @staticmethod
     def quantitizer_name() -> str:
@@ -307,8 +307,8 @@ class _PQConfigCreate(_QuantitizerConfigCreate):
 
 
 class _BQConfigCreate(_QuantitizerConfigCreate):
-    cache: bool
-    rescoreLimit: int
+    cache: Optional[bool]
+    rescoreLimit: Optional[int]
 
     @staticmethod
     def quantitizer_name() -> str:
@@ -344,8 +344,8 @@ class _BQConfigUpdate(_QuantitizerConfigUpdate):
 
 
 class _VectorIndexConfigCreate(_ConfigCreateModel):
-    distance: VectorDistance
-    vectorCacheMaxObjects: int
+    distance: Optional[VectorDistance]
+    vectorCacheMaxObjects: Optional[int]
     quantitizer: Optional[_QuantitizerConfigCreate] = Field(exclude=True)
 
     @staticmethod
@@ -357,21 +357,22 @@ class _VectorIndexConfigCreate(_ConfigCreateModel):
         ret_dict = super()._to_dict()
         if self.quantitizer is not None:
             ret_dict[self.quantitizer.quantitizer_name()] = self.quantitizer._to_dict()
-        ret_dict["distance"] = str(self.distance.value)
+        if self.distance is not None:
+            ret_dict["distance"] = str(self.distance.value)
 
         return ret_dict
 
 
 class _VectorIndexHNSWConfigCreate(_VectorIndexConfigCreate):
-    cleanupIntervalSeconds: int
-    dynamicEfMin: int
-    dynamicEfMax: int
-    dynamicEfFactor: int
-    efConstruction: int
-    ef: int
-    flatSearchCutoff: int
-    maxConnections: int
-    skip: bool
+    cleanupIntervalSeconds: Optional[int]
+    dynamicEfMin: Optional[int]
+    dynamicEfMax: Optional[int]
+    dynamicEfFactor: Optional[int]
+    efConstruction: Optional[int]
+    ef: Optional[int]
+    flatSearchCutoff: Optional[int]
+    maxConnections: Optional[int]
+    skip: Optional[bool]
 
     @staticmethod
     def vector_index_type() -> _VectorIndexType:
@@ -401,18 +402,18 @@ class _VectorIndexConfigFlatUpdate(_ConfigUpdateModel):
 
 
 class _ShardingConfigCreate(_ConfigCreateModel):
-    virtualPerPhysical: int
-    desiredCount: int
-    actualCount: int
-    desiredVirtualCount: int
-    actualVirtualCount: int
+    virtualPerPhysical: Optional[int]
+    desiredCount: Optional[int]
+    actualCount: Optional[int]
+    desiredVirtualCount: Optional[int]
+    actualVirtualCount: Optional[int]
     key: str = "_id"
     strategy: str = "hash"
     function: str = "murmur3"
 
 
 class _ReplicationConfigCreate(_ConfigCreateModel):
-    factor: int
+    factor: Optional[int]
 
 
 class _ReplicationConfigUpdate(_ConfigUpdateModel):
@@ -442,11 +443,11 @@ class _StopwordsUpdate(_ConfigUpdateModel):
 
 
 class _InvertedIndexConfigCreate(_ConfigCreateModel):
-    bm25: _BM25ConfigCreate
-    cleanupIntervalSeconds: int
-    indexTimestamps: bool
-    indexPropertyLength: bool
-    indexNullState: bool
+    bm25: Optional[_BM25ConfigCreate]
+    cleanupIntervalSeconds: Optional[int]
+    indexTimestamps: Optional[bool]
+    indexPropertyLength: Optional[bool]
+    indexNullState: Optional[bool]
     stopwords: _StopwordsCreate
 
 
@@ -457,7 +458,7 @@ class _InvertedIndexConfigUpdate(_ConfigUpdateModel):
 
 
 class _MultiTenancyConfigCreate(_ConfigCreateModel):
-    enabled: bool = False
+    enabled: bool
 
 
 class _MultiTenancyConfigUpdate(_ConfigUpdateModel):
@@ -1914,12 +1915,12 @@ class _CollectionConfigCreate(_CollectionConfigCreateBase):
 class _VectorIndexQuantitizer:
     @staticmethod
     def pq(
-        bit_compression: bool = False,
-        centroids: int = 256,
-        encoder_distribution: PQEncoderDistribution = PQEncoderDistribution.LOG_NORMAL,
-        encoder_type: PQEncoderType = PQEncoderType.KMEANS,
-        segments: int = 0,
-        training_limit: int = 100000,
+        bit_compression: Optional[bool] = None,
+        centroids: Optional[int] = None,
+        encoder_distribution: Optional[PQEncoderDistribution] = None,
+        encoder_type: Optional[PQEncoderType] = None,
+        segments: Optional[int] = None,
+        training_limit: Optional[int] = None,
     ) -> _PQConfigCreate:
         """Create a `_PQConfigCreate` object to be used when defining the product quantization (PQ) configuration of Weaviate.
 
@@ -1938,8 +1939,8 @@ class _VectorIndexQuantitizer:
 
     @staticmethod
     def bq(
-        cache: bool = False,
-        rescore_limit: int = -1,
+        cache: Optional[bool] = None,
+        rescore_limit: Optional[int] = None,
     ) -> _BQConfigCreate:
         """Create a `_BQConfigCreate` object to be used when defining the binary quantization (BQ) configuration of Weaviate.
 
@@ -1959,17 +1960,17 @@ class _VectorIndex:
 
     @staticmethod
     def hnsw(
-        cleanup_interval_seconds: int = 300,
-        distance_metric: VectorDistance = VectorDistance.COSINE,
-        dynamic_ef_factor: int = 8,
-        dynamic_ef_max: int = 500,
-        dynamic_ef_min: int = 100,
-        ef: int = -1,
-        ef_construction: int = 128,
-        flat_search_cutoff: int = 40000,
-        max_connections: int = 64,
-        skip: bool = False,
-        vector_cache_max_objects: int = 1000000000000,
+        cleanup_interval_seconds: Optional[int] = None,
+        distance_metric: Optional[VectorDistance] = None,
+        dynamic_ef_factor: Optional[int] = None,
+        dynamic_ef_max: Optional[int] = None,
+        dynamic_ef_min: Optional[int] = None,
+        ef: Optional[int] = None,
+        ef_construction: Optional[int] = None,
+        flat_search_cutoff: Optional[int] = None,
+        max_connections: Optional[int] = None,
+        skip: Optional[bool] = None,
+        vector_cache_max_objects: Optional[int] = None,
         quantitizer: Optional[_PQConfigCreate] = None,
     ) -> _VectorIndexHNSWConfigCreate:
         """Create a `_VectorIndexHNSWConfigCreate` object to be used when defining the HNSW vector index configuration of Weaviate.
@@ -1996,8 +1997,8 @@ class _VectorIndex:
 
     @staticmethod
     def flat(
-        distance_metric: VectorDistance = VectorDistance.COSINE,
-        vector_cache_max_objects: int = 1000000000000,
+        distance_metric: Optional[VectorDistance] = None,
+        vector_cache_max_objects: Optional[int] = None,
         quantitizer: Optional[_BQConfigCreate] = None,
     ) -> _VectorIndexFlatConfigCreate:
         """Create a `_VectorIndexFlatConfigCreate` object to be used when defining the FLAT vector index configuration of Weaviate.
@@ -2027,12 +2028,12 @@ class Configure:
 
     @staticmethod
     def inverted_index(
-        bm25_b: float = 0.75,
-        bm25_k1: float = 1.2,
-        cleanup_interval_seconds: int = 60,
-        index_timestamps: bool = False,
-        index_property_length: bool = False,
-        index_null_state: bool = False,
+        bm25_b: Optional[float] = None,
+        bm25_k1: Optional[float] = None,
+        cleanup_interval_seconds: Optional[int] = None,
+        index_timestamps: Optional[bool] = None,
+        index_property_length: Optional[bool] = None,
+        index_null_state: Optional[bool] = None,
         stopwords_preset: Optional[StopwordsPreset] = None,
         stopwords_additions: Optional[List[str]] = None,
         stopwords_removals: Optional[List[str]] = None,
@@ -2042,8 +2043,13 @@ class Configure:
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for details!
         """  # noqa: D417 (missing argument descriptions in the docstring)
+        if bm25_b is None and bm25_k1 is not None or bm25_k1 is None and bm25_b is not None:
+            raise ValueError("bm25_b and bm25_k1 must be specified together")
+
         return _InvertedIndexConfigCreate(
-            bm25=_BM25ConfigCreate(b=bm25_b, k1=bm25_k1),
+            bm25=_BM25ConfigCreate(b=bm25_b, k1=bm25_k1)
+            if bm25_b is not None and bm25_k1 is not None
+            else None,
             cleanupIntervalSeconds=cleanup_interval_seconds,
             indexTimestamps=index_timestamps,
             indexPropertyLength=index_property_length,
@@ -2066,22 +2072,22 @@ class Configure:
         return _MultiTenancyConfigCreate(enabled=enabled)
 
     @staticmethod
-    def replication(factor: int = 1) -> _ReplicationConfigCreate:
+    def replication(factor: Optional[int] = None) -> _ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
         Arguments:
             `factor`
-                The replication factor. Defaults to `1`.
+                The replication factor.
         """
         return _ReplicationConfigCreate(factor=factor)
 
     @staticmethod
     def sharding(
-        virtual_per_physical: int = 128,
-        desired_count: int = 1,
-        actual_count: int = 1,
-        desired_virtual_count: int = 128,
-        actual_virtual_count: int = 128,
+        virtual_per_physical: Optional[int] = None,
+        desired_count: Optional[int] = None,
+        actual_count: Optional[int] = None,
+        desired_virtual_count: Optional[int] = None,
+        actual_virtual_count: Optional[int] = None,
     ) -> _ShardingConfigCreate:
         """Create a `ShardingConfigCreate` object to be used when defining the sharding configuration of Weaviate.
 
@@ -2091,15 +2097,15 @@ class Configure:
 
         Arguments:
             `virtual_per_physical`
-                The number of virtual shards per physical shard. Defaults to `128`.
+                The number of virtual shards per physical shard.
             `desired_count`
-                The desired number of physical shards. Defaults to `1`.
+                The desired number of physical shards.
             `actual_count`
-                The actual number of physical shards. Defaults to `1`.
+                The actual number of physical shards.
             `desired_virtual_count`
-                The desired number of virtual shards. Defaults to `128`.
+                The desired number of virtual shards.
             `actual_virtual_count`
-                The actual number of virtual shards. Defaults to `128`.
+                The actual number of virtual shards.
         """
         return _ShardingConfigCreate(
             virtualPerPhysical=virtual_per_physical,

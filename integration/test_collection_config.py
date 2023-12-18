@@ -184,6 +184,14 @@ def test_collection_config_empty(client: weaviate.WeaviateClient):
     client.collections.delete("TestCollectionConfigDefaults")
 
 
+def test_bm25_config(client: weaviate.WeaviateClient) -> None:
+    with pytest.raises(ValueError):
+        client.collections.create(
+            name="TestCollectionConfigBm25",
+            inverted_index_config=Configure.inverted_index(bm25_b=0.8),
+        )
+
+
 def test_collection_config_defaults(client: weaviate.WeaviateClient) -> None:
     collection = client.collections.create(
         name="TestCollectionConfigDefaults",
@@ -202,7 +210,6 @@ def test_collection_config_defaults(client: weaviate.WeaviateClient) -> None:
     assert config.properties == []
 
     assert config.inverted_index_config.bm25.b == 0.75
-    assert config.inverted_index_config.bm25.k1 == 1.2
     assert config.inverted_index_config.cleanup_interval_seconds == 60
     assert config.inverted_index_config.index_timestamps is False
     assert config.inverted_index_config.index_property_length is False
