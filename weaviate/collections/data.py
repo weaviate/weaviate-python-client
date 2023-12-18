@@ -8,6 +8,7 @@ from typing import (
     Optional,
     List,
     Tuple,
+    Sequence,
     Generic,
     Type,
     Union,
@@ -24,12 +25,7 @@ from weaviate.collections.classes.batch import (
     _BatchDeleteResult,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.classes.data import (
-    DataObject,
-    DataReference,
-    DataReferenceOneToMany,
-    GeoCoordinate,
-)
+from weaviate.collections.classes.data import DataObject, DataReference, DataReferenceOneToMany
 from weaviate.collections.classes.internal import (
     _Object,
     _metadata_from_dict,
@@ -40,7 +36,12 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.orm import (
     Model,
 )
-from weaviate.collections.classes.types import Properties, TProperties, _check_properties_generic
+from weaviate.collections.classes.types import (
+    GeoCoordinate,
+    Properties,
+    TProperties,
+    _check_properties_generic,
+)
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.batch.grpc import _BatchGRPC, _validate_props
 from weaviate.collections.batch.rest import _BatchREST
@@ -330,15 +331,15 @@ class _DataCollection(Generic[Properties], _Data):
 
     def insert_many(
         self,
-        objects: List[Union[Properties, DataObject[Properties]]],
+        objects: Sequence[Union[Properties, DataObject[Properties, Optional[WeaviateReferences]]]],
     ) -> BatchObjectReturn:
         """Insert multiple objects into the collection.
 
         Arguments:
             `objects`
-                The objects to insert. This can be either a list of `Properties` or `DataObject[Properties]`
+                The objects to insert. This can be either a list of `Properties` or `DataObject[Properties, WeaviateReferences]`
                     If you didn't set `data_model` then `Properties` will be `Data[str, Any]` in which case you can insert simple dictionaries here.
-                        If you want to insert vectors and UUIDs alongside your properties, you will have to use `DataObject` instead.
+                        If you want to insert references, vectors, or UUIDs alongside your properties, you will have to use `DataObject` instead.
 
         Raises:
             `weaviate.exceptions.WeaviateQueryException`:
@@ -356,6 +357,7 @@ class _DataCollection(Generic[Properties], _Data):
                     uuid=obj.uuid,
                     properties=cast(dict, obj.properties),
                     tenant=self._tenant,
+                    references=obj.references,
                 )
                 if isinstance(obj, DataObject)
                 else _BatchObject(
@@ -364,6 +366,7 @@ class _DataCollection(Generic[Properties], _Data):
                     uuid=None,
                     properties=cast(dict, obj),
                     tenant=None,
+                    references=None,
                 )
                 for obj in objects
             ]
@@ -598,6 +601,7 @@ class _DataCollectionModel(Generic[Model], _Data):
                 tenant=self._tenant,
                 uuid=obj.uuid,
                 vector=obj.vector,
+                references=None,
             )
             for obj in objects
         ]

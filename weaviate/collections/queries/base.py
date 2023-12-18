@@ -11,7 +11,6 @@ from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 from google.protobuf import struct_pb2
 
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.classes.data import GeoCoordinate
 from weaviate.collections.classes.grpc import (
     FromReference,
     MetadataQuery,
@@ -26,7 +25,6 @@ from weaviate.collections.classes.internal import (
     _MetadataReturn,
     _GenerativeObject,
     _Object,
-    _Reference,
     _extract_properties_from_data_model,
     _extract_references_from_data_model,
     _GenerativeReturn,
@@ -38,9 +36,11 @@ from weaviate.collections.classes.internal import (
     ReturnReferences,
     References,
     TReferences,
-    WeaviateReferences,
+    CrossReferences,
+    _CrossReference,
 )
 from weaviate.collections.classes.types import (
+    GeoCoordinate,
     Properties,
     TProperties,
 )
@@ -62,9 +62,9 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.types import UUID
 
 
-class _WeaviateUUID(uuid_lib.UUID):
-    def __init__(self, hex_: str) -> None:
-        object.__setattr__(self, "int", int(hex_.replace("-", ""), 16))
+class _WeaviateUUIDInt(uuid_lib.UUID):
+    def __init__(self, hex_: int) -> None:
+        object.__setattr__(self, "int", hex_)
 
 
 class _BaseQuery(Generic[Properties, References]):
@@ -90,14 +90,14 @@ class _BaseQuery(Generic[Properties, References]):
         )
 
     def _query(self) -> _QueryGRPC:
-        if not self.__connection._grpc_available:
+        if not self.__connection._grpc_available:  # type: ignore[unused-ignore,has-type] # very strange "cannot determine type of" error here when running mypy ./integration
             raise WeaviateGrpcUnavailable()
         return _QueryGRPC(
             self.__connection,
             self._name,
             self.__tenant,
             self.__consistency_level,
-            support_byte_vectors=self._is_weaviate_version_123,
+            is_weaviate_version_123=self._is_weaviate_version_123,
         )
 
     def __extract_metadata_for_object(
@@ -127,9 +127,12 @@ class _BaseQuery(Generic[Properties, References]):
         self,
         add_props: "search_get_pb2.MetadataResult",
     ) -> uuid_lib.UUID:
-        if not len(add_props.id) > 0:
+        if len(add_props.id_bytes) > 0:
+            return _WeaviateUUIDInt(int.from_bytes(add_props.id_bytes, byteorder="big"))
+
+        if len(add_props.id) == 0:
             raise WeaviateQueryException("The query returned an object with an empty ID string")
-        return _WeaviateUUID(add_props.id)
+        return uuid_lib.UUID(add_props.id)
 
     def __extract_vector_for_object(
         self,
@@ -191,7 +194,7 @@ class _BaseQuery(Generic[Properties, References]):
         if len(properties) == 0:
             return None
         return {
-            ref_prop.prop_name: _Reference._from(
+            ref_prop.prop_name: _CrossReference._from(
                 [
                     self.__result_to_query_object(
                         prop, prop.metadata, _QueryOptions(True, True, True, True)
@@ -268,7 +271,7 @@ class _BaseQuery(Generic[Properties, References]):
         if len(properties.ref_props) == 0:
             return None
         return {
-            ref_prop.prop_name: _Reference._from(
+            ref_prop.prop_name: _CrossReference._from(
                 [
                     self.__result_to_query_object(
                         prop, prop.metadata, _QueryOptions(True, True, True, True)
@@ -364,10 +367,10 @@ class _BaseQuery(Generic[Properties, References]):
         ],  # required until 3.12 is minimum supported version to use new generics syntax
     ) -> Union[
         _QueryReturn[Properties, References],
-        _QueryReturn[Properties, WeaviateReferences],
+        _QueryReturn[Properties, CrossReferences],
         _QueryReturn[Properties, TReferences],
         _QueryReturn[TProperties, References],
-        _QueryReturn[TProperties, WeaviateReferences],
+        _QueryReturn[TProperties, CrossReferences],
         _QueryReturn[TProperties, TReferences],
     ]:
         return _QueryReturn(
@@ -389,10 +392,10 @@ class _BaseQuery(Generic[Properties, References]):
         ],  # required until 3.12 is minimum supported version to use new generics syntax
     ) -> Union[
         _GenerativeReturn[Properties, References],
-        _GenerativeReturn[Properties, WeaviateReferences],
+        _GenerativeReturn[Properties, CrossReferences],
         _GenerativeReturn[Properties, TReferences],
         _GenerativeReturn[TProperties, References],
-        _GenerativeReturn[TProperties, WeaviateReferences],
+        _GenerativeReturn[TProperties, CrossReferences],
         _GenerativeReturn[TProperties, TReferences],
     ]:
         return _GenerativeReturn(
@@ -417,10 +420,10 @@ class _BaseQuery(Generic[Properties, References]):
         ],  # required until 3.12 is minimum supported version to use new generics syntax
     ) -> Union[
         _GroupByReturn[Properties, References],
-        _GroupByReturn[Properties, WeaviateReferences],
+        _GroupByReturn[Properties, CrossReferences],
         _GroupByReturn[Properties, TReferences],
         _GroupByReturn[TProperties, References],
-        _GroupByReturn[TProperties, WeaviateReferences],
+        _GroupByReturn[TProperties, CrossReferences],
         _GroupByReturn[TProperties, TReferences],
     ]:
         groups = {
@@ -478,6 +481,7 @@ class _BaseQuery(Generic[Properties, References]):
                 self._properties
             )  # is sourced from collection-specific generic
         else:
+            print(return_properties)
             assert return_properties is not None
             if not is_typeddict(return_properties):
                 raise TypeError(

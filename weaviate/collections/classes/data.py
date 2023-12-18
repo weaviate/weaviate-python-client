@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Generic
-from weaviate.collections.classes.internal import Properties, References, CrossReference
-from weaviate.collections.classes.types import _WeaviateInput
+from typing import Any, Generic, List, Optional
+from typing_extensions import TypeVar
+from weaviate.collections.classes.internal import _Reference
 from weaviate.types import UUID
 
 
@@ -21,13 +21,20 @@ class RefError:
     message: str
 
 
+P = TypeVar("P", bound=Optional[Any], covariant=True, default=None)
+R = TypeVar("R", bound=Optional[Any], covariant=True, default=None)
+
+
 @dataclass
-class DataObject(Generic[Properties]):
+class DataObject(Generic[P, R]):
     """This class represents an entire object within a collection to be used when batching."""
 
-    properties: Optional[Properties] = None
+    properties: P = None  # type: ignore
     uuid: Optional[UUID] = None
     vector: Optional[List[float]] = None
+    references: R = None  # type: ignore
+    # R is clearly bounded to Optional[Any] and defaults to None but mypy doesn't seem to understand that
+    # throws error: Incompatible types in assignment (expression has type "None", variable has type "R")  [assignment]
 
 
 @dataclass
@@ -40,19 +47,9 @@ class DataReference:
 
 
 @dataclass
-class DataReferenceOneToMany(Generic[Properties, References]):
+class DataReferenceOneToMany:
     """This class represents a reference between objects within a collection to be used when batching."""
 
     from_property: str
     from_uuid: UUID
-    to: CrossReference[Properties, References]
-
-
-class GeoCoordinate(_WeaviateInput):
-    """Input for the geo-coordinate datatype."""
-
-    latitude: float
-    longitude: float
-
-    def _to_dict(self) -> Dict[str, float]:
-        return {"latitude": self.latitude, "longitude": self.longitude}
+    to: _Reference

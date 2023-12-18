@@ -16,7 +16,7 @@ from weaviate.collections.classes.internal import (
     ReturnReferences,
     _QueryOptions,
     References,
-    WeaviateReferences,
+    CrossReferences,
     TReferences,
 )
 from weaviate.collections.classes.types import (
@@ -58,7 +58,7 @@ class _NearImageQuery(Generic[Properties, References], _BaseQuery[Properties, Re
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> _QueryReturn[Properties, WeaviateReferences]:
+    ) -> _QueryReturn[Properties, CrossReferences]:
         ...
 
     @overload
@@ -109,7 +109,7 @@ class _NearImageQuery(Generic[Properties, References], _BaseQuery[Properties, Re
         *,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> _QueryReturn[TProperties, WeaviateReferences]:
+    ) -> _QueryReturn[TProperties, CrossReferences]:
         ...
 
     @overload
@@ -144,10 +144,10 @@ class _NearImageQuery(Generic[Properties, References], _BaseQuery[Properties, Re
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> Union[
         _QueryReturn[Properties, References],
-        _QueryReturn[Properties, WeaviateReferences],
+        _QueryReturn[Properties, CrossReferences],
         _QueryReturn[Properties, TReferences],
         _QueryReturn[TProperties, References],
-        _QueryReturn[TProperties, WeaviateReferences],
+        _QueryReturn[TProperties, CrossReferences],
         _QueryReturn[TProperties, TReferences],
     ]:
         """Search for objects by image in this collection using an image-capable vectorisation module and vector-based similarity search.
@@ -254,7 +254,7 @@ class _NearImageGenerate(Generic[Properties, References], _BaseQuery[Properties,
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> _GenerativeReturn[Properties, WeaviateReferences]:
+    ) -> _GenerativeReturn[Properties, CrossReferences]:
         ...
 
     @overload
@@ -314,7 +314,7 @@ class _NearImageGenerate(Generic[Properties, References], _BaseQuery[Properties,
         *,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> _GenerativeReturn[TProperties, WeaviateReferences]:
+    ) -> _GenerativeReturn[TProperties, CrossReferences]:
         ...
 
     @overload
@@ -355,10 +355,10 @@ class _NearImageGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> Union[
         _GenerativeReturn[Properties, References],
-        _GenerativeReturn[Properties, WeaviateReferences],
+        _GenerativeReturn[Properties, CrossReferences],
         _GenerativeReturn[Properties, TReferences],
         _GenerativeReturn[TProperties, References],
-        _GenerativeReturn[TProperties, WeaviateReferences],
+        _GenerativeReturn[TProperties, CrossReferences],
         _GenerativeReturn[TProperties, TReferences],
     ]:
         """Perform retrieval-augmented generation (RaG) on the results of a by-image object search in this collection using an image-capable vectorisation module and vector-based similarity search.
@@ -470,7 +470,7 @@ class _NearImageGroupBy(Generic[Properties, References], _BaseQuery[Properties, 
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> _GroupByReturn[Properties, WeaviateReferences]:
+    ) -> _GroupByReturn[Properties, CrossReferences]:
         ...
 
     @overload
@@ -530,7 +530,7 @@ class _NearImageGroupBy(Generic[Properties, References], _BaseQuery[Properties, 
         *,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> _GroupByReturn[TProperties, WeaviateReferences]:
+    ) -> _GroupByReturn[TProperties, CrossReferences]:
         ...
 
     @overload
@@ -571,10 +571,10 @@ class _NearImageGroupBy(Generic[Properties, References], _BaseQuery[Properties, 
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> Union[
         _GroupByReturn[Properties, References],
-        _GroupByReturn[Properties, WeaviateReferences],
+        _GroupByReturn[Properties, CrossReferences],
         _GroupByReturn[Properties, TReferences],
         _GroupByReturn[TProperties, References],
-        _GroupByReturn[TProperties, WeaviateReferences],
+        _GroupByReturn[TProperties, CrossReferences],
         _GroupByReturn[TProperties, TReferences],
     ]:
         """Group the results of a by-image object search in this collection using an image-capable vectorisation module and vector-based similarity search.

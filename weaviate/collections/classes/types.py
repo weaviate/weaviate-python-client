@@ -1,12 +1,53 @@
-from typing import Any, Dict, Mapping, Optional, Type, get_origin
+import datetime
+import uuid as uuid_package
+
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Type, Union, get_origin
 from typing_extensions import TypeAlias, TypeVar, is_typeddict
 
 from pydantic import BaseModel, ConfigDict
 
 from weaviate.exceptions import InvalidDataModelException
-from weaviate.types import WeaviateField
 
-WeaviateProperties: TypeAlias = Dict[str, WeaviateField]
+
+class _WeaviateInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class GeoCoordinate(_WeaviateInput):
+    """Input for the geo-coordinate datatype."""
+
+    latitude: float
+    longitude: float
+
+    def _to_dict(self) -> Dict[str, float]:
+        return {"latitude": self.latitude, "longitude": self.longitude}
+
+
+WeaviateField: TypeAlias = Union[
+    None,  # null
+    str,  # text
+    bool,  # boolean
+    int,  # int
+    float,  # number
+    datetime.datetime,  # date
+    uuid_package.UUID,  # uuid
+    GeoCoordinate,  # geoCoordinates
+    Mapping[str, "WeaviateField"],  # object
+    List[str],  # text[]
+    List[bool],  # boolean[]
+    List[int],  # int[]
+    List[float],  # number[]
+    List[datetime.datetime],  # date[]
+    List[uuid_package.UUID],  # uuid[]
+    Sequence[Mapping[str, "WeaviateField"]],  # object[]
+    # Sequence is covariant while List is not, so we use Sequence here to allow for
+    # List[Dict[str, WeaviateField]] to be used interchangeably with List[Dict[str, Any]]
+]
+
+WeaviateProperties: TypeAlias = Mapping[str, WeaviateField]
+# current limitation of mypy is that Dict[str, WeaviateField] is not successfully inferred
+# when used in DataObject. It can't understand that DataObject[Dict[str, str], None] is covariant
+# with DataObject[Dict[str, WeaviateField], None]
 
 Properties = TypeVar("Properties", bound=Mapping[str, Any], default=WeaviateProperties)
 """`Properties` is used wherever a single generic type is needed for properties"""
@@ -20,6 +61,11 @@ a new instance of `_DataCollection` with a different `Properties` type.
 
 To be clear: `_DataCollection[Properties]().with_data_model(TProperties) -> _DataCollection[TProperties]()`
 """
+
+DProperties = TypeVar("DProperties", bound=Mapping[str, Any], default=Dict[str, Any])
+QProperties = TypeVar("QProperties", bound=Mapping[str, Any], default=WeaviateProperties)
+
+NProperties = TypeVar("NProperties", bound=Optional[Mapping[str, Any]], default=None)
 
 P = TypeVar("P")
 """`P` is a completely general type that is used wherever generic properties objects are defined that can be used
@@ -48,7 +94,3 @@ def _check_properties_generic(properties: Optional[Type[Properties]]) -> None:
         and not is_typeddict(properties)
     ):
         raise InvalidDataModelException("properties")
-
-
-class _WeaviateInput(BaseModel):
-    model_config = ConfigDict(extra="forbid")

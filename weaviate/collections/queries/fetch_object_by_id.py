@@ -26,11 +26,11 @@ from weaviate.collections.classes.internal import (
     ReturnReferences,
     _QueryOptions,
     References,
-    WeaviateReferences,
     TReferences,
     WeaviateProperties,
     FromNested,
-    _Reference,
+    CrossReferences,
+    _CrossReference,
 )
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.queries.base import _BaseQuery
@@ -58,7 +58,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> _ObjectSingleReturn[Properties, WeaviateReferences]:
+    ) -> _ObjectSingleReturn[Properties, CrossReferences]:
         ...
 
     @overload
@@ -91,7 +91,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         *,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> _ObjectSingleReturn[TProperties, WeaviateReferences]:
+    ) -> _ObjectSingleReturn[TProperties, CrossReferences]:
         ...
 
     @overload
@@ -115,10 +115,10 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
     ) -> Union[
         None,
         _ObjectSingleReturn[Properties, References],
-        _ObjectSingleReturn[Properties, WeaviateReferences],
+        _ObjectSingleReturn[Properties, CrossReferences],
         _ObjectSingleReturn[Properties, TReferences],
         _ObjectSingleReturn[TProperties, References],
-        _ObjectSingleReturn[TProperties, WeaviateReferences],
+        _ObjectSingleReturn[TProperties, CrossReferences],
         _ObjectSingleReturn[TProperties, TReferences],
     ]:
         """Retrieve an object from the server by its UUID.
@@ -175,10 +175,10 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
                 Union[
                     None,
                     _ObjectSingleReturn[Properties, References],
-                    _ObjectSingleReturn[Properties, WeaviateReferences],
+                    _ObjectSingleReturn[Properties, CrossReferences],
                     _ObjectSingleReturn[Properties, TReferences],
                     _ObjectSingleReturn[TProperties, References],
-                    _ObjectSingleReturn[TProperties, WeaviateReferences],
+                    _ObjectSingleReturn[TProperties, CrossReferences],
                     _ObjectSingleReturn[TProperties, TReferences],
                 ],
                 _ObjectSingleReturn(
@@ -198,10 +198,10 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
                 Union[
                     None,
                     _ObjectSingleReturn[Properties, References],
-                    _ObjectSingleReturn[Properties, WeaviateReferences],
+                    _ObjectSingleReturn[Properties, CrossReferences],
                     _ObjectSingleReturn[Properties, TReferences],
                     _ObjectSingleReturn[TProperties, References],
-                    _ObjectSingleReturn[TProperties, WeaviateReferences],
+                    _ObjectSingleReturn[TProperties, CrossReferences],
                     _ObjectSingleReturn[TProperties, TReferences],
                 ],
                 self._get_with_rest(
@@ -286,9 +286,10 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         ret_refs = (
             parsed_refs if isinstance(parsed_refs, list) or parsed_refs is None else [parsed_refs]
         )
+        refs: Optional[dict] = None
         if ret_refs is not None:
             refs = {
-                ret_ref.link_on: _Reference._from(
+                ret_ref.link_on: _CrossReference._from(
                     [
                         self._get_with_rest(
                             rest_ref["beacon"].split("/")[-2],
@@ -296,16 +297,18 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
                             ret_ref.include_vector,
                             ret_ref.return_properties,
                             ret_ref.return_references,
-                        )  # type: ignore # incompatability between _Object and _ObjectSingleReturn but will remove this anyway in 1.24 and Py GA
+                        )  # type: ignore
                         for rest_ref in cast(
                             List[_RestReference], obj_rest["properties"][ret_ref.link_on]
                         )
                     ]
                 )
+                if obj_rest["properties"].get(ret_ref.link_on) is not None
+                else None
                 for ret_ref in ret_refs
             }
-        else:
-            refs = None
+            if all(ref is None for ref in refs.values()):
+                refs = None
 
         return _ObjectSingleReturn(
             uuid=uuid_lib.UUID(obj_rest["id"]),

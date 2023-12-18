@@ -13,7 +13,7 @@ from weaviate.collections.classes.internal import (
     _QueryOptions,
     References,
     TReferences,
-    WeaviateReferences,
+    CrossReferences,
 )
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.queries.base import _BaseQuery
@@ -55,7 +55,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> _QueryReturn[Properties, WeaviateReferences]:
+    ) -> _QueryReturn[Properties, CrossReferences]:
         ...
 
     @overload
@@ -112,7 +112,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
         *,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> _QueryReturn[TProperties, WeaviateReferences]:
+    ) -> _QueryReturn[TProperties, CrossReferences]:
         ...
 
     @overload
@@ -151,10 +151,10 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> Union[
         _QueryReturn[Properties, References],
-        _QueryReturn[Properties, WeaviateReferences],
+        _QueryReturn[Properties, CrossReferences],
         _QueryReturn[Properties, TReferences],
         _QueryReturn[TProperties, References],
-        _QueryReturn[TProperties, WeaviateReferences],
+        _QueryReturn[TProperties, CrossReferences],
         _QueryReturn[TProperties, TReferences],
     ]:
         """Search for objects in this collection using the hybrid algorithm blending keyword-based BM25 and vector-based similarity.
@@ -268,7 +268,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> _GenerativeReturn[Properties, WeaviateReferences]:
+    ) -> _GenerativeReturn[Properties, CrossReferences]:
         ...
 
     @overload
@@ -334,7 +334,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         *,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> _GenerativeReturn[TProperties, WeaviateReferences]:
+    ) -> _GenerativeReturn[TProperties, CrossReferences]:
         ...
 
     @overload
@@ -379,10 +379,10 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> Union[
         _GenerativeReturn[Properties, References],
-        _GenerativeReturn[Properties, WeaviateReferences],
+        _GenerativeReturn[Properties, CrossReferences],
         _GenerativeReturn[Properties, TReferences],
         _GenerativeReturn[TProperties, References],
-        _GenerativeReturn[TProperties, WeaviateReferences],
+        _GenerativeReturn[TProperties, CrossReferences],
         _GenerativeReturn[TProperties, TReferences],
     ]:
         """Perform retrieval-augmented generation (RaG) on the results of an object search in this collection using the hybrid algorithm blending keyword-based BM25 and vector-based similarity.

@@ -8,14 +8,14 @@ from weaviate.collections.classes.config import (
     _ReplicationConfigUpdate,
     _VectorIndexConfigFlatUpdate,
     PropertyType,
+    Property,
+    ReferenceProperty,
+    ReferencePropertyMultiTarget,
     _VectorIndexConfigHNSWUpdate,
     _CollectionConfig,
     _CollectionConfigSimple,
     _Property,
     _ShardStatus,
-    Property,
-    ReferenceProperty,
-    ReferencePropertyMultiTarget,
 )
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
@@ -175,11 +175,11 @@ class _ConfigBase:
 
 
 class _ConfigCollection(_ConfigBase):
-    def add_property(self, additional_property: PropertyType) -> None:
+    def add_property(self, prop: Property) -> None:
         """Add a property to the collection in Weaviate.
 
         Arguments:
-            additional_property : The property to add to the collection.
+            prop : The property to add to the collection.
 
         Raises:
             `requests.ConnectionError`:
@@ -189,21 +189,45 @@ class _ConfigCollection(_ConfigBase):
             `weaviate.ObjectAlreadyExistsException`:
                 If the property already exists in the collection.
         """
-        if (
-            not isinstance(additional_property, Property)
-            and not isinstance(additional_property, ReferenceProperty)
-            and not isinstance(additional_property, ReferencePropertyMultiTarget)
+        if not isinstance(prop, Property):
+            _raise_invalid_input(
+                "prop",
+                prop,
+                Property,
+            )
+        if self._get_property_by_name(prop.name) is not None:
+            raise ObjectAlreadyExistsException(
+                f"Property with name '{prop.name}' already exists in collection '{self._name}'."
+            )
+        self._add_property(prop)
+
+    def add_reference(self, ref: Union[ReferenceProperty, ReferencePropertyMultiTarget]) -> None:
+        """Add a reference to the collection in Weaviate.
+
+        Arguments:
+            ref : The reference to add to the collection.
+
+        Raises:
+            `requests.ConnectionError`:
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`:
+                If Weaviate reports a non-OK status.
+            `weaviate.ObjectAlreadyExistsException`:
+                If the reference already exists in the collection.
+        """
+        if not isinstance(ref, ReferenceProperty) and not isinstance(
+            ref, ReferencePropertyMultiTarget
         ):
             _raise_invalid_input(
-                "additional_property",
-                additional_property,
-                Union[Property, ReferenceProperty, ReferencePropertyMultiTarget],
+                "ref",
+                ref,
+                Union[ReferenceProperty, ReferencePropertyMultiTarget],
             )
-        if self._get_property_by_name(additional_property.name) is not None:
+        if self._get_property_by_name(ref.name) is not None:
             raise ObjectAlreadyExistsException(
-                f"Property with name '{additional_property.name}' already exists in collection '{self._name}'."
+                f"Reference with name '{ref.name}' already exists in collection '{self._name}'."
             )
-        self._add_property(additional_property)
+        self._add_property(ref)
 
 
 class _ConfigCollectionModel(_ConfigBase):
@@ -216,7 +240,7 @@ class _ConfigCollectionModel(_ConfigBase):
         schema_props_simple = [
             {
                 "name": prop.name,
-                "dataType": prop.to_weaviate_dict().get("dataType"),
+                "dataType": prop._to_dict().get("dataType"),
             }
             for prop in schema_props
         ]

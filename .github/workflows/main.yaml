@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.22.6
-  NEW_WEAVIATE_VERSION: preview-fix-filtering-on-array-types-with-grpc-cf5cb9a
+  NEW_WEAVIATE_VERSION: 1.23.0-rc.1
 
 jobs:
   lint-and-format:
