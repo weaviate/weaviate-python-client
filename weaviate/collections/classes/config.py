@@ -1913,7 +1913,7 @@ class _CollectionConfigCreate(_CollectionConfigCreateBase):
 
 class _VectorIndexQuantitizer:
     @staticmethod
-    def PQ(
+    def pq(
         bit_compression: bool = False,
         centroids: int = 256,
         encoder_distribution: PQEncoderDistribution = PQEncoderDistribution.LOG_NORMAL,
@@ -1937,7 +1937,7 @@ class _VectorIndexQuantitizer:
         )
 
     @staticmethod
-    def BQ(
+    def bq(
         cache: bool = False,
         rescore_limit: int = -1,
     ) -> _BQConfigCreate:
@@ -2056,12 +2056,12 @@ class Configure:
         )
 
     @staticmethod
-    def multi_tenancy(enabled: bool = False) -> _MultiTenancyConfigCreate:
+    def multi_tenancy(enabled: bool = True) -> _MultiTenancyConfigCreate:
         """Create a `MultiTenancyConfigCreate` object to be used when defining the multi-tenancy configuration of Weaviate.
 
         Arguments:
             `enabled`
-                Whether multi-tenancy is enabled. Defaults to `False`.
+                Whether multi-tenancy is enabled. Defaults to `True`.
         """
         return _MultiTenancyConfigCreate(enabled=enabled)
 
@@ -2112,7 +2112,7 @@ class Configure:
 
 class _VectorIndexQuantitizerUpdate:
     @staticmethod
-    def PQ(
+    def pq(
         bit_compression: Optional[bool] = None,
         centroids: Optional[int] = None,
         encoder_distribution: Optional[PQEncoderDistribution] = None,
@@ -2136,7 +2136,7 @@ class _VectorIndexQuantitizerUpdate:
         )
 
     @staticmethod
-    def BQ(rescore_limit: Optional[int] = None) -> _BQConfigUpdate:
+    def bq(rescore_limit: Optional[int] = None) -> _BQConfigUpdate:
         """Create a `_BQConfigUpdate` object to be used when updating the binary quantization (BQ) configuration of Weaviate.
 
         Use this method when defining the `quantitizer` argument in the `vector_index` configuration in `collection.update()`.

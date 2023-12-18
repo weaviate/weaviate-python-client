@@ -276,7 +276,7 @@ def test_collection_config_full(client: weaviate.WeaviateClient) -> None:
             ef_construction=100,
             flat_search_cutoff=41000,
             max_connections=72,
-            quantitizer=Configure.VectorIndex.Quantitizer.PQ(
+            quantitizer=Configure.VectorIndex.Quantitizer.pq(
                 bit_compression=True,
                 centroids=128,
                 encoder_distribution=PQEncoderDistribution.NORMAL,
@@ -390,7 +390,7 @@ def test_collection_config_update(client: weaviate.WeaviateClient) -> None:
         vector_index_config=Reconfigure.VectorIndex.hnsw(
             skip=True,
             vector_cache_max_objects=2000000,
-            quantitizer=Reconfigure.VectorIndex.Quantitizer.PQ(
+            quantitizer=Reconfigure.VectorIndex.Quantitizer.pq(
                 bit_compression=True,
                 centroids=128,
                 encoder_type=PQEncoderType.TILE,
@@ -447,7 +447,7 @@ def test_update_flat(client: weaviate.WeaviateClient) -> None:
         name="TestCollectionConfigUpdateFlat",
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=5,
-            quantitizer=Configure.VectorIndex.Quantitizer.BQ(rescore_limit=10),
+            quantitizer=Configure.VectorIndex.Quantitizer.bq(rescore_limit=10),
         ),
     )
     config = collection.config.get()
@@ -459,7 +459,7 @@ def test_update_flat(client: weaviate.WeaviateClient) -> None:
     collection.config.update(
         vector_index_config=Reconfigure.VectorIndex.flat(
             vector_cache_max_objects=10,
-            quantitizer=Reconfigure.VectorIndex.Quantitizer.BQ(rescore_limit=20),
+            quantitizer=Reconfigure.VectorIndex.Quantitizer.bq(rescore_limit=20),
         ),
     )
     config = collection.config.get()
@@ -521,7 +521,7 @@ def test_config_vector_index_flat_and_quantitizer_bq() -> None:
         name="TestCollectionCVectorIndexAndQuantitizer",
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=234,
-            quantitizer=Configure.VectorIndex.Quantitizer.BQ(rescore_limit=456),
+            quantitizer=Configure.VectorIndex.Quantitizer.bq(rescore_limit=456),
         ),
     )
 
@@ -540,7 +540,7 @@ def test_config_vector_index_hnsw_and_quantitizer_pq() -> None:
         vector_index_config=Configure.VectorIndex.hnsw(
             vector_cache_max_objects=234,
             ef_construction=789,
-            quantitizer=Configure.VectorIndex.Quantitizer.PQ(segments=456),
+            quantitizer=Configure.VectorIndex.Quantitizer.pq(segments=456),
         ),
     )
 
