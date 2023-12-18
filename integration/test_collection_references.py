@@ -185,7 +185,9 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient, level
 
     client.collections.create(
         name="ATypedDicts",
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
@@ -200,7 +202,9 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient, level
         references=[
             ReferenceProperty(name="a", target_collection="ATypedDicts"),
         ],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
     )
     B = client.collections.get("BTypedDicts", BProps)
     uuid_B = B.data.insert(properties={"name": "B"}, references={"a": Reference.to(uuids=uuid_A1)})
@@ -227,7 +231,9 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient, level
         references=[
             ReferenceProperty(name="b", target_collection="BTypedDicts"),
         ],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
     )
     C = client.collections.get("CTypedDicts", CProps)
     C.data.insert(properties={"name": "find me"}, references={"b": Reference.to(uuids=uuid_B)})
