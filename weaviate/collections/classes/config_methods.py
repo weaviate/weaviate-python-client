@@ -140,11 +140,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
             bm25=_BM25Config(
                 b=schema["invertedIndexConfig"]["bm25"]["b"],
                 k1=schema["invertedIndexConfig"]["bm25"]["k1"],
-            )
-            if "bm25" in schema["invertedIndexConfig"]
-            and "b" in schema["invertedIndexConfig"]["bm25"]
-            and "k1" in schema["invertedIndexConfig"]["bm25"]
-            else None,
+            ),
             cleanup_interval_seconds=schema["invertedIndexConfig"]["cleanupIntervalSeconds"],
             index_null_state=cast(dict, schema["invertedIndexConfig"]).get("indexNullState")
             is True,

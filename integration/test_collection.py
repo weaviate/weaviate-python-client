@@ -767,6 +767,7 @@ def test_auto_limit(client: weaviate.WeaviateClient):
         name="TestAutoLimit",
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(),
     )
     for _ in range(4):
         collection.data.insert({"Name": "rain rain"})

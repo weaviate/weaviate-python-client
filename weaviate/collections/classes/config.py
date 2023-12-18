@@ -421,8 +421,8 @@ class _ReplicationConfigUpdate(_ConfigUpdateModel):
 
 
 class _BM25ConfigCreate(_ConfigCreateModel):
-    b: Optional[float]
-    k1: Optional[float]
+    b: float
+    k1: float
 
 
 class _BM25ConfigUpdate(_ConfigUpdateModel):
@@ -443,7 +443,7 @@ class _StopwordsUpdate(_ConfigUpdateModel):
 
 
 class _InvertedIndexConfigCreate(_ConfigCreateModel):
-    bm25: _BM25ConfigCreate
+    bm25: Optional[_BM25ConfigCreate]
     cleanupIntervalSeconds: Optional[int]
     indexTimestamps: Optional[bool]
     indexPropertyLength: Optional[bool]
@@ -1515,7 +1515,7 @@ class _StopwordsConfig(_ConfigBase):
 
 @dataclass
 class _InvertedIndexConfig(_ConfigBase):
-    bm25: Optional[_BM25Config]
+    bm25: _BM25Config
     cleanup_interval_seconds: int
     index_null_state: bool
     index_property_length: bool
@@ -2043,8 +2043,13 @@ class Configure:
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for details!
         """  # noqa: D417 (missing argument descriptions in the docstring)
+        if bm25_b is None and bm25_k1 is not None or bm25_k1 is None and bm25_b is not None:
+            raise ValueError("bm25_b and bm25_k1 must be specified together")
+
         return _InvertedIndexConfigCreate(
-            bm25=_BM25ConfigCreate(b=bm25_b, k1=bm25_k1),
+            bm25=_BM25ConfigCreate(b=bm25_b, k1=bm25_k1)
+            if bm25_b is not None and bm25_k1 is not None
+            else None,
             cleanupIntervalSeconds=cleanup_interval_seconds,
             indexTimestamps=index_timestamps,
             indexPropertyLength=index_property_length,
