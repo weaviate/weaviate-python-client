@@ -1712,8 +1712,8 @@ def test_batch_with_arrays(client: weaviate.WeaviateClient) -> None:
         ],
     )
 
-    objects_in: List[DataObject[WeaviateProperties, Any]] = [
-        DataObject(
+    objects_in = [
+        DataObject[WeaviateProperties, None](
             {
                 "texts": ["first", "second"],
                 "ints": [1, 2],
@@ -1723,7 +1723,7 @@ def test_batch_with_arrays(client: weaviate.WeaviateClient) -> None:
                 "uuids": [UUID1, UUID3],
             }
         ),
-        DataObject(
+        DataObject[WeaviateProperties, None](
             {
                 "texts": ["third", "fourth"],
                 "ints": [3, 4, 5],

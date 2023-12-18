@@ -20,15 +20,15 @@ class RefError:
     message: str
 
 
-P = TypeVar("P")
-R = TypeVar("R", bound=Optional[Any], default=None)
+P = TypeVar("P", bound=Optional[Any], covariant=True, default=None)
+R = TypeVar("R", bound=Optional[Any], covariant=True, default=None)
 
 
 @dataclass
 class DataObject(Generic[P, R]):
     """This class represents an entire object within a collection to be used when batching."""
 
-    properties: P
+    properties: P = None  # type: ignore
     uuid: Optional[UUID] = None
     vector: Optional[List[float]] = None
     references: R = None  # type: ignore
