@@ -88,7 +88,9 @@ def test_collection_get_simple(client: weaviate.WeaviateClient):
 def test_collection_vectorizer_config(client: weaviate.WeaviateClient):
     client.collections.create(
         name="TestCollectionVectorizerConfig",
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(
@@ -111,7 +113,7 @@ def test_collection_vectorizer_config(client: weaviate.WeaviateClient):
     assert config.properties[1].vectorizer_config.vectorize_property_name is False
 
     assert config.vectorizer_config is not None
-    assert config.vectorizer_config.vectorize_class_name is False
+    assert config.vectorizer_config.vectorize_collection_name is False
     assert config.vectorizer_config.model == {}
 
     client.collections.delete("TestCollectionVectorizerConfig")
