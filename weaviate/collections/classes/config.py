@@ -336,7 +336,7 @@ class _PQConfigUpdate(_QuantitizerConfigUpdate):
 
 
 class _BQConfigUpdate(_QuantitizerConfigUpdate):
-    rescoreLimit: int
+    rescoreLimit: Optional[int]
 
     @staticmethod
     def quantitizer_name() -> str:
@@ -2119,13 +2119,13 @@ class Configure:
 class _VectorIndexQuantitizerUpdate:
     @staticmethod
     def PQ(
-        bit_compression: bool = False,
-        centroids: int = 256,
-        enabled: bool = False,
-        encoder_distribution: PQEncoderDistribution = PQEncoderDistribution.LOG_NORMAL,
-        encoder_type: PQEncoderType = PQEncoderType.KMEANS,
-        segments: int = 0,
-        training_limit: int = 100000,
+        bit_compression: Optional[bool] = None,
+        centroids: Optional[int] = None,
+        enabled: Optional[bool] = None,
+        encoder_distribution: Optional[PQEncoderDistribution] = None,
+        encoder_type: Optional[PQEncoderType] = None,
+        segments: Optional[int] = None,
+        training_limit: Optional[int] = None,
     ) -> _PQConfigUpdate:
         """Create a `_PQConfigUpdate` object to be used when updating the product quantization (PQ) configuration of Weaviate.
 
@@ -2144,7 +2144,7 @@ class _VectorIndexQuantitizerUpdate:
         )
 
     @staticmethod
-    def BQ(rescore_limit: int = -1) -> _BQConfigUpdate:
+    def BQ(rescore_limit: Optional[int] = None) -> _BQConfigUpdate:
         """Create a `_BQConfigUpdate` object to be used when updating the binary quantization (BQ) configuration of Weaviate.
 
         Use this method when defining the `quantitizer` argument in the `vector_index` configuration in `collection.update()`.
@@ -2243,13 +2243,13 @@ class Reconfigure:
         )
 
     @staticmethod
-    def replication(factor: int = 1) -> _ReplicationConfigUpdate:
+    def replication(factor: Optional[int] = None) -> _ReplicationConfigUpdate:
         """Create a `ReplicationConfigUpdate` object.
 
         Use this method when defining the `replication_config` argument in `collection.update()`.
 
         Arguments:
             `factor`
-                The replication factor. Defaults to `1`.
+                The replication factor.
         """
         return _ReplicationConfigUpdate(factor=factor)
