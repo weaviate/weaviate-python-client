@@ -1227,6 +1227,8 @@ def test_return_properties_metadata_references_combos(
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
+        ],
+        references=[
             ReferenceProperty(name="friend", target_collection="TestReturnEverything"),
         ],
     )
