@@ -201,8 +201,7 @@ def test_collection_config_defaults(client: weaviate.WeaviateClient) -> None:
 
     assert config.properties == []
 
-    assert config.inverted_index_config.bm25.b == 0.75
-    assert config.inverted_index_config.bm25.k1 == 1.2
+    assert config.inverted_index_config.bm25 is None
     assert config.inverted_index_config.cleanup_interval_seconds == 60
     assert config.inverted_index_config.index_timestamps is False
     assert config.inverted_index_config.index_property_length is False
