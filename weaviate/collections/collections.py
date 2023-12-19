@@ -137,6 +137,7 @@ class _Collections(_CollectionsBase):
         return Collection[Properties, References](
             self._connection,
             name,
+            self._batch_executor,
             properties=data_model_properties,
             references=data_model_references,
         )
