@@ -1017,7 +1017,7 @@ def test_multi_searches(client: weaviate.WeaviateClient) -> None:
         return_metadata=MetadataQuery(last_update_time_unix=True),
     ).objects
     assert "name" in objects[0].properties
-    assert objects[0].metadata.last_update_time_unix is not None
+    assert objects[0].metadata.last_update_time is not None
 
     objects = collection.query.bm25(query="other").objects
     assert "name" in objects[0].properties
@@ -1278,8 +1278,8 @@ def test_return_properties_metadata_references_combos(
     ):
         assert obj.metadata._is_empty()
     else:
-        assert obj.metadata.last_update_time_unix is not None
-        assert obj.metadata.creation_time_unix is not None
+        assert obj.metadata.last_update_time is not None
+        assert obj.metadata.creation_time is not None
         assert obj.metadata.explain_score is not None
 
     if include_vector:

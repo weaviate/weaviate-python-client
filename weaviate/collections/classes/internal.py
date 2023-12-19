@@ -57,8 +57,8 @@ def _metadata_from_dict(
         uuid,
         metadata.get("vector"),
         _MetadataReturn(
-            creation_time_unix=metadata.get("creationTimeUnix"),
-            last_update_time_unix=metadata.get("lastUpdateTimeUnix"),
+            creation_time=metadata.get("creationTimeUnix"),
+            last_update_time=metadata.get("lastUpdateTimeUnix"),
             distance=metadata.get("distance"),
             certainty=metadata.get("certainty"),
             explain_score=metadata.get("explainScore"),
@@ -70,8 +70,8 @@ def _metadata_from_dict(
 
 @dataclass
 class _MetadataReturn:
-    creation_time_unix: Optional[datetime.datetime] = None
-    last_update_time_unix: Optional[datetime.datetime] = None
+    creation_time: Optional[datetime.datetime] = None
+    last_update_time: Optional[datetime.datetime] = None
     distance: Optional[float] = None
     certainty: Optional[float] = None
     score: Optional[float] = None
@@ -81,8 +81,8 @@ class _MetadataReturn:
     def _is_empty(self) -> bool:
         return all(
             [
-                self.creation_time_unix is None,
-                self.last_update_time_unix is None,
+                self.creation_time is None,
+                self.last_update_time is None,
                 self.distance is None,
                 self.certainty is None,
                 self.score is None,
@@ -103,8 +103,8 @@ class _Object(Generic[P, R]):
 
 @dataclass
 class _MetadataSingleObjectReturn:
-    creation_time_unix: datetime.datetime
-    last_update_time_unix: datetime.datetime
+    creation_time: datetime.datetime
+    last_update_time: datetime.datetime
     is_consistent: Optional[bool]
 
 

@@ -107,12 +107,12 @@ class _BaseQuery(Generic[Properties, References]):
         meta = _MetadataReturn(
             distance=add_props.distance if add_props.distance_present else None,
             certainty=add_props.certainty if add_props.certainty_present else None,
-            creation_time_unix=datetime.datetime.fromtimestamp(
+            creation_time=datetime.datetime.fromtimestamp(
                 add_props.creation_time_unix / 1000, tz=datetime.timezone.utc
             )
             if add_props.creation_time_unix_present
             else None,
-            last_update_time_unix=datetime.datetime.fromtimestamp(
+            last_update_time=datetime.datetime.fromtimestamp(
                 add_props.last_update_time_unix / 1000, tz=datetime.timezone.utc
             )
             if add_props.last_update_time_unix_present
