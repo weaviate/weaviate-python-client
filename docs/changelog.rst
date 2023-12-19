@@ -4,6 +4,8 @@ Changelog
 Version 4.4.b2
 --------------
 
+This version works best with Weaviate >= 1.23 which was released on 2023-12-18.
+
 This beta version has breaking changes, a migration guide is available at $URL:
 
 - Refactor ``weaviate.classes`` structure
@@ -26,7 +28,7 @@ This beta version has breaking changes, a migration guide is available at $URL:
 
 New functionality includes:
 
-- Adds backup functionality to v4 client (client.backup) and directly to the collection
+- Adds backup functionality to v4 client (``client.backup``) and directly to the collection (``collection.backup``)
 - Adds support for FLAT vector index
 - Adds binary quantization for FLAT vector index
 - Adds ``text2vec_jinaai`` static method to ``Configure.Vectorizer``
@@ -36,7 +38,7 @@ New functionality includes:
 - Adds support for geo-coordinates
 - Adds metadata filtering with ``FilterMetadata``
 - Adds ``client.graphql_raw_query`` to use Weaviate features that are not directly supported.
-- Various performance improvements
+- Various performance improvements and bugfixes
 
 Version 4.4.b1
 --------------
