@@ -28,7 +28,7 @@ jobs:
           version: "22.10"
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.11"
           cache: 'pip' # caching pip dependencies
       - run: pip install -r requirements-devel.txt
       - name: "Flake 8"
@@ -44,7 +44,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["3.8", "3.9", "3.10", "3.11"]
+        version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         folder: ["weaviate"]
     steps:
       - uses: actions/checkout@v3
@@ -62,7 +62,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["3.8", "3.9", "3.10", "3.11"]
+        version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         folder: ["test", "mock_tests"]
     steps:
       - uses: actions/checkout@v3
@@ -94,6 +94,7 @@ jobs:
           { py: "3.11", weaviate: $OLD_WEAVIATE_VERSION},
           { py: "3.12", weaviate: $NEW_WEAVIATE_VERSION}
         ]
+
         optional_dependencies: [false]
     steps:
       - uses: actions/checkout@v3
@@ -163,10 +164,10 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Set up Python 3.10
+      - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.11"
           cache: 'pip' # caching pip dependencies
       - name: Install dependencies
         run: pip install -r requirements-devel.txt
@@ -226,10 +227,10 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Set up Python 3.10
+      - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.11"
           cache: 'pip' # caching pip dependencies
       - name: Install dependencies
         run: pip install -r requirements-devel.txt

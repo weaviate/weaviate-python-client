@@ -1,5 +1,6 @@
 Changelog
 =========
+
 Version 4.4.b1
 --------------
 This patch beta version includes:
@@ -129,6 +130,12 @@ This beta version includes:
     - Python-native dataclasses for easy data manipulation
     - No more builder methods or raw dictionaries
 - Join the discussion and contribute your feedback `here <https://forum.weaviate.io/t/python-v4-client-feedback-megathread/892>`_
+
+Version 3.25.3
+--------------
+This patch version includes
+
+- Bump of the default version for Weaviate Embedded DB to v1.22.3
 
 Version 3.25.2
 --------------
