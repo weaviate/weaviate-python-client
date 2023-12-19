@@ -1199,8 +1199,8 @@ def test_collection_config_get(client: weaviate.WeaviateClient) -> None:
         [],
         MetadataQuery(),
         [
-            "creation_time_unix",
-            "last_update_time_unix",
+            "creation_time",
+            "last_update_time",
             "distance",
             "certainty",
             "score",
