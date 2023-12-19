@@ -141,7 +141,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         """
         if self._is_weaviate_version_123:
             return_metadata = MetadataQuery(
-                creation_time_unix=True, last_update_time_unix=True, is_consistent=True
+                creation_time=True, last_update_time=True, is_consistent=True
             )
             res = self._query().get(
                 limit=1,
@@ -168,8 +168,8 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
 
             obj = objects.objects[0]
             assert obj.metadata is not None
-            assert obj.metadata.creation_time_unix is not None
-            assert obj.metadata.last_update_time_unix is not None
+            assert obj.metadata.creation_time is not None
+            assert obj.metadata.last_update_time is not None
 
             return cast(
                 Union[
@@ -186,8 +186,8 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
                     vector=obj.vector,
                     properties=obj.properties,
                     metadata=_MetadataSingleObjectReturn(
-                        creation_time_unix=obj.metadata.creation_time_unix,
-                        last_update_time_unix=obj.metadata.last_update_time_unix,
+                        creation_time=obj.metadata.creation_time,
+                        last_update_time=obj.metadata.last_update_time,
                         is_consistent=obj.metadata.is_consistent,
                     ),
                     references=obj.references,
@@ -315,10 +315,10 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
             vector=obj_rest.get("vector", None),
             properties=props,
             metadata=_MetadataSingleObjectReturn(
-                creation_time_unix=datetime.datetime.fromtimestamp(
+                creation_time=datetime.datetime.fromtimestamp(
                     obj_rest["creationTimeUnix"] / 1000, tz=datetime.timezone.utc
                 ),
-                last_update_time_unix=datetime.datetime.fromtimestamp(
+                last_update_time=datetime.datetime.fromtimestamp(
                     obj_rest["lastUpdateTimeUnix"] / 1000, tz=datetime.timezone.utc
                 ),
                 is_consistent=None,

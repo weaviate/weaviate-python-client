@@ -247,7 +247,7 @@ def test_multi_searches(client: weaviate.WeaviateClient):
     objects = collection.query.bm25(
         query="word",
         return_properties=["name"],
-        return_metadata=MetadataQuery(last_update_time_unix=True),
+        return_metadata=MetadataQuery(last_update_time=True),
     )
     assert objects[0].properties.name == "some word"
     assert objects[0].metadata.last_update_time_unix is not None
@@ -283,7 +283,7 @@ def test_multi_searches_with_references(client: weaviate.WeaviateClient):
     objects = collection.query.bm25(
         query="word",
         return_properties=["name", "group"],
-        return_metadata=MetadataQuery(last_update_time_unix=True),
+        return_metadata=MetadataQuery(last_update_time=True),
     )
     assert objects[0].properties.name == "some word"
     assert objects[0].properties.group.objects == []

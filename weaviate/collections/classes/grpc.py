@@ -66,8 +66,8 @@ class Move:
 class MetadataQuery(_WeaviateInput):
     """Define which metadata should be returned in the query's results."""
 
-    creation_time_unix: bool = Field(default=False)
-    last_update_time_unix: bool = Field(default=False)
+    creation_time: bool = Field(default=False)
+    last_update_time: bool = Field(default=False)
     distance: bool = Field(default=False)
     certainty: bool = Field(default=False)
     score: bool = Field(default=False)
@@ -78,8 +78,8 @@ class MetadataQuery(_WeaviateInput):
     def _full(cls) -> "MetadataQuery":
         """Return a MetadataQuery with all fields set to True."""
         return cls(
-            creation_time_unix=True,
-            last_update_time_unix=True,
+            creation_time=True,
+            last_update_time=True,
             distance=True,
             certainty=True,
             score=True,
@@ -109,8 +109,8 @@ class _MetadataQuery:
             if public is None
             else cls(
                 vector=include_vector,
-                creation_time_unix=public.creation_time_unix,
-                last_update_time_unix=public.last_update_time_unix,
+                creation_time_unix=public.creation_time,
+                last_update_time_unix=public.last_update_time,
                 distance=public.distance,
                 certainty=public.certainty,
                 score=public.score,

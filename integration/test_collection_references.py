@@ -141,7 +141,7 @@ def test_mono_references_grpc(client: weaviate.WeaviateClient) -> None:
         return_references=FromReference(
             link_on="b",
             return_properties="name",
-            return_metadata=MetadataQuery(last_update_time_unix=True),
+            return_metadata=MetadataQuery(last_update_time=True),
             return_references=FromReference(
                 link_on="a",
                 return_properties="name",
@@ -150,7 +150,7 @@ def test_mono_references_grpc(client: weaviate.WeaviateClient) -> None:
     ).objects
     assert c_objs[0].properties["name"] == "find me"
     assert c_objs[0].references["b"].objects[0].properties["name"] == "B"
-    assert c_objs[0].references["b"].objects[0].metadata.last_update_time_unix is not None
+    assert c_objs[0].references["b"].objects[0].metadata.last_update_time is not None
     assert (
         c_objs[0].references["b"].objects[0].references["a"].objects[0].properties["name"] == "A1"
     )
@@ -174,7 +174,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient, level
     class BRefs(TypedDict):
         a: Annotated[
             CrossReference[AProps, None],
-            ReferenceAnnotation(metadata=MetadataQuery(creation_time_unix=True)),
+            ReferenceAnnotation(metadata=MetadataQuery(creation_time=True)),
         ]
 
     class CProps(TypedDict):
@@ -291,7 +291,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient, level
     )
     assert c_objs[0].references["b"].objects[0].references["a"].objects[0].uuid == uuid_A1
     assert (
-        c_objs[0].references["b"].objects[0].references["a"].objects[0].metadata.creation_time_unix
+        c_objs[0].references["b"].objects[0].references["a"].objects[0].metadata.creation_time
         is not None
     )
     assert (
@@ -299,7 +299,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient, level
     )
     assert c_objs[0].references["b"].objects[0].references["a"].objects[1].uuid == uuid_A2
     assert (
-        c_objs[0].references["b"].objects[0].references["a"].objects[1].metadata.creation_time_unix
+        c_objs[0].references["b"].objects[0].references["a"].objects[1].metadata.creation_time
         is not None
     )
 
@@ -359,13 +359,13 @@ def test_multi_references_grpc(client: weaviate.WeaviateClient) -> None:
             link_on="ref",
             target_collection="A",
             return_properties=["name"],
-            return_metadata=MetadataQuery(last_update_time_unix=True),
+            return_metadata=MetadataQuery(last_update_time=True),
         ),
     ).objects
     assert objects[0].properties["name"] == "first"
     assert len(objects[0].references["ref"].objects) == 1
     assert objects[0].references["ref"].objects[0].properties["name"] == "A"
-    assert objects[0].references["ref"].objects[0].metadata.last_update_time_unix is not None
+    assert objects[0].references["ref"].objects[0].metadata.last_update_time is not None
 
     objects = C.query.bm25(
         query="second",
@@ -376,13 +376,13 @@ def test_multi_references_grpc(client: weaviate.WeaviateClient) -> None:
             return_properties=[
                 "name",
             ],
-            return_metadata=MetadataQuery(last_update_time_unix=True),
+            return_metadata=MetadataQuery(last_update_time=True),
         ),
     ).objects
     assert objects[0].properties["name"] == "second"
     assert len(objects[0].references["ref"].objects) == 1
     assert objects[0].references["ref"].objects[0].properties["name"] == "B"
-    assert objects[0].references["ref"].objects[0].metadata.last_update_time_unix is not None
+    assert objects[0].references["ref"].objects[0].metadata.last_update_time is not None
 
     client.collections.delete("A")
     client.collections.delete("B")

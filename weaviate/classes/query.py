@@ -1,3 +1,4 @@
+from weaviate.collections.classes.filters import Filter, FilterMetadata
 from weaviate.collections.classes.grpc import (
     HybridFusion,
     FromNested,
@@ -10,11 +11,14 @@ from weaviate.collections.classes.grpc import (
     QueryReferenceMultiTarget,
 )
 
+
 __all__ = [
-    "HybridFusion",
+    "Filter",
+    "FilterMetadata",
     "FromNested",
     "FromReference",
     "FromReferenceMultiTarget",
+    "HybridFusion",
     "MetadataQuery",
     "Move",
     "QueryNested",

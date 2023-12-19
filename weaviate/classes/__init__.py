@@ -1,5 +1,4 @@
 from weaviate.collections.classes.aggregate import Metrics
-from weaviate.collections.classes.filters import Filter
 from weaviate.collections.classes.tenants import Tenant
 
 from .config import (
@@ -22,10 +21,11 @@ from .data import (
 )
 from .generics import Nested, CrossReference, ReferenceAnnotation, CrossReferenceAnnotation
 from .query import (
-    HybridFusion,
+    Filter,
     FromNested,
     FromReference,
     FromReferenceMultiTarget,
+    HybridFusion,
     MetadataQuery,
     Move,
     QueryNested,

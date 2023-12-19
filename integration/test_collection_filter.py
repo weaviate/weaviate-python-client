@@ -887,7 +887,7 @@ def test_delete_by_time_metadata(client: weaviate.WeaviateClient) -> None:
     obj1 = collection.query.fetch_object_by_id(uuid=uuid1)
 
     collection.data.delete_many(
-        where=FilterMetadata.ByCreationTime.less_or_equal(obj1.metadata.creation_time_unix)
+        where=FilterMetadata.ByCreationTime.less_or_equal(obj1.metadata.creation_time)
     )
 
     assert len(collection) == 1
@@ -1026,11 +1026,11 @@ def test_filter_timestamp_direct_path(client: weaviate.WeaviateClient, path: str
     obj2 = collection.query.fetch_object_by_id(uuid=obj2_uuid)
     assert obj2 is not None
     assert obj2.metadata is not None
-    assert obj2.metadata.creation_time_unix is not None
+    assert obj2.metadata.creation_time is not None
 
-    filters = Filter(path=[path]).less_than(obj2.metadata.creation_time_unix)
+    filters = Filter(path=[path]).less_than(obj2.metadata.creation_time)
     objects = collection.query.fetch_objects(
-        filters=filters, return_metadata=MetadataQuery(creation_time_unix=True)
+        filters=filters, return_metadata=MetadataQuery(creation_time=True)
     ).objects
 
     assert len(objects) == 1
@@ -1061,40 +1061,38 @@ def test_filter_timestamp_class(
     obj1 = collection.query.fetch_object_by_id(uuid=obj1_uuid)
     assert obj1 is not None
     assert obj1.metadata is not None
-    assert obj1.metadata.creation_time_unix is not None
+    assert obj1.metadata.creation_time is not None
 
     obj2 = collection.query.fetch_object_by_id(uuid=obj2_uuid)
     assert obj2 is not None
     assert obj2.metadata is not None
-    assert obj2.metadata.creation_time_unix is not None
+    assert obj2.metadata.creation_time is not None
 
-    filters = filter_type.less_than(obj2.metadata.creation_time_unix)
+    filters = filter_type.less_than(obj2.metadata.creation_time)
     objects = collection.query.fetch_objects(
-        filters=filters, return_metadata=MetadataQuery(creation_time_unix=True)
+        filters=filters, return_metadata=MetadataQuery(creation_time=True)
     ).objects
     assert len(objects) == 1
     assert objects[0].uuid == obj1_uuid
 
     for filters in [
-        filter_type.greater_than(obj1.metadata.creation_time_unix),
-        filter_type.not_equal(obj1.metadata.creation_time_unix),
-        filter_type.equal(obj2.metadata.creation_time_unix),
+        filter_type.greater_than(obj1.metadata.creation_time),
+        filter_type.not_equal(obj1.metadata.creation_time),
+        filter_type.equal(obj2.metadata.creation_time),
     ]:
         objects = collection.query.fetch_objects(
-            filters=filters, return_metadata=MetadataQuery(creation_time_unix=True)
+            filters=filters, return_metadata=MetadataQuery(creation_time=True)
         ).objects
         assert len(objects) == 1
         assert objects[0].uuid == obj2_uuid
 
     for filters in [
-        filter_type.contains_any(
-            [obj1.metadata.creation_time_unix, obj2.metadata.creation_time_unix]
-        ),
-        filter_type.less_or_equal(obj2.metadata.creation_time_unix),
-        filter_type.greater_or_equal(obj1.metadata.creation_time_unix),
+        filter_type.contains_any([obj1.metadata.creation_time, obj2.metadata.creation_time]),
+        filter_type.less_or_equal(obj2.metadata.creation_time),
+        filter_type.greater_or_equal(obj1.metadata.creation_time),
     ]:
         objects = collection.query.fetch_objects(
-            filters=filters, return_metadata=MetadataQuery(creation_time_unix=True)
+            filters=filters, return_metadata=MetadataQuery(creation_time=True)
         ).objects
 
         uuids = [obj.uuid for obj in objects]
@@ -1123,20 +1121,20 @@ def test_time_update_and_creation_time(client: weaviate.WeaviateClient) -> None:
     obj1 = collection.query.fetch_object_by_id(uuid=obj1_uuid)
     assert obj1 is not None
     assert obj1.metadata is not None
-    assert obj1.metadata.creation_time_unix is not None
-    assert obj1.metadata.last_update_time_unix is not None
-    assert obj1.metadata.creation_time_unix < obj1.metadata.last_update_time_unix
+    assert obj1.metadata.creation_time is not None
+    assert obj1.metadata.last_update_time is not None
+    assert obj1.metadata.creation_time < obj1.metadata.last_update_time
 
-    filter_creation = FilterMetadata.ByUpdateTime.less_than(obj1.metadata.creation_time_unix)
-    filter_update = FilterMetadata.ByUpdateTime.less_than(obj1.metadata.last_update_time_unix)
+    filter_creation = FilterMetadata.ByUpdateTime.less_than(obj1.metadata.creation_time)
+    filter_update = FilterMetadata.ByUpdateTime.less_than(obj1.metadata.last_update_time)
 
     objects_creation = collection.query.fetch_objects(
-        filters=filter_creation, return_metadata=MetadataQuery(creation_time_unix=True)
+        filters=filter_creation, return_metadata=MetadataQuery(creation_time=True)
     ).objects
     assert len(objects_creation) == 0
 
     objects_update = collection.query.fetch_objects(
-        filters=filter_update, return_metadata=MetadataQuery(creation_time_unix=True)
+        filters=filter_update, return_metadata=MetadataQuery(creation_time=True)
     ).objects
     assert len(objects_update) == 1
     assert objects_update[0].uuid == obj2_uuid
