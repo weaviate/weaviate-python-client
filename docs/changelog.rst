@@ -1,6 +1,43 @@
 Changelog
 =========
 
+Version 4.4.b2
+--------------
+
+This beta version has breaking changes, a migration guide is available at $URL:
+
+- Refactor ``weaviate.classes`` structure
+- Rename various classes and methods:
+    - In all vectorizer configuration methods: ``vectorize_class_name`` => ``vectorize_collection_name``
+    - ``object.metadata.creation_time_unix`` => ``object.metadata.creation_time`` which is now a datetime
+    - ``object.metadata.last_update_time_unix`` => ``object.metadata.last_update_time`` which is now a datetime
+    - ``MetadataQuery(creation_time_unix=.., last_update_time_unix= ..)`` => ``MetadataQuery(creation_time=.., last_update_time=..)``
+    - ``FromReference`` => ``QueryReference`` when querying references
+
+- Splits out references from properties when creating, changing and querying collections
+- UUID and UUID_ARRAY properties are now returned as typed UUID objects
+- DATE and DATE_ARRAY properties are now returned as typed datetime objects
+- ``vector_index_type``has been remove from ``collection.create()`` and is now determined automatically
+- ``Configure.vector_index()`` has been moved to ``Configure.VectorIndex.hnsw()``
+- PQ can now be configured using Configure.VectorIndex.hnsw(quantitizer=Configure.VectorIndex.Quantitizer.pq(..options..)
+))
+- ``object.metadata.vector`` was moved to ``object.vector`` and can be requested by using ``include_vector=True/False`` when querying
+- ``object.metadata.uuid`` was moved to ``object.uuid`` and is always available
+
+New functionality includes:
+
+- Adds backup functionality to v4 client (client.backup) and directly to the collection
+- Adds support for FLAT vector index
+- Adds binary quantization for FLAT vector index
+- Adds ``text2vec_jinaai`` static method to ``Configure.Vectorizer``
+- Adds ``anyscale`` static method to ``Configure.Generative``
+- Adds collection.batch for uploading to a single collection in batches
+- Adds methods for creating a collection from dict and exporting a collection config as dict
+- Adds support for geo-coordinates
+- Adds metadata filtering with ``FilterMetadata``
+- Adds ``client.graphql_raw_query`` to use Weaviate features that are not directly supported.
+- Various performance improvements
+
 Version 4.4.b1
 --------------
 This patch beta version includes:
