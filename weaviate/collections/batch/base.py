@@ -311,18 +311,17 @@ class _BatchBase:
         """
         return copy(self.__failed_references)
 
-    @property
     def results(self) -> BatchResult:
         """
         Get the results of the batch operation.
 
-        NOTE: If you re-enter the batch manager using `with client.batch as batch` then the results will be reset.
+        Returns a copy so that the results can be used even if a new batch manager is opened.
 
         Returns:
             `BatchResult`
                 The results of the batch operation.
         """
-        return self.__result
+        return copy(self.__result)
 
     def start(self: B) -> B:
         """
@@ -345,9 +344,6 @@ class _BatchBase:
 
     def shutdown(self: B) -> None:
         """Shutdown the BatchExecutor."""
-        # if not (self.__executor is None or self.__executor._is_shutdown()):
-        #     self.__executor.shutdown()
-
         if self.__shut_background_thread_down is not None:
             self.__shut_background_thread_down.set()
 
@@ -548,8 +544,6 @@ class _BatchBase:
             )
 
     def __send_batch_requests(self, force_wait: bool, how_many_recursions: int = 0) -> None:
-        # if self.__executor is None:
-        #     self.start()
         if self.__executor._is_shutdown():
             _Warnings.batch_executor_is_shutdown()
             self.start()
