@@ -1,7 +1,7 @@
-from typing import Dict, Optional, Sequence, Union
+from typing import Optional, Sequence, Union
 
 from weaviate.collections.batch.base import _BatchBase
-from weaviate.collections.classes.types import WeaviateField
+from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.types import UUID
 
@@ -10,7 +10,7 @@ class _BatchClient(_BatchBase):
     def add_object(
         self,
         collection: str,
-        properties: Optional[Dict[str, WeaviateField]] = None,
+        properties: Optional[WeaviateProperties] = None,
         uuid: Optional[UUID] = None,
         vector: Optional[Sequence] = None,
         tenant: Optional[Union[str, Tenant]] = None,
@@ -45,6 +45,7 @@ class _BatchClient(_BatchBase):
         return super()._add_object(
             collection=collection,
             properties=properties,
+            references=None,
             uuid=uuid,
             vector=vector,
             tenant=tenant.name if isinstance(tenant, Tenant) else tenant,

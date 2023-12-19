@@ -63,9 +63,11 @@ def mt_collection() -> Generator[weaviate.Collection, None, None]:
     client.collections.create(
         name="CollectionBatchTestMT",
         properties=[
-            ReferenceProperty(name="test", target_collection="CollectionBatchTestMT"),
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
+        ],
+        references=[
+            ReferenceProperty(name="test", target_collection="CollectionBatchTestMT"),
         ],
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
@@ -83,7 +85,6 @@ def test_add_object(
 ) -> None:
     with collection.batch as batch:
         batch.add_object(
-            properties={},
             uuid=uuid,
             vector=vector,
         )

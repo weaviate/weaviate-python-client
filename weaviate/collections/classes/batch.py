@@ -37,6 +37,7 @@ class BatchObject(BaseModel):
 
     collection: str
     properties: Optional[Dict[str, Any]] = Field(default=None)
+    references: Optional[WeaviateReferences] = Field(default=None)
     uuid: Optional[UUID] = Field(default=None)
     vector: Optional[Sequence] = Field(default=None)
     tenant: Optional[str] = Field(default=None)
@@ -55,7 +56,7 @@ class BatchObject(BaseModel):
             uuid=self.uuid,
             properties=self.properties,
             tenant=self.tenant,
-            references=None,
+            references=self.references,
         )
 
     @field_validator("collection")
@@ -214,9 +215,9 @@ class BatchResult:
     Since the individual objects and references within the batch can error for differing reasons, the data is split up within this class for ease use when performing error checking, handling, and data revalidation.
 
     Attributes:
-        `objects`
+        `objs`
             The results of the batch object operation.
-        `references`
+        `refs`
             The results of the batch reference operation.
     """
 

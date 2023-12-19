@@ -35,6 +35,8 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         Arguments:
             `properties`
                 The data properties of the object to be added as a dictionary.
+            `references`
+                The references of the object to be added as a dictionary. Use `wvc.Reference.to` to create the correct values in the dict.
             `uuid`:
                 The UUID of the object as an uuid.UUID object or str. It can be a Weaviate beacon or Weaviate href.
                 If it is None an UUIDv4 will generated, by default None
@@ -51,7 +53,8 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         """
         return self._add_object(
             collection=self.__name,
-            properties=properties,  # type: ignore # Properties is always a Dict[str, WeaviateField]
+            properties=properties,
+            references=references,
             uuid=uuid,
             vector=vector,
             tenant=self.__tenant,
@@ -68,7 +71,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
             `from_property`
                 The name of the property that contains the reference.
             `to`
-                The reference to add, REQUIRED. Use `Reference.to` to generate the correct type.
+                The reference to add, REQUIRED. Use `wvc.Reference.to` to create the correct value.
 
         Raises:
             `WeaviateBatchValidationError`

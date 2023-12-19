@@ -27,7 +27,8 @@ from weaviate.collections.classes.batch import (
     Shard,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.classes.types import WeaviateField
+from weaviate.collections.classes.internal import WeaviateReferences
+from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.collections.batch.executor import BatchExecutor
 from weaviate.collections.batch.grpc import _BatchGRPC
 from weaviate.collections.batch.rest import _BatchREST
@@ -378,7 +379,8 @@ class _BatchBase:
     def _add_object(
         self,
         collection: str,
-        properties: Optional[Dict[str, WeaviateField]] = None,
+        properties: Optional[WeaviateProperties] = None,
+        references: Optional[WeaviateReferences] = None,
         uuid: Optional[UUID] = None,
         vector: Optional[Sequence] = None,
         tenant: Optional[str] = None,
@@ -387,6 +389,7 @@ class _BatchBase:
             batch_object = BatchObject(
                 collection=collection,
                 properties=properties,
+                references=references,
                 uuid=uuid,
                 vector=vector,
                 tenant=tenant,
