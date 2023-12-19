@@ -3,12 +3,12 @@ import io
 import pathlib
 import struct
 from typing import Any, Dict, Generic, List, Optional, Type, Union, cast
-from typing_extensions import is_typeddict
 
 import uuid as uuid_lib
-
-from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 from google.protobuf import struct_pb2
+from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
+from requests.exceptions import ConnectionError as RequestsConnectionError
+from typing_extensions import is_typeddict
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
@@ -46,20 +46,18 @@ from weaviate.collections.classes.types import (
 )
 from weaviate.collections.grpc.query import _QueryGRPC, GroupByResult, SearchResponse
 from weaviate.connect import Connection
+from weaviate.exceptions import (
+    UnexpectedStatusCodeException,
+)
 from weaviate.exceptions import WeaviateGrpcUnavailable, WeaviateQueryException
+from weaviate.proto.v1 import base_pb2, search_get_pb2, properties_pb2
+from weaviate.types import UUID
 from weaviate.util import (
     file_encoder_b64,
     parse_version_string,
     _datetime_from_weaviate_str,
     _decode_json_response_dict,
 )
-from weaviate.proto.v1 import base_pb2, search_get_pb2, properties_pb2
-
-from weaviate.exceptions import (
-    UnexpectedStatusCodeException,
-)
-from requests.exceptions import ConnectionError as RequestsConnectionError
-from weaviate.types import UUID
 
 
 class _WeaviateUUIDInt(uuid_lib.UUID):
@@ -127,8 +125,8 @@ class _BaseQuery(Generic[Properties, References]):
         self,
         add_props: "search_get_pb2.MetadataResult",
     ) -> uuid_lib.UUID:
-        if len(add_props.id_bytes) > 0:
-            return _WeaviateUUIDInt(int.from_bytes(add_props.id_bytes, byteorder="big"))
+        if len(add_props.id_as_bytes) > 0:
+            return _WeaviateUUIDInt(int.from_bytes(add_props.id_as_bytes, byteorder="big"))
 
         if len(add_props.id) == 0:
             raise WeaviateQueryException("The query returned an object with an empty ID string")
