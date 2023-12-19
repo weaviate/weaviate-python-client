@@ -1,6 +1,6 @@
 import datetime
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, Generic, List, Mapping, Optional, Tuple, Type, Union, cast
 from typing_extensions import TypeAlias, TypeVar, is_typeddict
 
@@ -369,7 +369,7 @@ WeaviateReferences: TypeAlias = Mapping[str, WeaviateReference]
 
 
 @dataclass
-class ReferenceAnnotation:
+class CrossReferenceAnnotation:
     """Dataclass to be used when annotating a generic cross reference property with options for retrieving data from the cross referenced object when querying.
 
     Example:
@@ -382,13 +382,17 @@ class ReferenceAnnotation:
         >>> class Two(typing.TypedDict):
         ...     one: typing.Annotated[
         ...         wvc.CrossReference[One],
-        ...         wvc.ReferenceAnnotation(include_vector=True)
+        ...         wvc.CrossReferenceAnnotation(include_vector=True)
         ...     ]
     """
 
-    include_vector: bool = False
-    metadata: Optional[MetadataQuery] = None
-    target_collection: Optional[str] = None
+    include_vector: bool = field(default=False)
+    metadata: Optional[MetadataQuery] = field(default=None)
+    target_collection: Optional[str] = field(default=None)
+
+
+ReferenceAnnotation = CrossReferenceAnnotation
+"""@deprecated: Use `CrossReferenceAnnotation` instead."""
 
 
 def _extract_types_from_reference(

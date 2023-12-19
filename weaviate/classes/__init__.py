@@ -1,5 +1,8 @@
 from weaviate.collections.classes.aggregate import Metrics
-from weaviate.collections.classes.config import (
+from weaviate.collections.classes.filters import Filter
+from weaviate.collections.classes.tenants import Tenant
+
+from .config import (
     Configure,
     Reconfigure,
     DataType,
@@ -11,29 +14,30 @@ from weaviate.collections.classes.config import (
     Tokenization,
     VectorDistance,
 )
-from weaviate.collections.classes.data import DataObject, DataReference
-from weaviate.collections.classes.filters import Filter
-from weaviate.collections.classes.grpc import (
+from .data import (
+    DataObject,
+    DataReference,
+    GeoCoordinate,
+    Reference,
+)
+from .generics import Nested, CrossReference, ReferenceAnnotation, CrossReferenceAnnotation
+from .query import (
     HybridFusion,
     FromNested,
     FromReference,
     FromReferenceMultiTarget,
     MetadataQuery,
     Move,
+    QueryNested,
+    QueryReference,
+    QueryReferenceMultiTarget,
 )
-from weaviate.collections.classes.internal import (
-    Nested,
-    CrossReference,
-    Reference,
-    ReferenceAnnotation,
-)
-from weaviate.collections.classes.tenants import Tenant
-from weaviate.collections.classes.types import GeoCoordinate
 
 __all__ = [
     "Configure",
     "Reconfigure",
     "CrossReference",
+    "CrossReferenceAnnotation",
     "DataObject",
     "DataReference",
     "DataType",
@@ -49,6 +53,9 @@ __all__ = [
     "Multi2VecField",
     "Nested",
     "Property",
+    "QueryNested",
+    "QueryReference",
+    "QueryReferenceMultiTarget",
     "Reference",
     "ReferenceAnnotation",
     "ReferenceProperty",

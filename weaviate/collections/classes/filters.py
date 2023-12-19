@@ -107,7 +107,7 @@ class _FilterValue(_WeaviateInput, _Filters):
 
 
 class Filter:
-    """Define a filter based on a property to be used when querying a collection.
+    """Define a filter based on a property to be used when querying and deleting from a collection.
 
     Use the `__init__` method to define the path to the property to be filtered on and then
     use the methods of this class to define the condition to filter on.
