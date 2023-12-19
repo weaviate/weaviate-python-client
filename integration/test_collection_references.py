@@ -141,7 +141,7 @@ def test_mono_references_grpc(client: weaviate.WeaviateClient) -> None:
         return_references=FromReference(
             link_on="b",
             return_properties="name",
-            return_metadata=MetadataQuery(last_update_time_unix=True),
+            return_metadata=MetadataQuery(last_update_time=True),
             return_references=FromReference(
                 link_on="a",
                 return_properties="name",
@@ -174,7 +174,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient, level
     class BRefs(TypedDict):
         a: Annotated[
             CrossReference[AProps, None],
-            ReferenceAnnotation(metadata=MetadataQuery(creation_time_unix=True)),
+            ReferenceAnnotation(metadata=MetadataQuery(creation_time=True)),
         ]
 
     class CProps(TypedDict):
@@ -359,7 +359,7 @@ def test_multi_references_grpc(client: weaviate.WeaviateClient) -> None:
             link_on="ref",
             target_collection="A",
             return_properties=["name"],
-            return_metadata=MetadataQuery(last_update_time_unix=True),
+            return_metadata=MetadataQuery(last_update_time=True),
         ),
     ).objects
     assert objects[0].properties["name"] == "first"
@@ -376,7 +376,7 @@ def test_multi_references_grpc(client: weaviate.WeaviateClient) -> None:
             return_properties=[
                 "name",
             ],
-            return_metadata=MetadataQuery(last_update_time_unix=True),
+            return_metadata=MetadataQuery(last_update_time=True),
         ),
     ).objects
     assert objects[0].properties["name"] == "second"

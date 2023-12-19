@@ -141,7 +141,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         """
         if self._is_weaviate_version_123:
             return_metadata = MetadataQuery(
-                creation_time_unix=True, last_update_time_unix=True, is_consistent=True
+                creation_time=True, last_update_time=True, is_consistent=True
             )
             res = self._query().get(
                 limit=1,

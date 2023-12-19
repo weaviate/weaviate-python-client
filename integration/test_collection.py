@@ -1014,7 +1014,7 @@ def test_multi_searches(client: weaviate.WeaviateClient) -> None:
     objects = collection.query.bm25(
         query="word",
         return_properties=["name"],
-        return_metadata=MetadataQuery(last_update_time_unix=True),
+        return_metadata=MetadataQuery(last_update_time=True),
     ).objects
     assert "name" in objects[0].properties
     assert objects[0].metadata.last_update_time is not None
