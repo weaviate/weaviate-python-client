@@ -13,11 +13,11 @@ from urllib.parse import urlparse
 
 import requests
 from authlib.integrations.requests_client import OAuth2Session  # type: ignore
+from pydantic import BaseModel, field_validator, model_validator
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ConnectionError as RequestsConnectionError, ReadTimeout
 from requests.exceptions import HTTPError as RequestsHTTPError
 from requests.exceptions import JSONDecodeError
-from pydantic import BaseModel, field_validator, model_validator
 
 from weaviate import __version__ as client_version
 from weaviate.auth import AuthCredentials, AuthClientCredentials, AuthApiKey
@@ -29,6 +29,7 @@ from weaviate.exceptions import (
     WeaviateStartUpError,
     WeaviateQueryException,
 )
+from weaviate.types import NUMBER
 from weaviate.util import (
     _check_positive_num,
     is_weaviate_domain,
@@ -38,8 +39,6 @@ from weaviate.util import (
     _decode_json_response_dict,
 )
 from weaviate.warnings import _Warnings
-from weaviate.types import NUMBER
-
 
 try:
     import grpc  # type: ignore
@@ -305,7 +304,7 @@ class Connection:
             _check_positive_num(startup_period, "startup_period", int, include_zero=False)
             self.wait_for_weaviate(startup_period)
 
-        self._create_session(auth_client_secret)
+        self._create_sessions(auth_client_secret)
         self._add_adapter_to_session(connection_config)
 
         if not skip_init_checks:
@@ -326,8 +325,8 @@ class Connection:
         else:
             self._server_version = ""
 
-    def _create_session(self, auth_client_secret: Optional[AuthCredentials]) -> None:
-        """Creates a request session.
+    def _create_sessions(self, auth_client_secret: Optional[AuthCredentials]) -> None:
+        """Creates a async httpx session and a sync request session.
 
         Either through authlib.oauth2 if authentication is enabled or a normal request session otherwise.
 
