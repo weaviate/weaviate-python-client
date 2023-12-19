@@ -1,9 +1,6 @@
 from weaviate.collections.classes.aggregate import Metrics
-from weaviate.collections.classes.data import DataObject, DataReference
 from weaviate.collections.classes.filters import Filter
-from weaviate.collections.classes.internal import Reference
 from weaviate.collections.classes.tenants import Tenant
-from weaviate.collections.classes.types import GeoCoordinate
 
 from .config import (
     Configure,
@@ -16,6 +13,12 @@ from .config import (
     StopwordsPreset,
     Tokenization,
     VectorDistance,
+)
+from .data import (
+    DataObject,
+    DataReference,
+    GeoCoordinate,
+    Reference,
 )
 from .generics import Nested, CrossReference, ReferenceAnnotation, CrossReferenceAnnotation
 from .query import (
