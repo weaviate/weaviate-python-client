@@ -554,6 +554,29 @@ class _VectorizerConfigCreate(_ConfigCreateModel):
     vectorizer: Vectorizer
 
 
+CohereModel = Literal[
+    "embed-multilingual-v2.0",
+    "embed-multilingual-v3.0",
+    "embed-multilingual-light-v3.0",
+    "small",
+    "medium",
+    "large",
+    "multilingual-22-12",
+    "embed-english-v2.0",
+    "embed-english-light-v2.0",
+    "embed-english-v3.0",
+    "embed-english-light-v3.0",
+]
+CohereTruncation = Literal["NONE", "START", "END", "LEFT", "RIGHT"]
+OpenAIModel = Literal["ada", "babbage", "curie", "davinci"]
+JinaModels = Literal["jina-embeddings-v2-base-en", "jina-embeddings-v2-small-en"]
+AWSModel = Literal[
+    "amazon.titan-embed-text-v1",
+    "cohere.embed-english-v3",
+    "cohere.embed-multilingual-v3",
+]
+
+
 class _Generative:
     """Use this factory class to create the correct object for the `generative_config` argument in the `collection.create()` method.
 
@@ -656,7 +679,7 @@ class _Generative:
 
     @staticmethod
     def cohere(
-        model: Optional[str] = None,
+        model: Optional[Union[CohereModel, str]] = None,
         k: Optional[int] = None,
         max_tokens: Optional[int] = None,
         return_likelihoods: Optional[str] = None,
@@ -779,40 +802,17 @@ class _Text2VecContextionaryConfig(_VectorizerConfigCreate):
     vectorizeClassName: bool
 
 
-AWSModel = Literal[
-    "amazon.titan-embed-text-v1",
-    "cohere.embed-english-v3",
-    "cohere.embed-multilingual-v3",
-]
-
-
 class _Text2VecAWSConfig(_VectorizerConfigCreate):
     vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_AWS, frozen=True, exclude=True)
-    model: AWSModel
+    model: str
     region: str
     vectorizeClassName: bool
-
-
-CohereModel = Literal[
-    "embed-multilingual-v2.0",
-    "embed-multilingual-v3.0",
-    "embed-multilingual-light-v3.0",
-    "small",
-    "medium",
-    "large",
-    "multilingual-22-12",
-    "embed-english-v2.0",
-    "embed-english-light-v2.0",
-    "embed-english-v3.0",
-    "embed-english-light-v3.0",
-]
-CohereTruncation = Literal["NONE", "START", "END", "LEFT", "RIGHT"]
 
 
 class _Text2VecCohereConfig(_VectorizerConfigCreate):
     vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_COHERE, frozen=True, exclude=True)
     baseURL: Optional[AnyHttpUrl]
-    model: Optional[CohereModel]
+    model: Optional[str]
     truncate: Optional[CohereTruncation]
     vectorizeClassName: bool
 
@@ -879,14 +879,13 @@ class _Text2VecHuggingFaceConfig(_VectorizerConfigCreate):
         return ret_dict
 
 
-OpenAIModel = Literal["ada", "babbage", "curie", "davinci"]
 OpenAIType = Literal["text", "code"]
 
 
 class _Text2VecOpenAIConfig(_VectorizerConfigCreate):
     vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
     baseURL: Optional[AnyHttpUrl]
-    model: Optional[OpenAIModel]
+    model: Optional[str]
     modelVersion: Optional[str]
     type_: Optional[OpenAIType]
     vectorizeClassName: bool
@@ -929,7 +928,7 @@ class _Text2VecGPT4AllConfig(_VectorizerConfigCreate):
 
 class _Text2VecJinaConfig(_VectorizerConfigCreate):
     vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_JINAAI, frozen=True, exclude=True)
-    model: Optional[Literal["jina-embeddings-v2-base-en", "jina-embeddings-v2-small-en"]]
+    model: Optional[str]
     vectorizeClassName: bool
 
 
@@ -1126,7 +1125,7 @@ class _Vectorizer:
 
     @staticmethod
     def text2vec_aws(
-        model: AWSModel,
+        model: Union[AWSModel, str],
         region: str,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
@@ -1142,9 +1141,6 @@ class _Vectorizer:
                 The AWS region to run the model from, REQUIRED.
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
-
-        Raises:
-            `pydantic.ValidationError` if `model` or `truncate` are not valid values from the `CohereModel` and `CohereTruncate` types.
         """
         return _Text2VecAWSConfig(
             model=model, region=region, vectorizeClassName=vectorize_collection_name
@@ -1200,7 +1196,7 @@ class _Vectorizer:
 
     @staticmethod
     def text2vec_cohere(
-        model: Optional[CohereModel] = None,
+        model: Optional[Union[CohereModel, str]] = None,
         truncate: Optional[CohereTruncation] = None,
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
@@ -1221,7 +1217,7 @@ class _Vectorizer:
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
 
         Raises:
-            `pydantic.ValidationError` if `model` or `truncate` are not valid values from the `CohereModel` and `CohereTruncate` types.
+            `pydantic.ValidationError` if `truncate` is not a valid value from the `CohereModel` type.
         """
         return _Text2VecCohereConfig(
             baseURL=base_url,
@@ -1300,7 +1296,7 @@ class _Vectorizer:
 
     @staticmethod
     def text2vec_openai(
-        model: Optional[OpenAIModel] = None,
+        model: Optional[Union[OpenAIModel, str]] = None,
         model_version: Optional[str] = None,
         type_: Optional[OpenAIType] = None,
         vectorize_collection_name: bool = True,
@@ -1324,7 +1320,7 @@ class _Vectorizer:
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
 
         Raises:
-            `pydantic.ValidationError` if `model` or `type_` are not valid values from the `OpenAIModel` and `OpenAIType` types.
+            `pydantic.ValidationError` if `type_` is not a valid value from the `OpenAIType` type.
         """
         return _Text2VecOpenAIConfig(
             baseURL=base_url,
@@ -1392,9 +1388,7 @@ class _Vectorizer:
 
     @staticmethod
     def text2vec_jinaai(
-        model: Optional[
-            Literal["jina-embeddings-v2-base-en", "jina-embeddings-v2-small-en"]
-        ] = None,
+        model: Optional[Union[JinaModels, str]] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecJinaConfig` object for use when vectorizing using the `text2vec-jinaai` model.
@@ -1405,12 +1399,10 @@ class _Vectorizer:
         Arguments:
             `model`
                 The model to use. Defaults to `None`, which uses the server-defined default.
+                See the
+                [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-jinaai#available-models) for more details.
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
-
-        Raises:
-            `pydantic.ValidationError` if `model` is not a valid value from the available models. See the
-                [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-jinaai#available-models) for more details.
         """
         return _Text2VecJinaConfig(model=model, vectorizeClassName=vectorize_collection_name)
 
