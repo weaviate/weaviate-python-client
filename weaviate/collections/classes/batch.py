@@ -2,7 +2,7 @@ import uuid as uuid_package
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Union, cast
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from weaviate.collections.classes.internal import WeaviateReferences
 from weaviate.collections.classes.types import WeaviateField
@@ -34,6 +34,10 @@ class BatchObject(BaseModel):
     Performs validation on the class name and UUID, and automatically generates a UUID if one is not provided.
     Also converts the vector to a list of floats if it is provided as a numpy array.
     """
+
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True
+    )  # stop-gap for now until _Reference is implemented to work with Pydantic
 
     collection: str
     properties: Optional[Dict[str, Any]] = Field(default=None)
