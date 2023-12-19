@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Generic, List, Optional
 from typing_extensions import TypeVar
+from weaviate.collections.classes.internal import _Reference
 from weaviate.types import UUID
 
 
@@ -43,3 +44,12 @@ class DataReference:
     from_property: str
     from_uuid: UUID
     to_uuid: UUID
+
+
+@dataclass
+class DataReferenceOneToMany:
+    """This class represents a reference between objects within a collection to be used when batching."""
+
+    from_property: str
+    from_uuid: UUID
+    to: _Reference

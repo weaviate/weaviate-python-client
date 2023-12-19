@@ -297,7 +297,7 @@ def test_near_text_generate_with_everything(client: weaviate.WeaviateClient) -> 
             Property(name="extra", data_type=DataType.TEXT),
         ],
         generative_config=Configure.Generative.openai(),
-        vectorizer_config=Configure.Vectorizer.text2vec_openai(vectorize_class_name=False),
+        vectorizer_config=Configure.Vectorizer.text2vec_openai(vectorize_collection_name=False),
     )
 
     collection.data.insert_many(

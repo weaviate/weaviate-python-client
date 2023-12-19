@@ -14,6 +14,7 @@ from weaviate.collections.classes.internal import (
     ReturnReferences,
     WeaviateReferences,
 )
+from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.base import _CollectionBase
 from weaviate.collections.aggregate import _AggregateCollection, _AggregateGroupByCollection
@@ -22,6 +23,7 @@ from weaviate.collections.data import _DataCollection
 from weaviate.collections.query import _GenerateCollection, _GroupByCollection, _QueryCollection
 from weaviate.collections.iterator import _ObjectIterator
 from weaviate.collections.tenants import _Tenants
+from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import Connection
 
 
@@ -102,7 +104,9 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         self.__properties = properties
         self.__references = references
 
-    def with_tenant(self, tenant: Optional[str] = None) -> "Collection[Properties, References]":
+    def with_tenant(
+        self, tenant: Optional[Union[str, Tenant]] = None
+    ) -> "Collection[Properties, References]":
         """Use this method to return a collection object specific to a single tenant.
 
         If multi-tenancy is not configured for this collection then Weaviate will throw an error.
@@ -111,11 +115,13 @@ class Collection(_CollectionBase, Generic[Properties, References]):
             `tenant`
                 The name of the tenant to use.
         """
-        return Collection(
+        if tenant is not None and not isinstance(tenant, str) and not isinstance(tenant, Tenant):
+            _raise_invalid_input("tenant", tenant, Union[str, Tenant])
+        return Collection[Properties, References](
             self._connection,
             self.name,
             self.__consistency_level,
-            tenant,
+            tenant.name if isinstance(tenant, Tenant) else tenant,
             self.__properties,
             self.__references,
         )
@@ -131,7 +137,9 @@ class Collection(_CollectionBase, Generic[Properties, References]):
             `consistency_level`
                 The consistency level to use.
         """
-        return Collection(
+        if consistency_level is not None and not isinstance(consistency_level, ConsistencyLevel):
+            _raise_invalid_input("consistency_level", consistency_level, ConsistencyLevel)
+        return Collection[Properties, References](
             self._connection,
             self.name,
             consistency_level,

@@ -19,6 +19,7 @@ from weaviate.collections.classes.config import (
 from weaviate.collections.classes.internal import References, _check_references_generic
 from weaviate.collections.classes.types import Properties, _check_properties_generic
 from weaviate.collections.collection import Collection
+from weaviate.collections.validator import _raise_invalid_input
 from weaviate.util import _capitalize_first_letter
 
 
@@ -128,6 +129,8 @@ class _Collections(_CollectionsBase):
             `weaviate.exceptions.InvalidDataModelException`
                 If the data model is not a valid data model, i.e., it is not a `dict` nor a `TypedDict`.
         """
+        if not isinstance(name, str):
+            _raise_invalid_input("name", name, str)
         _check_properties_generic(data_model_properties)
         _check_references_generic(data_model_references)
         name = _capitalize_first_letter(name)
@@ -154,6 +157,11 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeException`
                 If Weaviate reports a non-OK status.
         """
+        if not isinstance(name, str) and (
+            not isinstance(name, list) or not all(isinstance(n, str) for n in name)
+        ):
+            _raise_invalid_input("name", name, Union[str, List[str]])
+
         if isinstance(name, str):
             self._delete(_capitalize_first_letter(name))
         else:
@@ -191,6 +199,8 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeException`
                 If Weaviate reports a non-OK status.
         """
+        if not isinstance(name, str):
+            _raise_invalid_input("name", name, str)
         return self._exists(_capitalize_first_letter(name))
 
     def export_config(self, name: str) -> _CollectionConfig:
@@ -238,6 +248,8 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeException`
                 If Weaviate reports a non-OK status.
         """
+        if not isinstance(simple, bool):
+            _raise_invalid_input("simple", simple, bool)
         if simple:
             return self._get_simple()
         return self._get_all()

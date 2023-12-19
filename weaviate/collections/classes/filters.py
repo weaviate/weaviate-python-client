@@ -1,12 +1,12 @@
 import uuid as uuid_lib
 
-from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Union
 from weaviate.collections.classes.types import GeoCoordinate
 
 
+from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.types import UUID
 from weaviate.proto.v1 import search_get_pb2
 from weaviate.util import get_valid_uuid
@@ -100,8 +100,7 @@ FilterValues = Union[
 ]
 
 
-@dataclass
-class _FilterValue(_Filters):
+class _FilterValue(_WeaviateInput, _Filters):
     path: Union[str, List[str]]
     value: FilterValues
     operator: _Operator

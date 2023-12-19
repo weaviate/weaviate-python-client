@@ -32,7 +32,7 @@ from weaviate.collections.classes.internal import (
     CrossReferences,
     _CrossReference,
 )
-from weaviate.collections.classes.types import Properties, TProperties, WeaviateField
+from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.queries.base import _BaseQuery
 from weaviate.util import _datetime_from_weaviate_str
 from weaviate.types import UUID
@@ -247,7 +247,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
                 return {key: parse_value(val) for key, val in value.items()}
             return value
 
-        def resolve_nested(obj: WeaviateField, prop: FromNested) -> dict:
+        def resolve_nested(obj: Any, prop: FromNested) -> dict:
             assert isinstance(obj, dict)
             nested_props = (
                 prop.properties if isinstance(prop.properties, list) else [prop.properties]

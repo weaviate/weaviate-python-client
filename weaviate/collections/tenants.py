@@ -3,6 +3,7 @@ from typing import Dict, Any, List
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collections.classes.tenants import Tenant
+from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 
@@ -33,7 +34,14 @@ class _Tenants:
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeException`
                 If Weaviate reports a non-OK status.
+            `weaviate.WeaviateInvalidInputException`
+                If `tenants` is not a list of `wvc.Tenant` objects.
         """
+        if not isinstance(tenants, list) or not all(
+            isinstance(tenant, Tenant) for tenant in tenants
+        ):
+            _raise_invalid_input("tenants", tenants, List[Tenant])
+
         loaded_tenants = [tenant.model_dump() for tenant in tenants]
 
         path = "/schema/" + self.__name + "/tenants"
@@ -62,7 +70,12 @@ class _Tenants:
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeException`
                 If Weaviate reports a non-OK status.
+            `weaviate.WeaviateInvalidInputException`
+                If `tenants` is not a list of strings.
         """
+        if not isinstance(tenants, list) or not all(isinstance(tenant, str) for tenant in tenants):
+            _raise_invalid_input("tenants", tenants, List[str])
+
         path = "/schema/" + self.__name + "/tenants"
         try:
             response = self.__connection.delete(path=path, weaviate_object=tenants)
@@ -115,7 +128,14 @@ class _Tenants:
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeException`
                 If Weaviate reports a non-OK status.
+            `weaviate.WeaviateInvalidInputException`
+                If `tenants` is not a list of `wvc.Tenant` objects.
         """
+        if not isinstance(tenants, list) or not all(
+            isinstance(tenant, Tenant) for tenant in tenants
+        ):
+            _raise_invalid_input("tenants", tenants, List[Tenant])
+
         loaded_tenants = [tenant.model_dump() for tenant in tenants]
 
         path = "/schema/" + self.__name + "/tenants"

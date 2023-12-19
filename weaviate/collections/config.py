@@ -22,6 +22,7 @@ from weaviate.collections.classes.config_methods import (
     _collection_config_simple_from_json,
 )
 from weaviate.collections.classes.orm import Model
+from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
@@ -68,6 +69,8 @@ class _ConfigBase:
             `weaviate.UnexpectedStatusCodeException`
                 If Weaviate reports a non-OK status.
         """
+        if not isinstance(simple, bool):
+            _raise_invalid_input("simple", simple, bool)
         schema = self.__get()
         if simple:
             return _collection_config_simple_from_json(schema)
@@ -186,6 +189,12 @@ class _ConfigCollection(_ConfigBase):
             `weaviate.ObjectAlreadyExistsException`:
                 If the property already exists in the collection.
         """
+        if not isinstance(prop, Property):
+            _raise_invalid_input(
+                "prop",
+                prop,
+                Property,
+            )
         if self._get_property_by_name(prop.name) is not None:
             raise ObjectAlreadyExistsException(
                 f"Property with name '{prop.name}' already exists in collection '{self._name}'."
@@ -206,6 +215,14 @@ class _ConfigCollection(_ConfigBase):
             `weaviate.ObjectAlreadyExistsException`:
                 If the reference already exists in the collection.
         """
+        if not isinstance(ref, ReferenceProperty) and not isinstance(
+            ref, ReferencePropertyMultiTarget
+        ):
+            _raise_invalid_input(
+                "ref",
+                ref,
+                Union[ReferenceProperty, ReferencePropertyMultiTarget],
+            )
         if self._get_property_by_name(ref.name) is not None:
             raise ObjectAlreadyExistsException(
                 f"Reference with name '{ref.name}' already exists in collection '{self._name}'."
