@@ -4,7 +4,7 @@ Changelog
 Version 4.4.b2
 --------------
 
-This version works best with Weaviate >= 1.23 which was released on 2023-12-18.
+This version works best with Weaviate 1.23 which was released on 2023-12-18.
 
 This beta version has breaking changes, a migration guide is available at https://www.weaviate.io/developers/weaviate/client-libraries/python#migration-guides:
 
@@ -21,8 +21,7 @@ This beta version has breaking changes, a migration guide is available at https:
 - DATE and DATE_ARRAY properties are now returned as typed datetime objects
 - ``vector_index_type``has been remove from ``collection.create()`` and is now determined automatically
 - ``Configure.vector_index()`` has been moved to ``Configure.VectorIndex.hnsw()``
-- PQ can now be configured using Configure.VectorIndex.hnsw(quantitizer=Configure.VectorIndex.Quantitizer.pq(..options..)
-))
+- PQ can now be configured using Configure.VectorIndex.hnsw(quantitizer=Configure.VectorIndex.Quantitizer.pq(..options..))
 - ``object.metadata.vector`` was moved to ``object.vector`` and can be requested by using ``include_vector=True/False`` when querying
 - ``object.metadata.uuid`` was moved to ``object.uuid`` and is always available
 - Order of arguments in .data.update() and .replace() changed to accommodate not providing properties when updating.
