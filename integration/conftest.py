@@ -9,6 +9,7 @@ from weaviate.collections.classes.config import (
     _VectorizerConfigCreate,
     _InvertedIndexConfigCreate,
     _ReferencePropertyBase,
+    Configure,
 )
 
 
@@ -22,19 +23,14 @@ class CollectionFactory(Protocol):
         references: Optional[List[_ReferencePropertyBase]] = None,
         vectorizer_config: Optional[_VectorizerConfigCreate] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
+        multi_tenancy: bool = False,
     ) -> Collection[Any, Any]:
         """Typing for fixture."""
         ...
 
 
 @pytest.fixture
-def collection_factory() -> (
-    Generator[
-        CollectionFactory,
-        None,
-        None,
-    ]
-):
+def collection_factory() -> Generator[CollectionFactory, None, None]:
     name_fixture: Optional[str] = None
     client_fixture: Optional[weaviate.WeaviateClient] = None
 
@@ -44,6 +40,7 @@ def collection_factory() -> (
         references: Optional[List[_ReferencePropertyBase]] = None,
         vectorizer_config: Optional[_VectorizerConfigCreate] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
+        multi_tenancy: bool = False,
     ) -> Collection[Any, Any]:
         nonlocal client_fixture, name_fixture
         name_fixture = _sanitize_collection_name(name)
@@ -56,6 +53,7 @@ def collection_factory() -> (
             properties=properties,
             references=references,
             inverted_index_config=inverted_index_config,
+            multi_tenancy_config=Configure.multi_tenancy(enabled=multi_tenancy),
         )
         return collection
 
