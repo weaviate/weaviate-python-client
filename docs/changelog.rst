@@ -1,5 +1,14 @@
 Changelog
 =========
+
+Version 3.26.0
+--------------
+This minor version includes:
+
+- Support for Weaviate 1.23
+- Bump of the default version for Weaviate Embedded DB to v1.23.0
+- Adds support for nodes api verbosity option
+
 Version 3.25.3
 --------------
 This patch version includes
