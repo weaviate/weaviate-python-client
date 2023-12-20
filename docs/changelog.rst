@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 4.4.b3
+--------------
+
+This beta version fixes a naming issue:
+- All instances of ``quantitizer`` have been renamed to ``quantizer``
+
 Version 4.4.b2
 --------------
 

@@ -88,14 +88,14 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
     else:
         generative_config = None
 
-    quantitizer: Optional[Union[_PQConfig, _BQConfig]] = None
+    quantizer: Optional[Union[_PQConfig, _BQConfig]] = None
     if "bq" in schema["vectorIndexConfig"] and schema["vectorIndexConfig"]["bq"]["enabled"]:
-        quantitizer = _BQConfig(
+        quantizer = _BQConfig(
             cache=schema["vectorIndexConfig"]["bq"]["cache"],
             rescore_limit=schema["vectorIndexConfig"]["bq"]["rescoreLimit"],
         )
     elif "pq" in schema["vectorIndexConfig"] and schema["vectorIndexConfig"]["pq"]["enabled"]:
-        quantitizer = _PQConfig(
+        quantizer = _PQConfig(
             bit_compression=schema["vectorIndexConfig"]["pq"]["bitCompression"],
             segments=schema["vectorIndexConfig"]["pq"]["segments"],
             centroids=schema["vectorIndexConfig"]["pq"]["centroids"],
@@ -121,7 +121,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
             ef_construction=schema["vectorIndexConfig"]["efConstruction"],
             flat_search_cutoff=schema["vectorIndexConfig"]["flatSearchCutoff"],
             max_connections=schema["vectorIndexConfig"]["maxConnections"],
-            quantitizer=quantitizer,
+            quantizer=quantizer,
             skip=schema["vectorIndexConfig"]["skip"],
             vector_cache_max_objects=schema["vectorIndexConfig"]["vectorCacheMaxObjects"],
         )
@@ -129,7 +129,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
         assert schema["vectorIndexType"] == "flat"
         vector_index_config = _VectorIndexConfigFlat(
             distance_metric=VectorDistance(schema["vectorIndexConfig"]["distance"]),
-            quantitizer=quantitizer,
+            quantizer=quantizer,
             vector_cache_max_objects=schema["vectorIndexConfig"]["vectorCacheMaxObjects"],
         )
     return _CollectionConfig(
