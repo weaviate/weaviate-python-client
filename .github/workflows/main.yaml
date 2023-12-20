@@ -179,7 +179,7 @@ jobs:
           path: coverage-integration.xml
 
   Codecov:
-    needs: [Unit-Tests, Integration-Tests]
+    needs: [Unit-Tests, Integration-Tests, Integration-Tests-v3]
     runs-on: ubuntu-latest
     if: github.ref_name != 'main'
     steps:
