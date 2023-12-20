@@ -254,10 +254,8 @@ class _ConfigUpdateModel(BaseModel):
                 schema[cls_field] = str(val.value)
             elif isinstance(val, (int, float, bool, str, list)):
                 schema[cls_field] = val
-            elif isinstance(val, _QuantitizerConfigUpdate):
-                schema[val.quantitizer_name()] = val.merge_with_existing(
-                    schema[val.quantitizer_name()]
-                )
+            elif isinstance(val, _QuantizerConfigUpdate):
+                schema[val.quantizer_name()] = val.merge_with_existing(schema[val.quantizer_name()])
             else:
                 assert isinstance(val, _ConfigUpdateModel)
                 schema[cls_field] = val.merge_with_existing(schema[cls_field])
@@ -285,16 +283,16 @@ class _PQEncoderConfigUpdate(_ConfigUpdateModel):
         return schema
 
 
-class _QuantitizerConfigCreate(_ConfigCreateModel):
+class _QuantizerConfigCreate(_ConfigCreateModel):
     enabled: bool = Field(default=True)
 
     @staticmethod
     @abstractmethod
-    def quantitizer_name() -> str:
+    def quantizer_name() -> str:
         ...
 
 
-class _PQConfigCreate(_QuantitizerConfigCreate):
+class _PQConfigCreate(_QuantizerConfigCreate):
     bitCompression: Optional[bool]
     centroids: Optional[int]
     encoder: _PQEncoderConfigCreate
@@ -302,27 +300,27 @@ class _PQConfigCreate(_QuantitizerConfigCreate):
     trainingLimit: Optional[int]
 
     @staticmethod
-    def quantitizer_name() -> str:
+    def quantizer_name() -> str:
         return "pq"
 
 
-class _BQConfigCreate(_QuantitizerConfigCreate):
+class _BQConfigCreate(_QuantizerConfigCreate):
     cache: Optional[bool]
     rescoreLimit: Optional[int]
 
     @staticmethod
-    def quantitizer_name() -> str:
+    def quantizer_name() -> str:
         return "bq"
 
 
-class _QuantitizerConfigUpdate(_ConfigUpdateModel):
+class _QuantizerConfigUpdate(_ConfigUpdateModel):
     @staticmethod
     @abstractmethod
-    def quantitizer_name() -> str:
+    def quantizer_name() -> str:
         ...
 
 
-class _PQConfigUpdate(_QuantitizerConfigUpdate):
+class _PQConfigUpdate(_QuantizerConfigUpdate):
     bitCompression: Optional[bool]
     centroids: Optional[int]
     enabled: bool = Field(default=True)
@@ -331,22 +329,22 @@ class _PQConfigUpdate(_QuantitizerConfigUpdate):
     encoder: Optional[_PQEncoderConfigUpdate]
 
     @staticmethod
-    def quantitizer_name() -> str:
+    def quantizer_name() -> str:
         return "pq"
 
 
-class _BQConfigUpdate(_QuantitizerConfigUpdate):
+class _BQConfigUpdate(_QuantizerConfigUpdate):
     rescoreLimit: Optional[int]
 
     @staticmethod
-    def quantitizer_name() -> str:
+    def quantizer_name() -> str:
         return "bq"
 
 
 class _VectorIndexConfigCreate(_ConfigCreateModel):
     distance: Optional[VectorDistance]
     vectorCacheMaxObjects: Optional[int]
-    quantitizer: Optional[_QuantitizerConfigCreate] = Field(exclude=True)
+    quantizer: Optional[_QuantizerConfigCreate] = Field(exclude=True)
 
     @staticmethod
     @abstractmethod
@@ -355,8 +353,8 @@ class _VectorIndexConfigCreate(_ConfigCreateModel):
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
-        if self.quantitizer is not None:
-            ret_dict[self.quantitizer.quantitizer_name()] = self.quantitizer._to_dict()
+        if self.quantizer is not None:
+            ret_dict[self.quantizer.quantizer_name()] = self.quantizer._to_dict()
         if self.distance is not None:
             ret_dict["distance"] = str(self.distance.value)
 
@@ -393,12 +391,12 @@ class _VectorIndexConfigHNSWUpdate(_ConfigUpdateModel):
     flatSearchCutoff: Optional[int]
     skip: Optional[bool]
     vectorCacheMaxObjects: Optional[int]
-    quantitizer: Optional[_PQConfigUpdate]
+    quantizer: Optional[_PQConfigUpdate]
 
 
 class _VectorIndexConfigFlatUpdate(_ConfigUpdateModel):
     vectorCacheMaxObjects: Optional[int]
-    quantitizer: Optional[_BQConfigUpdate]
+    quantizer: Optional[_BQConfigUpdate]
 
 
 class _ShardingConfigCreate(_ConfigCreateModel):
@@ -1631,7 +1629,7 @@ class _VectorIndexConfigHNSW(_ConfigBase):
     ef_construction: int
     flat_search_cutoff: int
     max_connections: int
-    quantitizer: Optional[Union[_PQConfig, _BQConfig]]
+    quantizer: Optional[Union[_PQConfig, _BQConfig]]
     skip: bool
     vector_cache_max_objects: int
 
@@ -1639,7 +1637,7 @@ class _VectorIndexConfigHNSW(_ConfigBase):
 @dataclass
 class _VectorIndexConfigFlat(_ConfigBase):
     distance_metric: VectorDistance
-    quantitizer: Optional[Union[_PQConfig, _BQConfig]]
+    quantizer: Optional[Union[_PQConfig, _BQConfig]]
     vector_cache_max_objects: int
 
 
@@ -1904,7 +1902,7 @@ class _CollectionConfigCreate(_CollectionConfigCreateBase):
         ret_dict["properties"] = existing_props
 
 
-class _VectorIndexQuantitizer:
+class _VectorIndexQuantizer:
     @staticmethod
     def pq(
         bit_compression: Optional[bool] = None,
@@ -1916,7 +1914,7 @@ class _VectorIndexQuantitizer:
     ) -> _PQConfigCreate:
         """Create a `_PQConfigCreate` object to be used when defining the product quantization (PQ) configuration of Weaviate.
 
-        Use this method when defining the `quantitizer` argument in the `vector_index` configuration.
+        Use this method when defining the `quantizer` argument in the `vector_index` configuration.
 
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
@@ -1936,7 +1934,7 @@ class _VectorIndexQuantitizer:
     ) -> _BQConfigCreate:
         """Create a `_BQConfigCreate` object to be used when defining the binary quantization (BQ) configuration of Weaviate.
 
-        Use this method when defining the `quantitizer` argument in the `vector_index` configuration.
+        Use this method when defining the `quantizer` argument in the `vector_index` configuration.
 
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
@@ -1948,7 +1946,7 @@ class _VectorIndexQuantitizer:
 
 
 class _VectorIndex:
-    Quantitizer = _VectorIndexQuantitizer
+    Quantizer = _VectorIndexQuantizer
 
     @staticmethod
     def hnsw(
@@ -1963,7 +1961,7 @@ class _VectorIndex:
         max_connections: Optional[int] = None,
         skip: Optional[bool] = None,
         vector_cache_max_objects: Optional[int] = None,
-        quantitizer: Optional[_PQConfigCreate] = None,
+        quantizer: Optional[_PQConfigCreate] = None,
     ) -> _VectorIndexHNSWConfigCreate:
         """Create a `_VectorIndexHNSWConfigCreate` object to be used when defining the HNSW vector index configuration of Weaviate.
 
@@ -1984,14 +1982,14 @@ class _VectorIndex:
             maxConnections=max_connections,
             skip=skip,
             vectorCacheMaxObjects=vector_cache_max_objects,
-            quantitizer=quantitizer,
+            quantizer=quantizer,
         )
 
     @staticmethod
     def flat(
         distance_metric: Optional[VectorDistance] = None,
         vector_cache_max_objects: Optional[int] = None,
-        quantitizer: Optional[_BQConfigCreate] = None,
+        quantizer: Optional[_BQConfigCreate] = None,
     ) -> _VectorIndexFlatConfigCreate:
         """Create a `_VectorIndexFlatConfigCreate` object to be used when defining the FLAT vector index configuration of Weaviate.
 
@@ -2003,7 +2001,7 @@ class _VectorIndex:
         return _VectorIndexFlatConfigCreate(
             distance=distance_metric,
             vectorCacheMaxObjects=vector_cache_max_objects,
-            quantitizer=quantitizer,
+            quantizer=quantizer,
         )
 
 
@@ -2108,7 +2106,7 @@ class Configure:
         )
 
 
-class _VectorIndexQuantitizerUpdate:
+class _VectorIndexQuantizerUpdate:
     @staticmethod
     def pq(
         bit_compression: Optional[bool] = None,
@@ -2120,7 +2118,7 @@ class _VectorIndexQuantitizerUpdate:
     ) -> _PQConfigUpdate:
         """Create a `_PQConfigUpdate` object to be used when updating the product quantization (PQ) configuration of Weaviate.
 
-        Use this method when defining the `quantitizer` argument in the `vector_index` configuration in `collection.update()`.
+        Use this method when defining the `quantizer` argument in the `vector_index` configuration in `collection.update()`.
 
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
@@ -2137,7 +2135,7 @@ class _VectorIndexQuantitizerUpdate:
     def bq(rescore_limit: Optional[int] = None) -> _BQConfigUpdate:
         """Create a `_BQConfigUpdate` object to be used when updating the binary quantization (BQ) configuration of Weaviate.
 
-        Use this method when defining the `quantitizer` argument in the `vector_index` configuration in `collection.update()`.
+        Use this method when defining the `quantizer` argument in the `vector_index` configuration in `collection.update()`.
 
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
@@ -2146,7 +2144,7 @@ class _VectorIndexQuantitizerUpdate:
 
 
 class _VectorIndexUpdate:
-    Quantitizer = _VectorIndexQuantitizerUpdate
+    Quantizer = _VectorIndexQuantizerUpdate
 
     @staticmethod
     def hnsw(
@@ -2157,7 +2155,7 @@ class _VectorIndexUpdate:
         flat_search_cutoff: Optional[int] = None,
         skip: Optional[bool] = None,
         vector_cache_max_objects: Optional[int] = None,
-        quantitizer: Optional[_PQConfigUpdate] = None,
+        quantizer: Optional[_PQConfigUpdate] = None,
     ) -> _VectorIndexConfigHNSWUpdate:
         """Create an `_VectorIndexConfigHNSWUpdate` object to update the configuration of the HNSW vector index.
 
@@ -2174,13 +2172,13 @@ class _VectorIndexUpdate:
             flatSearchCutoff=flat_search_cutoff,
             skip=skip,
             vectorCacheMaxObjects=vector_cache_max_objects,
-            quantitizer=quantitizer,
+            quantizer=quantizer,
         )
 
     @staticmethod
     def flat(
         vector_cache_max_objects: Optional[int] = None,
-        quantitizer: Optional[_BQConfigUpdate] = None,
+        quantizer: Optional[_BQConfigUpdate] = None,
     ) -> _VectorIndexConfigFlatUpdate:
         """Create an `_VectorIndexConfigFlatUpdate` object to update the configuration of the FLAT vector index.
 
@@ -2191,7 +2189,7 @@ class _VectorIndexUpdate:
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigFlatUpdate(
             vectorCacheMaxObjects=vector_cache_max_objects,
-            quantitizer=quantitizer,
+            quantizer=quantizer,
         )
 
 
