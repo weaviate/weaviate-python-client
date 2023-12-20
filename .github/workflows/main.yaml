@@ -80,6 +80,55 @@ jobs:
           name: coverage-report-${{ matrix.folder }}
           path: coverage-${{ matrix.folder }}.xml
 
+  integration-tests-v3:
+    name: Run Integration Tests v3
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        versions: [
+          { py: "3.8", weaviate: $NEW_WEAVIATE_VERSION},
+          { py: "3.9", weaviate: $NEW_WEAVIATE_VERSION},
+          { py: "3.10", weaviate: $NEW_WEAVIATE_VERSION},
+          { py: "3.11", weaviate: $NEW_WEAVIATE_VERSION},
+          { py: "3.11", weaviate: $OLD_WEAVIATE_VERSION},
+          { py: "3.12", weaviate: $NEW_WEAVIATE_VERSION}
+        ]
+
+        optional_dependencies: [false]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.versions.py }}
+          cache: 'pip' # caching pip dependencies
+      - run: |
+          pip install -r requirements-devel.txt
+          pip install .
+      - name: start weaviate
+        run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
+      - name: Run integration tests with auth secrets
+        if: ${{ !github.event.pull_request.head.repo.fork }}
+        env:
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          OKTA_CLIENT_SECRET: ${{ secrets.OKTA_CLIENT_SECRET }}
+          WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
+          OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
+#          OPENAI_APIKEY: ${{ secrets.OPENAI_APIKEY }}  disabled until we have a working key
+        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration-v3.xml integration_v3
+      - name: Run integration tests without auth secrets (for forks)
+        if: ${{ github.event.pull_request.head.repo.fork }}
+        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration-v3.xml integration_v3
+      - name: Archive code coverage results
+        if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report-integration-v3
+          path: coverage-integration-v3.xml
+
   integration-tests:
     name: Run Integration Tests
     runs-on: ubuntu-latest
@@ -135,23 +184,27 @@ jobs:
     if: github.ref_name != 'main'
     steps:
       - uses: actions/checkout@v3
-      - name: Download coverage artifacts integration
+      - name: Download coverage artifacts mock
         uses: actions/download-artifact@v3
         with:
           name: coverage-report-mock_tests
-      - name: Download coverage artifacts integration
+      - name: Download coverage artifacts unit
         uses: actions/download-artifact@v3
         with:
           name: coverage-report-test
-      - name: Download coverage unit
+      - name: Download coverage integration
         uses: actions/download-artifact@v3
         with:
           name: coverage-report-integration
+      - name: Download coverage integration v3
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage-report-integration-v3
       - name: Codecov
         uses: codecov/codecov-action@v3
         with:
           fail_ci_if_error: true
-          files: ./coverage-integration.xml, ./coverage-test.xml, ./coverage-mock_tests.xml
+          files: ./coverage-integration.xml, ./coverage-integration-v3.xml, ./coverage-test.xml, ./coverage-mock_tests.xml
           verbose: true
 
 

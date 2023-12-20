@@ -1,6 +1,7 @@
-from typing import Any, Callable, Optional, List, Generator, TypeAlias
+from typing import Any, Callable, Optional, List, Generator
 
 import pytest
+from typing_extensions import TypeAlias
 
 import weaviate
 from weaviate import Collection
