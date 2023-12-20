@@ -6,7 +6,7 @@ Version 4.4.b2
 
 This version works best with Weaviate >= 1.23 which was released on 2023-12-18.
 
-This beta version has breaking changes, a migration guide is available at $URL:
+This beta version has breaking changes, a migration guide is available at https://www.weaviate.io/developers/weaviate/client-libraries/python#migration-guides:
 
 - Refactor ``weaviate.classes`` structure
 - Rename various classes and methods:
@@ -25,6 +25,10 @@ This beta version has breaking changes, a migration guide is available at $URL:
 ))
 - ``object.metadata.vector`` was moved to ``object.vector`` and can be requested by using ``include_vector=True/False`` when querying
 - ``object.metadata.uuid`` was moved to ``object.uuid`` and is always available
+- Order of arguments in .data.update() and .replace() changed to accommodate not providing properties when updating.
+- In .data.reference_add, .reference_delete and .reference_replace the ``ref`` keyword was renamed to ``to``
+- In collections.create() and .get() the keyword to provide generics was renamed from ``data_model`` to ``data_model_properties``
+
 
 New functionality includes:
 
@@ -38,6 +42,8 @@ New functionality includes:
 - Adds support for geo-coordinates
 - Adds metadata filtering with ``FilterMetadata``
 - Adds ``client.graphql_raw_query`` to use Weaviate features that are not directly supported.
+- Adds ``DataReferenceOneToMany`` which allows to add multiple references at once.
+- Adds validation of input parameters for non-mypy users.
 - Various performance improvements and bugfixes
 
 Version 4.4.b1
