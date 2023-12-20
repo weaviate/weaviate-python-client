@@ -1,12 +1,12 @@
 import datetime
 import uuid
-from typing import Generator, List, Optional, Union, Callable
+from typing import List, Optional, Union
 
 import pytest as pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
-from integration.conftest import _sanitize_collection_name
+from integration.conftest import _sanitize_collection_name, CollectionFactory
 from weaviate.collections.classes.config import (
     Configure,
     Property,
@@ -37,14 +37,6 @@ UUID2 = uuid.uuid4()
 UUID3 = uuid.uuid4()
 
 
-@pytest.fixture(scope="module")
-def client() -> Generator[weaviate.WeaviateClient, None, None]:
-    client = weaviate.connect_to_local()
-    client.collections.delete_all()
-    yield client
-    client.collections.delete_all()
-
-
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
@@ -54,7 +46,7 @@ def client() -> Generator[weaviate.WeaviateClient, None, None]:
     ],
 )
 def test_filters_text(
-    collection_factory: Callable,
+    collection_factory: CollectionFactory,
     request: SubRequest,
     weaviate_filter: _FilterValue,
     results: List[int],
@@ -90,7 +82,7 @@ def test_filters_text(
     ],
 )
 def test_array_types(
-    collection_factory: Callable,
+    collection_factory: CollectionFactory,
     request: SubRequest,
     weaviate_filter: _FilterValue,
     results: List[int],
@@ -132,7 +124,7 @@ def test_array_types(
     ],
 )
 def test_filter_with_wrong_types(
-    collection_factory: Callable,
+    collection_factory: CollectionFactory,
     request: SubRequest,
     weaviate_filter: _FilterValue,
     results: Optional[List[int]],
@@ -186,7 +178,7 @@ def test_filter_with_wrong_types(
     ],
 )
 def test_filters_nested(
-    collection_factory: Callable,
+    collection_factory: CollectionFactory,
     request: SubRequest,
     weaviate_filter: _Filters,
     results: List[int],
@@ -212,7 +204,7 @@ def test_filters_nested(
     assert all(obj.uuid in uuids for obj in objects)
 
 
-def test_length_filter(collection_factory: Callable, request: SubRequest) -> None:
+def test_length_filter(collection_factory: CollectionFactory, request: SubRequest) -> None:
     collection = collection_factory(
         name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
@@ -243,7 +235,7 @@ def test_length_filter(collection_factory: Callable, request: SubRequest) -> Non
     ],
 )
 def test_filters_comparison(
-    collection_factory: Callable,
+    collection_factory: CollectionFactory,
     request: SubRequest,
     weaviate_filter: _FilterValue,
     results: List[int],
@@ -309,7 +301,7 @@ def test_filters_comparison(
     ],
 )
 def test_filters_contains(
-    collection_factory: Callable,
+    collection_factory: CollectionFactory,
     request: SubRequest,
     weaviate_filter: _FilterValue,
     results: List[int],
@@ -422,7 +414,7 @@ def test_filters_contains(
     ],
 )
 def test_ref_filters(
-    collection_factory: Callable,
+    collection_factory: CollectionFactory,
     request: SubRequest,
     weaviate_filter: _FilterValue,
     results: List[int],
@@ -475,7 +467,9 @@ def test_ref_filters(
     assert all(obj.uuid in uuids for obj in objects)
 
 
-def test_ref_filters_multi_target(collection_factory: Callable, request: SubRequest) -> None:
+def test_ref_filters_multi_target(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
     target = _sanitize_collection_name(request.node.name + "Target")
     source = _sanitize_collection_name(request.node.name + "Source")
     to_collection = collection_factory(
@@ -864,7 +858,7 @@ def test_ref_filters_multi_target(collection_factory: Callable, request: SubRequ
     ],
 )
 def test_delete_many_simple(
-    collection_factory: Callable,
+    collection_factory: CollectionFactory,
     request: SubRequest,
     properties: List[Property],
     inserts: List[DataObject],
@@ -885,7 +879,9 @@ def test_delete_many_simple(
     assert len(objects) == expected_len
 
 
-def test_delete_by_time_metadata(collection_factory: Callable, request: SubRequest) -> None:
+def test_delete_by_time_metadata(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
     collection = collection_factory(
         name=request.node.name,
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
@@ -905,7 +901,7 @@ def test_delete_by_time_metadata(collection_factory: Callable, request: SubReque
     assert collection.query.fetch_object_by_id(uuid=uuid2) is not None
 
 
-def test_delete_many_and(collection_factory: Callable, request: SubRequest) -> None:
+def test_delete_many_and(collection_factory: CollectionFactory, request: SubRequest) -> None:
     collection = collection_factory(
         name=request.node.name,
         properties=[
@@ -933,7 +929,7 @@ def test_delete_many_and(collection_factory: Callable, request: SubRequest) -> N
     assert objects[0].properties["name"] == "Tommy"
 
 
-def test_delete_many_or(collection_factory: Callable, request: SubRequest) -> None:
+def test_delete_many_or(collection_factory: CollectionFactory, request: SubRequest) -> None:
     collection = collection_factory(
         name=request.node.name,
         properties=[
@@ -959,7 +955,7 @@ def test_delete_many_or(collection_factory: Callable, request: SubRequest) -> No
     assert objects[0].properties["name"] == "Tim"
 
 
-def test_delete_many_return(collection_factory: Callable, request: SubRequest) -> None:
+def test_delete_many_return(collection_factory: CollectionFactory, request: SubRequest) -> None:
     collection = collection_factory(
         name=request.node.name,
         properties=[
@@ -989,7 +985,7 @@ def test_delete_many_return(collection_factory: Callable, request: SubRequest) -
     ],
 )
 def test_filter_id(
-    collection_factory: Callable, request: SubRequest, weav_filter: _FilterValue
+    collection_factory: CollectionFactory, request: SubRequest, weav_filter: _FilterValue
 ) -> None:
     collection = collection_factory(
         name=request.node.name,
@@ -1016,7 +1012,7 @@ def test_filter_id(
 
 @pytest.mark.parametrize("path", ["_creationTimeUnix", "_lastUpdateTimeUnix"])
 def test_filter_timestamp_direct_path(
-    collection_factory: Callable, request: SubRequest, path: str
+    collection_factory: CollectionFactory, request: SubRequest, path: str
 ) -> None:
     collection = collection_factory(
         name=request.node.name,
@@ -1050,7 +1046,7 @@ def test_filter_timestamp_direct_path(
     "filter_type", [FilterMetadata.ByCreationTime, FilterMetadata.ByUpdateTime]
 )
 def test_filter_timestamp_class(
-    collection_factory: Callable,
+    collection_factory: CollectionFactory,
     request: SubRequest,
     filter_type: Union[_FilterCreationTime, _FilterUpdateTime],
 ) -> None:
@@ -1110,7 +1106,9 @@ def test_filter_timestamp_class(
         assert obj1_uuid in uuids and obj2_uuid in uuids
 
 
-def test_time_update_and_creation_time(collection_factory: Callable, request: SubRequest) -> None:
+def test_time_update_and_creation_time(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
     collection = collection_factory(
         name=request.node.name,
         properties=[

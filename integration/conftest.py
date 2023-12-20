@@ -1,7 +1,6 @@
-from typing import Any, Callable, Optional, List, Generator
+from typing import Any, Optional, List, Generator, Protocol
 
 import pytest
-from typing_extensions import TypeAlias
 
 import weaviate
 from weaviate import Collection
@@ -12,22 +11,26 @@ from weaviate.collections.classes.config import (
     _ReferencePropertyBase,
 )
 
-Factory: TypeAlias = Callable[
-    [
-        str,
-        Optional[List[Property]],
-        Optional[List[_ReferencePropertyBase]],
-        Optional[_VectorizerConfigCreate],
-        Optional[_InvertedIndexConfigCreate],
-    ],
-    Collection[Any, Any],
-]
+
+class CollectionFactory(Protocol):
+    """Typing for fixture."""
+
+    def __call__(
+        self,
+        name: str,
+        properties: Optional[List[Property]] = None,
+        references: Optional[List[_ReferencePropertyBase]] = None,
+        vectorizer_config: Optional[_VectorizerConfigCreate] = None,
+        inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
+    ) -> Collection[Any, Any]:
+        """Typing for fixture."""
+        ...
 
 
 @pytest.fixture
 def collection_factory() -> (
     Generator[
-        Factory,
+        CollectionFactory,
         None,
         None,
     ]
@@ -41,13 +44,13 @@ def collection_factory() -> (
         references: Optional[List[_ReferencePropertyBase]] = None,
         vectorizer_config: Optional[_VectorizerConfigCreate] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
-    ) -> Collection:
+    ) -> Collection[Any, Any]:
         nonlocal client_fixture, name_fixture
         name_fixture = _sanitize_collection_name(name)
         client_fixture = weaviate.connect_to_local()
         client_fixture.collections.delete(name_fixture)
 
-        collection = client_fixture.collections.create(
+        collection: Collection[Any, Any] = client_fixture.collections.create(
             name=name_fixture,
             vectorizer_config=vectorizer_config,
             properties=properties,
