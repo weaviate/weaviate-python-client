@@ -447,6 +447,38 @@ def test_collection_config_update(client: weaviate.WeaviateClient) -> None:
 
     assert config.vector_index_type == _VectorIndexType.HNSW
 
+    collection.config.update(
+        vector_index_config=Reconfigure.VectorIndex.hnsw(
+            quantizer=Reconfigure.VectorIndex.Quantizer.pq(enabled=False),
+        )
+    )
+    config = collection.config.get()
+    assert config.description == "Test"
+
+    assert config.inverted_index_config.bm25.b == 0.8
+    assert config.inverted_index_config.bm25.k1 == 1.25
+    assert config.inverted_index_config.cleanup_interval_seconds == 10
+    # assert config.inverted_index_config.stopwords.additions is ["a"] # potential weaviate bug, this returns as None
+    assert config.inverted_index_config.stopwords.removals == ["the"]
+
+    assert config.replication_config.factor == 2
+
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.cleanup_interval_seconds == 300
+    assert config.vector_index_config.distance_metric == VectorDistance.COSINE
+    assert config.vector_index_config.dynamic_ef_factor == 8
+    assert config.vector_index_config.dynamic_ef_max == 500
+    assert config.vector_index_config.dynamic_ef_min == 100
+    assert config.vector_index_config.ef == -1
+    assert config.vector_index_config.ef_construction == 128
+    assert config.vector_index_config.flat_search_cutoff == 40000
+    assert config.vector_index_config.max_connections == 64
+    assert config.vector_index_config.quantizer is None
+    assert config.vector_index_config.skip is True
+    assert config.vector_index_config.vector_cache_max_objects == 2000000
+
+    assert config.vector_index_type == _VectorIndexType.HNSW
+
     client.collections.delete("TestCollectionSchemaUpdate")
 
 
@@ -477,6 +509,15 @@ def test_update_flat(client: weaviate.WeaviateClient) -> None:
     assert config.vector_index_config.vector_cache_max_objects == 10
     assert isinstance(config.vector_index_config.quantizer, _BQConfig)
     assert config.vector_index_config.quantizer.rescore_limit == 20
+
+    # Cannot currently disabled BQ after it has been enabled
+    # collection.config.update(
+    #     vector_index_config=Reconfigure.VectorIndex.flat(
+    #         quantizer=Reconfigure.VectorIndex.Quantizer.bq(enabled=False),
+    #     )
+    # )
+    # config = collection.config.get()
+    # assert config.vector_index_config.quantizer is None
 
 
 def test_collection_config_get_shards(client: weaviate.WeaviateClient) -> None:

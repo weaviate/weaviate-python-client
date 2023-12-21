@@ -323,7 +323,7 @@ class _QuantizerConfigUpdate(_ConfigUpdateModel):
 class _PQConfigUpdate(_QuantizerConfigUpdate):
     bitCompression: Optional[bool]
     centroids: Optional[int]
-    enabled: bool = Field(default=True)
+    enabled: Optional[bool]
     segments: Optional[int]
     trainingLimit: Optional[int]
     encoder: Optional[_PQEncoderConfigUpdate]
@@ -2115,6 +2115,7 @@ class _VectorIndexQuantizerUpdate:
         encoder_type: Optional[PQEncoderType] = None,
         segments: Optional[int] = None,
         training_limit: Optional[int] = None,
+        enabled: bool = True,
     ) -> _PQConfigUpdate:
         """Create a `_PQConfigUpdate` object to be used when updating the product quantization (PQ) configuration of Weaviate.
 
@@ -2124,11 +2125,14 @@ class _VectorIndexQuantizerUpdate:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _PQConfigUpdate(
+            enabled=enabled,
             bitCompression=bit_compression,
             centroids=centroids,
             segments=segments,
             trainingLimit=training_limit,
-            encoder=_PQEncoderConfigUpdate(type_=encoder_type, distribution=encoder_distribution),
+            encoder=_PQEncoderConfigUpdate(type_=encoder_type, distribution=encoder_distribution)
+            if encoder_type is not None or encoder_distribution is not None
+            else None,
         )
 
     @staticmethod
