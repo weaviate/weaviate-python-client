@@ -1,5 +1,10 @@
 Changelog
 =========
+Version 4.4.b4
+--------------
+
+This beta version fixes an issue with being unable to disable PQ once enabled
+
 
 Version 4.4.b3
 --------------
