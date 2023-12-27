@@ -2,9 +2,9 @@ import datetime
 import io
 import pathlib
 import struct
+import uuid as uuid_lib
 from typing import Any, Dict, Generic, List, Optional, Type, Union, cast
 
-import uuid as uuid_lib
 from google.protobuf import struct_pb2
 from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -204,7 +204,7 @@ class _BaseQuery(Generic[Properties, References]):
         }
 
     def __deserialize_primitive_122(self, value: Any) -> Any:
-        if isinstance(value, str):
+        if isinstance(value, str) and len(value) > 0:
             try:
                 return uuid_lib.UUID(value)
             except ValueError:
