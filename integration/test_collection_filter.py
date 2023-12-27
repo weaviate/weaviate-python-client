@@ -1,10 +1,12 @@
 import datetime
 import uuid
-from typing import Generator, List, Optional, Union
+from typing import List, Optional, Union
 
 import pytest as pytest
+from _pytest.fixtures import SubRequest
 
 import weaviate
+from integration.conftest import _sanitize_collection_name, CollectionFactory
 from weaviate.collections.classes.config import (
     Configure,
     Property,
@@ -35,14 +37,6 @@ UUID2 = uuid.uuid4()
 UUID3 = uuid.uuid4()
 
 
-@pytest.fixture(scope="module")
-def client() -> Generator[weaviate.WeaviateClient, None, None]:
-    client = weaviate.connect_to_local()
-    client.collections.delete_all()
-    yield client
-    client.collections.delete_all()
-
-
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
@@ -52,13 +46,15 @@ def client() -> Generator[weaviate.WeaviateClient, None, None]:
     ],
 )
 def test_filters_text(
-    client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
+    collection_factory: CollectionFactory,
+    request: SubRequest,
+    weaviate_filter: _FilterValue,
+    results: List[int],
 ) -> None:
-    client.collections.delete("TestFilterText")
-    collection = client.collections.create(
-        name="TestFilterText",
+    collection = collection_factory(
+        name=request.node.name,
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
-        properties=[Property(name="name", data_type=DataType.TEXT)],
     )
 
     uuids = [
@@ -86,14 +82,13 @@ def test_filters_text(
     ],
 )
 def test_array_types(
-    client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
+    collection_factory: CollectionFactory,
+    request: SubRequest,
+    weaviate_filter: _FilterValue,
+    results: List[int],
 ) -> None:
-    if parse_version_string(client._connection._server_version) < parse_version_string("1.23"):
-        pytest.skip("Fixes for this are not implemented in this version")
-
-    client.collections.delete("TestFilterOnArrayTypes")
-    collection = client.collections.create(
-        name="TestFilterOnArrayTypes",
+    collection = collection_factory(
+        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="texts", data_type=DataType.TEXT_ARRAY),
@@ -101,6 +96,10 @@ def test_array_types(
             Property(name="floats", data_type=DataType.NUMBER_ARRAY),
         ],
     )
+
+    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("Fixes for this are not implemented in this version")
+
     uuids = [
         collection.data.insert({"texts": ["an", "apple"], "ints": [1, 2], "floats": [1.0, 2.0]}),
         collection.data.insert({"texts": ["a", "banana"], "ints": [2, 3], "floats": [2.0, 3.0]}),
@@ -125,19 +124,21 @@ def test_array_types(
     ],
 )
 def test_filter_with_wrong_types(
-    client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: Optional[List[int]]
+    collection_factory: CollectionFactory,
+    request: SubRequest,
+    weaviate_filter: _FilterValue,
+    results: Optional[List[int]],
 ) -> None:
-    if parse_version_string(client._connection._server_version) < parse_version_string("1.23"):
-        pytest.skip("Fixes for this are not implemented in this version")
-    client.collections.delete("TestFilterWrongTypes")
-    collection = client.collections.create(
-        name="TestFilterWrongTypes",
+    collection = collection_factory(
+        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="int", data_type=DataType.INT),
             Property(name="float", data_type=DataType.NUMBER),
         ],
     )
+    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("Fixes for this are not implemented in this version")
 
     uuids = [
         collection.data.insert({"int": 1, "float": 1.0}),
@@ -177,13 +178,13 @@ def test_filter_with_wrong_types(
     ],
 )
 def test_filters_nested(
-    client: weaviate.WeaviateClient,
+    collection_factory: CollectionFactory,
+    request: SubRequest,
     weaviate_filter: _Filters,
     results: List[int],
 ) -> None:
-    client.collections.delete("TestFilterNested")
-    collection = client.collections.create(
-        name="TestFilterNested",
+    collection = collection_factory(
+        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="num", data_type=DataType.NUMBER)],
         inverted_index_config=Configure.inverted_index(index_null_state=True),
@@ -203,10 +204,9 @@ def test_filters_nested(
     assert all(obj.uuid in uuids for obj in objects)
 
 
-def test_length_filter(client: weaviate.WeaviateClient) -> None:
-    client.collections.delete("TestFilterNested")
-    collection = client.collections.create(
-        name="TestFilterNested",
+def test_length_filter(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="field", data_type=DataType.TEXT)],
         inverted_index_config=Configure.inverted_index(index_property_length=True),
@@ -235,11 +235,13 @@ def test_length_filter(client: weaviate.WeaviateClient) -> None:
     ],
 )
 def test_filters_comparison(
-    client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
+    collection_factory: CollectionFactory,
+    request: SubRequest,
+    weaviate_filter: _FilterValue,
+    results: List[int],
 ) -> None:
-    client.collections.delete("TestFilterNumber")
-    collection = client.collections.create(
-        name="TestFilterNumber",
+    collection = collection_factory(
+        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="number", data_type=DataType.INT)],
         inverted_index_config=Configure.inverted_index(index_null_state=True),
@@ -299,16 +301,14 @@ def test_filters_comparison(
     ],
 )
 def test_filters_contains(
-    client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int], skip: bool
+    collection_factory: CollectionFactory,
+    request: SubRequest,
+    weaviate_filter: _FilterValue,
+    results: List[int],
+    skip: bool,
 ) -> None:
-    if (
-        parse_version_string(client._connection._server_version) < parse_version_string("1.23")
-        and skip
-    ):
-        pytest.skip("not supported in this version")
-    client.collections.delete("TestFilterContains")
-    collection = client.collections.create(
-        name="TestFilterContains",
+    collection = collection_factory(
+        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -325,6 +325,11 @@ def test_filters_contains(
             Property(name="uuid", data_type=DataType.UUID),
         ],
     )
+    if (
+        parse_version_string(collection._connection._server_version) < parse_version_string("1.23")
+        and skip
+    ):
+        pytest.skip("not supported in this version")
 
     uuids = [
         collection.data.insert(
@@ -403,22 +408,22 @@ def test_filters_contains(
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
-        (Filter(path=["ref", "TestFilterRef2", "int"]).greater_than(3), [1]),
-        (Filter(path=["ref", "TestFilterRef2", "text"], length=True).less_than(6), [0]),
-        (Filter(path=["ref", "TestFilterRef2", "_id"]).equal(UUID2), [1]),
+        (Filter(path=["ref", "target", "int"]).greater_than(3), [1]),
+        (Filter(path=["ref", "target", "text"], length=True).less_than(6), [0]),
+        (Filter(path=["ref", "target", "_id"]).equal(UUID2), [1]),
     ],
 )
 def test_ref_filters(
-    client: weaviate.WeaviateClient, weaviate_filter: _FilterValue, results: List[int]
+    collection_factory: CollectionFactory,
+    request: SubRequest,
+    weaviate_filter: _FilterValue,
+    results: List[int],
 ) -> None:
-    if parse_version_string(client._connection._server_version) < parse_version_string(
-        "1.23"
-    ) and weaviate_filter.path == ["ref", "TestFilterRef2", "_id"]:
-        pytest.skip("filter by id is not supported in this version")
-    client.collections.delete("TestFilterRef")
-    client.collections.delete("TestFilterRef2")
-    to_collection = client.collections.create(
-        name="TestFilterRef2",
+    target = _sanitize_collection_name(request.node.name + "Target")  # individual name per test
+    assert isinstance(weaviate_filter.path, list)
+    weaviate_filter.path[1] = target
+    to_collection = collection_factory(
+        name=target,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="int", data_type=DataType.INT),
@@ -426,16 +431,23 @@ def test_ref_filters(
         ],
         inverted_index_config=Configure.inverted_index(index_property_length=True),
     )
+    if (
+        parse_version_string(to_collection._connection._server_version)
+        < parse_version_string("1.23")
+        and "_id" in weaviate_filter.path
+    ):
+        pytest.skip("filter by id is not supported in this version")
+
     uuids_to = [
         to_collection.data.insert(properties={"int": 0, "text": "first"}, uuid=UUID1),
         to_collection.data.insert(properties={"int": 15, "text": "second"}, uuid=UUID2),
     ]
-    from_collection = client.collections.create(
-        name="TestFilterRef",
+    from_collection = collection_factory(
+        name=request.node.name,
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
-        references=[ReferenceProperty(name="ref", target_collection="TestFilterRef2")],
+        references=[ReferenceProperty(name="ref", target_collection=target)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
@@ -455,28 +467,24 @@ def test_ref_filters(
     assert all(obj.uuid in uuids for obj in objects)
 
 
-def test_ref_filters_multi_target(client: weaviate.WeaviateClient) -> None:
-    target = "TestFilterRefMulti2"
-    source = "TestFilterRefMulti"
-    client.collections.delete(source)
-    client.collections.delete(target)
-    to_collection = client.collections.create(
+def test_ref_filters_multi_target(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
+    target = _sanitize_collection_name(request.node.name + "Target")
+    source = _sanitize_collection_name(request.node.name + "Source")
+    to_collection = collection_factory(
         name=target,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="int", data_type=DataType.INT)],
     )
     uuid_to = to_collection.data.insert(properties={"int": 0})
     uuid_to2 = to_collection.data.insert(properties={"int": 5})
-    from_collection = client.collections.create(
+    from_collection = collection_factory(
         name=source,
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
-        references=[
-            ReferencePropertyMultiTarget(
-                name="ref", target_collections=[target, "TestFilterRefMulti"]
-            )
-        ],
+        references=[ReferencePropertyMultiTarget(name="ref", target_collections=[target, source])],
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
@@ -850,16 +858,15 @@ def test_ref_filters_multi_target(client: weaviate.WeaviateClient) -> None:
     ],
 )
 def test_delete_many_simple(
-    client: weaviate.WeaviateClient,
+    collection_factory: CollectionFactory,
+    request: SubRequest,
     properties: List[Property],
     inserts: List[DataObject],
     where: _FilterValue,
     expected_len: int,
 ) -> None:
-    name = "TestDeleteManySimple"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+    collection = collection_factory(
+        name=request.node.name,
         properties=properties,
         inverted_index_config=Configure.inverted_index(index_null_state=True),
         vectorizer_config=Configure.Vectorizer.none(),
@@ -872,11 +879,11 @@ def test_delete_many_simple(
     assert len(objects) == expected_len
 
 
-def test_delete_by_time_metadata(client: weaviate.WeaviateClient) -> None:
-    name = "TestDeleteByTimeMetadata"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_delete_by_time_metadata(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -894,10 +901,9 @@ def test_delete_by_time_metadata(client: weaviate.WeaviateClient) -> None:
     assert collection.query.fetch_object_by_id(uuid=uuid2) is not None
 
 
-def test_delete_many_and(client: weaviate.WeaviateClient) -> None:
-    name = "TestDeleteManyAnd"
-    collection = client.collections.create(
-        name=name,
+def test_delete_many_and(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
             Property(name="Age", data_type=DataType.INT),
@@ -923,10 +929,9 @@ def test_delete_many_and(client: weaviate.WeaviateClient) -> None:
     assert objects[0].properties["name"] == "Tommy"
 
 
-def test_delete_many_or(client: weaviate.WeaviateClient) -> None:
-    name = "TestDeleteManyOr"
-    collection = client.collections.create(
-        name=name,
+def test_delete_many_or(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
             Property(name="Age", data_type=DataType.INT),
@@ -950,10 +955,9 @@ def test_delete_many_or(client: weaviate.WeaviateClient) -> None:
     assert objects[0].properties["name"] == "Tim"
 
 
-def test_delete_many_return(client: weaviate.WeaviateClient) -> None:
-    name = "TestDeleteManyReturn"
-    collection = client.collections.create(
-        name=name,
+def test_delete_many_return(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
@@ -980,19 +984,19 @@ def test_delete_many_return(client: weaviate.WeaviateClient) -> None:
         Filter(path=["_id"]).equal(UUID1),
     ],
 )
-def test_filter_id(client: weaviate.WeaviateClient, weav_filter: _FilterValue) -> None:
-    if parse_version_string(client._connection._server_version) < parse_version_string("1.23"):
-        pytest.skip("filter by id is not supported in this version")
-    FilterMetadata.ById.contains_any
-    name = "TestFilterMetadata"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_filter_id(
+    collection_factory: CollectionFactory, request: SubRequest, weav_filter: _FilterValue
+) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
+    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("filter by id is not supported in this version")
+
     collection.data.insert_many(
         [
             DataObject(properties={"name": "first"}, uuid=UUID1),
@@ -1007,19 +1011,20 @@ def test_filter_id(client: weaviate.WeaviateClient, weav_filter: _FilterValue) -
 
 
 @pytest.mark.parametrize("path", ["_creationTimeUnix", "_lastUpdateTimeUnix"])
-def test_filter_timestamp_direct_path(client: weaviate.WeaviateClient, path: str) -> None:
-    if parse_version_string(client._connection._server_version) < parse_version_string("1.23"):
-        pytest.skip("filter by id is not supported in this version")
-    name = "TestFilterMetadataTime"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_filter_timestamp_direct_path(
+    collection_factory: CollectionFactory, request: SubRequest, path: str
+) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
         vectorizer_config=Configure.Vectorizer.none(),
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
     )
+    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("filter by id is not supported in this version")
+
     obj1_uuid = collection.data.insert(properties={"name": "first"})
     obj2_uuid = collection.data.insert(properties={"name": "second"})
 
@@ -1041,20 +1046,21 @@ def test_filter_timestamp_direct_path(client: weaviate.WeaviateClient, path: str
     "filter_type", [FilterMetadata.ByCreationTime, FilterMetadata.ByUpdateTime]
 )
 def test_filter_timestamp_class(
-    client: weaviate.WeaviateClient, filter_type: Union[_FilterCreationTime, _FilterUpdateTime]
+    collection_factory: CollectionFactory,
+    request: SubRequest,
+    filter_type: Union[_FilterCreationTime, _FilterUpdateTime],
 ) -> None:
-    if parse_version_string(client._connection._server_version) < parse_version_string("1.23"):
-        pytest.skip("filter by id is not supported in this version")
-    name = "TestFilterMetadataTime"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+    collection = collection_factory(
+        name=request.node.name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
         vectorizer_config=Configure.Vectorizer.none(),
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
     )
+    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("filter by id is not supported in this version")
+
     obj1_uuid = collection.data.insert(properties={"name": "first"})
     obj2_uuid = collection.data.insert(properties={"name": "second"})
 
@@ -1100,19 +1106,20 @@ def test_filter_timestamp_class(
         assert obj1_uuid in uuids and obj2_uuid in uuids
 
 
-def test_time_update_and_creation_time(client: weaviate.WeaviateClient) -> None:
-    if parse_version_string(client._connection._server_version) < parse_version_string("1.23"):
-        pytest.skip("filter by id is not supported in this version")
-    name = "TestFilterMetadataTime"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_time_update_and_creation_time(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
         vectorizer_config=Configure.Vectorizer.none(),
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
     )
+    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("filter by id is not supported in this version")
+
     obj1_uuid = collection.data.insert(properties={"name": "first"})
     obj2_uuid = collection.data.insert(properties={"name": "second"})
 

@@ -507,17 +507,14 @@ def test_add_1000_objects_with_async_indexing_and_wait():
         },
     )
     nr_objects = 1000
-    objs = [
-        {
-            "class_name": "BatchTestAsync",
-            "data_object": {"text": "text" + str(i)},
-            "vector": list(range(1000)),
-        }
-        for i in range(nr_objects)
-    ]
+
     with client.batch as batch:
-        for obj in objs:
-            batch.add_data_object(**obj)
+        for i in range(nr_objects):
+            batch.add_data_object(
+                class_name="BatchTestAsync",
+                data_object={"text": "text" + str(i)},
+                vector=[float((j + i) % nr_objects) / nr_objects for j in range(nr_objects)],
+            )
     client.batch.wait_for_vector_indexing()
     res = client.query.aggregate("BatchTestAsync").with_meta_count().do()
     assert res["data"]["Aggregate"]["BatchTestAsync"][0]["meta"]["count"] == nr_objects
@@ -541,72 +538,24 @@ def test_add_10000_objects_with_async_indexing_and_dont_wait():
             ],
         },
     )
-    nr_objects = 10000
-    objs = [
-        {
-            "class_name": "BatchTestAsync",
-            "data_object": {"text": "text" + str(i)},
-            "vector": list(range(1000)),
-        }
-        for i in range(nr_objects)
-    ]
+    # async batches are 1000 objects big and lower numbers have a one-minute timeout where weaviate just waits.
+    # Carefully select the numbers so tests don't take forever
+    nr_objects = 2000
     with client.batch as batch:
-        for obj in objs:
-            batch.add_data_object(**obj)
+        for i in range(nr_objects):
+            batch.add_data_object(
+                class_name="BatchTestAsync",
+                data_object={"text": "text" + str(i)},
+                vector=[float((j + i) % nr_objects) / nr_objects for j in range(nr_objects)],
+            )
+    shard_status = client.schema.get_class_shards("BatchTestAsync")
+    assert shard_status[0]["status"] == "INDEXING"
+    assert shard_status[0]["vectorQueueSize"] > 0
     res = client.query.aggregate("BatchTestAsync").with_meta_count().do()
     assert res["data"]["Aggregate"]["BatchTestAsync"][0]["meta"]["count"] == nr_objects
-    assert client.schema.get_class_shards("BatchTestAsync")[0]["status"] == "INDEXING"
-    assert client.schema.get_class_shards("BatchTestAsync")[0]["vectorQueueSize"] > 0
 
 
-def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all():
-    client = weaviate.Client("http://localhost:8090")
-    client.schema.delete_all()
-
-    client.schema.create_class(
-        {
-            "class": "BatchTestAsync",
-            "vectorizer": "none",
-            "multiTenancyConfig": {
-                "enabled": True,
-            },
-            "properties": [
-                {
-                    "name": "text",
-                    "dataType": ["text"],
-                }
-            ],
-        },
-    )
-    tenants = [Tenant("tenant" + str(i)) for i in range(5)]
-    client.schema.add_class_tenants("BatchTestAsync", tenants)
-    nr_objects = 1000
-    objs = [
-        {
-            "class_name": "BatchTestAsync",
-            "data_object": {"text": "text" + str(i)},
-            "vector": list(range(1000)),
-            "tenant": tenants[i % 5].name,
-        }
-        for i in range(nr_objects)
-    ]
-    with client.batch as batch:
-        for obj in objs:
-            batch.add_data_object(**obj)
-    client.batch.wait_for_vector_indexing()
-    for tenant in tenants:
-        res = (
-            client.query.aggregate("BatchTestAsync").with_meta_count().with_tenant(tenant.name).do()
-        )
-        assert res["data"]["Aggregate"]["BatchTestAsync"][0]["meta"]["count"] == nr_objects / len(
-            tenants
-        )
-    for shard in client.schema.get_class_shards("BatchTestAsync"):
-        assert shard["status"] == "READY"
-        assert shard["vectorQueueSize"] == 0
-
-
-def test_add_10000_tenant_objects_with_async_indexing_and_wait_for_only_one():
+def test_add_2000_tenant_objects_with_async_indexing_and_wait_for_all():
     client = weaviate.Client("http://localhost:8090")
     client.schema.delete_all()
 
@@ -627,33 +576,75 @@ def test_add_10000_tenant_objects_with_async_indexing_and_wait_for_only_one():
     )
     tenants = [Tenant("tenant" + str(i)) for i in range(2)]
     client.schema.add_class_tenants("BatchTestAsync", tenants)
-    nr_objects = 10000
-    objs = [
-        {
-            "class_name": "BatchTestAsync",
-            "data_object": {"text": "text" + str(i)},
-            "vector": list(range(1000)),
-            "tenant": tenants[0].name if i < 100 else tenants[1].name,
-        }
-        for i in range(nr_objects)
-    ]
+    nr_objects = 2000
+
     with client.batch as batch:
-        for obj in objs:
-            batch.add_data_object(**obj)
+        for i in range(nr_objects):
+            batch.add_data_object(
+                class_name="BatchTestAsync",
+                data_object={"text": "text" + str(i)},
+                vector=[float((j + i) % nr_objects) / nr_objects for j in range(nr_objects)],
+                tenant=tenants[i % len(tenants)].name,
+            )
+
+    client.batch.wait_for_vector_indexing()
+    for tenant in tenants:
+        res = (
+            client.query.aggregate("BatchTestAsync").with_meta_count().with_tenant(tenant.name).do()
+        )
+        assert res["data"]["Aggregate"]["BatchTestAsync"][0]["meta"]["count"] == nr_objects / len(
+            tenants
+        )
+    for shard in client.schema.get_class_shards("BatchTestAsync"):
+        assert shard["status"] == "READY"
+        assert shard["vectorQueueSize"] == 0
+
+
+def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one():
+    client = weaviate.Client("http://localhost:8090")
+    client.schema.delete_all()
+
+    client.schema.create_class(
+        {
+            "class": "BatchTestAsync",
+            "vectorizer": "none",
+            "multiTenancyConfig": {
+                "enabled": True,
+            },
+            "properties": [
+                {
+                    "name": "text",
+                    "dataType": ["text"],
+                }
+            ],
+        },
+    )
+    tenants = [Tenant("tenant" + str(i)) for i in range(2)]
+    client.schema.add_class_tenants("BatchTestAsync", tenants)
+    nr_objects = 1001
+    with client.batch as batch:
+        for i in range(nr_objects):
+            batch.add_data_object(
+                class_name="BatchTestAsync",
+                data_object={"text": "text" + str(i)},
+                vector=[float((j + i) % nr_objects) / nr_objects for j in range(nr_objects)],
+                tenant=tenants[0].name if i < 1000 else tenants[1].name,
+            )
+
     client.batch.wait_for_vector_indexing(
-        shards=[Shard(class_name="BatchTestAsync", tenant="tenant0")]
+        shards=[Shard(class_name="BatchTestAsync", tenant=tenants[0].name)]
     )
     for tenant in tenants:
         res = (
             client.query.aggregate("BatchTestAsync").with_meta_count().with_tenant(tenant.name).do()
         )
         assert (
-            res["data"]["Aggregate"]["BatchTestAsync"][0]["meta"]["count"] == 100
+            res["data"]["Aggregate"]["BatchTestAsync"][0]["meta"]["count"] == 1000
             if tenant.name == tenants[0].name
-            else 900
+            else 1
         )
     for shard in client.schema.get_class_shards("BatchTestAsync"):
-        if shard["name"] == "tenant0":
+        if shard["name"] == tenants[0].name:
             assert shard["status"] == "READY"
             assert shard["vectorQueueSize"] == 0
         else:

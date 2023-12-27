@@ -31,7 +31,7 @@ show_error_codes = true
 no_implicit_optional = true
 warn_return_any = true
 warn_unused_ignores = true
-exclude = ["weaviate/proto", "docs", "integration/v3"]
+exclude = ["weaviate/proto", "docs", "integration_v3"]
 
 [[tool.mypy.overrides]]
 module = "weaviate.proto.v1.*"

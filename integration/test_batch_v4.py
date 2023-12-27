@@ -453,17 +453,13 @@ def test_add_1000_objects_with_async_indexing_and_wait(
         ],
     )
     nr_objects = 1000
-    objs = [
-        {
-            "collection": name,
-            "properties": {"text": "text" + str(i)},
-            "vector": list(range(1000)),
-        }
-        for i in range(nr_objects)
-    ]
     with client_async_indexing.batch as batch:
-        for obj in objs:
-            batch.add_object(**obj)  # type: ignore # hacky testing logic
+        for i in range(nr_objects):
+            batch.add_object(
+                collection="BatchTestAsyncTenants",
+                properties={"text": "text" + str(i)},
+                vector=[float((j + i) % nr_objects) / nr_objects for j in range(nr_objects)],
+            )
     assert len(client_async_indexing.batch.failed_objects()) == 0
     client_async_indexing.batch.wait_for_vector_indexing()
     ret = test.aggregate.over_all(total_count=True)
@@ -474,14 +470,14 @@ def test_add_1000_objects_with_async_indexing_and_wait(
     assert old_client.schema.get_class_shards(name)[0]["vectorQueueSize"] == 0
 
 
-@pytest.mark.skip(
-    reason="This test flakes when the number is too low and brakes if too high due to gRPC message sizing. Needs to be fixed."
-)
+@pytest.mark.skip("Difficult to find numbers that work reliable in the CI")
 def test_add_10000_objects_with_async_indexing_and_dont_wait(
     client_async_indexing: weaviate.WeaviateClient,
 ) -> None:
     name = "BatchTestAsyncTenants"
     client_async_indexing.collections.delete(name)
+    old_client = weaviate.Client("http://localhost:8090")
+
     test = client_async_indexing.collections.create(
         name=name,
         vectorizer_config=Configure.Vectorizer.none(),
@@ -490,24 +486,22 @@ def test_add_10000_objects_with_async_indexing_and_dont_wait(
         ],
     )
     nr_objects = 10000
-    objs = [
-        {
-            "collection": name,
-            "properties": {"text": "text" + str(i)},
-            "vector": list(range(1000)),
-        }
-        for i in range(nr_objects)
-    ]
+    vec_length = 1000
     with client_async_indexing.batch as batch:
-        for obj in objs:
-            batch.add_object(**obj)  # type: ignore # hacky testing logic
+        for i in range(nr_objects):
+            batch.add_object(
+                collection=name,
+                properties={"text": "text" + str(i)},
+                vector=[float((j + i) % nr_objects) / nr_objects for j in range(vec_length)],
+            )
+    shard_status = old_client.schema.get_class_shards(name)
+    assert shard_status[0]["status"] == "INDEXING"
+    assert shard_status[0]["vectorQueueSize"] > 0
+
     assert len(client_async_indexing.batch.failed_objects()) == 0
+
     ret = test.aggregate.over_all(total_count=True)
     assert ret.total_count == nr_objects
-
-    old_client = weaviate.Client("http://localhost:8090")
-    assert old_client.schema.get_class_shards(name)[0]["status"] == "INDEXING"
-    assert old_client.schema.get_class_shards(name)[0]["vectorQueueSize"] > 0
 
 
 def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
@@ -523,21 +517,18 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
             Property(name="text", data_type=DataType.TEXT),
         ],
     )
-    tenants = [Tenant(name="tenant" + str(i)) for i in range(5)]
+    tenants = [Tenant(name="tenant" + str(i)) for i in range(2)]
     test.tenants.create(tenants)
-    nr_objects = 1000
-    objs = [
-        {
-            "collection": name,
-            "properties": {"text": "text" + str(i)},
-            "vector": list(range(1000)),
-            "tenant": tenants[i % 5].name,
-        }
-        for i in range(nr_objects)
-    ]
+    nr_objects = 2000
+
     with client_async_indexing.batch as batch:
-        for obj in objs:
-            batch.add_object(**obj)  # type: ignore # hacky testing logic
+        for i in range(nr_objects):
+            batch.add_object(
+                collection=name,
+                properties={"text": "text" + str(i)},
+                vector=[float((j + i) % nr_objects) / nr_objects for j in range(nr_objects)],
+                tenant=tenants[i % len(tenants)].name,
+            )
     assert len(client_async_indexing.batch.failed_objects()) == 0
     client_async_indexing.batch.wait_for_vector_indexing()
     for tenant in tenants:
@@ -564,29 +555,26 @@ def test_add_10000_tenant_objects_with_async_indexing_and_wait_for_only_one(
     )
     tenants = [Tenant(name="tenant" + str(i)) for i in range(2)]
     test.tenants.create(tenants)
-    nr_objects = 10000
-    objs = [
-        {
-            "collection": name,
-            "properties": {"text": "text" + str(i)},
-            "vector": list(range(1000)),
-            "tenant": tenants[0].name if i < 100 else tenants[1].name,
-        }
-        for i in range(nr_objects)
-    ]
+    nr_objects = 1001
+
     with client_async_indexing.batch as batch:
-        for obj in objs:
-            batch.add_object(**obj)  # type: ignore # hacky testing logic
+        for i in range(nr_objects):
+            batch.add_object(
+                collection="BatchTestAsyncTenants",
+                properties={"text": "text" + str(i)},
+                vector=[float((j + i) % nr_objects) / nr_objects for j in range(nr_objects)],
+                tenant=tenants[0].name if i < 1000 else tenants[1].name,
+            )
     assert len(client_async_indexing.batch.failed_objects()) == 0
     client_async_indexing.batch.wait_for_vector_indexing(
-        shards=[Shard(collection=name, tenant="tenant0")]
+        shards=[Shard(collection=name, tenant=tenants[0].name)]
     )
     for tenant in tenants:
         ret = test.with_tenant(tenant.name).aggregate.over_all(total_count=True)
-        assert ret.total_count == 100 if tenant.name == tenants[0].name else 900
+        assert ret.total_count == 1000 if tenant.name == tenants[0].name else 1
     old_client = weaviate.Client("http://localhost:8090")
     for shard in old_client.schema.get_class_shards(name):
-        if shard["name"] == "tenant0":
+        if shard["name"] == tenants[0].name:
             assert shard["status"] == "READY"
             assert shard["vectorQueueSize"] == 0
         else:

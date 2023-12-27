@@ -1,30 +1,21 @@
-from typing import Generator
 import pytest as pytest
+from _pytest.fixtures import SubRequest
 
-import weaviate
+from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import Configure, DataType, Property
-from weaviate.collections.classes.types import GeoCoordinate
 from weaviate.collections.classes.filters import Filter
+from weaviate.collections.classes.types import GeoCoordinate
 from weaviate.util import parse_version_string
 
 
-@pytest.fixture(scope="module")
-def client() -> Generator[weaviate.WeaviateClient, None, None]:
-    client = weaviate.connect_to_local()
-    if parse_version_string(client._connection._server_version) < parse_version_string("1.23"):
-        pytest.skip("not implemented in this version")
-    client.collections.delete_all()
-    yield client
-    client.collections.delete_all()
-
-
-def test_creating_geo_props(client: weaviate.WeaviateClient) -> None:
-    client.collections.delete("TestGeoPropsCreate")
-    collection = client.collections.create(
-        name="TestGeoPropsCreate",
+def test_creating_geo_props(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="geo", data_type=DataType.GEO_COORDINATES)],
     )
+    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("not implemented in this version")
 
     obj_uuid = collection.data.insert({"geo": GeoCoordinate(latitude=1.0, longitude=1.0)})
 
@@ -53,13 +44,14 @@ def test_creating_geo_props(client: weaviate.WeaviateClient) -> None:
     assert obj_batch2.properties["geo"] == GeoCoordinate(latitude=3.0, longitude=1.0)
 
 
-def test_geo_props_query(client: weaviate.WeaviateClient) -> None:
-    client.collections.delete("TestGeoPropsQuery")
-    collection = client.collections.create(
-        name="TestGeoPropsQuery",
+def test_geo_props_query(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="geo", data_type=DataType.GEO_COORDINATES)],
     )
+    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("not implemented in this version")
 
     collection.data.insert({"geo": GeoCoordinate(latitude=1.0, longitude=2.0)})
 
@@ -67,13 +59,14 @@ def test_geo_props_query(client: weaviate.WeaviateClient) -> None:
     assert objs.objects[0].properties["geo"] == GeoCoordinate(latitude=1.0, longitude=2.0)
 
 
-def test_geo_props_filter(client: weaviate.WeaviateClient) -> None:
-    client.collections.delete("TestGeoPropsFilter")
-    collection = client.collections.create(
-        name="TestGeoPropsFilter",
+def test_geo_props_filter(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="geo", data_type=DataType.GEO_COORDINATES)],
     )
+    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("not implemented in this version")
 
     uuid1 = collection.data.insert({"geo": GeoCoordinate(latitude=1.0, longitude=2.0)})
     collection.data.insert({"geo": GeoCoordinate(latitude=1000.0, longitude=2.0)})

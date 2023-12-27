@@ -1,10 +1,12 @@
 import uuid
 from dataclasses import dataclass
-from typing import Generator, Optional, Sequence, Union
+from typing import Generator, Optional, Sequence, Union, Any, Protocol
 
 import pytest
+from _pytest.fixtures import SubRequest
 
-import weaviate
+from integration.conftest import CollectionFactory, _sanitize_collection_name
+from weaviate import Collection
 from weaviate.collections.classes.config import (
     Configure,
     DataType,
@@ -40,39 +42,36 @@ class MockTensorFlow:
         return MockNumpyTorch(self.array)
 
 
-@pytest.fixture(scope="function")
-def collection() -> Generator[weaviate.Collection, None, None]:
-    client = weaviate.connect_to_local()
-    client.collections.delete_all()
-    client.collections.create(
-        name="CollectionBatchTest",
-        properties=[
-            Property(name="name", data_type=DataType.TEXT),
-            Property(name="age", data_type=DataType.INT),
-        ],
-        references=[ReferenceProperty(name="test", target_collection="CollectionBatchTest")],
-    )
-    yield client.collections.get("CollectionBatchTest")
-    client.collections.delete_all()
+class BatchCollection(Protocol):
+    """Typing for fixture."""
+
+    def __call__(self, name: str, multi_tenancy: bool = False) -> Collection[Any, Any]:
+        """Typing for fixture."""
+        ...
 
 
-@pytest.fixture(scope="function")
-def mt_collection() -> Generator[weaviate.Collection, None, None]:
-    client = weaviate.connect_to_local()
-    client.collections.delete_all()
-    client.collections.create(
-        name="CollectionBatchTestMT",
-        properties=[
-            Property(name="name", data_type=DataType.TEXT),
-            Property(name="age", data_type=DataType.INT),
-        ],
-        references=[
-            ReferenceProperty(name="test", target_collection="CollectionBatchTestMT"),
-        ],
-        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
-    )
-    yield client.collections.get("CollectionBatchTestMT")
-    client.collections.delete_all()
+@pytest.fixture
+def batch_collection(
+    collection_factory: CollectionFactory,
+) -> Generator[BatchCollection, None, None]:
+    def _factory(name: str, multi_tenancy: bool = False) -> Collection[Any, Any]:
+        name = _sanitize_collection_name(name)
+        collection = collection_factory(
+            name=name,
+            vectorizer_config=Configure.Vectorizer.none(),
+            properties=[
+                Property(name="name", data_type=DataType.TEXT),
+                Property(name="age", data_type=DataType.INT),
+            ],
+            references=[
+                ReferenceProperty(name="test", target_collection=name),
+            ],
+            multi_tenancy=multi_tenancy,
+        )
+
+        return collection
+
+    yield _factory
 
 
 @pytest.mark.parametrize(
@@ -81,8 +80,13 @@ def mt_collection() -> Generator[weaviate.Collection, None, None]:
 )
 @pytest.mark.parametrize("uuid", [None, uuid.uuid4(), str(uuid.uuid4()), uuid.uuid4().hex])
 def test_add_object(
-    collection: weaviate.Collection, uuid: Optional[UUID], vector: Optional[Sequence]
+    batch_collection: BatchCollection,
+    request: SubRequest,
+    uuid: Optional[UUID],
+    vector: Optional[Sequence],
 ) -> None:
+    collection = batch_collection(name=request.node.name)
+
     with collection.batch as batch:
         batch.add_object(
             uuid=uuid,
@@ -99,11 +103,13 @@ def test_add_object(
 @pytest.mark.parametrize("from_uuid", [uuid.uuid4(), str(uuid.uuid4()), uuid.uuid4().hex])
 @pytest.mark.parametrize("to_uuid", [uuid.uuid4().hex, uuid.uuid4(), str(uuid.uuid4())])
 def test_add_reference(
-    collection: weaviate.Collection,
+    batch_collection: BatchCollection,
+    request: SubRequest,
     from_uuid: UUID,
     to_uuid: UUID,
 ) -> None:
     """Test the `add_reference` method"""
+    collection = batch_collection(name=request.node.name)
 
     with collection.batch as batch:
         batch.add_object(uuid=from_uuid)
@@ -125,7 +131,11 @@ def test_add_reference(
     assert isinstance(obj.references["test"], _CrossReference)
 
 
-def test_add_object_batch_with_tenant(mt_collection: weaviate.Collection) -> None:
+def test_add_object_batch_with_tenant(
+    batch_collection: BatchCollection, request: SubRequest
+) -> None:
+    mt_collection = batch_collection(name=request.node.name, multi_tenancy=True)
+
     mt_collection.tenants.create([Tenant(name="tenant" + str(i)) for i in range(5)])
     for i in range(5):
         with mt_collection.with_tenant("tenant" + str(i % 5)).batch as batch:
@@ -140,7 +150,9 @@ def test_add_object_batch_with_tenant(mt_collection: weaviate.Collection) -> Non
         assert obj.properties["name"] == "tenant1"
 
 
-def test_add_ref_batch_with_tenant(mt_collection: weaviate.Collection) -> None:
+def test_add_ref_batch_with_tenant(batch_collection: BatchCollection, request: SubRequest) -> None:
+    mt_collection = batch_collection(name=request.node.name, multi_tenancy=True)
+
     mt_collection.tenants.create([Tenant(name="tenant" + str(i)) for i in range(5)])
 
     with mt_collection.with_tenant("tenant1").batch as batch:
@@ -157,12 +169,12 @@ def test_add_ref_batch_with_tenant(mt_collection: weaviate.Collection) -> None:
         batch.add_reference(
             from_property="test",
             from_uuid=obj_uuid1,
-            to=Reference.to_multi_target(obj_uuid0, target_collection="CollectionBatchTestMT"),
+            to=Reference.to_multi_target(obj_uuid0, target_collection=mt_collection.name),
         )
         batch.add_reference(
             from_property="test",
             from_uuid=obj_uuid0,
-            to=Reference.to_multi_target(obj_uuid1, target_collection="CollectionBatchTestMT"),
+            to=Reference.to_multi_target(obj_uuid1, target_collection=mt_collection.name),
         )
         # target collection required when inserting references into multi-tenancy collections
     assert len(batch.failed_objects()) == 0
