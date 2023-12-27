@@ -6,15 +6,12 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Generator, List, Optional, Sequence, TypedDict, Union
 
 import pytest
-import weaviate
-
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
+import weaviate
 from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_ENCODED
 from weaviate.collections.classes.batch import ErrorObject
-
-from weaviate.collections.collection import Collection
 from weaviate.collections.classes.config import (
     Configure,
     DataType,
@@ -41,7 +38,7 @@ from weaviate.collections.classes.grpc import (
 from weaviate.collections.classes.internal import _CrossReference, Reference, _Object
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collections.classes.types import WeaviateProperties
-
+from weaviate.collections.collection import Collection
 from weaviate.collections.data import _Data
 from weaviate.exceptions import (
     InvalidDataModelException,
@@ -49,8 +46,8 @@ from weaviate.exceptions import (
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
 )
-from weaviate.util import parse_version_string
 from weaviate.types import UUID
+from weaviate.util import parse_version_string
 
 BEACON_START = "weaviate://localhost"
 
@@ -1812,7 +1809,10 @@ def test_optional_ref_returns(client: weaviate.WeaviateClient) -> None:
     assert objects[0].references["ref"].objects[0].uuid is not None
 
 
-def test_return_properties_with_type_hint_generic(client: weaviate.WeaviateClient) -> None:
+@pytest.mark.parametrize("value", ["bob", ""])
+def test_return_properties_with_type_hint_generic(
+    client: weaviate.WeaviateClient, value: str
+) -> None:
     name = "TestReturnListWithModel"
     client.collections.delete(name)
 
@@ -1824,7 +1824,7 @@ def test_return_properties_with_type_hint_generic(client: weaviate.WeaviateClien
         ],
     )
     collection = client.collections.get(name, Dict[str, str])
-    collection.data.insert(properties={"name": "bob"})
+    collection.data.insert(properties={"name": value})
     objects = collection.query.fetch_objects().objects
     assert len(objects) == 1
-    assert objects[0].properties["name"] == "bob"
+    assert objects[0].properties["name"] == value
