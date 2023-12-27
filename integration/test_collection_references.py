@@ -1,13 +1,11 @@
-from typing import Generator, TypedDict
-from typing_extensions import Annotated
+import uuid
+from typing import TypedDict
 
 import pytest as pytest
-import uuid
+from _pytest.fixtures import SubRequest
+from typing_extensions import Annotated
 
-from weaviate.collections.classes.data import DataObject, DataReference, DataReferenceOneToMany
-from weaviate.collections.classes.grpc import FromReference, FromReferenceMultiTarget, MetadataQuery
-
-import weaviate
+from integration.conftest import CollectionFactory, _sanitize_collection_name, CollectionFactoryGet
 from weaviate.collections.classes.config import (
     Configure,
     Property,
@@ -15,26 +13,21 @@ from weaviate.collections.classes.config import (
     ReferenceProperty,
     ReferencePropertyMultiTarget,
 )
-
+from weaviate.collections.classes.data import DataObject, DataReference, DataReferenceOneToMany
+from weaviate.collections.classes.grpc import FromReference, FromReferenceMultiTarget, MetadataQuery
 from weaviate.collections.classes.internal import CrossReference, Reference, ReferenceAnnotation
 
 
-@pytest.fixture(scope="module")
-def client() -> Generator[weaviate.WeaviateClient, None, None]:
-    client = weaviate.connect_to_local()
-    client.collections.delete_all()
-    yield client
-    client.collections.delete_all()
+def test_reference_add_delete_replace(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
+    target = _sanitize_collection_name(request.node.name + "Target")  # individual name per test
 
-
-def test_reference_add_delete_replace(client: weaviate.WeaviateClient) -> None:
-    ref_collection = client.collections.create(
-        name="RefClass2", vectorizer_config=Configure.Vectorizer.none()
-    )
+    ref_collection = collection_factory(name=target, vectorizer_config=Configure.Vectorizer.none())
     uuid_to = ref_collection.data.insert(properties={})
-    collection = client.collections.create(
-        name="SomethingElse",
-        references=[ReferenceProperty(name="ref", target_collection="RefClass2")],
+    collection = collection_factory(
+        name=request.node.name,
+        references=[ReferenceProperty(name="ref", target_collection=target)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
@@ -84,13 +77,14 @@ def test_reference_add_delete_replace(client: weaviate.WeaviateClient) -> None:
         == 0
     )
 
-    client.collections.delete("SomethingElse")
-    client.collections.delete("RefClass2")
 
+def test_mono_references_grpc(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    name_a = _sanitize_collection_name(request.node.name + "A")
+    name_b = _sanitize_collection_name(request.node.name + "B")
+    name_c = _sanitize_collection_name(request.node.name + "C")
 
-def test_mono_references_grpc(client: weaviate.WeaviateClient) -> None:
-    A = client.collections.create(
-        name="A",
+    A = collection_factory(
+        name=name_a,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
@@ -102,11 +96,11 @@ def test_mono_references_grpc(client: weaviate.WeaviateClient) -> None:
     a_objs = A.query.bm25(query="A1", return_properties="name").objects
     assert a_objs[0].properties["name"] == "A1"
 
-    B = client.collections.create(
-        name="B",
+    B = collection_factory(
+        name=name_b,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         references=[
-            ReferenceProperty(name="a", target_collection="A"),
+            ReferenceProperty(name="a", target_collection=name_a),
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -125,11 +119,11 @@ def test_mono_references_grpc(client: weaviate.WeaviateClient) -> None:
     assert b_objs[0].references["a"].objects[1].properties["name"] == "A2"
     assert b_objs[0].references["a"].objects[1].uuid == uuid_A2
 
-    C = client.collections.create(
-        name="C",
+    C = collection_factory(
+        name=name_c,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         references=[
-            ReferenceProperty(name="b", target_collection="B"),
+            ReferenceProperty(name="b", target_collection=name_b),
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -160,10 +154,15 @@ def test_mono_references_grpc(client: weaviate.WeaviateClient) -> None:
 
 
 @pytest.mark.parametrize("level", ["col-col", "col-query", "query-col", "query-query"])
-def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient, level: str) -> None:
-    client.collections.delete("ATypedDicts")
-    client.collections.delete("BTypedDicts")
-    client.collections.delete("CTypedDicts")
+def test_mono_references_grpc_typed_dicts(
+    collection_factory: CollectionFactory,
+    collection_factory_get: CollectionFactoryGet,
+    request: SubRequest,
+    level: str,
+) -> None:
+    name_a = _sanitize_collection_name(request.node.name + "A")
+    name_b = _sanitize_collection_name(request.node.name + "B")
+    name_c = _sanitize_collection_name(request.node.name + "C")
 
     class AProps(TypedDict):
         name: str
@@ -183,8 +182,8 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient, level
     class CRefs(TypedDict):
         b: Annotated[CrossReference[BProps, BRefs], ReferenceAnnotation(include_vector=True)]
 
-    client.collections.create(
-        name="ATypedDicts",
+    collection_factory(
+        name=name_a,
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
         ),
@@ -192,21 +191,21 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient, level
             Property(name="Name", data_type=DataType.TEXT),
         ],
     )
-    A = client.collections.get("ATypedDicts", AProps)
+    A = collection_factory_get(name_a, AProps)
     uuid_A1 = A.data.insert(AProps(name="A1"))
     uuid_A2 = A.data.insert(AProps(name="A2"))
 
-    client.collections.create(
-        name="BTypedDicts",
+    collection_factory(
+        name=name_b,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         references=[
-            ReferenceProperty(name="a", target_collection="ATypedDicts"),
+            ReferenceProperty(name="a", target_collection=name_a),
         ],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
         ),
     )
-    B = client.collections.get("BTypedDicts", BProps)
+    B = collection_factory_get(name_b, BProps)
     uuid_B = B.data.insert(properties={"name": "B"}, references={"a": Reference.to(uuids=uuid_A1)})
     B.data.reference_add(
         from_uuid=uuid_B,
@@ -222,31 +221,31 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient, level
     assert b_objs[0].references["a"].objects[1].uuid == uuid_A2
     assert b_objs[0].references["a"].objects[1].references is None
 
-    client.collections.create(
-        name="CTypedDicts",
+    collection_factory(
+        name=name_c,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
             Property(name="Age", data_type=DataType.INT),
         ],
         references=[
-            ReferenceProperty(name="b", target_collection="BTypedDicts"),
+            ReferenceProperty(name="b", target_collection=name_b),
         ],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
         ),
     )
-    C = client.collections.get("CTypedDicts", CProps)
+    C = collection_factory_get(name_c, CProps)
     C.data.insert(properties={"name": "find me"}, references={"b": Reference.to(uuids=uuid_B)})
 
     if level == "col-col":
         c_objs = (
-            client.collections.get("CTypedDicts", CProps, CRefs)
+            collection_factory_get(name_c, CProps, CRefs)
             .query.bm25(query="find", include_vector=True)
             .objects
         )
     elif level == "col-query":
         c_objs = (
-            client.collections.get("CTypedDicts", CProps)
+            collection_factory_get(name_c, CProps)
             .query.bm25(
                 query="find",
                 include_vector=True,
@@ -256,7 +255,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient, level
         )
     elif level == "query-col":
         c_objs = (
-            client.collections.get("CTypedDicts", data_model_references=CRefs)
+            collection_factory_get(name_c, data_model_refs=CRefs)
             .query.bm25(
                 query="find",
                 include_vector=True,
@@ -266,7 +265,7 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient, level
         )
     else:
         c_objs = (
-            client.collections.get("CTypedDicts")
+            collection_factory_get(name_c)
             .query.bm25(
                 query="find",
                 include_vector=True,
@@ -304,13 +303,13 @@ def test_mono_references_grpc_typed_dicts(client: weaviate.WeaviateClient, level
     )
 
 
-def test_multi_references_grpc(client: weaviate.WeaviateClient) -> None:
-    client.collections.delete("A")
-    client.collections.delete("B")
-    client.collections.delete("C")
+def test_multi_references_grpc(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    name_a = _sanitize_collection_name(request.node.name + "A")
+    name_b = _sanitize_collection_name(request.node.name + "B")
+    name_c = _sanitize_collection_name(request.node.name + "C")
 
-    A = client.collections.create(
-        name="A",
+    A = collection_factory(
+        name=name_a,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
@@ -318,8 +317,8 @@ def test_multi_references_grpc(client: weaviate.WeaviateClient) -> None:
     )
     uuid_A = A.data.insert(properties={"Name": "A"})
 
-    B = client.collections.create(
-        name="B",
+    B = collection_factory(
+        name=name_b,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
@@ -327,11 +326,11 @@ def test_multi_references_grpc(client: weaviate.WeaviateClient) -> None:
     )
     uuid_B = B.data.insert({"Name": "B"})
 
-    C = client.collections.create(
-        name="C",
+    C = collection_factory(
+        name=name_c,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         references=[
-            ReferencePropertyMultiTarget(name="ref", target_collections=["A", "B"]),
+            ReferencePropertyMultiTarget(name="ref", target_collections=[name_a, name_b]),
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -340,7 +339,7 @@ def test_multi_references_grpc(client: weaviate.WeaviateClient) -> None:
             "Name": "first",
         },
         references={
-            "ref": Reference.to_multi_target(uuids=uuid_A, target_collection="A"),
+            "ref": Reference.to_multi_target(uuids=uuid_A, target_collection=name_a),
         },
     )
     C.data.insert(
@@ -348,7 +347,7 @@ def test_multi_references_grpc(client: weaviate.WeaviateClient) -> None:
             "Name": "second",
         },
         references={
-            "ref": Reference.to_multi_target(uuids=uuid_B, target_collection="B"),
+            "ref": Reference.to_multi_target(uuids=uuid_B, target_collection=name_b),
         },
     )
 
@@ -357,7 +356,7 @@ def test_multi_references_grpc(client: weaviate.WeaviateClient) -> None:
         return_properties="name",
         return_references=FromReferenceMultiTarget(
             link_on="ref",
-            target_collection="A",
+            target_collection=name_a,
             return_properties=["name"],
             return_metadata=MetadataQuery(last_update_time=True),
         ),
@@ -372,7 +371,7 @@ def test_multi_references_grpc(client: weaviate.WeaviateClient) -> None:
         return_properties="name",
         return_references=FromReferenceMultiTarget(
             link_on="ref",
-            target_collection="B",
+            target_collection=name_b,
             return_properties=[
                 "name",
             ],
@@ -384,19 +383,12 @@ def test_multi_references_grpc(client: weaviate.WeaviateClient) -> None:
     assert objects[0].references["ref"].objects[0].properties["name"] == "B"
     assert objects[0].references["ref"].objects[0].metadata.last_update_time is not None
 
-    client.collections.delete("A")
-    client.collections.delete("B")
-    client.collections.delete("C")
 
+def test_references_batch(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    name_ref_to = _sanitize_collection_name(request.node.name + "To")
+    name_ref_from = _sanitize_collection_name(request.node.name + "From")
 
-def test_references_batch(client: weaviate.WeaviateClient) -> None:
-    name_ref_to = "TestBatchRefTo"
-    name_ref_from = "TestBatchRefFrom"
-
-    client.collections.delete(name_ref_to)
-    client.collections.delete(name_ref_from)
-
-    ref_collection = client.collections.create(
+    ref_collection = collection_factory(
         name=name_ref_to,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="num", data_type=DataType.INT)],
@@ -406,7 +398,7 @@ def test_references_batch(client: weaviate.WeaviateClient) -> None:
     uuids_to = ref_collection.data.insert_many(
         [DataObject(properties={"num": i}) for i in range(num_objects)]
     ).uuids.values()
-    collection = client.collections.create(
+    collection = collection_factory(
         name=name_ref_from,
         properties=[
             Property(name="num", data_type=DataType.INT),
@@ -454,14 +446,12 @@ def test_references_batch(client: weaviate.WeaviateClient) -> None:
         assert obj.properties["num"] == obj.references["ref"].objects[0].properties["num"]
 
 
-def test_insert_many_with_refs(client: weaviate.WeaviateClient) -> None:
-    name = "TestInsertManyRefs"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_insert_many_with_refs(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         references=[
-            ReferenceProperty(name="self", target_collection=name),
+            ReferenceProperty(name="self", target_collection=request.node.name),
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -492,19 +482,18 @@ def test_insert_many_with_refs(client: weaviate.WeaviateClient) -> None:
             assert obj.references is not None
 
 
-def test_references_batch_with_errors(client: weaviate.WeaviateClient) -> None:
-    name_ref_to = "TestBatchRefErrorTo"
-    name_ref_from = "TestBatchRefErrorFrom"
+def test_references_batch_with_errors(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
+    name_ref_to = _sanitize_collection_name(request.node.name + "To")
+    name_ref_from = _sanitize_collection_name(request.node.name + "From")
 
-    client.collections.delete(name_ref_to)
-    client.collections.delete(name_ref_from)
-
-    _ = client.collections.create(
+    _ = collection_factory(
         name=name_ref_to,
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
-    collection = client.collections.create(
+    collection = collection_factory(
         name=name_ref_from,
         properties=[
             Property(name="num", data_type=DataType.INT),
@@ -581,17 +570,14 @@ def test_references_batch_with_errors(client: weaviate.WeaviateClient) -> None:
 
 
 def test_warning_refs_as_props(
-    client: weaviate.WeaviateClient, recwarn: pytest.WarningsRecorder
+    collection_factory: CollectionFactory, request: SubRequest, recwarn: pytest.WarningsRecorder
 ) -> None:
-    name = "TestRefsAsProps"
-    client.collections.delete(name)
-
-    client.collections.create(
-        name=name,
+    collection_factory(
+        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
-        properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-            ReferenceProperty(name="ref", target_collection=name),
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        references=[
+            ReferenceProperty(name="ref", target_collection=request.node.name),
         ],
     )
 

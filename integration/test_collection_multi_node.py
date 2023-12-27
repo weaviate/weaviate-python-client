@@ -1,7 +1,7 @@
-from typing import Generator
 import pytest
+from _pytest.fixtures import SubRequest
 
-import weaviate
+from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import (
     Configure,
     Property,
@@ -12,27 +12,20 @@ from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.grpc import MetadataQuery
 
 
-@pytest.fixture(scope="module")
-def client() -> Generator[weaviate.WeaviateClient, None, None]:
-    client = weaviate.connect_to_local(port=8087, grpc_port=50058)
-    client.collections.delete_all()
-    yield client
-    client.collections.delete_all()
-
-
 @pytest.mark.parametrize(
     "level", [ConsistencyLevel.ONE, ConsistencyLevel.ALL, ConsistencyLevel.QUORUM]
 )
-def test_consistency_on_multinode(client: weaviate.WeaviateClient, level: ConsistencyLevel) -> None:
-    name = "TestConsistency"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_consistency_on_multinode(
+    collection_factory: CollectionFactory, request: SubRequest, level: ConsistencyLevel
+) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
         replication_config=Configure.replication(factor=2),
+        ports=(8087, 50058),
     ).with_consistency_level(level)
 
     collection.data.insert({"name": "first"})

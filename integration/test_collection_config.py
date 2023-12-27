@@ -1,9 +1,10 @@
-import os
 from typing import Generator
 
 import pytest as pytest
+from _pytest.fixtures import SubRequest
 
 import weaviate
+from integration.conftest import OpenAICollection, CollectionFactory
 from weaviate.collections.classes.config import (
     _BQConfig,
     _CollectionConfig,
@@ -35,20 +36,6 @@ def client() -> Generator[weaviate.WeaviateClient, None, None]:
     client.collections.delete_all()
 
 
-@pytest.fixture(scope="module")
-def generative_client() -> Generator[weaviate.WeaviateClient, None, None]:
-    api_key = os.environ.get("OPENAI_APIKEY")
-    if api_key is None:
-        pytest.skip("No OpenAI API key found.")
-
-    client = weaviate.connect_to_local(
-        port=8086, grpc_port=50057, headers={"X-OpenAI-Api-Key": api_key}
-    )
-    client.collections.delete_all()
-    yield client
-    client.collections.delete_all()
-
-
 def test_collection_list(client: weaviate.WeaviateClient) -> None:
     client.collections.create(
         name="TestCollectionList",
@@ -70,9 +57,9 @@ def test_collection_list(client: weaviate.WeaviateClient) -> None:
     client.collections.delete("TestCollectionList")
 
 
-def test_collection_get_simple(client: weaviate.WeaviateClient) -> None:
-    client.collections.create(
-        name="TestCollectionGetSimple",
+def test_collection_get_simple(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
@@ -80,16 +67,15 @@ def test_collection_get_simple(client: weaviate.WeaviateClient) -> None:
         ],
     )
 
-    collection = client.collections.get("TestCollectionGetSimple")
     config = collection.config.get(True)
     assert isinstance(config, _CollectionConfigSimple)
 
-    client.collections.delete("TestCollectionGetSimple")
 
-
-def test_collection_vectorizer_config(client: weaviate.WeaviateClient) -> None:
-    client.collections.create(
-        name="TestCollectionVectorizerConfig",
+def test_collection_vectorizer_config(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
         ),
@@ -104,7 +90,6 @@ def test_collection_vectorizer_config(client: weaviate.WeaviateClient) -> None:
         ],
     )
 
-    collection = client.collections.get("TestCollectionVectorizerConfig")
     config = collection.config.get(True)
 
     assert config.properties[0].vectorizer == "text2vec-contextionary"
@@ -120,21 +105,15 @@ def test_collection_vectorizer_config(client: weaviate.WeaviateClient) -> None:
     assert config.vectorizer_config.vectorize_collection_name is False
     assert config.vectorizer_config.model == {}
 
-    client.collections.delete("TestCollectionVectorizerConfig")
 
-
-def test_collection_generative_config(generative_client: weaviate.WeaviateClient) -> None:
-    generative_client.collections.create(
-        name="TestCollectionGenerativeConfig",
-        generative_config=Configure.Generative.openai(),
+def test_collection_generative_config(
+    openai_collection: OpenAICollection, request: SubRequest
+) -> None:
+    collection = openai_collection(
+        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
-        properties=[
-            Property(name="name", data_type=DataType.TEXT),
-            Property(name="age", data_type=DataType.INT),
-        ],
     )
 
-    collection = generative_client.collections.get("TestCollectionGenerativeConfig")
     config = collection.config.get()
 
     assert config.properties[0].vectorizer == "none"
@@ -142,16 +121,14 @@ def test_collection_generative_config(generative_client: weaviate.WeaviateClient
     assert config.generative_config.generator == GenerativeSearches.OPENAI
     assert config.generative_config.model is not None
 
-    generative_client.collections.delete("TestCollectionGenerativeConfig")
 
-
-def test_collection_config_empty(client: weaviate.WeaviateClient) -> None:
-    collection = client.collections.create(
-        name="TestCollectionConfigEmpty",
-    )
+def test_collection_config_empty(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
+    collection = collection_factory(name=request.node.name)
     config = collection.config.get()
 
-    assert config.name == "TestCollectionConfigEmpty"
+    assert config.name == request.node.name[0].upper() + request.node.name[1:]
     assert config.description is None
     assert config.vectorizer == Vectorizer.NONE
 
@@ -187,20 +164,20 @@ def test_collection_config_empty(client: weaviate.WeaviateClient) -> None:
 
     assert config.vector_index_type == _VectorIndexType.HNSW
 
-    client.collections.delete("TestCollectionConfigDefaults")
 
-
-def test_bm25_config(client: weaviate.WeaviateClient) -> None:
+def test_bm25_config(collection_factory: CollectionFactory, request: SubRequest) -> None:
     with pytest.raises(ValueError):
-        client.collections.create(
-            name="TestCollectionConfigBm25",
+        collection_factory(
+            name=request.node.name,
             inverted_index_config=Configure.inverted_index(bm25_b=0.8),
         )
 
 
-def test_collection_config_defaults(client: weaviate.WeaviateClient) -> None:
-    collection = client.collections.create(
-        name="TestCollectionConfigDefaults",
+def test_collection_config_defaults(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         inverted_index_config=Configure.inverted_index(),
         multi_tenancy_config=Configure.multi_tenancy(),
         replication_config=Configure.replication(),
@@ -209,7 +186,7 @@ def test_collection_config_defaults(client: weaviate.WeaviateClient) -> None:
     )
     config = collection.config.get()
 
-    assert config.name == "TestCollectionConfigDefaults"
+    assert config.name == request.node.name[0].upper() + request.node.name[1:]
     assert config.description is None
     assert config.vectorizer == Vectorizer.NONE
 
@@ -245,9 +222,9 @@ def test_collection_config_defaults(client: weaviate.WeaviateClient) -> None:
     assert config.vector_index_type == _VectorIndexType.HNSW
 
 
-def test_collection_config_full(client: weaviate.WeaviateClient) -> None:
-    collection = client.collections.create(
-        name="TestCollectionConfigFull",
+def test_collection_config_full(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         description="Test",
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
@@ -265,7 +242,7 @@ def test_collection_config_full(client: weaviate.WeaviateClient) -> None:
             Property(name="phone", data_type=DataType.PHONE_NUMBER),
         ],
         references=[
-            ReferenceProperty(name="self", target_collection="TestCollectionConfigFull"),
+            ReferenceProperty(name="self", target_collection=request.node.name),
         ],
         inverted_index_config=Configure.inverted_index(
             bm25_b=0.8,
@@ -304,7 +281,7 @@ def test_collection_config_full(client: weaviate.WeaviateClient) -> None:
     )
     config = collection.config.get()
 
-    assert config.name == "TestCollectionConfigFull"
+    assert config.name == request.node.name[0].upper() + request.node.name[1:]
     assert config.description == "Test"
     assert config.vectorizer == Vectorizer.NONE
 
@@ -372,17 +349,18 @@ def test_collection_config_full(client: weaviate.WeaviateClient) -> None:
 
     assert config.vector_index_type == _VectorIndexType.HNSW
 
-    client.collections.delete("TestCollectionConfigFull")
 
-
-def test_collection_config_update(client: weaviate.WeaviateClient) -> None:
-    collection = client.collections.create(
-        name="TestCollectionConfigUpdate",
+def test_collection_config_update(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
         ],
+        ports=(8087, 50051),
     )
     config = collection.config.get()
 
@@ -479,19 +457,19 @@ def test_collection_config_update(client: weaviate.WeaviateClient) -> None:
 
     assert config.vector_index_type == _VectorIndexType.HNSW
 
-    client.collections.delete("TestCollectionSchemaUpdate")
 
-
-def test_update_flat(client: weaviate.WeaviateClient) -> None:
-    if parse_version_string(client._connection._server_version) < parse_version_string("1.23"):
-        pytest.skip("flat index is not supported in this version")
-    collection = client.collections.create(
-        name="TestCollectionConfigUpdateFlat",
+def test_update_flat(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=5,
             quantizer=Configure.VectorIndex.Quantizer.bq(rescore_limit=10),
         ),
     )
+
+    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("flat index is not supported in this version")
+
     config = collection.config.get()
     assert config.vector_index_type == _VectorIndexType.FLAT
     assert config.vector_index_config.vector_cache_max_objects == 5
@@ -520,9 +498,11 @@ def test_update_flat(client: weaviate.WeaviateClient) -> None:
     # assert config.vector_index_config.quantizer is None
 
 
-def test_collection_config_get_shards(client: weaviate.WeaviateClient) -> None:
-    collection = client.collections.create(
-        name="TestCollectionConfigGetShards",
+def test_collection_config_get_shards(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
@@ -534,12 +514,12 @@ def test_collection_config_get_shards(client: weaviate.WeaviateClient) -> None:
     assert shards[0].status == "READY"
     assert shards[0].vector_queue_size == 0
 
-    client.collections.delete("TestCollectionConfigGetShards")
 
-
-def test_collection_config_get_shards_multi_tenancy(client: weaviate.WeaviateClient) -> None:
-    collection = client.collections.create(
-        name="TestCollectionConfigGetShardsMultiTenancy",
+def test_collection_config_get_shards_multi_tenancy(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
         properties=[
@@ -560,21 +540,20 @@ def test_collection_config_get_shards_multi_tenancy(client: weaviate.WeaviateCli
     assert "tenant1" in [shard.name for shard in shards]
     assert "tenant2" in [shard.name for shard in shards]
 
-    client.collections.delete("TestCollectionConfigGetShardsMultiTenancy")
 
-
-def test_config_vector_index_flat_and_quantizer_bq() -> None:
-    client = weaviate.connect_to_local()
-    if parse_version_string(client._connection._server_version) < parse_version_string("1.23"):
-        pytest.skip("flat index is not supported in this version")
-    client.collections.delete("TestCollectionCVectorIndexAndQuantizer")
-    collection = client.collections.create(
-        name="TestCollectionCVectorIndexAndQuantizer",
+def test_config_vector_index_flat_and_quantizer_bq(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=234,
             quantizer=Configure.VectorIndex.Quantizer.bq(rescore_limit=456),
         ),
     )
+
+    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("flat index is not supported in this version")
 
     conf = collection.config.get()
     assert conf.vector_index_type == _VectorIndexType.FLAT
@@ -583,11 +562,11 @@ def test_config_vector_index_flat_and_quantizer_bq() -> None:
     assert conf.vector_index_config.quantizer.rescore_limit == 456
 
 
-def test_config_vector_index_hnsw_and_quantizer_pq() -> None:
-    client = weaviate.connect_to_local()
-    client.collections.delete("TestCollectionCVectorIndexAndQuantizer")
-    collection = client.collections.create(
-        name="TestCollectionCVectorIndexAndQuantizer",
+def test_config_vector_index_hnsw_and_quantizer_pq(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         vector_index_config=Configure.VectorIndex.hnsw(
             vector_cache_max_objects=234,
             ef_construction=789,

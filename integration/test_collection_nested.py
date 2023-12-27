@@ -1,23 +1,16 @@
 import datetime
-from typing import Generator, List, TypedDict, Union
+from typing import List, TypedDict, Union
 
 import pytest
+from _pytest.fixtures import SubRequest
 
-import weaviate
+from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import (
     DataType,
     Property,
 )
 from weaviate.collections.classes.grpc import PROPERTIES, FromNested
 from weaviate.collections.classes.internal import Nested
-
-
-@pytest.fixture(scope="module")
-def client() -> Generator[weaviate.WeaviateClient, None, None]:
-    client = weaviate.connect_to_local()
-    client.collections.delete_all()
-    yield client
-    client.collections.delete_all()
 
 
 @pytest.mark.parametrize(
@@ -309,12 +302,13 @@ def client() -> Generator[weaviate.WeaviateClient, None, None]:
     ],
 )
 def test_nested_return_all_properties(
-    client: weaviate.WeaviateClient, property_: Property, object_: Union[dict, List[dict]]
+    collection_factory: CollectionFactory,
+    request: SubRequest,
+    property_: Property,
+    object_: Union[dict, List[dict]],
 ) -> None:
-    name = "TestInsertNestedPropertiesAll"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+    collection = collection_factory(
+        name=request.node.name,
         properties=[property_],
     )
     res = collection.data.insert_many([{"nested": object_}])
@@ -400,12 +394,13 @@ def test_nested_return_all_properties(
     ],
 )
 def test_nested_return_specific_properties(
-    client: weaviate.WeaviateClient, return_properties: PROPERTIES, expected: dict
+    collection_factory: CollectionFactory,
+    request: SubRequest,
+    return_properties: PROPERTIES,
+    expected: dict,
 ) -> None:
-    name = "TestInsertNestedPropertiesSpecific"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+    collection = collection_factory(
+        name=request.node.name,
         properties=[
             Property(
                 name="nested",
@@ -516,11 +511,8 @@ def test_nested_return_specific_properties(
 
 
 def test_nested_return_generic_properties(
-    client: weaviate.WeaviateClient,
+    collection_factory: CollectionFactory, request: SubRequest
 ) -> None:
-    name = "TestInsertNestedPropertiesGeneric"
-    client.collections.delete(name)
-
     class Child(TypedDict):
         name: str
         age: int
@@ -528,8 +520,8 @@ def test_nested_return_generic_properties(
     class Parent(TypedDict):
         child: Nested[Child]
 
-    collection = client.collections.create(
-        name=name,
+    collection = collection_factory(
+        name=request.node.name,
         properties=[
             Property(
                 name="child",
@@ -546,7 +538,7 @@ def test_nested_return_generic_properties(
                 ],
             )
         ],
-        data_model_properties=Parent,
+        data_model_props=Parent,
     )
 
     collection.data.insert(Parent(child=Child(name="Timmy", age=10)))

@@ -66,7 +66,7 @@ def batch_collection(
             references=[
                 ReferenceProperty(name="test", target_collection=name),
             ],
-            multi_tenancy=multi_tenancy,
+            multi_tenancy_config=Configure.multi_tenancy(multi_tenancy),
         )
 
         return collection
