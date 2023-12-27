@@ -55,7 +55,6 @@ class EmbeddedDB:
         self.grpc_port: int = options.grpc_port
         self.process: Optional[subprocess.Popen[bytes]] = None
         self.ensure_paths_exist()
-        self.check_supported_platform()
         self._parsed_weaviate_version = ""
         # regular expression to detect a version number: v[one digit].[1-2 digits].[1-2 digits]
         # optionally there can be a "-rc/alpha/beta.[1-2 digits]"
@@ -104,7 +103,11 @@ class EmbeddedDB:
                 machine_type = "amd64"
             elif machine_type == "aarch64":
                 machine_type = "arm64"
-            package_format = "tar.gz"
+
+            if platform.system() in ["Windows"]:
+                package_format = "zip"
+            else:
+                package_format = "tar.gz"
 
         self._download_url = (
             GITHUB_RELEASE_DOWNLOAD_URL
@@ -148,10 +151,11 @@ class EmbeddedDB:
                 assert self._download_url.endswith(".zip")
                 zip_filename = Path(self.options.binary_path, "tmp_weaviate.zip")
                 urllib.request.urlretrieve(self._download_url, zip_filename)
-                with zipfile.ZipFile(zip_filename, "r") as zip_ref:
-                    zip_ref.extract("weaviate", path=Path(self.options.binary_path))
 
-            (Path(self.options.binary_path) / "weaviate").rename(self._weaviate_binary_path)
+                with zipfile.ZipFile(zip_filename, "r") as zip_ref:
+                    zip_ref.extract("weaviate.exe" if platform.system() in ["Windows"] else "weaviate", path=Path(self.options.binary_path))
+
+            (Path(self.options.binary_path) / "weaviate.exe" if platform.system() in ["Windows"] else "weaviate").rename(self._weaviate_binary_path)
 
             # Ensuring weaviate binary is executable
             self._weaviate_binary_path.chmod(
@@ -178,14 +182,6 @@ class EmbeddedDB:
         if retries == 0:
             raise WeaviateStartUpError(
                 f"Embedded DB did not start listening on port {self.options.port} within {seconds} seconds"
-            )
-
-    @staticmethod
-    def check_supported_platform() -> None:
-        if platform.system() in ["Windows"]:
-            raise WeaviateStartUpError(
-                f"{platform.system()} is not supported with EmbeddedDB. Please upvote this feature request if "
-                f"you want this: https://github.com/weaviate/weaviate/issues/3315"
             )
 
     def start(self) -> None:
