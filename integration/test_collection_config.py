@@ -22,6 +22,8 @@ from weaviate.collections.classes.config import (
     _VectorIndexType,
     Vectorizer,
     GenerativeSearches,
+    Reranker,
+    _RerankerConfigCreate,
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.util import parse_version_string
@@ -602,3 +604,32 @@ def test_config_vector_index_hnsw_and_quantizer_pq() -> None:
     assert conf.vector_index_config.ef_construction == 789
     assert isinstance(conf.vector_index_config.quantizer, _PQConfig)
     assert conf.vector_index_config.quantizer.segments == 456
+
+
+@pytest.mark.parametrize(
+    "reranker_config,expected_reranker,expected_model",
+    [
+        (Configure.Reranker.cohere(), Reranker.COHERE, {}),
+        (
+            Configure.Reranker.cohere(model="rerank-english-v2.0"),
+            Reranker.COHERE,
+            {"model": "rerank-english-v2.0"},
+        ),
+        (Configure.Reranker.transformers(), Reranker.TRANSFORMERS, {}),
+    ],
+)
+def test_config_reranker_module(
+    client: weaviate.WeaviateClient,
+    reranker_config: _RerankerConfigCreate,
+    expected_reranker: Reranker,
+    expected_model: dict,
+) -> None:
+    client.collections.delete("TestCollectionConfigRerankerModule")
+    collection = client.collections.create(
+        name="TestCollectionConfigRerankerModule",
+        reranker_config=reranker_config,
+    )
+    conf = collection.config.get()
+    assert conf.reranker_config is not None
+    assert conf.reranker_config.reranker == expected_reranker
+    assert conf.reranker_config.model == expected_model

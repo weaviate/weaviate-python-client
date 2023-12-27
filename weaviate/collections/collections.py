@@ -13,6 +13,7 @@ from weaviate.collections.classes.config import (
     _ShardingConfigCreate,
     _ReferencePropertyBase,
     _ReplicationConfigCreate,
+    _RerankerConfigCreate,
     _VectorizerConfigCreate,
     _Vectorizer,
 )
@@ -34,6 +35,7 @@ class _Collections(_CollectionsBase):
         properties: Optional[Sequence[Union[Property, _ReferencePropertyBase]]] = None,
         references: Optional[List[_ReferencePropertyBase]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
+        reranker_config: Optional[_RerankerConfigCreate] = None,
         sharding_config: Optional[_ShardingConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorizer_config: Optional[_VectorizerConfigCreate] = None,
@@ -94,6 +96,7 @@ class _Collections(_CollectionsBase):
             properties=properties,
             references=references,
             replication_config=replication_config,
+            reranker_config=reranker_config,
             sharding_config=sharding_config,
             vectorizer_config=vectorizer_config or _Vectorizer.none(),
             vector_index_config=vector_index_config,
