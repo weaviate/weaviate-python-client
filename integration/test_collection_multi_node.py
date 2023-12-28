@@ -1,5 +1,4 @@
 import pytest
-from _pytest.fixtures import SubRequest
 
 from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import (
@@ -16,10 +15,9 @@ from weaviate.collections.classes.grpc import MetadataQuery
     "level", [ConsistencyLevel.ONE, ConsistencyLevel.ALL, ConsistencyLevel.QUORUM]
 )
 def test_consistency_on_multinode(
-    collection_factory: CollectionFactory, request: SubRequest, level: ConsistencyLevel
+    collection_factory: CollectionFactory, level: ConsistencyLevel
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),

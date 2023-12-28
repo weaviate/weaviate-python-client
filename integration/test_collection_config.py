@@ -1,10 +1,10 @@
 from typing import Generator
 
 import pytest as pytest
-from _pytest.fixtures import SubRequest
 
 import weaviate
 from integration.conftest import OpenAICollection, CollectionFactory
+from integration.conftest import _sanitize_collection_name
 from weaviate.collections.classes.config import (
     _BQConfig,
     _CollectionConfig,
@@ -57,9 +57,8 @@ def test_collection_list(client: weaviate.WeaviateClient) -> None:
     client.collections.delete("TestCollectionList")
 
 
-def test_collection_get_simple(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_collection_get_simple(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
@@ -71,11 +70,8 @@ def test_collection_get_simple(collection_factory: CollectionFactory, request: S
     assert isinstance(config, _CollectionConfigSimple)
 
 
-def test_collection_vectorizer_config(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_collection_vectorizer_config(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
         ),
@@ -106,11 +102,8 @@ def test_collection_vectorizer_config(
     assert config.vectorizer_config.model == {}
 
 
-def test_collection_generative_config(
-    openai_collection: OpenAICollection, request: SubRequest
-) -> None:
+def test_collection_generative_config(openai_collection: OpenAICollection) -> None:
     collection = openai_collection(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
@@ -122,13 +115,11 @@ def test_collection_generative_config(
     assert config.generative_config.model is not None
 
 
-def test_collection_config_empty(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
-    collection = collection_factory(name=request.node.name)
+def test_collection_config_empty(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory()
     config = collection.config.get()
 
-    assert config.name == request.node.name[0].upper() + request.node.name[1:]
+    assert config.name == collection.name
     assert config.description is None
     assert config.vectorizer == Vectorizer.NONE
 
@@ -165,19 +156,15 @@ def test_collection_config_empty(
     assert config.vector_index_type == _VectorIndexType.HNSW
 
 
-def test_bm25_config(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_bm25_config(collection_factory: CollectionFactory) -> None:
     with pytest.raises(ValueError):
         collection_factory(
-            name=request.node.name,
             inverted_index_config=Configure.inverted_index(bm25_b=0.8),
         )
 
 
-def test_collection_config_defaults(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_collection_config_defaults(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         inverted_index_config=Configure.inverted_index(),
         multi_tenancy_config=Configure.multi_tenancy(),
         replication_config=Configure.replication(),
@@ -186,7 +173,7 @@ def test_collection_config_defaults(
     )
     config = collection.config.get()
 
-    assert config.name == request.node.name[0].upper() + request.node.name[1:]
+    assert config.name == collection.name
     assert config.description is None
     assert config.vectorizer == Vectorizer.NONE
 
@@ -222,9 +209,8 @@ def test_collection_config_defaults(
     assert config.vector_index_type == _VectorIndexType.HNSW
 
 
-def test_collection_config_full(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_collection_config_full(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         description="Test",
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
@@ -240,9 +226,6 @@ def test_collection_config_full(collection_factory: CollectionFactory, request: 
             Property(name="booleans", data_type=DataType.BOOL_ARRAY),
             Property(name="geo", data_type=DataType.GEO_COORDINATES),
             Property(name="phone", data_type=DataType.PHONE_NUMBER),
-        ],
-        references=[
-            ReferenceProperty(name="self", target_collection=request.node.name),
         ],
         inverted_index_config=Configure.inverted_index(
             bm25_b=0.8,
@@ -279,9 +262,12 @@ def test_collection_config_full(collection_factory: CollectionFactory, request: 
             vector_cache_max_objects=100000,
         ),
     )
+    collection.config.add_reference(
+        ReferenceProperty(name="self", target_collection=_sanitize_collection_name(collection.name))
+    )
     config = collection.config.get()
 
-    assert config.name == request.node.name[0].upper() + request.node.name[1:]
+    assert config.name == collection.name
     assert config.description == "Test"
     assert config.vectorizer == Vectorizer.NONE
 
@@ -311,9 +297,7 @@ def test_collection_config_full(collection_factory: CollectionFactory, request: 
     assert config.properties[11].data_type == DataType.PHONE_NUMBER
 
     assert config.references[0].name == "self"
-    assert config.references[0].target_collections == [
-        request.node.name[0].upper() + request.node.name[1:]
-    ]
+    assert config.references[0].target_collections == [collection.name]
 
     assert config.inverted_index_config.bm25.b == 0.8
     assert config.inverted_index_config.bm25.k1 == 1.3
@@ -352,11 +336,8 @@ def test_collection_config_full(collection_factory: CollectionFactory, request: 
     assert config.vector_index_type == _VectorIndexType.HNSW
 
 
-def test_collection_config_update(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_collection_config_update(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
@@ -460,13 +441,12 @@ def test_collection_config_update(
     assert config.vector_index_type == _VectorIndexType.HNSW
 
 
-def test_update_flat(collection_factory: CollectionFactory, request: SubRequest) -> None:
-    dummy = collection_factory(name=request.node.name + "dummy")
+def test_update_flat(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
     if parse_version_string(dummy._connection._server_version) < parse_version_string("1.23"):
         pytest.skip("flat index is not supported in this version")
 
     collection = collection_factory(
-        name=request.node.name,
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=5,
             quantizer=Configure.VectorIndex.Quantizer.bq(rescore_limit=10),
@@ -501,11 +481,8 @@ def test_update_flat(collection_factory: CollectionFactory, request: SubRequest)
     # assert config.vector_index_config.quantizer is None
 
 
-def test_collection_config_get_shards(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_collection_config_get_shards(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
@@ -518,11 +495,8 @@ def test_collection_config_get_shards(
     assert shards[0].vector_queue_size == 0
 
 
-def test_collection_config_get_shards_multi_tenancy(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_collection_config_get_shards_multi_tenancy(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
         properties=[
@@ -544,15 +518,12 @@ def test_collection_config_get_shards_multi_tenancy(
     assert "tenant2" in [shard.name for shard in shards]
 
 
-def test_config_vector_index_flat_and_quantizer_bq(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
-    dummy = collection_factory(name=request.node.name + "dummy")
+def test_config_vector_index_flat_and_quantizer_bq(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
     if parse_version_string(dummy._connection._server_version) < parse_version_string("1.23"):
         pytest.skip("flat index is not supported in this version")
 
     collection = collection_factory(
-        name=request.node.name,
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=234,
             quantizer=Configure.VectorIndex.Quantizer.bq(rescore_limit=456),
@@ -566,11 +537,8 @@ def test_config_vector_index_flat_and_quantizer_bq(
     assert conf.vector_index_config.quantizer.rescore_limit == 456
 
 
-def test_config_vector_index_hnsw_and_quantizer_pq(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_config_vector_index_hnsw_and_quantizer_pq(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vector_index_config=Configure.VectorIndex.hnsw(
             vector_cache_max_objects=234,
             ef_construction=789,

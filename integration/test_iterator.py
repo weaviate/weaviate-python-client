@@ -47,13 +47,11 @@ class Data(TypedDict):
 )
 def test_iterator_arguments(
     collection_factory: CollectionFactory,
-    request: SubRequest,
     include_vector: bool,
     return_metadata: Optional[METADATA],
     return_properties: Optional[PROPERTIES],
 ) -> None:
     collection = collection_factory(
-        request.node.name,
         properties=[
             Property(name="data", data_type=DataType.INT),
             Property(name="text", data_type=DataType.TEXT),
@@ -117,7 +115,6 @@ def test_iterator_arguments(
 
 def test_iterator_dict_hint(collection_factory: CollectionFactory, request: SubRequest) -> None:
     collection = collection_factory(
-        request.node.name,
         properties=[Property(name="data", data_type=DataType.INT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -144,7 +141,6 @@ def test_iterator_with_default_generic(
         that: str
 
     collection = collection_factory(
-        request.node.name,
         properties=[
             Property(name="this", data_type=DataType.TEXT),
             Property(name="that", data_type=DataType.TEXT),
@@ -183,9 +179,8 @@ def test_iterator_with_default_generic(
         20 * ITERATOR_CACHE_SIZE,
     ],
 )
-def test_iterator(collection_factory: CollectionFactory, request: SubRequest, count: int) -> None:
+def test_iterator(collection_factory: CollectionFactory, count: int) -> None:
     collection = collection_factory(
-        request.node.name,
         properties=[Property(name="data", data_type=DataType.INT)],
         vectorizer_config=Configure.Vectorizer.none(),
         data_model_properties=Dict[str, int],

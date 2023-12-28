@@ -5,7 +5,8 @@ import pytest as pytest
 from _pytest.fixtures import SubRequest
 from typing_extensions import Annotated
 
-from integration.conftest import CollectionFactory, _sanitize_collection_name, CollectionFactoryGet
+from integration.conftest import CollectionFactory, CollectionFactoryGet
+from integration.conftest import _sanitize_collection_name
 from weaviate.collections.classes.config import (
     Configure,
     Property,
@@ -18,16 +19,13 @@ from weaviate.collections.classes.grpc import FromReference, FromReferenceMultiT
 from weaviate.collections.classes.internal import CrossReference, Reference, ReferenceAnnotation
 
 
-def test_reference_add_delete_replace(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
-    target = _sanitize_collection_name(request.node.name + "Target")  # individual name per test
-
-    ref_collection = collection_factory(name=target, vectorizer_config=Configure.Vectorizer.none())
+def test_reference_add_delete_replace(collection_factory: CollectionFactory) -> None:
+    ref_collection = collection_factory(
+        name="Target", vectorizer_config=Configure.Vectorizer.none()
+    )
     uuid_to = ref_collection.data.insert(properties={})
     collection = collection_factory(
-        name=request.node.name,
-        references=[ReferenceProperty(name="ref", target_collection=target)],
+        references=[ReferenceProperty(name="ref", target_collection=ref_collection.name)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
@@ -78,13 +76,9 @@ def test_reference_add_delete_replace(
     )
 
 
-def test_mono_references_grpc(collection_factory: CollectionFactory, request: SubRequest) -> None:
-    name_a = _sanitize_collection_name(request.node.name + "A")
-    name_b = _sanitize_collection_name(request.node.name + "B")
-    name_c = _sanitize_collection_name(request.node.name + "C")
-
+def test_mono_references_grpc(collection_factory: CollectionFactory) -> None:
     A = collection_factory(
-        name=name_a,
+        name="A",
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
@@ -97,10 +91,10 @@ def test_mono_references_grpc(collection_factory: CollectionFactory, request: Su
     assert a_objs[0].properties["name"] == "A1"
 
     B = collection_factory(
-        name=name_b,
+        name="B",
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         references=[
-            ReferenceProperty(name="a", target_collection=name_a),
+            ReferenceProperty(name="a", target_collection=A.name),
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -120,10 +114,10 @@ def test_mono_references_grpc(collection_factory: CollectionFactory, request: Su
     assert b_objs[0].references["a"].objects[1].uuid == uuid_A2
 
     C = collection_factory(
-        name=name_c,
+        name="C",
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         references=[
-            ReferenceProperty(name="b", target_collection=name_b),
+            ReferenceProperty(name="b", target_collection=B.name),
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -157,13 +151,8 @@ def test_mono_references_grpc(collection_factory: CollectionFactory, request: Su
 def test_mono_references_grpc_typed_dicts(
     collection_factory: CollectionFactory,
     collection_factory_get: CollectionFactoryGet,
-    request: SubRequest,
     level: str,
 ) -> None:
-    name_a = _sanitize_collection_name(request.node.name + "A")
-    name_b = _sanitize_collection_name(request.node.name + "B")
-    name_c = _sanitize_collection_name(request.node.name + "C")
-
     class AProps(TypedDict):
         name: str
 
@@ -182,8 +171,8 @@ def test_mono_references_grpc_typed_dicts(
     class CRefs(TypedDict):
         b: Annotated[CrossReference[BProps, BRefs], ReferenceAnnotation(include_vector=True)]
 
-    collection_factory(
-        name=name_a,
+    dummy_a = collection_factory(
+        name="a",
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
         ),
@@ -191,21 +180,21 @@ def test_mono_references_grpc_typed_dicts(
             Property(name="Name", data_type=DataType.TEXT),
         ],
     )
-    A = collection_factory_get(name_a, AProps)
+    A = collection_factory_get(dummy_a.name, AProps)
     uuid_A1 = A.data.insert(AProps(name="A1"))
     uuid_A2 = A.data.insert(AProps(name="A2"))
 
-    collection_factory(
-        name=name_b,
+    dummy_b = collection_factory(
+        name="B",
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         references=[
-            ReferenceProperty(name="a", target_collection=name_a),
+            ReferenceProperty(name="a", target_collection=A.name),
         ],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
         ),
     )
-    B = collection_factory_get(name_b, BProps)
+    B = collection_factory_get(dummy_b.name, BProps)
     uuid_B = B.data.insert(properties={"name": "B"}, references={"a": Reference.to(uuids=uuid_A1)})
     B.data.reference_add(
         from_uuid=uuid_B,
@@ -221,31 +210,31 @@ def test_mono_references_grpc_typed_dicts(
     assert b_objs[0].references["a"].objects[1].uuid == uuid_A2
     assert b_objs[0].references["a"].objects[1].references is None
 
-    collection_factory(
-        name=name_c,
+    dummy_c = collection_factory(
+        name="C",
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
             Property(name="Age", data_type=DataType.INT),
         ],
         references=[
-            ReferenceProperty(name="b", target_collection=name_b),
+            ReferenceProperty(name="b", target_collection=B.name),
         ],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
         ),
     )
-    C = collection_factory_get(name_c, CProps)
+    C = collection_factory_get(dummy_c.name, CProps)
     C.data.insert(properties={"name": "find me"}, references={"b": Reference.to(uuids=uuid_B)})
 
     if level == "col-col":
         c_objs = (
-            collection_factory_get(name_c, CProps, CRefs)
+            collection_factory_get(C.name, CProps, CRefs)
             .query.bm25(query="find", include_vector=True)
             .objects
         )
     elif level == "col-query":
         c_objs = (
-            collection_factory_get(name_c, CProps)
+            collection_factory_get(C.name, CProps)
             .query.bm25(
                 query="find",
                 include_vector=True,
@@ -255,7 +244,7 @@ def test_mono_references_grpc_typed_dicts(
         )
     elif level == "query-col":
         c_objs = (
-            collection_factory_get(name_c, data_model_refs=CRefs)
+            collection_factory_get(C.name, data_model_refs=CRefs)
             .query.bm25(
                 query="find",
                 include_vector=True,
@@ -265,7 +254,7 @@ def test_mono_references_grpc_typed_dicts(
         )
     else:
         c_objs = (
-            collection_factory_get(name_c)
+            collection_factory_get(C.name)
             .query.bm25(
                 query="find",
                 include_vector=True,
@@ -303,13 +292,9 @@ def test_mono_references_grpc_typed_dicts(
     )
 
 
-def test_multi_references_grpc(collection_factory: CollectionFactory, request: SubRequest) -> None:
-    name_a = _sanitize_collection_name(request.node.name + "A")
-    name_b = _sanitize_collection_name(request.node.name + "B")
-    name_c = _sanitize_collection_name(request.node.name + "C")
-
+def test_multi_references_grpc(collection_factory: CollectionFactory) -> None:
     A = collection_factory(
-        name=name_a,
+        name="A",
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
@@ -318,7 +303,7 @@ def test_multi_references_grpc(collection_factory: CollectionFactory, request: S
     uuid_A = A.data.insert(properties={"Name": "A"})
 
     B = collection_factory(
-        name=name_b,
+        name="B",
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
@@ -327,10 +312,10 @@ def test_multi_references_grpc(collection_factory: CollectionFactory, request: S
     uuid_B = B.data.insert({"Name": "B"})
 
     C = collection_factory(
-        name=name_c,
+        name="C",
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         references=[
-            ReferencePropertyMultiTarget(name="ref", target_collections=[name_a, name_b]),
+            ReferencePropertyMultiTarget(name="ref", target_collections=[A.name, B.name]),
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -339,7 +324,7 @@ def test_multi_references_grpc(collection_factory: CollectionFactory, request: S
             "Name": "first",
         },
         references={
-            "ref": Reference.to_multi_target(uuids=uuid_A, target_collection=name_a),
+            "ref": Reference.to_multi_target(uuids=uuid_A, target_collection=A.name),
         },
     )
     C.data.insert(
@@ -347,7 +332,7 @@ def test_multi_references_grpc(collection_factory: CollectionFactory, request: S
             "Name": "second",
         },
         references={
-            "ref": Reference.to_multi_target(uuids=uuid_B, target_collection=name_b),
+            "ref": Reference.to_multi_target(uuids=uuid_B, target_collection=B.name),
         },
     )
 
@@ -356,7 +341,7 @@ def test_multi_references_grpc(collection_factory: CollectionFactory, request: S
         return_properties="name",
         return_references=FromReferenceMultiTarget(
             link_on="ref",
-            target_collection=name_a,
+            target_collection=A.name,
             return_properties=["name"],
             return_metadata=MetadataQuery(last_update_time=True),
         ),
@@ -371,7 +356,7 @@ def test_multi_references_grpc(collection_factory: CollectionFactory, request: S
         return_properties="name",
         return_references=FromReferenceMultiTarget(
             link_on="ref",
-            target_collection=name_b,
+            target_collection=B.name,
             return_properties=[
                 "name",
             ],
@@ -384,12 +369,9 @@ def test_multi_references_grpc(collection_factory: CollectionFactory, request: S
     assert objects[0].references["ref"].objects[0].metadata.last_update_time is not None
 
 
-def test_references_batch(collection_factory: CollectionFactory, request: SubRequest) -> None:
-    name_ref_to = _sanitize_collection_name(request.node.name + "To")
-    name_ref_from = _sanitize_collection_name(request.node.name + "From")
-
+def test_references_batch(collection_factory: CollectionFactory) -> None:
     ref_collection = collection_factory(
-        name=name_ref_to,
+        name="To",
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="num", data_type=DataType.INT)],
     )
@@ -399,11 +381,11 @@ def test_references_batch(collection_factory: CollectionFactory, request: SubReq
         [DataObject(properties={"num": i}) for i in range(num_objects)]
     ).uuids.values()
     collection = collection_factory(
-        name=name_ref_from,
+        name="From",
         properties=[
             Property(name="num", data_type=DataType.INT),
         ],
-        references=[ReferenceProperty(name="ref", target_collection=name_ref_to)],
+        references=[ReferenceProperty(name="ref", target_collection=ref_collection.name)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
     uuids_from = collection.data.insert_many(
@@ -446,14 +428,13 @@ def test_references_batch(collection_factory: CollectionFactory, request: SubReq
         assert obj.properties["num"] == obj.references["ref"].objects[0].properties["num"]
 
 
-def test_insert_many_with_refs(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        references=[
-            ReferenceProperty(name="self", target_collection=request.node.name),
-        ],
         vectorizer_config=Configure.Vectorizer.none(),
+    )
+    collection.config.add_reference(
+        ReferenceProperty(name="self", target_collection=collection.name)
     )
 
     uuid1 = collection.data.insert({"name": "A"})
@@ -482,23 +463,18 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory, request: S
             assert obj.references is not None
 
 
-def test_references_batch_with_errors(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
-    name_ref_to = _sanitize_collection_name(request.node.name + "To")
-    name_ref_from = _sanitize_collection_name(request.node.name + "From")
-
-    _ = collection_factory(
-        name=name_ref_to,
+def test_references_batch_with_errors(collection_factory: CollectionFactory) -> None:
+    to = collection_factory(
+        name="To",
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
     collection = collection_factory(
-        name=name_ref_from,
+        name="From",
         properties=[
             Property(name="num", data_type=DataType.INT),
         ],
-        references=[ReferenceProperty(name="ref", target_collection=name_ref_to)],
+        references=[ReferenceProperty(name="ref", target_collection=to.name)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
@@ -573,11 +549,10 @@ def test_warning_refs_as_props(
     collection_factory: CollectionFactory, request: SubRequest, recwarn: pytest.WarningsRecorder
 ) -> None:
     collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
-            ReferenceProperty(name="ref", target_collection=request.node.name),  # type: ignore
+            ReferenceProperty(name="ref", target_collection=_sanitize_collection_name(request.node.name)),  # type: ignore
         ],
     )
 

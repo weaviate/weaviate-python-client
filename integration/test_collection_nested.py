@@ -2,7 +2,6 @@ import datetime
 from typing import List, TypedDict, Union
 
 import pytest
-from _pytest.fixtures import SubRequest
 
 from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import (
@@ -303,12 +302,10 @@ from weaviate.collections.classes.internal import Nested
 )
 def test_nested_return_all_properties(
     collection_factory: CollectionFactory,
-    request: SubRequest,
     property_: Property,
     object_: Union[dict, List[dict]],
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[property_],
     )
     res = collection.data.insert_many([{"nested": object_}])
@@ -395,12 +392,10 @@ def test_nested_return_all_properties(
 )
 def test_nested_return_specific_properties(
     collection_factory: CollectionFactory,
-    request: SubRequest,
     return_properties: PROPERTIES,
     expected: dict,
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[
             Property(
                 name="nested",
@@ -510,9 +505,7 @@ def test_nested_return_specific_properties(
     assert out.properties["nested"] == expected
 
 
-def test_nested_return_generic_properties(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_nested_return_generic_properties(collection_factory: CollectionFactory) -> None:
     class Child(TypedDict):
         name: str
         age: int
@@ -521,7 +514,6 @@ def test_nested_return_generic_properties(
         child: Nested[Child]
 
     collection = collection_factory(
-        name=request.node.name,
         properties=[
             Property(
                 name="child",

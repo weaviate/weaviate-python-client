@@ -5,7 +5,7 @@ from typing import Generator, Optional, Sequence, Union, Any, Protocol
 import pytest
 from _pytest.fixtures import SubRequest
 
-from integration.conftest import CollectionFactory, _sanitize_collection_name
+from integration.conftest import CollectionFactory
 from weaviate import Collection
 from weaviate.collections.classes.config import (
     Configure,
@@ -53,7 +53,7 @@ UUID6 = uuid.UUID("c8a201b6-fdd2-48d1-a8ee-289a540b1b4b")
 class BatchCollection(Protocol):
     """Typing for fixture."""
 
-    def __call__(self, name: str, multi_tenancy: bool = False) -> Collection[Any, Any]:
+    def __call__(self, name: str = "", multi_tenancy: bool = False) -> Collection[Any, Any]:
         """Typing for fixture."""
         ...
 
@@ -62,8 +62,7 @@ class BatchCollection(Protocol):
 def batch_collection(
     collection_factory: CollectionFactory,
 ) -> Generator[BatchCollection, None, None]:
-    def _factory(name: str, multi_tenancy: bool = False) -> Collection[Any, Any]:
-        name = _sanitize_collection_name(name)
+    def _factory(name: str = "", multi_tenancy: bool = False) -> Collection[Any, Any]:
         collection = collection_factory(
             name=name,
             vectorizer_config=Configure.Vectorizer.none(),
@@ -71,10 +70,10 @@ def batch_collection(
                 Property(name="name", data_type=DataType.TEXT),
                 Property(name="age", data_type=DataType.INT),
             ],
-            references=[
-                ReferenceProperty(name="test", target_collection=name),
-            ],
             multi_tenancy_config=Configure.multi_tenancy(multi_tenancy),
+        )
+        collection.config.add_reference(
+            ReferenceProperty(name="test", target_collection=collection.name)
         )
 
         return collection
@@ -89,11 +88,10 @@ def batch_collection(
 @pytest.mark.parametrize("uuid", [None, UUID1, str(UUID2), UUID3.hex])
 def test_add_object(
     batch_collection: BatchCollection,
-    request: SubRequest,
     uuid: Optional[UUID],
     vector: Optional[Sequence],
 ) -> None:
-    collection = batch_collection(name=request.node.name)
+    collection = batch_collection()
 
     with collection.batch as batch:
         batch.add_object(
@@ -117,7 +115,7 @@ def test_add_reference(
     to_uuid: UUID,
 ) -> None:
     """Test the `add_reference` method"""
-    collection = batch_collection(name=request.node.name)
+    collection = batch_collection()
 
     with collection.batch as batch:
         batch.add_object(uuid=from_uuid)
@@ -139,10 +137,8 @@ def test_add_reference(
     assert isinstance(obj.references["test"], _CrossReference)
 
 
-def test_add_object_batch_with_tenant(
-    batch_collection: BatchCollection, request: SubRequest
-) -> None:
-    mt_collection = batch_collection(name=request.node.name, multi_tenancy=True)
+def test_add_object_batch_with_tenant(batch_collection: BatchCollection) -> None:
+    mt_collection = batch_collection(multi_tenancy=True)
 
     mt_collection.tenants.create([Tenant(name="tenant" + str(i)) for i in range(5)])
     for i in range(5):
@@ -158,8 +154,8 @@ def test_add_object_batch_with_tenant(
         assert obj.properties["name"] == "tenant1"
 
 
-def test_add_ref_batch_with_tenant(batch_collection: BatchCollection, request: SubRequest) -> None:
-    mt_collection = batch_collection(name=request.node.name, multi_tenancy=True)
+def test_add_ref_batch_with_tenant(batch_collection: BatchCollection) -> None:
+    mt_collection = batch_collection(multi_tenancy=True)
 
     mt_collection.tenants.create([Tenant(name="tenant" + str(i)) for i in range(5)])
 

@@ -18,12 +18,9 @@ from weaviate.util import file_encoder_b64
 
 
 @pytest.mark.parametrize("how_many", [1, 10000, 20000, 20001, 100000])
-def test_collection_length(
-    collection_factory: CollectionFactory, request: SubRequest, how_many: int
-) -> None:
+def test_collection_length(collection_factory: CollectionFactory, how_many: int) -> None:
     """Uses .aggregate behind-the-scenes"""
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -31,28 +28,22 @@ def test_collection_length(
     assert len(collection) == how_many
 
 
-def test_empty_aggregation(collection_factory: CollectionFactory, request: SubRequest) -> None:
-    collection = collection_factory(
-        name=request.node.name, properties=[Property(name="text", data_type=DataType.TEXT)]
-    )
+def test_empty_aggregation(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(properties=[Property(name="text", data_type=DataType.TEXT)])
     res = collection.aggregate.over_all()
     assert res.total_count == 0
 
 
-def test_simple_aggregation(collection_factory: CollectionFactory, request: SubRequest) -> None:
-    collection = collection_factory(
-        name=request.node.name, properties=[Property(name="text", data_type=DataType.TEXT)]
-    )
+def test_simple_aggregation(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(properties=[Property(name="text", data_type=DataType.TEXT)])
     collection.data.insert({"text": "some text"})
     res = collection.aggregate.over_all(return_metrics=[Metrics("text").text(count=True)])
     assert isinstance(res.properties["text"], AggregateText)
     assert res.properties["text"].count == 1
 
 
-def test_wrong_aggregation(collection_factory: CollectionFactory, request: SubRequest) -> None:
-    collection = collection_factory(
-        name=request.node.name, properties=[Property(name="text", data_type=DataType.TEXT)]
-    )
+def test_wrong_aggregation(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(properties=[Property(name="text", data_type=DataType.TEXT)])
     with pytest.raises(WeaviateQueryException) as e:
         collection.aggregate.over_all(total_count=False)
     assert (
@@ -73,10 +64,9 @@ def test_wrong_aggregation(collection_factory: CollectionFactory, request: SubRe
     ],
 )
 def test_near_object_aggregation(
-    collection_factory: CollectionFactory, request: SubRequest, option: dict, expected_len: int
+    collection_factory: CollectionFactory, option: dict, expected_len: int
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
@@ -109,11 +99,8 @@ def test_near_object_aggregation(
         ]
 
 
-def test_near_object_missing_param(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_near_object_missing_param(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
@@ -150,10 +137,9 @@ def test_near_object_missing_param(
     ],
 )
 def test_near_vector_aggregation(
-    collection_factory: CollectionFactory, request: SubRequest, option: dict, expected_len: int
+    collection_factory: CollectionFactory, option: dict, expected_len: int
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
@@ -188,11 +174,8 @@ def test_near_vector_aggregation(
         ]
 
 
-def test_near_vector_missing_param(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_near_vector_missing_param(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
@@ -228,10 +211,9 @@ def test_near_vector_missing_param(
     ],
 )
 def test_near_text_aggregation(
-    collection_factory: CollectionFactory, request: SubRequest, option: dict, expected_len: int
+    collection_factory: CollectionFactory, option: dict, expected_len: int
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
@@ -264,11 +246,8 @@ def test_near_text_aggregation(
         ]
 
 
-def test_near_text_missing_param(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_near_text_missing_param(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
@@ -292,11 +271,8 @@ def test_near_text_missing_param(
 
 
 @pytest.mark.parametrize("option", [{"object_limit": 1}, {"certainty": 0.9}, {"distance": 0.1}])
-def test_near_image_aggregation(
-    collection_factory: CollectionFactory, request: SubRequest, option: dict
-) -> None:
+def test_near_image_aggregation(collection_factory: CollectionFactory, option: dict) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[
             Property(name="rating", data_type=DataType.INT),
             Property(name="image", data_type=DataType.BLOB),
@@ -315,11 +291,8 @@ def test_near_image_aggregation(
     assert res.properties["rating"].maximum == 9
 
 
-def test_near_image_missing_param(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_near_image_missing_param(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[
             Property(name="rating", data_type=DataType.INT),
             Property(name="image", data_type=DataType.BLOB),
@@ -343,9 +316,8 @@ def test_near_image_missing_param(
     )
 
 
-def test_group_by_aggregation(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_group_by_aggregation(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
             Property(name="int", data_type=DataType.INT),
@@ -410,11 +382,8 @@ def test_mistake_in_usage(
     )
 
 
-def test_all_available_aggregations(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_all_available_aggregations(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
             Property(
@@ -430,9 +399,9 @@ def test_all_available_aggregations(
             Property(name="date", data_type=DataType.DATE),
             Property(name="dates", data_type=DataType.DATE_ARRAY),
         ],
-        references=[
-            ReferenceProperty(name="ref", target_collection=request.node.name),
-        ],
+    )
+    collection.config.add_reference(
+        ReferenceProperty(name="ref", target_collection=collection.name)
     )
     collection.data.insert(
         {

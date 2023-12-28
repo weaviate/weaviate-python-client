@@ -16,9 +16,9 @@ from weaviate.exceptions import WeaviateQueryException
 
 @pytest.mark.parametrize("parameter,answer", [("text", "Yes"), ("content", "No")])
 def test_generative_search_single(
-    openai_collection: OpenAICollection, request: SubRequest, parameter: str, answer: str
+    openai_collection: OpenAICollection, parameter: str, answer: str
 ) -> None:
-    collection = openai_collection(name=request.node.name)
+    collection = openai_collection()
 
     collection.data.insert_many(
         [
@@ -39,9 +39,9 @@ def test_generative_search_single(
     "prop,answer", [(["text"], "apples bananas"), (["content"], "bananas apples")]
 )
 def test_fetch_objects_generate_search_grouped(
-    openai_collection: OpenAICollection, request: SubRequest, prop: List[str], answer: str
+    openai_collection: OpenAICollection, prop: List[str], answer: str
 ) -> None:
-    collection = openai_collection(name=request.node.name)
+    collection = openai_collection()
 
     collection.data.insert_many(
         [
@@ -60,7 +60,7 @@ def test_fetch_objects_generate_search_grouped(
 def test_fetch_objects_generate_search_grouped_all_props(
     openai_collection: OpenAICollection, request: SubRequest
 ) -> None:
-    collection = openai_collection(name=request.node.name)
+    collection = openai_collection()
 
     collection.data.insert_many(
         [
@@ -87,9 +87,8 @@ def test_fetch_objects_generate_search_grouped_all_props(
 
 def test_fetch_objects_generate_search_grouped_specified_prop(
     openai_collection: OpenAICollection,
-    request: SubRequest,
 ) -> None:
-    collection = openai_collection(name=request.node.name)
+    collection = openai_collection()
 
     collection.data.insert_many(
         [
@@ -118,7 +117,7 @@ def test_fetch_objects_generate_search_grouped_specified_prop(
 def test_fetch_objects_generate_with_everything(
     openai_collection: OpenAICollection, request: SubRequest
 ) -> None:
-    collection = openai_collection(name=request.node.name)
+    collection = openai_collection()
 
     collection.data.insert_many(
         [
@@ -149,7 +148,7 @@ def test_fetch_objects_generate_with_everything(
 def test_bm25_generate_with_everything(
     openai_collection: OpenAICollection, request: SubRequest
 ) -> None:
-    collection = openai_collection(name=request.node.name)
+    collection = openai_collection()
 
     collection.data.insert_many(
         [
@@ -182,7 +181,7 @@ def test_bm25_generate_with_everything(
 def test_hybrid_generate_with_everything(
     openai_collection: OpenAICollection, request: SubRequest
 ) -> None:
-    collection = openai_collection(name=request.node.name)
+    collection = openai_collection()
 
     collection.data.insert_many(
         [
@@ -217,7 +216,6 @@ def test_near_text_generate_with_everything(
     openai_collection: OpenAICollection, request: SubRequest
 ) -> None:
     collection = openai_collection(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.text2vec_openai(vectorize_collection_name=False),
     )
 
@@ -251,7 +249,7 @@ def test_near_text_generate_with_everything(
 def test_near_vector_generate_with_everything(
     openai_collection: OpenAICollection, request: SubRequest
 ) -> None:
-    collection = openai_collection(name=request.node.name)
+    collection = openai_collection()
 
     collection.data.insert_many(
         [
@@ -315,9 +313,7 @@ def test_openapi_no_module(request: SubRequest) -> None:
 
 
 def test_openai_batch_upload(openai_collection: OpenAICollection, request: SubRequest) -> None:
-    collection = openai_collection(
-        name=request.node.name, vectorizer_config=Configure.Vectorizer.text2vec_openai()
-    )
+    collection = openai_collection(vectorizer_config=Configure.Vectorizer.text2vec_openai())
 
     ret = collection.data.insert_many(
         [

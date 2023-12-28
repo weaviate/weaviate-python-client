@@ -2,6 +2,7 @@ import os
 from typing import Any, Optional, List, Generator, Protocol, Type, Dict, Tuple
 
 import pytest
+from _pytest.fixtures import SubRequest
 
 import weaviate
 from weaviate import Collection
@@ -25,7 +26,7 @@ class CollectionFactory(Protocol):
 
     def __call__(
         self,
-        name: str,
+        name: str = "",
         properties: Optional[List[Property]] = None,
         references: Optional[List[_ReferencePropertyBase]] = None,
         vectorizer_config: Optional[_VectorizerConfigCreate] = None,
@@ -45,12 +46,12 @@ class CollectionFactory(Protocol):
 
 
 @pytest.fixture
-def collection_factory() -> Generator[CollectionFactory, None, None]:
+def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None, None]:
     name_fixture: Optional[str] = None
     client_fixture: Optional[weaviate.WeaviateClient] = None
 
     def _factory(
-        name: str,
+        name: str = "",
         properties: Optional[List[Property]] = None,
         references: Optional[List[_ReferencePropertyBase]] = None,
         vectorizer_config: Optional[_VectorizerConfigCreate] = None,
@@ -66,7 +67,7 @@ def collection_factory() -> Generator[CollectionFactory, None, None]:
         description: Optional[str] = None,
     ) -> Collection[Any, Any]:
         nonlocal client_fixture, name_fixture
-        name_fixture = _sanitize_collection_name(name)
+        name_fixture = _sanitize_collection_name(request.node.name) + name
         client_fixture = weaviate.connect_to_local(
             headers=headers, grpc_port=ports[1], port=ports[0]
         )
@@ -97,7 +98,7 @@ class OpenAICollection(Protocol):
     """Typing for fixture."""
 
     def __call__(
-        self, name: str, vectorizer_config: Optional[_VectorizerConfigCreate] = None
+        self, name: str = "", vectorizer_config: Optional[_VectorizerConfigCreate] = None
     ) -> Collection[Any, Any]:
         """Typing for fixture."""
         ...
@@ -108,7 +109,7 @@ def openai_collection(
     collection_factory: CollectionFactory,
 ) -> Generator[OpenAICollection, None, None]:
     def _factory(
-        name: str, vectorizer_config: Optional[_VectorizerConfigCreate] = None
+        name: str = "", vectorizer_config: Optional[_VectorizerConfigCreate] = None
     ) -> Collection[Any, Any]:
         api_key = os.environ.get("OPENAI_APIKEY")
         if api_key is None:

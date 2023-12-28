@@ -50,26 +50,26 @@ class ClientFactory(Protocol):
     """Typing for fixture."""
 
     def __call__(
-        self, name: str, ports: Tuple[int, int] = (8080, 50051), multi_tenant: bool = False
+        self, name: str = "", ports: Tuple[int, int] = (8080, 50051), multi_tenant: bool = False
     ) -> Tuple[weaviate.WeaviateClient, str]:
         """Typing for fixture."""
         ...
 
 
 @pytest.fixture
-def client_factory() -> (
-    Generator[
-        Callable[[str, Tuple[int, int], bool], Tuple[weaviate.WeaviateClient, str]], None, None
-    ]
-):
+def client_factory(
+    request: SubRequest,
+) -> Generator[
+    Callable[[str, Tuple[int, int], bool], Tuple[weaviate.WeaviateClient, str]], None, None
+]:
     name_fixture: Optional[str] = None
     client_fixture: Optional[weaviate.WeaviateClient] = None
 
     def _factory(
-        name: str, ports: Tuple[int, int] = (8080, 50051), multi_tenant: bool = False
+        name: str = "", ports: Tuple[int, int] = (8080, 50051), multi_tenant: bool = False
     ) -> Tuple[weaviate.WeaviateClient, str]:
         nonlocal client_fixture, name_fixture
-        name_fixture = _sanitize_collection_name(name)
+        name_fixture = _sanitize_collection_name(request.node.name) + name
         client_fixture = weaviate.connect_to_local(grpc_port=ports[1], port=ports[0])
         client_fixture.collections.delete(name_fixture)
 
@@ -96,11 +96,10 @@ def client_factory() -> (
 @pytest.mark.parametrize("uid", [None, UUID1, str(UUID2), UUID3.hex])
 def test_add_object(
     client_factory: ClientFactory,
-    request: SubRequest,
     uid: Optional[UUID],
     vector: Optional[Sequence],
 ) -> None:
-    client, name = client_factory(request.node.name)
+    client, name = client_factory()
     with client.batch as batch:
         batch.add_object(collection=name, properties={}, uuid=uid, vector=vector)
         assert batch.num_objects() == 1
@@ -114,13 +113,12 @@ def test_add_object(
 @pytest.mark.parametrize("to_object_collection", [False, True])
 def test_add_reference(
     client_factory: ClientFactory,
-    request: SubRequest,
     from_object_uuid: UUID,
     to_object_uuid: UUID,
     to_object_collection: Optional[bool],
 ) -> None:
     """Test the `add_reference` method"""
-    client, name = client_factory(request.node.name)
+    client, name = client_factory()
     with client.batch as batch:
         batch.add_object(
             properties={},
@@ -160,7 +158,7 @@ def test_add_reference(
 def test_add_data_object_and_get_class_shards_readiness(
     client_factory: ClientFactory, request: SubRequest
 ) -> None:
-    client, name = client_factory(request.node.name)
+    client, name = client_factory()
 
     """Test the `add_data_object` method"""
     client.batch.add_object(
@@ -175,10 +173,9 @@ def test_add_data_object_and_get_class_shards_readiness(
 
 def test_add_data_object_with_tenant_and_get_class_shards_readiness(
     client_factory: ClientFactory,
-    request: SubRequest,
 ) -> None:
     """Test the `add_data_object` method"""
-    client, name = client_factory(request.node.name, multi_tenant=True)
+    client, name = client_factory(multi_tenant=True)
     client.collections.get(name).tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
     client.batch.add_object(
         properties={},
@@ -220,7 +217,7 @@ def test_add_object_batch_with_tenant(client_factory: ClientFactory, request: Su
 
 
 def test_add_ref_batch_with_tenant(client_factory: ClientFactory, request: SubRequest) -> None:
-    client, name = client_factory(request.node.name, multi_tenant=True)
+    client, name = client_factory(multi_tenant=True)
     client.collections.get(name).tenants.create([Tenant(name="tenant" + str(i)) for i in range(5)])
 
     nr_objects = 100
@@ -261,7 +258,7 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory, request: SubRe
 
 def test_add_ten_thousand_data_objects(client_factory: ClientFactory, request: SubRequest) -> None:
     """Test adding ten thousand data objects"""
-    client, name = client_factory(request.node.name)
+    client, name = client_factory()
 
     nr_objects = 10000
     client.batch.configure(num_workers=4)
@@ -296,10 +293,9 @@ def make_refs(uuids: List[UUID], name: str) -> List[dict]:
 
 def test_add_one_hundred_objects_and_references_between_all(
     client_factory: ClientFactory,
-    request: SubRequest,
 ) -> None:
     """Test adding one hundred objects and references between all of them"""
-    client, name = client_factory(request.node.name)
+    client, name = client_factory()
     nr_objects = 100
     client.batch.configure(num_workers=4)
     uuids: List[UUID] = []
@@ -325,7 +321,7 @@ def test_add_one_hundred_objects_and_references_between_all(
 
 def test_add_bad_prop(client_factory: ClientFactory, request: SubRequest) -> None:
     """Test adding a data object with a bad property"""
-    client, name = client_factory(request.node.name)
+    client, name = client_factory()
 
     with warnings.catch_warnings():
         # Tests that no warning is emitted when the batch is not configured to retry failed objects
@@ -350,7 +346,7 @@ def test_add_bad_prop(client_factory: ClientFactory, request: SubRequest) -> Non
 
 def test_add_bad_ref(client_factory: ClientFactory, request: SubRequest) -> None:
     """Test adding a reference with a bad property name"""
-    client, name = client_factory(request.node.name)
+    client, name = client_factory()
 
     with warnings.catch_warnings():
         # Tests that no warning is emitted when the batch is not configured to retry failed references
@@ -380,7 +376,7 @@ def test_add_bad_ref(client_factory: ClientFactory, request: SubRequest) -> None
 
 
 def test_manual_batching(client_factory: ClientFactory, request: SubRequest) -> None:
-    client, name = client_factory(request.node.name)
+    client, name = client_factory()
     client.batch.configure(dynamic=False, batch_size=None)
     uuids: List[UUID] = []
     for _ in range(10):
@@ -406,7 +402,7 @@ def test_manual_batching(client_factory: ClientFactory, request: SubRequest) -> 
 def test_add_1000_objects_with_async_indexing_and_wait(
     client_factory: ClientFactory, request: SubRequest
 ) -> None:
-    client, name = client_factory(request.node.name, ports=(8090, 50060))
+    client, name = client_factory(ports=(8090, 50060))
 
     nr_objects = 1000
     with client.batch as batch:
@@ -431,7 +427,7 @@ def test_add_10000_objects_with_async_indexing_and_dont_wait(
     client_factory: ClientFactory, request: SubRequest
 ) -> None:
     old_client = weaviate.Client("http://localhost:8090")
-    client, name = client_factory(request.node.name, ports=(8090, 50060))
+    client, name = client_factory(ports=(8090, 50060))
 
     nr_objects = 10000
     vec_length = 1000
@@ -455,7 +451,7 @@ def test_add_10000_objects_with_async_indexing_and_dont_wait(
 def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
     client_factory: ClientFactory, request: SubRequest
 ) -> None:
-    client, name = client_factory(request.node.name, ports=(8090, 50060), multi_tenant=True)
+    client, name = client_factory(ports=(8090, 50060), multi_tenant=True)
     tenants = [Tenant(name="tenant" + str(i)) for i in range(2)]
     collection = client.collections.get(name)
     collection.tenants.create(tenants)
@@ -482,9 +478,8 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
 
 def test_add_10000_tenant_objects_with_async_indexing_and_wait_for_only_one(
     client_factory: ClientFactory,
-    request: SubRequest,
 ) -> None:
-    client, name = client_factory(request.node.name, ports=(8090, 50060), multi_tenant=True)
+    client, name = client_factory(ports=(8090, 50060), multi_tenant=True)
     tenants = [Tenant(name="tenant" + str(i)) for i in range(2)]
     collection = client.collections.get(name)
     collection.tenants.create(tenants)

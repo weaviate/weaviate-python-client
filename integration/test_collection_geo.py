@@ -1,5 +1,4 @@
 import pytest as pytest
-from _pytest.fixtures import SubRequest
 
 from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import Configure, DataType, Property
@@ -8,9 +7,8 @@ from weaviate.collections.classes.types import GeoCoordinate
 from weaviate.util import parse_version_string
 
 
-def test_creating_geo_props(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_creating_geo_props(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="geo", data_type=DataType.GEO_COORDINATES)],
     )
@@ -44,9 +42,8 @@ def test_creating_geo_props(collection_factory: CollectionFactory, request: SubR
     assert obj_batch2.properties["geo"] == GeoCoordinate(latitude=3.0, longitude=1.0)
 
 
-def test_geo_props_query(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_geo_props_query(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="geo", data_type=DataType.GEO_COORDINATES)],
     )
@@ -59,9 +56,8 @@ def test_geo_props_query(collection_factory: CollectionFactory, request: SubRequ
     assert objs.objects[0].properties["geo"] == GeoCoordinate(latitude=1.0, longitude=2.0)
 
 
-def test_geo_props_filter(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_geo_props_filter(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="geo", data_type=DataType.GEO_COORDINATES)],
     )

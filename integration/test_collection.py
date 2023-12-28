@@ -5,7 +5,6 @@ import uuid
 from typing import Any, Callable, Dict, List, Optional, Sequence, TypedDict, Union
 
 import pytest
-from _pytest.fixtures import SubRequest
 
 from integration.conftest import CollectionFactory, CollectionFactoryGet, _sanitize_collection_name
 from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_ENCODED
@@ -55,17 +54,15 @@ DATE3 = datetime.datetime.strptime("2019-06-10", "%Y-%m-%d").replace(tzinfo=date
 def test_insert_with_typed_dict_generic(
     collection_factory: CollectionFactory,
     collection_factory_get: CollectionFactoryGet,
-    request: SubRequest,
 ) -> None:
     class TestInsert(TypedDict):
         name: str
 
-    collection_factory(
-        name=request.node.name,
+    dummy = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    collection = collection_factory_get(request.node.name, TestInsert)
+    collection = collection_factory_get(dummy.name, TestInsert)
     uuid = collection.data.insert(properties=TestInsert(name="some name"))
     objects = collection.query.fetch_objects()
     assert len(objects.objects) == 1
@@ -76,14 +73,12 @@ def test_insert_with_typed_dict_generic(
 def test_insert_with_dict_generic(
     collection_factory: CollectionFactory,
     collection_factory_get: CollectionFactoryGet,
-    request: SubRequest,
 ) -> None:
-    collection_factory(
-        name=request.node.name,
+    dummy = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    collection = collection_factory_get(request.node.name, Dict[str, str])
+    collection = collection_factory_get(dummy.name, Dict[str, str])
     uuid = collection.data.insert(properties={"name": "some name"})
     objects = collection.query.fetch_objects()
     assert len(objects.objects) == 1
@@ -91,9 +86,8 @@ def test_insert_with_dict_generic(
     assert name == "some name"
 
 
-def test_insert_with_no_generic(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_insert_with_no_generic(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -104,9 +98,8 @@ def test_insert_with_no_generic(collection_factory: CollectionFactory, request: 
     assert prop == "some name"
 
 
-def test_delete_by_id(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_delete_by_id(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -182,12 +175,10 @@ def test_delete_by_id(collection_factory: CollectionFactory, request: SubRequest
 )
 def test_insert_many(
     collection_factory: CollectionFactory,
-    request: SubRequest,
     objects: Sequence[Union[WeaviateProperties, DataObject[WeaviateProperties, Any]]],
     should_error: bool,
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -217,10 +208,8 @@ def test_insert_many(
 
 def test_insert_many_all_error(
     collection_factory: CollectionFactory,
-    request: SubRequest,
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(True),
@@ -236,17 +225,15 @@ def test_insert_many_all_error(
 def test_insert_many_with_typed_dict(
     collection_factory: CollectionFactory,
     collection_factory_get: CollectionFactoryGet,
-    request: SubRequest,
 ) -> None:
     class TestInsertManyWithTypedDict(TypedDict):
         name: str
 
-    collection_factory(
-        name=request.node.name,
+    dummy = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    collection = collection_factory_get(request.node.name, TestInsertManyWithTypedDict)
+    collection = collection_factory_get(dummy.name, TestInsertManyWithTypedDict)
     ret = collection.data.insert_many(
         [
             DataObject(properties=TestInsertManyWithTypedDict(name="some name"), vector=[1, 2, 3]),
@@ -261,26 +248,23 @@ def test_insert_many_with_typed_dict(
     assert obj2.properties["name"] == "some other name"
 
 
-def test_insert_many_with_refs(collection_factory: CollectionFactory, request: SubRequest) -> None:
-    name_target = _sanitize_collection_name(request.node.name + "target")
-    name_source = _sanitize_collection_name(request.node.name + "source")
-
+def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
     ref_collection = collection_factory(
-        name=name_target, vectorizer_config=Configure.Vectorizer.none()
+        name="target", vectorizer_config=Configure.Vectorizer.none()
     )
     uuid_to1 = ref_collection.data.insert(properties={})
     uuid_to2 = ref_collection.data.insert(properties={})
 
     collection = collection_factory(
-        name=name_source,
+        name="source",
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        references=[
-            ReferenceProperty(name="ref_single", target_collection=name_target),
-            ReferencePropertyMultiTarget(
-                name="ref_many", target_collections=[name_target, name_source]
-            ),
-        ],
+        references=[ReferenceProperty(name="ref_single", target_collection=ref_collection.name)],
         vectorizer_config=Configure.Vectorizer.none(),
+    )
+    collection.config.add_reference(
+        ReferencePropertyMultiTarget(
+            name="ref_many", target_collections=[ref_collection.name, collection.name]
+        )
     )
     uuid_from = collection.data.insert(properties={"name": "first"})
 
@@ -305,7 +289,7 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory, request: S
                 references={
                     "ref_single": Reference.to(uuids=uuid_to2),
                     "ref_many": Reference.to_multi_target(
-                        uuids=uuid_to1, target_collection=name_target
+                        uuids=uuid_to1, target_collection=ref_collection.name
                     ),
                 },
                 uuid=uuid.uuid4(),
@@ -334,7 +318,7 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory, request: S
         ],
         return_references=[
             FromReference(link_on="ref_single"),
-            FromReferenceMultiTarget(link_on="ref_many", target_collection=name_target),
+            FromReferenceMultiTarget(link_on="ref_many", target_collection=ref_collection.name),
         ],
     )
     assert obj1 is not None
@@ -343,9 +327,8 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory, request: S
     assert isinstance(obj1.references["ref_single"], _CrossReference)
 
 
-def test_insert_many_error(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_insert_many_error(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -370,11 +353,8 @@ def test_insert_many_error(collection_factory: CollectionFactory, request: SubRe
     assert isinstance(ret.all_responses[1], uuid.UUID)
 
 
-def test_insert_many_with_tenant(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_insert_many_with_tenant(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
@@ -399,9 +379,8 @@ def test_insert_many_with_tenant(
     assert tenant2.query.fetch_object_by_id(ret.uuids[1]) is None
 
 
-def test_replace(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_replace(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -410,11 +389,8 @@ def test_replace(collection_factory: CollectionFactory, request: SubRequest) -> 
     assert collection.query.fetch_object_by_id(uuid).properties["name"] == "other name"
 
 
-def test_replace_overwrites_vector(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_replace_overwrites_vector(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -429,9 +405,8 @@ def test_replace_overwrites_vector(
     assert obj.vector is None
 
 
-def test_replace_with_tenant(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_replace_with_tenant(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
@@ -447,9 +422,8 @@ def test_replace_with_tenant(collection_factory: CollectionFactory, request: Sub
     assert tenant2.query.fetch_object_by_id(uuid) is None
 
 
-def test_update(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_update(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -458,9 +432,8 @@ def test_update(collection_factory: CollectionFactory, request: SubRequest) -> N
     assert collection.query.fetch_object_by_id(uuid).properties["name"] == "other name"
 
 
-def test_update_with_tenant(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_update_with_tenant(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
@@ -487,12 +460,9 @@ def test_update_with_tenant(collection_factory: CollectionFactory, request: SubR
         (DataType.NUMBER_ARRAY, [1.0, 2.1]),
     ],
 )
-def test_types(
-    collection_factory: CollectionFactory, request: SubRequest, data_type: DataType, value: Any
-) -> None:
+def test_types(collection_factory: CollectionFactory, data_type: DataType, value: Any) -> None:
     name = "name"
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name=name, data_type=data_type)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -509,11 +479,8 @@ def test_types(
 
 
 @pytest.mark.parametrize("fusion_type", [HybridFusion.RANKED, HybridFusion.RELATIVE_SCORE])
-def test_search_hybrid(
-    collection_factory: CollectionFactory, request: SubRequest, fusion_type: HybridFusion
-) -> None:
+def test_search_hybrid(collection_factory: CollectionFactory, fusion_type: HybridFusion) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
@@ -533,11 +500,8 @@ def test_search_hybrid(
 
 
 @pytest.mark.parametrize("limit", [1, 5])
-def test_search_limit(
-    collection_factory: CollectionFactory, request: SubRequest, limit: int
-) -> None:
+def test_search_limit(collection_factory: CollectionFactory, limit: int) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -548,11 +512,8 @@ def test_search_limit(
 
 
 @pytest.mark.parametrize("offset", [0, 1, 5])
-def test_search_offset(
-    collection_factory: CollectionFactory, request: SubRequest, offset: int
-) -> None:
+def test_search_offset(collection_factory: CollectionFactory, offset: int) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -565,9 +526,8 @@ def test_search_offset(
     assert len(objects) == nr_objects - offset
 
 
-def test_search_after(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_search_after(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -582,9 +542,8 @@ def test_search_after(collection_factory: CollectionFactory, request: SubRequest
         assert len(objects_after) == nr_objects - 1 - i
 
 
-def test_auto_limit(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_auto_limit(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
         inverted_index_config=Configure.inverted_index(),
@@ -613,9 +572,8 @@ def test_auto_limit(collection_factory: CollectionFactory, request: SubRequest) 
     assert len(objects) == 1 * 4
 
 
-def test_query_properties(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_query_properties(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
             Property(name="Age", data_type=DataType.INT),
@@ -643,9 +601,8 @@ def test_query_properties(collection_factory: CollectionFactory, request: SubReq
     assert len(objects) == 0
 
 
-def test_near_vector(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_near_vector(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
@@ -675,9 +632,8 @@ def test_near_vector(collection_factory: CollectionFactory, request: SubRequest)
     assert len(objects_distance) == 3
 
 
-def test_near_vector_group_by(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_near_vector_group_by(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
             Property(name="Count", data_type=DataType.INT),
@@ -709,9 +665,8 @@ def test_near_vector_group_by(collection_factory: CollectionFactory, request: Su
     assert ret.objects[3].belongs_to_group == "Mountain"
 
 
-def test_near_object(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_near_object(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
@@ -738,9 +693,8 @@ def test_near_object(collection_factory: CollectionFactory, request: SubRequest)
     assert len(objects_certainty) == 3
 
 
-def test_near_object_group_by(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_near_object_group_by(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
             Property(name="Count", data_type=DataType.INT),
@@ -769,9 +723,8 @@ def test_near_object_group_by(collection_factory: CollectionFactory, request: Su
     assert ret.objects[3].belongs_to_group == "Mountain"
 
 
-def test_tenants(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_tenants(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(
             enabled=True,
@@ -791,9 +744,8 @@ def test_tenants(collection_factory: CollectionFactory, request: SubRequest) -> 
     assert len(tenants) == 0
 
 
-def test_multi_searches(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_multi_searches(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -820,9 +772,8 @@ def test_multi_searches(collection_factory: CollectionFactory, request: SubReque
     assert objects[0].metadata._is_empty()
 
 
-def test_search_with_tenant(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_search_with_tenant(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
@@ -840,11 +791,8 @@ def test_search_with_tenant(collection_factory: CollectionFactory, request: SubR
     assert len(objects2) == 0
 
 
-def test_fetch_object_by_id_with_tenant(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_fetch_object_by_id_with_tenant(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
@@ -869,11 +817,8 @@ def test_fetch_object_by_id_with_tenant(
     assert obj4 is None
 
 
-def test_fetch_objects_with_limit(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_fetch_objects_with_limit(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
     )
@@ -885,11 +830,8 @@ def test_fetch_objects_with_limit(
     assert len(objects) == 5
 
 
-def test_fetch_objects_with_tenant(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_fetch_objects_with_tenant(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
@@ -913,9 +855,8 @@ def test_fetch_objects_with_tenant(
     assert objects[0].properties["name"] == "some other name"
 
 
-def test_add_property(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_add_property(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
     )
@@ -929,9 +870,8 @@ def test_add_property(collection_factory: CollectionFactory, request: SubRequest
     assert "number" in obj2.properties
 
 
-def test_add_reference(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_add_reference(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="name", data_type=DataType.TEXT)],
     )
@@ -952,9 +892,8 @@ def test_add_reference(collection_factory: CollectionFactory, request: SubReques
     assert "self" in obj2.references
 
 
-def test_collection_config_get(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_collection_config_get(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
@@ -962,7 +901,7 @@ def test_collection_config_get(collection_factory: CollectionFactory, request: S
         ],
     )
     config = collection.config.get()
-    assert config.name == request.node.name[0].upper() + request.node.name[1:]
+    assert config.name == collection.name
     assert len(config.properties) == 2
     assert config.properties[0].name == "name"
     assert config.properties[0].data_type == DataType.TEXT
@@ -994,24 +933,22 @@ def test_collection_config_get(collection_factory: CollectionFactory, request: S
 @pytest.mark.parametrize("include_vector", [False, True])
 def test_return_properties_metadata_references_combos(
     collection_factory: CollectionFactory,
-    request: SubRequest,
     return_properties: Optional[List[PROPERTY]],
     return_metadata: Optional[MetadataQuery],
     return_references: Optional[List[REFERENCE]],
     include_vector: bool,
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
         ],
-        references=[
-            ReferenceProperty(
-                name="friend", target_collection=_sanitize_collection_name(request.node.name)
-            ),
-        ],
+    )
+    collection.config.add_reference(
+        ReferenceProperty(
+            name="friend", target_collection=_sanitize_collection_name(collection.name)
+        )
     )
 
     collection.data.insert(
@@ -1080,10 +1017,9 @@ def test_return_properties_metadata_references_combos(
 
 @pytest.mark.parametrize("hours,minutes,sign", [(0, 0, 1), (1, 20, -1), (2, 0, 1), (3, 40, -1)])
 def test_insert_date_property(
-    collection_factory: CollectionFactory, request: SubRequest, hours: int, minutes: int, sign: int
+    collection_factory: CollectionFactory, hours: int, minutes: int, sign: int
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="date", data_type=DataType.DATE)],
     )
@@ -1103,7 +1039,7 @@ def test_insert_date_property(
     # when parsing the date property in generics and the ORM in the future
 
 
-def test_tenant_with_activity(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_tenant_with_activity(collection_factory: CollectionFactory) -> None:
     name = "TestTenantActivity"
     collection = collection_factory(
         name=name,
@@ -1123,7 +1059,7 @@ def test_tenant_with_activity(collection_factory: CollectionFactory, request: Su
     assert tenants["3"].activity_status == TenantActivityStatus.HOT
 
 
-def test_update_tenant(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_update_tenant(collection_factory: CollectionFactory) -> None:
     name = "TestUpdateTenant"
     collection = collection_factory(
         name=name,
@@ -1139,7 +1075,7 @@ def test_update_tenant(collection_factory: CollectionFactory, request: SubReques
     assert tenants["1"].activity_status == TenantActivityStatus.COLD
 
 
-def test_return_list_properties(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_return_list_properties(collection_factory: CollectionFactory) -> None:
     name_small = "TestReturnList"
     collection = collection_factory(
         name=name_small,
@@ -1179,14 +1115,12 @@ def test_return_list_properties(collection_factory: CollectionFactory, request: 
 )  # Passing none here causes a server-side bug with <=1.22.2
 def test_near_text(
     collection_factory: CollectionFactory,
-    request: SubRequest,
     query: Union[str, List[str]],
     objects: Union[UUID, List[UUID]],
     concepts: Union[str, List[str]],
     return_properties: Optional[PROPERTIES],
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
         ),
@@ -1218,9 +1152,8 @@ def test_near_text(
         assert objs[0].properties["value"] == "apple cake"
 
 
-def test_near_text_error(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_near_text_error(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
@@ -1228,9 +1161,8 @@ def test_near_text_error(collection_factory: CollectionFactory, request: SubRequ
         collection.query.near_text(query="test", move_to=Move(force=1.0))
 
 
-def test_near_text_group_by(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_near_text_group_by(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
         ),
@@ -1264,9 +1196,8 @@ def test_near_text_group_by(collection_factory: CollectionFactory, request: SubR
     assert ret.objects[1].belongs_to_group == "apple cake"
 
 
-def test_near_text_limit(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_near_text_limit(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
         ),
@@ -1310,13 +1241,11 @@ def test_near_text_limit(collection_factory: CollectionFactory, request: SubRequ
 )
 def test_near_image(
     collection_factory: CollectionFactory,
-    request: SubRequest,
     image_maker: Callable[[], Union[str, pathlib.Path, io.BufferedReader]],
     distance: Optional[float],
     certainty: Optional[float],
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.img2vec_neural(image_fields=["imageProp"]),
         properties=[
             Property(name="imageProp", data_type=DataType.BLOB),
@@ -1338,10 +1267,9 @@ def test_near_image(
 
 @pytest.mark.parametrize("which_case", [0, 1, 2, 3, 4])
 def test_return_properties_with_query_specific_typed_dict(
-    collection_factory: CollectionFactory, request: SubRequest, which_case: int
+    collection_factory: CollectionFactory, which_case: int
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="int_", data_type=DataType.INT),
@@ -1398,15 +1326,12 @@ def test_return_properties_with_query_specific_typed_dict(
         assert objects[0].properties == {}
 
 
-def test_return_properties_with_general_typed_dict(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_return_properties_with_general_typed_dict(collection_factory: CollectionFactory) -> None:
     class _Data(TypedDict):
         int_: int
         ints: List[int]
 
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="int_", data_type=DataType.INT),
@@ -1423,7 +1348,6 @@ def test_return_properties_with_general_typed_dict(
 
 def test_return_properties_with_query_specific_typed_dict_overwriting_general_typed_dict(
     collection_factory: CollectionFactory,
-    request: SubRequest,
 ) -> None:
     class _DataAll(TypedDict):
         int_: int
@@ -1433,7 +1357,6 @@ def test_return_properties_with_query_specific_typed_dict_overwriting_general_ty
         int_: int
 
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="int_", data_type=DataType.INT),
@@ -1453,9 +1376,8 @@ def test_return_properties_with_query_specific_typed_dict_overwriting_general_ty
     assert obj.properties["int_"] == 1
 
 
-def test_batch_with_arrays(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_batch_with_arrays(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="texts", data_type=DataType.TEXT_ARRAY),
@@ -1512,12 +1434,10 @@ def test_batch_with_arrays(collection_factory: CollectionFactory, request: SubRe
 )
 def test_sort(
     collection_factory: CollectionFactory,
-    request: SubRequest,
     sort: Union[Sort, List[Sort]],
     expected: List[int],
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="age", data_type=DataType.INT),
@@ -1538,20 +1458,18 @@ def test_sort(
     assert object_uuids == expected_uuids
 
 
-def test_optional_ref_returns(collection_factory: CollectionFactory, request: SubRequest) -> None:
-    name_target = _sanitize_collection_name(request.node.name) + "target"
-    name = _sanitize_collection_name(request.node.name) + "source"
+def test_optional_ref_returns(collection_factory: CollectionFactory) -> None:
     ref_collection = collection_factory(
-        name=name_target,
+        name="target",
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="text", data_type=DataType.TEXT)],
     )
     uuid_to1 = ref_collection.data.insert(properties={"text": "ref text"})
 
     collection = collection_factory(
-        name=name,
+        name="source",
         references=[
-            ReferenceProperty(name="ref", target_collection=name_target),
+            ReferenceProperty(name="ref", target_collection=ref_collection.name),
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -1569,17 +1487,15 @@ def test_optional_ref_returns(collection_factory: CollectionFactory, request: Su
 def test_return_properties_with_type_hint_generic(
     collection_factory: CollectionFactory,
     collection_factory_get: CollectionFactoryGet,
-    request: SubRequest,
     value: str,
 ) -> None:
-    collection_factory(
-        name=request.node.name,
+    dummy = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
     )
-    collection = collection_factory_get(request.node.name, Dict[str, str])
+    collection = collection_factory_get(dummy.name, Dict[str, str])
     collection.data.insert(properties={"name": value})
     objects = collection.query.fetch_objects().objects
     assert len(objects) == 1
