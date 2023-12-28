@@ -11,8 +11,8 @@ services:
     - http
     image: semitechnologies/weaviate:${WEAVIATE_VERSION}
     ports:
-    - 8084:8080
-    - 50055:50051
+    - 8092:8080
+    - 50063:50051
     restart: on-failure:0
     environment:
       RERANKER_INFERENCE_API: http://reranker-transformers:8080
