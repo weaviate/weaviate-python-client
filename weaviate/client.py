@@ -246,8 +246,8 @@ class WeaviateClient(_ClientBase):
             proxies=config.proxies,
             trust_env=config.trust_env,
             startup_period=config.startup_period,
-            skip_init_checks=skip_init_checks,
         )
+        self._connection.connect(skip_init_checks)
 
         batch_executor = (
             BatchExecutor()
@@ -419,6 +419,7 @@ class Client(_ClientBase):
             embedded_db=embedded_db,
             connection_config=config.connection_config,
         )
+        self._connection.connect(False)
         self.classification = Classification(self._connection)
         self.schema = Schema(self._connection)
         self.contextionary = Contextionary(self._connection)

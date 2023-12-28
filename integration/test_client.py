@@ -17,6 +17,22 @@ def client() -> Generator[weaviate.WeaviateClient, None, None]:
     yield client
 
 
+def test_fail_to_connect_to_inactive_grpc_port() -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateGrpcUnavailable):
+        weaviate.WeaviateClient(
+            connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080", 12345),
+            skip_init_checks=False,
+        )
+
+
+def test_fail_to_connect_to_unspecified_grpc_port() -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateGrpcUnavailable):
+        weaviate.WeaviateClient(
+            connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080"),
+            skip_init_checks=False,
+        )
+
+
 def test_create_get_and_delete(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     name = request.node.name
     col = client.collections.create(name=name)
