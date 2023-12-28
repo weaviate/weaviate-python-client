@@ -31,6 +31,7 @@ from .query import (
     QueryNested,
     QueryReference,
     QueryReferenceMultiTarget,
+    Rerank,
 )
 
 __all__ = [
@@ -60,6 +61,7 @@ __all__ = [
     "ReferenceAnnotation",
     "ReferenceProperty",
     "ReferencePropertyMultiTarget",
+    "Rerank",
     "StopwordsPreset",
     "Tenant",
     "Tokenization",

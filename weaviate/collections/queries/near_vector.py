@@ -3,7 +3,7 @@ from typing import Generic, List, Literal, Optional, Type, Union, overload
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES
+from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, Rerank
 from weaviate.collections.classes.internal import (
     _Generative,
     _GenerativeReturn,
@@ -34,6 +34,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -51,6 +52,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -68,6 +70,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -85,6 +88,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -102,6 +106,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -119,6 +124,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -135,6 +141,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -165,6 +172,8 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
                 The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
             `filters`
                 The filters to apply to the search.
+            `rerank`
+                How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
             `include_vector`
                 Whether to include the vector in the results. If not specified, this is set to False.
             `return_metadata`
@@ -193,6 +202,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
             filters=filters,
             limit=limit,
             autocut=auto_limit,
+            rerank=rerank,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(return_references),
@@ -205,6 +215,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
                 include_vector,
                 self._references,
                 return_references,
+                rerank,
             ),
             return_properties,
             return_references,
@@ -224,6 +235,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -244,6 +256,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -264,6 +277,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -284,6 +298,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -304,6 +319,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -324,6 +340,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -343,6 +360,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -373,6 +391,8 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
                 The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
             `filters`
                 The filters to apply to the search.
+            `rerank`
+                How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
             `include_vector`
                 Whether to include the vector in the results. If not specified, this is set to False.
             `return_metadata`
@@ -406,6 +426,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
             ),
             limit=limit,
             autocut=auto_limit,
+            rerank=rerank,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(return_references),
@@ -418,6 +439,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
                 include_vector,
                 self._references,
                 return_references,
+                rerank,
             ),
             return_properties,
             return_references,

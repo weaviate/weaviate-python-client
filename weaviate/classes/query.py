@@ -9,6 +9,7 @@ from weaviate.collections.classes.grpc import (
     QueryNested,
     QueryReference,
     QueryReferenceMultiTarget,
+    Rerank,
 )
 
 
@@ -24,4 +25,5 @@ __all__ = [
     "QueryNested",
     "QueryReference",
     "QueryReferenceMultiTarget",
+    "Rerank",
 ]

@@ -151,6 +151,13 @@ class Sort(_WeaviateInput):
     ascending: bool = Field(default=True)
 
 
+class Rerank(_WeaviateInput):
+    """Define how the query's rerank operation should be performed."""
+
+    prop: str
+    query: Optional[str] = Field(default=None)
+
+
 class QueryReference(_WeaviateInput):
     """Define a query-time reference to a single-target property when querying through cross-references."""
 

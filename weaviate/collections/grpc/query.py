@@ -31,6 +31,7 @@ from weaviate.collections.classes.grpc import (
     REFERENCE,
     REFERENCES,
     Sort,
+    Rerank,
 )
 from weaviate.collections.classes.internal import _Generative, _GroupBy
 from weaviate.collections.filters import _FilterToGRPC
@@ -163,7 +164,7 @@ class _QueryGRPC(_BaseGRPC):
         self._near_audio: Optional[str] = None
 
         self._generative: Optional[_Generative] = None
-
+        self._rerank: Optional[Rerank] = None
         self._sort: Optional[List[Sort]] = None
 
         self._group_by: Optional[_GroupBy] = None
@@ -189,6 +190,7 @@ class _QueryGRPC(_BaseGRPC):
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
     ) -> SearchResponse:
         self._limit = limit
         self._offset = offset
@@ -199,6 +201,7 @@ class _QueryGRPC(_BaseGRPC):
         self.__merge_default_and_return_properties(return_properties)
         self.__merge_return_references(return_references)
         self._generative = generative
+        self._rerank = rerank
         return self.__call()
 
     def hybrid(
@@ -215,6 +218,7 @@ class _QueryGRPC(_BaseGRPC):
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
     ) -> SearchResponse:
         self._hybrid_query = query
         self._hybrid_alpha = alpha
@@ -233,6 +237,7 @@ class _QueryGRPC(_BaseGRPC):
         self.__merge_return_references(return_references)
 
         self._generative = generative
+        self._rerank = rerank
 
         return self.__call()
 
@@ -247,6 +252,7 @@ class _QueryGRPC(_BaseGRPC):
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
     ) -> SearchResponse:
         self._bm25_query = query
         self._bm25_properties = properties
@@ -258,6 +264,7 @@ class _QueryGRPC(_BaseGRPC):
         self.__merge_return_references(return_references)
 
         self._generative = generative
+        self._rerank = rerank
 
         return self.__call()
 
@@ -271,6 +278,7 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -284,6 +292,7 @@ class _QueryGRPC(_BaseGRPC):
         self._metadata = return_metadata
         self._group_by = group_by
         self._generative = generative
+        self._rerank = rerank
         self.__merge_default_and_return_properties(return_properties)
         self.__merge_return_references(return_references)
 
@@ -299,6 +308,7 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -314,6 +324,7 @@ class _QueryGRPC(_BaseGRPC):
         self.__merge_return_references(return_references)
         self._group_by = group_by
         self._generative = generative
+        self._rerank = rerank
         return self.__call()
 
     def near_text(
@@ -328,6 +339,7 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -352,6 +364,7 @@ class _QueryGRPC(_BaseGRPC):
             )
 
         self._generative = generative
+        self._rerank = rerank
 
         self._group_by = group_by
         self._metadata = return_metadata
@@ -370,6 +383,7 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -382,6 +396,7 @@ class _QueryGRPC(_BaseGRPC):
         self._filters = filters
         self._group_by = group_by
         self._generative = generative
+        self._rerank = rerank
 
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
@@ -399,6 +414,7 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -411,6 +427,7 @@ class _QueryGRPC(_BaseGRPC):
         self._filters = filters
         self._group_by = group_by
         self._generative = generative
+        self._rerank = rerank
 
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
@@ -428,6 +445,7 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -440,6 +458,7 @@ class _QueryGRPC(_BaseGRPC):
         self._filters = filters
         self._group_by = group_by
         self._generative = generative
+        self._rerank = rerank
 
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
@@ -563,6 +582,11 @@ class _QueryGRPC(_BaseGRPC):
                     else None,
                     generative=self._generative.to_grpc() if self._generative is not None else None,
                     group_by=self._group_by.to_grpc() if self._group_by is not None else None,
+                    rerank=search_get_pb2.Rerank(
+                        property=self._rerank.prop, query=self._rerank.query
+                    )
+                    if self._rerank is not None
+                    else None,
                 ),
                 metadata=metadata,
             )

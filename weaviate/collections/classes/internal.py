@@ -21,6 +21,7 @@ from weaviate.collections.classes.grpc import (
     METADATA,
     PROPERTIES,
     REFERENCES,
+    Rerank,
 )
 from weaviate.collections.classes.types import Properties, P, R, TProperties, WeaviateProperties
 from weaviate.exceptions import WeaviateQueryException, InvalidDataModelException
@@ -77,6 +78,7 @@ class _MetadataReturn:
     score: Optional[float] = None
     explain_score: Optional[str] = None
     is_consistent: Optional[bool] = None
+    rerank_score: Optional[float] = None
 
     def _is_empty(self) -> bool:
         return all(
@@ -88,6 +90,7 @@ class _MetadataReturn:
                 self.score is None,
                 self.explain_score is None,
                 self.is_consistent is None,
+                self.rerank_score is None,
             ]
         )
 
@@ -534,9 +537,10 @@ class _QueryOptions(Generic[Properties, References, TReferences]):
         include_vector: bool,
         collection_references: Optional[Type[References]],
         query_references: Optional[ReturnReferences[TReferences]],
+        rerank: Optional[Rerank] = None,
     ) -> "_QueryOptions":
         return cls(
-            include_metadata=return_metadata is not None,
+            include_metadata=return_metadata is not None or rerank is not None,
             include_properties=not (
                 isinstance(return_properties, list) and len(return_properties) == 0
             ),
