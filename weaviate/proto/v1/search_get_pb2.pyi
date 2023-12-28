@@ -38,6 +38,7 @@ class SearchRequest(_message.Message):
         "near_audio",
         "near_video",
         "generative",
+        "rerank",
         "uses_123_api",
     ]
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
@@ -61,6 +62,7 @@ class SearchRequest(_message.Message):
     NEAR_AUDIO_FIELD_NUMBER: _ClassVar[int]
     NEAR_VIDEO_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_FIELD_NUMBER: _ClassVar[int]
+    RERANK_FIELD_NUMBER: _ClassVar[int]
     USES_123_API_FIELD_NUMBER: _ClassVar[int]
     collection: str
     tenant: str
@@ -83,6 +85,7 @@ class SearchRequest(_message.Message):
     near_audio: NearAudioSearch
     near_video: NearVideoSearch
     generative: GenerativeSearch
+    rerank: Rerank
     uses_123_api: bool
     def __init__(
         self,
@@ -107,6 +110,7 @@ class SearchRequest(_message.Message):
         near_audio: _Optional[_Union[NearAudioSearch, _Mapping]] = ...,
         near_video: _Optional[_Union[NearVideoSearch, _Mapping]] = ...,
         generative: _Optional[_Union[GenerativeSearch, _Mapping]] = ...,
+        rerank: _Optional[_Union[Rerank, _Mapping]] = ...,
         uses_123_api: bool = ...,
     ) -> None: ...
 
@@ -529,6 +533,14 @@ class NearObject(_message.Message):
         distance: _Optional[float] = ...,
     ) -> None: ...
 
+class Rerank(_message.Message):
+    __slots__ = ["property", "query"]
+    PROPERTY_FIELD_NUMBER: _ClassVar[int]
+    QUERY_FIELD_NUMBER: _ClassVar[int]
+    property: str
+    query: str
+    def __init__(self, property: _Optional[str] = ..., query: _Optional[str] = ...) -> None: ...
+
 class SearchReply(_message.Message):
     __slots__ = ["took", "results", "generative_grouped_result", "group_by_results"]
     TOOK_FIELD_NUMBER: _ClassVar[int]
@@ -602,6 +614,8 @@ class MetadataResult(_message.Message):
         "is_consistent_present",
         "vector_bytes",
         "id_as_bytes",
+        "rerank_score",
+        "rerank_score_present",
     ]
     ID_FIELD_NUMBER: _ClassVar[int]
     VECTOR_FIELD_NUMBER: _ClassVar[int]
@@ -623,6 +637,8 @@ class MetadataResult(_message.Message):
     IS_CONSISTENT_PRESENT_FIELD_NUMBER: _ClassVar[int]
     VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
     ID_AS_BYTES_FIELD_NUMBER: _ClassVar[int]
+    RERANK_SCORE_FIELD_NUMBER: _ClassVar[int]
+    RERANK_SCORE_PRESENT_FIELD_NUMBER: _ClassVar[int]
     id: str
     vector: _containers.RepeatedScalarFieldContainer[float]
     creation_time_unix: int
@@ -643,6 +659,8 @@ class MetadataResult(_message.Message):
     is_consistent_present: bool
     vector_bytes: bytes
     id_as_bytes: bytes
+    rerank_score: float
+    rerank_score_present: bool
     def __init__(
         self,
         id: _Optional[str] = ...,
@@ -665,6 +683,8 @@ class MetadataResult(_message.Message):
         is_consistent_present: bool = ...,
         vector_bytes: _Optional[bytes] = ...,
         id_as_bytes: _Optional[bytes] = ...,
+        rerank_score: _Optional[float] = ...,
+        rerank_score_present: bool = ...,
     ) -> None: ...
 
 class PropertiesResult(_message.Message):

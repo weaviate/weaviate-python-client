@@ -167,6 +167,26 @@ class GenerativeSearches(str, Enum):
     ANYSCALE = "generative-anyscale"
 
 
+class Reranker(str, Enum):
+    """The available reranker modules in Weaviate.
+
+    These modules rerank the results of a search query.
+    See the [docs](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules#re-ranking) for more details.
+
+    Attributes:
+        `NONE`
+            No reranker.
+        `COHERE`
+            Weaviate module backed by Cohere reranking models.
+        `TRANSFORMERS`
+            Weaviate module backed by Transformers reranking models.
+    """
+
+    NONE = "none"
+    COHERE = "reranker-cohere"
+    TRANSFORMERS = "reranker-transformers"
+
+
 class VectorDistance(str, Enum):
     """Vector similarity distance metric to be used in the `VectorIndexConfig` class.
 
@@ -552,6 +572,22 @@ class _VectorizerConfigCreate(_ConfigCreateModel):
     vectorizer: Vectorizer
 
 
+class _RerankerConfigCreate(_ConfigCreateModel):
+    reranker: Reranker
+
+
+RerankerCohereModel = Literal["rerank-english-v2.0", "rerank-multilingual-v2.0"]
+
+
+class _RerankerCohereConfig(_RerankerConfigCreate):
+    reranker: Reranker = Field(default=Reranker.COHERE, frozen=True, exclude=True)
+    model: Optional[Union[RerankerCohereModel, str]] = Field(default=None)
+
+
+class _RerankerTransformersConfig(_RerankerConfigCreate):
+    reranker: Reranker = Field(default=Reranker.TRANSFORMERS, frozen=True, exclude=True)
+
+
 CohereModel = Literal[
     "embed-multilingual-v2.0",
     "embed-multilingual-v3.0",
@@ -576,7 +612,7 @@ AWSModel = Literal[
 
 
 class _Generative:
-    """Use this factory class to create the correct object for the `generative_config` argument in the `collection.create()` method.
+    """Use this factory class to create the correct object for the `generative_config` argument in the `collections.create()` method.
 
     Each staticmethod provides options specific to the named generative search module in the function's name. Under-the-hood data validation steps
     will ensure that any mis-specifications will be caught before the request is sent to Weaviate.
@@ -990,8 +1026,40 @@ def _map_multi2vec_fields(
     return [Multi2VecField(name=field) if isinstance(field, str) else field for field in fields]
 
 
+class _Reranker:
+    """Use this factory class to create the correct object for the `reranker_config` argument in the `collections.create()` method.
+
+    Each staticmethod provides options specific to the named reranker in the function's name. Under-the-hood data validation steps
+    will ensure that any mis-specifications will be caught before the request is sent to Weaviate.
+    """
+
+    @staticmethod
+    def transformers() -> _RerankerConfigCreate:
+        """Create a `_RerankerTransformersConfig` object for use when reranking using the `reranker-transformers` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/reranker-transformers)
+        for detailed usage.
+        """
+        return _RerankerTransformersConfig(reranker=Reranker.TRANSFORMERS)
+
+    @staticmethod
+    def cohere(
+        model: Optional[Union[RerankerCohereModel, str]] = None,
+    ) -> _RerankerConfigCreate:
+        """Create a `_RerankerCohereConfig` object for use when reranking using the `reranker-cohere` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/reranker-cohere)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _RerankerCohereConfig(model=model)
+
+
 class _Vectorizer:
-    """Use this factory class to create the correct object for the `vectorizer_config` argument in the `collection.create()` method.
+    """Use this factory class to create the correct object for the `vectorizer_config` argument in the `collections.create()` method.
 
     Each staticmethod provides options specific to the named vectorizer in the function's name. Under-the-hood data validation steps
     will ensure that any mis-specifications will be caught before the request is sent to Weaviate.
@@ -1426,6 +1494,7 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
     generativeSearch: Optional[_GenerativeConfigCreate] = Field(
         default=None, alias="generative_config"
     )
+    rerankerConfig: Optional[_RerankerConfigCreate] = Field(default=None, alias="reranker_config")
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
@@ -1440,6 +1509,8 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
                 ret_dict[cls_field] = str(val)
             elif isinstance(val, _GenerativeConfigCreate):
                 self.__add_to_module_config(ret_dict, val.generative.value, val._to_dict())
+            elif isinstance(val, _RerankerConfigCreate):
+                self.__add_to_module_config(ret_dict, val.reranker.value, val._to_dict())
             elif isinstance(val, _VectorizerConfigCreate):
                 ret_dict["vectorizer"] = val.vectorizer.value
                 if val.vectorizer != Vectorizer.NONE:
@@ -1654,6 +1725,12 @@ class _VectorizerConfig(_ConfigBase):
 
 
 @dataclass
+class _RerankerConfig(_ConfigBase):
+    model: Dict[str, Any]
+    reranker: Reranker
+
+
+@dataclass
 class _CollectionConfig(_ConfigBase):
     name: str
     description: Optional[str]
@@ -1663,6 +1740,7 @@ class _CollectionConfig(_ConfigBase):
     properties: List[_Property]
     references: List[_ReferenceProperty]
     replication_config: _ReplicationConfig
+    reranker_config: Optional[_RerankerConfig]
     sharding_config: _ShardingConfig
     vector_index_config: Union[_VectorIndexConfigHNSW, _VectorIndexConfigFlat]
     vector_index_type: _VectorIndexType
@@ -1691,6 +1769,7 @@ class _CollectionConfigSimple(_ConfigBase):
     generative_config: Optional[_GenerativeConfig]
     properties: List[_Property]
     references: List[_ReferenceProperty]
+    reranker_config: Optional[_RerankerConfig]
     vectorizer_config: Optional[_VectorizerConfig]
     vectorizer: Vectorizer
 
@@ -1965,7 +2044,7 @@ class _VectorIndex:
     ) -> _VectorIndexHNSWConfigCreate:
         """Create a `_VectorIndexHNSWConfigCreate` object to be used when defining the HNSW vector index configuration of Weaviate.
 
-        Use this method when defining the `vector_index_config` argument in `collection.create()`.
+        Use this method when defining the `vector_index_config` argument in `collections.create()`.
 
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
@@ -1993,7 +2072,7 @@ class _VectorIndex:
     ) -> _VectorIndexFlatConfigCreate:
         """Create a `_VectorIndexFlatConfigCreate` object to be used when defining the FLAT vector index configuration of Weaviate.
 
-        Use this method when defining the `vector_index_config` argument in `collection.create()`.
+        Use this method when defining the `vector_index_config` argument in `collections.create()`.
 
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
@@ -2006,13 +2085,14 @@ class _VectorIndex:
 
 
 class Configure:
-    """Use this factory class to generate the correct object for use when using the `collection.create()` method. E.g., `.multi_tenancy()` will return a `MultiTenancyConfigCreate` object to be used in the `multi_tenancy_config` argument.
+    """Use this factory class to generate the correct object for use when using the `collections.create()` method. E.g., `.multi_tenancy()` will return a `MultiTenancyConfigCreate` object to be used in the `multi_tenancy_config` argument.
 
     Each class method provides options specific to the named configuration type in the function's name. Under-the-hood data validation steps
     will ensure that any mis-specifications are caught before the request is sent to Weaviate.
     """
 
     Generative = _Generative
+    Reranker = _Reranker
     Vectorizer = _Vectorizer
     VectorIndex = _VectorIndex
 

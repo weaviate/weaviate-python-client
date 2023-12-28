@@ -3,7 +3,7 @@ from typing import Generic, List, Literal, Optional, Type, Union, overload
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, HybridFusion
+from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, HybridFusion, Rerank
 from weaviate.collections.classes.internal import (
     _GenerativeReturn,
     _QueryReturn,
@@ -31,6 +31,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -50,6 +51,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -69,6 +71,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -88,6 +91,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -107,6 +111,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -126,6 +131,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -144,6 +150,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -178,6 +185,8 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
                 The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
             `filters`
                 The filters to apply to the search.
+            `rerank`
+                How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
             `include_vector`
                 Whether to include the vector in the results. If not specified, this is set to False.
             `return_metadata`
@@ -208,6 +217,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
             limit=limit,
             autocut=auto_limit,
             filters=filters,
+            rerank=rerank,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(return_references),
@@ -220,6 +230,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
                 include_vector,
                 self._references,
                 return_references,
+                rerank,
             ),
             return_properties,
             return_references,
@@ -241,6 +252,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -263,6 +275,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -285,6 +298,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -307,6 +321,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -329,6 +344,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -351,6 +367,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -372,6 +389,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         *,
@@ -412,6 +430,8 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
                 The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
             `filters`
                 The filters to apply to the search.
+            `rerank`
+                How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
             `include_vector`
                 Whether to include the vector in the results. If not specified, this is set to False.
             `return_metadata`
@@ -442,6 +462,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
             limit=limit,
             autocut=auto_limit,
             filters=filters,
+            rerank=rerank,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(return_references),
@@ -459,6 +480,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
                 include_vector,
                 self._references,
                 return_references,
+                rerank,
             ),
             return_properties,
             return_references,

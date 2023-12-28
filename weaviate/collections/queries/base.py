@@ -118,6 +118,7 @@ class _BaseQuery(Generic[Properties, References]):
             score=add_props.score if add_props.score_present else None,
             explain_score=add_props.explain_score if add_props.explain_score_present else None,
             is_consistent=add_props.is_consistent if add_props.is_consistent_present else None,
+            rerank_score=add_props.rerank_score if add_props.rerank_score_present else None,
         )
         return meta
 

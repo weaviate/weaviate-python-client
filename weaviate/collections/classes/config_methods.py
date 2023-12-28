@@ -28,6 +28,8 @@ from weaviate.collections.classes.config import (
     _GenerativeConfig,
     GenerativeSearches,
     DataType,
+    _RerankerConfig,
+    Reranker,
 )
 
 
@@ -48,7 +50,14 @@ def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionCo
     else:
         vectorizer_config = None
 
-    if len(generators := list(schema.get("moduleConfig", {}).keys())) == 1:
+    if (
+        len(
+            generators := [
+                key for key in schema.get("moduleConfig", {}).keys() if "generative" in key
+            ]
+        )
+        == 1
+    ):
         generative_config = _GenerativeConfig(
             generator=GenerativeSearches(generators[0]),
             model=schema["moduleConfig"][generators[0]],
@@ -56,12 +65,26 @@ def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionCo
     else:
         generative_config = None
 
+    if (
+        len(
+            rerankers := [key for key in schema.get("moduleConfig", {}).keys() if "reranker" in key]
+        )
+        == 1
+    ):
+        reranker_config = _RerankerConfig(
+            model=schema["moduleConfig"][rerankers[0]],
+            reranker=Reranker(rerankers[0]),
+        )
+    else:
+        reranker_config = None
+
     return _CollectionConfigSimple(
         name=schema["class"],
         description=schema.get("description"),
         generative_config=generative_config,
         properties=_properties_from_config(schema) if schema.get("properties") is not None else [],
         references=_references_from_config(schema) if schema.get("properties") is not None else [],
+        reranker_config=reranker_config,
         vectorizer_config=vectorizer_config,
         vectorizer=Vectorizer(schema["vectorizer"]),
     )
@@ -80,13 +103,33 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
     else:
         vectorizer_config = None
 
-    if len(generators := list(schema.get("moduleConfig", {}).keys())) == 1:
+    if (
+        len(
+            generators := [
+                key for key in schema.get("moduleConfig", {}).keys() if "generative" in key
+            ]
+        )
+        == 1
+    ):
         generative_config = _GenerativeConfig(
             generator=GenerativeSearches(generators[0]),
             model=schema["moduleConfig"][generators[0]],
         )
     else:
         generative_config = None
+
+    if (
+        len(
+            rerankers := [key for key in schema.get("moduleConfig", {}).keys() if "reranker" in key]
+        )
+        == 1
+    ):
+        reranker_config = _RerankerConfig(
+            model=schema["moduleConfig"][rerankers[0]],
+            reranker=Reranker(rerankers[0]),
+        )
+    else:
+        reranker_config = None
 
     quantizer: Optional[Union[_PQConfig, _BQConfig]] = None
     if "bq" in schema["vectorIndexConfig"] and schema["vectorIndexConfig"]["bq"]["enabled"]:
@@ -160,6 +203,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
         properties=_properties_from_config(schema) if schema.get("properties") is not None else [],
         references=_references_from_config(schema) if schema.get("properties") is not None else [],
         replication_config=_ReplicationConfig(factor=schema["replicationConfig"]["factor"]),
+        reranker_config=reranker_config,
         sharding_config=_ShardingConfig(
             virtual_per_physical=schema["shardingConfig"]["virtualPerPhysical"],
             desired_count=schema["shardingConfig"]["desiredCount"],

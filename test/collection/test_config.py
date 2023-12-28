@@ -8,6 +8,7 @@ from weaviate.collections.classes.config import (
     DataType,
     Multi2VecField,
     _GenerativeConfigCreate,
+    _RerankerConfigCreate,
     _VectorizerConfigCreate,
     Configure,
     Property,
@@ -33,7 +34,7 @@ def test_basic_config():
     }
 
 
-TEST_CONFIG_WITH_MODULE_PARAMETERS = [
+TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     (
         Configure.Vectorizer.text2vec_contextionary(),
         {
@@ -367,7 +368,7 @@ TEST_CONFIG_WITH_MODULE_PARAMETERS = [
 ]
 
 
-@pytest.mark.parametrize("vectorizer_config,expected", TEST_CONFIG_WITH_MODULE_PARAMETERS)
+@pytest.mark.parametrize("vectorizer_config,expected", TEST_CONFIG_WITH_VECTORIZER_PARAMETERS)
 def test_config_with_module(vectorizer_config: _VectorizerConfigCreate, expected: dict):
     config = _CollectionConfigCreate(name="test", vectorizer_config=vectorizer_config)
     assert config._to_dict() == {
@@ -378,7 +379,7 @@ def test_config_with_module(vectorizer_config: _VectorizerConfigCreate, expected
     }
 
 
-TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
+TEST_CONFIG_WITH_VECTORIZER_AND_PROPERTIES_PARAMETERS = [
     (
         Configure.Vectorizer.text2vec_transformers(),
         [
@@ -468,9 +469,9 @@ TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS = [
 
 @pytest.mark.parametrize(
     "vectorizer_config,properties,expected_mc,expected_props",
-    TEST_CONFIG_WITH_MODULE_AND_PROPERTIES_PARAMETERS,
+    TEST_CONFIG_WITH_VECTORIZER_AND_PROPERTIES_PARAMETERS,
 )
-def test_config_with_module_and_properties(
+def test_config_with_vectorizer_and_properties(
     vectorizer_config: _VectorizerConfigCreate,
     properties: List[Property],
     expected_mc: dict,
@@ -488,7 +489,7 @@ def test_config_with_module_and_properties(
     }
 
 
-TEST_CONFIG_WITH_GENERATIVE_MODULE = [
+TEST_CONFIG_WITH_GENERATIVE = [
     (
         Configure.Generative.openai(),
         {"generative-openai": {}},
@@ -586,13 +587,51 @@ TEST_CONFIG_WITH_GENERATIVE_MODULE = [
 
 @pytest.mark.parametrize(
     "generative_config,expected_mc",
-    TEST_CONFIG_WITH_GENERATIVE_MODULE,
+    TEST_CONFIG_WITH_GENERATIVE,
 )
-def test_config_with_generative_module(
+def test_config_with_generative(
     generative_config: _GenerativeConfigCreate,
     expected_mc: dict,
 ):
     config = _CollectionConfigCreate(name="test", generative_config=generative_config)
+    assert config._to_dict() == {
+        **DEFAULTS,
+        "vectorizer": "none",
+        "class": "Test",
+        "moduleConfig": expected_mc,
+    }
+
+
+TEST_CONFIG_WITH_RERANKER = [
+    (
+        Configure.Reranker.cohere(model="model"),
+        {
+            "reranker-cohere": {
+                "model": "model",
+            },
+        },
+    ),
+    (
+        Configure.Reranker.cohere(),
+        {
+            "reranker-cohere": {},
+        },
+    ),
+    (
+        Configure.Reranker.transformers(),
+        {
+            "reranker-transformers": {},
+        },
+    ),
+]
+
+
+@pytest.mark.parametrize("reranker_config,expected_mc", TEST_CONFIG_WITH_RERANKER)
+def test_config_with_reranker(
+    reranker_config: _RerankerConfigCreate,
+    expected_mc: dict,
+):
+    config = _CollectionConfigCreate(name="test", reranker_config=reranker_config)
     assert config._to_dict() == {
         **DEFAULTS,
         "vectorizer": "none",
