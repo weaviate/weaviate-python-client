@@ -3,10 +3,9 @@ import uuid
 from typing import List, Optional, Union
 
 import pytest as pytest
-from _pytest.fixtures import SubRequest
 
 import weaviate
-from integration.conftest import _sanitize_collection_name, CollectionFactory
+from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import (
     Configure,
     Property,
@@ -47,12 +46,10 @@ UUID3 = uuid.uuid4()
 )
 def test_filters_text(
     collection_factory: CollectionFactory,
-    request: SubRequest,
     weaviate_filter: _FilterValue,
     results: List[int],
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -83,12 +80,10 @@ def test_filters_text(
 )
 def test_array_types(
     collection_factory: CollectionFactory,
-    request: SubRequest,
     weaviate_filter: _FilterValue,
     results: List[int],
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="texts", data_type=DataType.TEXT_ARRAY),
@@ -125,12 +120,10 @@ def test_array_types(
 )
 def test_filter_with_wrong_types(
     collection_factory: CollectionFactory,
-    request: SubRequest,
     weaviate_filter: _FilterValue,
     results: Optional[List[int]],
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="int", data_type=DataType.INT),
@@ -179,12 +172,10 @@ def test_filter_with_wrong_types(
 )
 def test_filters_nested(
     collection_factory: CollectionFactory,
-    request: SubRequest,
     weaviate_filter: _Filters,
     results: List[int],
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="num", data_type=DataType.NUMBER)],
         inverted_index_config=Configure.inverted_index(index_null_state=True),
@@ -204,9 +195,8 @@ def test_filters_nested(
     assert all(obj.uuid in uuids for obj in objects)
 
 
-def test_length_filter(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_length_filter(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="field", data_type=DataType.TEXT)],
         inverted_index_config=Configure.inverted_index(index_property_length=True),
@@ -236,12 +226,10 @@ def test_length_filter(collection_factory: CollectionFactory, request: SubReques
 )
 def test_filters_comparison(
     collection_factory: CollectionFactory,
-    request: SubRequest,
     weaviate_filter: _FilterValue,
     results: List[int],
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="number", data_type=DataType.INT)],
         inverted_index_config=Configure.inverted_index(index_null_state=True),
@@ -302,13 +290,11 @@ def test_filters_comparison(
 )
 def test_filters_contains(
     collection_factory: CollectionFactory,
-    request: SubRequest,
     weaviate_filter: _FilterValue,
     results: List[int],
     skip: bool,
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -414,16 +400,11 @@ def test_filters_contains(
     ],
 )
 def test_ref_filters(
-    collection_factory: CollectionFactory,
-    request: SubRequest,
-    weaviate_filter: _FilterValue,
-    results: List[int],
+    collection_factory: CollectionFactory, weaviate_filter: _FilterValue, results: List[int]
 ) -> None:
-    target = _sanitize_collection_name(request.node.name + "Target")  # individual name per test
     assert isinstance(weaviate_filter.path, list)
-    weaviate_filter.path[1] = target
     to_collection = collection_factory(
-        name=target,
+        name="Target",
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="int", data_type=DataType.INT),
@@ -431,6 +412,8 @@ def test_ref_filters(
         ],
         inverted_index_config=Configure.inverted_index(index_property_length=True),
     )
+    weaviate_filter.path[1] = to_collection.name
+
     if (
         parse_version_string(to_collection._connection._server_version)
         < parse_version_string("1.23")
@@ -443,11 +426,10 @@ def test_ref_filters(
         to_collection.data.insert(properties={"int": 15, "text": "second"}, uuid=UUID2),
     ]
     from_collection = collection_factory(
-        name=request.node.name,
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
-        references=[ReferenceProperty(name="ref", target_collection=target)],
+        references=[ReferenceProperty(name="ref", target_collection=to_collection.name)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
@@ -467,25 +449,25 @@ def test_ref_filters(
     assert all(obj.uuid in uuids for obj in objects)
 
 
-def test_ref_filters_multi_target(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
-    target = _sanitize_collection_name(request.node.name + "Target")
-    source = _sanitize_collection_name(request.node.name + "Source")
+def test_ref_filters_multi_target(collection_factory: CollectionFactory) -> None:
     to_collection = collection_factory(
-        name=target,
+        name="target",
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="int", data_type=DataType.INT)],
     )
     uuid_to = to_collection.data.insert(properties={"int": 0})
     uuid_to2 = to_collection.data.insert(properties={"int": 5})
     from_collection = collection_factory(
-        name=source,
+        name="source",
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
-        references=[ReferencePropertyMultiTarget(name="ref", target_collections=[target, source])],
         vectorizer_config=Configure.Vectorizer.none(),
+    )
+    from_collection.config.add_reference(
+        ReferencePropertyMultiTarget(
+            name="ref", target_collections=[to_collection.name, from_collection.name]
+        )
     )
 
     uuid_from_to_target1 = from_collection.data.insert(
@@ -493,7 +475,7 @@ def test_ref_filters_multi_target(
             "name": "first",
         },
         references={
-            "ref": Reference.to_multi_target(uuids=uuid_to, target_collection=target),
+            "ref": Reference.to_multi_target(uuids=uuid_to, target_collection=to_collection.name),
         },
     )
     uuid_from_to_target2 = from_collection.data.insert(
@@ -501,7 +483,7 @@ def test_ref_filters_multi_target(
             "name": "second",
         },
         references={
-            "ref": Reference.to_multi_target(uuids=uuid_to2, target_collection=target),
+            "ref": Reference.to_multi_target(uuids=uuid_to2, target_collection=to_collection.name),
         },
     )
     from_collection.data.insert(
@@ -509,7 +491,9 @@ def test_ref_filters_multi_target(
             "name": "third",
         },
         references={
-            "ref": Reference.to_multi_target(uuids=uuid_from_to_target1, target_collection=source),
+            "ref": Reference.to_multi_target(
+                uuids=uuid_from_to_target1, target_collection=from_collection.name
+            ),
         },
     )
     from_collection.data.insert(
@@ -517,18 +501,20 @@ def test_ref_filters_multi_target(
             "name": "fourth",
         },
         references={
-            "ref": Reference.to_multi_target(uuids=uuid_from_to_target2, target_collection=source),
+            "ref": Reference.to_multi_target(
+                uuids=uuid_from_to_target2, target_collection=from_collection.name
+            ),
         },
     )
 
     objects = from_collection.query.fetch_objects(
-        filters=Filter(path=["ref", target, "int"]).greater_than(3)
+        filters=Filter(path=["ref", to_collection.name, "int"]).greater_than(3)
     ).objects
     assert len(objects) == 1
     assert objects[0].properties["name"] == "second"
 
     objects = from_collection.query.fetch_objects(
-        filters=Filter(path=["ref", source, "name"]).equal("first")
+        filters=Filter(path=["ref", from_collection.name, "name"]).equal("first")
     ).objects
     assert len(objects) == 1
     assert objects[0].properties["name"] == "third"
@@ -859,14 +845,12 @@ def test_ref_filters_multi_target(
 )
 def test_delete_many_simple(
     collection_factory: CollectionFactory,
-    request: SubRequest,
     properties: List[Property],
     inserts: List[DataObject],
     where: _FilterValue,
     expected_len: int,
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=properties,
         inverted_index_config=Configure.inverted_index(index_null_state=True),
         vectorizer_config=Configure.Vectorizer.none(),
@@ -879,11 +863,8 @@ def test_delete_many_simple(
     assert len(objects) == expected_len
 
 
-def test_delete_by_time_metadata(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_delete_by_time_metadata(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -901,9 +882,8 @@ def test_delete_by_time_metadata(
     assert collection.query.fetch_object_by_id(uuid=uuid2) is not None
 
 
-def test_delete_many_and(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_delete_many_and(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
             Property(name="Age", data_type=DataType.INT),
@@ -929,9 +909,8 @@ def test_delete_many_and(collection_factory: CollectionFactory, request: SubRequ
     assert objects[0].properties["name"] == "Tommy"
 
 
-def test_delete_many_or(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_delete_many_or(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
             Property(name="Age", data_type=DataType.INT),
@@ -955,9 +934,8 @@ def test_delete_many_or(collection_factory: CollectionFactory, request: SubReque
     assert objects[0].properties["name"] == "Tim"
 
 
-def test_delete_many_return(collection_factory: CollectionFactory, request: SubRequest) -> None:
+def test_delete_many_return(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
@@ -984,11 +962,8 @@ def test_delete_many_return(collection_factory: CollectionFactory, request: SubR
         Filter(path=["_id"]).equal(UUID1),
     ],
 )
-def test_filter_id(
-    collection_factory: CollectionFactory, request: SubRequest, weav_filter: _FilterValue
-) -> None:
+def test_filter_id(collection_factory: CollectionFactory, weav_filter: _FilterValue) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
@@ -1011,11 +986,8 @@ def test_filter_id(
 
 
 @pytest.mark.parametrize("path", ["_creationTimeUnix", "_lastUpdateTimeUnix"])
-def test_filter_timestamp_direct_path(
-    collection_factory: CollectionFactory, request: SubRequest, path: str
-) -> None:
+def test_filter_timestamp_direct_path(collection_factory: CollectionFactory, path: str) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
@@ -1047,11 +1019,9 @@ def test_filter_timestamp_direct_path(
 )
 def test_filter_timestamp_class(
     collection_factory: CollectionFactory,
-    request: SubRequest,
     filter_type: Union[_FilterCreationTime, _FilterUpdateTime],
 ) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
@@ -1106,11 +1076,8 @@ def test_filter_timestamp_class(
         assert obj1_uuid in uuids and obj2_uuid in uuids
 
 
-def test_time_update_and_creation_time(
-    collection_factory: CollectionFactory, request: SubRequest
-) -> None:
+def test_time_update_and_creation_time(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name=request.node.name,
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
