@@ -16,7 +16,7 @@ def test_queries_with_rerank(collection_factory: CollectionFactory) -> None:
         reranker_config=wvc.Configure.Reranker.transformers(),
         vectorizer_config=wvc.Configure.Vectorizer.text2vec_openai(),
         properties=[wvc.Property(name="text", data_type=wvc.DataType.TEXT)],
-        ports=(8084, 50055),
+        ports=(8079, 50050),
         headers={"X-OpenAI-Api-Key": api_key},
     )
 
@@ -70,7 +70,7 @@ def test_queries_with_rerank_and_generative(collection_factory: CollectionFactor
         reranker_config=wvc.Configure.Reranker.transformers(),
         vectorizer_config=wvc.Configure.Vectorizer.text2vec_openai(),
         properties=[wvc.Property(name="text", data_type=wvc.DataType.TEXT)],
-        ports=(8084, 50055),
+        ports=(8079, 50050),
         headers={"X-OpenAI-Api-Key": api_key},
     )
 

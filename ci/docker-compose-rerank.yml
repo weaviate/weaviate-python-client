@@ -1,7 +1,7 @@
 ---
 version: '3.4'
 services:
-  weaviate:
+  weaviate-reranker:
     command:
     - --host
     - 0.0.0.0
@@ -11,8 +11,8 @@ services:
     - http
     image: semitechnologies/weaviate:${WEAVIATE_VERSION}
     ports:
-    - 8092:8080
-    - 50063:50051
+    - 8079:8080
+    - 50050:50051
     restart: on-failure:0
     environment:
       RERANKER_INFERENCE_API: http://reranker-transformers:8080
