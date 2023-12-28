@@ -2,18 +2,17 @@ import os
 
 import pytest
 
-import weaviate
 import weaviate.classes as wvc
 
+from .conftest import CollectionFactory
 
-def test_queries_with_rerank() -> None:
-    client = weaviate.connect_to_local(port=8084, grpc_port=50055)
-    client.collections.delete("TestQueriesWithRerank")
-    collection = client.collections.create(
-        name="TestQueriesWithRerank",
+
+def test_queries_with_rerank(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
         reranker_config=wvc.Configure.Reranker.transformers(),
         vectorizer_config=wvc.Configure.Vectorizer.text2vec_transformers(),
         properties=[wvc.Property(name="text", data_type=wvc.DataType.TEXT)],
+        ports=(8084, 50055),
     )
 
     insert = collection.data.insert_many(
@@ -48,26 +47,24 @@ def test_queries_with_rerank() -> None:
         assert [obj for obj in objects if "another" in obj.properties["text"]][  # type: ignore
             0
         ].metadata.rerank_score > [
-            obj for obj in objects if "another" not in obj.properties["text"]  # type: ignore
+            obj for obj in objects if "another" not in obj.properties["text"]
         ][
             0
         ].metadata.rerank_score
 
 
-def test_queries_with_rerank_and_generative() -> None:
+def test_queries_with_rerank_and_generative(collection_factory: CollectionFactory) -> None:
     api_key = os.environ.get("OPENAI_APIKEY")
     if api_key is None:
         pytest.skip("No OpenAI API key found.")
-    client = weaviate.connect_to_local(
-        port=8084, grpc_port=50055, headers={"X-OpenAI-Api-Key": api_key}
-    )
-    client.collections.delete("TestQueriesWithRerankAndGenerative")
-    collection = client.collections.create(
-        name="TestQueriesWithRerankAndGenerative",
+
+    collection = collection_factory(
         generative_config=wvc.Configure.Generative.openai(),
         reranker_config=wvc.Configure.Reranker.transformers(),
         vectorizer_config=wvc.Configure.Vectorizer.text2vec_transformers(),
         properties=[wvc.Property(name="text", data_type=wvc.DataType.TEXT)],
+        ports=(8084, 50055),
+        headers={"X-OpenAI-Api-Key": api_key},
     )
 
     insert = collection.data.insert_many(
@@ -118,7 +115,7 @@ def test_queries_with_rerank_and_generative() -> None:
         assert [obj for obj in objects if "another" in obj.properties["text"]][  # type: ignore
             0
         ].metadata.rerank_score > [
-            obj for obj in objects if "another" not in obj.properties["text"]  # type: ignore
+            obj for obj in objects if "another" not in obj.properties["text"]
         ][
             0
         ].metadata.rerank_score

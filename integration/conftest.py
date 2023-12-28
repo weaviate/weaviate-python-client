@@ -17,6 +17,7 @@ from weaviate.collections.classes.config import (
     DataType,
     _MultiTenancyConfigCreate,
     _VectorIndexConfigCreate,
+    _RerankerConfigCreate,
 )
 from weaviate.collections.classes.types import Properties
 
@@ -40,6 +41,7 @@ class CollectionFactory(Protocol):
         replication_config: Optional[_ReplicationConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         description: Optional[str] = None,
+        reranker_config: Optional[_RerankerConfigCreate] = None,
     ) -> Collection[Any, Any]:
         """Typing for fixture."""
         ...
@@ -65,6 +67,7 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
         replication_config: Optional[_ReplicationConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         description: Optional[str] = None,
+        reranker_config: Optional[_RerankerConfigCreate] = None,
     ) -> Collection[Any, Any]:
         nonlocal client_fixture, name_fixture
         name_fixture = _sanitize_collection_name(request.node.name) + name
@@ -86,6 +89,7 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
             data_model_references=data_model_refs,
             replication_config=replication_config,
             vector_index_config=vector_index_config,
+            reranker_config=reranker_config,
         )
         return collection
 
