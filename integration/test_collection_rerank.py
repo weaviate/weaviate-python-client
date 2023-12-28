@@ -24,18 +24,20 @@ def test_queries_with_rerank(collection_factory: CollectionFactory) -> None:
 
     for _idx, query in enumerate(
         [
-            lambda: collection.query.bm25("test", rerank=wvc.Rerank(prop="text", query="another")),
+            lambda: collection.query.bm25(
+                "test", rerank=wvc.query.Rerank(prop="text", query="another")
+            ),
             lambda: collection.query.hybrid(
-                "test", rerank=wvc.Rerank(prop="text", query="another")
+                "test", rerank=wvc.query.Rerank(prop="text", query="another")
             ),
             lambda: collection.query.near_object(
-                uuid1, rerank=wvc.Rerank(prop="text", query="another")
+                uuid1, rerank=wvc.query.Rerank(prop="text", query="another")
             ),
             lambda: collection.query.near_vector(
-                vector1, rerank=wvc.Rerank(prop="text", query="another")
+                vector1, rerank=wvc.query.Rerank(prop="text", query="another")
             ),
             lambda: collection.query.near_text(
-                "test", rerank=wvc.Rerank(prop="text", query="another")
+                "test", rerank=wvc.query.Rerank(prop="text", query="another")
             ),
         ]
     ):
@@ -78,29 +80,29 @@ def test_queries_with_rerank_and_generative(collection_factory: CollectionFactor
         [
             lambda: collection.generate.bm25(
                 "test",
-                rerank=wvc.Rerank(prop="text", query="another"),
+                rerank=wvc.query.Rerank(prop="text", query="another"),
                 single_prompt="What is it? {text}",
             ),
             lambda: collection.generate.hybrid(
                 "test",
-                rerank=wvc.Rerank(prop="text", query="another"),
+                rerank=wvc.query.Rerank(prop="text", query="another"),
                 single_prompt="What is it? {text}",
                 grouped_properties=["text"],
                 grouped_task="What's going on?",
             ),
             lambda: collection.generate.near_object(
                 uuid1,
-                rerank=wvc.Rerank(prop="text", query="another"),
+                rerank=wvc.query.Rerank(prop="text", query="another"),
                 single_prompt="What is it? {text}",
             ),
             lambda: collection.generate.near_vector(
                 vector1,
-                rerank=wvc.Rerank(prop="text", query="another"),
+                rerank=wvc.query.Rerank(prop="text", query="another"),
                 single_prompt="What is it? {text}",
             ),
             lambda: collection.generate.near_text(
                 "test",
-                rerank=wvc.Rerank(prop="text", query="another"),
+                rerank=wvc.query.Rerank(prop="text", query="another"),
                 single_prompt="What is it? {text}",
             ),
         ]
