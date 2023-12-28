@@ -1,9 +1,10 @@
 from typing import Dict, Generator, Optional, TypedDict, cast
 
 import pytest
+from _pytest.fixtures import SubRequest
+
 import weaviate
-
-
+from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import (
     Configure,
     DataType,
@@ -17,7 +18,6 @@ from weaviate.collections.classes.grpc import (
     METADATA,
     PROPERTIES,
 )
-
 from weaviate.collections.iterator import ITERATOR_CACHE_SIZE
 
 
@@ -46,21 +46,21 @@ class Data(TypedDict):
     [None, Data, ["data"]],
 )
 def test_iterator_arguments(
-    client: weaviate.WeaviateClient,
+    collection_factory: CollectionFactory,
+    request: SubRequest,
     include_vector: bool,
     return_metadata: Optional[METADATA],
     return_properties: Optional[PROPERTIES],
 ) -> None:
-    name = "TestIteratorTypedDict"
-    client.collections.delete(name)
-
-    collection = client.collections.create(
-        name=name,
+    collection = collection_factory(
+        request.node.name,
         properties=[
             Property(name="data", data_type=DataType.INT),
             Property(name="text", data_type=DataType.TEXT),
         ],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
     )
 
     collection.data.insert_many(
@@ -115,12 +115,9 @@ def test_iterator_arguments(
             assert all(obj.metadata._is_empty() for obj in iter_)
 
 
-def test_iterator_dict_hint(client: weaviate.WeaviateClient) -> None:
-    name = "TestIteratorTypedDict"
-    client.collections.delete(name)
-
-    collection = client.collections.create(
-        name=name,
+def test_iterator_dict_hint(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    collection = collection_factory(
+        request.node.name,
         properties=[Property(name="data", data_type=DataType.INT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -136,10 +133,9 @@ def test_iterator_dict_hint(client: weaviate.WeaviateClient) -> None:
     )
 
 
-def test_iterator_with_default_generic(client: weaviate.WeaviateClient) -> None:
-    name = "TestIteratorWithDefaultGeneric"
-    client.collections.delete(name)
-
+def test_iterator_with_default_generic(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
     class This(TypedDict):
         this: str
 
@@ -147,8 +143,8 @@ def test_iterator_with_default_generic(client: weaviate.WeaviateClient) -> None:
         this: str
         that: str
 
-    collection = client.collections.create(
-        name=name,
+    collection = collection_factory(
+        request.node.name,
         properties=[
             Property(name="this", data_type=DataType.TEXT),
             Property(name="that", data_type=DataType.TEXT),
@@ -187,12 +183,9 @@ def test_iterator_with_default_generic(client: weaviate.WeaviateClient) -> None:
         20 * ITERATOR_CACHE_SIZE,
     ],
 )
-def test_iterator(client: weaviate.WeaviateClient, count: int) -> None:
-    name = "TestIterator"
-    client.collections.delete(name)
-
-    collection = client.collections.create(
-        name=name,
+def test_iterator(collection_factory: CollectionFactory, request: SubRequest, count: int) -> None:
+    collection = collection_factory(
+        request.node.name,
         properties=[Property(name="data", data_type=DataType.INT)],
         vectorizer_config=Configure.Vectorizer.none(),
         data_model_properties=Dict[str, int],

@@ -311,7 +311,9 @@ def test_collection_config_full(collection_factory: CollectionFactory, request: 
     assert config.properties[11].data_type == DataType.PHONE_NUMBER
 
     assert config.references[0].name == "self"
-    assert config.references[0].target_collections == ["TestCollectionConfigFull"]
+    assert config.references[0].target_collections == [
+        request.node.name[0].upper() + request.node.name[1:]
+    ]
 
     assert config.inverted_index_config.bm25.b == 0.8
     assert config.inverted_index_config.bm25.k1 == 1.3

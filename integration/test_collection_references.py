@@ -575,9 +575,9 @@ def test_warning_refs_as_props(
     collection_factory(
         name=request.node.name,
         vectorizer_config=Configure.Vectorizer.none(),
-        properties=[Property(name="Name", data_type=DataType.TEXT)],
-        references=[
-            ReferenceProperty(name="ref", target_collection=request.node.name),
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+            ReferenceProperty(name="ref", target_collection=request.node.name),  # type: ignore
         ],
     )
 

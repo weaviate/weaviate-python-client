@@ -42,6 +42,14 @@ class MockTensorFlow:
         return MockNumpyTorch(self.array)
 
 
+UUID1 = uuid.UUID("806827e0-2b31-43ca-9269-24fa95a221f9")
+UUID2 = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
+UUID3 = uuid.UUID("83d99755-9deb-4b16-8431-d1dff4ab0a75")
+UUID4 = uuid.UUID("385c992b-452a-4f71-a5d9-b161f51b540d")
+UUID5 = uuid.UUID("0a4d16b3-c418-40d3-a6b7-51f87c7a603b")
+UUID6 = uuid.UUID("c8a201b6-fdd2-48d1-a8ee-289a540b1b4b")
+
+
 class BatchCollection(Protocol):
     """Typing for fixture."""
 
@@ -78,7 +86,7 @@ def batch_collection(
     "vector",
     [None, [1, 2, 3], MockNumpyTorch([1, 2, 3]), MockTensorFlow([1, 2, 3])],
 )
-@pytest.mark.parametrize("uuid", [None, uuid.uuid4(), str(uuid.uuid4()), uuid.uuid4().hex])
+@pytest.mark.parametrize("uuid", [None, UUID1, str(UUID2), UUID3.hex])
 def test_add_object(
     batch_collection: BatchCollection,
     request: SubRequest,
@@ -100,8 +108,8 @@ def test_add_object(
     assert len(objs) == 1
 
 
-@pytest.mark.parametrize("from_uuid", [uuid.uuid4(), str(uuid.uuid4()), uuid.uuid4().hex])
-@pytest.mark.parametrize("to_uuid", [uuid.uuid4().hex, uuid.uuid4(), str(uuid.uuid4())])
+@pytest.mark.parametrize("from_uuid", [UUID1, str(UUID2), UUID3.hex])
+@pytest.mark.parametrize("to_uuid", [UUID4.hex, UUID5, str(UUID6)])
 def test_add_reference(
     batch_collection: BatchCollection,
     request: SubRequest,

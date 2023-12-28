@@ -1,9 +1,9 @@
 import pathlib
-from typing import Generator
 
 import pytest
+from _pytest.fixtures import SubRequest
 
-import weaviate
+from integration.conftest import CollectionFactory, CollectionFactoryGet
 from weaviate.collections.classes.aggregate import (
     AggregateBoolean,
     AggregateDate,
@@ -17,21 +17,13 @@ from weaviate.exceptions import WeaviateInvalidInputException, WeaviateQueryExce
 from weaviate.util import file_encoder_b64
 
 
-@pytest.fixture(scope="module")
-def client() -> Generator[weaviate.WeaviateClient, None, None]:
-    client = weaviate.connect_to_local()
-    client.collections.delete_all()
-    yield client
-    client.collections.delete_all()
-
-
 @pytest.mark.parametrize("how_many", [1, 10000, 20000, 20001, 100000])
-def test_collection_length(client: weaviate.WeaviateClient, how_many: int) -> None:
+def test_collection_length(
+    collection_factory: CollectionFactory, request: SubRequest, how_many: int
+) -> None:
     """Uses .aggregate behind-the-scenes"""
-    name = "TestCollectionLength"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+    collection = collection_factory(
+        name=request.node.name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -39,21 +31,17 @@ def test_collection_length(client: weaviate.WeaviateClient, how_many: int) -> No
     assert len(collection) == how_many
 
 
-def test_empty_aggregation(client: weaviate.WeaviateClient) -> None:
-    name = "TestEmptyAggregation"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name, properties=[Property(name="text", data_type=DataType.TEXT)]
+def test_empty_aggregation(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    collection = collection_factory(
+        name=request.node.name, properties=[Property(name="text", data_type=DataType.TEXT)]
     )
     res = collection.aggregate.over_all()
     assert res.total_count == 0
 
 
-def test_simple_aggregation(client: weaviate.WeaviateClient) -> None:
-    name = "TestSimpleAggregation"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name, properties=[Property(name="text", data_type=DataType.TEXT)]
+def test_simple_aggregation(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    collection = collection_factory(
+        name=request.node.name, properties=[Property(name="text", data_type=DataType.TEXT)]
     )
     collection.data.insert({"text": "some text"})
     res = collection.aggregate.over_all(return_metrics=[Metrics("text").text(count=True)])
@@ -61,11 +49,9 @@ def test_simple_aggregation(client: weaviate.WeaviateClient) -> None:
     assert res.properties["text"].count == 1
 
 
-def test_wrong_aggregation(client: weaviate.WeaviateClient) -> None:
-    name = "TestEmptyAggregation"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name, properties=[Property(name="text", data_type=DataType.TEXT)]
+def test_wrong_aggregation(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    collection = collection_factory(
+        name=request.node.name, properties=[Property(name="text", data_type=DataType.TEXT)]
     )
     with pytest.raises(WeaviateQueryException) as e:
         collection.aggregate.over_all(total_count=False)
@@ -87,12 +73,10 @@ def test_wrong_aggregation(client: weaviate.WeaviateClient) -> None:
     ],
 )
 def test_near_object_aggregation(
-    client: weaviate.WeaviateClient, option: dict, expected_len: int
+    collection_factory: CollectionFactory, request: SubRequest, option: dict, expected_len: int
 ) -> None:
-    name = "TestNearObjectAggregation"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+    collection = collection_factory(
+        name=request.node.name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
@@ -125,11 +109,11 @@ def test_near_object_aggregation(
         ]
 
 
-def test_near_object_missing_param(client: weaviate.WeaviateClient) -> None:
-    name = "TestNearVectorMissingParam"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_near_object_missing_param(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
@@ -166,12 +150,10 @@ def test_near_object_missing_param(client: weaviate.WeaviateClient) -> None:
     ],
 )
 def test_near_vector_aggregation(
-    client: weaviate.WeaviateClient, option: dict, expected_len: int
+    collection_factory: CollectionFactory, request: SubRequest, option: dict, expected_len: int
 ) -> None:
-    name = "TestNearVectorAggregation"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+    collection = collection_factory(
+        name=request.node.name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
@@ -206,11 +188,11 @@ def test_near_vector_aggregation(
         ]
 
 
-def test_near_vector_missing_param(client: weaviate.WeaviateClient) -> None:
-    name = "TestNearVectorMissingParam"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_near_vector_missing_param(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
@@ -246,12 +228,10 @@ def test_near_vector_missing_param(client: weaviate.WeaviateClient) -> None:
     ],
 )
 def test_near_text_aggregation(
-    client: weaviate.WeaviateClient, option: dict, expected_len: int
+    collection_factory: CollectionFactory, request: SubRequest, option: dict, expected_len: int
 ) -> None:
-    name = "TestNearTextAggregation"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+    collection = collection_factory(
+        name=request.node.name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
@@ -284,11 +264,11 @@ def test_near_text_aggregation(
         ]
 
 
-def test_near_text_missing_param(client: weaviate.WeaviateClient) -> None:
-    name = "TestNearTextMissingParam"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_near_text_missing_param(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
@@ -312,11 +292,11 @@ def test_near_text_missing_param(client: weaviate.WeaviateClient) -> None:
 
 
 @pytest.mark.parametrize("option", [{"object_limit": 1}, {"certainty": 0.9}, {"distance": 0.1}])
-def test_near_image_aggregation(client: weaviate.WeaviateClient, option: dict) -> None:
-    name = "TestNearImageAggregation"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_near_image_aggregation(
+    collection_factory: CollectionFactory, request: SubRequest, option: dict
+) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         properties=[
             Property(name="rating", data_type=DataType.INT),
             Property(name="image", data_type=DataType.BLOB),
@@ -335,11 +315,11 @@ def test_near_image_aggregation(client: weaviate.WeaviateClient, option: dict) -
     assert res.properties["rating"].maximum == 9
 
 
-def test_near_image_missing_param(client: weaviate.WeaviateClient) -> None:
-    name = "TestNearImageMissingParam"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_near_image_missing_param(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         properties=[
             Property(name="rating", data_type=DataType.INT),
             Property(name="image", data_type=DataType.BLOB),
@@ -363,11 +343,9 @@ def test_near_image_missing_param(client: weaviate.WeaviateClient) -> None:
     )
 
 
-def test_group_by_aggregation(client: weaviate.WeaviateClient) -> None:
-    name = "TestGroupByAggregation"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_group_by_aggregation(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
             Property(name="int", data_type=DataType.INT),
@@ -414,8 +392,10 @@ def test_group_by_aggregation(client: weaviate.WeaviateClient) -> None:
 
 
 @pytest.mark.skip(reason="Validation logic is not robust enough currently")
-def test_mistake_in_usage(client: weaviate.WeaviateClient) -> None:
-    collection = client.collections.get("TestMistakeInUsage")
+def test_mistake_in_usage(
+    collection_factory_get: CollectionFactoryGet, request: SubRequest
+) -> None:
+    collection = collection_factory_get(request.node.name)
     with pytest.raises(TypeError) as e:
         collection.aggregate.over_all([Metrics("text")])  # type: ignore # testing incorrect usage
     assert (
@@ -430,11 +410,11 @@ def test_mistake_in_usage(client: weaviate.WeaviateClient) -> None:
     )
 
 
-def test_all_available_aggregations(client: weaviate.WeaviateClient) -> None:
-    name = "TestAllAvailableAggregations"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_all_available_aggregations(
+    collection_factory: CollectionFactory, request: SubRequest
+) -> None:
+    collection = collection_factory(
+        name=request.node.name,
         properties=[
             Property(name="text", data_type=DataType.TEXT),
             Property(
@@ -451,7 +431,7 @@ def test_all_available_aggregations(client: weaviate.WeaviateClient) -> None:
             Property(name="dates", data_type=DataType.DATE_ARRAY),
         ],
         references=[
-            ReferenceProperty(name="ref", target_collection="TestAllAvailableAggregations"),
+            ReferenceProperty(name="ref", target_collection=request.node.name),
         ],
     )
     collection.data.insert(

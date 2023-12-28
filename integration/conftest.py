@@ -34,7 +34,7 @@ class CollectionFactory(Protocol):
         generative_config: Optional[_GenerativeConfigCreate] = None,
         headers: Optional[Dict[str, str]] = None,
         ports: Tuple[int, int] = (8080, 50051),
-        data_model_props: Optional[Type[Properties]] = None,
+        data_model_properties: Optional[Type[Properties]] = None,
         data_model_refs: Optional[Type[Properties]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
@@ -59,7 +59,7 @@ def collection_factory() -> Generator[CollectionFactory, None, None]:
         generative_config: Optional[_GenerativeConfigCreate] = None,
         headers: Optional[Dict[str, str]] = None,
         ports: Tuple[int, int] = (8080, 50051),
-        data_model_props: Optional[Type[Properties]] = None,
+        data_model_properties: Optional[Type[Properties]] = None,
         data_model_refs: Optional[Type[Properties]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
@@ -81,7 +81,7 @@ def collection_factory() -> Generator[CollectionFactory, None, None]:
             inverted_index_config=inverted_index_config,
             multi_tenancy_config=multi_tenancy_config,
             generative_config=generative_config,
-            data_model_properties=data_model_props,
+            data_model_properties=data_model_properties,
             data_model_references=data_model_refs,
             replication_config=replication_config,
             vector_index_config=vector_index_config,
@@ -168,5 +168,5 @@ def collection_factory_get() -> Generator[CollectionFactoryGet, None, None]:
 
 
 def _sanitize_collection_name(name: str) -> str:
-    name = name.replace("[", "").replace("]", "").replace("-", "").replace(" ", "")
+    name = name.replace("[", "").replace("]", "").replace("-", "").replace(" ", "").replace(".", "")
     return name[0].upper() + name[1:]

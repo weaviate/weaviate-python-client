@@ -538,7 +538,7 @@ def test_nested_return_generic_properties(
                 ],
             )
         ],
-        data_model_props=Parent,
+        data_model_properties=Parent,
     )
 
     collection.data.insert(Parent(child=Child(name="Timmy", age=10)))
