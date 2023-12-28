@@ -59,7 +59,7 @@ class ClientFactory(Protocol):
 @pytest.fixture
 def client_factory() -> (
     Generator[
-        Callable[[str, tuple[int, int], bool], tuple[weaviate.WeaviateClient, str]], None, None
+        Callable[[str, Tuple[int, int], bool], Tuple[weaviate.WeaviateClient, str]], None, None
     ]
 ):
     name_fixture: Optional[str] = None

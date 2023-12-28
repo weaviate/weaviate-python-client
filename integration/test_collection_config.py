@@ -461,6 +461,10 @@ def test_collection_config_update(
 
 
 def test_update_flat(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    dummy = collection_factory(name=request.node.name + "dummy")
+    if parse_version_string(dummy._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("flat index is not supported in this version")
+
     collection = collection_factory(
         name=request.node.name,
         vector_index_config=Configure.VectorIndex.flat(
@@ -468,9 +472,6 @@ def test_update_flat(collection_factory: CollectionFactory, request: SubRequest)
             quantizer=Configure.VectorIndex.Quantizer.bq(rescore_limit=10),
         ),
     )
-
-    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
-        pytest.skip("flat index is not supported in this version")
 
     config = collection.config.get()
     assert config.vector_index_type == _VectorIndexType.FLAT
@@ -546,6 +547,10 @@ def test_collection_config_get_shards_multi_tenancy(
 def test_config_vector_index_flat_and_quantizer_bq(
     collection_factory: CollectionFactory, request: SubRequest
 ) -> None:
+    dummy = collection_factory(name=request.node.name + "dummy")
+    if parse_version_string(dummy._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("flat index is not supported in this version")
+
     collection = collection_factory(
         name=request.node.name,
         vector_index_config=Configure.VectorIndex.flat(
@@ -553,9 +558,6 @@ def test_config_vector_index_flat_and_quantizer_bq(
             quantizer=Configure.VectorIndex.Quantizer.bq(rescore_limit=456),
         ),
     )
-
-    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
-        pytest.skip("flat index is not supported in this version")
 
     conf = collection.config.get()
     assert conf.vector_index_type == _VectorIndexType.FLAT
