@@ -1,6 +1,4 @@
 """Helper functions for creating a new WeaviateClient in common scenarios."""
-import requests
-from socket import gaierror, gethostbyname
 from urllib.parse import urlparse
 from typing import Optional, Tuple
 
@@ -9,7 +7,6 @@ from weaviate.client import WeaviateClient
 from weaviate.config import AdditionalConfig
 from weaviate.connect.connection import ConnectionParams, ProtocolParams
 from weaviate.embedded import EmbeddedOptions
-from weaviate.exceptions import WeaviateGrpcUnavailable
 
 
 def connect_to_wcs(
@@ -17,6 +14,7 @@ def connect_to_wcs(
     auth_credentials: Optional[AuthCredentials],
     headers: Optional[dict] = None,
     timeout: Tuple[int, int] = (10, 60),
+    skip_init_checks: bool = False,
 ) -> WeaviateClient:
     """
     Connect to your own Weaviate Cloud Service (WCS) instance.
@@ -42,22 +40,6 @@ def connect_to_wcs(
         # Handle the common case of copy/pasting a URL instead of the hostname.
         cluster_url = urlparse(cluster_url).netloc
     grpc_host = f"grpc-{cluster_url}"
-    # Check the grpc- endpoint is available for this cluster:
-    try:
-        gethostbyname(grpc_host)
-    except gaierror as exc:
-        raise WeaviateGrpcUnavailable(
-            "the client was unable to resolve the gRPC endpoint of your WCS cluster!"
-        ) from exc
-    # Some WCS regions have wildcard DNS, so we can get a valid DNS response even
-    # without a grpc server.
-    # An ordinary https GET will get a 415 from the grpc server if present
-    # due to the incorrect content-type.
-    resp = requests.get(f"https://{grpc_host}:443/", timeout=timeout)
-    if resp.status_code != 415:
-        raise WeaviateGrpcUnavailable(
-            "your cluster may need upgrading to the latest Weaviate version to support gRPC."
-        )
     return WeaviateClient(
         connection_params=ConnectionParams(
             http=ProtocolParams(host=cluster_url, port=443, secure=True),
@@ -66,6 +48,7 @@ def connect_to_wcs(
         auth_client_secret=auth_credentials,
         additional_headers=headers,
         additional_config=AdditionalConfig(timeout=timeout),
+        skip_init_checks=skip_init_checks,
     )
 
 

@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import datetime
 import os
-import socket
 import time
 from threading import Thread, Event
 from typing import Any, Dict, Optional, Tuple, Union, cast
@@ -27,7 +26,7 @@ from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import (
     AuthenticationFailedException,
     WeaviateStartUpError,
-    WeaviateQueryException,
+    WeaviateGrpcUnavailable,
 )
 from weaviate.types import NUMBER
 from weaviate.util import (
@@ -40,16 +39,9 @@ from weaviate.util import (
 )
 from weaviate.warnings import _Warnings
 
-try:
-    import grpc  # type: ignore
-    from grpc import Channel
-    from weaviate.proto.v1 import weaviate_pb2_grpc
-
-    has_grpc = True
-
-except ImportError:
-    has_grpc = False
-
+from grpc import Channel, _channel, secure_channel, insecure_channel, ssl_channel_credentials  # type: ignore
+from grpc_health.v1 import health_pb2  # type: ignore
+from weaviate.proto.v1 import weaviate_pb2_grpc
 
 JSONPayload = Union[dict, list]
 Session = Union[requests.sessions.Session, OAuth2Session]
@@ -162,13 +154,13 @@ class ConnectionParams(BaseModel):
         if self.grpc is None:
             return None
         if self.grpc.secure:
-            return grpc.secure_channel(
+            return secure_channel(
                 target=self._grpc_target,
-                credentials=grpc.ssl_channel_credentials(),
+                credentials=ssl_channel_credentials(),
                 options=GRPC_OPTIONS,
             )
         else:
-            return grpc.insecure_channel(
+            return insecure_channel(
                 target=self._grpc_target,
                 options=GRPC_OPTIONS,
             )
@@ -202,7 +194,6 @@ class Connection:
         startup_period: Optional[int],
         connection_config: ConnectionConfig,
         embedded_db: Optional[EmbeddedDB] = None,
-        skip_init_checks: bool = False,
     ):
         """
         Initialize a Connection class instance.
@@ -247,33 +238,14 @@ class Connection:
         self.url = connection_params._http_url  # e.g. http://localhost:80
         self.timeout_config: TIMEOUT_TYPE_RETURN = timeout_config
         self.embedded_db = embedded_db
+        self._auth_client_secret = auth_client_secret
+        self._connection_params = connection_params
+        self._connection_config = connection_config
+        self._startup_period = startup_period
 
         self._grpc_available = False
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
         self.__additional_headers: Dict[str, str] = {}
-
-        # create GRPC channel. If weaviate does not support GRPC, fallback to GraphQL is used.
-        if has_grpc and connection_params._has_grpc:
-            grpc_channel = connection_params._grpc_channel()
-            assert grpc_channel is not None
-            self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(grpc_channel)
-            self._grpc_available = True
-            if not skip_init_checks:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                try:
-                    s.settimeout(1.0)  # we're only pinging the port, 1s is plenty
-                    assert connection_params._grpc_address is not None
-                    s.connect(connection_params._grpc_address)
-                    s.shutdown(2)
-                    s.close()
-                    self._grpc_available = True
-                except (
-                    ConnectionRefusedError,
-                    TimeoutError,
-                    socket.timeout,
-                ):
-                    s.close()
-                    self._grpc_stub = None
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:
@@ -300,12 +272,13 @@ class Connection:
         self._session: Session
         self._shutdown_background_event: Optional[Event] = None
 
-        if startup_period is not None and not skip_init_checks:
-            _check_positive_num(startup_period, "startup_period", int, include_zero=False)
-            self.wait_for_weaviate(startup_period)
+    def connect(self, skip_init_checks: bool) -> None:
+        if self._startup_period is not None and not skip_init_checks:
+            _check_positive_num(self._startup_period, "startup_period", int, include_zero=True)
+            self.wait_for_weaviate(self._startup_period)
 
-        self._create_sessions(auth_client_secret)
-        self._add_adapter_to_session(connection_config)
+        self._create_sessions(self._auth_client_secret)
+        self._add_adapter_to_session(self._connection_config)
 
         if not skip_init_checks:
             self._server_version = self.get_meta()["version"]
@@ -833,7 +806,6 @@ class GRPCConnection(Connection):
         startup_period: Optional[int],
         connection_config: ConnectionConfig,
         embedded_db: Optional[EmbeddedDB] = None,
-        skip_init_checks: bool = False,
     ):
         super().__init__(
             connection_params,
@@ -845,15 +817,38 @@ class GRPCConnection(Connection):
             startup_period,
             connection_config,
             embedded_db,
-            skip_init_checks,
         )
-        if not skip_init_checks and self._server_version < "1.21" or self._grpc_stub is None:
-            raise WeaviateQueryException(
-                f"gRPC is not enabled. Is your Weaviate version at least 1.22 or higher? Current is {self._server_version}"
+
+    def connect(self, skip_init_checks: bool) -> None:
+        super().connect(skip_init_checks)
+        # create GRPC channel. If Weaviate does not support GRPC then error now.
+        if self._connection_params._has_grpc:
+            grpc_channel = self._connection_params._grpc_channel()
+            assert grpc_channel is not None
+            self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(grpc_channel)
+            self._grpc_available = True
+            if not skip_init_checks:
+                try:
+                    res: health_pb2.HealthCheckResponse = grpc_channel.unary_unary(
+                        "/grpc.health.v1.Health/Check",
+                        request_serializer=health_pb2.HealthCheckRequest.SerializeToString,
+                        response_deserializer=health_pb2.HealthCheckResponse.FromString,
+                    )(health_pb2.HealthCheckRequest(), timeout=1)
+                    if res.status != health_pb2.HealthCheckResponse.SERVING:
+                        raise WeaviateGrpcUnavailable(f"Weaviate v{self.server_version}")
+                except _channel._InactiveRpcError as e:
+                    raise WeaviateGrpcUnavailable(f"Weaviate v{self.server_version}") from e
+        else:
+            raise WeaviateGrpcUnavailable(
+                "You must provide the gRPC port in `connection_params` to use gRPC."
             )
 
     @property
     def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
+        if not self._grpc_available:
+            raise WeaviateGrpcUnavailable(
+                "Did you forget to call client.connect() before using the client?"
+            )
         return self._grpc_stub
 
 
