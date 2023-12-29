@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.22.6
-  NEW_WEAVIATE_VERSION: preview-add-reranking-functionalities-to-the-grpc-api-0505f0c
+  NEW_WEAVIATE_VERSION: preview-add-support-for-returning-blob-properties-in-grpc-queries-d566dd6
 
 jobs:
   lint-and-format:

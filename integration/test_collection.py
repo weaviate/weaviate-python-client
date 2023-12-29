@@ -1500,3 +1500,15 @@ def test_return_properties_with_type_hint_generic(
     objects = collection.query.fetch_objects().objects
     assert len(objects) == 1
     assert objects[0].properties["name"] == value
+
+
+def test_return_blob_property(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="blob", data_type=DataType.BLOB),
+        ]
+    )
+    collection.data.insert(properties={"blob": WEAVIATE_LOGO_OLD_ENCODED})
+    objs = collection.query.fetch_objects(return_properties=["blob"]).objects
+    assert len(objs) == 1
+    assert objs[0].properties["blob"] == WEAVIATE_LOGO_OLD_ENCODED
