@@ -752,17 +752,20 @@ class Connection:
         WeaviateStartUpError
             If weaviate takes longer than the timelimit to respond.
         """
-
         ready_url = self.url + self._api_version_path + "/.well-known/ready"
         for _i in range(startup_period):
             try:
-                requests.get(ready_url, headers=self._get_request_header()).raise_for_status()
+                requests.get(
+                    ready_url, headers=self._get_request_header(), timeout=1
+                ).raise_for_status()
                 return
             except (RequestsHTTPError, RequestsConnectionError):
                 time.sleep(1)
 
         try:
-            requests.get(ready_url, headers=self._get_request_header()).raise_for_status()
+            requests.get(
+                ready_url, headers=self._get_request_header(), timeout=1
+            ).raise_for_status()
             return
         except (RequestsHTTPError, RequestsConnectionError) as error:
             raise WeaviateStartUpError(
