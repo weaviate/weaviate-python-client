@@ -756,7 +756,9 @@ class Connection:
         for _i in range(startup_period):
             try:
                 requests.get(
-                    ready_url, headers=self._get_request_header(), timeout=1
+                    ready_url,
+                    headers=self._get_request_header(),
+                    timeout=(1, 5),  # 1s connect, 5s read
                 ).raise_for_status()
                 return
             except (RequestsHTTPError, RequestsConnectionError):
@@ -764,7 +766,7 @@ class Connection:
 
         try:
             requests.get(
-                ready_url, headers=self._get_request_header(), timeout=1
+                ready_url, headers=self._get_request_header(), timeout=(1, 5)  # 1s connect, 5s read
             ).raise_for_status()
             return
         except (RequestsHTTPError, RequestsConnectionError) as error:
