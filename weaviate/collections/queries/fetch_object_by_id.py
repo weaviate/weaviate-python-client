@@ -133,6 +133,11 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
             `return_references`
                 The references to return for each object.
 
+        NOTE:
+            - If `return_properties` is not provided then all properties are returned except for blob properties.
+            - If `return_metadata` is not provided then no metadata is provided.
+            - If `return_references` is not provided then no references are provided.
+
         Raises:
             `weaviate.exceptions.WeaviateQueryException`:
                 If the network connection to Weaviate fails.
