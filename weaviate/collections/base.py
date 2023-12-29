@@ -1,8 +1,9 @@
-from typing import Dict, TYPE_CHECKING
+from typing import Dict, List, TYPE_CHECKING
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
+from weaviate.collections.classes.cluster import Shard, _ConvertFromREST
 from weaviate.collections.classes.config import (
     _CollectionConfig,
     _CollectionConfigSimple,
@@ -12,7 +13,7 @@ from weaviate.collections.classes.config_methods import (
     _collection_configs_from_json,
     _collection_configs_simple_from_json,
 )
-from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.exceptions import EmptyResponseException, UnexpectedStatusCodeException
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 
 if TYPE_CHECKING:
@@ -20,8 +21,50 @@ if TYPE_CHECKING:
 
 
 class _CollectionBase:
-    def __init__(self, name: str) -> None:
+    def __init__(self, connection: Connection, name: str) -> None:
+        self._connection = connection
         self.name = _capitalize_first_letter(name)
+
+    def shards(
+        self,
+    ) -> List[Shard]:
+        """
+        Get the statuses of all the shards of this collection.
+
+        If the collection is multi-tenancy, each shard is one of the tenants. If the collection is single-tenancy, there is only one shard.
+
+        Arguments:
+            `output`
+                Set the desired output verbosity level. Can be `[minimal | verbose]`, defaults to server-side default of `minimal`.
+
+        Returns:
+            The list of shards belonging to this collection.
+
+        Raises
+            `requests.ConnectionError`
+                If the network connection to weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If weaviate reports a none OK status.
+            `weaviate.EmptyResponseException`
+                If the response is empty.
+        """
+        path = f"/nodes/{_capitalize_first_letter(self.name)}?output=verbose"
+
+        try:
+            response = self._connection.get(path=path)
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                "Get nodes status failed due to connection error"
+            ) from conn_err
+
+        response_typed = _decode_json_response_dict(response, "Nodes status")
+        assert response_typed is not None
+
+        nodes = response_typed.get("nodes")
+        if nodes is None or nodes == []:
+            raise EmptyResponseException("Nodes status response returned empty")
+
+        return _ConvertFromREST.nodes_to_shards(nodes)
 
 
 class _CollectionsBase:

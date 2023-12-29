@@ -105,3 +105,12 @@ def test_collection_name_capitalization(
     client.collections.delete(name_small)
     assert not client.collections.exists(name_small)
     assert not client.collections.exists(name_big)
+
+
+def test_client_cluster(client: weaviate.WeaviateClient, request: SubRequest) -> None:
+    collection = client.collections.create(name=request.node.name)
+
+    nodes = client.cluster.nodes(collection.name, output="verbose")
+    assert len(nodes) == 1
+    assert len(nodes[0].shards) == 1
+    assert nodes[0].shards[0].collection == collection.name

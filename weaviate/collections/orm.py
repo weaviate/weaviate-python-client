@@ -32,9 +32,7 @@ class _CollectionObjectModel(_CollectionBase, Generic[Model]):
         consistency_level: Optional[ConsistencyLevel] = None,
         tenant: Optional[str] = None,
     ) -> None:
-        super().__init__(name)
-
-        self._connection = connection
+        super().__init__(connection, name)
 
         self.config = config
         self.data = _DataCollectionModel[Model](

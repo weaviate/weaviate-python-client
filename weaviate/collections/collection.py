@@ -2,7 +2,6 @@ import json
 from dataclasses import asdict
 from typing import Generic, Literal, Optional, Type, Union, cast, overload
 
-from weaviate.collections.meta import _Meta
 from weaviate.collections.backups import _CollectionBackup
 from weaviate.collections.batch import _BatchCollection, BatchExecutor
 from weaviate.collections.classes.config import (
@@ -67,9 +66,8 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         properties: Optional[Type[Properties]] = None,
         references: Optional[Type[References]] = None,
     ) -> None:
-        super().__init__(name)
+        super().__init__(connection, name)
         self.__batch_executor = batch_executor
-        self._connection = connection
 
         self.aggregate = _AggregateCollection(
             self._connection, self.name, consistency_level, tenant
@@ -104,9 +102,6 @@ class Collection(_CollectionBase, Generic[Properties, References]):
 
         self.backup = _CollectionBackup(connection, self.name)
         """This namespace includes all the backup methods available to you when backing up a collection in Weaviate."""
-
-        self.meta = _Meta(connection, self.name)
-        """This namespace includes all the meta methods available to you when interacting with a collection in Weaviate."""
 
         self.__tenant = tenant
         self.__consistency_level = consistency_level
