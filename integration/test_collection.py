@@ -1508,7 +1508,7 @@ def test_return_blob_property(collection_factory: CollectionFactory) -> None:
             Property(name="blob", data_type=DataType.BLOB),
         ]
     )
-    collection.data.insert(properties={"blob": WEAVIATE_LOGO_OLD_ENCODED})
+    collection.data.insert_many([{"blob": WEAVIATE_LOGO_OLD_ENCODED}])
     objs = collection.query.fetch_objects(return_properties=["blob"]).objects
     assert len(objs) == 1
     assert objs[0].properties["blob"] == WEAVIATE_LOGO_OLD_ENCODED
