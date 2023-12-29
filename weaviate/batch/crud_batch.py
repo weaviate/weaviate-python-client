@@ -400,6 +400,8 @@ class Batch:
             The maximal number of concurrent threads to run batch import. Only used for non-MANUAL
             batching. i.e. is used only with AUTO or DYNAMIC batching.
             By default, the multi-threading is disabled. Use with care to not overload your weaviate instance.
+        consistency_level : Optional[ConsistencyLevel], optional
+            Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
 
         Returns
         -------
@@ -951,6 +953,9 @@ class Batch:
             If weaviate reports a none OK status.
         """
 
+        if self._batch_size is not None and self.dynamic:
+            _Warnings.manual_batching_when_dynamic_enabled()
+
         if len(self._objects_batch) != 0:
             _Warnings.manual_batching()
 
@@ -1047,6 +1052,8 @@ class Batch:
         weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
+        if self._batch_size is not None and self.dynamic:
+            _Warnings.manual_batching_when_dynamic_enabled()
 
         if len(self._reference_batch) != 0:
             _Warnings.manual_batching()
@@ -1105,15 +1112,15 @@ class Batch:
 
     def _send_batch_requests(self, force_wait: bool) -> None:
         """
-        Send BatchRequest in a separate thread/process. This methods submits a task to create only
+        Send BatchRequest in a separate thread/process. These methods submit a task to create only
         the ObjectsBatchRequests to the BatchExecutor and adds the ReferencesBatchRequests to a
         queue, then it carries on in the main thread until `num_workers` tasks have been submitted.
         When we have reached number of tasks to be equal to `num_workers` it waits for all the
         tasks to finish and handles the responses. After all ObjectsBatchRequests have been handled
         it created separate tasks for each ReferencesBatchRequests, then it handles their responses
         as well. This mechanism of creating References after Objects is constructed in this manner
-        to eliminate potential error when creating references from a object that does not yet
-        exists (object that is part of another task).
+        to eliminate potential error when creating references from an object that does not yet
+        exist (object that is part of another task).
 
         Parameters
         ----------
