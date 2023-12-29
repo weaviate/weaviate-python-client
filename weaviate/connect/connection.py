@@ -833,7 +833,7 @@ class GRPCConnection(Connection):
                         "/grpc.health.v1.Health/Check",
                         request_serializer=health_pb2.HealthCheckRequest.SerializeToString,
                         response_deserializer=health_pb2.HealthCheckResponse.FromString,
-                    )(health_pb2.HealthCheckRequest())
+                    )(health_pb2.HealthCheckRequest(), timeout=1)
                     if res.status != health_pb2.HealthCheckResponse.SERVING:
                         raise WeaviateGrpcUnavailable(f"Weaviate v{self.server_version}")
                 except _channel._InactiveRpcError as e:
