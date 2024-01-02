@@ -22,6 +22,7 @@ from weaviate.collections.classes.filters import (
     _Filters,
     _FilterValue,
     FilterMetadata,
+    FilterReference,
 )
 from weaviate.collections.classes.grpc import MetadataQuery
 from weaviate.collections.classes.internal import Reference
@@ -397,6 +398,9 @@ def test_filters_contains(
         (Filter(path=["ref", "target", "int"]).greater_than(3), [1]),
         (Filter(path=["ref", "target", "text"], length=True).less_than(6), [0]),
         (Filter(path=["ref", "target", "_id"]).equal(UUID2), [1]),
+        (Filter(FilterReference("ref", "target", "int")).greater_than(3), [1]),
+        (Filter(FilterReference("ref", "target", "text"), length=True).less_than(6), [0]),
+        (Filter(FilterReference("ref", "target", "_id")).equal(UUID2), [1]),
     ],
 )
 def test_ref_filters(

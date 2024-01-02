@@ -100,6 +100,25 @@ FilterValues = Union[
 ]
 
 
+class FilterReference:
+    """Define a filter on a property within a referenced collection."""
+
+    def __init__(self, link_on: str, target_collection: str, prop: str):
+        """Initialise the reference filter.
+
+        Arguments:
+            `link_on`
+                The name of the property on the object that links to the referenced collection.
+            `target_collection`
+                The name of the referenced collection.
+            `prop`
+                The name of the property to be filtered on within the referenced collection.
+        """
+        self.link_on = link_on
+        self.target_collection = target_collection
+        self.prop = prop
+
+
 class _FilterValue(_WeaviateInput, _Filters):
     path: Union[str, List[str]]
     value: FilterValues
@@ -118,7 +137,7 @@ class Filter:
     See [the docs](https://weaviate.io/developers/weaviate/search/filters) for more details!
     """
 
-    def __init__(self, path: Union[str, List[str]], length: bool = False):
+    def __init__(self, path: Union[str, List[str], FilterReference], length: bool = False):
         """Initialise the filter.
 
         Arguments:
@@ -131,6 +150,8 @@ class Filter:
         """
         if isinstance(path, str):
             path = [path]
+        elif isinstance(path, FilterReference):
+            path = [path.link_on, path.target_collection, path.prop]
         if length:
             path[-1] = "len(" + path[-1] + ")"
         self.__internal_path = path
