@@ -7,6 +7,11 @@ import weaviate
 from weaviate import Collection
 from weaviate.collections.classes.config import Configure, _CollectionConfig
 
+WCS_HOST = "piblpmmdsiknacjnm1ltla.c1.europe-west3.gcp.weaviate.cloud"
+WCS_URL = f"https://{WCS_HOST}"
+WCS_GRPC_HOST = f"grpc-{WCS_HOST}"
+WCS_CREDS = weaviate.AuthApiKey("cy4ua772mBlMdfw3YnclqAWzFhQt0RLIN0sl")
+
 
 @pytest.fixture(scope="module")
 def client() -> Generator[weaviate.WeaviateClient, None, None]:
@@ -31,6 +36,104 @@ def test_fail_to_connect_to_unspecified_grpc_port() -> None:
             connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080"),
             skip_init_checks=False,
         )
+
+
+def test_fail_to_connect_with_bad_wcs_url() -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
+        weaviate.connect_to_wcs(
+            WCS_URL + "bad",
+            auth_credentials=WCS_CREDS,
+        )
+
+
+@pytest.mark.parametrize(
+    "bad_config",
+    [
+        {
+            "http_secure": False,
+            "http_host": WCS_HOST,
+            "http_port": 443,
+            "grpc_secure": True,
+            "grpc_host": WCS_GRPC_HOST,
+            "grpc_port": 443,
+        },
+        {
+            "http_secure": True,
+            "http_host": WCS_HOST,
+            "http_port": 80,
+            "grpc_secure": True,
+            "grpc_host": WCS_GRPC_HOST,
+            "grpc_port": 443,
+        },
+        {
+            "http_secure": True,
+            "http_host": WCS_HOST + "bad",
+            "http_port": 443,
+            "grpc_secure": True,
+            "grpc_host": WCS_GRPC_HOST,
+            "grpc_port": 443,
+        },
+    ],
+)
+def test_fail_to_connect_with_bad_custom_wcs_setup_rest(bad_config: dict) -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
+        weaviate.connect_to_custom(**bad_config, auth_credentials=WCS_CREDS)
+
+
+@pytest.mark.parametrize(
+    "bad_config",
+    [
+        {
+            "http_secure": True,
+            "http_host": WCS_HOST,
+            "http_port": 443,
+            "grpc_secure": False,
+            "grpc_host": WCS_GRPC_HOST,
+            "grpc_port": 443,
+        },
+        {
+            "http_secure": True,
+            "http_host": WCS_HOST,
+            "http_port": 443,
+            "grpc_secure": True,
+            "grpc_host": WCS_GRPC_HOST + "bad",
+            "grpc_port": 443,
+        },
+        {
+            "http_secure": True,
+            "http_host": WCS_HOST,
+            "http_port": 443,
+            "grpc_secure": True,
+            "grpc_host": WCS_GRPC_HOST,
+            "grpc_port": 80,
+        },
+    ],
+)
+def test_fail_to_connect_with_bad_custom_wcs_setup_grpc(bad_config: dict) -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateGrpcUnavailable):
+        weaviate.connect_to_custom(**bad_config, auth_credentials=WCS_CREDS)
+
+
+def test_fail_to_connect_with_bad_custom_wcs_setup_rest_and_grpc() -> None:
+    """Test that REST checks take precendence to gRPC checks by throwing REST error rather than gRPC error."""
+    with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
+        weaviate.connect_to_custom(
+            http_secure=True,
+            http_host=WCS_HOST + "bad",
+            http_port=443,
+            grpc_secure=True,
+            grpc_host=WCS_GRPC_HOST + "bad",
+            grpc_port=443,
+            auth_credentials=WCS_CREDS,
+        )
+
+
+def test_connect_to_wcs() -> None:
+    client = weaviate.connect_to_wcs(
+        "https://piblpmmdsiknacjnm1ltla.c1.europe-west3.gcp.weaviate.cloud",
+        auth_credentials=WCS_CREDS,
+    )
+    client.get_meta()
 
 
 def test_create_get_and_delete(client: weaviate.WeaviateClient, request: SubRequest) -> None:
@@ -121,3 +224,12 @@ def test_collection_name_capitalization(
     client.collections.delete(name_small)
     assert not client.collections.exists(name_small)
     assert not client.collections.exists(name_big)
+
+
+def test_client_cluster(client: weaviate.WeaviateClient, request: SubRequest) -> None:
+    collection = client.collections.create(name=request.node.name)
+
+    nodes = client.cluster.nodes(collection.name, output="verbose")
+    assert len(nodes) == 1
+    assert len(nodes[0].shards) == 1
+    assert nodes[0].shards[0].collection == collection.name

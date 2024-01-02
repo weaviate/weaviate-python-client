@@ -1516,3 +1516,13 @@ def test_return_blob_property(collection_factory: CollectionFactory) -> None:
     assert obj.properties["blob"] == WEAVIATE_LOGO_OLD_ENCODED
     assert objs[0].properties["blob"] == WEAVIATE_LOGO_OLD_ENCODED
     assert objs[1].properties["blob"] == WEAVIATE_LOGO_OLD_ENCODED
+
+
+def test_collection_shards(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory()
+    shards = collection.shards()
+
+    assert len(shards) == 1
+    assert shards[0].collection == collection.name
+    assert shards[0].name is not None
+    assert shards[0].object_count == 0
