@@ -18,7 +18,6 @@ from weaviate.collections.classes.filters import (
     FilterMetadata,
 )
 from weaviate.collections.classes.grpc import PROPERTIES, REFERENCES, MetadataQuery
-
 from weaviate.collections.classes.internal import (
     _MetadataSingleObjectReturn,
     _ObjectSingleReturn,
@@ -34,8 +33,8 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.queries.base import _BaseQuery
-from weaviate.util import _datetime_from_weaviate_str
 from weaviate.types import UUID
+from weaviate.util import _datetime_from_weaviate_str
 
 
 class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
@@ -303,9 +302,8 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
                         )
                     ]
                 )
-                if obj_rest["properties"].get(ret_ref.link_on) is not None
-                else None
                 for ret_ref in ret_refs
+                if obj_rest["properties"].get(ret_ref.link_on) is not None
             }
             if all(ref is None for ref in refs.values()):
                 refs = None
