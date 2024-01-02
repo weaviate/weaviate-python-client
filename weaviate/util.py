@@ -710,10 +710,6 @@ def parse_version_string(ver_str: str) -> tuple:
 
 
 class _ServerVersion:
-    major: int
-    minor: int
-    patch: int
-
     def __init__(self, major: int, minor: int, patch: int) -> None:
         self.major = major
         self.minor = minor
