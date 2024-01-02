@@ -15,7 +15,12 @@ from weaviate.collections.classes.config import (
     ReferencePropertyMultiTarget,
 )
 from weaviate.collections.classes.data import DataObject, DataReference, DataReferenceOneToMany
-from weaviate.collections.classes.grpc import FromReference, FromReferenceMultiTarget, MetadataQuery
+from weaviate.collections.classes.grpc import (
+    FromReference,
+    FromReferenceMultiTarget,
+    MetadataQuery,
+    QueryReference,
+)
 from weaviate.collections.classes.internal import CrossReference, Reference, ReferenceAnnotation
 
 
@@ -560,3 +565,42 @@ def test_warning_refs_as_props(
     w = recwarn.pop()
     assert issubclass(w.category, DeprecationWarning)
     assert str(w.message).startswith("Dep007")
+
+
+def test_object_without_references(collection_factory: CollectionFactory) -> None:
+    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.none())
+
+    source = collection_factory(
+        name="From",
+        references=[
+            ReferenceProperty(name="ref_partial", target_collection=to.name),
+            ReferenceProperty(name="ref_full", target_collection=to.name),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    uuid_to = to.data.insert(properties={})
+
+    uuid_from1 = source.data.insert(
+        references={"ref_partial": Reference.to(uuid_to), "ref_full": Reference.to(uuid_to)},
+        properties={},
+    )
+    uuid_from2 = source.data.insert(references={"ref_full": Reference.to(uuid_to)}, properties={})
+
+    obj1 = source.query.fetch_object_by_id(
+        uuid_from2,
+        return_references=[
+            QueryReference(link_on="ref_full"),
+            QueryReference(link_on="ref_partial"),
+        ],
+    )
+    assert "ref_full" in obj1.references and "ref_partial" not in obj1.references
+
+    obj2 = source.query.fetch_object_by_id(
+        uuid_from1,
+        return_references=[
+            QueryReference(link_on="ref_full"),
+            QueryReference(link_on="ref_partial"),
+        ],
+    )
+    assert "ref_full" in obj2.references and "ref_partial" in obj2.references
