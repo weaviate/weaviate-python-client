@@ -40,24 +40,6 @@ class Node(Generic[S]):
 
 class _ConvertFromREST:
     @staticmethod
-    def nodes_to_shards(nodes: List[NodeREST]) -> List[Shard]:
-        shards: List[Shard] = []
-        for node in nodes:
-            if (node_shards := node.get("shards")) is not None:
-                shards.extend(
-                    [
-                        Shard(
-                            collection=shard["class"],
-                            name=shard["name"],
-                            node=node["name"],
-                            object_count=shard["objectCount"],
-                        )
-                        for shard in node_shards
-                    ]
-                )
-        return shards
-
-    @staticmethod
     def nodes_verbose(nodes: List[NodeREST]) -> List[Node[Shards]]:
         return [
             Node(
