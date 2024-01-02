@@ -6,10 +6,7 @@ from weaviate.cluster.types import Node as NodeREST, Shard as ShardREST
 
 @dataclass
 class Shard:
-    """The properties of a single shard of a collection.
-
-    If multi-tenancy is enabled, this corresponds to a single tenant of the collection. Otherwise, this corresponds to the collection itself.
-    """
+    """The properties of a single shard of a collection."""
 
     collection: str
     name: str
@@ -30,10 +27,7 @@ S = TypeVar("S")
 
 @dataclass
 class Node(Generic[S]):
-    """The properties of a single node in the cluster.
-
-    If there is no replication enabled then there is only one node in the cluster.
-    """
+    """The properties of a single node in the cluster."""
 
     git_hash: str
     name: str

@@ -31,12 +31,6 @@ class _CollectionBase:
         """
         Get the statuses of all the shards of this collection.
 
-        If the collection is multi-tenancy, each shard is one of the tenants. If the collection is single-tenancy, there is only one shard.
-
-        Arguments:
-            `output`
-                Set the desired output verbosity level. Can be `[minimal | verbose]`, defaults to server-side default of `minimal`.
-
         Returns:
             The list of shards belonging to this collection.
 
