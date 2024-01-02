@@ -10,6 +10,7 @@ class Shard:
 
     collection: str
     name: str
+    node: str
     object_count: int
 
 
@@ -48,6 +49,7 @@ class _ConvertFromREST:
                         Shard(
                             collection=shard["class"],
                             name=shard["name"],
+                            node=node["name"],
                             object_count=shard["objectCount"],
                         )
                         for shard in node_shards
@@ -65,6 +67,7 @@ class _ConvertFromREST:
                     Shard(
                         collection=shard["class"],
                         name=shard["name"],
+                        node=node["name"],
                         object_count=shard["objectCount"],
                     )
                     for shard in cast(List[ShardREST], node["shards"])
