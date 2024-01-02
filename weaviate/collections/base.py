@@ -1,8 +1,9 @@
-from typing import Dict, TYPE_CHECKING
+from typing import Dict, List, TYPE_CHECKING
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
+from weaviate.collections.classes.cluster import Shard
 from weaviate.collections.classes.config import (
     _CollectionConfig,
     _CollectionConfigSimple,
@@ -12,6 +13,7 @@ from weaviate.collections.classes.config_methods import (
     _collection_configs_from_json,
     _collection_configs_simple_from_json,
 )
+from weaviate.collections.cluster import _Cluster
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 
@@ -20,8 +22,31 @@ if TYPE_CHECKING:
 
 
 class _CollectionBase:
-    def __init__(self, name: str) -> None:
+    def __init__(self, connection: Connection, name: str) -> None:
+        self._connection = connection
         self.name = _capitalize_first_letter(name)
+        self.__cluster = _Cluster(connection)
+
+    def shards(self) -> List[Shard]:
+        """
+        Get the statuses of all the shards of this collection.
+
+        Returns:
+            The list of shards belonging to this collection.
+
+        Raises
+            `requests.ConnectionError`
+                If the network connection to weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If weaviate reports a none OK status.
+            `weaviate.EmptyResponseException`
+                If the response is empty.
+        """
+        return [
+            shard
+            for node in self.__cluster.nodes(self.name, output="verbose")
+            for shard in node.shards
+        ]
 
 
 class _CollectionsBase:

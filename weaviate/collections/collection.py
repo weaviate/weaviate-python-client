@@ -1,8 +1,8 @@
 import json
 from dataclasses import asdict
 from typing import Generic, Literal, Optional, Type, Union, cast, overload
-from weaviate.collections.backups import _CollectionBackup
 
+from weaviate.collections.backups import _CollectionBackup
 from weaviate.collections.batch import _BatchCollection, BatchExecutor
 from weaviate.collections.classes.config import (
     ConsistencyLevel,
@@ -66,9 +66,8 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         properties: Optional[Type[Properties]] = None,
         references: Optional[Type[References]] = None,
     ) -> None:
-        super().__init__(name)
+        super().__init__(connection, name)
         self.__batch_executor = batch_executor
-        self._connection = connection
 
         self.aggregate = _AggregateCollection(
             self._connection, self.name, consistency_level, tenant

@@ -1500,3 +1500,13 @@ def test_return_properties_with_type_hint_generic(
     objects = collection.query.fetch_objects().objects
     assert len(objects) == 1
     assert objects[0].properties["name"] == value
+
+
+def test_collection_shards(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory()
+    shards = collection.shards()
+
+    assert len(shards) == 1
+    assert shards[0].collection == collection.name
+    assert shards[0].name is not None
+    assert shards[0].object_count == 0

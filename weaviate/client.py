@@ -11,10 +11,11 @@ from weaviate.backup.backup import _Backup
 from .auth import AuthCredentials
 from .backup import Backup
 from .batch import Batch
-from .collections.batch import _BatchClient, BatchExecutor
 from .classification import Classification
 from .cluster import Cluster
 from .collections import _Collections
+from .collections.batch import _BatchClient, BatchExecutor
+from .collections.cluster import _Cluster
 from .config import AdditionalConfig, Config
 from .connect.connection import (
     Connection,
@@ -257,6 +258,8 @@ class WeaviateClient(_ClientBase):
         """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
         self.backup = _Backup(self._connection)
         """This namespace contains all functionality to backup data."""
+        self.cluster = _Cluster(self._connection)
+        """This namespace contains all functionality to inspect the connected Weaviate cluster."""
         self.collections = _Collections(self._connection, batch_executor)
         """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
 
