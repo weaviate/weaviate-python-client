@@ -42,10 +42,11 @@ class _CollectionBase:
             `weaviate.EmptyResponseException`
                 If the response is empty.
         """
-        shards: List[Shard] = []
-        for node in self.__cluster.nodes(self.name, output="verbose"):
-            shards.extend(node.shards)
-        return shards
+        return [
+            shard
+            for node in self.__cluster.nodes(self.name, output="verbose")
+            for shard in node.shards
+        ]
 
 
 class _CollectionsBase:
