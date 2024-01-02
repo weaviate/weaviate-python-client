@@ -17,14 +17,6 @@ class Shard:
 
 
 @dataclass
-class BatchStats:
-    """The statistics of the current batching queue."""
-
-    queue_length: int
-    rate_per_second: int
-
-
-@dataclass
 class Stats:
     """The statistics of a collection."""
 
@@ -43,7 +35,6 @@ class Node(Generic[S]):
     If there is no replication enabled then there is only one node in the cluster.
     """
 
-    batch_stats: BatchStats
     git_hash: str
     name: str
     shards: S
@@ -74,10 +65,6 @@ class _ConvertFromREST:
     def nodes_verbose(nodes: List[NodeREST]) -> List[Node[Shards]]:
         return [
             Node(
-                batch_stats=BatchStats(
-                    queue_length=node["batchStats"]["queueLength"],
-                    rate_per_second=node["batchStats"]["ratePerSecond"],
-                ),
                 git_hash=node["gitHash"],
                 name=node["name"],
                 shards=[
@@ -102,10 +89,6 @@ class _ConvertFromREST:
     def nodes_minimal(nodes: List[NodeREST]) -> List[Node[None]]:
         return [
             Node(
-                batch_stats=BatchStats(
-                    queue_length=node["batchStats"]["queueLength"],
-                    rate_per_second=node["batchStats"]["ratePerSecond"],
-                ),
                 git_hash=node["gitHash"],
                 name=node["name"],
                 shards=None,
