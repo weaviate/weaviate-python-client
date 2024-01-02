@@ -5,9 +5,8 @@ from typing import Optional, Tuple, Union, Dict, Any
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
 from weaviate.backup.backup import _Backup
-
+from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
 from .auth import AuthCredentials
 from .backup import Backup
 from .batch import Batch
@@ -15,6 +14,7 @@ from .classification import Classification
 from .cluster import Cluster
 from .collections import _Collections
 from .collections.batch import _BatchClient, BatchExecutor
+from .collections.batch.batch2 import _Batch2
 from .collections.cluster import _Cluster
 from .config import AdditionalConfig, Config
 from .connect.connection import (
@@ -30,8 +30,8 @@ from .embedded import EmbeddedDB, EmbeddedOptions
 from .exceptions import UnexpectedStatusCodeException
 from .gql import Query
 from .schema import Schema
-from .util import _decode_json_response_dict, _get_valid_timeout_config, _type_request_response
 from .types import NUMBER
+from .util import _decode_json_response_dict, _get_valid_timeout_config, _type_request_response
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
@@ -256,6 +256,7 @@ class WeaviateClient(_ClientBase):
 
         self.batch = _BatchClient(self._connection, batch_executor)
         """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
+        self.batch2 = _Batch2(self._connection)
         self.backup = _Backup(self._connection)
         """This namespace contains all functionality to backup data."""
         self.cluster = _Cluster(self._connection)

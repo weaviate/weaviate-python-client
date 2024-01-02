@@ -1,4 +1,5 @@
 import math
+import threading
 import time
 from abc import ABC, abstractmethod
 from collections import deque
@@ -8,12 +9,14 @@ from threading import Event, Thread
 from typing import Any, Deque, Dict, Generic, List, Optional, Sequence, Set, Tuple, TypeVar, cast
 
 from pydantic import ValidationError
-
 from requests import ReadTimeout
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests.exceptions import HTTPError as RequestsHTTPError
 
 from weaviate.cluster import Cluster
+from weaviate.collections.batch.executor import BatchExecutor
+from weaviate.collections.batch.grpc import _BatchGRPC
+from weaviate.collections.batch.rest import _BatchREST
 from weaviate.collections.classes.batch import (
     BatchObject,
     BatchReference,
@@ -29,15 +32,11 @@ from weaviate.collections.classes.batch import (
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import WeaviateReferences
 from weaviate.collections.classes.types import WeaviateProperties
-from weaviate.collections.batch.executor import BatchExecutor
-from weaviate.collections.batch.grpc import _BatchGRPC
-from weaviate.collections.batch.rest import _BatchREST
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateBatchValidationError
+from weaviate.types import UUID
 from weaviate.util import _capitalize_first_letter, _decode_json_response_list
 from weaviate.warnings import _Warnings
-from weaviate.types import UUID
-
 
 BatchResponse = List[Dict[str, Any]]
 
@@ -50,7 +49,8 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
     """`BatchRequest` abstract class used as a interface for batch requests."""
 
     def __init__(self) -> None:
-        self.__items: Deque[TBatchInput] = deque([])
+        self.__items: List[TBatchInput] = []
+        self.__lock = threading.Lock()
 
     def __len__(self) -> int:
         return len(self.__items)
@@ -69,17 +69,37 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
 
     def add(self, item: TBatchInput) -> None:
         """Add an item to the BatchRequest."""
+        self.__lock.acquire()
         self.__items.append(item)
+        self.__lock.release()
 
     @property
-    def items(self) -> Deque[TBatchInput]:
+    def items(self) -> List[TBatchInput]:
         """
         Get all items from the BatchRequest.
 
         Returns
             `Deque[TBatchInput]` All items from the BatchRequest.
         """
-        return self.__items
+        return copy(self.__items)
+
+    def pop_items(self, pop_amount: int) -> List[TBatchInput]:
+        """
+        Get all items from the BatchRequest.
+
+        Returns
+            `Deque[TBatchInput]` All items from the BatchRequest.
+        """
+        self.__lock.acquire()
+        if pop_amount >= len(self.__items):
+            ret = copy(self.__items)
+            self.__items.clear()
+        else:
+            ret = copy(self.__items[:pop_amount])
+            self.__items = self.__items[pop_amount:]
+
+        self.__lock.release()
+        return ret
 
     @abstractmethod
     def _add_failed_objects_from_response(
