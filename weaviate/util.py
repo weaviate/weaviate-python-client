@@ -709,6 +709,68 @@ def parse_version_string(ver_str: str) -> tuple:
         )
 
 
+class _ServerVersion:
+    major: int
+    minor: int
+    patch: int
+
+    def __init__(self, major: int, minor: int, patch: int) -> None:
+        self.major = major
+        self.minor = minor
+        self.patch = patch
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, _ServerVersion):
+            return NotImplemented
+        return self.major == other.major and self.minor == other.minor and self.patch == other.patch
+
+    def __gt__(self, other: "_ServerVersion") -> bool:
+        if self.major > other.major:
+            return True
+        elif self.major == other.major:
+            if self.minor > other.minor:
+                return True
+            elif self.minor == other.minor:
+                if self.patch > other.patch:
+                    return True
+        return False
+
+    def __lt__(self, other: "_ServerVersion") -> bool:
+        return not self.__gt__(other) and not self.__eq__(other)
+
+    def __ge__(self, other: "_ServerVersion") -> bool:
+        return self.__gt__(other) or self.__eq__(other)
+
+    def __le__(self, other: "_ServerVersion") -> bool:
+        return self.__lt__(other) or self.__eq__(other)
+
+    def __repr__(self) -> str:
+        return f"{self.major}.{self.minor}.{self.patch}"
+
+    def is_at_least(self, major: int, minor: int, patch: int) -> bool:
+        return self >= _ServerVersion(major, minor, patch)
+
+    @classmethod
+    def from_string(cls, version: str) -> "_ServerVersion":
+        if version == "":
+            version = "0"
+        if version.count(".") == 0:
+            version = version + ".0"
+        if version.count(".") == 1:
+            version = version + ".0"
+
+        pattern = r"v?(\d+)\.(\d+)\.(\d+)"
+        match = re.match(pattern, version)
+
+        if match:
+            ver_tup = tuple(map(int, match.groups()))
+            return cls(major=ver_tup[0], minor=ver_tup[1], patch=ver_tup[2])
+        else:
+            raise ValueError(
+                f"Unable to parse a version from the input string: {version}. Is it in the format '(v)x.y.z' (e.g. 'v1.18.2' or '1.18.0')?"
+            )
+
+
 def is_weaviate_too_old(current_version_str: str) -> bool:
     """
     Check if the user should be gently nudged to upgrade their Weaviate server version.
