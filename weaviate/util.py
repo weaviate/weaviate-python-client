@@ -751,6 +751,7 @@ class _ServerVersion:
 
     @classmethod
     def from_string(cls, version: str) -> "_ServerVersion":
+        initial = version
         if version == "":
             version = "0"
         if version.count(".") == 0:
@@ -766,7 +767,7 @@ class _ServerVersion:
             return cls(major=ver_tup[0], minor=ver_tup[1], patch=ver_tup[2])
         else:
             raise ValueError(
-                f"Unable to parse a version from the input string: {version}. Is it in the format '(v)x.y.z' (e.g. 'v1.18.2' or '1.18.0')?"
+                f"Unable to parse a version from the input string: {initial}. Is it in the format '(v)x.y.z' (e.g. 'v1.18.2' or '1.18.0')?"
             )
 
 
