@@ -720,6 +720,9 @@ class _ServerVersion:
             return NotImplemented
         return self.major == other.major and self.minor == other.minor and self.patch == other.patch
 
+    def __neq__(self, other: object) -> bool:
+        return not self.__eq__(other)
+
     def __gt__(self, other: "_ServerVersion") -> bool:
         if self.major > other.major:
             return True
