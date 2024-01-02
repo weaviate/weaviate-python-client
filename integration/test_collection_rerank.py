@@ -2,22 +2,50 @@ import os
 
 import pytest
 
+import weaviate
 import weaviate.classes as wvc
 
 from .conftest import CollectionFactory
 
 
-def test_queries_with_rerank(collection_factory: CollectionFactory) -> None:
+def test_query_using_rerank_with_old_server(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        reranker_config=wvc.Configure.Reranker.transformers(),
+        vectorizer_config=wvc.Configure.Vectorizer.none(),
+        properties=[wvc.Property(name="text", data_type=wvc.DataType.TEXT)],
+        ports=(8079, 50050),
+    )
+
+    collection.data.insert_many([{"text": "This is a test"}, {"text": "This is another test"}])
+
+    with pytest.warns(UserWarning):
+        objs = collection.query.bm25(
+            "test", rerank=wvc.query.Rerank(prop="text", query="another")
+        ).objects
+        assert len(objs) == 2
+        assert objs[0].metadata.rerank_score is None
+        assert objs[1].metadata.rerank_score is None
+
+
+def test_queries_with_rerank() -> None:
     api_key = os.environ.get("OPENAI_APIKEY")
     if api_key is None:
         pytest.skip("No OpenAI API key found.")
 
-    collection = collection_factory(
+    # Make specific client so that we can hard code the correct server version and avoid the BC reranking checks
+    client = weaviate.WeaviateClient(
+        connection_params=weaviate.ConnectionParams.from_url(
+            "http://localhost:8079", grpc_port=50050
+        ),
+        additional_headers={"X-OpenAI-Api-Key": api_key},
+    )
+    client._connection._server_version = "1.23.1"
+
+    collection = client.collections.create(
+        name="Test_test_queries_with_rerank",
         reranker_config=wvc.Configure.Reranker.transformers(),
         vectorizer_config=wvc.Configure.Vectorizer.text2vec_openai(),
         properties=[wvc.Property(name="text", data_type=wvc.DataType.TEXT)],
-        ports=(8079, 50050),
-        headers={"X-OpenAI-Api-Key": api_key},
     )
 
     insert = collection.data.insert_many(
@@ -54,7 +82,7 @@ def test_queries_with_rerank(collection_factory: CollectionFactory) -> None:
         assert [obj for obj in objects if "another" in obj.properties["text"]][  # type: ignore
             0
         ].metadata.rerank_score > [
-            obj for obj in objects if "another" not in obj.properties["text"]
+            obj for obj in objects if "another" not in obj.properties["text"]  # type: ignore
         ][
             0
         ].metadata.rerank_score
@@ -65,13 +93,21 @@ def test_queries_with_rerank_and_generative(collection_factory: CollectionFactor
     if api_key is None:
         pytest.skip("No OpenAI API key found.")
 
-    collection = collection_factory(
+    # Make specific client so that we can hard code the correct server version and avoid the BC reranking checks
+    client = weaviate.WeaviateClient(
+        connection_params=weaviate.ConnectionParams.from_url(
+            "http://localhost:8079", grpc_port=50050
+        ),
+        additional_headers={"X-OpenAI-Api-Key": api_key},
+    )
+    client._connection._server_version = "1.23.1"
+
+    collection = client.collections.create(
+        name="Test_test_queries_with_rerank_and_generative",
         generative_config=wvc.Configure.Generative.openai(),
         reranker_config=wvc.Configure.Reranker.transformers(),
         vectorizer_config=wvc.Configure.Vectorizer.text2vec_openai(),
         properties=[wvc.Property(name="text", data_type=wvc.DataType.TEXT)],
-        ports=(8079, 50050),
-        headers={"X-OpenAI-Api-Key": api_key},
     )
 
     insert = collection.data.insert_many(
@@ -122,7 +158,7 @@ def test_queries_with_rerank_and_generative(collection_factory: CollectionFactor
         assert [obj for obj in objects if "another" in obj.properties["text"]][  # type: ignore
             0
         ].metadata.rerank_score > [
-            obj for obj in objects if "another" not in obj.properties["text"]
+            obj for obj in objects if "another" not in obj.properties["text"]  # type: ignore
         ][
             0
         ].metadata.rerank_score

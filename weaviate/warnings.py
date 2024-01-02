@@ -210,3 +210,12 @@ class _Warnings:
             category=UserWarning,
             stacklevel=1,
         )
+
+    @staticmethod
+    def reranking_not_enabled() -> None:
+        warnings.warn(
+            message="""Grpc001: Reranking is not in the gRPC API for this Weaviate version. You must update to the latest Weaviate server version to use this new functionality.
+            This query will execute without reranking.""",
+            category=UserWarning,
+            stacklevel=1,
+        )

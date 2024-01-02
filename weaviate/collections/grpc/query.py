@@ -41,6 +41,7 @@ from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateQueryException
 from weaviate.types import UUID
+from weaviate.warnings import _Warnings
 
 from weaviate.proto.v1 import search_get_pb2
 
@@ -122,12 +123,14 @@ class _QueryGRPC(_BaseGRPC):
         consistency_level: Optional[ConsistencyLevel],
         default_properties: Optional[PROPERTIES] = None,
         is_weaviate_version_123: bool = False,
+        has_reranking: bool = False,
     ):
         super().__init__(
             connection, consistency_level, is_weaviate_version_123=is_weaviate_version_123
         )
         self._name: str = name
         self._tenant = tenant
+        self.__has_reranking = has_reranking
 
         if default_properties is not None:
             self._default_props: Optional[Set[PROPERTY]] = self.__convert_to_set(default_properties)
@@ -469,6 +472,10 @@ class _QueryGRPC(_BaseGRPC):
     def __call(self) -> SearchResponse:
         metadata: Optional[Tuple[Tuple[str, str], ...]] = None
         access_token = self._connection.get_current_bearer_token()
+
+        if not self.__has_reranking and self._rerank is not None:
+            _Warnings.reranking_not_enabled()
+            self._rerank = None
 
         metadata_list: List[Tuple[str, str]] = []
         if len(access_token) > 0:
