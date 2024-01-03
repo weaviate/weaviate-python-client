@@ -1,5 +1,23 @@
 Changelog
 =========
+
+Version 4.4.b5
+--------------
+
+This beta version includes:
+
+- fetch_object_by_id with Weaviate 1.22 returned ``None`` for non-existing references
+- empty strings in returned objects caused a panic with weaviate 1.22
+- Support for nodes/cluster API
+- Speed up client creation when connecting to WCS using ``connect_to_wcs``
+- Checks GRPC availability of Weaviate instance and return an error if it is not supported yet
+- Adds ``skip_init_checks`` to ``connect_to_wcs``
+
+With the next Weaviate version (1.23.1) this beta version supports:
+- Blob properties
+- Reranker
+
+
 Version 4.4.b4
 --------------
 
