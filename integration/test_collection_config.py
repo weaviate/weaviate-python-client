@@ -584,3 +584,27 @@ def test_config_reranker_module(
     assert conf.reranker_config is not None
     assert conf.reranker_config.reranker == expected_reranker
     assert conf.reranker_config.model == expected_model
+
+
+def test_config_nested_properties(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(
+                name="name",
+                data_type=DataType.OBJECT,
+                nested_properties=[
+                    Property(name="first", data_type=DataType.TEXT),
+                    Property(name="last", data_type=DataType.TEXT),
+                ],
+            ),
+        ],
+    )
+    conf = collection.config.get()
+    assert conf.properties[0].name == "name"
+    assert conf.properties[0].data_type == DataType.OBJECT
+    assert conf.properties[0].nested_properties is not None
+    assert conf.properties[0].nested_properties[0].name == "first"
+    assert conf.properties[0].nested_properties[0].data_type == DataType.TEXT
+    assert conf.properties[0].nested_properties[1].name == "last"
+    assert conf.properties[0].nested_properties[1].data_type == DataType.TEXT
