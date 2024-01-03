@@ -17,6 +17,7 @@ from weaviate.collections.classes.grpc import (
     FromReference,
     FromReferenceMultiTarget,
     Generate,
+    GroupBy,
     MetadataQuery,
     METADATA,
     PROPERTIES,
@@ -217,6 +218,18 @@ class _GroupBy:
             path=[self.prop],
             number_of_groups=self.number_of_groups,
             objects_per_group=self.objects_per_group,
+        )
+
+    @classmethod
+    def from_input(cls, group_by: Optional[GroupBy]) -> Optional["_GroupBy"]:
+        return (
+            cls(
+                prop=group_by.prop,
+                number_of_groups=group_by.number_of_groups,
+                objects_per_group=group_by.objects_per_group,
+            )
+            if group_by
+            else None
         )
 
 
@@ -528,6 +541,7 @@ class _QueryOptions(Generic[Properties, References, TReferences]):
     include_properties: bool
     include_references: bool
     include_vector: bool
+    is_group_by: bool
 
     @classmethod
     def from_input(
@@ -538,6 +552,7 @@ class _QueryOptions(Generic[Properties, References, TReferences]):
         collection_references: Optional[Type[References]],
         query_references: Optional[ReturnReferences[TReferences]],
         rerank: Optional[Rerank] = None,
+        group_by: Optional[GroupBy] = None,
     ) -> "_QueryOptions":
         return cls(
             include_metadata=return_metadata is not None or rerank is not None,
@@ -546,4 +561,5 @@ class _QueryOptions(Generic[Properties, References, TReferences]):
             ),
             include_references=collection_references is not None or query_references is not None,
             include_vector=include_vector,
+            is_group_by=group_by is not None,
         )

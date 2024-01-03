@@ -195,7 +195,7 @@ class _BaseQuery(Generic[Properties, References]):
             ref_prop.prop_name: _CrossReference._from(
                 [
                     self.__result_to_query_object(
-                        prop, prop.metadata, _QueryOptions(True, True, True, True)
+                        prop, prop.metadata, _QueryOptions(True, True, True, True, False)
                     )
                     for prop in ref_prop.properties
                 ]
@@ -272,7 +272,7 @@ class _BaseQuery(Generic[Properties, References]):
             ref_prop.prop_name: _CrossReference._from(
                 [
                     self.__result_to_query_object(
-                        prop, prop.metadata, _QueryOptions(True, True, True, True)
+                        prop, prop.metadata, _QueryOptions(True, True, True, True, False)
                     )
                     for prop in ref_prop.properties
                 ]
@@ -446,6 +446,36 @@ class _BaseQuery(Generic[Properties, References]):
                 _GroupByReturn[TProperties, TReferences],
             ],
             return_,
+        )
+
+    def _result_to_query_or_groupby_return(
+        self,
+        res: SearchResponse,
+        options: _QueryOptions,
+        properties: Optional[
+            ReturnProperties[TProperties]
+        ],  # required until 3.12 is minimum supported version to use new generics syntax
+        references: Optional[
+            ReturnReferences[TReferences]
+        ],  # required until 3.12 is minimum supported version to use new generics syntax
+    ) -> Union[
+        _QueryReturn[Properties, References],
+        _QueryReturn[Properties, CrossReferences],
+        _QueryReturn[Properties, TReferences],
+        _QueryReturn[TProperties, References],
+        _QueryReturn[TProperties, CrossReferences],
+        _QueryReturn[TProperties, TReferences],
+        _GroupByReturn[Properties, References],
+        _GroupByReturn[Properties, CrossReferences],
+        _GroupByReturn[Properties, TReferences],
+        _GroupByReturn[TProperties, References],
+        _GroupByReturn[TProperties, CrossReferences],
+        _GroupByReturn[TProperties, TReferences],
+    ]:
+        return (
+            self._result_to_query_return(res, options, properties, references)
+            if not options.is_group_by
+            else self._result_to_groupby_return(res, options, properties, references)
         )
 
     def __parse_generic_properties(

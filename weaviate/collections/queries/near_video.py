@@ -2,10 +2,12 @@ from io import BufferedReader
 from pathlib import Path
 from typing import Generic, List, Literal, Optional, Type, Union, overload
 
+from deprecated import deprecated
+
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, Rerank
+from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, GroupBy, Rerank
 from weaviate.collections.classes.internal import (
     _Generative,
     _GenerativeReturn,
@@ -31,15 +33,16 @@ class _NearVideoQuery(Generic[Properties, References], _BaseQuery[Properties, Re
     def near_video(
         self,
         near_video: Union[str, Path, BufferedReader],
+        *,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
-        *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
     ) -> _QueryReturn[Properties, References]:
@@ -49,15 +52,16 @@ class _NearVideoQuery(Generic[Properties, References], _BaseQuery[Properties, Re
     def near_video(
         self,
         near_video: Union[str, Path, BufferedReader],
+        *,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
-        *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
     ) -> _QueryReturn[Properties, CrossReferences]:
@@ -67,15 +71,16 @@ class _NearVideoQuery(Generic[Properties, References], _BaseQuery[Properties, Re
     def near_video(
         self,
         near_video: Union[str, Path, BufferedReader],
+        *,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
-        *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
     ) -> _QueryReturn[Properties, TReferences]:
@@ -85,15 +90,16 @@ class _NearVideoQuery(Generic[Properties, References], _BaseQuery[Properties, Re
     def near_video(
         self,
         near_video: Union[str, Path, BufferedReader],
+        *,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
-        *,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
     ) -> _QueryReturn[TProperties, References]:
@@ -103,15 +109,16 @@ class _NearVideoQuery(Generic[Properties, References], _BaseQuery[Properties, Re
     def near_video(
         self,
         near_video: Union[str, Path, BufferedReader],
+        *,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
-        *,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
     ) -> _QueryReturn[TProperties, CrossReferences]:
@@ -121,32 +128,150 @@ class _NearVideoQuery(Generic[Properties, References], _BaseQuery[Properties, Re
     def near_video(
         self,
         near_video: Union[str, Path, BufferedReader],
+        *,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
-        *,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
     ) -> _QueryReturn[TProperties, TReferences]:
         ...
 
+    ### GroupBy ###
+
+    @overload
     def near_video(
         self,
         near_video: Union[str, Path, BufferedReader],
+        *,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: GroupBy,
         rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Literal[None] = None,
+    ) -> _GroupByReturn[Properties, References]:
+        ...
+
+    @overload
+    def near_video(
+        self,
+        near_video: Union[str, Path, BufferedReader],
         *,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: GroupBy,
+        rerank: Optional[Rerank] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: REFERENCES,
+    ) -> _GroupByReturn[Properties, CrossReferences]:
+        ...
+
+    @overload
+    def near_video(
+        self,
+        near_video: Union[str, Path, BufferedReader],
+        *,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: GroupBy,
+        rerank: Optional[Rerank] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Type[TReferences],
+    ) -> _GroupByReturn[Properties, TReferences]:
+        ...
+
+    @overload
+    def near_video(
+        self,
+        near_video: Union[str, Path, BufferedReader],
+        *,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: GroupBy,
+        rerank: Optional[Rerank] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        return_properties: Type[TProperties],
+        return_references: Literal[None] = None,
+    ) -> _GroupByReturn[TProperties, References]:
+        ...
+
+    @overload
+    def near_video(
+        self,
+        near_video: Union[str, Path, BufferedReader],
+        *,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: GroupBy,
+        rerank: Optional[Rerank] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        return_properties: Type[TProperties],
+        return_references: REFERENCES,
+    ) -> _GroupByReturn[TProperties, CrossReferences]:
+        ...
+
+    @overload
+    def near_video(
+        self,
+        near_video: Union[str, Path, BufferedReader],
+        *,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: GroupBy,
+        rerank: Optional[Rerank] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        return_properties: Type[TProperties],
+        return_references: Type[TReferences],
+    ) -> _GroupByReturn[TProperties, TReferences]:
+        ...
+
+    def near_video(
+        self,
+        near_video: Union[str, Path, BufferedReader],
+        *,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Optional[GroupBy] = None,
+        rerank: Optional[Rerank] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> Union[
@@ -156,6 +281,12 @@ class _NearVideoQuery(Generic[Properties, References], _BaseQuery[Properties, Re
         _QueryReturn[TProperties, References],
         _QueryReturn[TProperties, CrossReferences],
         _QueryReturn[TProperties, TReferences],
+        _GroupByReturn[Properties, References],
+        _GroupByReturn[Properties, CrossReferences],
+        _GroupByReturn[Properties, TReferences],
+        _GroupByReturn[TProperties, References],
+        _GroupByReturn[TProperties, CrossReferences],
+        _GroupByReturn[TProperties, TReferences],
     ]:
         """Search for objects by video in this collection using an video-capable vectorisation module and vector-based similarity search.
 
@@ -204,15 +335,16 @@ class _NearVideoQuery(Generic[Properties, References], _BaseQuery[Properties, Re
             video=self._parse_media(near_video),
             certainty=certainty,
             distance=distance,
-            filters=filters,
             limit=limit,
             autocut=auto_limit,
+            filters=filters,
+            group_by=_GroupBy.from_input(group_by),
             rerank=rerank,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(return_references),
         )
-        return self._result_to_query_return(
+        return self._result_to_query_or_groupby_return(
             res,
             _QueryOptions.from_input(
                 return_metadata,
@@ -575,6 +707,10 @@ class _NearVideoGroupBy(Generic[Properties, References], _BaseQuery[Properties, 
     ) -> _GroupByReturn[TProperties, TReferences]:
         ...
 
+    @deprecated(
+        version="4.4b6",
+        reason="Use `query.near_vector` with the `group_by` argument instead. The `query_group_by` namespace will be removed in GA.",
+    )
     def near_video(
         self,
         near_video: Union[str, Path, BufferedReader],
