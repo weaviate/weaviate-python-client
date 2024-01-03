@@ -124,8 +124,8 @@ class _NearText(_Aggregate):
 
 class _NearTextGroupBy(_Aggregate):
     @deprecated(
-        version="4.4b6",
-        reason="Use `aggregate.near_text` with the `group_by` argument instead. The `aggregate_group_by` namespace will be removed in GA.",
+        version="4.4b7",
+        reason="Use `aggregate.near_text` with the `group_by` argument instead. The `aggregate_group_by` namespace will be removed in the final release.",
     )
     def near_text(
         self,

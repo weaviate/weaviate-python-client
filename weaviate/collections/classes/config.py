@@ -1596,6 +1596,17 @@ class _PropertyVectorizerConfig:
 
 
 @dataclass
+class _NestedProperty:
+    data_type: DataType
+    description: Optional[str]
+    index_filterable: bool
+    index_searchable: bool
+    name: str
+    nested_properties: Optional[List["_NestedProperty"]]
+    tokenization: Optional[Tokenization]
+
+
+@dataclass
 class _PropertyBase(_ConfigBase):
     description: Optional[str]
     index_filterable: bool
@@ -1628,6 +1639,7 @@ class _PropertyBase(_ConfigBase):
 @dataclass
 class _Property(_PropertyBase):
     data_type: DataType
+    nested_properties: Optional[List[_NestedProperty]]
 
     def _to_dict(self) -> Dict[str, Any]:
         out = super()._to_dict()
