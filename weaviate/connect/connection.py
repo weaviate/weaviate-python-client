@@ -243,6 +243,7 @@ class Connection:
         self._connection_params = connection_params
         self._connection_config = connection_config
         self._startup_period = startup_period
+        self._weaviate_version: _ServerVersion
 
         self._grpc_available = False
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
