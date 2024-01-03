@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 4.4.b6
+--------------
+
+This beta version includes:
+
+- A fix to the ``_Property`` dataclass returned within ``collection.config.get()`` to include any ``nested_properties`` of ``object`` and ``object[]`` type properties
+
 Version 4.4.b5
 --------------
 
