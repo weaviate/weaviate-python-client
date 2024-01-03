@@ -9,6 +9,7 @@ import time
 from threading import Thread, Event
 from typing import Any, Dict, Optional, Tuple, Union, cast
 from urllib.parse import urlparse
+import httpx  # type: ignore
 
 import requests
 from authlib.integrations.requests_client import OAuth2Session  # type: ignore
@@ -39,7 +40,8 @@ from weaviate.util import (
 )
 from weaviate.warnings import _Warnings
 
-from grpc import Channel, _channel, secure_channel, insecure_channel, ssl_channel_credentials  # type: ignore
+import grpc.aio as aio  # type: ignore
+from grpc import Channel, _channel, secure_channel, insecure_channel, ssl_channel_credentials
 from grpc_health.v1 import health_pb2  # type: ignore
 from weaviate.proto.v1 import weaviate_pb2_grpc
 
@@ -165,6 +167,21 @@ class ConnectionParams(BaseModel):
                 options=GRPC_OPTIONS,
             )
 
+    def _grpc_channel_async(self) -> Optional[Channel]:
+        if self.grpc is None:
+            return None
+        if self.grpc.secure:
+            return aio.secure_channel(
+                target=self._grpc_target,
+                credentials=ssl_channel_credentials(),
+                options=GRPC_OPTIONS,
+            )
+        else:
+            return aio.insecure_channel(
+                target=self._grpc_target,
+                options=GRPC_OPTIONS,
+            )
+
     @property
     def _http_scheme(self) -> str:
         return "https" if self.http.secure else "http"
@@ -245,6 +262,7 @@ class Connection:
 
         self._grpc_available = False
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
+        self._grpc_stub_async: Optional[weaviate_pb2_grpc.WeaviateStub] = None
         self.__additional_headers: Dict[str, str] = {}
 
         self._headers = {"content-type": "application/json"}
@@ -270,6 +288,8 @@ class Connection:
             self._headers["authorization"] = "Bearer " + auth_client_secret.api_key
 
         self._session: Session
+        self._httpx_async_client: httpx.AsyncClient
+
         self._shutdown_background_event: Optional[Event] = None
 
     def connect(self, skip_init_checks: bool) -> None:
@@ -311,10 +331,12 @@ class Connection:
         # API keys are separate from OIDC and do not need any config from weaviate
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
             self._session = requests.Session()
+            self._httpx_async_client = httpx.AsyncClient()
             return
 
         if "authorization" in self._headers and auth_client_secret is None:
             self._session = requests.Session()
+            self._httpx_async_client = httpx.AsyncClient()
             return
 
         oidc_url = self.url + self._api_version_path + "/.well-known/openid-configuration"
@@ -333,11 +355,13 @@ class Connection:
             except JSONDecodeError:
                 _Warnings.auth_cannot_parse_oidc_config(oidc_url)
                 self._session = requests.Session()
+                self._httpx_async_client = httpx.AsyncClient()
                 return
 
             if auth_client_secret is not None and not isinstance(auth_client_secret, AuthApiKey):
                 _auth = _Auth(resp, auth_client_secret, self)
                 self._session = _auth.get_auth_session()
+                self._httpx_async_client = httpx.AsyncClient()
 
                 if isinstance(auth_client_secret, AuthClientCredentials):
                     # credentials should only be saved for client credentials, otherwise use refresh token
@@ -366,8 +390,10 @@ class Connection:
         elif response.status_code == 404 and auth_client_secret is not None:
             _Warnings.auth_with_anon_weaviate()
             self._session = requests.Session()
+            self._httpx_async_client = httpx.AsyncClient()
         else:
             self._session = requests.Session()
+            self._httpx_async_client = httpx.AsyncClient()
 
     def get_current_bearer_token(self) -> str:
         if "authorization" in self._headers:
@@ -539,6 +565,21 @@ class Connection:
             proxies=self._proxies,
             params=params,
         )
+
+    async def post_async(
+        self,
+        path: str,
+        weaviate_object: JSONPayload,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> httpx._models.Response:
+        r = await self._httpx_async_client.post(
+            url=self.url + self._api_version_path + path,
+            json=weaviate_object,
+            headers=self._get_request_header(),
+            # timeout=self._timeout_config,
+            params=params,
+        )
+        return r
 
     def post(
         self,
@@ -779,6 +820,10 @@ class Connection:
         return self._grpc_stub
 
     @property
+    def grpc_stub_async(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
+        return self._grpc_stub_async
+
+    @property
     def server_version(self) -> str:
         """
         Version of the weaviate instance.
@@ -831,6 +876,11 @@ class GRPCConnection(Connection):
             grpc_channel = self._connection_params._grpc_channel()
             assert grpc_channel is not None
             self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(grpc_channel)
+
+            grpc_channel_async = self._connection_params._grpc_channel_async()
+            assert grpc_channel_async is not None
+            self._grpc_stub_async = weaviate_pb2_grpc.WeaviateStub(grpc_channel_async)
+
             self._grpc_available = True
             if not skip_init_checks:
                 try:
@@ -843,6 +893,7 @@ class GRPCConnection(Connection):
                         raise WeaviateGrpcUnavailable(f"Weaviate v{self.server_version}")
                 except _channel._InactiveRpcError as e:
                     raise WeaviateGrpcUnavailable(f"Weaviate v{self.server_version}") from e
+
         else:
             raise WeaviateGrpcUnavailable(
                 "You must provide the gRPC port in `connection_params` to use gRPC."

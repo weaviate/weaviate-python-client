@@ -1,3 +1,4 @@
+import asyncio
 import math
 import threading
 import time
@@ -9,9 +10,9 @@ from requests import ReadTimeout
 from requests.exceptions import HTTPError as RequestsHTTPError
 
 from weaviate.cluster import Cluster
-from weaviate.collections.batch import _BatchREST
 from weaviate.collections.batch.base import ObjectsBatchRequest, ReferencesBatchRequest
 from weaviate.collections.batch.grpc import _BatchGRPC
+from weaviate.collections.batch.rest import _BatchRESTAsync
 from weaviate.collections.classes.batch import (
     BatchObject,
     _BatchObject,
@@ -48,7 +49,7 @@ class _Batch2Object:
     ) -> None:
         self.__connection = connection
         self.__batch_grpc = _BatchGRPC(connection, consistency_level)
-        self.__batch_rest = _BatchREST(connection, consistency_level)
+        self.__batch_rest = _BatchRESTAsync(connection, consistency_level)
 
         # these are threadsafe as locking happens in them
         self.__batch_objects = ObjectsBatchRequest()
@@ -71,7 +72,7 @@ class _Batch2Object:
 
         self._recommended_num_objects: int = 10
 
-        # there seems to be a bug with weaviate when sending >= refs at once
+        # there seems to be a bug with weaviate when sending > 50 refs at once
         self._recommended_num_refs: int = 50
 
         self.__num_workers: int = 2
@@ -79,6 +80,8 @@ class _Batch2Object:
         self._active_thread_lock = threading.Lock()
         self._last_scale_up: float = 0
         self._max_observed_rate: int = 0
+
+        self._loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
 
         self.__start_bg_thread()
 
@@ -192,11 +195,14 @@ class _Batch2Object:
             while self._recommended_num_objects == 0:
                 time.sleep(1)  # block if weaviate is overloaded, also do not send any refs
 
-    def __send_batch_in_bg(self, objs: List[_BatchObject], refs: List[_BatchReference]) -> None:
+    async def __send_batch_async(
+        self, objs: List[_BatchObject], refs: List[_BatchReference]
+    ) -> None:
+        # print("in async", len(objs), flush=True)
         if len(objs) > 0:
             start = time.time()
             try:
-                response_obj = self.__batch_grpc.objects(objects=objs)
+                response_obj = await self.__batch_grpc.objects_async(objects=objs)
             except Exception as e:
                 print(repr(e), objs)
                 errors_obj = {
@@ -217,7 +223,7 @@ class _Batch2Object:
         if len(refs) > 0:
             start = time.time()
             try:
-                response_ref = self.__batch_rest.references(references=refs)
+                response_ref = await self.__batch_rest.references(references=refs)
 
             except Exception as e:
                 print(repr(e), refs)
@@ -250,10 +256,28 @@ class _Batch2Object:
 
         # we are done, shut bg thread down
         self.__shut_background_thread_down.set()
+        self._loop.stop()
 
     def __start_bg_thread(self) -> None:
         """Create a background process that periodically checks how congested the batch queue is."""
         self.__shut_background_thread_down = threading.Event()
+
+        def start_event_loop_thread() -> None:
+            while (
+                self.__shut_background_thread_down is not None
+                and not self.__shut_background_thread_down.is_set()
+            ):
+                if self._loop.is_running():
+                    continue
+                else:
+                    self._loop.run_forever()
+
+        event_loop = threading.Thread(
+            target=start_event_loop_thread,
+            daemon=True,
+            name="eventLoop",
+        )
+        event_loop.start()
 
         def periodic_check() -> None:
             while (
@@ -350,17 +374,14 @@ class _Batch2Object:
                     self._active_thread_lock.acquire()
                     self._active_threads += 1
                     self._active_thread_lock.release()
-
-                    send_thread = threading.Thread(
-                        target=self.__send_batch_in_bg,
-                        daemon=False,
-                        name="SendBatch",
-                        args=(
+                    asyncio.run_coroutine_threadsafe(
+                        self.__send_batch_async(
                             self.__batch_objects.pop_items(self._recommended_num_objects),
                             self.__batch_references.pop_items(self._recommended_num_refs),
                         ),
+                        self._loop,
                     )
-                    send_thread.start()
+
                 time.sleep(refresh_time)
 
         demon = threading.Thread(

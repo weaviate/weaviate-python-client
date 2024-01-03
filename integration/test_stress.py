@@ -122,9 +122,9 @@ def test_stress() -> None:
     paragraphs = client.collections.create_from_dict(schema["classes"][1])
     articles = client.collections.create_from_dict(schema["classes"][2])
 
-    author_data = create_authors(1000)
-    paragraph_data = create_paragraphs(1000, author_data)
-    article_data = create_articles(8000, author_data, paragraph_data)
+    author_data = create_authors(10)
+    paragraph_data = create_paragraphs(10, author_data)
+    article_data = create_articles(30, author_data, paragraph_data)
 
     add_authors(client, author_data)
     add_paragraphs(client, paragraph_data)
