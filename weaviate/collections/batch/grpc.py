@@ -22,7 +22,7 @@ from weaviate.exceptions import (
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
 )
-from weaviate.util import _datetime_to_string, get_vector, parse_version_string
+from weaviate.util import _datetime_to_string, get_vector
 from weaviate.proto.v1 import batch_pb2, base_pb2
 
 
@@ -34,11 +34,7 @@ class _BatchGRPC(_BaseGRPC):
     """
 
     def __init__(self, connection: Connection, consistency_level: Optional[ConsistencyLevel]):
-        is_weaviate_version_123 = (
-            parse_version_string(connection.server_version) > parse_version_string("1.22")
-            if connection.server_version != ""
-            else True
-        )
+        is_weaviate_version_123 = connection._weaviate_version.is_at_least(1, 23, 0)
 
         super().__init__(connection, consistency_level, is_weaviate_version_123)
 

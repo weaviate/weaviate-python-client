@@ -54,7 +54,6 @@ from weaviate.proto.v1 import base_pb2, search_get_pb2, properties_pb2
 from weaviate.types import UUID
 from weaviate.util import (
     file_encoder_b64,
-    parse_version_string,
     _datetime_from_weaviate_str,
     _decode_json_response_dict,
 )
@@ -81,11 +80,8 @@ class _BaseQuery(Generic[Properties, References]):
         self.__consistency_level = consistency_level
         self._properties = properties
         self._references = references
-        self._is_weaviate_version_123 = (
-            parse_version_string(self.__connection.server_version) > parse_version_string("1.22")
-            if self.__connection.server_version != ""
-            else True
-        )
+        self._is_weaviate_version_123: bool = connection._weaviate_version.is_at_least(1, 23, 0)
+        self.__has_reranking: bool = connection._weaviate_version.is_at_least(1, 23, 1)
 
     def _query(self) -> _QueryGRPC:
         if not self.__connection._grpc_available:  # type: ignore[unused-ignore,has-type] # very strange "cannot determine type of" error here when running mypy ./integration
@@ -96,6 +92,7 @@ class _BaseQuery(Generic[Properties, References]):
             self.__tenant,
             self.__consistency_level,
             is_weaviate_version_123=self._is_weaviate_version_123,
+            has_reranking=self.__has_reranking,
         )
 
     def __extract_metadata_for_object(

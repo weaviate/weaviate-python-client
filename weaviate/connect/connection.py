@@ -36,6 +36,7 @@ from weaviate.util import (
     is_weaviate_client_too_old,
     PYPI_PACKAGE_URL,
     _decode_json_response_dict,
+    _ServerVersion,
 )
 from weaviate.warnings import _Warnings
 
@@ -297,6 +298,7 @@ class Connection:
                 pass  # ignore any errors related to requests, it is a best-effort warning
         else:
             self._server_version = ""
+        self._weaviate_version = _ServerVersion.from_string(self._server_version)
 
     def _create_sessions(self, auth_client_secret: Optional[AuthCredentials]) -> None:
         """Creates a async httpx session and a sync request session.
