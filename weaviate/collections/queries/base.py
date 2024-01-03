@@ -84,7 +84,7 @@ class _BaseQuery(Generic[Properties, References]):
         self.__has_reranking: bool = connection._weaviate_version.is_at_least(1, 23, 1)
 
     def _query(self) -> _QueryGRPC:
-        if not self.__connection._grpc_available:  # type: ignore[unused-ignore,has-type] # very strange "cannot determine type of" error here when running mypy ./integration
+        if not self.__connection._grpc_available:
             raise WeaviateGrpcUnavailable()
         return _QueryGRPC(
             self.__connection,
