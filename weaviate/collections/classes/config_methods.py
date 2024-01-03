@@ -254,7 +254,6 @@ def _nested_properties_from_config(props: List[Dict[str, Any]]) -> List[_NestedP
 
 
 def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
-    print(schema["properties"])
     return [
         _Property(
             data_type=DataType(prop["dataType"][0]),
