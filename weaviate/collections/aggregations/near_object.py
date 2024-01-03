@@ -113,8 +113,8 @@ class _NearObject(_Aggregate):
 
 class _NearObjectGroupBy(_Aggregate):
     @deprecated(
-        version="4.4b6",
-        reason="Use `aggregate.near_object` with the `group_by` argument instead. The `aggregate_group_by` namespace will be removed in GA.",
+        version="4.4b7",
+        reason="Use `aggregate.near_object` with the `group_by` argument instead. The `aggregate_group_by` namespace will be removed in the final release.",
     )
     def near_object(
         self,

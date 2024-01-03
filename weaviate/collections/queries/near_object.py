@@ -699,8 +699,8 @@ class _NearObjectGroupBy(Generic[Properties, References], _BaseQuery[Properties,
         ...
 
     @deprecated(
-        version="4.4b6",
-        reason="Use `query.near_vector` with the `group_by` argument instead. The `query_group_by` namespace will be removed in GA.",
+        version="4.4b7",
+        reason="Use `query.near_vector` with the `group_by` argument instead. The `query_group_by` namespace will be removed in the final release.",
     )
     def near_object(
         self,
