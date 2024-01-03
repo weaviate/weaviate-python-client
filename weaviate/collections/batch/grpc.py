@@ -181,6 +181,9 @@ class _BatchGRPC(_BaseGRPC):
                         ),
                     )
                 )
+            elif isinstance(val, list) and len(val) == 0:
+                # this is a dirty hack until th GRPC batch backend is fixed
+                text_arrays.append(base_pb2.TextArrayProperties(prop_name=key, values=val))
             elif isinstance(val, list) and isinstance(val[0], dict):
                 val = cast(List[Dict[str, Any]], val)
                 object_array_properties.append(

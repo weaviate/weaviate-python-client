@@ -458,6 +458,7 @@ def test_update_with_tenant(collection_factory: CollectionFactory) -> None:
         (DataType.TEXT_ARRAY, ["1", "2"]),
         (DataType.INT_ARRAY, [1, 2]),
         (DataType.NUMBER_ARRAY, [1.0, 2.1]),
+        (DataType.NUMBER_ARRAY, []),
     ],
 )
 def test_types(collection_factory: CollectionFactory, data_type: DataType, value: Any) -> None:
