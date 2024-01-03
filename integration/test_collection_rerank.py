@@ -4,6 +4,7 @@ import pytest
 
 import weaviate
 import weaviate.classes as wvc
+from weaviate.util import _ServerVersion
 
 from .conftest import CollectionFactory
 
@@ -39,7 +40,8 @@ def test_queries_with_rerank() -> None:
         ),
         additional_headers={"X-OpenAI-Api-Key": api_key},
     )
-    client._connection._server_version = "1.23.1"
+    if client._connection._weaviate_version < _ServerVersion(1, 23, 1):
+        pytest.skip("Reranking requires Weaviate 1.23.1 or higher")
 
     collection = client.collections.create(
         name="Test_test_queries_with_rerank",
@@ -100,7 +102,8 @@ def test_queries_with_rerank_and_generative(collection_factory: CollectionFactor
         ),
         additional_headers={"X-OpenAI-Api-Key": api_key},
     )
-    client._connection._server_version = "1.23.1"
+    if client._connection._weaviate_version < _ServerVersion(1, 23, 1):
+        pytest.skip("Generative reranking requires Weaviate 1.23.1 or higher")
 
     collection = client.collections.create(
         name="Test_test_queries_with_rerank_and_generative",

@@ -144,6 +144,14 @@ class Generate(_WeaviateInput):
     grouped_properties: Optional[List[str]] = Field(default=None)
 
 
+class GroupBy(_WeaviateInput):
+    """Define how the query's group-by operation should be performed."""
+
+    prop: str
+    objects_per_group: int
+    number_of_groups: int
+
+
 class Sort(_WeaviateInput):
     """Define how the query's sort operation should be performed."""
 

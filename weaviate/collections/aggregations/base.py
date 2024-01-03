@@ -14,6 +14,7 @@ from weaviate.collections.classes.aggregate import (
     AggregateNumber,
     AggregateReference,
     AggregateText,
+    _AggregateGroup,
     _AggregateGroupByReturn,
     _AggregateReturn,
     _Metrics,
@@ -95,22 +96,26 @@ class _Aggregate:
 
     def _to_group_by_result(
         self, response: dict, metrics: Optional[List[_Metrics]]
-    ) -> List[_AggregateGroupByReturn]:
+    ) -> _AggregateGroupByReturn:
         try:
             results: dict = response["data"]["Aggregate"][self.__name]
-            return [
-                _AggregateGroupByReturn(
-                    grouped_by=_GroupedBy(
-                        prop=result["groupedBy"]["path"][0],
-                        value=result["groupedBy"]["value"],
-                    ),
-                    properties=self.__parse_properties(result, metrics)
-                    if metrics is not None
-                    else {},
-                    total_count=result["meta"]["count"] if result.get("meta") is not None else None,
-                )
-                for result in results
-            ]
+            return _AggregateGroupByReturn(
+                groups=[
+                    _AggregateGroup(
+                        grouped_by=_GroupedBy(
+                            prop=result["groupedBy"]["path"][0],
+                            value=result["groupedBy"]["value"],
+                        ),
+                        properties=self.__parse_properties(result, metrics)
+                        if metrics is not None
+                        else {},
+                        total_count=result["meta"]["count"]
+                        if result.get("meta") is not None
+                        else None,
+                    )
+                    for result in results
+                ]
+            )
         except KeyError as e:
             raise ValueError(
                 f"There was an error accessing the {e} key when parsing the GraphQL response: {response}"

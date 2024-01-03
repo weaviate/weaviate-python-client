@@ -108,10 +108,15 @@ class _GroupedBy:
 
 
 @dataclass
-class _AggregateGroupByReturn:
+class _AggregateGroup:
     grouped_by: _GroupedBy
     properties: AProperties
     total_count: Optional[int]
+
+
+@dataclass
+class _AggregateGroupByReturn:
+    groups: List[_AggregateGroup]
 
 
 class _MetricsBase(BaseModel):
