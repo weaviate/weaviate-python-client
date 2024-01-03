@@ -30,6 +30,7 @@ from weaviate.collections.classes.config import (
     DataType,
     _RerankerConfig,
     Reranker,
+    _NestedProperty,
 )
 
 
@@ -233,59 +234,75 @@ def _collection_configs_simple_from_json(
     }
 
 
-def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
-    props: List[_Property] = []
-    for prop in schema["properties"]:
-        if not _is_primitive(prop["dataType"]):
-            continue
-        props.append(
-            _Property(
-                data_type=DataType(prop["dataType"][0]),
-                description=prop.get("description"),
-                index_filterable=prop["indexFilterable"],
-                index_searchable=prop["indexSearchable"],
-                name=prop["name"],
-                tokenization=Tokenization(prop["tokenization"])
-                if prop.get("tokenization") is not None
-                else None,
-                vectorizer_config=_PropertyVectorizerConfig(
-                    skip=prop["moduleConfig"][schema["vectorizer"]]["skip"],
-                    vectorize_property_name=prop["moduleConfig"][schema["vectorizer"]][
-                        "vectorizePropertyName"
-                    ],
-                )
-                if schema["vectorizer"] != "none"
-                else None,
-                vectorizer=schema["vectorizer"],
-            )
+def _nested_properties_from_config(props: List[Dict[str, Any]]) -> List[_NestedProperty]:
+    return [
+        _NestedProperty(
+            data_type=DataType(prop["dataType"][0]),
+            description=prop.get("description"),
+            index_filterable=prop["indexFilterable"],
+            index_searchable=prop["indexSearchable"],
+            name=prop["name"],
+            nested_properties=_nested_properties_from_config(prop["nestedProperties"])
+            if prop.get("nestedProperties") is not None
+            else None,
+            tokenization=Tokenization(prop["tokenization"])
+            if prop.get("tokenization") is not None
+            else None,
         )
-    return props
+        for prop in props
+    ]
+
+
+def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
+    return [
+        _Property(
+            data_type=DataType(prop["dataType"][0]),
+            description=prop.get("description"),
+            index_filterable=prop["indexFilterable"],
+            index_searchable=prop["indexSearchable"],
+            name=prop["name"],
+            nested_properties=_nested_properties_from_config(prop["nestedProperties"])
+            if prop.get("nestedProperties") is not None
+            else None,
+            tokenization=Tokenization(prop["tokenization"])
+            if prop.get("tokenization") is not None
+            else None,
+            vectorizer_config=_PropertyVectorizerConfig(
+                skip=prop["moduleConfig"][schema["vectorizer"]]["skip"],
+                vectorize_property_name=prop["moduleConfig"][schema["vectorizer"]][
+                    "vectorizePropertyName"
+                ],
+            )
+            if schema["vectorizer"] != "none"
+            else None,
+            vectorizer=schema["vectorizer"],
+        )
+        for prop in schema["properties"]
+        if _is_primitive(prop["dataType"])
+    ]
 
 
 def _references_from_config(schema: Dict[str, Any]) -> List[_ReferenceProperty]:
-    refs: List[_ReferenceProperty] = []
-    for prop in schema["properties"]:
-        if _is_primitive(prop["dataType"]):
-            continue
-        refs.append(
-            _ReferenceProperty(
-                target_collections=prop["dataType"],
-                description=prop.get("description"),
-                index_filterable=prop["indexFilterable"],
-                index_searchable=prop["indexSearchable"],
-                name=prop["name"],
-                tokenization=Tokenization(prop["tokenization"])
-                if prop.get("tokenization") is not None
-                else None,
-                vectorizer_config=_PropertyVectorizerConfig(
-                    skip=prop["moduleConfig"][schema["vectorizer"]]["skip"],
-                    vectorize_property_name=prop["moduleConfig"][schema["vectorizer"]][
-                        "vectorizePropertyName"
-                    ],
-                )
-                if schema["vectorizer"] != "none"
-                else None,
-                vectorizer=schema["vectorizer"],
+    return [
+        _ReferenceProperty(
+            target_collections=prop["dataType"],
+            description=prop.get("description"),
+            index_filterable=prop["indexFilterable"],
+            index_searchable=prop["indexSearchable"],
+            name=prop["name"],
+            tokenization=Tokenization(prop["tokenization"])
+            if prop.get("tokenization") is not None
+            else None,
+            vectorizer_config=_PropertyVectorizerConfig(
+                skip=prop["moduleConfig"][schema["vectorizer"]]["skip"],
+                vectorize_property_name=prop["moduleConfig"][schema["vectorizer"]][
+                    "vectorizePropertyName"
+                ],
             )
+            if schema["vectorizer"] != "none"
+            else None,
+            vectorizer=schema["vectorizer"],
         )
-    return refs
+        for prop in schema["properties"]
+        if not _is_primitive(prop["dataType"])
+    ]
